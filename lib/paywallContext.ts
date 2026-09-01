@@ -25,6 +25,7 @@ export type PaywallOutcome =
   | 'purchase_succeeded';
 
 export type PaywallContext = {
+  entryPoint: string;
   placement: PaywallPlacement;
   featureKey: FeatureKey;
   triggerType: PaywallTriggerType;
@@ -90,6 +91,7 @@ export function createPaywallContextFromRequest(input: {
   const payloadTrigger = input.payload?.triggerType;
   const payloadReturnView = input.payload?.returnView;
   return createPaywallContext({
+    entryPoint: source,
     placement: PAYWALL_PLACEMENTS.has(payloadPlacement as PaywallPlacement)
       ? payloadPlacement as PaywallPlacement
       : fallback.placement,
@@ -115,7 +117,8 @@ export function createPaywallContextFromRequest(input: {
   });
 }
 
-type CreatePaywallContextInput = Omit<PaywallContext, 'paywallInstanceId' | 'returnAction' | 'returnEntityId'> & {
+type CreatePaywallContextInput = Omit<PaywallContext, 'entryPoint' | 'paywallInstanceId' | 'returnAction' | 'returnEntityId'> & {
+  entryPoint?: string;
   paywallInstanceId?: string;
   returnAction?: string | null;
   returnEntityId?: string | null;
@@ -133,6 +136,7 @@ export function createPaywallInstanceId(): string {
 export function createPaywallContext(input: CreatePaywallContextInput): PaywallContext {
   return {
     ...input,
+    entryPoint: input.entryPoint || input.placement,
     returnScrollAnchor: input.returnScrollAnchor || null,
     returnAction: input.returnAction || null,
     returnEntityId: input.returnEntityId || null,

@@ -29,8 +29,8 @@ describe('chart balance placement and copy', () => {
     expect(humanReport).not.toContain('<ChartBalance');
     expect(humanReport).toContain('<details className="natal-technical-details');
     expect(humanReport).toContain('<TechnicalDetails chartData={chartData} language={language} />');
-    expect(humanReport).toContain('freeSections.map');
-    expect(humanReport).toContain('<PremiumReport');
+    expect(humanReport).toContain('buildNatalReportTopics');
+    expect(humanReport).toContain('<NatalReportHub');
   });
 
   it('does not use deficit wording in element summaries', () => {

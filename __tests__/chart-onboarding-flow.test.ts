@@ -46,7 +46,8 @@ describe('chart onboarding and lazy sections', () => {
     expect(app).toContain('isPremium: isGuestOnboarding');
     expect(app).toContain('trialStartedAt: isGuestOnboarding ? null');
     expect(app).toContain('await saveProfile(canonicalFullProfile)');
-    expect(app).toContain('await getOrCalculateChart(pendingProfile)');
+    expect(app).toContain('const generatedChart = await getOrCalculateChart(');
+    expect(app).toContain('primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)');
   });
 
   it('keeps the canonical server profile authoritative and reports a missing session clearly', () => {

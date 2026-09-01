@@ -80,7 +80,8 @@ describe('first-run onboarding completion flow', () => {
     expect(app).toContain('onboardingCompletionRef.current = true;');
     expect(app).toContain('const pendingProfile = {');
     expect(app).toContain('isSetup: false');
-    expect(app).toContain('const generatedChart = await getOrCalculateChart(pendingProfile)');
+    expect(app).toContain('const generatedChart = await getOrCalculateChart(');
+    expect(app).toContain('primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)');
     expect(app).toContain('const fullProfile = { ...pendingProfile, isSetup: true }');
     expect(app).toContain('const canonicalFullProfile: UserProfile = {');
     expect(app).toContain('birthTimezone: canonicalBirth?.timezone || generatedChart.timezone');
@@ -95,7 +96,7 @@ describe('first-run onboarding completion flow', () => {
     expect(completionFlow).toContain('setView(targetView)');
     expect(completionFlow).not.toContain("setView('paywall')");
     expect(completionFlow).not.toContain('const isFirstSetup =');
-    expect(completionFlow.indexOf('getOrCalculateChart(pendingProfile)'))
+    expect(completionFlow.indexOf('getOrCalculateChart('))
       .toBeLessThan(completionFlow.indexOf('setView(targetView)'));
 
     expect(app).not.toContain('prepareUserContentDbFirst');

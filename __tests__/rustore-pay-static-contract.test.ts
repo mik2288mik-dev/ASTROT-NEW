@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 
 const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), 'utf8');
 
@@ -36,6 +37,28 @@ describe('RuStore Pay integration contract', () => {
     expect(server).toContain("'Public-Token': token");
     expect(native).not.toContain('RUSTORE_PUBLIC_API_TOKEN');
     expect(native).not.toContain('RUSTORE_NOTIFICATION_AES_KEY');
+  });
+
+  it('uses the new RuStore API domain with the required server trust chain', () => {
+    const server = read('lib/rustorePayments.ts');
+    const dockerfile = read('Dockerfile');
+    const root = new crypto.X509Certificate(
+      read('config/rustore-certificates/russian_trusted_root_ca.crt'),
+    );
+    const intermediate = new crypto.X509Certificate(
+      read('config/rustore-certificates/russian_trusted_sub_ca.crt'),
+    );
+
+    expect(server).toContain("const RUSTORE_PUBLIC_API_ORIGIN = 'https://public-api-m.rustore.ru'");
+    expect(server).not.toContain('https://public-api.rustore.ru');
+    expect(dockerfile).toContain('NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt');
+    expect(dockerfile).toContain('update-ca-certificates');
+    expect(root.subject).toContain('CN=Russian Trusted Root CA');
+    expect(intermediate.subject).toContain('CN=Russian Trusted Sub CA');
+    expect(intermediate.verify(root.publicKey)).toBe(true);
+    expect(Date.parse(intermediate.validTo)).toBeGreaterThan(
+      Date.now() + 45 * 24 * 60 * 60 * 1000,
+    );
   });
 
   it('allows current Pay SDK checkout without requiring the RuStore app', () => {

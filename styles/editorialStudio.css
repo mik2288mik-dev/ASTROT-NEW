@@ -1148,6 +1148,374 @@
   line-height: 1.55;
 }
 
+.fresh-page.natal-mvp-page .natal-topic-hub {
+  margin: 0;
+  padding: 30px 0 34px;
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-topic-hub-heading {
+  margin-bottom: 19px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-hub-heading > p,
+.fresh-page.natal-mvp-page .natal-topic-detail-heading > p {
+  margin: 0 0 7px;
+  color: var(--natal-mvp-muted);
+  font-size: 11px;
+  font-weight: 620;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-hub-heading h2,
+.fresh-page.natal-mvp-page .natal-topic-detail-heading h2 {
+  max-width: 22ch;
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: clamp(25px, 6.8vw, 31px);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-grid {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 10px;
+  list-style: none;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-grid > li {
+  min-width: 0;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 154px;
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 17px 44px 18px 17px;
+  border: 1px solid var(--natal-mvp-line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: none;
+  color: var(--natal-mvp-ink);
+  text-align: left;
+  transition: transform 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.fresh-page.natal-mvp-page .natal-topic-card-meta {
+  display: inline-flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 14px;
+  color: var(--natal-mvp-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-card-meta svg {
+  width: 13px;
+  height: 13px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-card-title {
+  max-width: 22ch;
+  color: var(--natal-mvp-ink);
+  font-size: 18px;
+  font-weight: 640;
+  letter-spacing: -0.022em;
+  line-height: 1.17;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-card-description {
+  margin-top: 7px;
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  line-height: 1.47;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-card-arrow {
+  position: absolute;
+  right: 16px;
+  bottom: 17px;
+  width: 17px;
+  height: 17px;
+  color: var(--natal-mvp-muted);
+}
+
+.fresh-page.natal-mvp-page .natal-topic-card:active {
+  transform: scale(0.98);
+}
+
+.fresh-page.natal-mvp-page .natal-topic-detail {
+  margin: 0;
+  padding: 8px 0 0;
+  scroll-margin-top: 96px;
+}
+
+.fresh-page.natal-mvp-page #natal-topic-hub-title,
+.fresh-page.natal-mvp-page #natal-topic-detail-title {
+  scroll-margin-top: 104px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-back {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 20px -8px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--natal-mvp-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-back svg {
+  width: 18px;
+  height: 18px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-detail-heading {
+  padding-bottom: 25px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-reading,
+.fresh-page.natal-mvp-page .natal-topic-loading,
+.fresh-page.natal-mvp-page .natal-topic-unavailable,
+.fresh-page.natal-mvp-page .natal-topic-error,
+.fresh-page.natal-mvp-page .natal-topic-locked,
+.fresh-page.natal-mvp-page .natal-topic-next {
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-topic-reading {
+  padding: 28px 0 31px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-reading-text {
+  max-width: 65ch;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-reading-paragraph {
+  margin: 0 0 17px;
+  color: var(--natal-mvp-ink);
+  font-size: 16px;
+  font-weight: 430;
+  letter-spacing: 0;
+  line-height: 1.68;
+  overflow-wrap: break-word;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-reading-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-loading,
+.fresh-page.natal-mvp-page .natal-topic-unavailable,
+.fresh-page.natal-mvp-page .natal-topic-error {
+  margin: 0;
+  padding: 27px 0;
+  color: var(--natal-mvp-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-loading {
+  min-height: 180px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-loading-lines {
+  display: grid;
+  gap: 13px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-loading-lines > span {
+  display: block;
+  width: 100%;
+  height: 15px;
+  border-radius: 3px;
+  background: #ecebea;
+  animation: natal-reading-skeleton-pulse 1.35s ease-in-out infinite alternate;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-loading-lines > span:nth-child(2) {
+  width: 88%;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-loading-lines > span:last-child {
+  width: 68%;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-error p {
+  margin: 0 0 13px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-error button {
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--natal-mvp-ink);
+  font-weight: 620;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-locked {
+  padding: 28px 0 34px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-locked-preview {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.48;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-unlock {
+  margin-top: 25px;
+  padding: 21px;
+  border-radius: 18px;
+  background: #f5f1ec;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-unlock > p {
+  margin: 0 0 7px;
+  color: var(--natal-mvp-muted);
+  font-size: 11px;
+  font-weight: 620;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-unlock h3 {
+  max-width: 27ch;
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.24;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-premium-button {
+  display: inline-flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--natal-mvp-ink);
+  box-shadow: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 630;
+  transition: transform 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.fresh-page.natal-mvp-page .natal-topic-premium-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-premium-button:active {
+  transform: scale(0.97);
+}
+
+.fresh-page.natal-mvp-page .natal-topic-next {
+  padding: 28px 0 7px;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-next h3 {
+  margin: 0 0 13px;
+  color: var(--natal-mvp-ink);
+  font-size: 18px;
+  font-weight: 640;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-next ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-next li {
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-topic-next button {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 0;
+  border: 0;
+  background: transparent;
+  color: var(--natal-mvp-ink);
+  font-size: 15px;
+  font-weight: 570;
+  text-align: left;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-next button > span:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-next-access {
+  color: var(--natal-mvp-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.fresh-page.natal-mvp-page .natal-topic-next button > svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  color: var(--natal-mvp-muted);
+}
+
+.fresh-page.natal-mvp-page .natal-topic-card:focus-visible,
+.fresh-page.natal-mvp-page .natal-topic-back:focus-visible,
+.fresh-page.natal-mvp-page .natal-topic-premium-button:focus-visible,
+.fresh-page.natal-mvp-page .natal-topic-next button:focus-visible,
+.fresh-page.natal-mvp-page .natal-topic-error button:focus-visible,
+.fresh-page.natal-mvp-page #natal-topic-hub-title:focus-visible,
+.fresh-page.natal-mvp-page #natal-topic-detail-title:focus-visible,
+.fresh-page.natal-mvp-page #natal-question-composer:focus-visible {
+  outline: 2px solid var(--natal-mvp-ink);
+  outline-offset: 3px;
+}
+
 .fresh-page.natal-mvp-page .natal-premium-callout,
 .fresh-page.natal-mvp-page .natal-question-action,
 .fresh-page.natal-mvp-page .natal-disclaimer,
@@ -1345,11 +1713,25 @@
   .fresh-page.natal-mvp-page .natal-question-submit {
     width: 100%;
   }
+
+  .fresh-page.natal-mvp-page .natal-topic-card {
+    min-height: 146px;
+    padding-left: 15px;
+  }
+
+  .fresh-page.natal-mvp-page .natal-topic-unlock {
+    padding: 18px;
+  }
 }
 
 @media (min-width: 520px) {
-  .fresh-page.natal-mvp-page .natal-premium-button {
+  .fresh-page.natal-mvp-page .natal-premium-button,
+  .fresh-page.natal-mvp-page .natal-topic-premium-button {
     width: auto;
+  }
+
+  .fresh-page.natal-mvp-page .natal-topic-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1359,11 +1741,17 @@
   .fresh-page.natal-mvp-page .natal-question-suggestions button,
   .fresh-page.natal-mvp-page .natal-question-submit,
   .fresh-page.natal-mvp-page .natal-question-premium-button,
-  .fresh-page.natal-mvp-page .natal-report-retry {
+  .fresh-page.natal-mvp-page .natal-report-retry,
+  .fresh-page.natal-mvp-page .natal-topic-card,
+  .fresh-page.natal-mvp-page .natal-topic-premium-button {
     transition: none;
   }
 
   .fresh-page.natal-mvp-page .natal-premium-skeleton > span:not(.sr-only) {
+    animation: none;
+  }
+
+  .fresh-page.natal-mvp-page .natal-topic-loading-lines > span {
     animation: none;
   }
 }

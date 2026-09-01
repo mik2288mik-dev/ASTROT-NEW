@@ -86,6 +86,33 @@ describe('contextual paywall return contract', () => {
     expect(app).toContain('onClose={() => returnFromPaywall(paywallContext, \'close\')}');
   });
 
+  it('opens an explicitly tapped paid feature before first value and keeps its exact return context', () => {
+    const app = read('App.tsx');
+    const requestPremium = app.slice(
+      app.indexOf('const requestPremium = async'),
+      app.indexOf('// Navigation logic:'),
+    );
+    const returnFlow = app.slice(
+      app.indexOf('const returnFromPaywall'),
+      app.indexOf('const profileFromValidatedPayment'),
+    );
+
+    expect(requestPremium).toContain(
+      "const isExplicitPaidFeatureRequest = context.triggerType === 'locked_feature';",
+    );
+    expect(requestPremium).toMatch(
+      /!firstValueReachedRef\.current\s+&& !isExplicitPaidFeatureRequest\s+&& !options\?\.bypassFirstValueGate/,
+    );
+    expect(requestPremium.indexOf('setPaywallContext(context)')).toBeGreaterThan(
+      requestPremium.indexOf('!isExplicitPaidFeatureRequest'),
+    );
+    expect(returnFlow).toContain(
+      'setPremiumContinuation(destination.shouldOpenFeature ? context : null)',
+    );
+    expect(returnFlow).toContain('setView(destination.view)');
+    expect(returnFlow).toContain('focus: !destination.shouldOpenFeature');
+  });
+
   it('keeps all three plans visible and recoverable without invented prices', () => {
     const paywall = read('views/Paywall.tsx');
     const styles = read('styles/globals.css');
@@ -165,6 +192,7 @@ describe('contextual paywall return contract', () => {
       },
     });
     expect(savedPerson).toMatchObject({
+      entryPoint: 'charts',
       returnAction: 'open_saved_person',
       returnEntityId: '73',
     });
@@ -172,6 +200,32 @@ describe('contextual paywall return contract', () => {
       view: 'charts',
       shouldOpenFeature: true,
     });
+  });
+
+  it('keeps the entry point separate from the paid placement through checkout', () => {
+    const app = read('App.tsx');
+    const deepNatal = createPaywallContextFromRequest({
+      source: 'feature_gate',
+      currentView: 'chart',
+      payload: {
+        placement: 'deep_natal',
+        featureKey: 'natal_deep',
+        triggerType: 'locked_feature',
+      },
+    });
+
+    expect(deepNatal).toMatchObject({
+      entryPoint: 'feature_gate',
+      placement: 'deep_natal',
+    });
+    expect(app).toContain('entryPoint: context.entryPoint');
+    expect(app).toContain('source: paywallEventSource(context)');
+    expect(app).not.toContain('source: paywallContext.placement');
+    expect(app).not.toContain('source: serviceStoreContext.placement');
+    expect(app).toContain('target?.focus({ preventScroll: true })');
+    expect(read('components/NatalReading/HumanReport.tsx')).toContain(
+      'returnScrollAnchor: `natal-topic-premium-${topicKey}`',
+    );
   });
 
   it('places the offer only after overview and one readable fragment', () => {

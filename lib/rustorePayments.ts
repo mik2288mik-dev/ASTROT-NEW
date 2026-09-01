@@ -54,6 +54,8 @@ type CachedRuStoreToken = {
 let cachedRuStoreToken: CachedRuStoreToken | null = null;
 let ruStoreTokenRequest: Promise<string> | null = null;
 
+const RUSTORE_PUBLIC_API_ORIGIN = 'https://public-api-m.rustore.ru';
+
 function required(name: string): string {
   const value = String(process.env[name] || '').trim();
   if (!value || value.includes('_REQUIRED') || value.includes('[УКАЖИТЕ')) {
@@ -76,8 +78,8 @@ function validateProductId(productId: string): void {
 
 function apiRoot(sandbox: boolean): string {
   return sandbox
-    ? 'https://public-api.rustore.ru/public/sandbox'
-    : 'https://public-api.rustore.ru/public';
+    ? `${RUSTORE_PUBLIC_API_ORIGIN}/public/sandbox`
+    : `${RUSTORE_PUBLIC_API_ORIGIN}/public`;
 }
 
 export function resolveRuStoreSandboxMode(): boolean {
@@ -119,7 +121,7 @@ async function requestRuStoreApiToken(): Promise<string> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8_000);
     try {
-      const response = await fetch('https://public-api.rustore.ru/public/auth/', {
+      const response = await fetch(`${RUSTORE_PUBLIC_API_ORIGIN}/public/auth/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keyId, timestamp, signature }),

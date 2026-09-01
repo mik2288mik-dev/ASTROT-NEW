@@ -3739,6 +3739,24 @@ async function mvp051SupportDeliveryOutbox(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+async function mvp052UserAppEventIdempotency(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_052_user_app_event_idempotency';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  await pool.query('ALTER TABLE user_app_events ADD COLUMN IF NOT EXISTS event_id TEXT');
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_user_app_events_event_id_unique
+      ON user_app_events(event_id)
+      WHERE event_id IS NOT NULL
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -3823,6 +3841,7 @@ export async function runMigrations(): Promise<void> {
     await mvp049ContentReactions(migrationDb);
     await mvp050LegalAcknowledgements(migrationDb);
     await mvp051SupportDeliveryOutbox(migrationDb);
+    await mvp052UserAppEventIdempotency(migrationDb);
     await mvp044PremiumEntitlementLifecycle(migrationDb);
     await mvp045RuStoreCallbackOrdering(migrationDb);
     await mvp046RuStoreProviderOverlay(migrationDb);

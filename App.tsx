@@ -32,6 +32,7 @@ import {
 } from './services/apiClient';
 import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './services/chartService';
 import { buildNatalChartCacheKey, clearLocalNatalChart, readLocalNatalChartCache, writeLocalNatalChart } from './lib/localNatalChartCache';
+import { createPrimaryChartRequestGuard } from './lib/primaryChartRequestGuard';
 import {
     clearLocalHumanBaseReport,
     readLocalHumanBaseReportWithFallback,
@@ -59,14 +60,24 @@ import {
 } from './lib/natalReading/permanentReport';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
-import { getPaymentProvider, type PaymentResult } from './services/paymentProvider';
+import {
+    getPaymentProvider,
+    type PaymentResult,
+    type PurchaseRestoreStatus,
+} from './services/paymentProvider';
 import {
     openRuStoreSubscriptionManagement,
     restoreRuStorePurchases,
 } from './services/rustorePayService';
 import type { PremiumPlanId } from './lib/premiumPricing';
 import { getAdminStatus } from './services/adminService';
-import { recordNotificationAttribution, recordUserAppEvent, recordUserSession, waitForTelegramInitData } from './services/sessionService';
+import {
+    clearQueuedUserAppEvents,
+    recordNotificationAttribution,
+    recordUserAppEvent,
+    recordUserSession,
+    waitForTelegramInitData,
+} from './services/sessionService';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
@@ -379,6 +390,7 @@ const App: React.FC = () => {
         promise: Promise<NatalChartData | null> | null;
     }>({ key: '', data: null, promise: null });
     const primaryChartDataRef = useRef<NatalChartData | null>(null);
+    const primaryChartRequestGuardRef = useRef(createPrimaryChartRequestGuard());
     const requestedViewRef = useRef<ViewState | null>(null);
     const notificationLaunchRef = useRef<NotificationLaunchParams | null>(null);
     const notificationAttributionSentRef = useRef(false);
@@ -394,6 +406,15 @@ const App: React.FC = () => {
     const restoredRuStoreUserRef = useRef<string | null>(null);
     const firstValueReachedRef = useRef(false);
     const navigationHistoryRef = useRef<ViewState[]>([]);
+
+    useEffect(() => {
+        const accountKey = profile?.id ? String(profile.id) : '';
+        if (accountKey) {
+            primaryChartRequestGuardRef.current.activateAccount(accountKey);
+        } else {
+            primaryChartRequestGuardRef.current.invalidate();
+        }
+    }, [profile?.id]);
 
     useEffect(() => {
         const reached = !!profile?.id
@@ -494,9 +515,10 @@ const App: React.FC = () => {
         targetProfile: UserProfile,
         targetChartId?: number,
         targetChartData?: NatalChartData | null,
+        isCurrent: () => boolean = () => true,
     ) => {
         const userId = targetProfile.id ? String(targetProfile.id) : '';
-        if (!userId || !targetChartData) return null;
+        if (!userId || !targetChartData || !isCurrent()) return null;
         const cacheContext = { chartData: targetChartData || null };
         const reportCacheIdentity = {
             chartFingerprint: buildPermanentNatalChartFingerprint(targetProfile, targetChartData),
@@ -506,6 +528,7 @@ const App: React.FC = () => {
         const cached = getHumanBaseReportCached(userId, targetChartId, targetProfile.language, reportCacheIdentity)
             || readLocalHumanBaseReportWithFallback(targetProfile, targetChartId, cacheContext);
         if (cached) {
+            if (!isCurrent()) return null;
             setPreloadedHumanReport({ report: cached, ...reportCacheIdentity });
             return cached;
         }
@@ -514,6 +537,7 @@ const App: React.FC = () => {
             return null;
         });
         if (dbCached) {
+            if (!isCurrent()) return null;
             writeLocalHumanBaseReport(targetProfile, dbCached, targetChartId, cacheContext);
             setPreloadedHumanReport({ report: dbCached, ...reportCacheIdentity });
             return dbCached;
@@ -523,6 +547,8 @@ const App: React.FC = () => {
 
 
     const loadPrimaryChartOnce = useCallback(async (targetProfile: UserProfile): Promise<NatalChartData | null> => {
+        const accountKey = String(targetProfile.id || '');
+        if (!primaryChartRequestGuardRef.current.isActiveAccount(accountKey)) return null;
         const key = buildNatalChartCacheKey(targetProfile);
         const current = primaryChartSessionRef.current;
 
@@ -536,6 +562,8 @@ const App: React.FC = () => {
             return current.promise;
         }
 
+        const requestToken = primaryChartRequestGuardRef.current.begin(accountKey);
+        if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return null;
         setPreloadedHumanReport(null);
         const localEntry = readLocalNatalChartCache(targetProfile);
         if (localEntry) {
@@ -551,6 +579,7 @@ const App: React.FC = () => {
             // DB remains source of truth, but a temporary DB error must not replace a usable local chart.
             void getChartFromDB(String(targetProfile.id))
                 .then((freshChart) => {
+                    if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
                     if (!freshChart) return; // Do not recalculate a DB miss while a valid local chart exists.
                     primaryChartSessionRef.current = { key, data: freshChart, promise: null };
                     primaryChartDataRef.current = freshChart;
@@ -559,6 +588,7 @@ const App: React.FC = () => {
                     setChartLoadState('ready');
                 })
                 .catch((error: any) => {
+                    if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
                     console.warn('[App] Background primary chart refresh failed; keeping local cache:', error?.message || error);
                 });
 
@@ -566,8 +596,12 @@ const App: React.FC = () => {
         }
 
         setChartLoadState('loading');
-        const promise = getOrCalculateChart(targetProfile)
+        const promise = getOrCalculateChart(
+            targetProfile,
+            () => primaryChartRequestGuardRef.current.isCurrent(requestToken),
+        )
             .then((chart) => {
+                if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return null;
                 if (hasReadableNatalChart(chart)) {
                     primaryChartSessionRef.current = { key, data: chart, promise: null };
                     primaryChartDataRef.current = chart;
@@ -584,6 +618,7 @@ const App: React.FC = () => {
                 return null;
             })
             .catch((error: any) => {
+                if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return null;
                 console.error('[App] Primary chart load failed:', error?.message || error);
                 primaryChartSessionRef.current = { key, data: null, promise: null };
                 primaryChartDataRef.current = null;
@@ -597,6 +632,7 @@ const App: React.FC = () => {
     }, []);
 
     const resetPrimaryChartState = useCallback(() => {
+        primaryChartRequestGuardRef.current.invalidate();
         primaryChartSessionRef.current = { key: '', data: null, promise: null };
         primaryChartDataRef.current = null;
         setChartData(null);
@@ -769,6 +805,8 @@ const App: React.FC = () => {
             refreshChartFromDb: boolean,
         ) => {
             const userId = String(targetProfile.id);
+            const requestToken = primaryChartRequestGuardRef.current.begin(userId);
+            if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
             const startHumanBasePrefetch = (
                 chartId: number,
                 reportChartData: NatalChartData,
@@ -780,12 +818,15 @@ const App: React.FC = () => {
                 };
                 void prefetchHumanBaseReport(userId, chartId, targetProfile.language, reportCacheIdentity)
                     .then((report) => {
+                        if (
+                            cancelled
+                            || !primaryChartRequestGuardRef.current.isCurrent(requestToken)
+                            || !isCurrentSnapshot()
+                        ) return;
                         writeLocalHumanBaseReport(targetProfile, report, chartId, {
                             chartData: reportChartData,
                         });
-                        if (!cancelled && isCurrentSnapshot()) {
-                            setPreloadedHumanReport({ report, ...reportCacheIdentity });
-                        }
+                        setPreloadedHumanReport({ report, ...reportCacheIdentity });
                     })
                     .catch((error: any) => {
                         console.warn('[App] Human base report background prefetch failed:', error?.message || error);
@@ -804,20 +845,19 @@ const App: React.FC = () => {
                 const chartRefresh = refreshChartFromDb
                     ? getChartFromDB(String(targetProfile.id))
                         .then((freshChart) => {
+                            if (cancelled || !primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
                             if (!hasReadableNatalChart(freshChart)) return;
                             chart = freshChart;
                             const key = buildNatalChartCacheKey(targetProfile);
                             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
                             primaryChartDataRef.current = freshChart;
                             writeLocalNatalChart(targetProfile, freshChart, chartId ?? undefined);
-                            if (!cancelled) {
-                                const freshFingerprint = buildPermanentNatalChartFingerprint(targetProfile, freshChart);
-                                setPreloadedHumanReport((current) => (
-                                    current?.chartFingerprint === freshFingerprint ? current : null
-                                ));
-                                setChartData(freshChart);
-                                setChartLoadState('ready');
-                            }
+                            const freshFingerprint = buildPermanentNatalChartFingerprint(targetProfile, freshChart);
+                            setPreloadedHumanReport((current) => (
+                                current?.chartFingerprint === freshFingerprint ? current : null
+                            ));
+                            setChartData(freshChart);
+                            setChartLoadState('ready');
                         })
                         .catch((error: any) => {
                             console.warn('[App] Background primary chart refresh failed; keeping local cache:', error?.message || error);
@@ -826,6 +866,7 @@ const App: React.FC = () => {
 
                 const chartIdRefresh = getPrimaryChartId(String(targetProfile.id))
                     .then((freshPrimaryChartId) => {
+                        if (cancelled || !primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
                         if (freshPrimaryChartId == null) return;
                         chartId = freshPrimaryChartId;
                         writeLocalNatalChart(targetProfile, chart, freshPrimaryChartId);
@@ -835,9 +876,7 @@ const App: React.FC = () => {
                                 primaryChartDataRef.current === reportChart
                             ));
                         }
-                        if (!cancelled) {
-                            setPrimaryChartId(freshPrimaryChartId);
-                        }
+                        setPrimaryChartId(freshPrimaryChartId);
                     })
                     .catch((error: any) => {
                         console.warn('[App] Background primary chart ID refresh failed:', error?.message || error);
@@ -944,6 +983,7 @@ const App: React.FC = () => {
                 if (cancelled) return;
 
                 const canonicalUserId = String(storedProfile.id);
+                primaryChartRequestGuardRef.current.activateAccount(canonicalUserId);
                 const activeMode: AuthSessionMode = storedProfile.isGuest
                     ? 'guest'
                     : getAuthSessionMode() === 'telegram'
@@ -997,6 +1037,7 @@ const App: React.FC = () => {
                     console.log('[App] Profile is not setup; opening birth data without chart/prewarm');
                     logStartupMetric('startup_local_chart_hit', false);
                     resetPrimaryChartState();
+                    primaryChartRequestGuardRef.current.activateAccount(canonicalUserId);
                     showStartupDashboard('onboarding');
                     return;
                 }
@@ -1036,6 +1077,7 @@ const App: React.FC = () => {
                 resetPrimaryChartState();
                 startupVisible = true;
                 if (isProfileBlockedError(error)) {
+                    clearQueuedUserAppEvents();
                     await Promise.all([
                         clearAppSessionAndLocalData().catch(() => undefined),
                         clearNativeProviderCredentialState().catch(() => undefined),
@@ -1090,6 +1132,11 @@ const App: React.FC = () => {
         // The server profile is the canonical account. Telegram launch data is
         // only login proof and must never replace a linked guest users.id.
         const safeUserId = String(currentProfileId);
+        const onboardingChartToken = primaryChartRequestGuardRef.current.begin(safeUserId);
+        if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) {
+            onboardingCompletionRef.current = false;
+            return;
+        }
         const isGuestOnboarding = profile?.isGuest === true;
         const isAdmin = isGuestOnboarding ? false : getFallbackAdminStatus(safeUserId, profile?.isAdmin);
         const retainedPremiumUntil = isGuestOnboarding
@@ -1136,12 +1183,14 @@ const App: React.FC = () => {
                 }
             }
             if (pendingSaveError) throw pendingSaveError;
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
 
             runReferralFromStartParam(safeUserId, (r) => {
+                if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
                 if (r.ok) {
-                    setProfile((p) => (p ? { ...p, referralApplied: true } : p));
+                    setProfile((p) => (p && String(p.id) === safeUserId ? { ...p, referralApplied: true } : p));
                 } else if (r.status === 409) {
-                    setProfile((p) => (p ? { ...p, referralApplied: true } : p));
+                    setProfile((p) => (p && String(p.id) === safeUserId ? { ...p, referralApplied: true } : p));
                 }
             });
 
@@ -1150,7 +1199,11 @@ const App: React.FC = () => {
             setLoadingProgress(40);
             console.log('[App] Calculating natal chart...');
             
-            const generatedChart = await getOrCalculateChart(pendingProfile);
+            const generatedChart = await getOrCalculateChart(
+                pendingProfile,
+                () => primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken),
+            );
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
             
             const birthTimeUnknown = generatedChart?.birthTimeQuality === 'unknown'
                 || generatedChart?.birth?.time?.mode === 'unknown';
@@ -1185,7 +1238,9 @@ const App: React.FC = () => {
             // Завершение фиксируется только после готовой карты. Повтор после сбоя
             // безопасен: профиль обновляется по тому же ID, а chartService читает
             // уже созданную primary chart вместо параллельного расчёта.
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
             await saveProfile(canonicalFullProfile);
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
             setProfile(canonicalFullProfile);
             if (!isGuestOnboarding) {
                 void resolveAuthoritativeAdminStatus(safeUserId, canonicalFullProfile.isAdmin)
@@ -1213,6 +1268,7 @@ const App: React.FC = () => {
             loadStartupPersonalForecasts(canonicalFullProfile);
             void getPrimaryChartId(String(canonicalFullProfile.id))
                 .then((primaryChartId) => {
+                    if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
                     if (primaryChartId != null) {
                         clearLocalHumanBaseReport(canonicalFullProfile, primaryChartId);
                         setPrimaryChartId(primaryChartId);
@@ -1240,6 +1296,7 @@ const App: React.FC = () => {
             onboardingTargetViewRef.current = 'dashboard';
             
         } catch (error: any) {
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
             console.error('[App] Error during onboarding:', error);
             const originalMessage = error?.message || 'Неизвестная ошибка';
             const lowerMessage = originalMessage.toLowerCase();
@@ -1256,9 +1313,11 @@ const App: React.FC = () => {
                         : 'Не удалось сохранить данные и рассчитать карту. Попробуй ещё раз.';
             throw new Error(errorMessage);
         } finally {
-            setLoadingProgress(100);
-            setLoadingMessage(undefined);
-            setLoading(false);
+            if (primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) {
+                setLoadingProgress(100);
+                setLoadingMessage(undefined);
+                setLoading(false);
+            }
             onboardingCompletionRef.current = false;
         }
     };
@@ -1269,12 +1328,15 @@ const App: React.FC = () => {
             && !updatedProfile.legalAcknowledgements
             ? { ...updatedProfile, legalAcknowledgements: profile.legalAcknowledgements }
             : updatedProfile;
+        const nextAccountKey = String(nextProfile.id || '');
         if (profile && String(profile.id) !== String(nextProfile.id)) {
+            clearQueuedUserAppEvents();
             clearLocalNatalChart(profile);
             clearLocalHumanBaseReport(profile);
             clearHumanReadingSessionCache(String(profile.id));
             clearPersonalForecastSessionCache();
             resetPrimaryChartState();
+            primaryChartRequestGuardRef.current.activateAccount(nextAccountKey);
             const nextMode: AuthSessionMode = nextProfile.isGuest ? 'guest' : 'account';
             setAuthSessionMode(nextMode);
             setAuthSessionModeState(nextMode);
@@ -1284,6 +1346,7 @@ const App: React.FC = () => {
             setStartupRetryNonce((value) => value + 1);
             return;
         }
+        primaryChartRequestGuardRef.current.activateAccount(nextAccountKey);
         if (profile && buildNatalChartCacheKey(profile) !== buildNatalChartCacheKey(nextProfile)) {
             clearLocalHumanBaseReport(profile);
         }
@@ -1294,6 +1357,7 @@ const App: React.FC = () => {
         nextMode: 'signed_out' | 'deleted',
         message: string,
     ) => {
+        clearQueuedUserAppEvents();
         if (profile) {
             clearLocalNatalChart(profile);
             clearLocalHumanBaseReport(profile);
@@ -1357,6 +1421,7 @@ const App: React.FC = () => {
         nextMode: 'telegram' | 'guest' | 'account',
     ) => {
         if (profile && String(profile.id) !== String(nextProfile.id)) {
+            clearQueuedUserAppEvents();
             clearLocalNatalChart(profile);
             clearLocalHumanBaseReport(profile);
             clearHumanReadingSessionCache(String(profile.id));
@@ -1364,6 +1429,7 @@ const App: React.FC = () => {
             resetPrimaryChartState();
             restoredRuStoreUserRef.current = null;
         }
+        primaryChartRequestGuardRef.current.activateAccount(String(nextProfile.id || ''));
         setAuthSessionMode(nextMode);
         setAuthSessionModeState(nextMode);
         setAuthGateMessage(null);
@@ -1480,6 +1546,7 @@ const App: React.FC = () => {
         context: PaywallContext,
         extra?: Record<string, unknown>,
     ) => ({
+        entryPoint: context.entryPoint,
         placement: context.placement,
         featureKey: context.featureKey,
         triggerType: context.triggerType,
@@ -1489,11 +1556,20 @@ const App: React.FC = () => {
         ...(extra || {}),
     });
 
-    const restoreScrollAnchor = (anchor: string | null) => {
+    const paywallEventSource = (context: PaywallContext) => (
+        context.entryPoint || context.placement
+    );
+
+    const restoreScrollAnchor = (
+        anchor: string | null,
+        options?: { focus?: boolean },
+    ) => {
         if (!anchor || typeof window === 'undefined') return;
         window.requestAnimationFrame(() => {
             window.requestAnimationFrame(() => {
-                document.getElementById(anchor)?.scrollIntoView({ block: 'center' });
+                const target = document.getElementById(anchor);
+                if (options?.focus) target?.focus({ preventScroll: true });
+                target?.scrollIntoView({ block: 'center' });
             });
         });
     };
@@ -1512,7 +1588,9 @@ const App: React.FC = () => {
         setPremiumContinuation(destination.shouldOpenFeature ? context : null);
         setView(destination.view);
         if (notice) setCheckoutNotice(notice);
-        restoreScrollAnchor(destination.scrollAnchor);
+        restoreScrollAnchor(destination.scrollAnchor, {
+            focus: !destination.shouldOpenFeature,
+        });
     };
 
     const profileFromValidatedPayment = async (
@@ -1544,7 +1622,7 @@ const App: React.FC = () => {
         void recordUserAppEvent({
             eventType: 'checkout_started',
             section: 'premium',
-            source: context.placement,
+            source: paywallEventSource(context),
             eventPayload: paywallEventPayload(context, { planId }),
         });
 
@@ -1556,7 +1634,7 @@ const App: React.FC = () => {
             void recordUserAppEvent({
                 eventType: 'purchase_failed',
                 section: 'premium',
-                source: context.placement,
+                source: paywallEventSource(context),
                 eventPayload: paywallEventPayload(context, { planId, reasonCode: paymentResult.reason }),
             });
             setPendingPremiumRecovery({ context, planId });
@@ -1568,7 +1646,9 @@ const App: React.FC = () => {
             if (typeof window !== 'undefined') {
                 window.requestAnimationFrame(() => {
                     window.requestAnimationFrame(() => {
-                        document.getElementById('recovery-identity')?.scrollIntoView({ block: 'start' });
+                        const recoveryIdentity = document.getElementById('recovery-identity');
+                        recoveryIdentity?.focus({ preventScroll: true });
+                        recoveryIdentity?.scrollIntoView({ block: 'start' });
                     });
                 });
             }
@@ -1582,7 +1662,7 @@ const App: React.FC = () => {
             void recordUserAppEvent({
                 eventType: 'purchase_cancelled',
                 section: 'premium',
-                source: context.placement,
+                source: paywallEventSource(context),
                 eventPayload: paywallEventPayload(context, { planId, reasonCode: 'CHECKOUT_CANCELLED' }),
             });
             finishPurchase('checkout_cancelled', 'Оплата не завершена. Деньги не списаны.');
@@ -1592,7 +1672,7 @@ const App: React.FC = () => {
             void recordUserAppEvent({
                 eventType: 'purchase_failed',
                 section: 'premium',
-                source: context.placement,
+                source: paywallEventSource(context),
                 eventPayload: paywallEventPayload(context, { planId, reasonCode: paymentResult.reason }),
             });
             finishPurchase('checkout_unavailable', 'Покупка сейчас недоступна. Уже действующий Premium продолжит работать.');
@@ -1602,7 +1682,7 @@ const App: React.FC = () => {
             void recordUserAppEvent({
                 eventType: 'purchase_failed',
                 section: 'premium',
-                source: context.placement,
+                source: paywallEventSource(context),
                 eventPayload: paywallEventPayload(context, { planId, reasonCode: paymentResult.reason }),
             });
             finishPurchase('checkout_failed', 'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.');
@@ -1614,7 +1694,7 @@ const App: React.FC = () => {
             void recordUserAppEvent({
                 eventType: 'purchase_failed',
                 section: 'premium',
-                source: context.placement,
+                source: paywallEventSource(context),
                 eventPayload: paywallEventPayload(context, { planId, reasonCode: 'BACKEND_ENTITLEMENT_MISSING' }),
             });
             finishPurchase('checkout_failed', 'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.');
@@ -1628,7 +1708,7 @@ const App: React.FC = () => {
         void recordUserAppEvent({
             eventType: 'purchase_succeeded',
             section: 'premium',
-            source: context.placement,
+            source: paywallEventSource(context),
             eventPayload: paywallEventPayload(context, {
                 planId,
                 entitlementState: validatedProfile.premiumEntitlement?.state || 'paid',
@@ -1639,7 +1719,9 @@ const App: React.FC = () => {
         return 'completed';
     };
 
-    const restorePremiumPurchases = async (context?: PaywallContext): Promise<void> => {
+    const restorePremiumPurchases = async (
+        context?: PaywallContext,
+    ): Promise<PurchaseRestoreStatus> => {
         const analyticsContext = context || createPaywallContextFromRequest({
             source: 'settings',
             currentView: viewRef.current,
@@ -1647,22 +1729,26 @@ const App: React.FC = () => {
         void recordUserAppEvent({
             eventType: 'restore_started',
             section: 'premium',
-            source: analyticsContext.placement,
+            source: paywallEventSource(analyticsContext),
             eventPayload: paywallEventPayload(analyticsContext),
         });
         const results = await restoreRuStorePurchases();
         const completed = results.find((result): result is Extract<PaymentResult, { status: 'completed' }> => (
             result.status === 'completed'
         ));
+        const pending = results.find((result): result is Extract<PaymentResult, { status: 'pending' }> => (
+            result.status === 'pending'
+        ));
         const validatedProfile = completed
             ? await profileFromValidatedPayment(completed)
             : null;
         if (!validatedProfile || !hasActivePremium(validatedProfile)) {
+            if (!completed && pending) return 'pending';
             const reason = results.find((result) => result.status === 'failed' || result.status === 'unavailable');
             void recordUserAppEvent({
                 eventType: 'restore_failed',
                 section: 'premium',
-                source: analyticsContext.placement,
+                source: paywallEventSource(analyticsContext),
                 eventPayload: paywallEventPayload(analyticsContext, {
                     reasonCode: reason && 'reason' in reason ? reason.reason : 'NO_VALID_PURCHASE',
                 }),
@@ -1676,7 +1762,7 @@ const App: React.FC = () => {
         void recordUserAppEvent({
             eventType: 'restore_succeeded',
             section: 'premium',
-            source: analyticsContext.placement,
+            source: paywallEventSource(analyticsContext),
             eventPayload: paywallEventPayload(analyticsContext, {
                 entitlementState: validatedProfile.premiumEntitlement?.state || 'paid',
                 entitlementEndsAt: validatedProfile.premiumEntitlement?.endsAt || undefined,
@@ -1689,6 +1775,7 @@ const App: React.FC = () => {
                 'Premium открыт. Возвращаем туда, где ты остановился.',
             );
         }
+        return 'completed';
     };
 
     const requestPremium = async (
@@ -1707,10 +1794,11 @@ const App: React.FC = () => {
             payload: eventPayload,
             currentView: viewRef.current,
         });
+        const isExplicitPaidFeatureRequest = context.triggerType === 'locked_feature';
         setPaywallInitialPlanId('premium_quarter');
         setPaywallResumeNotice(null);
         setPremiumContinuation(null);
-        if (context.triggerType === 'locked_feature') {
+        if (isExplicitPaidFeatureRequest) {
             void recordUserAppEvent({
                 eventType: 'locked_feature_tapped',
                 section: 'premium',
@@ -1721,6 +1809,7 @@ const App: React.FC = () => {
         if (
             !hasActivePremium(profile)
             && !firstValueReachedRef.current
+            && !isExplicitPaidFeatureRequest
             && !options?.bypassFirstValueGate
         ) {
             setPaywallContext(null);
@@ -1865,26 +1954,32 @@ const App: React.FC = () => {
 
     const refreshPrimaryChartState = useCallback(async () => {
         if (!profile?.id) return;
+        const targetProfile = profile;
+        const accountKey = String(targetProfile.id);
+        const requestToken = primaryChartRequestGuardRef.current.begin(accountKey);
+        if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
         try {
             const [freshChart, freshPrimaryChartId] = await Promise.all([
-                getChartFromDB(String(profile.id)),
-                getPrimaryChartId(String(profile.id)),
+                getChartFromDB(accountKey),
+                getPrimaryChartId(accountKey),
             ]);
-            const key = buildNatalChartCacheKey(profile);
+            if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
+            const key = buildNatalChartCacheKey(targetProfile);
             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
             primaryChartDataRef.current = freshChart;
-            clearHumanReadingSessionCache(String(profile.id));
-            clearLocalHumanBaseReport(profile, primaryChartId ?? undefined);
+            clearHumanReadingSessionCache(accountKey);
+            clearLocalHumanBaseReport(targetProfile, primaryChartId ?? undefined);
             setPreloadedHumanReport(null);
             if (freshChart) {
-                writeLocalNatalChart(profile, freshChart, freshPrimaryChartId ?? undefined);
+                writeLocalNatalChart(targetProfile, freshChart, freshPrimaryChartId ?? undefined);
                 void prefetchBaseReportForChart(
-                    profile,
+                    targetProfile,
                     freshPrimaryChartId ?? undefined,
                     freshChart,
+                    () => primaryChartRequestGuardRef.current.isCurrent(requestToken),
                 );
             } else {
-                clearLocalNatalChart(profile);
+                clearLocalNatalChart(targetProfile);
             }
             setPrimaryChartId(freshPrimaryChartId);
             setChartLoadState(freshChart?.sun && freshChart?.moon ? 'ready' : 'error');
@@ -2469,7 +2564,7 @@ const App: React.FC = () => {
                                         void recordUserAppEvent({
                                             eventType: 'plan_selected',
                                             section: 'premium',
-                                            source: serviceStoreContext.placement,
+                                            source: paywallEventSource(serviceStoreContext),
                                             eventPayload: paywallEventPayload(serviceStoreContext, { planId }),
                                         });
                                     }}
@@ -2552,7 +2647,7 @@ const App: React.FC = () => {
                             void recordUserAppEvent({
                                 eventType: 'plan_selected',
                                 section: 'premium',
-                                source: paywallContext.placement,
+                                source: paywallEventSource(paywallContext),
                                 eventPayload: paywallEventPayload(paywallContext, { planId }),
                             });
                         }}

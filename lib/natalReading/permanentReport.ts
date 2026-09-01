@@ -197,6 +197,11 @@ export const NATAL_READER_CHAPTERS: readonly NatalReaderChapterDefinition[] = [
   },
 ];
 
+const REQUIRED_PREMIUM_READER_CHAPTERS = [
+  'relationships',
+  'work',
+] as const satisfies readonly NatalReaderChapterKey[];
+
 export function buildNatalReaderChapterPlan(
   reportPlan: readonly NatalReportPlanItem[],
   access: 'free' | 'premium',
@@ -1453,6 +1458,52 @@ export function isNatalPermanentFreeReport(
       && item.content.length > 0
       && Array.isArray(item.evidenceIds)
       && item.evidenceIds.length > 0
+    ));
+}
+
+export function isNatalPermanentPremiumReport(
+  value: NatalPermanentPremiumReport | null | undefined,
+): value is NatalPermanentPremiumReport {
+  if (!value || typeof value !== 'object') return false;
+  const isStatement = (statement: NatalReadingStatement | null | undefined): boolean => (
+    !!statement
+    && typeof statement.text === 'string'
+    && statement.text.length > 0
+    && Array.isArray(statement.evidenceIds)
+    && statement.evidenceIds.length > 0
+    && statement.evidenceIds.every((id) => typeof id === 'string' && id.length > 0)
+  );
+  const sectionIds = Array.isArray(value.sections)
+    ? value.sections.map((section) => section?.id)
+    : [];
+  const knownChapterIds = new Set(NATAL_READER_CHAPTERS.map((chapter) => chapter.key));
+  return value.schemaVersion === 'natal-permanent-premium-v2'
+    && value.contractVersion === NATAL_PERMANENT_CONTRACT_VERSION
+    && value.tier === 'premium'
+    && typeof value.headline === 'string'
+    && value.headline.length > 0
+    && Array.isArray(value.headlineEvidenceIds)
+    && value.headlineEvidenceIds.length > 0
+    && value.headlineEvidenceIds.every((id) => typeof id === 'string' && id.length > 0)
+    && isStatement(value.lead)
+    && isStatement(value.conclusion)
+    && Array.isArray(value.evidenceIds)
+    && value.evidenceIds.length > 0
+    && value.evidenceIds.every((id) => typeof id === 'string' && id.length > 0)
+    && Array.isArray(value.sections)
+    && value.sections.length > 0
+    && new Set(sectionIds).size === sectionIds.length
+    && sectionIds.every((id) => typeof id === 'string' && knownChapterIds.has(id as NatalReaderChapterKey))
+    && REQUIRED_PREMIUM_READER_CHAPTERS.every((id) => sectionIds.includes(id))
+    && value.sections.every((section) => (
+      !!section
+      && typeof section.id === 'string'
+      && section.id.length > 0
+      && typeof section.title === 'string'
+      && section.title.length > 0
+      && Array.isArray(section.paragraphs)
+      && section.paragraphs.length > 0
+      && section.paragraphs.every(isStatement)
     ));
 }
 

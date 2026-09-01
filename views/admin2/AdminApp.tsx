@@ -5,6 +5,7 @@ import {
   Admin2Error,
   type AdminMe,
   type AdminDashboard,
+  type AdminCommerceAttributionStage,
   type AdminUsersPage,
   type AdminUserRow,
   type AdminUserDetailV2,
@@ -207,6 +208,15 @@ function AdminAccessScreen({
 }
 
 // ────────────────────────────── Dashboard ──────────────────────────────
+const COMMERCE_ATTRIBUTION_STAGES: ReadonlyArray<{
+  key: AdminCommerceAttributionStage;
+  label: string;
+}> = [
+  { key: 'paywall_view', label: 'Paywall открыт' },
+  { key: 'checkout_start', label: 'Оплата начата' },
+  { key: 'purchase_success', label: 'Покупка подтверждена' },
+];
+
 function DashboardSection() {
   const [data, setData] = useState<AdminDashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -214,6 +224,7 @@ function DashboardSection() {
   if (error) return <ErrorNote>{error}</ErrorNote>;
   if (!data) return <p className="text-sm text-slate-400">Загрузка…</p>;
   const k = data.kpis;
+  const commerceAttribution = data.commerceAttribution || [];
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -266,6 +277,60 @@ function DashboardSection() {
           </Card>
         </div>
       </div>
+      <section className={`${card} space-y-5`} aria-labelledby="commerce-attribution-title">
+        <div className="space-y-1">
+          <h2 id="commerce-attribution-title" className="text-lg font-semibold text-slate-800">
+            Откуда приходят к оплате
+          </h2>
+          <p className="text-base text-slate-500">
+            Последние 30 дней. «Раздел» — где показали предложение, «Источник» — откуда человек открыл его.
+          </p>
+        </div>
+        <div className="@container">
+          <div className="grid gap-6 @4xl:grid-cols-3 @4xl:gap-0">
+            {COMMERCE_ATTRIBUTION_STAGES.map((stage) => {
+              const rows = commerceAttribution.filter((row) => row.stage === stage.key);
+              return (
+                <section
+                  key={stage.key}
+                  aria-labelledby={`commerce-attribution-${stage.key}`}
+                  className="border-t border-slate-950/10 pt-5 first:border-t-0 first:pt-0 @4xl:border-l @4xl:border-t-0 @4xl:px-5 @4xl:pt-0 @4xl:first:border-l-0 @4xl:first:pl-0 @4xl:last:pr-0"
+                >
+                  <h3 id={`commerce-attribution-${stage.key}`} className="text-base font-semibold text-slate-700">
+                    {stage.label}
+                  </h3>
+                  {rows.length === 0 ? (
+                    <p className="pt-3 text-base text-slate-400">За 30 дней данных нет.</p>
+                  ) : (
+                    <div role="list" className="divide-y divide-slate-950/5">
+                      {rows.map((row) => (
+                        <div
+                          role="listitem"
+                          key={`${stage.key}:${row.placement || 'unknown'}:${row.source || 'unknown'}`}
+                          className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 py-3 last:pb-0"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-base font-medium text-slate-700">
+                              Раздел: {row.placement || 'не указано'}
+                            </p>
+                            <p className="truncate text-sm text-slate-400">
+                              Источник: {row.source || 'не указано'}
+                            </p>
+                          </div>
+                          <div className="text-right tabular-nums">
+                            <p className="text-sm font-semibold text-slate-700">Пользователи: {row.users}</p>
+                            <p className="text-sm text-slate-400">События: {row.events}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

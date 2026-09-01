@@ -37,12 +37,20 @@ WORKDIR /app
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
+    NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt \
     HOSTNAME=0.0.0.0 \
     PORT=3000
 
-RUN apk add --no-cache libc6-compat && \
+RUN apk add --no-cache ca-certificates libc6-compat && \
     addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 --ingroup nodejs nextjs
+
+# RuStore's -m API hosts use the Russian Trusted certificate chain. Keep the
+# chain in the image and expose the system bundle to Node before any Public API
+# authentication or purchase validation can run.
+COPY config/rustore-certificates/russian_trusted_root_ca.crt /usr/local/share/ca-certificates/russian_trusted_root_ca.crt
+COPY config/rustore-certificates/russian_trusted_sub_ca.crt /usr/local/share/ca-certificates/russian_trusted_sub_ca.crt
+RUN update-ca-certificates
 
 # Standalone bundle contains only files needed at runtime.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

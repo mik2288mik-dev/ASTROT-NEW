@@ -76,6 +76,8 @@ type PendingRuStoreCheckoutAttempt = {
   startedAt: number;
 };
 
+const pendingCheckoutAttempts = new Map<string, PendingRuStoreCheckoutAttempt>();
+
 const delay = (milliseconds: number) => new Promise<void>((resolve) => {
   globalThis.setTimeout(resolve, milliseconds);
 });
@@ -251,32 +253,48 @@ function pendingCheckoutStorageKey(userId: string): string {
   return `lumia:rustore:checkout:${encodeURIComponent(userId)}:premium`;
 }
 
+function isCurrentCheckoutAttempt(value: PendingRuStoreCheckoutAttempt | null): value is PendingRuStoreCheckoutAttempt {
+  const ageMs = Date.now() - Number(value?.startedAt);
+  return Boolean(value && value.orderId && value.productId
+    && Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= CHECKOUT_ATTEMPT_TTL_MS);
+}
+
 function readPendingCheckoutAttempt(userId: string): PendingRuStoreCheckoutAttempt | null {
-  if (typeof window === 'undefined') return null;
   const key = pendingCheckoutStorageKey(userId);
-  try {
-    const raw = window.localStorage.getItem(key);
-    const value = raw ? JSON.parse(raw) as PendingRuStoreCheckoutAttempt : null;
-    const ageMs = Date.now() - Number(value?.startedAt);
-    if (!value?.orderId || !value.productId
-      || !Number.isFinite(ageMs) || ageMs < 0 || ageMs > CHECKOUT_ATTEMPT_TTL_MS) {
-      window.localStorage.removeItem(key);
-      return null;
+  let value = pendingCheckoutAttempts.get(key) || null;
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (raw) value = JSON.parse(raw) as PendingRuStoreCheckoutAttempt;
+    } catch {
+      // Keep the in-memory marker when durable storage is unavailable.
     }
-    return value;
-  } catch {
+  }
+  if (!isCurrentCheckoutAttempt(value)) {
+    pendingCheckoutAttempts.delete(key);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem(key);
+      } catch {
+        // The invalid in-memory marker has still been discarded.
+      }
+    }
     return null;
   }
+  pendingCheckoutAttempts.set(key, value);
+  return value;
 }
 
 function writePendingCheckoutAttempt(
   userId: string,
   attempt: PendingRuStoreCheckoutAttempt,
 ): void {
+  const key = pendingCheckoutStorageKey(userId);
+  pendingCheckoutAttempts.set(key, attempt);
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(
-      pendingCheckoutStorageKey(userId),
+      key,
       JSON.stringify(attempt),
     );
   } catch {
@@ -285,9 +303,11 @@ function writePendingCheckoutAttempt(
 }
 
 function clearPendingCheckoutAttempt(userId: string): void {
+  const key = pendingCheckoutStorageKey(userId);
+  pendingCheckoutAttempts.delete(key);
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.removeItem(pendingCheckoutStorageKey(userId));
+    window.localStorage.removeItem(key);
   } catch {
     // A recovered or terminal SDK result remains authoritative.
   }
@@ -372,6 +392,7 @@ export const RUSTORE_CATALOG_TIMEOUT_MS = 9_000;
 export const RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS = 10_000;
 export const RUSTORE_PURCHASE_RESULT_TIMEOUT_MS = 60_000;
 export const RUSTORE_RESTORE_TIMEOUT_MS = 10_000;
+const RUSTORE_RESTORE_VALIDATION_TIMEOUT_MS = PURCHASE_VALIDATION_TIMEOUT_MS;
 
 async function withBoundedTimeout<T>(
   promise: Promise<T>,
@@ -542,6 +563,11 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
           purchase = recovered.purchases.find((candidate) => (
             candidate.productId === productId
             && candidate.productType === 'SUBSCRIPTION'
+            && (
+              Boolean(candidate.purchaseId)
+              || terminalPurchaseResult(candidate) === 'cancelled'
+              || terminalPurchaseResult(candidate) === 'failed'
+            )
           ));
         } catch {
           return { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' };
@@ -549,7 +575,6 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
         if (!purchase) {
           return { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' };
         }
-        clearPendingCheckoutAttempt(canonicalUserId);
       } else {
         const orderId = crypto.randomUUID();
         writePendingCheckoutAttempt(canonicalUserId, {
@@ -558,21 +583,41 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
           startedAt: Date.now(),
         });
         try {
-          purchase = await nativeBridge.purchase({ productId, appUserId: canonicalUserId, orderId });
+          purchase = await withBoundedTimeout(
+            nativeBridge.purchase({ productId, appUserId: canonicalUserId, orderId }),
+            RUSTORE_PURCHASE_RESULT_TIMEOUT_MS,
+            'RUSTORE_PURCHASE_RESULT_TIMEOUT',
+          );
         } catch (error) {
+          const reason = String((error as any)?.message || (error as any)?.code || 'RUSTORE_PURCHASE_FAILED');
+          if (reason === 'RUSTORE_PURCHASE_RESULT_TIMEOUT') {
+            // The SDK may still complete after the JavaScript call times out. Keep
+            // the durable checkout marker so the next request recovers the order
+            // through getPurchases() instead of creating a duplicate checkout.
+            return { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' };
+          }
           clearPendingCheckoutAttempt(canonicalUserId);
           throw error;
         }
-        clearPendingCheckoutAttempt(canonicalUserId);
       }
     }
     if (!purchase) {
-      return { status: 'failed', reason: 'RUSTORE_PURCHASE_STATUS_UNKNOWN' };
+      return { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' };
     }
     if (purchase.productId !== productId || purchase.productType !== 'SUBSCRIPTION') {
+      clearPendingCheckoutAttempt(canonicalUserId);
       return { status: 'failed', reason: 'RUSTORE_PURCHASE_PRODUCT_TYPE_INVALID' };
     }
+    if (!purchase.purchaseId) {
+      const terminal = terminalPurchaseResult(purchase);
+      if (terminal === 'cancelled' || terminal === 'failed') {
+        clearPendingCheckoutAttempt(canonicalUserId);
+        return reconcilePurchaseResult(nativeBridge, purchase);
+      }
+      return { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' };
+    }
     writePendingPurchase(canonicalUserId, purchase);
+    clearPendingCheckoutAttempt(canonicalUserId);
     const result = await reconcilePurchaseResult(nativeBridge, purchase);
     if (result.status === 'completed'
       || result.status === 'cancelled'
@@ -600,7 +645,21 @@ export async function restoreRuStorePurchases(): Promise<PaymentResult[]> {
       (purchase) => purchase.productType === 'SUBSCRIPTION' && configuredProductIds.has(purchase.productId),
     );
     const settled = await Promise.allSettled(
-      subscriptions.map((purchase) => validateRestoredPurchase(purchase)),
+      subscriptions.map(async (purchase) => {
+        try {
+          return await withBoundedTimeout(
+            validateRestoredPurchase(purchase),
+            RUSTORE_RESTORE_VALIDATION_TIMEOUT_MS,
+            'RUSTORE_RESTORE_VALIDATION_TIMEOUT',
+          );
+        } catch (error: any) {
+          const reason = String(error?.message || error?.code || 'RUSTORE_SERVER_VALIDATION_FAILED');
+          if (reason === 'RUSTORE_RESTORE_VALIDATION_TIMEOUT') {
+            return { status: 'pending', reason: 'RUSTORE_SERVER_VALIDATION_PENDING' } as PaymentResult;
+          }
+          throw error;
+        }
+      }),
     );
     return settled.map((entry) => entry.status === 'fulfilled'
       ? entry.value
@@ -618,8 +677,12 @@ export function requestRuStorePayment(profile: UserProfile, planId: PremiumPlanI
   const key = `rustore:${String(profile.id || '')}:premium`;
   const current = inFlightPayments.get(key);
   const observe = (entry: { source: Promise<PaymentResult>; startedAt: number }) => {
+    const releaseExpiredEntry = () => {
+      if (inFlightPayments.get(key)?.source === entry.source) inFlightPayments.delete(key);
+    };
     const remainingMs = RUSTORE_PURCHASE_RESULT_TIMEOUT_MS - (Date.now() - entry.startedAt);
     if (remainingMs <= 0) {
+      releaseExpiredEntry();
       return Promise.resolve<PaymentResult>({
         status: 'pending',
         reason: 'RUSTORE_PURCHASE_RESULT_PENDING',
@@ -631,9 +694,11 @@ export function requestRuStorePayment(profile: UserProfile, planId: PremiumPlanI
       'RUSTORE_PURCHASE_RESULT_TIMEOUT',
     ).catch((error: any): PaymentResult => {
       const reason = String(error?.message || error?.code || 'RUSTORE_PURCHASE_FAILED');
-      return reason === 'RUSTORE_PURCHASE_RESULT_TIMEOUT'
-        ? { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' }
-        : { status: 'failed', reason };
+      if (reason === 'RUSTORE_PURCHASE_RESULT_TIMEOUT') {
+        releaseExpiredEntry();
+        return { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' };
+      }
+      return { status: 'failed', reason };
     });
   };
   if (current) return observe(current);

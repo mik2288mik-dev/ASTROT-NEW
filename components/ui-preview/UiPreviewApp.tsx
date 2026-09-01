@@ -355,7 +355,7 @@ function SettingsScene({
       onUpdate={setLocalProfile}
       onRequestPremium={() => onNavigate('paywall')}
       canPromotePremium
-      onRestorePurchase={async () => undefined}
+      onRestorePurchase={async () => 'completed'}
       onManageSubscription={() => undefined}
       onOpenCharts={onOpenCharts}
       onLogout={async () => undefined}
@@ -409,6 +409,7 @@ function PaywallScene({
   embedded?: boolean;
 }) {
   const context: PaywallContext = {
+    entryPoint: 'preview',
     placement: 'settings',
     featureKey: 'personal_daily_full',
     triggerType: 'settings',
@@ -427,7 +428,7 @@ function PaywallScene({
       onPurchase={async () => undefined}
       onClose={onClose}
       onContinueFree={onClose}
-      onRestore={async () => undefined}
+      onRestore={async () => 'completed'}
       onManageSubscription={() => undefined}
       uiPreview={embedded ? undefined : { plans: UI_PREVIEW_PAYWALL_PLANS }}
     />

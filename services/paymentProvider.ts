@@ -5,6 +5,7 @@ import { requestStarsPayment } from './telegramStarsPayment';
 import { requestRuStorePayment } from './rustorePayService';
 
 export type PaymentEntitlementSnapshot = PremiumEntitlementSnapshot;
+export type PurchaseRestoreStatus = 'completed' | 'pending';
 
 export type PaymentResult =
   | { status: 'completed'; entitlement?: PaymentEntitlementSnapshot }

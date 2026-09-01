@@ -22,6 +22,16 @@ export type AdminMe = {
   permissions: string[];
 };
 
+export type AdminCommerceAttributionStage = 'paywall_view' | 'checkout_start' | 'purchase_success';
+
+export type AdminCommerceAttributionRow = {
+  stage: AdminCommerceAttributionStage;
+  placement: string | null;
+  source: string | null;
+  events: number;
+  users: number;
+};
+
 export type AdminDashboard = {
   generatedAt: string;
   kpis: {
@@ -33,6 +43,7 @@ export type AdminDashboard = {
   funnel: Array<{ key: string; label: string; users: number; pctOfStart: number; pctOfPrev: number }>;
   retention: { d1: number | null; d7: number | null; d30: number | null };
   events: Array<{ type: string; label: string; count: number }>;
+  commerceAttribution: AdminCommerceAttributionRow[];
 };
 
 export type AdminChartRow = {

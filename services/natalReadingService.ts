@@ -10,13 +10,18 @@ import type {
   NatalPermanentFreeReport,
   NatalPermanentPremiumReport,
 } from '../lib/natalReading/permanentReport';
-import { buildNatalReportScopeKey } from '../lib/natalReading/permanentReport';
+import {
+  buildNatalReportScopeKey,
+  isNatalPermanentPremiumReport,
+} from '../lib/natalReading/permanentReport';
 import type { NatalReadingLanguage } from '../lib/natalReading/permanentReport';
 import type { NatalQuestionSnapshot } from '../lib/natalReading/natalQuestion';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
 
 const HUMAN_GENERATION_TIMEOUT_MS = 90_000;
+const LOCAL_PREMIUM_CACHE_PREFIX = 'lumia:natal-human-premium:v1';
+const LOCAL_PREMIUM_CACHE_LIMIT = 12;
 type HumanEndpoint = 'human-base' | 'human-premium' | 'human-section';
 
 export type HumanReadingResult<T> = {
@@ -51,6 +56,13 @@ const paidSectionInFlight = new Map<string, Promise<HumanReadingResult<Interpret
 const profileCardsCache = new Map<string, NatalProfileCardsResponse>();
 const profileCardsInFlight = new Map<string, Promise<NatalProfileCardsResponse>>();
 
+type LocalPremiumReportEntry = {
+  schemaVersion: 1;
+  scopeKey: string;
+  report: NatalPermanentPremiumReport;
+  updatedAt: string;
+};
+
 export type NatalReportCacheIdentity = {
   chartFingerprint: string;
   reportVersion: string;
@@ -67,6 +79,86 @@ function baseKey(
   cacheIdentity?: NatalReportCacheIdentity,
 ): string {
   return buildNatalReportScopeKey(userId, chartId, language, cacheIdentity);
+}
+
+function localPremiumStorage(): Storage | null {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+function localPremiumKey(scopeKey: string): string {
+  return `${LOCAL_PREMIUM_CACHE_PREFIX}:${encodeURIComponent(scopeKey)}`;
+}
+
+function readLocalPremiumReport(scopeKey: string): NatalPermanentPremiumReport | null {
+  const storage = localPremiumStorage();
+  if (!storage) return null;
+  const key = localPremiumKey(scopeKey);
+  try {
+    const raw = storage.getItem(key);
+    if (!raw) return null;
+    const entry = JSON.parse(raw) as Partial<LocalPremiumReportEntry>;
+    if (
+      entry.schemaVersion !== 1
+      || entry.scopeKey !== scopeKey
+      || !isNatalPermanentPremiumReport(entry.report)
+    ) {
+      storage.removeItem(key);
+      return null;
+    }
+    return entry.report;
+  } catch {
+    try {
+      storage.removeItem(key);
+    } catch {
+      // Ignore cleanup failures; the invalid cache is never returned.
+    }
+    return null;
+  }
+}
+
+function writeLocalPremiumReport(
+  scopeKey: string,
+  report: NatalPermanentPremiumReport,
+): void {
+  const storage = localPremiumStorage();
+  if (!storage || !isNatalPermanentPremiumReport(report)) return;
+  try {
+    const entry: LocalPremiumReportEntry = {
+      schemaVersion: 1,
+      scopeKey,
+      report,
+      updatedAt: new Date().toISOString(),
+    };
+    storage.setItem(localPremiumKey(scopeKey), JSON.stringify(entry));
+
+    const entries: Array<{ key: string; updatedAt: string }> = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (!key?.startsWith(`${LOCAL_PREMIUM_CACHE_PREFIX}:`)) continue;
+      const cached = JSON.parse(storage.getItem(key) || '{}') as Partial<LocalPremiumReportEntry>;
+      entries.push({ key, updatedAt: String(cached.updatedAt || '') });
+    }
+    entries
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .slice(LOCAL_PREMIUM_CACHE_LIMIT)
+      .forEach(({ key }) => storage.removeItem(key));
+  } catch {
+    // Local persistence is a speed/offline layer. The server remains authoritative.
+  }
+}
+
+function requireValidPremiumReport(
+  result: HumanReadingResult<NatalPermanentPremiumReport>,
+): HumanReadingResult<NatalPermanentPremiumReport> {
+  if (isNatalPermanentPremiumReport(result.content)) return result;
+  const error = new Error('Premium natal report is incomplete') as HumanReadingError;
+  error.code = 'NATAL_PREMIUM_REPORT_INCOMPLETE';
+  error.status = 502;
+  throw error;
 }
 
 function paidKey(
@@ -155,7 +247,17 @@ export function getHumanPremiumReportCached(
   language?: 'ru' | 'en',
   cacheIdentity?: NatalReportCacheIdentity,
 ): HumanReadingResult<NatalPermanentPremiumReport> | null {
-  return premiumReportCache.get(baseKey(userId, chartId, language, cacheIdentity)) || null;
+  const key = baseKey(userId, chartId, language, cacheIdentity);
+  const memory = premiumReportCache.get(key);
+  if (memory) return memory;
+  const local = readLocalPremiumReport(key);
+  if (!local) return null;
+  const result: HumanReadingResult<NatalPermanentPremiumReport> = {
+    content: local,
+    accessTier: 'premium',
+  };
+  premiumReportCache.set(key, result);
+  return result;
 }
 
 export function getHumanPaidSectionCached(
@@ -339,16 +441,32 @@ export async function getCachedHumanPremiumReport(
   const key = baseKey(userId, chartId, language, cacheIdentity);
   const memory = premiumReportCache.get(key);
   if (memory) return memory;
+  const local = readLocalPremiumReport(key);
+  if (local) {
+    const localResult: HumanReadingResult<NatalPermanentPremiumReport> = {
+      content: local,
+      accessTier: 'premium',
+    };
+    premiumReportCache.set(key, localResult);
+    return localResult;
+  }
   try {
     const cached = await getHuman<NatalPermanentPremiumReport>(
       'human-premium',
       userId,
       { chartId },
     );
-    if (cached) premiumReportCache.set(key, cached);
-    return cached;
+    if (cached) {
+      const valid = requireValidPremiumReport(cached);
+      premiumReportCache.set(key, valid);
+      writeLocalPremiumReport(key, valid.content);
+      return valid;
+    }
+    return null;
   } catch (error) {
     const status = (error as HumanReadingError).status;
+    const code = (error as HumanReadingError).code;
+    if (code === 'NATAL_PREMIUM_REPORT_INCOMPLETE') return null;
     if (status === 403 || status === 404 || status === 409) return null;
     throw error;
   }
@@ -369,8 +487,10 @@ export async function ensureHumanPremiumReport(
     chartId,
     accessTier: 'premium',
   }).then((result) => {
-    premiumReportCache.set(key, result);
-    return result;
+    const valid = requireValidPremiumReport(result);
+    premiumReportCache.set(key, valid);
+    writeLocalPremiumReport(key, valid.content);
+    return valid;
   }).finally(() => {
     if (premiumReportInFlight.get(key) === request) premiumReportInFlight.delete(key);
   });

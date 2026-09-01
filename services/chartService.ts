@@ -135,7 +135,10 @@ async function calculateChart(profile:UserProfile,forceRecalculate=false,traceId
   return chart;
 }
 
-export async function getOrCalculateChart(profile:UserProfile):Promise<NatalChartData> {
+export async function getOrCalculateChart(
+  profile:UserProfile,
+  shouldCommitLocalCache:()=>boolean=()=>true,
+):Promise<NatalChartData> {
   const userId=assertValidUserId(profile.id);
   const requestKey=buildNatalChartCacheKey(profile);
   const active=calculationInFlight.get(requestKey); if (active) return active;
@@ -145,7 +148,7 @@ export async function getOrCalculateChart(profile:UserProfile):Promise<NatalChar
     try {
       const stored=await getChartFromDB(userId,traceId);
       if (stored) {
-        writeLocalNatalChart(profile,stored);
+        if (shouldCommitLocalCache()) writeLocalNatalChart(profile,stored);
         chartDiagnostic('INFO',traceId,{stage:'finished',status:'ok',durationMs:Date.now()-startedAt,source:'cache',birthTimeMode:diagnosticBirthTimeMode(profile)});
         return stored;
       }
@@ -153,7 +156,7 @@ export async function getOrCalculateChart(profile:UserProfile):Promise<NatalChar
         calculateChart(profile,false,traceId),
         new Promise<NatalChartData>((_,reject)=>setTimeout(()=>reject(chartError('CHART_CALCULATION_TIMEOUT','Превышено время ожидания расчёта карты.')),120_000)),
       ]);
-      writeLocalNatalChart(profile,chart);
+      if (shouldCommitLocalCache()) writeLocalNatalChart(profile,chart);
       chartDiagnostic('INFO',traceId,{stage:'finished',status:'ok',durationMs:Date.now()-startedAt,source:'calculated',birthTimeMode:diagnosticBirthTimeMode(profile)});
       return chart;
     } catch (error) {

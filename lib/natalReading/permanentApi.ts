@@ -17,6 +17,7 @@ import {
   buildPermanentNatalCacheKey,
   buildPermanentNatalInputHash,
   isNatalPermanentFreeReport,
+  isNatalPermanentPremiumReport,
   NATAL_PERMANENT_FREE_CACHE_KEY,
   NATAL_PERMANENT_FREE_PROMPT_VERSION,
   NATAL_PERMANENT_PREMIUM_CACHE_KEY,
@@ -141,10 +142,11 @@ export async function getCachedPermanentPremiumReport(
 ): Promise<ContentInterpretation<NatalPermanentPremiumReport> | null> {
   const readerAnchor = await getCachedPermanentFreeReport(ctx);
   if (!readerAnchor?.content) return null;
-  return getCachedReading<NatalPermanentPremiumReport>(
+  const cached = await getCachedReading<NatalPermanentPremiumReport>(
     ctx,
     permanentPremiumCacheOptions(ctx, readerAnchor.content),
   );
+  return cached && isNatalPermanentPremiumReport(cached.content) ? cached : null;
 }
 
 export async function generatePermanentPremiumWithLock(input: {
@@ -166,7 +168,7 @@ export async function generatePermanentPremiumWithLock(input: {
     operation: 'natal-permanent-premium-generation',
     readCached: async () => {
       const cached = await getCachedReading<NatalPermanentPremiumReport>(input.ctx, cacheOptions);
-      return cached
+      return cached && isNatalPermanentPremiumReport(cached.content)
         ? { value: cached, source: 'natal_permanent_premium_v2' }
         : null;
     },

@@ -9,8 +9,10 @@ describe('natal chart editorial layout', () => {
     const magazine = read('views/v2/NatalMagazine.tsx');
     const wheel = read('components/NatalReading/NatalChartWheel.tsx');
     const report = read('components/NatalReading/HumanReport.tsx');
+    const topicHub = read('components/NatalReading/NatalReportHub.tsx');
     const styles = read('styles/natalEditorial.css');
     const studioStyles = read('styles/editorialStudio.css');
+    const paywall = read('views/Paywall.tsx');
     const app = read('pages/_app.tsx');
 
     expect(magazine.match(/fresh-page natal-editorial-page/g)).toHaveLength(2);
@@ -36,7 +38,22 @@ describe('natal chart editorial layout', () => {
     expect(wheel).not.toContain('Math.random');
     expect(report).toContain('natal-editorial-report');
     expect(report).toContain('ensureHumanPremiumReport');
-    expect(report).toContain('<PremiumReport');
+    expect(report).toContain('<NatalReportHub');
+    expect(report).toContain("returnAction: 'open_natal_topic'");
+    expect(report).toContain('NATIVE_BACK_EVENT');
+    expect(report).toContain('setTopicFocusRequestId((value) => value + 1)');
+    expect(report).toContain("document.getElementById('natal-question-composer')");
+    expect(report).toContain('id="natal-question-composer"');
+    expect(report).toContain('tabIndex={-1}');
+    expect(report).not.toMatch(/isNatalTopicKey\(premiumContinuation\.returnEntityId\)[\s\S]{0,80}&& premiumReport/);
+    expect(report).toContain('onBackToTopics={returnToTopicHub}');
+    expect(topicHub).toContain("selectedTopic.accessState === 'locked'");
+    expect(topicHub).toContain('Открыть все разделы');
+    expect(topicHub).toContain('natal-topic-loading-lines');
+    expect(topicHub).toContain('focusRequestId');
+    expect(topicHub).toContain('id={`natal-topic-premium-${selectedTopic.key}`}');
+    expect(topicHub).toContain('Для этой карты отдельный текст по теме не сформировался.');
+    expect(paywall).toContain('Откроются все разделы твоей натальной карты.');
     expect(report).toContain('<TechnicalDetails chartData={chartData} language={language} />');
     expect(report).not.toContain('editorialSticker');
     expect(styles).toContain('.natal-editorial-page .natal-sec');
@@ -46,6 +63,10 @@ describe('natal chart editorial layout', () => {
     expect(studioStyles).toContain('.natal-map-stage');
     expect(studioStyles).toContain('.natal-map-meta');
     expect(studioStyles).toContain('.natal-reading-stage');
+    expect(studioStyles).toContain('.natal-topic-grid');
+    expect(studioStyles).toContain('.natal-topic-detail');
+    expect(studioStyles).toContain('#natal-topic-detail-title');
+    expect(studioStyles).toContain('.natal-topic-loading-lines');
     expect(studioStyles).toContain('.fresh-page.natal-editorial-page.natal-mvp-page');
     expect(styles).not.toMatch(/display:\s*none[^}]*natal-premium/i);
     expect(app).toContain("import '../styles/natalEditorial.css'");

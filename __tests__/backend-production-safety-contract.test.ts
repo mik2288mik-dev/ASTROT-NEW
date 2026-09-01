@@ -29,9 +29,9 @@ describe('backend production safety contract', () => {
     const calls = [...runner.matchAll(/await ((?:migrationReset|lumia\w+|mvp\w+))\(migrationDb\)/g)]
       .map((match) => match[1]);
 
-    expect(names).toHaveLength(52);
+    expect(names).toHaveLength(53);
     expect(new Set(names).size).toBe(names.length);
-    expect(calls).toHaveLength(52);
+    expect(calls).toHaveLength(53);
     expect(new Set(calls).size).toBe(calls.length);
     expect(calls.slice(calls.indexOf('mvp040AccountIdentitySessions'), calls.indexOf('mvp044PremiumEntitlementLifecycle')))
       .toEqual([
@@ -45,6 +45,7 @@ describe('backend production safety contract', () => {
         'mvp049ContentReactions',
         'mvp050LegalAcknowledgements',
         'mvp051SupportDeliveryOutbox',
+        'mvp052UserAppEventIdempotency',
       ]);
   });
 

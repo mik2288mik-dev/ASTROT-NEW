@@ -22,13 +22,19 @@ import {
 import { UserProfile, Language, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
-import { updateUserNotificationSettings, getUserNotificationSettings, getTelegramInitDataHeaders } from '../services/sessionService';
+import {
+    clearQueuedUserAppEvents,
+    updateUserNotificationSettings,
+    getUserNotificationSettings,
+    getTelegramInitDataHeaders,
+} from '../services/sessionService';
 import { hasActivePremium } from '../lib/accessMatrix';
 import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
+import type { PurchaseRestoreStatus } from '../services/paymentProvider';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
 import {
     authenticateWithProvider,
@@ -181,7 +187,7 @@ export interface SettingsProps {
     onUpdate: (profile: UserProfile) => void;
     onRequestPremium?: () => void;
     canPromotePremium?: boolean;
-    onRestorePurchase?: () => Promise<void>;
+    onRestorePurchase?: () => Promise<PurchaseRestoreStatus>;
     onManageSubscription?: () => Promise<void> | void;
     onOpenAdmin?: () => void;
     onOpenCharts?: () => void;
@@ -303,7 +309,7 @@ export const Settings: React.FC<SettingsProps> = ({
         () => previewFixture?.authCapabilities || getLocalAccountAuthCapabilities(),
     );
     const [authCapabilitiesLoadFailed, setAuthCapabilitiesLoadFailed] = useState(false);
-    const [restoreState, setRestoreState] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
+    const [restoreState, setRestoreState] = useState<'idle' | 'running' | 'success' | 'pending' | 'error'>('idle');
     const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
     const [previewNotice, setPreviewNotice] = useState('');
     const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>('root');
@@ -356,7 +362,9 @@ export const Settings: React.FC<SettingsProps> = ({
         setAuthPurpose('link');
         setSettingsScreen('auth');
         const frame = window.requestAnimationFrame(() => {
-            document.getElementById('recovery-identity')?.scrollIntoView({ block: 'start' });
+            const recoveryIdentity = document.getElementById('recovery-identity');
+            recoveryIdentity?.focus({ preventScroll: true });
+            recoveryIdentity?.scrollIntoView({ block: 'start' });
         });
         return () => window.cancelAnimationFrame(frame);
     }, [recoveryIdentityRequired]);
@@ -445,6 +453,7 @@ export const Settings: React.FC<SettingsProps> = ({
         setIdentityError('');
         setIdentityNotice('');
         setIdentityBusy(true);
+        if (authPurpose === 'login') clearQueuedUserAppEvents();
         void authenticateWithProvider(provider, authPurpose)
             .then(async (fresh) => {
                 if (fresh) await updateLinkedIdentitiesAfterAuth(fresh);
@@ -479,6 +488,7 @@ export const Settings: React.FC<SettingsProps> = ({
         setIdentityError('');
         setIdentityNotice('');
         setIdentityBusy(true);
+        if (authPurpose === 'login') clearQueuedUserAppEvents();
         const action = authPurpose === 'login'
             ? loginWithEmailPassword(emailValue, emailPassword).then(async (fresh) => {
                 await updateLinkedIdentitiesAfterAuth(fresh);
@@ -641,7 +651,7 @@ export const Settings: React.FC<SettingsProps> = ({
         if (!onRestorePurchase || restoreState === 'running') return;
         setRestoreState('running');
         void onRestorePurchase()
-            .then(() => setRestoreState('success'))
+            .then((result) => setRestoreState(result === 'pending' ? 'pending' : 'success'))
             .catch(() => setRestoreState('error'));
     };
 
@@ -1183,7 +1193,12 @@ export const Settings: React.FC<SettingsProps> = ({
 
             case 'auth':
                 return (
-                    <section id="recovery-identity" className="settings-detail-panel" aria-label={settingsTitle.auth}>
+                    <section
+                        id="recovery-identity"
+                        className="settings-detail-panel"
+                        aria-label={settingsTitle.auth}
+                        tabIndex={-1}
+                    >
                         {recoveryIdentityRequired ? (
                             <p className="settings-recovery-notice" role="status">
                                 {profile.language === 'en'
@@ -1402,6 +1417,12 @@ export const Settings: React.FC<SettingsProps> = ({
                         {restoreState === 'success' ? (
                             <p role="status" className="settings-helper-text">
                                 {profile.language === 'ru' ? 'Покупки проверены сервером.' : 'Purchases were checked by the server.'}
+                            </p>
+                        ) : restoreState === 'pending' ? (
+                            <p role="status" className="settings-helper-text">
+                                {profile.language === 'ru'
+                                    ? 'RuStore ещё подтверждает покупку. Подожди немного и проверь снова — повторно покупать не нужно.'
+                                    : 'RuStore is still confirming the purchase. Wait a moment and check again — do not buy it again.'}
                             </p>
                         ) : restoreState === 'error' ? (
                             <p role="alert" className="settings-error-text">

@@ -27,6 +27,31 @@ function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
 }
 
+function validateCertificate(relativePath, expectedCommonName, expectedFingerprint) {
+  try {
+    const certificate = new crypto.X509Certificate(read(relativePath));
+    if (!certificate.subject.includes(`CN=${expectedCommonName}`)) {
+      errors.push(`${relativePath} must contain ${expectedCommonName}`);
+    }
+    if (certificate.fingerprint256 !== expectedFingerprint) {
+      errors.push(`${relativePath} fingerprint differs from the owner-reviewed certificate`);
+    }
+    const validFrom = Date.parse(certificate.validFrom);
+    const validTo = Date.parse(certificate.validTo);
+    const renewalWindow = Date.now() + 45 * 24 * 60 * 60 * 1000;
+    if (!Number.isFinite(validFrom) || validFrom > Date.now()) {
+      errors.push(`${relativePath} is not valid yet`);
+    }
+    if (!Number.isFinite(validTo) || validTo <= renewalWindow) {
+      errors.push(`${relativePath} is expired or expires within 45 days`);
+    }
+    return certificate;
+  } catch {
+    errors.push(`${relativePath} must be a readable X.509 PEM certificate`);
+    return null;
+  }
+}
+
 function requireValue(name, value) {
   const normalized = String(value || '').trim();
   if (
@@ -257,6 +282,47 @@ if (release) {
 }
 
 if (channel === 'rustore' && rustorePaymentsEnabled) {
+  const rustoreServer = read('lib/rustorePayments.ts');
+  const runtimeDockerfile = read('Dockerfile');
+  if (!appBuild.includes("rustoreImplementation platform('ru.rustore.sdk:bom:2026.08.01')")) {
+    errors.push('RuStore releases must use BOM 2026.08.01, which pins Pay SDK 11.1.0');
+  }
+  if (!appBuild.includes("rustoreImplementation 'ru.rustore.sdk:pay'")) {
+    errors.push('RuStore releases must include Pay SDK from the current BOM');
+  }
+  if (
+    !rustoreServer.includes("const RUSTORE_PUBLIC_API_ORIGIN = 'https://public-api-m.rustore.ru'")
+    || rustoreServer.includes('https://public-api.rustore.ru')
+  ) {
+    errors.push('RuStore Public API must use only public-api-m.rustore.ru');
+  }
+  for (const requiredDockerFragment of [
+    'ca-certificates',
+    'config/rustore-certificates/russian_trusted_root_ca.crt',
+    'config/rustore-certificates/russian_trusted_sub_ca.crt',
+    'update-ca-certificates',
+    'NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt',
+  ]) {
+    if (!runtimeDockerfile.includes(requiredDockerFragment)) {
+      errors.push(`Dockerfile must install RuStore trust-chain requirement: ${requiredDockerFragment}`);
+    }
+  }
+  const trustedRoot = validateCertificate(
+    'config/rustore-certificates/russian_trusted_root_ca.crt',
+    'Russian Trusted Root CA',
+    'D2:6D:2D:02:31:B7:C3:9F:92:CC:73:85:12:BA:54:10:35:19:E4:40:5D:68:B5:BD:70:3E:97:88:CA:8E:CF:31',
+  );
+  const trustedSub = validateCertificate(
+    'config/rustore-certificates/russian_trusted_sub_ca.crt',
+    'Russian Trusted Sub CA',
+    'BB:BD:E2:10:3E:79:0B:99:9E:C6:2B:D0:3C:F6:25:A5:A2:E7:C3:16:E1:0A:FE:6A:49:0E:ED:EA:D8:B3:FD:9B',
+  );
+  if (trustedRoot && !trustedRoot.verify(trustedRoot.publicKey)) {
+    errors.push('Russian Trusted root certificate must be self-signed');
+  }
+  if (trustedRoot && trustedSub && !trustedSub.verify(trustedRoot.publicKey)) {
+    errors.push('Russian Trusted intermediate certificate must verify against the bundled root');
+  }
   for (const name of [
     'RUSTORE_CONSOLE_APP_ID',
     'RUSTORE_PACKAGE_NAME',

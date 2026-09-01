@@ -12,6 +12,7 @@ import {
 import { STORE_RELEASE_CONFIG } from '../lib/storeReleaseConfig';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { NeboLogo } from '../components/brand/NeboLogo';
+import type { PurchaseRestoreStatus } from '../services/paymentProvider';
 
 export type PaywallPurchaseStatus =
   | 'completed'
@@ -27,7 +28,7 @@ interface PaywallProps {
   onPurchase: (planId: PremiumPlanId) => Promise<PaywallPurchaseStatus | void>;
   onClose: () => void;
   onContinueFree: () => void;
-  onRestore: () => Promise<void>;
+  onRestore: () => Promise<PurchaseRestoreStatus>;
   onManageSubscription?: () => Promise<void> | void;
   onPlanSelected?: (planId: PremiumPlanId) => void;
   initialPlanId?: PremiumPlanId;
@@ -87,7 +88,7 @@ const CONTEXT_COPY: Record<PaywallContext['placement'], { ru: string; en: string
   },
   week: { ru: 'Откроется твоя личная неделя.', en: 'Your personal week will open.' },
   month: { ru: 'Откроется твой личный месяц.', en: 'Your personal month will open.' },
-  deep_natal: { ru: 'Откроется глубокий разбор натальной карты.', en: 'Your deep natal reading will open.' },
+  deep_natal: { ru: 'Откроются все разделы твоей натальной карты.', en: 'Every topic in your natal chart will open.' },
   personality_deep: { ru: 'Откроется глубокий разбор личности.', en: 'Your deep personality reading will open.' },
   natal_questions: { ru: 'Вернёмся к вопросу по сохранённой карте.', en: 'We will return to your saved-chart question.' },
   compatibility_by_charts: { ru: 'Откроется совместимость по двум рассчитанным картам.', en: 'Two-chart compatibility will open.' },
@@ -143,6 +144,7 @@ export const Paywall: React.FC<PaywallProps> = ({
   const [purchaseState, setPurchaseState] = useState<'idle' | 'pending' | 'failed'>('idle');
   const [restoring, setRestoring] = useState(false);
   const [restoreError, setRestoreError] = useState(false);
+  const [restorePending, setRestorePending] = useState(false);
   const [previewNotice, setPreviewNotice] = useState('');
 
   useEffect(() => {
@@ -223,7 +225,7 @@ export const Paywall: React.FC<PaywallProps> = ({
   };
 
   const buy = async () => {
-    if (paying || purchaseState === 'pending' || !selectedPlan) return;
+    if (paying || purchaseState === 'pending' || restorePending || !selectedPlan) return;
     if (previewFixture) {
       setPreviewNotice('Оплата отключена в локальном Preview.');
       return;
@@ -250,9 +252,11 @@ export const Paywall: React.FC<PaywallProps> = ({
       return;
     }
     setRestoreError(false);
+    setRestorePending(false);
     setRestoring(true);
     try {
-      await onRestore();
+      const result = await onRestore();
+      if (result === 'pending') setRestorePending(true);
     } catch {
       setRestoreError(true);
     } finally {
@@ -470,7 +474,7 @@ export const Paywall: React.FC<PaywallProps> = ({
               className="pw2-cta"
               onClick={() => void buy()}
               aria-busy={paying}
-              disabled={paying || purchaseState === 'pending' || catalogLoading || !selectedPlan}
+              disabled={paying || purchaseState === 'pending' || restorePending || catalogLoading || !selectedPlan}
             >
               {paying
                 ? (ru ? 'Открываем RuStore…' : 'Opening RuStore…')
@@ -514,6 +518,12 @@ export const Paywall: React.FC<PaywallProps> = ({
           {restoreError ? (
             <p className="pw2-state" role="alert">
               {ru ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.'}
+            </p>
+          ) : restorePending ? (
+            <p className="pw2-state" role="status">
+              {ru
+                ? 'RuStore ещё подтверждает покупку. Подожди немного и проверь снова — повторно покупать не нужно.'
+                : 'RuStore is still confirming the purchase. Wait a moment and check again — do not buy it again.'}
             </p>
           ) : null}
         </>

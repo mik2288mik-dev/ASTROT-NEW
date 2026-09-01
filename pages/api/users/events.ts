@@ -39,10 +39,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const pool = getPool();
     await pool.query(
-      `INSERT INTO user_app_events (user_id, event_type, section, source, payload_json)
-       VALUES ($1, $2, $3, $4, $5::jsonb)`,
+      `INSERT INTO user_app_events (user_id, event_id, event_type, section, source, payload_json)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+       ON CONFLICT (event_id) WHERE event_id IS NOT NULL DO NOTHING`,
       [
         appUser.userId,
+        event.eventId || null,
         event.eventType,
         event.section,
         event.source,

@@ -8,7 +8,10 @@ import {
   getActiveTelegramInitData,
   getRawTelegramInitData,
 } from './authSessionIntent';
-import { sanitizeUserAppEvent } from '../lib/premiumAnalytics';
+import {
+  sanitizeUserAppEvent,
+  type SanitizedUserAppEvent,
+} from '../lib/premiumAnalytics';
 import {
   createDiagnosticTraceId,
   diagnosticErrorCode,
@@ -23,7 +26,14 @@ import {
 
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 const SESSION_STORAGE_KEY = 'lumia_app_session_id';
+const USER_APP_EVENT_QUEUE_STORAGE_KEY = 'lumia_user_app_event_queue_v1';
+const MAX_QUEUED_USER_APP_EVENTS = 40;
 const NATIVE_GUEST_TIMEOUT_MS = 15_000;
+
+let userAppEventDeliveryChain: Promise<void> = Promise.resolve();
+let userAppEventOnlineListenerInstalled = false;
+let userAppEventQueueGeneration = 0;
+const activeUserAppEventControllers = new Set<AbortController>();
 
 /** Poll until Telegram WebApp exposes signed initData (required for API auth). */
 export async function waitForTelegramInitData(options?: {
@@ -135,6 +145,152 @@ export async function recordNotificationAttribution(payload: {
   });
 }
 
+function userAppEventQueueStorage(): Storage | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage || null;
+  } catch {
+    return null;
+  }
+}
+
+function readUserAppEventQueue(storage: Storage): SanitizedUserAppEvent[] {
+  try {
+    const raw = storage.getItem(USER_APP_EVENT_QUEUE_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((entry) => sanitizeUserAppEvent(entry))
+      .filter((entry): entry is SanitizedUserAppEvent => Boolean(entry))
+      .slice(-MAX_QUEUED_USER_APP_EVENTS);
+  } catch {
+    return [];
+  }
+}
+
+function writeUserAppEventQueue(storage: Storage, events: SanitizedUserAppEvent[]): boolean {
+  try {
+    if (events.length === 0) {
+      storage.removeItem(USER_APP_EVENT_QUEUE_STORAGE_KEY);
+    } else {
+      storage.setItem(
+        USER_APP_EVENT_QUEUE_STORAGE_KEY,
+        JSON.stringify(events.slice(-MAX_QUEUED_USER_APP_EVENTS)),
+      );
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearQueuedUserAppEvents(): void {
+  userAppEventQueueGeneration += 1;
+  const activeControllers = Array.from(activeUserAppEventControllers);
+  activeUserAppEventControllers.clear();
+  activeControllers.forEach((controller) => controller.abort());
+  const storage = userAppEventQueueStorage();
+  if (!storage) return;
+  try {
+    storage.removeItem(USER_APP_EVENT_QUEUE_STORAGE_KEY);
+  } catch {
+    // Storage can be unavailable in restricted browser contexts.
+  }
+}
+
+function shouldRetryUserAppEvent(status: number): boolean {
+  return status === 408 || status === 425 || status === 429 || status >= 500;
+}
+
+async function sendUserAppEvent(event: SanitizedUserAppEvent): Promise<boolean> {
+  const controller = new AbortController();
+  activeUserAppEventControllers.add(controller);
+  try {
+    const initData = getActiveTelegramInitData();
+    const response = await apiFetch('/api/users/events', {
+      method: 'POST',
+      credentials: 'include',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(initData ? { [INIT_DATA_HEADER]: initData } : {}),
+      },
+      body: JSON.stringify(event),
+    });
+    if (response.ok) return true;
+    if (shouldRetryUserAppEvent(Number(response.status || 0))) return false;
+    console.warn('[UserEvents] Event rejected:', Number(response.status || 0));
+    return true;
+  } catch {
+    // Account switches abort only telemetry requests. The generation guard and
+    // cleared queue deliberately prevent these events from being retried as the
+    // next authenticated user.
+    return controller.signal.aborted;
+  } finally {
+    activeUserAppEventControllers.delete(controller);
+  }
+}
+
+async function flushQueuedUserAppEvents(
+  expectedGeneration = userAppEventQueueGeneration,
+): Promise<void> {
+  const storage = userAppEventQueueStorage();
+  if (!storage) return;
+  for (;;) {
+    if (expectedGeneration !== userAppEventQueueGeneration) return;
+    const queued = readUserAppEventQueue(storage);
+    if (queued.length === 0) return;
+    const delivered = queued[0];
+    if (!await sendUserAppEvent(delivered)) return;
+    if (expectedGeneration !== userAppEventQueueGeneration) return;
+    // Re-read after delivery: another call may have appended an event while the
+    // request was in flight. At the 40-event cap the delivered entry may already
+    // have been evicted, so remove by stable id instead of dropping the new head.
+    const latest = readUserAppEventQueue(storage);
+    const deliveredIndex = delivered.eventId
+      ? latest.findIndex((event) => event.eventId === delivered.eventId)
+      : latest.findIndex((event) => JSON.stringify(event) === JSON.stringify(delivered));
+    if (deliveredIndex < 0) continue;
+    writeUserAppEventQueue(storage, [
+      ...latest.slice(0, deliveredIndex),
+      ...latest.slice(deliveredIndex + 1),
+    ]);
+  }
+}
+
+function scheduleQueuedUserAppEventFlush(): void {
+  const expectedGeneration = userAppEventQueueGeneration;
+  userAppEventDeliveryChain = userAppEventDeliveryChain
+    .catch(() => undefined)
+    .then(() => flushQueuedUserAppEvents(expectedGeneration));
+}
+
+function ensureUserAppEventOnlineRetry(): void {
+  if (userAppEventOnlineListenerInstalled || typeof window === 'undefined') return;
+  if (typeof window.addEventListener !== 'function') return;
+  window.addEventListener('online', scheduleQueuedUserAppEventFlush);
+  userAppEventOnlineListenerInstalled = true;
+}
+
+function createUserAppEventId(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  const bytes = new Uint8Array(16);
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Math.floor(Math.random() * 256);
+    }
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export async function recordUserAppEvent(payload: {
   eventType: string;
   section?: string | null;
@@ -142,23 +298,38 @@ export async function recordUserAppEvent(payload: {
   eventPayload?: Record<string, unknown>;
 }): Promise<void> {
   if (typeof window === 'undefined' || !payload.eventType) return;
-  const sanitizedEvent = sanitizeUserAppEvent(payload);
+  const sanitizedEvent = sanitizeUserAppEvent({
+    ...payload,
+    eventId: createUserAppEventId(),
+  });
   if (!sanitizedEvent) return;
 
-  // Считаем всех: Telegram (по initData-заголовку) И веб-гостей (по cookie-сессии,
-  // поэтому credentials:'include'). Раньше при отсутствии initData событие терялось.
-  const initData = getActiveTelegramInitData();
-  await apiFetch('/api/users/events', {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(initData ? { [INIT_DATA_HEADER]: initData } : {}),
-    },
-    body: JSON.stringify(sanitizedEvent),
-  }).catch((error) => {
-    console.warn('[UserEvents] Failed:', error?.message || error);
-  });
+  ensureUserAppEventOnlineRetry();
+  // Persist before entering the delivery chain. A later purchase_success must
+  // survive an earlier slow checkout_start request and an immediate app close.
+  const storage = userAppEventQueueStorage();
+  const queued = storage
+    ? [...readUserAppEventQueue(storage), sanitizedEvent].slice(-MAX_QUEUED_USER_APP_EVENTS)
+    : null;
+  const persisted = Boolean(storage && queued && writeUserAppEventQueue(storage, queued));
+  const expectedGeneration = userAppEventQueueGeneration;
+  userAppEventDeliveryChain = userAppEventDeliveryChain
+    .catch(() => undefined)
+    .then(async () => {
+      if (expectedGeneration !== userAppEventQueueGeneration) return;
+      // localStorage keeps already-sanitized events across a WebView/process
+      // restart. Account logout and deletion clear both app storages.
+      if (persisted) {
+        await flushQueuedUserAppEvents(expectedGeneration);
+        return;
+      }
+
+      if (expectedGeneration !== userAppEventQueueGeneration) return;
+      if (!await sendUserAppEvent(sanitizedEvent)) {
+        console.warn('[UserEvents] Event delivery deferred');
+      }
+    });
+  await userAppEventDeliveryChain;
 }
 
 export type UserNotificationSettings = {
