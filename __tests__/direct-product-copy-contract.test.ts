@@ -10,12 +10,15 @@ const ACTIVE_COPY_FILES = [
   'views/Paywall.tsx',
   'views/v2/HoroscopeReader.tsx',
   'views/v2/NatalMagazine.tsx',
+  'components/NatalReading/NatalCatalogReport.tsx',
+  'components/NatalReading/NatalReportHub.tsx',
   'components/PremiumPreview.tsx',
   'components/Horoscope/HoroscopeContent.tsx',
   'components/Dashboard/CosmicPassport.tsx',
   'lib/natalHumanShared.ts',
   'lib/natalHumanInterpretation.ts',
   'lib/natalReading/fallbacks.ts',
+  'lib/natalReading/reportCatalog.ts',
   'lib/retentionNotificationCatalog.ts',
 ];
 

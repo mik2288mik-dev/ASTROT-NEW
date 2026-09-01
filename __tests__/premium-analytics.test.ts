@@ -172,6 +172,39 @@ describe('Premium analytics contract', () => {
     });
   });
 
+  it('keeps an exact catalog answer through checkout without keeping generated copy', () => {
+    expect(sanitizeUserAppEvent({
+      eventType: 'checkout_start',
+      section: 'premium',
+      source: 'deep_natal',
+      eventPayload: {
+        entryPoint: 'deep_natal',
+        placement: 'deep_natal',
+        featureKey: 'natal_deep',
+        triggerType: 'locked_feature',
+        returnView: 'chart',
+        returnAction: 'open_natal_answer',
+        returnEntityId: 'love_lose_interest',
+        paywallInstanceId: 'pw-catalog-answer-20260901',
+        previewText: 'private personalized preview',
+      },
+    })).toEqual({
+      eventType: 'checkout_start',
+      section: 'premium',
+      source: 'deep_natal',
+      eventPayload: {
+        entry_point: 'deep_natal',
+        placement: 'deep_natal',
+        feature_key: 'natal_deep',
+        trigger_type: 'locked_feature',
+        return_view: 'chart',
+        return_action: 'open_natal_answer',
+        return_entity_id: 'love_lose_interest',
+        paywall_instance_id: 'pw-catalog-answer-20260901',
+      },
+    });
+  });
+
   it('normalizes commerce aliases and never accepts raw ids or question text', () => {
     expect(sanitizeUserAppEvent({
       eventType: 'purchase_succeeded',

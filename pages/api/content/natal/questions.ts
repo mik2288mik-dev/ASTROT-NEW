@@ -25,6 +25,8 @@ import {
   appendNatalQuestionMessage,
   ensureNatalQuestionThread,
   findNatalQuestionAnswer,
+  FreeNatalQuestionUsedError,
+  getFreeNatalQuestionUsage,
   getNatalQuestionUsage,
   listNatalQuestionMessages,
   NatalQuestionLimitError,
@@ -59,19 +61,26 @@ async function snapshot(input: {
   chartId: number;
   usageDate: string;
   timezone: string;
+  isPremium: boolean;
 }) {
-  const [messages, usage] = await Promise.all([
+  const [messages, usage, freeQuestion] = await Promise.all([
     listNatalQuestionMessages({ userId: input.userId, chartId: input.chartId, pairLimit: 8 }),
     getNatalQuestionUsage({
       userId: input.userId,
       usageDate: input.usageDate,
       timezone: input.timezone,
     }),
+    getFreeNatalQuestionUsage({ userId: input.userId }),
   ]);
   return {
     chartId: input.chartId,
     messages,
     usage,
+    access: {
+      isPremium: input.isPremium,
+      freeQuestionUsed: freeQuestion.used,
+      freeQuestionRemaining: freeQuestion.remaining,
+    },
     promptVersion: NATAL_QUESTION_IDENTITY.promptVersion,
     voiceVersion: NATAL_QUESTION_IDENTITY.voiceVersion,
   };
@@ -99,14 +108,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const language = ctx.profile.language === 'en' ? 'en' : 'ru';
   diagnostic.log('context', 'ok', { source: 'owned_selected_chart' });
   const entitlement = await getPremiumEntitlementState(userId);
-  if (!entitlement.isPremium) {
-    diagnostic.log('access', 'error', { httpStatus: 403, errorCode: 'PREMIUM_REQUIRED' });
-    return res.status(403).json({
-      error: 'Premium required',
-      code: 'PREMIUM_REQUIRED',
-      premiumRequired: true,
-    });
-  }
   if (ctx.chartId == null) {
     diagnostic.log('context', 'error', {
       httpStatus: 409,
@@ -147,7 +148,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const usageDate = getPersonalForecastPeriodKey('day', new Date(), quotaTimezone);
 
   if (req.method === 'GET') {
-    const current = await snapshot({ userId, chartId, usageDate, timezone: quotaTimezone });
+    const current = await snapshot({
+      userId,
+      chartId,
+      usageDate,
+      timezone: quotaTimezone,
+      isPremium: entitlement.isPremium,
+    });
     diagnostic.log('snapshot', 'ok', { httpStatus: 200, source: 'selected_chart_thread' });
     return res.status(200).json(current);
   }
@@ -185,6 +192,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       normalizedQuestion,
       usageDate,
       timezone: quotaTimezone,
+      access: entitlement.isPremium ? 'premium' : 'free',
     });
     const questionHash = createHash('sha256')
       .update(`${userId}:${chartId}:${normalizedQuestion}`)
@@ -246,8 +254,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       chartId,
       usageDate,
       timezone: quotaTimezone,
+      isPremium: entitlement.isPremium,
     }));
   } catch (error) {
+    if (error instanceof FreeNatalQuestionUsedError) {
+      diagnostic.log('access', 'error', {
+        httpStatus: 403,
+        errorCode: error.code,
+      });
+      return res.status(403).json({
+        error: 'Free natal question already used',
+        code: error.code,
+        premiumRequired: true,
+        message: language === 'ru'
+          ? 'Бесплатный вопрос уже использован. Открой Premium, чтобы задавать до 5 новых вопросов в день.'
+          : 'Your free question has already been used. Open Premium to ask up to 5 new questions a day.',
+      });
+    }
     if (error instanceof NatalQuestionLimitError) {
       diagnostic.log('quota', 'error', {
         httpStatus: 429,

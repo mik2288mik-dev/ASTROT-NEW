@@ -1,6 +1,17 @@
 import type { ForecastSection } from '../../lib/personalForecastContract';
 import type { PreloadedNatalReport } from '../NatalReading/HumanReport';
 import {
+  NATAL_REPORT_CATALOG_CONTRACT_VERSION,
+  NATAL_REPORT_CATEGORIES,
+  NATAL_REPORT_MAIN_PREVIEW_KEYS,
+  getNatalReportAnswer,
+  isNatalReportAnswerFree,
+  type NatalReportAnswer,
+  type NatalReportAnswerKey,
+  type NatalReportCategoryKey,
+  type NatalReportCategoryPack,
+} from '../../lib/natalReading/reportCatalog';
+import {
   NATAL_PERMANENT_CONTRACT_VERSION,
   buildNatalModelContext,
   buildPermanentNatalChartFingerprint,
@@ -63,6 +74,11 @@ export type UiPreviewScenario = {
   access: UiPreviewAccess;
   state: UiPreviewState;
   birthTime: UiPreviewBirthTime;
+};
+
+export type UiPreviewNatalCatalog = {
+  categoryPacks: Record<NatalReportCategoryKey, NatalReportCategoryPack>;
+  answers: Record<NatalReportAnswerKey, NatalReportAnswer>;
 };
 
 export const UI_PREVIEW_SCREEN_LABELS: Record<UiPreviewScreen, string> = {
@@ -246,6 +262,153 @@ export function createUiPreviewChart(birthTime: UiPreviewBirthTime): NatalChartD
     },
     summary: 'Синтетическая натальная карта для локальной визуальной проверки.',
   };
+}
+
+const UI_PREVIEW_NATAL_PREVIEWS: Record<NatalReportAnswerKey, string> = {
+  main_how_people_see_you: 'При знакомстве ты кажешься спокойнее, чем есть. Люди не сразу понимают, насколько быстро ты уже всё про них заметила.',
+  main_not_seen_at_once: 'За внешним спокойствием у тебя есть жёсткое правило: если доверие пропало, вернуть его одними словами почти невозможно.',
+  character_decisions: 'Ты можешь долго сравнивать варианты, зато после решения тебя трудно сбить чужим мнением.',
+  character_change_mind: 'Ты меняешь мнение не от напора, а когда человек приносит факт, который действительно ломает прежнюю картину.',
+  character_irritation: 'Сильнее всего тебя раздражают не ошибки, а люди, которые делают вид, будто ничего не произошло.',
+  character_boredom: 'Однообразие терпишь нормально, пока видишь результат. Бессмысленный повтор выключает интерес почти сразу.',
+  character_stand_ground: 'Если вопрос касается твоего личного пространства или честной договорённости, уговорить тебя «просто уступить» почти невозможно.',
+  character_plan_breaks: 'Когда план рушится, ты сначала быстро собираешь факты, а уже потом решаешь, что спасать, а что бросить.',
+  character_best_at: 'Ты раньше других замечаешь несостыковку и умеешь довести запутанное дело до понятного результата.',
+  character_unusual_mix: 'В тебе спокойно уживаются осторожный старт и очень резкий финал, если предел уже пройден.',
+  love_people_you_like: 'Тебя цепляют люди, которых нельзя понять за один вечер. Но одной загадочности надолго тебе мало.',
+  love_show_interest: 'Симпатию у тебя чаще выдают внимание к мелочам и желание продолжить разговор, а не громкие признания.',
+  love_attachment_speed: 'Вовлечься можешь быстро, но признать, что человек стал важным, — заметно позже.',
+  love_turnoffs: 'Интерес обрывается быстрее всего, когда слова человека несколько раз расходятся с его поступками.',
+  love_lose_interest: 'Когда человек становится слишком предсказуемым и разговоры начинают повторяться, твой интерес может исчезнуть резко.',
+  love_need_freedom: 'Тебе нужна близость без постоянного отчёта: быть рядом — да, объяснять каждый шаг — нет.',
+  love_nonnegotiables: 'Без уважения к договорённостям отношения для тебя быстро теряют смысл, даже если притяжение осталось.',
+  love_relationship_you_want: 'Тебе подходит связь, где можно говорить прямо, жить своей жизнью и не гадать, что имелось в виду.',
+  love_right_person: 'Рядом с тобой удержится человек, который не путает близость с контролем и умеет отвечать за свои слова.',
+  communication_new_people: 'С новыми людьми ты сначала слушаешь и проверяешь, совпадают ли слова с поведением.',
+  communication_direct_or_unsaid: 'О главном ты умеешь сказать прямо, но личное сначала прячешь за короткими и безопасными фразами.',
+  communication_texting: 'Если разговор тебе интересен, это видно по быстрым ответам и деталям, которые ты помнишь без напоминаний.',
+  communication_misunderstood: 'Сначала ты объясняешь ещё раз. Если человек снова выворачивает смысл, разговор для тебя быстро заканчивается.',
+  communication_criticism: 'Конкретное замечание ты слышишь нормально. Общий наезд без примеров вызывает спор почти сразу.',
+  communication_arguments: 'В споре ты быстро находишь слабое место в чужих словах и не любишь уходить от исходного вопроса.',
+  communication_after_fight: 'После ссоры тебе нужна короткая пауза, но бесконечное молчание раздражает сильнее самого конфликта.',
+  communication_close_people: 'С близкими ты заметно прямее и иногда говоришь жёстче именно потому, что не хочешь играть в намёки.',
+  communication_ask_for_help: 'Ты скорее попробуешь справиться сама, а просишь уже тогда, когда точно понимаешь, что нужно от человека.',
+  work_start_new: 'Перед стартом тебе нужно понять итог и правила. После этого ты включаешься быстро и без долгой раскачки.',
+  work_routine: 'Повторяющуюся работу ты выдерживаешь, если видишь смысл. Бесконечное «делай как вчера» быстро выключает тебя.',
+  work_team_or_solo: 'Самостоятельно ты двигаешься быстрее, но сильная команда полезна там, где роли названы заранее.',
+  work_leadership: 'Руководить ты можешь без лишнего шума: поставить задачу, назвать срок и проверить реальный результат.',
+  work_authority: 'Начальника ты уважаешь за ясные решения, а не за должность. Давление без объяснений встречает сопротивление.',
+  work_deadlines: 'Жёсткий срок собирает тебя, пока он реален. Хаотичные правки в последний момент злят и сбивают темп.',
+  work_interest_killers: 'Интерес к работе падает, когда ответственность есть, а права принять решение тебе не дают.',
+  work_own_business: 'Своё дело тебе подходит свободой решений, но быстро утомит, если придётся одной тащить весь мелкий контроль.',
+  work_clients: 'С клиентом ты работаешь лучше всего, когда запрос назван прямо и условия не меняются после договорённости.',
+  work_best_at: 'Твоя сильная работа начинается там, где нужно разобрать хаос, заметить ошибку и собрать понятный порядок.',
+  money_save_or_spend: 'Ты умеешь копить ради ясной цели, но легко тратишься на то, что прямо сейчас делает жизнь удобнее.',
+  money_big_decisions: 'Перед крупной покупкой ты проверяешь детали и не любишь, когда тебя торопят искусственной срочностью.',
+  money_risk: 'Ты готова рисковать, когда понимаешь худший исход. Ставка вслепую тебя скорее оттолкнёт, чем заведёт.',
+  money_name_price: 'Назвать цену проще, когда объём работы ясен. Размытый запрос заставляет тебя оставлять запас.',
+  money_unnoticed_spending: 'Деньги незаметно уходят на удобство, маленькие ускорения и покупки, которые по одной кажутся пустяком.',
+  money_independence: 'Свои деньги для тебя — это прежде всего право решать без чужого разрешения.',
+  money_income_stability_freedom: 'Ты выберешь не самый большой доход, если вместе с ним придётся отдать весь контроль над временем.',
+  money_shared: 'Общие деньги работают для тебя только с понятными правилами: что общее, что личное и кто за что отвечает.',
+  money_status_things: 'Ты готова платить за качество и удобство, но одна громкая марка редко убеждает тебя переплатить.',
+};
+
+const UI_PREVIEW_NATAL_MIDDLE: Record<NatalReportCategoryKey, readonly [string, string]> = {
+  main: [
+    'Обычно это становится заметно не в первом разговоре, а позже: ты помнишь детали, сверяешь обещания с поступками и не спешишь делать окончательный вывод.',
+    'Когда картина складывается, твоя позиция становится очень ясной. Тогда окружающие понимают, что первоначальная мягкость не означала согласие со всем подряд.',
+  ],
+  character: [
+    'Сначала ты смотришь, что происходит на деле. Чужая громкость не заменяет для тебя нормального объяснения и не ускоряет решение.',
+    'Если факты сходятся, ты действуешь без лишнего шума. Если нет — можешь остановить всё, даже когда остальные уже побежали вперёд.',
+  ],
+  love: [
+    'В начале ты больше показываешь отношение поступками: возвращаешься к разговору, помнишь детали и находишь время, когда могла бы не находить.',
+    'Когда ответный интерес становится понятным, ты перестаёшь скрываться за нейтральным общением и говоришь заметно прямее.',
+  ],
+  communication: [
+    'Тебе проще обсуждать конкретный случай, чем долго угадывать чужой подтекст. Чем яснее вопрос, тем точнее твой ответ.',
+    'Если разговор превращается в игру со словами, терпение быстро заканчивается. Ты возвращаешь его к сути или просто ставишь точку.',
+  ],
+  work: [
+    'Лучше всего ты работаешь, когда понятны результат, срок и твоя зона решения. Тогда не нужно постоянно напоминать и подталкивать.',
+    'Сложнее там, где правила меняют на ходу, а ответственность всё равно оставляют тебе. Такой порядок быстро убивает интерес.',
+  ],
+  money: [
+    'Ты спокойнее принимаешь денежное решение, когда видишь полную цену и понимаешь, что получишь взамен. Давление только заставляет проверять внимательнее.',
+    'Траты становятся лёгкими, если дают заметное удобство или свободу. За пустое впечатление ты платишь гораздо менее охотно.',
+  ],
+};
+
+export function createUiPreviewNatalCatalog(): UiPreviewNatalCatalog {
+  const evidenceIds = ['natal.sun', 'natal.moon'];
+  const answers = {} as Record<NatalReportAnswerKey, NatalReportAnswer>;
+
+  for (const category of NATAL_REPORT_CATEGORIES) {
+    for (const answerKey of category.answerKeys) {
+      const definition = getNatalReportAnswer(answerKey);
+      if (!definition) continue;
+      const middle = UI_PREVIEW_NATAL_MIDDLE[definition.categoryKey];
+      answers[answerKey] = {
+        schemaVersion: 'natal-report-answer-v1',
+        contractVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
+        answerKey,
+        categoryKey: definition.categoryKey,
+        title: definition.title.ru,
+        access: definition.access,
+        paragraphs: [UI_PREVIEW_NATAL_PREVIEWS[answerKey], ...middle].map((text) => ({
+          text,
+          evidenceIds,
+        })),
+        evidenceIds,
+        related: definition.related,
+        fullAnswerIncludes: [...definition.fullAnswerIncludes.ru],
+      };
+    }
+  }
+
+  const categoryPacks = {} as Record<NatalReportCategoryKey, NatalReportCategoryPack>;
+  for (const category of NATAL_REPORT_CATEGORIES) {
+    const previewKeys = category.key === 'main'
+      ? NATAL_REPORT_MAIN_PREVIEW_KEYS
+      : category.answerKeys;
+    categoryPacks[category.key] = {
+      schemaVersion: 'natal-report-category-v1',
+      contractVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
+      categoryKey: category.key,
+      title: category.title.ru,
+      summary: category.key === 'main' ? [
+        'Ты быстро понимаешь, нравится тебе человек или нет, но настоящее отношение показываешь намного позже. Со стороны можешь казаться спокойнее и проще, чем есть, потому что сначала смотришь, что человек будет делать дальше, и только потом показываешь собственную реакцию.',
+        'В важных решениях тебя трудно сдвинуть, если ты уже проверила детали и всё для себя решила. Давление здесь работает наоборот: ты только сильнее упираешься и ещё раз проходишь по каждому спорному месту, прежде чем дать окончательный ответ.',
+        'В работе тебе нужен понятный результат, а в людях — совпадение слов с поступками. Если этого нет, интерес и доверие заканчиваются быстрее, чем окружающие ожидают, даже когда в начале дело или знакомство выглядело многообещающе.',
+      ].map((text) => ({ text, evidenceIds })) : [],
+      observations: category.key === 'main' ? [
+        'Быстро находишь общий язык, но доверяешь не сразу.',
+        'Сложные задачи интересуют сильнее однообразных.',
+        'Чужое давление только замедляет твоё решение.',
+        'Можешь долго молчать, а затем резко поставить точку.',
+        'Близкие знают тебя совсем не такой, какой видят новые люди.',
+      ].map((text) => ({ text, evidenceIds })) : [],
+      previews: previewKeys.map((answerKey) => {
+        const answer = answers[answerKey];
+        return {
+          answerKey,
+          title: answer.title,
+          preview: UI_PREVIEW_NATAL_PREVIEWS[answerKey],
+          evidenceIds,
+          access: answer.access,
+          related: answer.related,
+          fullAnswerIncludes: answer.fullAnswerIncludes,
+        };
+      }),
+      freeAnswers: category.answerKeys
+        .filter(isNatalReportAnswerFree)
+        .map((answerKey) => answers[answerKey]),
+    };
+  }
+
+  return { categoryPacks, answers };
 }
 
 export function createUiPreviewNatalReport(

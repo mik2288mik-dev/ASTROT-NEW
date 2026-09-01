@@ -20,7 +20,6 @@ import {
 } from '../lumia-ui/LumiaBottomTabBar';
 import { HoroscopeReader } from '../../views/v2/HoroscopeReader';
 import { NatalMagazine } from '../../views/v2/NatalMagazine';
-import { PersonalityReport } from '../../views/PersonalityReport';
 import { UnionRoom } from '../../views/v2/UnionRoom';
 import { AstrologyEncyclopedia } from '../../views/v2/AstrologyEncyclopedia';
 import { ServiceScreen, type ServiceTab } from '../../views/v2/ServiceScreen';
@@ -44,6 +43,7 @@ import {
   UI_PREVIEW_WEEK_SECTIONS,
   createUiPreviewChart,
   createUiPreviewCharts,
+  createUiPreviewNatalCatalog,
   createUiPreviewNatalReport,
   createUiPreviewNatalPremiumReport,
   createUiPreviewProfile,
@@ -488,10 +488,7 @@ export default function UiPreviewApp() {
     () => createUiPreviewNatalPremiumReport(natalProfile, chart),
     [chart, natalProfile],
   );
-  const natalCharts = useMemo(
-    () => createUiPreviewCharts(natalProfile, chart),
-    [chart, natalProfile],
-  );
+  const natalCatalog = useMemo(() => createUiPreviewNatalCatalog(), []);
   const view = previewViewForScreen(scenario.screen);
   const showsBottomNavigation = !['onboarding', 'paywall'].includes(scenario.screen);
 
@@ -601,28 +598,6 @@ export default function UiPreviewApp() {
         }}
       />
     );
-  } else if (scenario.screen === 'natal-reading' && scenario.state !== 'empty') {
-    scene = (
-      <PersonalityReport
-        key={`${scenario.screen}:${scenario.access}:${scenario.state}:${scenario.birthTime}`}
-        profile={natalProfile}
-        primaryChartData={chart}
-        primaryChartId={1}
-        preloadedReport={natalReport}
-        requestPremium={() => navigate('paywall')}
-        onBack={() => navigate('natal')}
-        onOpenProfile={openProfile}
-        onOpenNatalChart={() => navigate('natal')}
-        onCompareWithMe={() => navigate('compatibility-input')}
-        uiPreview={{
-          charts: natalCharts,
-          reportState: scenario.state === 'loading' || scenario.state === 'error'
-            ? scenario.state
-            : 'ready',
-          premiumReport: scenario.access === 'premium' ? natalPremiumReport : null,
-        }}
-      />
-    );
   } else if (scenario.screen === 'natal' || scenario.screen === 'natal-reading' || scenario.screen === 'question') {
     scene = (
       <NatalMagazine
@@ -647,6 +622,12 @@ export default function UiPreviewApp() {
             ? scenario.state
             : 'ready',
           premiumReport: scenario.access === 'premium' ? natalPremiumReport : null,
+          catalog: {
+            ...natalCatalog,
+            state: scenario.state === 'loading' || scenario.state === 'error'
+              ? scenario.state
+              : 'ready',
+          },
         }}
       />
     );

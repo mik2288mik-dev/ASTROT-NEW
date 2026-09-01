@@ -13,6 +13,11 @@ import { STORE_RELEASE_CONFIG } from '../lib/storeReleaseConfig';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { NeboLogo } from '../components/brand/NeboLogo';
 import type { PurchaseRestoreStatus } from '../services/paymentProvider';
+import {
+  getNatalReportAnswer,
+  isNatalReportAnswerKey,
+  localizeNatalReportText,
+} from '../lib/natalReading/reportCatalog';
 
 export type PaywallPurchaseStatus =
   | 'completed'
@@ -128,6 +133,13 @@ export const Paywall: React.FC<PaywallProps> = ({
   const rustorePaymentsEnabled = canUseRuStorePay(distributionChannel);
   const alreadyPremium = hasActivePremium(profile);
   const canManageInRuStore = profile.premiumEntitlement?.source === 'rustore';
+  const natalAnswer = context.placement === 'deep_natal'
+    && isNatalReportAnswerKey(context.returnEntityId)
+      ? getNatalReportAnswer(context.returnEntityId)
+      : null;
+  const natalAnswerTitle = natalAnswer
+    ? localizeNatalReportText(natalAnswer.title, language)
+    : null;
   const [selected, setSelected] = useState<PremiumPlanId>(initialPlanId);
   const [plans, setPlans] = useState<Partial<Record<PremiumPlanId, CatalogPlan>>>(() => (
     previewFixture
@@ -313,7 +325,9 @@ export const Paywall: React.FC<PaywallProps> = ({
         <h1 className="pw2-title">
           {embedded
             ? (ru ? 'Персональный прогноз, натальная карта и совместимость' : 'Personal forecast, birth chart, and compatibility')
-            : (ru ? 'Твой прогноз — без обрезанной версии.' : 'Your forecast, without the cut-down version.')}
+            : natalAnswerTitle
+              ? (ru ? 'Открыть всю натальную карту' : 'Open the full natal chart')
+              : (ru ? 'Твой прогноз — без обрезанной версии.' : 'Your forecast, without the cut-down version.')}
         </h1>
       </div>
       <p className="pw2-sub">
@@ -321,7 +335,11 @@ export const Paywall: React.FC<PaywallProps> = ({
           ? (ru
               ? 'Полный прогноз на сегодня, неделю и месяц с учётом данных твоей натальной карты. Подробные разборы тебя и других людей и сравнение двух карт.'
               : 'A full daily, weekly, and monthly forecast informed by your birth chart data. Detailed readings for you and other people, plus two-chart compatibility.')
-          : CONTEXT_COPY[context.placement][language]}
+          : natalAnswerTitle
+            ? (ru
+                ? `Сразу после оплаты откроется «${natalAnswerTitle}». Вместе с ним — все 47 ответов о характере, любви, общении, работе и деньгах.`
+                : `“${natalAnswerTitle}” opens immediately after payment, together with all 47 answers about character, love, communication, work, and money.`)
+            : CONTEXT_COPY[context.placement][language]}
       </p>
 
       {previewNotice ? <p className="pw2-foot" role="status">{previewNotice}</p> : null}

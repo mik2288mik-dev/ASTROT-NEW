@@ -1,3 +1,5 @@
+import { NATAL_REPORT_ANSWER_KEYS } from './natalReading/reportCatalog';
+
 export const PREMIUM_ANALYTICS_EVENTS = [
   'first_value_viewed',
   'locked_feature_tapped',
@@ -105,6 +107,8 @@ const PAYWALL_CONTEXT_KEYS = [
   'feature_key',
   'trigger_type',
   'return_view',
+  'return_action',
+  'return_entity_id',
   'return_scroll_anchor',
   'paywall_instance_id',
   'entry_point',
@@ -223,6 +227,8 @@ const PAYLOAD_KEY_ALIASES: Record<string, string> = {
   featureKey: 'feature_key',
   triggerType: 'trigger_type',
   returnView: 'return_view',
+  returnAction: 'return_action',
+  returnEntityId: 'return_entity_id',
   returnScrollAnchor: 'return_scroll_anchor',
   paywallInstanceId: 'paywall_instance_id',
   entryPoint: 'entry_point',
@@ -274,6 +280,17 @@ const ENUM_VALUES_BY_KEY: Record<string, ReadonlySet<string>> = {
   feature_key: new Set(['personal_daily', 'personal_daily_full', 'personal_weekly', 'personal_monthly', 'natal_deep', 'personality_deep', 'natal_questions', 'synastry_by_charts', 'saved_people']),
   trigger_type: new Set(['inline_promo', 'locked_feature', 'settings']),
   return_view: new Set(['dashboard', 'chart', 'synastry', 'charts', 'settings']),
+  return_action: new Set([
+    'add_saved_person',
+    'open_birth_compatibility',
+    'open_deep_natal',
+    'open_natal_answer',
+    'open_natal_questions',
+    'open_natal_topic',
+    'open_saved_person',
+    'run_deep_compatibility',
+    'submit_birth_compatibility',
+  ]),
   plan_id: new Set(['premium_month', 'premium_quarter', 'premium_year']),
   default_plan_id: new Set(['premium_quarter']),
   entitlement_state: new Set(['free', 'gift', 'store_trial', 'paid', 'grace', 'cancelled_active', 'expired']),
@@ -282,6 +299,7 @@ const ENUM_VALUES_BY_KEY: Record<string, ReadonlySet<string>> = {
 };
 
 const NATAL_ANALYTICS_SECTION_KEYS = new Set([
+  ...NATAL_REPORT_ANSWER_KEYS,
   'overview',
   'inner_world',
   'new_people',
@@ -466,6 +484,11 @@ function safeAnalyticsString(eventType: UserAppEventName, key: string, value: un
   if (key === 'entitlement_ends_at') return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(normalized) ? normalized : null;
   if (key === 'paywall_instance_id') return /^(?:pw-[a-z0-9-]+|[0-9a-f]{8}-[0-9a-f-]{27,})$/i.test(normalized) ? normalized : null;
   if (key === 'return_scroll_anchor') return /^[a-z][a-z0-9-]{0,79}$/i.test(normalized) ? normalized : null;
+  if (key === 'return_entity_id') {
+    return /^(?:main|character|love|communication|work|money)_[a-z0-9_]{1,80}$/i.test(normalized)
+      ? normalized
+      : null;
+  }
   if (key === 'reason_code') return SAFE_REASON_CODES.has(normalized) ? normalized : null;
   return normalized;
 }

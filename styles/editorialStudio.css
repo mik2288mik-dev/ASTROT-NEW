@@ -4041,3 +4041,853 @@
     padding: 19px;
   }
 }
+
+/* Natal catalog: topic -> question -> one focused answer. */
+.natal-editorial-page .app-top-bar {
+  /* The bar already removes safe-area padding from its content width. */
+  --app-top-bar-title-rail: 94px;
+}
+
+.natal-editorial-page .app-top-bar-side--end {
+  width: 90px;
+}
+
+.natal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.natal-header-wheel-button,
+.natal-header-actions .editorial-profile-button {
+  color: var(--natal-mvp-ink);
+}
+
+.natal-header-wheel-button[aria-pressed='true'] {
+  color: var(--lumia-brand-primary);
+}
+
+.natal-header-wheel-button:focus-visible,
+.natal-header-actions .editorial-profile-button:focus-visible {
+  outline: 2px solid var(--natal-mvp-ink);
+  outline-offset: 2px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-stage {
+  width: min(100%, 620px);
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-report {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 0 40px;
+  background: #fff;
+  color: var(--natal-mvp-ink);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-intro {
+  padding: 24px 22px 18px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-intro > p {
+  margin: 0;
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-intro h1 {
+  max-width: 17ch;
+  margin: 8px 0 0;
+  color: var(--natal-mvp-ink);
+  font-size: 32px;
+  font-weight: 560;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-tabs-wrap {
+  position: sticky;
+  top: calc(
+    max(
+      env(safe-area-inset-top, 0px),
+      var(--tg-safe-area-inset-top, 0px),
+      var(--tg-content-safe-area-inset-top, 0px),
+      18px
+    )
+    + 54px
+  );
+  z-index: 45;
+  box-sizing: border-box;
+  width: 100%;
+  border-bottom: 1px solid var(--natal-mvp-line);
+  background: rgba(255, 255, 255, 0.97);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  backdrop-filter: blur(14px) saturate(1.1);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-tabs {
+  display: flex;
+  width: 100%;
+  max-width: 620px;
+  min-height: 52px;
+  align-items: stretch;
+  gap: 24px;
+  margin: 0 auto;
+  padding: 0 22px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  scroll-padding-inline: 22px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-tabs > button {
+  position: relative;
+  min-width: max-content;
+  min-height: 52px;
+  flex: 0 0 auto;
+  padding: 3px 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--natal-mvp-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 560;
+  line-height: 1.2;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-tabs > button::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  background: transparent;
+  content: '';
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-tabs > button[aria-selected='true'] {
+  color: var(--natal-mvp-ink);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-tabs > button[aria-selected='true']::after {
+  background: var(--natal-mvp-ink);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-tabs > button:focus-visible,
+.fresh-page.natal-mvp-page .natal-catalog-list button:focus-visible,
+.fresh-page.natal-mvp-page .natal-catalog-continue:focus-visible,
+.fresh-page.natal-mvp-page .natal-catalog-library button:focus-visible,
+.fresh-page.natal-mvp-page .natal-catalog-back:focus-visible,
+.fresh-page.natal-mvp-page .natal-catalog-bookmark:focus-visible,
+.fresh-page.natal-mvp-page .natal-catalog-related button:focus-visible,
+.fresh-page.natal-mvp-page .natal-catalog-error button:focus-visible,
+.fresh-page.natal-mvp-page .natal-catalog-empty button:focus-visible,
+.fresh-page.natal-mvp-page .natal-catalog-unlock-button:focus-visible {
+  outline: 2px solid var(--natal-mvp-ink);
+  outline-offset: 3px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-panel {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 22px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-category {
+  padding: 30px 0 0;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-main-heading > p {
+  margin: 0 0 8px;
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  font-weight: 520;
+  line-height: 1.45;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-main-heading h2,
+.fresh-page.natal-mvp-page .natal-catalog-category-heading h2,
+.fresh-page.natal-mvp-page .natal-catalog-detail-heading h2 {
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-main-heading h2 {
+  max-width: 17ch;
+  font-size: clamp(31px, 8.7vw, 40px);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-summary {
+  display: grid;
+  max-width: 39rem;
+  gap: 15px;
+  padding: 24px 0 32px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-summary p {
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 18px;
+  font-weight: 450;
+  line-height: 1.62;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-observations {
+  padding: 29px 0 9px;
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-observations h3,
+.fresh-page.natal-mvp-page .natal-catalog-list-section > h3,
+.fresh-page.natal-mvp-page .natal-catalog-related > h3 {
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.18;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-observations ul {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-observations li {
+  margin: 0;
+  padding: 15px 0;
+  border-top: 1px solid var(--natal-mvp-line);
+  color: var(--natal-mvp-ink);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-observations li:first-child {
+  border-top: 0;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-continue {
+  display: flex;
+  width: 100%;
+  min-height: 92px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 20px;
+  padding: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--natal-mvp-line);
+  border-bottom: 1px solid var(--natal-mvp-line);
+  background: transparent;
+  color: var(--natal-mvp-ink);
+  text-align: left;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-continue > span {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-continue > span > span,
+.fresh-page.natal-mvp-page .natal-catalog-continue small {
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-continue strong {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-continue > svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  color: var(--natal-mvp-muted);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-library {
+  display: grid;
+  gap: 28px;
+  padding: 28px 0 4px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-library h3 {
+  margin: 0 0 10px;
+  color: var(--natal-mvp-ink);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-library ul {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--natal-mvp-line);
+  list-style: none;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-library li {
+  border-bottom: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-library button {
+  display: flex;
+  width: 100%;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border: 0;
+  background: transparent;
+  color: var(--natal-mvp-ink);
+  text-align: left;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-library button > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-library strong {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-library small {
+  color: var(--natal-mvp-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-library svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: var(--natal-mvp-muted);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-category-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 26px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-category-heading h2 {
+  font-size: clamp(31px, 8.7vw, 40px);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-category-heading p {
+  flex: 0 0 auto;
+  margin: 0 0 3px;
+  color: var(--natal-mvp-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-list-section {
+  padding-top: 28px;
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-list {
+  margin: 17px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-list > li {
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-list > li:last-child {
+  border-bottom: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-list button {
+  display: grid;
+  width: 100%;
+  min-height: 105px;
+  grid-template-columns: minmax(0, 1fr) 18px 18px;
+  align-items: center;
+  gap: 10px;
+  padding: 17px 0;
+  border: 0;
+  background: transparent;
+  color: var(--natal-mvp-ink);
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-row-copy {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-row-copy strong {
+  color: var(--natal-mvp-ink);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.24;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-row-copy > span {
+  color: var(--natal-mvp-muted);
+  font-size: 16px;
+  font-weight: 430;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-row-lock,
+.fresh-page.natal-mvp-page .natal-catalog-row-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--natal-mvp-muted);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-row-arrow {
+  justify-self: end;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-list button:active,
+.fresh-page.natal-mvp-page .natal-catalog-related button:active,
+.fresh-page.natal-mvp-page .natal-catalog-continue:active {
+  color: var(--natal-mvp-muted);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-detail {
+  padding: 12px 0 10px;
+  scroll-margin-top: calc(
+    max(
+      env(safe-area-inset-top, 0px),
+      var(--tg-safe-area-inset-top, 0px),
+      var(--tg-content-safe-area-inset-top, 0px),
+      18px
+    ) + 54px
+  );
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-back {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px -8px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--natal-mvp-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 560;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-back svg {
+  width: 18px;
+  height: 18px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-detail-heading {
+  padding-bottom: 28px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-detail-meta {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-detail-meta > p {
+  margin: 0;
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.35;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-bookmark {
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--natal-mvp-muted);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-bookmark svg {
+  width: 20px;
+  height: 20px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-bookmark.is-active {
+  color: var(--natal-mvp-ink);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-bookmark.is-active svg {
+  fill: currentColor;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-detail-heading h2 {
+  max-width: 22ch;
+  font-size: clamp(30px, 8.3vw, 39px);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-detail-heading h2:focus,
+.fresh-page.natal-mvp-page #natal-catalog-category-title:focus {
+  outline: 0;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-answer {
+  display: grid;
+  max-width: 39rem;
+  gap: 18px;
+  padding: 30px 0 34px;
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-answer p {
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 17px;
+  font-weight: 430;
+  line-height: 1.68;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-answer p.is-lead {
+  font-size: 20px;
+  font-weight: 520;
+  letter-spacing: -0.02em;
+  line-height: 1.5;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-locked {
+  padding: 30px 0 36px;
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-locked-preview {
+  max-width: 42rem;
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.55;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-includes {
+  margin-top: 27px;
+  padding-top: 26px;
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-includes > p {
+  margin: 0;
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.4;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-includes ul {
+  display: grid;
+  margin: 15px 0 0;
+  padding: 0;
+  gap: 12px;
+  list-style: none;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-includes li {
+  position: relative;
+  padding-left: 18px;
+  color: var(--natal-mvp-ink);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-includes li::before {
+  position: absolute;
+  top: 0.72em;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--natal-mvp-ink);
+  content: '';
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-unlock {
+  margin-top: 30px;
+  padding-top: 29px;
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-unlock h3 {
+  max-width: 26ch;
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.18;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-unlock > p:not(.natal-catalog-unlock-note) {
+  max-width: 40rem;
+  margin: 11px 0 0;
+  color: var(--natal-mvp-muted);
+  font-size: 16px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-unlock-button {
+  display: inline-flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 22px;
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--natal-mvp-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-unlock-note {
+  margin: 12px 0 0;
+  color: var(--natal-mvp-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-related {
+  padding: 30px 0 0;
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-related ul {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-related li {
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-related li:last-child {
+  border-bottom: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-related button {
+  display: grid;
+  width: 100%;
+  min-height: 60px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border: 0;
+  background: transparent;
+  color: var(--natal-mvp-ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 560;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-related button svg {
+  width: 16px;
+  height: 16px;
+  color: var(--natal-mvp-muted);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-related button > span {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-loading {
+  display: grid;
+  min-height: 300px;
+  align-content: start;
+  gap: 15px;
+  padding: 34px 0;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-loading.is-compact {
+  min-height: 170px;
+  padding-top: 28px;
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-loading > span:not(.sr-only) {
+  display: block;
+  width: 100%;
+  height: 16px;
+  border-radius: 3px;
+  background: #ecebea;
+  animation: natal-reading-skeleton-pulse 1.35s ease-in-out infinite alternate;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-loading > span:nth-of-type(2) {
+  width: 66%;
+  height: 30px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-loading > span:nth-of-type(3) {
+  width: 94%;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-loading > span:nth-of-type(4) {
+  width: 87%;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-loading > span:nth-of-type(5) {
+  width: 72%;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-error,
+.fresh-page.natal-mvp-page .natal-catalog-empty {
+  padding: 30px 0;
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-error--category {
+  margin-top: 30px;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-error h2,
+.fresh-page.natal-mvp-page .natal-catalog-error h3 {
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-error p,
+.fresh-page.natal-mvp-page .natal-catalog-empty p {
+  max-width: 38rem;
+  margin: 10px 0 0;
+  color: var(--natal-mvp-muted);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.fresh-page.natal-mvp-page .natal-catalog-error button,
+.fresh-page.natal-mvp-page .natal-catalog-empty button {
+  min-height: 48px;
+  margin-top: 12px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--natal-mvp-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+@media (min-width: 621px) {
+  .fresh-page.natal-mvp-page .natal-catalog-tabs {
+    padding-inline: 28px;
+  }
+
+  .fresh-page.natal-mvp-page .natal-catalog-panel {
+    padding-inline: 28px;
+  }
+}
+
+@media (max-width: 360px) {
+  .natal-editorial-page .app-top-bar {
+    --app-top-bar-title-rail: 90px;
+  }
+
+  .fresh-page.natal-mvp-page .natal-catalog-tabs,
+  .fresh-page.natal-mvp-page .natal-catalog-panel,
+  .fresh-page.natal-mvp-page .natal-catalog-intro {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .fresh-page.natal-mvp-page .natal-catalog-tabs {
+    gap: 21px;
+  }
+
+  .fresh-page.natal-mvp-page .natal-catalog-category-heading {
+    display: grid;
+    gap: 7px;
+  }
+
+  .fresh-page.natal-mvp-page .natal-catalog-category-heading p {
+    margin: 0;
+  }
+
+  .fresh-page.natal-mvp-page .natal-catalog-list button {
+    min-height: 111px;
+    grid-template-columns: minmax(0, 1fr) 16px 16px;
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fresh-page.natal-mvp-page .natal-catalog-loading > span:not(.sr-only) {
+    animation: none;
+  }
+}

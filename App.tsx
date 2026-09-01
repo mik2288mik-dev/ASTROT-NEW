@@ -58,6 +58,10 @@ import {
     NATAL_PERMANENT_CONTRACT_VERSION,
     buildPermanentNatalChartFingerprint,
 } from './lib/natalReading/permanentReport';
+import {
+    NATAL_REPORT_CATALOG_CONTRACT_VERSION,
+} from './lib/natalReading/reportCatalog';
+import { buildNatalChartFingerprint } from './lib/natalChartFingerprint';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
 import {
@@ -93,8 +97,8 @@ import {
     clearHumanReadingSessionCache,
     getCachedHumanBaseReport,
     getHumanBaseReportCached,
-    prefetchHumanBaseReport,
 } from './services/natalReadingService';
+import { ensureNatalCatalogCategory } from './services/natalCatalogService';
 import {
     clearPersonalForecastSessionCache,
     loadPersonalForecast,
@@ -807,33 +811,29 @@ const App: React.FC = () => {
             const userId = String(targetProfile.id);
             const requestToken = primaryChartRequestGuardRef.current.begin(userId);
             if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
-            const startHumanBasePrefetch = (
+            const startNatalCatalogPrefetch = (
                 chartId: number,
                 reportChartData: NatalChartData,
                 isCurrentSnapshot: () => boolean,
             ) => {
-                const reportCacheIdentity = {
-                    chartFingerprint: buildPermanentNatalChartFingerprint(targetProfile, reportChartData),
-                    reportVersion: NATAL_PERMANENT_CONTRACT_VERSION,
+                if (!isCurrentSnapshot()) return;
+                const catalogCacheIdentity = {
+                    chartFingerprint: buildNatalChartFingerprint(reportChartData),
+                    reportVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
                 };
-                void prefetchHumanBaseReport(userId, chartId, targetProfile.language, reportCacheIdentity)
-                    .then((report) => {
-                        if (
-                            cancelled
-                            || !primaryChartRequestGuardRef.current.isCurrent(requestToken)
-                            || !isCurrentSnapshot()
-                        ) return;
-                        writeLocalHumanBaseReport(targetProfile, report, chartId, {
-                            chartData: reportChartData,
-                        });
-                        setPreloadedHumanReport({ report, ...reportCacheIdentity });
-                    })
+                void ensureNatalCatalogCategory(
+                    userId,
+                    'main',
+                    chartId,
+                    targetProfile.language,
+                    catalogCacheIdentity,
+                )
                     .catch((error: any) => {
-                        console.warn('[App] Human base report background prefetch failed:', error?.message || error);
+                        console.warn('[App] Natal catalog background prefetch failed:', error?.message || error);
                     });
             };
             if (initialChartId != null) {
-                startHumanBasePrefetch(initialChartId, initialChart, () => (
+                startNatalCatalogPrefetch(initialChartId, initialChart, () => (
                     primaryChartDataRef.current === initialChart
                 ));
             }
@@ -872,7 +872,7 @@ const App: React.FC = () => {
                         writeLocalNatalChart(targetProfile, chart, freshPrimaryChartId);
                         if (initialChartId == null) {
                             const reportChart = chart;
-                            startHumanBasePrefetch(freshPrimaryChartId, reportChart, () => (
+                            startNatalCatalogPrefetch(freshPrimaryChartId, reportChart, () => (
                                 primaryChartDataRef.current === reportChart
                             ));
                         }
@@ -1268,11 +1268,29 @@ const App: React.FC = () => {
             loadStartupPersonalForecasts(canonicalFullProfile);
             void getPrimaryChartId(String(canonicalFullProfile.id))
                 .then((primaryChartId) => {
-                    if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
+                    const isCurrentOnboardingChart = () => (
+                        primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)
+                        && primaryChartDataRef.current === generatedChart
+                    );
+                    if (!isCurrentOnboardingChart()) return;
                     if (primaryChartId != null) {
                         clearLocalHumanBaseReport(canonicalFullProfile, primaryChartId);
                         setPrimaryChartId(primaryChartId);
                         writeLocalNatalChart(canonicalFullProfile, generatedChart, primaryChartId);
+                        const catalogCacheIdentity = {
+                            chartFingerprint: buildNatalChartFingerprint(generatedChart),
+                            reportVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
+                        };
+                        void ensureNatalCatalogCategory(
+                            safeUserId,
+                            'main',
+                            primaryChartId,
+                            canonicalFullProfile.language,
+                            catalogCacheIdentity,
+                        ).catch((catalogError: any) => {
+                            if (!isCurrentOnboardingChart()) return;
+                            console.warn('[App] Onboarding natal catalog prefetch failed:', catalogError?.message || catalogError);
+                        });
                     }
                     return undefined;
                 })
@@ -1536,7 +1554,9 @@ const App: React.FC = () => {
         const host = paywallHostRef.current;
         host?.focus();
         const frame = window.requestAnimationFrame(() => {
-            const closeButton = host?.querySelector<HTMLButtonElement>('.pw2-close');
+            const closeButton = host?.querySelector<HTMLButtonElement>(
+                '.pw2-close, .pw2 .app-top-bar-side--start .app-top-bar-action',
+            );
             (closeButton || host)?.focus();
         });
         return () => window.cancelAnimationFrame(frame);
@@ -1551,6 +1571,10 @@ const App: React.FC = () => {
         featureKey: context.featureKey,
         triggerType: context.triggerType,
         returnView: context.returnView,
+        returnAction: context.returnAction || undefined,
+        returnEntityId: context.featureKey === 'natal_deep'
+            ? context.returnEntityId || undefined
+            : undefined,
         returnScrollAnchor: context.returnScrollAnchor || undefined,
         paywallInstanceId: context.paywallInstanceId,
         ...(extra || {}),

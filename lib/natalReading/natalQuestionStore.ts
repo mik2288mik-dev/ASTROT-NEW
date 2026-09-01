@@ -5,6 +5,8 @@ export const NATAL_QUESTION_THREAD_SCHEMA_VERSION = 'natal-question-thread-v1';
 export const NATAL_QUESTION_MESSAGE_SCHEMA_VERSION = 'natal-question-message-v1';
 export const NATAL_QUESTION_DAILY_LIMIT = 5;
 
+export type NatalQuestionAccess = 'free' | 'premium';
+
 export type NatalQuestionStoredMessage = {
   id: number;
   threadId: number;
@@ -21,6 +23,11 @@ export type NatalQuestionUsage = {
   used: number;
   limit: number;
   remaining: number;
+};
+
+export type NatalFreeQuestionUsage = {
+  used: boolean;
+  remaining: 0 | 1;
 };
 
 export function answeredNatalQuestionTexts(
@@ -47,6 +54,15 @@ export class NatalQuestionLimitError extends Error {
     super('NATAL_QUESTION_DAILY_LIMIT');
     this.name = 'NatalQuestionLimitError';
     this.usage = usage;
+  }
+}
+
+export class FreeNatalQuestionUsedError extends Error {
+  readonly code = 'FREE_NATAL_QUESTION_USED';
+
+  constructor() {
+    super('FREE_NATAL_QUESTION_USED');
+    this.name = 'FreeNatalQuestionUsedError';
   }
 }
 
@@ -256,6 +272,7 @@ async function questionUsageWith(
      WHERE message.user_id = $1
        AND message.role = 'user'
        AND thread.thread_kind = $2
+       AND COALESCE(message.content_payload ->> 'questionAccess', 'premium') <> 'free'
        AND COALESCE(
          NULLIF(message.content_payload ->> 'usageDate', ''),
          (message.created_at AT TIME ZONE $4)::date::text
@@ -271,12 +288,38 @@ async function questionUsageWith(
   };
 }
 
+async function freeQuestionUsageWith(
+  queryable: Pick<DatabaseLike, 'query'>,
+  input: { userId: string },
+): Promise<NatalFreeQuestionUsage> {
+  const result = await queryable.query(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM astrology_messages AS message
+       JOIN astrology_threads AS thread ON thread.id = message.thread_id
+       WHERE message.user_id = $1
+         AND message.role = 'user'
+         AND thread.thread_kind = $2
+         AND message.content_payload ->> 'questionAccess' = 'free'
+     ) AS used`,
+    [input.userId, NATAL_QUESTION_THREAD_KIND],
+  );
+  const used = result.rows[0]?.used === true || result.rows[0]?.used === 't';
+  return { used, remaining: used ? 0 : 1 };
+}
+
 export async function getNatalQuestionUsage(input: {
   userId: string;
   usageDate: string;
   timezone: string;
 }): Promise<NatalQuestionUsage> {
   return questionUsageWith(database(), input);
+}
+
+export async function getFreeNatalQuestionUsage(input: {
+  userId: string;
+}): Promise<NatalFreeQuestionUsage> {
+  return freeQuestionUsageWith(database(), input);
 }
 
 export async function reserveNatalQuestionMessage(input: {
@@ -287,13 +330,16 @@ export async function reserveNatalQuestionMessage(input: {
   normalizedQuestion: string;
   usageDate: string;
   timezone: string;
+  access: NatalQuestionAccess;
 }): Promise<{ message: NatalQuestionStoredMessage; usage: NatalQuestionUsage; created: boolean }> {
   const db = database();
   const client = await db.connect();
   try {
     await client.query('BEGIN');
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
-      `natal-question:${input.userId}:${input.usageDate}`,
+      input.access === 'free'
+        ? `natal-question:${input.userId}:free-lifetime`
+        : `natal-question:${input.userId}:${input.usageDate}`,
     ]);
     const existing = await client.query(
       `SELECT message.*
@@ -305,6 +351,7 @@ export async function reserveNatalQuestionMessage(input: {
          AND message.role = 'user'
          AND thread.thread_kind = $4
          AND message.content_payload ->> 'normalizedQuestion' = $5
+         AND ($6 = 'premium' OR message.content_payload ->> 'questionAccess' = 'free')
          AND NOT EXISTS (
            SELECT 1
            FROM astrology_messages AS answer
@@ -320,6 +367,7 @@ export async function reserveNatalQuestionMessage(input: {
         input.threadId,
         NATAL_QUESTION_THREAD_KIND,
         input.normalizedQuestion,
+        input.access,
       ],
     );
     if (existing.rows[0]) {
@@ -328,7 +376,12 @@ export async function reserveNatalQuestionMessage(input: {
       return { message: mapMessage(existing.rows[0]), usage, created: false };
     }
     const before = await questionUsageWith(client as unknown as DatabaseLike, input);
-    if (before.remaining <= 0) throw new NatalQuestionLimitError(before);
+    if (input.access === 'free') {
+      const freeUsage = await freeQuestionUsageWith(client as unknown as DatabaseLike, input);
+      if (freeUsage.used) throw new FreeNatalQuestionUsedError();
+    } else if (before.remaining <= 0) {
+      throw new NatalQuestionLimitError(before);
+    }
     const inserted = await client.query(
       `INSERT INTO astrology_messages (
          thread_id, user_id, subject_chart_id, counterpart_chart_id, role,
@@ -355,6 +408,7 @@ export async function reserveNatalQuestionMessage(input: {
         JSON.stringify({
           normalizedQuestion: input.normalizedQuestion,
           usageDate: input.usageDate,
+          questionAccess: input.access,
         }),
         JSON.stringify({ surface: 'natal', chartId: input.chartId }),
         NATAL_QUESTION_MESSAGE_SCHEMA_VERSION,

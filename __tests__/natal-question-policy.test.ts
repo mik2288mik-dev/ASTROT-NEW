@@ -150,6 +150,21 @@ describe('saved natal-chart question policy', () => {
     const store = read('lib/natalReading/natalQuestionStore.ts');
     expect(store).not.toContain('FROM personal_forecast_questions');
     expect(store).toContain('COUNT(*)::int AS used');
+    expect(store).toContain("COALESCE(message.content_payload ->> 'questionAccess', 'premium') <> 'free'");
+  });
+
+  it('keeps one lifetime free question separate from the Premium daily quota', () => {
+    const endpoint = read('pages/api/content/natal/questions.ts');
+    const store = read('lib/natalReading/natalQuestionStore.ts');
+
+    expect(endpoint).not.toContain("errorCode: 'PREMIUM_REQUIRED'");
+    expect(endpoint).toContain("access: entitlement.isPremium ? 'premium' : 'free'");
+    expect(endpoint).toContain("code: error.code");
+    expect(store).toContain("readonly code = 'FREE_NATAL_QUESTION_USED'");
+    expect(endpoint).toContain('Бесплатный вопрос уже использован.');
+    expect(store).toContain("questionAccess: input.access");
+    expect(store).toContain("message.content_payload ->> 'questionAccess' = 'free'");
+    expect(store).toContain('free-lifetime');
   });
 
   it('keeps an unanswered accepted question visible and retries it without another slot', () => {
@@ -197,7 +212,7 @@ describe('saved natal-chart question policy', () => {
     expect(magazine).toContain("if (isSavedPerson && tab === 'questions') return");
     expect(magazine).toContain('onOpenQuestions={isSavedPerson ? undefined');
     expect(magazine).toContain("setActiveTab('questions')");
-    expect(magazine).toContain('surface={normalizedActiveTab === \'questions\' ? \'questions\' : \'reading\'}');
+    expect(magazine).toContain('surface="questions"');
     expect(magazine).not.toContain('<CosmicSheet');
   });
 
@@ -211,8 +226,8 @@ describe('saved natal-chart question policy', () => {
     expect(starterBlock.match(/\bru:/gu)).toHaveLength(6);
     expect(report).toContain('type="button"');
     expect(report).toContain('setQuestionText(suggestion);');
-    expect(report).toContain('Ответ строится по сохранённой натальной карте');
-    expect(report).toMatch(/до 5 принятых вопросов в день/iu);
+    expect(report).toContain('Один полный ответ по твоей карте — бесплатно');
+    expect(report).toMatch(/до 5 новых вопросов в день/iu);
     expect(report).toContain('Не указывай сведения о здоровье, документы, контакты, пароли или платёжные данные.');
     expect(report).toContain('natal-question-sensitive-data-warning');
   });

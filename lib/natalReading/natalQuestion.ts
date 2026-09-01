@@ -23,6 +23,7 @@ import {
   type NatalReadingLanguage,
 } from './permanentReport';
 import type {
+  NatalFreeQuestionUsage,
   NatalQuestionStoredMessage,
   NatalQuestionUsage,
 } from './natalQuestionStore';
@@ -98,6 +99,11 @@ export type NatalQuestionSnapshot = {
   chartId: number;
   messages: NatalQuestionStoredMessage[];
   usage: NatalQuestionUsage;
+  access: {
+    isPremium: boolean;
+    freeQuestionUsed: NatalFreeQuestionUsage['used'];
+    freeQuestionRemaining: NatalFreeQuestionUsage['remaining'];
+  };
   promptVersion: string;
   voiceVersion: string;
 };

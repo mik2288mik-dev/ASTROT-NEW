@@ -6,8 +6,19 @@ import {
   isNatalPermanentFreeReport,
 } from '../lib/natalReading/permanentReport';
 import {
+  NATAL_REPORT_ANSWER_COUNT,
+  NATAL_REPORT_CATEGORIES,
+  isNatalReportAnswer,
+  isNatalReportCategoryPack,
+} from '../lib/natalReading/reportCatalog';
+import {
+  hasNatalReportCatalogCopyViolation,
+  isNatalReportMainSummaryLengthAllowed,
+} from '../lib/natalReading/reportCatalogGeneration';
+import {
   createUiPreviewChart,
   createUiPreviewCharts,
+  createUiPreviewNatalCatalog,
   createUiPreviewNatalPremiumReport,
   createUiPreviewNatalReport,
   createUiPreviewProfile,
@@ -39,25 +50,67 @@ describe('real natal UI Preview surface', () => {
     expect(charts[0]?.subject_type).toBe('self');
   });
 
-  it('mounts the real map and PersonalityReport flows without a standalone preview scene', () => {
+  it('builds the complete offline catalog used by the real reading UI', () => {
+    const catalog = createUiPreviewNatalCatalog();
+
+    expect(Object.keys(catalog.answers)).toHaveLength(NATAL_REPORT_ANSWER_COUNT);
+    expect(NATAL_REPORT_CATEGORIES.every((category) => (
+      isNatalReportCategoryPack(catalog.categoryPacks[category.key])
+    ))).toBe(true);
+    expect(Object.values(catalog.answers).every(isNatalReportAnswer)).toBe(true);
+    expect(catalog.categoryPacks.main.summary).toHaveLength(3);
+    expect(catalog.categoryPacks.main.observations).toHaveLength(5);
+    expect(catalog.categoryPacks.love.previews).toHaveLength(9);
+    expect(catalog.categoryPacks.love.previews.find((item) => (
+      item.answerKey === 'love_lose_interest'
+    ))?.preview).toContain('слишком предсказуемым');
+
+    const visibleCopy = [
+      ...Object.values(catalog.categoryPacks).flatMap((pack) => [
+        ...pack.summary.map((item) => item.text),
+        ...pack.observations.map((item) => item.text),
+        ...pack.previews.flatMap((item) => [
+          item.title,
+          item.preview,
+          ...item.fullAnswerIncludes,
+        ]),
+      ]),
+      ...Object.values(catalog.answers).flatMap((answer) => [
+        answer.title,
+        ...answer.paragraphs.map((item) => item.text),
+        ...answer.fullAnswerIncludes,
+      ]),
+    ];
+    expect(visibleCopy.filter(hasNatalReportCatalogCopyViolation)).toEqual([]);
+    expect(isNatalReportMainSummaryLengthAllowed(
+      catalog.categoryPacks.main.summary.map((item) => item.text),
+    )).toBe(true);
+  });
+
+  it('mounts the real map and new catalog flow without a standalone preview scene', () => {
     const preview = read('components/ui-preview/UiPreviewApp.tsx');
     const magazine = read('views/v2/NatalMagazine.tsx');
+    const catalogReport = read('components/NatalReading/NatalCatalogReport.tsx');
 
     expect(preview).toContain("import { NatalMagazine } from '../../views/v2/NatalMagazine'");
-    expect(preview).toContain("import { PersonalityReport } from '../../views/PersonalityReport'");
     expect(preview).toContain('<NatalMagazine');
-    expect(preview).toContain('<PersonalityReport');
+    expect(preview).not.toContain('<PersonalityReport');
     expect(preview).toContain("const natalProfile = useMemo(() => ({ ...profile, id: '' })");
     expect(preview).toContain('preloadedReport={natalReport}');
+    expect(preview).toContain('createUiPreviewNatalCatalog()');
+    expect(preview).toContain('catalog: {');
     expect(preview).toContain("scenario.screen === 'question'");
     expect(preview).toContain("? 'questions'");
-    expect(preview).toContain('reportState: scenario.state');
+    expect(preview).toContain("state: scenario.state === 'loading' || scenario.state === 'error'");
     expect(preview).toContain("premiumReport: scenario.access === 'premium' ? natalPremiumReport : null");
     expect(preview).toContain("openQuestion: scenario.screen === 'question'");
     expect(preview).not.toContain('function NatalScene');
     expect(preview).not.toContain('ui-preview-question-sheet');
-    expect(magazine).toContain('<HumanReport');
+    expect(magazine).toContain('<NatalCatalogReport');
+    expect(magazine).toContain('uiPreview={previewConfig?.catalog}');
     expect(magazine).toContain("process.env.NODE_ENV === 'development'");
     expect(magazine).toContain("process.env.NEXT_PUBLIC_UI_PREVIEW === '1'");
+    expect(catalogReport).toContain("process.env.NODE_ENV === 'development'");
+    expect(catalogReport).toContain("process.env.NEXT_PUBLIC_UI_PREVIEW === '1'");
   });
 });

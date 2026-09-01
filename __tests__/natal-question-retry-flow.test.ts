@@ -92,10 +92,12 @@ jest.mock('../lib/serverOperationalDiagnostics', () => ({
 }));
 
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getPremiumEntitlementState } from '../lib/contentArchitecture';
 import { getPool } from '../lib/db';
 import { moderateNatalQuestion } from '../lib/natalReading/natalQuestion';
 import {
   answeredNatalQuestionTexts,
+  FreeNatalQuestionUsedError,
   reserveNatalQuestionMessage,
   type NatalQuestionStoredMessage,
 } from '../lib/natalReading/natalQuestionStore';
@@ -112,6 +114,7 @@ const pendingQuestion: NatalQuestionStoredMessage = {
   payload: {
     normalizedQuestion: 'почему я откладываю важные решения?',
     usageDate: '2026-08-30',
+    questionAccess: 'free',
   },
   createdAt: '2026-08-30T10:00:00.000Z',
 };
@@ -150,6 +153,10 @@ function responseHarness() {
 }
 
 describe('natal unanswered-question retry flow', () => {
+  beforeEach(() => {
+    (getPremiumEntitlementState as jest.Mock).mockResolvedValue({ isPremium: true });
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
     jest.clearAllMocks();
@@ -163,7 +170,7 @@ describe('natal unanswered-question retry flow', () => {
     ])).toEqual(['Как я обычно принимаю решения?']);
   });
 
-  it('reuses the exact pending message before a full-quota check or insert', async () => {
+  it('reuses the exact pending free message before its lifetime check or insert', async () => {
     const queries: string[] = [];
     const client = {
       query: jest.fn(async (sql: string) => {
@@ -182,7 +189,8 @@ describe('natal unanswered-question retry flow', () => {
             }],
           };
         }
-        if (sql.includes('COUNT(*)::int AS used')) return { rows: [{ used: 5 }] };
+        if (sql.includes('COUNT(*)::int AS used')) return { rows: [{ used: 0 }] };
+        if (sql.includes('SELECT EXISTS')) return { rows: [{ used: true }] };
         return { rows: [] };
       }),
       release: jest.fn(),
@@ -200,14 +208,16 @@ describe('natal unanswered-question retry flow', () => {
       normalizedQuestion: 'почему я откладываю важные решения?',
       usageDate: '2026-08-30',
       timezone: 'Europe/Moscow',
+      access: 'free',
     });
 
     expect(result).toMatchObject({
       created: false,
       message: { id: 11, threadId: 91 },
-      usage: { used: 5, remaining: 0 },
+      usage: { used: 0, remaining: 5 },
     });
     expect(queries.some((sql) => sql.includes('INSERT INTO astrology_messages'))).toBe(false);
+    expect(queries.some((sql) => sql.includes('SELECT EXISTS'))).toBe(false);
     expect(queries.indexOf('COMMIT')).toBeGreaterThan(
       queries.findIndex((sql) => sql.includes('NOT EXISTS (')),
     );
@@ -222,6 +232,10 @@ describe('natal unanswered-question retry flow', () => {
       used: 5,
       limit: 5,
       remaining: 0,
+    });
+    jest.spyOn(natalQuestionStore, 'getFreeNatalQuestionUsage').mockResolvedValue({
+      used: false,
+      remaining: 1,
     });
     jest.spyOn(natalQuestionStore, 'ensureNatalQuestionThread').mockResolvedValue(91);
     const reserve = jest.spyOn(natalQuestionStore, 'reserveNatalQuestionMessage')
@@ -254,6 +268,213 @@ describe('natal unanswered-question retry flow', () => {
       threadId: 91,
       text: pendingQuestion.text,
       normalizedQuestion: 'почему я откладываю важные решения?',
+      access: 'premium',
     }));
+  });
+
+  it('allows GET for a free user and reports the remaining free question', async () => {
+    (getPremiumEntitlementState as jest.Mock).mockResolvedValue({ isPremium: false });
+    jest.spyOn(natalQuestionStore, 'listNatalQuestionMessages').mockResolvedValue([]);
+    jest.spyOn(natalQuestionStore, 'getNatalQuestionUsage').mockResolvedValue({
+      usageDate: '2026-08-30',
+      used: 0,
+      limit: 5,
+      remaining: 5,
+    });
+    jest.spyOn(natalQuestionStore, 'getFreeNatalQuestionUsage').mockResolvedValue({
+      used: false,
+      remaining: 1,
+    });
+    const { response, result } = responseHarness();
+
+    await handler({ method: 'GET' } as NextApiRequest, response);
+
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({
+      chartId: 7,
+      access: {
+        isPremium: false,
+        freeQuestionUsed: false,
+        freeQuestionRemaining: 1,
+      },
+    });
+  });
+
+  it('does not reserve a rejected free question', async () => {
+    (getPremiumEntitlementState as jest.Mock).mockResolvedValue({ isPremium: false });
+    (moderateNatalQuestion as jest.Mock).mockReturnValueOnce({
+      status: 'rejected',
+      reason: 'not_natal_question',
+    });
+    jest.spyOn(natalQuestionStore, 'listNatalQuestionMessages').mockResolvedValue([]);
+    const reserve = jest.spyOn(natalQuestionStore, 'reserveNatalQuestionMessage');
+    const { response, result } = responseHarness();
+
+    await handler({
+      method: 'POST',
+      body: { question: 'Приготовь борщ' },
+    } as NextApiRequest, response);
+
+    expect(result.status).toBe(400);
+    expect(result.body).toMatchObject({ code: 'NATAL_QUESTION_REJECTED' });
+    expect(reserve).not.toHaveBeenCalled();
+  });
+
+  it('returns the Premium offer after the lifetime free question is used', async () => {
+    (getPremiumEntitlementState as jest.Mock).mockResolvedValue({ isPremium: false });
+    jest.spyOn(natalQuestionStore, 'listNatalQuestionMessages').mockResolvedValue([]);
+    jest.spyOn(natalQuestionStore, 'ensureNatalQuestionThread').mockResolvedValue(91);
+    jest.spyOn(natalQuestionStore, 'reserveNatalQuestionMessage')
+      .mockRejectedValue(new FreeNatalQuestionUsedError());
+    const { response, result } = responseHarness();
+
+    await handler({
+      method: 'POST',
+      body: { question: 'Как я обычно принимаю решения?' },
+    } as NextApiRequest, response);
+
+    expect(result.status).toBe(403);
+    expect(result.body).toMatchObject({
+      code: 'FREE_NATAL_QUESTION_USED',
+      premiumRequired: true,
+      message: expect.stringContaining('Бесплатный вопрос уже использован.'),
+    });
+  });
+
+  it('reserves the first free question even when the Premium daily bucket is full', async () => {
+    const queries: Array<{ sql: string; values?: readonly unknown[] }> = [];
+    const client = {
+      query: jest.fn(async (sql: string, values?: readonly unknown[]) => {
+        queries.push({ sql, values });
+        if (sql.includes('NOT EXISTS (')) return { rows: [] };
+        if (sql.includes('COUNT(*)::int AS used')) return { rows: [{ used: 5 }] };
+        if (sql.includes('SELECT EXISTS')) return { rows: [{ used: false }] };
+        if (sql.includes('INSERT INTO astrology_messages')) {
+          return {
+            rows: [{
+              id: 22,
+              thread_id: 91,
+              user_id: 'user-1',
+              subject_chart_id: 7,
+              role: 'user',
+              content_text: 'Как я обычно принимаю решения?',
+              content_payload: {
+                normalizedQuestion: 'как я обычно принимаю решения?',
+                usageDate: '2026-08-30',
+                questionAccess: 'free',
+              },
+              created_at: '2026-08-30T12:00:00.000Z',
+            }],
+          };
+        }
+        return { rows: [] };
+      }),
+      release: jest.fn(),
+    };
+    (getPool as jest.Mock).mockReturnValue({
+      connect: jest.fn(async () => client),
+      query: client.query,
+    });
+
+    const result = await reserveNatalQuestionMessage({
+      userId: 'user-1',
+      chartId: 7,
+      threadId: 91,
+      text: 'Как я обычно принимаю решения?',
+      normalizedQuestion: 'как я обычно принимаю решения?',
+      usageDate: '2026-08-30',
+      timezone: 'Europe/Moscow',
+      access: 'free',
+    });
+
+    expect(result).toMatchObject({ created: true, usage: { used: 5, remaining: 0 } });
+    const insert = queries.find(({ sql }) => sql.includes('INSERT INTO astrology_messages'));
+    expect(insert?.values?.some((value) => String(value).includes('"questionAccess":"free"'))).toBe(true);
+  });
+
+  it('blocks a different second free question inside the store transaction', async () => {
+    const queries: string[] = [];
+    const client = {
+      query: jest.fn(async (sql: string) => {
+        queries.push(sql);
+        if (sql.includes('NOT EXISTS (')) return { rows: [] };
+        if (sql.includes('COUNT(*)::int AS used')) return { rows: [{ used: 0 }] };
+        if (sql.includes('SELECT EXISTS')) return { rows: [{ used: true }] };
+        return { rows: [] };
+      }),
+      release: jest.fn(),
+    };
+    (getPool as jest.Mock).mockReturnValue({
+      connect: jest.fn(async () => client),
+      query: client.query,
+    });
+
+    await expect(reserveNatalQuestionMessage({
+      userId: 'user-1',
+      chartId: 7,
+      threadId: 91,
+      text: 'Почему я быстро теряю интерес?',
+      normalizedQuestion: 'почему я быстро теряю интерес?',
+      usageDate: '2026-08-30',
+      timezone: 'Europe/Moscow',
+      access: 'free',
+    })).rejects.toBeInstanceOf(FreeNatalQuestionUsedError);
+
+    expect(queries.some((sql) => sql.includes('INSERT INTO astrology_messages'))).toBe(false);
+    expect(queries).toContain('ROLLBACK');
+    expect(client.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the Premium five-per-day bucket independent from the free question', async () => {
+    const queries: Array<{ sql: string; values?: readonly unknown[] }> = [];
+    const client = {
+      query: jest.fn(async (sql: string, values?: readonly unknown[]) => {
+        queries.push({ sql, values });
+        if (sql.includes('NOT EXISTS (')) return { rows: [] };
+        if (sql.includes('COUNT(*)::int AS used')) return { rows: [{ used: 0 }] };
+        if (sql.includes('INSERT INTO astrology_messages')) {
+          return {
+            rows: [{
+              id: 21,
+              thread_id: 91,
+              user_id: 'user-1',
+              subject_chart_id: 7,
+              role: 'user',
+              content_text: 'Как я обычно принимаю решения?',
+              content_payload: {
+                normalizedQuestion: 'как я обычно принимаю решения?',
+                usageDate: '2026-08-30',
+                questionAccess: 'premium',
+              },
+              created_at: '2026-08-30T12:00:00.000Z',
+            }],
+          };
+        }
+        return { rows: [] };
+      }),
+      release: jest.fn(),
+    };
+    (getPool as jest.Mock).mockReturnValue({
+      connect: jest.fn(async () => client),
+      query: client.query,
+    });
+
+    const result = await reserveNatalQuestionMessage({
+      userId: 'user-1',
+      chartId: 7,
+      threadId: 91,
+      text: 'Как я обычно принимаю решения?',
+      normalizedQuestion: 'как я обычно принимаю решения?',
+      usageDate: '2026-08-30',
+      timezone: 'Europe/Moscow',
+      access: 'premium',
+    });
+
+    expect(result).toMatchObject({ created: true, usage: { used: 0, remaining: 5 } });
+    const usageSql = queries.find(({ sql }) => sql.includes('COUNT(*)::int AS used'))?.sql;
+    expect(usageSql).toContain("COALESCE(message.content_payload ->> 'questionAccess', 'premium') <> 'free'");
+    const insert = queries.find(({ sql }) => sql.includes('INSERT INTO astrology_messages'));
+    expect(insert?.values?.some((value) => String(value).includes('"questionAccess":"premium"'))).toBe(true);
+    expect(queries.some(({ sql }) => sql.includes('SELECT EXISTS'))).toBe(false);
   });
 });

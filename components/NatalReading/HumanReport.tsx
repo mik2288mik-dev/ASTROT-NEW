@@ -99,24 +99,24 @@ const PLANET_LABELS: Array<{ key: string; labelRu: string; labelEn: string; icon
 
 const NATAL_QUESTION_STARTERS = [
   {
-    ru: 'Почему мне трудно просить о помощи?',
-    en: 'Why is it hard for me to ask for help?',
+    ru: 'Как я принимаю важные решения?',
+    en: 'How do I make important decisions?',
   },
   {
-    ru: 'Как я обычно принимаю важные решения?',
-    en: 'How do I usually make important decisions?',
+    ru: 'Почему я могу быстро потерять интерес?',
+    en: 'Why can I lose interest quickly?',
   },
   {
-    ru: 'Что помогает мне не теряться в конфликте?',
-    en: 'What helps me stay grounded in a conflict?',
+    ru: 'Как я веду себя в ссоре?',
+    en: 'How do I act during an argument?',
   },
   {
-    ru: 'Какие мои сильные стороны заметны в работе?',
-    en: 'Which of my strengths show up at work?',
+    ru: 'Какая работа мне быстро надоедает?',
+    en: 'What kind of work bores me quickly?',
   },
   {
-    ru: 'Как я веду себя в близких отношениях?',
-    en: 'How do I tend to behave in close relationships?',
+    ru: 'Как я обращаюсь с деньгами?',
+    en: 'How do I handle money?',
   },
   {
     ru: 'Что моя карта говорит о моём отношении к деньгам?',
@@ -163,6 +163,11 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
     return language === 'ru'
       ? 'Вопросы по карте доступны в Premium.'
       : 'Questions about the chart are available with Premium.';
+  }
+  if (value?.code === 'FREE_NATAL_QUESTION_USED') {
+    return language === 'ru'
+      ? 'Бесплатный вопрос уже использован. В подписке можно задавать до 5 новых вопросов в день.'
+      : 'Your free question has already been used. The subscription includes up to 5 new questions a day.';
   }
   if (value?.code === 'NATAL_QUESTION_DAILY_LIMIT') {
     return language === 'ru'
@@ -853,7 +858,7 @@ export const HumanReport: React.FC<Props> = ({
         : null);
       return;
     }
-    if (!isPremium || !userId) {
+    if (!userId) {
       setQuestionLoading(false);
       return;
     }
@@ -880,7 +885,6 @@ export const HumanReport: React.FC<Props> = ({
     return () => { cancelled = true; };
   }, [
     chartId,
-    isPremium,
     language,
     previewConfig,
     previewState,
@@ -1014,7 +1018,9 @@ export const HumanReport: React.FC<Props> = ({
   };
 
   if (surface === 'questions') {
-    const remainingQuestions = questionSnapshot?.usage.remaining ?? null;
+    const remainingQuestions = isPremium
+      ? questionSnapshot?.usage.remaining ?? null
+      : questionSnapshot?.access.freeQuestionRemaining ?? null;
     const normalizedQuestionText = normalizePersonalForecastQuestionInput(questionText)
       .toLocaleLowerCase();
     const normalizedUnansweredQuestion = normalizePersonalForecastQuestionInput(
@@ -1045,13 +1051,21 @@ export const HumanReport: React.FC<Props> = ({
                 ? 'Сейчас можно повторить только вопрос, который остался без ответа.'
                 : 'For now, you can only retry the unanswered question.'))
       : questionLimitReached
-        ? (language === 'ru'
-            ? 'На сегодня вопросы закончились. Можно вернуться завтра.'
-            : 'You have used today\'s questions. You can return tomorrow.')
+        ? (isPremium
+            ? (language === 'ru'
+                ? 'На сегодня вопросы закончились. Можно вернуться завтра.'
+                : 'You have used today\'s questions. You can return tomorrow.')
+            : (language === 'ru'
+                ? 'Бесплатный вопрос уже использован.'
+                : 'Your free question has already been used.'))
         : remainingQuestions != null
-          ? (language === 'ru'
-              ? `Осталось сегодня: ${remainingQuestions}`
-              : `Remaining today: ${remainingQuestions}`)
+          ? (isPremium
+              ? (language === 'ru'
+                  ? `Осталось сегодня: ${remainingQuestions}`
+                  : `Remaining today: ${remainingQuestions}`)
+              : (language === 'ru'
+                  ? 'Первый вопрос по карте — бесплатно.'
+                  : 'Your first chart question is free.'))
           : !userId && previewConfig
             ? (language === 'ru'
                 ? 'В локальном превью отправка отключена.'
@@ -1067,17 +1081,20 @@ export const HumanReport: React.FC<Props> = ({
         aria-labelledby="natal-question-page-title"
       >
         <div className="natal-question-page-inner">
-          {!isPremium ? (
+          <>
+          {!isPremium
+          && questionSnapshot?.access.freeQuestionRemaining === 0
+          && !unansweredQuestionText ? (
             <section className="natal-question-locked" aria-labelledby="natal-question-locked-title">
               <h2 id="natal-question-locked-title">
                 {language === 'ru'
-                  ? 'Вопросы по карте доступны в Premium'
-                  : 'Questions about your chart are available with Premium'}
+                  ? 'Бесплатный вопрос уже использован'
+                  : 'Your free question has already been used'}
               </h2>
               <p>
                 {language === 'ru'
-                  ? 'Ответ строится по сохранённой натальной карте. До 5 принятых вопросов в день.'
-                  : 'Answers are based on your saved natal chart. Up to 5 accepted questions per day.'}
+                  ? 'В подписке можно задавать до 5 новых вопросов в день и продолжать уже начатые темы.'
+                  : 'The subscription lets you ask up to 5 new questions a day and continue existing topics.'}
               </p>
               <button
                 id="natal-question-premium-button"
@@ -1092,12 +1109,10 @@ export const HumanReport: React.FC<Props> = ({
                   returnAction: 'open_natal_questions',
                 })}
               >
-                <Crown aria-hidden="true" size={16} strokeWidth={2} />
-                {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
+                {language === 'ru' ? 'Продолжить вопросы' : 'Continue asking'}
               </button>
             </section>
           ) : (
-            <>
               <section
                 id="natal-question-composer"
                 className="natal-question-composer"
@@ -1113,9 +1128,13 @@ export const HumanReport: React.FC<Props> = ({
                       {language === 'ru' ? 'Что хочешь понять о себе?' : 'What do you want to understand about yourself?'}
                     </label>
                     <p id="natal-question-input-help">
-                      {language === 'ru'
-                        ? 'Ответ строится по сохранённой натальной карте. Спроси о своей реакции, решении, отношениях, работе, деньгах или сильной стороне. До 5 принятых вопросов в день.'
-                        : 'Answers are based on your saved chart. Ask about your reaction, decision, relationships, work, money, or a strength. Up to 5 accepted questions per day.'}
+                      {isPremium
+                        ? (language === 'ru'
+                            ? 'Спроси о решениях, общении, любви, работе или деньгах. До 5 новых вопросов в день.'
+                            : 'Ask about decisions, communication, love, work, or money. Up to 5 new questions a day.')
+                        : (language === 'ru'
+                            ? 'Спроси о решениях, общении, любви, работе или деньгах. Один полный ответ по твоей карте — бесплатно.'
+                            : 'Ask about decisions, communication, love, work, or money. One full answer about your chart is free.')}
                     </p>
                   </div>
                   <div className="natal-question-suggestions" aria-labelledby="natal-question-suggestions-title">
@@ -1150,8 +1169,8 @@ export const HumanReport: React.FC<Props> = ({
                     maxLength={300}
                     rows={4}
                     placeholder={language === 'ru'
-                      ? 'Например: почему мне трудно просить о помощи?'
-                      : 'For example: why is it hard for me to ask for help?'}
+                      ? 'Например: почему я быстро теряю интерес?'
+                      : 'For example: why do I lose interest quickly?'}
                     className="natal-question-input"
                     aria-describedby="natal-question-input-help natal-question-sensitive-data-warning natal-question-status"
                     disabled={questionInputDisabled}
@@ -1183,6 +1202,7 @@ export const HumanReport: React.FC<Props> = ({
                   ) : null}
                 </form>
               </section>
+          )}
 
               <section className="natal-question-history" aria-labelledby="natal-question-history-title">
                 <h2 id="natal-question-history-title">
@@ -1247,7 +1267,6 @@ export const HumanReport: React.FC<Props> = ({
                 )}
               </section>
             </>
-          )}
         </div>
       </article>
     );

@@ -72,21 +72,44 @@ describe('local natal chart app flow', () => {
     expect(app).toContain('clearLocalNatalChart(profile)');
   });
 
-  it('starts human-base prefetch with the resolved primary chart ID after the first dashboard paint', () => {
+  it('starts the main natal catalog prefetch with the resolved chart ID after the first dashboard paint', () => {
     const app = read('App.tsx');
     const localRead = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)');
     const dashboard = app.indexOf("showStartupDashboard('dashboard')", localRead);
     const scheduleCall = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, startupChartId, true)', dashboard);
     const scheduler = app.indexOf('const scheduleStartupBackgroundWork');
-    const earlyPrefetch = app.indexOf('startHumanBasePrefetch(initialChartId, initialChart, () => (', scheduler);
+    const earlyPrefetch = app.indexOf('startNatalCatalogPrefetch(initialChartId, initialChart, () => (', scheduler);
     const backgroundRefresh = app.indexOf('void (async () => {', scheduler);
 
     expect(dashboard).toBeGreaterThan(localRead);
     expect(scheduleCall).toBeGreaterThan(dashboard);
     expect(earlyPrefetch).toBeGreaterThan(scheduler);
     expect(earlyPrefetch).toBeLessThan(backgroundRefresh);
-    expect(app).toContain('prefetchHumanBaseReport(userId, chartId, targetProfile.language, reportCacheIdentity)');
-    expect(app).toContain('startHumanBasePrefetch(freshPrimaryChartId, reportChart, () => (');
+    expect(app).toContain("ensureNatalCatalogCategory(\n                    userId,\n                    'main',");
+    expect(app).toContain('startNatalCatalogPrefetch(freshPrimaryChartId, reportChart, () => (');
+    expect(app).not.toContain('prefetchHumanBaseReport(');
+  });
+
+  it('starts the main natal catalog prefetch after onboarding resolves the canonical primary chart ID', () => {
+    const app = read('App.tsx');
+    const onboarding = app.indexOf('const handleOnboardingComplete = async');
+    const chartReady = app.indexOf('primaryChartDataRef.current = generatedChart', onboarding);
+    const resolvePrimaryId = app.indexOf("void getPrimaryChartId(String(canonicalFullProfile.id))", chartReady);
+    const currentChartGuard = app.indexOf('primaryChartDataRef.current === generatedChart', resolvePrimaryId);
+    const writeWithId = app.indexOf('writeLocalNatalChart(canonicalFullProfile, generatedChart, primaryChartId)', currentChartGuard);
+    const catalogPrefetch = app.indexOf('void ensureNatalCatalogCategory(', writeWithId);
+    const onboardingEnd = app.indexOf('const handleProfileUpdate = useCallback', catalogPrefetch);
+
+    expect(chartReady).toBeGreaterThan(onboarding);
+    expect(resolvePrimaryId).toBeGreaterThan(chartReady);
+    expect(currentChartGuard).toBeGreaterThan(resolvePrimaryId);
+    expect(writeWithId).toBeGreaterThan(currentChartGuard);
+    expect(catalogPrefetch).toBeGreaterThan(writeWithId);
+    expect(catalogPrefetch).toBeLessThan(onboardingEnd);
+    expect(app.slice(catalogPrefetch, onboardingEnd)).toContain("safeUserId,\n                            'main',\n                            primaryChartId,");
+    expect(app.slice(catalogPrefetch, onboardingEnd)).toContain('canonicalFullProfile.language');
+    expect(app.slice(currentChartGuard, catalogPrefetch)).toContain('buildNatalChartFingerprint(generatedChart)');
+    expect(app.slice(currentChartGuard, catalogPrefetch)).toContain('NATAL_REPORT_CATALOG_CONTRACT_VERSION');
   });
 
 });
