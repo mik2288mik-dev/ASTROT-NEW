@@ -296,7 +296,7 @@ export function LegalAcknowledgementGate({
         </p>
 
         <div id="legal-error" role="status" aria-live="polite" className="min-h-8 pt-1 text-[0.78rem] leading-4 text-[#a12d2d]">
-          {loading ? 'Проверяем документы…' : error}
+          {error}
         </div>
 
         <button

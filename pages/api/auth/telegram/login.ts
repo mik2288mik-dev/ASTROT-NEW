@@ -9,6 +9,10 @@ import {
 import { resolveTelegramIdentityForLogin } from '../../../../lib/auth/accountIdentity';
 import { toPublicAppProfile } from '../../../../lib/auth/profile';
 import { db } from '../../../../lib/db';
+import {
+  CURRENT_LEGAL_DOCUMENT_VERSIONS,
+  getLegalDocumentStatusesForUser,
+} from '../../../../lib/legalAcknowledgement';
 
 async function createTelegramAppSession(input: {
   userId: string;
@@ -66,12 +70,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       telegramUserId: telegram.id,
       sessionId: session.sessionId,
     };
-    const user = await db.users.get(identity.userId);
+    const [user, legalDocuments] = await Promise.all([
+      db.users.get(identity.userId),
+      getLegalDocumentStatusesForUser(identity.userId),
+    ]);
     return res.status(200).json({
       ...(session.sessionVersion === 2
         ? appSessionResponse(session, kind === 'native')
         : (kind === 'native' ? { token: session.token } : {})),
-      profile: toPublicAppProfile(user, auth),
+      profile: {
+        ...toPublicAppProfile(user, auth),
+        legalAcknowledgements: {
+          requiredVersions: CURRENT_LEGAL_DOCUMENT_VERSIONS,
+          documents: legalDocuments,
+        },
+      },
     });
   } catch (error) {
     return handleAdminError(res, error);

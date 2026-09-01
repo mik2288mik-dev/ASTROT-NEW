@@ -7,6 +7,13 @@ const createAppUserSession = jest.fn();
 const setAppSessionCookie = jest.fn();
 const toPublicAppProfile = jest.fn();
 const getUser = jest.fn();
+const getLegalDocumentStatusesForUser = jest.fn();
+
+const requiredLegalVersions = {
+  personal_data: '2026-08-31',
+  terms: '2026-08-31',
+  entertainment_notice: '2026-08-31',
+};
 
 jest.mock('../lib/adminAuth', () => ({
   getVerifiedTelegramUser,
@@ -24,6 +31,10 @@ jest.mock('../lib/auth/profile', () => ({
 }));
 jest.mock('../lib/db', () => ({
   db: { users: { get: getUser } },
+}));
+jest.mock('../lib/legalAcknowledgement', () => ({
+  CURRENT_LEGAL_DOCUMENT_VERSIONS: requiredLegalVersions,
+  getLegalDocumentStatusesForUser,
 }));
 
 import handler from '../pages/api/auth/telegram/login';
@@ -57,6 +68,32 @@ describe('explicit Telegram login', () => {
     });
     getUser.mockResolvedValue({ id: '-42', name: 'Mik', is_guest: false });
     toPublicAppProfile.mockReturnValue({ id: '-42', name: 'Mik', isGuest: false });
+    getLegalDocumentStatusesForUser.mockResolvedValue([
+      {
+        documentType: 'terms',
+        requiredVersion: requiredLegalVersions.terms,
+        accepted: true,
+        latestAction: 'accepted',
+        latestDocumentVersion: requiredLegalVersions.terms,
+        latestCreatedAt: '2026-09-01T00:00:00.000Z',
+      },
+      {
+        documentType: 'personal_data',
+        requiredVersion: requiredLegalVersions.personal_data,
+        accepted: true,
+        latestAction: 'accepted',
+        latestDocumentVersion: requiredLegalVersions.personal_data,
+        latestCreatedAt: '2026-09-01T00:00:00.000Z',
+      },
+      {
+        documentType: 'entertainment_notice',
+        requiredVersion: requiredLegalVersions.entertainment_notice,
+        accepted: true,
+        latestAction: 'accepted',
+        latestDocumentVersion: requiredLegalVersions.entertainment_notice,
+        latestCreatedAt: '2026-09-01T00:00:00.000Z',
+      },
+    ]);
   });
 
   it('returns the canonical linked account with a random revocable web session', async () => {
@@ -82,11 +119,24 @@ describe('explicit Telegram login', () => {
     });
     expect(setAppSessionCookie).toHaveBeenCalledWith(res, 'signed-random-session');
     expect(getUser).toHaveBeenCalledWith('-42');
+    expect(getLegalDocumentStatusesForUser).toHaveBeenCalledWith('-42');
     expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       token: undefined,
-      profile: { id: '-42', name: 'Mik', isGuest: false },
+      profile: {
+        id: '-42',
+        name: 'Mik',
+        isGuest: false,
+        legalAcknowledgements: {
+          requiredVersions: requiredLegalVersions,
+          documents: expect.arrayContaining([
+            expect.objectContaining({ documentType: 'terms', accepted: true }),
+            expect.objectContaining({ documentType: 'personal_data', accepted: true }),
+            expect.objectContaining({ documentType: 'entertainment_notice', accepted: true }),
+          ]),
+        },
+      },
     });
   });
 

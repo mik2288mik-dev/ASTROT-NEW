@@ -40,6 +40,7 @@ describe('legal acknowledgement gate integration', () => {
     const app = read('App.tsx');
     const gate = read('views/LegalAcknowledgementGate.tsx');
     const profileRoute = read('pages/api/users/me.ts');
+    const telegramLoginRoute = read('pages/api/auth/telegram/login.ts');
     const acknowledgementRoute = read('pages/api/users/legal-acknowledgements.ts');
     const storage = read('services/storageService.ts');
     const storeConfig = read('lib/storeReleaseConfig.ts');
@@ -50,6 +51,8 @@ describe('legal acknowledgement gate integration', () => {
     expect(gateIndex).toBeLessThan(onboardingIndex);
     expect(profileRoute).toContain('getLegalDocumentStatusesForUser(auth.userId)');
     expect(profileRoute).toContain('legalAcknowledgements:{');
+    expect(telegramLoginRoute).toContain('getLegalDocumentStatusesForUser(identity.userId)');
+    expect(telegramLoginRoute).toContain('legalAcknowledgements: {');
     expect(profileRoute).toContain("res.setHeader('Cache-Control','private, no-store, max-age=0')");
     expect(acknowledgementRoute).toContain("res.setHeader('Cache-Control', 'private, no-store, max-age=0')");
     expect(storage).toContain("cache: 'no-store'");
@@ -59,6 +62,7 @@ describe('legal acknowledgement gate integration', () => {
     expect(gate).toContain('readLegalAcknowledgements()');
     expect(gate).toContain('const [loading, setLoading] = useState(true)');
     expect(gate).toContain('if (loading) return <Loading progress={100} />');
+    expect(gate).not.toContain('Проверяем документы…');
     expect(gate).not.toContain('.finally(() =>');
     expect(app).toContain('legalAcknowledgements: profile?.legalAcknowledgements ?? newProfile.legalAcknowledgements ?? null');
     expect(storeConfig).toContain("fallback('/personal-data-consent')");
