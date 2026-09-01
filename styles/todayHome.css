@@ -1167,7 +1167,7 @@
   font-weight: 400 !important;
   letter-spacing: -0.018em !important;
   line-height: 1.66 !important;
-  text-align: start !important;
+  text-align: justify !important;
   text-align-last: start;
   -webkit-hyphens: auto;
   hyphens: auto;
@@ -1341,7 +1341,7 @@
   font-weight: 400;
   letter-spacing: -0.018em;
   line-height: 1.66 !important;
-  text-align: start !important;
+  text-align: justify !important;
   text-align-last: start;
   text-wrap: wrap !important;
   -webkit-hyphens: auto;
