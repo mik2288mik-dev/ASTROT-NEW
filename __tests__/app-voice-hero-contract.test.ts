@@ -26,10 +26,9 @@ describe('app and personal forecast voice contracts', () => {
 
     expect(forecastVoice).not.toContain(appVoice);
     expect(forecastVoice).not.toContain('ГОЛОС ЛИЧНОГО ПРОГНОЗА');
-    expect(forecastVoice).toContain('громкая живая реплика');
-    expect(forecastVoice).toContain('title, forecast, closing');
-    expect(forecastVoice).toContain('forecast — один цельный абзац');
-    expect(forecastVoice).toContain('Выбери одну ясную линию из brief');
+    expect(forecastVoice).toContain('колкий, дерзкий и точный вход');
+    expect(forecastVoice).toContain('title, punchline, forecast, closing');
+    expect(forecastVoice).toContain('обязательную проблему перед хорошей новостью');
   });
 
   it('puts ordinary-life meaning before astrology and keeps headings purposeful', () => {
@@ -39,7 +38,7 @@ describe('app and personal forecast voice contracts', () => {
     expect(appVoice).toContain('переводи контекст в обычный язык жизни');
     expect(appVoice).toContain('Астрологические термины допустимы только');
     expect(appVoice).toContain('Заголовок нужен только когда он действительно помогает читать');
-    expect(forecastVoice).toContain('видимой астрологии');
+    expect(forecastVoice).toContain('видимых астрологических терминов');
     expect(forecastVoice).toContain('для одного человека');
   });
 
@@ -49,11 +48,11 @@ describe('app and personal forecast voice contracts', () => {
 
     expect(appVoice).toContain('коучинговой жвачки');
     expect(appVoice).toContain('Не придумывай события, биографию, мотивы');
-    expect(forecastVoice).toContain('Никакой психологии, коучинга, эзотерики');
+    expect(forecastVoice).toContain('психолог, коуч');
     expect(hasAppVoiceViolation('Вселенная подсказывает тебе правильный путь.')).toBe(true);
     expect(hasPersonalForecastVoiceViolation('Твоя карта показывает готовое решение.')).toBe(true);
     expect(hasPersonalForecastVoiceViolation('Это читается через внутренний рисунок.')).toBe(true);
-    expect(hasPersonalForecastVoiceViolation('Твоя сила — в спокойном присутствии.')).toBe(true);
-    expect(hasPersonalForecastVoiceViolation('Рабочая стратегия требует жёстких границ.')).toBe(true);
+    expect(hasPersonalForecastVoiceViolation('Твоя сила — в спокойном присутствии.')).toBe(false);
+    expect(hasPersonalForecastVoiceViolation('Рабочая стратегия требует жёстких границ.')).toBe(false);
   });
 });

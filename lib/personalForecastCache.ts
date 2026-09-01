@@ -102,9 +102,11 @@ function reading(value: unknown): PersonalForecastRecentReading | null {
     ...all.flatMap((section) => {
       if (section.contentBlocks.length) {
         return section.contentBlocks.map((block) => ({
-          kind: block.role === 'action'
-            ? 'closing' as const
-            : 'forecast' as const,
+          kind: section.kind === 'overview' && block.role === 'lead'
+            ? 'punchline' as const
+            : block.role === 'action'
+              ? 'closing' as const
+              : 'forecast' as const,
           text: block.text,
           semanticFingerprint: section.semanticFingerprint || null,
         }));

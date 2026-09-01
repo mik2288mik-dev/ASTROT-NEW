@@ -72,7 +72,7 @@ describe('personal forecast screen layout', () => {
     expect(forecastStyles).toContain('padding: 0;');
   });
 
-  it('renders the three-part forecast without a punchline or internal categories', () => {
+  it('renders the four-part forecast without exposing internal categories', () => {
     const dashboard = read('views/Dashboard.tsx');
     const today = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
@@ -82,17 +82,12 @@ describe('personal forecast screen layout', () => {
     expect(sectionBlock).not.toContain('{section.kind}');
     expect(sectionBlock).not.toContain('{section.sourceTopicKey}');
     expect(today).toContain('className="today-minimal-story-title"');
-    expect(today).toContain("language === 'ru' ? 'Итог дня'");
-    expect(sectionBlock).toContain("'Итог недели'");
-    expect(sectionBlock).toContain("'Итог месяца'");
-    expect(today).not.toContain('Совет дня');
-    expect(sectionBlock).not.toContain('Совет на неделю');
-    expect(sectionBlock).not.toContain('Совет на месяц');
+    expect(today).toContain('className="today-minimal-punchline"');
+    expect(today).toContain("language === 'ru' ? 'Совет дня'");
+    expect(sectionBlock).toContain('forecast-period-editorial-punchline');
+    expect(sectionBlock).toContain("'Совет на неделю'");
+    expect(sectionBlock).toContain("'Совет на месяц'");
     expect(sectionBlock).toContain("isAdvice ? 'is-advice' : ''");
-    expect(today).not.toContain('today-minimal-punchline');
-    expect(today).not.toContain("block.role === 'lead'");
-    expect(sectionBlock).not.toContain('forecast-period-editorial-punchline');
-    expect(sectionBlock).not.toContain("block.role === 'lead'");
     expect(sectionBlock).not.toContain('emphasizeOpening');
     expect(sectionBlock).not.toContain('splitOpeningPhrase');
     expect(today).not.toContain('Вывод и совет');
@@ -101,18 +96,16 @@ describe('personal forecast screen layout', () => {
 
   it('ends Today with one decorative semantic personal cutout', () => {
     const today = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
-    const endVisual = read('components/PersonalForecastFeed/ForecastEndEditorialVisual.tsx');
     const visuals = read('lib/personalForecastVisuals.ts');
     const styles = read('styles/todayHome.css');
 
-    expect(today).toContain('selectForecastEndEditorialAsset');
-    expect(today).toContain('<ForecastEndEditorialVisual');
-    expect(today).toContain('className="today-minimal-closing-visual"');
-    expect(today.match(/className="today-minimal-closing-visual"/g)).toHaveLength(1);
-    expect(endVisual).toContain('alt=""');
+    expect(today).toContain('selectTodayEndEditorialAsset');
+    expect(today).toContain('className="today-minimal-end-visual"');
+    expect(today).toContain('alt=""');
+    expect(today.match(/className="today-minimal-end-visual"/g)).toHaveLength(1);
     expect(visuals).toContain('selectPersonalEditorialAsset({');
     expect(visuals).toContain('forceVisible: true');
-    expect(styles).toContain('width: clamp(5.9rem, 24vw, 8rem);');
+    expect(styles).toContain('width: clamp(5.75rem, 29vw, 8.125rem);');
     expect(styles).toContain('background: transparent;');
     expect(styles).toContain('box-shadow: none;');
   });

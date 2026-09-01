@@ -33,7 +33,9 @@ function forecastForPeriod(period: PersonalForecastPeriod): PersonalForecastPack
         ? '2026-07'
         : '2026';
   const window = resolvePersonalForecastWindow(period, key, base.timezone);
-  const sections = base.sections;
+  const sections = period === 'day'
+    ? base.sections
+    : [base.sections.at(-1)!];
   return {
     ...base,
     period,
@@ -68,24 +70,27 @@ function replaceSectionText(section: ForecastSection, text: string): void {
 }
 
 describe('personal forecast direct-reading contract', () => {
-  test('keeps one titled forecast and one closing for every period', () => {
+  test('keeps title, punchline, forecast body, and closing separate for every period', () => {
     const base = personalForecastFixture();
     expect(isPersonalForecastPackage(base)).toBe(true);
     expect(base.overview.title).toBe('A precise turn');
-    expect(base.overview.contentBlocks.map((block) => block.role)).toEqual(['detail']);
+    expect(base.overview.contentBlocks.map((block) => block.role)).toEqual([
+      'lead',
+      'detail',
+    ]);
     expect(base.meta.semanticSignature).toMatchObject({
-      situation: expect.any(String),
-      turn: expect.any(String),
-      outcome: expect.any(String),
       title: 'A precise turn',
+      punchline: expect.any(String),
       forecast: expect.any(String),
       closing: expect.any(String),
     });
     expect(base.meta.semanticSignature).not.toHaveProperty('headline');
-    expect(base.meta.semanticSignature).not.toHaveProperty('punchline');
-    expect(base.sections).toHaveLength(1);
+    expect(base.sections).toHaveLength(3);
     expect(base.sections.every((section) => section.kind === 'dynamic')).toBe(true);
-    expect(base.sections[0].contentBlocks.map((block) => block.role)).toEqual(['action']);
+    expect(base.sections.slice(0, -1).every(
+      (section) => section.contentBlocks.map((block) => block.role).join(',') === 'detail',
+    )).toBe(true);
+    expect(base.sections.at(-1)?.contentBlocks.map((block) => block.role)).toEqual(['action']);
     expect(base.sections.some((section) => section.fixedKey)).toBe(false);
 
     expect(getPersonalForecastPackageValidationError({
@@ -103,6 +108,7 @@ describe('personal forecast direct-reading contract', () => {
       sections: [
         ...base.sections,
         structuredClone(base.sections[0]),
+        structuredClone(base.sections[1]),
       ],
       visual: {
         sectionAssetIds: {
@@ -170,16 +176,10 @@ describe('personal forecast direct-reading contract', () => {
     );
   });
 
-  test('rejects a category role in place of the single closing', () => {
+  test('accepts a free block label without exposing implementation evidence', () => {
     const base = structuredClone(personalForecastFixture());
     base.sections[0].contentBlocks[0].role = 'work_money' as any;
-    expect(isPersonalForecastPackage(base)).toBe(false);
-  });
-
-  test('rejects a legacy lead in place of the single forecast body', () => {
-    const base = structuredClone(personalForecastFixture());
-    base.overview.contentBlocks[0].role = 'lead';
-    expect(isPersonalForecastPackage(base)).toBe(false);
+    expect(isPersonalForecastPackage(base)).toBe(true);
   });
 
   test('reports the rule that rejected a complete package', () => {
@@ -189,7 +189,7 @@ describe('personal forecast direct-reading contract', () => {
 
     expect(getPersonalForecastPackageValidationError(base)).toBeNull();
     expect(getPersonalForecastPackageValidationError(missingEvidence)).toBe(
-      'PACKAGE_SECTION_INVALID:semantic:closing',
+      'PACKAGE_SECTION_INVALID:semantic:communication',
     );
     expect(getPersonalForecastPackageValidationError({
       ...base,
@@ -211,9 +211,9 @@ describe('personal forecast direct-reading contract', () => {
   test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {
     const base = personalForecastFixture();
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toMatch(/^personal-forecast-luna-raw-profile-brief-v\d+$/);
-    expect(PERSONAL_FORECAST_CACHE_VERSION).toMatch(/^personal-forecast-cache-v\d+-three-part-human$/);
-    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toMatch(/^personal-forecast-feed-v\d+-three-part-human$/);
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('three-part-human');
+    expect(PERSONAL_FORECAST_CACHE_VERSION).toMatch(/^personal-forecast-cache-v\d+-reference-four-part$/);
+    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toMatch(/^personal-forecast-feed-v\d+-reference-four-part$/);
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('reference-four-part');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(
       `forecast-voice.${PERSONAL_FORECAST_VOICE_VERSION}`,
     );
@@ -230,15 +230,6 @@ describe('personal forecast direct-reading contract', () => {
         meta: { ...base.meta, ...patch },
       })).toBe(false);
     }
-
-    expect(isPersonalForecastPackage({
-      ...base,
-      meta: { ...base.meta, generationAttempts: 6 },
-    })).toBe(true);
-    expect(isPersonalForecastPackage({
-      ...base,
-      meta: { ...base.meta, generationAttempts: 7 },
-    })).toBe(false);
   });
 
   test('uses timezone-aware period keys and exact windows', () => {
@@ -308,7 +299,7 @@ describe('personal forecast direct-reading contract', () => {
   });
 
 
-  test('accepts the single closing in Today Free selection', () => {
+  test('accepts one forecast continuation and the closing in Today Free selection', () => {
     const base = personalForecastFixture();
     expect(isPersonalForecastPackage(base)).toBe(true);
 
@@ -317,9 +308,9 @@ describe('personal forecast direct-reading contract', () => {
       meta: {
         ...base.meta,
         freeSelection: {
-          strongestSectionId: 'semantic:closing',
-          rotatedSectionId: 'semantic:closing',
-          sectionIds: ['semantic:closing', 'semantic:closing'],
+          strongestSectionId: 'semantic:communication',
+          rotatedSectionId: 'semantic:communication',
+          sectionIds: ['semantic:communication', 'semantic:communication'],
         },
       },
     })).toBe(false);
@@ -334,13 +325,15 @@ describe('personal forecast direct-reading contract', () => {
     })).toBe(false);
   });
 
-  test('opens the complete three-part Today forecast without redacting its closing', () => {
+  test('opens Today overview and selected sections while redacting every other section', () => {
     const base = personalForecastFixture();
     const sliced = slicePersonalForecastForAccess(base, false);
     expect(sliced.periodLocked).toBe(false);
-    expect(sliced.lockedSectionIds).toEqual([]);
+    expect(sliced.lockedSectionIds).toEqual(['semantic:continuation']);
     expect(sliced.forecast.overview.text).not.toBe('');
     expect(sliced.forecast.sections[0].text).not.toBe('');
+    expect(sliced.forecast.sections[1].text).toBe('');
+    expect(sliced.forecast.sections.at(-1)?.text).not.toBe('');
     expect(isPersonalForecastPackage(sliced.forecast, {
       redactedSectionIds: sliced.lockedSectionIds,
     })).toBe(true);
