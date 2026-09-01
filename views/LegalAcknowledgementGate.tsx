@@ -43,7 +43,12 @@ async function readLegalAcknowledgements(): Promise<LegalAcknowledgementSummary>
   const response = await apiFetch('/api/users/legal-acknowledgements', {
     method: 'GET',
     credentials: 'include',
-    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
+    },
   });
   const payload = await response.json().catch(() => null) as LegalAcknowledgementResponse | null;
   if (!response.ok || !payload?.success || !Array.isArray(payload.documents)) {
@@ -71,7 +76,7 @@ export function LegalAcknowledgementGate({
   const [personalDataAccepted, setPersonalDataAccepted] = useState(() => (
     isAccepted(initialSummary, 'personal_data')
   ));
-  const [loading, setLoading] = useState(!initialSummary);
+  const [loading, setLoading] = useState(() => !hasAcceptedEveryDocument(initialSummary));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [invalidField, setInvalidField] = useState<'terms' | 'personal_data' | null>(null);
@@ -79,15 +84,22 @@ export function LegalAcknowledgementGate({
   const personalDataRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (initialSummary) {
+    if (initialSummary && hasAcceptedEveryDocument(initialSummary)) {
       setSummary(initialSummary);
       setTermsAccepted(isAccepted(initialSummary, 'terms'));
       setPersonalDataAccepted(isAccepted(initialSummary, 'personal_data'));
       setLoading(false);
+      onAccepted(initialSummary);
       return;
     }
 
     let cancelled = false;
+    if (initialSummary) {
+      setSummary(initialSummary);
+      setTermsAccepted(isAccepted(initialSummary, 'terms'));
+      setPersonalDataAccepted(isAccepted(initialSummary, 'personal_data'));
+    }
+    setError('');
     setLoading(true);
     readLegalAcknowledgements()
       .then((nextSummary) => {

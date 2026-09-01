@@ -309,6 +309,47 @@ describe('account authentication runtime hardening', () => {
     }
   });
 
+  it('bypasses cached profile state when the app is opened again', async () => {
+    const fetchMock = jest.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = String(input);
+      const payload = url.includes('/api/auth/session/refresh')
+        ? { accessExpiresAt: Math.floor(Date.now() / 1000) + 600 }
+        : {
+          id: '42',
+          name: 'Profile',
+          birthDate: '',
+          birthTime: '',
+          birthPlace: '',
+          isSetup: true,
+          language: 'ru',
+          theme: 'light',
+          isPremium: false,
+        };
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    try {
+      await expect(getProfile({ maxAttempts: 1, timeoutMs: 1_000 })).resolves.toMatchObject({
+        id: '42',
+      });
+      const profileRequest = fetchMock.mock.calls.find(([input]) => (
+        String(input).endsWith('/api/users/me')
+      ));
+      expect(profileRequest).toBeDefined();
+      const init = profileRequest?.[1] as RequestInit | undefined;
+      const headers = new Headers(init?.headers);
+      expect(init?.cache).toBe('no-store');
+      expect(headers.get('Cache-Control')).toBe('no-cache');
+      expect(headers.get('Pragma')).toBe('no-cache');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it('aborts a bounded profile load instead of keeping startup pending', async () => {
     jest.useFakeTimers();
     let requestSignal: AbortSignal | null | undefined;

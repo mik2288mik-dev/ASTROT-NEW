@@ -36,9 +36,12 @@ describe('legal acknowledgement gate integration', () => {
     expect(gate).toContain('setPersonalDataAccepted(isAccepted(refreshedSummary');
   });
 
-  it('blocks onboarding until current acknowledgements are present without a second startup fetch', () => {
+  it('uses authoritative uncached acknowledgements after login and on a later app launch', () => {
     const app = read('App.tsx');
+    const gate = read('views/LegalAcknowledgementGate.tsx');
     const profileRoute = read('pages/api/users/me.ts');
+    const acknowledgementRoute = read('pages/api/users/legal-acknowledgements.ts');
+    const storage = read('services/storageService.ts');
     const storeConfig = read('lib/storeReleaseConfig.ts');
 
     const gateIndex = app.indexOf('if (!legalAcknowledgementGateContract.hasAcceptedEveryDocument');
@@ -47,6 +50,13 @@ describe('legal acknowledgement gate integration', () => {
     expect(gateIndex).toBeLessThan(onboardingIndex);
     expect(profileRoute).toContain('getLegalDocumentStatusesForUser(auth.userId)');
     expect(profileRoute).toContain('legalAcknowledgements:{');
+    expect(profileRoute).toContain("res.setHeader('Cache-Control','private, no-store, max-age=0')");
+    expect(acknowledgementRoute).toContain("res.setHeader('Cache-Control', 'private, no-store, max-age=0')");
+    expect(storage).toContain("cache: 'no-store'");
+    expect(storage).toContain("'Cache-Control': 'no-cache'");
+    expect(gate).toContain("cache: 'no-store'");
+    expect(gate).toContain('if (initialSummary && hasAcceptedEveryDocument(initialSummary))');
+    expect(gate).toContain('readLegalAcknowledgements()');
     expect(app).toContain('legalAcknowledgements: profile?.legalAcknowledgements ?? newProfile.legalAcknowledgements ?? null');
     expect(storeConfig).toContain("fallback('/personal-data-consent')");
   });

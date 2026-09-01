@@ -200,7 +200,17 @@ export const getProfile = async ({
       try {
         response = await apiFetch(
           url,
-          { method: 'GET', credentials: 'include', signal: controller.signal },
+          {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store',
+            headers: {
+              Accept: 'application/json',
+              'Cache-Control': 'no-cache',
+              Pragma: 'no-cache',
+            },
+            signal: controller.signal,
+          },
           requestTimeoutMs,
         );
       } finally {

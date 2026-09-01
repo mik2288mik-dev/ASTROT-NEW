@@ -75,7 +75,11 @@ describe('/api/users/legal-acknowledgements', () => {
     await handler(req, res);
 
     expect(mockRequireAppUser).toHaveBeenCalledWith(req, { allowGuest: true });
-    expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Cache-Control',
+      'private, no-store, max-age=0',
+    );
+    expect(res.setHeader).toHaveBeenCalledWith('Vary', 'Authorization, Cookie');
     expect(mockQuery).toHaveBeenCalledWith(
       expect.stringContaining('SELECT DISTINCT ON (document_type)'),
       ['42'],

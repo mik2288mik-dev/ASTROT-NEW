@@ -124,7 +124,8 @@ async function appendAcknowledgement(
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization, Cookie');
 
   if (req.method !== 'GET' && req.method !== 'POST' && req.method !== 'DELETE') {
     res.setHeader('Allow', 'GET, POST, DELETE');
