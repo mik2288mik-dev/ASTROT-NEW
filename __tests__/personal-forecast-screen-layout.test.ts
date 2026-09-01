@@ -38,6 +38,29 @@ describe('personal forecast screen layout', () => {
     expect(forecastStyles).toContain('background: transparent;');
   });
 
+  it('justifies personal forecast prose without splitting words', () => {
+    const styles = read('styles/todayHome.css');
+    const readRule = (marker: string) => {
+      const start = styles.indexOf(marker);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const end = styles.indexOf('}', start);
+      expect(end).toBeGreaterThan(start);
+      return styles.slice(start, end);
+    };
+    const rules = [
+      readRule('.forecast-feed-section-text.is-story-opening,'),
+      readRule('#__next .today-minimal-reading .forecast-feed-section-text,'),
+    ];
+
+    rules.forEach((rule) => {
+      expect(rule).toContain('text-align: justify !important;');
+      expect(rule).toContain('-webkit-hyphens: none;');
+      expect(rule).toContain('hyphens: none;');
+      expect(rule).toContain('overflow-wrap: normal;');
+      expect(rule).not.toContain('overflow-wrap: break-word;');
+    });
+  });
+
   it('requires only the raw birth profile before loading personal forecast content', () => {
     const dashboard = read('views/Dashboard.tsx');
     const service = read('services/personalForecastService.ts');

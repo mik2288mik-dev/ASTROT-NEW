@@ -1169,9 +1169,9 @@
   line-height: 1.66 !important;
   text-align: justify !important;
   text-align-last: start;
-  -webkit-hyphens: auto;
-  hyphens: auto;
-  overflow-wrap: break-word;
+  -webkit-hyphens: none;
+  hyphens: none;
+  overflow-wrap: normal;
 }
 
 .forecast-feed-page .ui-preview-long-forecast {
@@ -1344,9 +1344,9 @@
   text-align: justify !important;
   text-align-last: start;
   text-wrap: wrap !important;
-  -webkit-hyphens: auto;
-  hyphens: auto;
-  overflow-wrap: break-word;
+  -webkit-hyphens: none;
+  hyphens: none;
+  overflow-wrap: normal;
 }
 
 .today-minimal-feed:lang(ru)

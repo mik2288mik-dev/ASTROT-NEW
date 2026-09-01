@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NeboLogo } from '../components/brand/NeboLogo';
+import { Loading } from '../components/ui/Loading';
 import { STORE_RELEASE_CONFIG } from '../lib/storeReleaseConfig';
 import { apiFetch } from '../services/apiClient';
 import { getMobileBuildIdentity } from '../services/mobileBuildIdentity';
@@ -76,7 +77,7 @@ export function LegalAcknowledgementGate({
   const [personalDataAccepted, setPersonalDataAccepted] = useState(() => (
     isAccepted(initialSummary, 'personal_data')
   ));
-  const [loading, setLoading] = useState(() => !hasAcceptedEveryDocument(initialSummary));
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [invalidField, setInvalidField] = useState<'terms' | 'personal_data' | null>(null);
@@ -88,7 +89,6 @@ export function LegalAcknowledgementGate({
       setSummary(initialSummary);
       setTermsAccepted(isAccepted(initialSummary, 'terms'));
       setPersonalDataAccepted(isAccepted(initialSummary, 'personal_data'));
-      setLoading(false);
       onAccepted(initialSummary);
       return;
     }
@@ -107,15 +107,17 @@ export function LegalAcknowledgementGate({
         setSummary(nextSummary);
         setTermsAccepted(isAccepted(nextSummary, 'terms'));
         setPersonalDataAccepted(isAccepted(nextSummary, 'personal_data'));
-        if (hasAcceptedEveryDocument(nextSummary)) onAccepted(nextSummary);
+        if (hasAcceptedEveryDocument(nextSummary)) {
+          onAccepted(nextSummary);
+          return;
+        }
+        setLoading(false);
       })
       .catch((requestError: unknown) => {
         if (!cancelled) {
           setError(requestError instanceof Error ? requestError.message : 'Не удалось загрузить документы.');
+          setLoading(false);
         }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
       });
 
     return () => {
@@ -195,6 +197,8 @@ export function LegalAcknowledgementGate({
       setSubmitting(false);
     }
   };
+
+  if (loading) return <Loading progress={100} />;
 
   return (
     <main className="legal-acknowledgement-screen fixed inset-0 z-[120] h-[100dvh] overflow-hidden bg-white text-[#171717]">

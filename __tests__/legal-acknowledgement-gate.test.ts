@@ -57,6 +57,9 @@ describe('legal acknowledgement gate integration', () => {
     expect(gate).toContain("cache: 'no-store'");
     expect(gate).toContain('if (initialSummary && hasAcceptedEveryDocument(initialSummary))');
     expect(gate).toContain('readLegalAcknowledgements()');
+    expect(gate).toContain('const [loading, setLoading] = useState(true)');
+    expect(gate).toContain('if (loading) return <Loading progress={100} />');
+    expect(gate).not.toContain('.finally(() =>');
     expect(app).toContain('legalAcknowledgements: profile?.legalAcknowledgements ?? newProfile.legalAcknowledgements ?? null');
     expect(storeConfig).toContain("fallback('/personal-data-consent')");
   });
