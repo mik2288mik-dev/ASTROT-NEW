@@ -18,6 +18,18 @@ import {
   EditorialTabs,
 } from '../../components/editorial/EditorialScreenChrome';
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
+import { NATAL_REPORT_CATALOG_CONTRACT_VERSION } from '../../lib/natalReading/reportCatalog';
+import {
+  ensureNatalCatalogCategory,
+  getNatalCatalogCategoryCached,
+} from '../../services/natalCatalogService';
+import {
+  readNatalReadingVariant,
+  resolveNatalReadingRenderer,
+  subscribeNatalReadingVariant,
+  type NatalReadingRenderer,
+  type NatalReadingVariant,
+} from '../../lib/natalReading/readingVariant';
 import type { ChartListItem } from '../../services/storageService';
 import type { PaywallContext } from '../../lib/paywallContext';
 
@@ -94,6 +106,29 @@ export function NatalMagazine({
     && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
       ? uiPreview
       : undefined;
+  const catalogCacheIdentity = useMemo(() => data ? ({
+    chartFingerprint: buildNatalChartFingerprint(data),
+    reportVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
+  }) : null, [data]);
+  const [readingVariant, setReadingVariant] = useState<NatalReadingVariant>(() => (
+    readNatalReadingVariant(profile.id, profile.isAdmin === true)
+  ));
+  const [readingRenderer, setReadingRenderer] = useState<NatalReadingRenderer>(() => {
+    if (previewConfig?.catalog) return 'catalog';
+    if (!data || !catalogCacheIdentity) return 'classic';
+    const userId = String(profile.id || '').trim();
+    const cached = userId ? getNatalCatalogCategoryCached(
+      userId,
+      'main',
+      chartId,
+      language,
+      catalogCacheIdentity,
+    ) : null;
+    return resolveNatalReadingRenderer(
+      readNatalReadingVariant(profile.id, profile.isAdmin === true),
+      Boolean(cached),
+    );
+  });
   const [activeTab, setActiveTab] = useState<NatalScreenTab>(() => (
     normalizeNatalScreenTab(
       previewConfig?.openQuestion ? 'questions' : previewConfig?.initialTab || 'reading',
@@ -118,6 +153,58 @@ export function NatalMagazine({
   useEffect(() => {
     if (normalizedActiveTab !== activeTab) setActiveTab(normalizedActiveTab);
   }, [activeTab, normalizedActiveTab]);
+
+  useEffect(() => {
+    const isAdmin = profile.isAdmin === true;
+    setReadingVariant(readNatalReadingVariant(profile.id, isAdmin));
+    return subscribeNatalReadingVariant(profile.id, isAdmin, (next) => {
+      setReadingVariant(next);
+    });
+  }, [profile.id, profile.isAdmin]);
+
+  useEffect(() => {
+    if (normalizedActiveTab !== 'reading') return;
+    if (previewConfig?.catalog) {
+      setReadingRenderer('catalog');
+      return;
+    }
+    if (!data || !catalogCacheIdentity) {
+      setReadingRenderer('classic');
+      return;
+    }
+    const userId = String(profile.id || '').trim();
+    const cached = userId ? getNatalCatalogCategoryCached(
+      userId,
+      'main',
+      chartId,
+      language,
+      catalogCacheIdentity,
+    ) : null;
+    setReadingRenderer(resolveNatalReadingRenderer(readingVariant, Boolean(cached)));
+    if (readingVariant === 'auto' && !cached && userId) {
+      void ensureNatalCatalogCategory(
+        userId,
+        'main',
+        chartId,
+        language,
+        catalogCacheIdentity,
+      ).catch((error: unknown) => {
+        console.warn(
+          '[NatalMagazine] Natal catalog background warm-up failed:',
+          error instanceof Error ? error.message : error,
+        );
+      });
+    }
+  }, [
+    catalogCacheIdentity,
+    chartId,
+    data,
+    language,
+    normalizedActiveTab,
+    previewConfig?.catalog,
+    profile.id,
+    readingVariant,
+  ]);
 
   useEffect(() => {
     if (
@@ -292,25 +379,53 @@ export function NatalMagazine({
           className="natal-reading-stage natal-catalog-stage"
           aria-label={language === 'ru' ? 'Разбор натальной карты' : 'Natal chart reading'}
         >
-          <NatalCatalogReport
-            key={reportSubjectKey}
-            profile={profile}
-            chartData={data}
-            chartId={chartId}
-            chartSubject={chartSubject}
-            requestPremium={requestPremium}
-            premiumContinuation={premiumContinuation}
-            onPremiumContinuationHandled={onPremiumContinuationHandled}
-            canPromotePremium={canPromotePremium}
-            onOpenQuestions={isSavedPerson ? undefined : () => {
-              selectTab('questions');
-              requestAnimationFrame(() => {
-                window.scrollTo({ top: 0, behavior: 'auto' });
-              });
-            }}
-            hideIntro
-            uiPreview={previewConfig?.catalog}
-          />
+          {readingRenderer === 'catalog' ? (
+            <NatalCatalogReport
+              key={`catalog:${reportSubjectKey}`}
+              profile={profile}
+              chartData={data}
+              chartId={chartId}
+              chartSubject={chartSubject}
+              requestPremium={requestPremium}
+              premiumContinuation={premiumContinuation}
+              onPremiumContinuationHandled={onPremiumContinuationHandled}
+              canPromotePremium={canPromotePremium}
+              onOpenQuestions={isSavedPerson ? undefined : () => {
+                selectTab('questions');
+                requestAnimationFrame(() => {
+                  window.scrollTo({ top: 0, behavior: 'auto' });
+                });
+              }}
+              hideIntro
+              uiPreview={previewConfig?.catalog}
+            />
+          ) : (
+            <HumanReport
+              key={`classic:${reportSubjectKey}`}
+              profile={profile}
+              chartData={data}
+              chartId={chartId}
+              chartSubject={chartSubject}
+              requestPremium={requestPremium}
+              onUpdateProfile={onUpdateProfile}
+              preloadedReport={preloadedReport}
+              hideIntro
+              surface="reading"
+              premiumContinuation={premiumContinuation}
+              onPremiumContinuationHandled={onPremiumContinuationHandled}
+              canPromotePremium={canPromotePremium}
+              onOpenQuestions={isSavedPerson ? undefined : () => {
+                selectTab('questions');
+                requestAnimationFrame(() => {
+                  window.scrollTo({ top: 0, behavior: 'auto' });
+                });
+              }}
+              uiPreview={previewConfig ? {
+                state: previewConfig.reportState || 'ready',
+                premiumReport: previewConfig.premiumReport,
+              } : undefined}
+            />
+          )}
         </section>
       ) : null}
 

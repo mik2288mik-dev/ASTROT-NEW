@@ -57,14 +57,14 @@ export type RawNatalReportCategoryPayload = {
 
 export type RawNatalReportAnswerPayload = RawAnswer;
 
-const FORBIDDEN_CATALOG_COPY = /(?:(?:^|[^\p{L}])(?:психолог[\p{L}]*|психическ[\p{L}]*|психотип[\p{L}]*|коуч[\p{L}]*|самовыраж[\p{L}]*|самореализац[\p{L}]*|ценност[\p{L}]*|энерги[\p{L}]*|потенциал[\p{L}]*|рекомендац[\p{L}]*|практик(?:а|и|е|у|ой|ою|ам|ами|ах)?|границ[\p{L}]*|ресурс[\p{L}]*|опор[\p{L}]*|паттерн[\p{L}]*|триггер[\p{L}]*|предназначени[\p{L}]*|карм[\p{L}]*|вибрац[\p{L}]*|мисси[\p{L}]*|проработ[\p{L}]*|psycholog(?:y|ies|ical|ically|ist|ists)|coach(?:es|ed|ing)?|self(?:-|\s)?express(?:ion|ions|ive|ively)|self-actuali[sz][\p{L}]*|self-reali[sz][\p{L}]*|values|(?:personal|core)\s+value|energ(?:y|ies|etic|etically)|potential(?:s|ly)?|recommend(?:ation|ations|ed|ing|s)?|practic(?:e|es|ed|ing)|practis(?:e|es|ed|ing)|boundar(?:y|ies)|resources?|support(?:s|ed|ing|ive)?|patterns?|triggers?|triggered|triggering|destiny|karma|karmic|vibration|mission)(?:$|[^\p{L}])|позволь\s+себе|тебе\s+важно\s+научиться|важно\s+научиться|прислушайся\s+к\s+себе|чувствуешь\s+глубже|снаружи[^.!?]{0,80}внутри|inner\s+resource|support\s+point|work\s+through|allow\s+yourself|learn\s+to|listen\s+to\s+yourself)/iu;
+const FORBIDDEN_CATALOG_COPY = /(?:(?:^|[^\p{L}])(?:психолог[\p{L}]*|психическ[\p{L}]*|психотип[\p{L}]*|коуч[\p{L}]*|самовыраж[\p{L}]*|самореализац[\p{L}]*|ценност[\p{L}]*|энерги[\p{L}]*|потенциал[\p{L}]*|рекомендац[\p{L}]*|практик(?:а|и|е|у|ой|ою|ам|ами|ах)?|границ[\p{L}]*|ресурс[\p{L}]*|опор[\p{L}]*|паттерн[\p{L}]*|триггер[\p{L}]*|предназначени[\p{L}]*|карм(?:а|ы|е|у|ой|ою|ею|ам|ами|ах|ическ[\p{L}]*|ичн[\p{L}]*)|вибрац[\p{L}]*|мисси[\p{L}]*|проработ[\p{L}]*|psycholog(?:y|ies|ical|ically|ist|ists)|coach(?:es|ed|ing)?|self(?:-|\s)?express(?:ion|ions|ive|ively)|self-actuali[sz][\p{L}]*|self-reali[sz][\p{L}]*|values|(?:personal|core)\s+value|energ(?:y|ies|etic|etically)|potential(?:s|ly)?|recommend(?:ation|ations|ed|ing|s)?|practic(?:e|es|ed|ing)|practis(?:e|es|ed|ing)|boundar(?:y|ies)|resources?|support(?:s|ed|ing|ive)?|patterns?|triggers?|triggered|triggering|destiny|karma|karmic|vibration|mission)(?:$|[^\p{L}])|позволь\s+себе|тебе\s+важно\s+научиться|важно\s+научиться|прислушайся\s+к\s+себе|чувствуешь\s+глубже|снаружи[^.!?]{0,80}внутри|inner\s+resource|support\s+point|work\s+through|allow\s+yourself|learn\s+to|listen\s+to\s+yourself)/iu;
 const CHANGING_TIME_COPY = /(?:(?:^|[^\p{L}])(?:сегодня|завтра|скоро|на этой неделе|в этом месяце|в этом году|тебя жд[её]т|обязательно произойд[её]т|today|tomorrow|soon|this week|this month|this year|you will definitely|awaits you)(?:$|[^\p{L}])|(?:^|[^\p{N}])20\d{2}(?:$|[^\p{N}]))/iu;
 
 export const NATAL_REPORT_MAIN_SUMMARY_MIN_CHARS = 600;
 export const NATAL_REPORT_MAIN_SUMMARY_MAX_CHARS = 1050;
 const NATAL_REPORT_MAIN_PARAGRAPH_MIN_CHARS = 200;
 const NATAL_REPORT_MAIN_PARAGRAPH_MAX_CHARS = 210;
-const NATAL_REPORT_SEMANTIC_ATTEMPTS = 2;
+const NATAL_REPORT_SEMANTIC_ATTEMPTS = 3;
 
 type StructuredRequester = Exclude<
   NonNullable<Parameters<typeof callStructuredWithBudgetRetry>[3]>['request'],
@@ -110,6 +110,33 @@ function isCopyAllowed(value: string, built: BuiltNatalModelContext): boolean {
     && !hasNatalPersonalityCopyViolation(value)
     && !hasNatalReportCatalogCopyViolation(value)
     && isNatalReliabilityTextAllowed(value, built);
+}
+
+export type NatalReportCopyValidationKind =
+  | 'PERSONALITY_COPY'
+  | 'CATALOG_COPY'
+  | 'RELIABILITY';
+
+export function getNatalReportCopyValidationKinds(
+  value: string,
+  built: BuiltNatalModelContext,
+): NatalReportCopyValidationKind[] {
+  const kinds: NatalReportCopyValidationKind[] = [];
+  if (!value || hasNatalPersonalityCopyViolation(value)) kinds.push('PERSONALITY_COPY');
+  if (!value || hasNatalReportCatalogCopyViolation(value)) kinds.push('CATALOG_COPY');
+  if (!value || !isNatalReliabilityTextAllowed(value, built)) kinds.push('RELIABILITY');
+  return unique(kinds) as NatalReportCopyValidationKind[];
+}
+
+function appendCopyValidationIssues(
+  issues: string[],
+  path: string,
+  value: string,
+  built: BuiltNatalModelContext,
+): void {
+  for (const kind of getNatalReportCopyValidationKinds(value, built)) {
+    issues.push(`COPY_VIOLATION:${path}:${kind}`);
+  }
 }
 
 function parsedEvidenceIds(
@@ -299,6 +326,8 @@ export function getNatalReportCatalogSystemPrompt(language: 'ru' | 'en'): string
 - Пиши о человеке прямо, живо и обычными словами. Обращайся на «ты».
 - Первый вывод давай сразу. Потом покажи его через простую ситуацию: знакомство, переписку, спор, покупку, работу, срок или договорённость.
 - Никакой психологии, коучинга, воспитания, мистики и астрологического языка. Не используй «ресурс», «опора», «границы», «паттерн», «потенциал», «энергия», «предназначение» и похожие слова.
+- Вообще не называй планеты, знаки, дома, аспекты, градусы, углы, асцендент или MC. Не упоминай сегодня, завтра, даты и будущие события.
+- Не используй готовые обороты «это про тебя», «считывается», «проверка фактов», «что стоит заметить», «внутренняя точность» и рекламные недосказанности.
 - Не пиши советы, практики, диагнозы, обещания, биографию и будущие события.
 - Не используй универсальные формулы вроде «чувствуешь глубже, чем показываешь», «снаружи один, внутри другой» или «тебя не всегда понимают».
  - Preview — одно короткое законченное предложение с персональным выводом. Полный ответ — 3–5 коротких абзацев, первый абзац самый сильный.
@@ -310,6 +339,8 @@ export function getNatalReportCatalogSystemPrompt(language: 'ru' | 'en'): string
 - Write directly, vividly, and in ordinary words. Address the reader as “you”.
 - Give the strongest conclusion first, then show it through an ordinary situation: meeting someone, texting, an argument, a purchase, work, a deadline, or an agreement.
 - No psychology, coaching, instruction, mysticism, or visible astrology. Avoid report jargon such as resource, support point, boundaries, pattern, potential, energy, or destiny.
+- Never name planets, signs, houses, aspects, degrees, angles, Ascendant, or MC. Mention no current dates or future events.
+- Avoid canned phrases, pseudo-insight, report language, and advertising cliffhangers.
 - Do not give advice, practices, diagnoses, promises, biography, or future events.
 - Avoid universal formulas such as “you feel more deeply than you show” or “one way outside, another inside”.
  - A preview is one short, complete sentence with a personal conclusion. A full answer is 3–5 short paragraphs, with the strongest paragraph first.
@@ -474,17 +505,33 @@ export function getNatalReportCategoryValidationIssues(input: {
     }
   }
 
-  const copyValues = [
-    ...summary.map((statement) => text(statement?.text)),
-    ...observations.map((statement) => text(statement?.text)),
-    ...previews.map((preview) => text(preview?.preview)),
-    ...freeAnswers.flatMap((answer) => (
+  const copyFields: Array<{ path: string; value: string }> = [
+    ...summary.map((statement, index) => ({
+      path: `summary[${index}]`,
+      value: text(statement?.text),
+    })),
+    ...observations.map((statement, index) => ({
+      path: `observations[${index}]`,
+      value: text(statement?.text),
+    })),
+    ...previews.map((preview, index) => ({
+      path: `previews[${index}]`,
+      value: text(preview?.preview),
+    })),
+    ...freeAnswers.flatMap((answer, answerIndex) => (
       Array.isArray(answer?.paragraphs)
-        ? answer.paragraphs.map((paragraph) => text(paragraph?.text))
+        ? answer.paragraphs.map((paragraph, paragraphIndex) => ({
+            path: `free_answers[${answerIndex}].paragraphs[${paragraphIndex}]`,
+            value: text(paragraph?.text),
+          }))
         : []
     )),
-  ].filter(Boolean);
-  if (copyValues.some((value) => !isCopyAllowed(value, input.built))) {
+  ].filter((field) => field.value.length > 0);
+  const copyIssueCountBefore = issues.length;
+  for (const field of copyFields) {
+    appendCopyValidationIssues(issues, field.path, field.value, input.built);
+  }
+  if (issues.length > copyIssueCountBefore) {
     issues.push('COPY_OR_RELIABILITY_VIOLATION');
   }
   return unique(issues);
@@ -507,7 +554,16 @@ export function getNatalReportAnswerValidationIssues(input: {
   )));
   const missingCount = plan.requiredEvidenceIds.filter((id) => !usedIds.has(id)).length;
   if (missingCount > 0) issues.push('REQUIRED_EVIDENCE_MISSING:' + missingCount);
-  if (paragraphs.some((paragraph) => !isCopyAllowed(text(paragraph?.text), input.built))) {
+  const copyIssueCountBefore = issues.length;
+  paragraphs.forEach((paragraph, index) => {
+    appendCopyValidationIssues(
+      issues,
+      `paragraphs[${index}]`,
+      text(paragraph?.text),
+      input.built,
+    );
+  });
+  if (issues.length > copyIssueCountBefore) {
     issues.push('COPY_OR_RELIABILITY_VIOLATION');
   }
   return unique(issues);
@@ -518,14 +574,17 @@ function buildSemanticRepairPrompt(
   issues: readonly string[],
   language: 'ru' | 'en',
 ): string {
+  const guide = language === 'ru'
+    ? `\nРасшифровка кодов:\n- PERSONALITY_COPY means: в указанном поле есть астрологические названия, мистика, психологическое клише, совет, коучинговая команда, диагноз, гарантия или универсальная фраза. Удали всё это.\n- CATALOG_COPY means: в указанном поле есть запрещённый жаргон, текущая дата, обещание будущего или рекламная интрига. Перепиши обычными словами.\n- RELIABILITY means: поле ссылается на дом, угол, асцендент, MC или другой вывод, которого нет среди надёжных входных данных. Удали такой вывод; не заменяй его догадкой.\nВо всём пользовательском тексте не называй планеты, знаки, дома, аспекты, градусы, углы, асцендент или MC. Не давай советов. Не упоминай сегодня, завтра, даты и будущие события. Перепиши каждое поле с указанным путём полностью, но верни весь JSON и сохрани разрешённые evidence_ids.`
+    : `\nIssue guide:\n- PERSONALITY_COPY means: the field contains visible astrology, mysticism, a psychological cliché, advice, coaching language, a diagnosis, a guarantee, or a generic personality formula. Remove it.\n- CATALOG_COPY means: the field contains banned report jargon, a current date, a future promise, or an advertising cliffhanger. Rewrite it in ordinary words.\n- RELIABILITY means: the field refers to a house, angle, Ascendant, MC, or another claim not present in reliable input. Remove that claim and do not replace it with a guess.\nNever name planets, signs, houses, aspects, degrees, angles, Ascendant, or MC in user-facing text. Give no advice. Mention no current dates or future events. Fully rewrite every field whose path is listed, return the complete JSON, and keep only allowed evidence_ids.`;
   const instruction = language === 'ru'
     ? '\n\nREPAIR REQUIRED:\nПредыдущий вариант не прошёл серверную проверку: '
       + JSON.stringify(issues)
-      + '. Напиши весь JSON заново. Исправь каждую причину, сохрани только разрешённые evidence_ids и не копируй предыдущий текст.'
+      + '. Не пытайся угадать одно запрещённое слово: используй путь и тип каждого кода, затем напиши весь JSON заново. Не копируй предыдущий текст.'
     : '\n\nREPAIR REQUIRED:\nThe previous candidate failed server validation: '
       + JSON.stringify(issues)
-      + '. Rewrite the complete JSON. Fix every issue, keep only allowed evidence_ids, and do not copy the previous wording.';
-  return prompt + instruction;
+      + '. Do not guess one offending word: use every field path and issue type, then rewrite the complete JSON without copying the previous wording.';
+  return prompt + instruction + guide;
 }
 
 export function materializeNatalReportCategoryPack(input: {
@@ -692,6 +751,13 @@ export async function generateNatalReportCategoryPack(input: {
       categoryKey: input.categoryKey,
     });
     if (validationIssues.length === 0) validationIssues = ['SEMANTIC_CONTRACT_INVALID'];
+    console.warn('[natal/catalog-validation]', JSON.stringify({
+      kind: 'category',
+      categoryKey: input.categoryKey,
+      semanticAttempt: attempt,
+      responseId: result.responseId,
+      validationIssues,
+    }));
   }
   throw new Error(
     'NATAL_REPORT_CATEGORY_VALIDATION_FAILED:' + validationIssues.join(','),
@@ -746,6 +812,13 @@ export async function generateNatalReportAnswer(input: {
       answerKey: input.answerKey,
     });
     if (validationIssues.length === 0) validationIssues = ['SEMANTIC_CONTRACT_INVALID'];
+    console.warn('[natal/catalog-validation]', JSON.stringify({
+      kind: 'answer',
+      answerKey: input.answerKey,
+      semanticAttempt: attempt,
+      responseId: result.responseId,
+      validationIssues,
+    }));
   }
   throw new Error(
     'NATAL_REPORT_ANSWER_VALIDATION_FAILED:' + validationIssues.join(','),

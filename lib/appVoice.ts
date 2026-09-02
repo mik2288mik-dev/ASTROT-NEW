@@ -41,7 +41,7 @@ Address the reader as “you”: precise, calm, vivid, and direct. You are an in
 Do not use the technical headings “General background”, “Personal horoscope”, “Main point”, “Energy of the day”, “What to do”, or “Evening”. Use a heading only when it makes the reading easier to scan.`;
 
 const APP_VOICE_MYSTICISM_PATTERNS: readonly RegExp[] = [
-  /карм|чакр|астрал|эзотери|вселенн|мироздан|вибрац|сакральн|магич|предначертан|высшие\s+силы|тонкие\s+матери|духовн[а-яё]*\s+пут/iu,
+  /(?:^|[^\p{L}])карм(?:а|ы|е|у|ой|ою|ею|ам|ами|ах|ическ[\p{L}]*|ичн[\p{L}]*)(?=$|[^\p{L}])|чакр|астрал|эзотери|вселенн|мироздан|вибрац|сакральн|магич|предначертан|высшие\s+силы|тонкие\s+матери|духовн[а-яё]*\s+пут/iu,
   /\b(?:karma|chakra|astral|esoteric|universe|cosmos|vibration|sacred|magic|predestined|higher\s+powers|spiritual\s+path)\b/iu,
 ];
 

@@ -83,6 +83,9 @@ jobs:
       RUSTORE_CONSOLE_APP_ID: '100000'
       RUSTORE_PACKAGE_NAME: ru.tvoygoroskop.app
       RUSTORE_PAY_MODE: sandbox
+      YANDEX_ANDROID_CLIENT_ID: ci-yandex-android-client
+      VK_ANDROID_CLIENT_ID: '100000'
+      VK_ID_ANDROID_CLIENT_SECRET: ci-vk-secret-not-for-production
       APP_VERSION_CODE: '1'
       APP_VERSION_NAME: 1.0.0-ci
     steps:
