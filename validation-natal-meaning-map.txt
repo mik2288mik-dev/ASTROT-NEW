@@ -1,0 +1,89 @@
+test_status=0
+tsc_status=2
+build_status=1
+
+=== TESTS ===
+
+> copy-of-astrot---soulful-astrology@0.0.0 test
+> jest --runInBand __tests__/natal-meaning-experience.test.ts __tests__/natal-reading-variant.test.ts __tests__/natal-catalog-contract.test.ts __tests__/natal-catalog-repair-diagnostics.test.ts
+
+  console.warn
+    [natal/catalog-validation] {"kind":"category","categoryKey":"main","semanticAttempt":1,"responseId":"test-response","validationIssues":["SUMMARY_TOTAL_TOO_SHORT:300","SUMMARY_SHAPE_INVALID"]}
+
+    [0m [90m 752 |[39m [32m    });[39m
+     [90m 753 |[39m [32m    if (validationIssues.length === 0) validationIssues = ['SEMANTIC_CONTRACT_INVALID'];[39m
+    [31m[1m>[22m[39m[90m 754 |[39m [32m    console.warn('[natal/catalog-validation]', JSON.stringify({[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 755 |[39m [32m      kind: 'category',[39m
+     [90m 756 |[39m [32m      categoryKey: input.categoryKey,[39m
+     [90m 757 |[39m [32m      semanticAttempt: attempt,[39m[0m
+
+      at generateNatalReportCategoryPack (lib/natalReading/reportCatalogGeneration.ts:754:13)
+      at Object.<anonymous> (__tests__/natal-catalog-contract.test.ts:183:20)
+
+PASS __tests__/natal-catalog-contract.test.ts
+  natal report catalog contract
+    ✓ defines 47 unique owned answers in the six requested categories (5 ms)
+    ✓ keeps exactly seven free answers and one sample in each non-main category (1 ms)
+    ✓ gives every answer useful locked-screen details and valid continuations (20 ms)
+    ✓ uses six personal continuation previews on Main without changing answer ownership (2 ms)
+    ✓ repairs a schema-shaped Main candidate that is too short before returning it (138 ms)
+    ✓ blocks report jargon in Russian and English without matching ordinary words by substring (5 ms)
+    ✓ keeps the Main reading between 600 and 1050 characters in three to five paragraphs (1 ms)
+    ✓ builds deterministic evidence for all answers without requiring angles or houses (7 ms)
+
+PASS __tests__/natal-meaning-experience.test.ts
+  natal meaning-first experience
+    ✓ uses one clear product navigation and keeps the matrix outside the natal chart (2 ms)
+    ✓ shows a core map, deeper areas, bottom-sheet answers and a reason for every conclusion (2 ms)
+    ✓ keeps access boundaries quiet and avoids store language in the new interface (1 ms)
+    ✓ keeps the administrator switch simple and device-scoped (2 ms)
+
+PASS __tests__/natal-reading-variant.test.ts
+  admin natal reading variant
+    ✓ always keeps non-admin users in safe auto mode (1 ms)
+    ✓ stores an admin choice separately for every user (1 ms)
+    ✓ opens the new experience first while keeping a forced old version available (1 ms)
+
+PASS __tests__/natal-catalog-repair-diagnostics.test.ts
+  natal catalog semantic repair diagnostics
+    ✓ uses three semantic attempts and field-specific safe issue codes (2 ms)
+    ✓ logs only identifiers and issue codes and explains every repair class (1 ms)
+
+Test Suites: 4 passed, 4 total
+Tests:       17 passed, 17 total
+Snapshots:   0 total
+Time:        1.328 s
+Ran all test suites matching __tests__/natal-meaning-experience.test.ts|__tests__/natal-reading-variant.test.ts|__tests__/natal-catalog-contract.test.ts|__tests__/natal-catalog-repair-diagnostics.test.ts.
+
+=== TYPESCRIPT ===
+views/v2/NatalMagazine.tsx(512,16): error TS2304: Cannot find name 'ChevronRight'.
+
+=== BUILD ===
+
+> copy-of-astrot---soulful-astrology@0.0.0 build
+> next build
+
+⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+   ▲ Next.js 15.5.14
+
+   Skipping linting
+   Checking validity of types ...
+Failed to compile.
+
+./views/v2/NatalMagazine.tsx:512:16
+Type error: Cannot find name 'ChevronRight'.
+
+[0m [90m 510 |[39m             [33m<[39m[33mbutton[39m type[33m=[39m[32m"button"[39m className[33m=[39m{shellStyles[33m.[39mmapLearn} onClick[33m=[39m{onOpenEncyclopedia}[33m>[39m
+ [90m 511 |[39m               [33m<[39m[33mspan[39m[33m>[39m{language [33m===[39m [32m'ru'[39m [33m?[39m [32m'Что означают точки и линии'[39m [33m:[39m [32m'What the points and lines mean'[39m}[33m<[39m[33m/[39m[33mspan[39m[33m>[39m
+[31m[1m>[22m[39m[90m 512 |[39m               [33m<[39m[33mChevronRight[39m aria[33m-[39mhidden[33m=[39m[32m"true"[39m [33m/[39m[33m>[39m
+ [90m     |[39m                [31m[1m^[22m[39m
+ [90m 513 |[39m             [33m<[39m[33m/[39m[33mbutton[39m[33m>[39m
+ [90m 514 |[39m           ) [33m:[39m [36mnull[39m}
+ [90m 515 |[39m         [33m<[39m[33m/[39m[33mmain[39m[33m>[39m[0m
+Next.js build worker exited with code: 1 and signal: null
