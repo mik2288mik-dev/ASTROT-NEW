@@ -1,0 +1,1799 @@
+success=false
+failedSuites=38
+failedTests=55
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/natal-permanent-v2.test.ts
+TEST permanent natal V2 contract Premium task prompt has no changing-period inputs or prewritten interpretations
+Error: expect(received).not.toMatch(expected)
+
+Expected pattern: not /"title"\s*:/u
+Received string:      "this is a calculated birth-chart reading.
+- interpret only the supplied calculated facts. never recalculate a position, aspect, house, orb, or degree.
+- do not invent biography, childhood, trauma, diagnoses, a profession, income, relationship history, guaranteed events, or karmic facts.
+- every section must cite one or more evidence_ids that exist verbatim in the supplied evidence array.
+- use only the section_key values listed in reportplan. write exactly one section for every requested item for this tier.
+- a section may cite only evidenceids listed for its reportplan item. it must cite every requiredevidenceid.
+- for central_contradictions, explain both strong pulls and how they coexist; never erase one by declaring the other the person's real nature.
+- do not return a title. reader-facing chapter titles are assigned by the server from section_key.
+- evidence identifiers are machine references. do not print them inside user-facing text.
+- no markdown and no fields outside the requested json object.
+- only these explicitly present reliable angles may be interpreted: ascendant, mc, descendant, ic.
+- only these explicitly present reliable houses may be interpreted: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12.
+
+continue the existing free portrait in reader anchor and write content for every premium reportplan item. preserve its central thread, form of address, and concrete way of explaining behaviour; do not repeat its opening or existing paragraphs. all parts of one reader chapter together must make 3–5 sentences and add to one another without a new introduction. the server included only sufficiently supported areas: add no others and omit none; use the reportplan section_key and set free to false. in central_contradictions preserve both strong pulls, but never print that technical name. this is a permanent portrait: no current transits, calendar dates, future events, or timing.
+
+return json only:
+{
+  \"sections\": [
+    {\"section_key\":\"unique_short_key\",\"free\":false,\"content\":\"one connected part of the reader chapter\",\"evidence_ids\":[\"existing evidence id\"]}
+  ]
+}
+
+reader chapter plan:
+[
+  {
+    \"chapter_key\": \"relationships\",
+    \"chapter_title\": \"relationships and family\",
+    \"focus\": \"connect closeness, trust, family requests, shared routines, and agreements. show what the person does for close people and expects in return. do not invent childhood, parental relationships, or family events.\",
+    \"parts\": [
+      {
+        \"section_key\": \"close_relationship\",
+        \"part\": 1,
+TEST permanent natal V2 contract rejects future timing and unreliable structures in natal answers but accepts a timing refusal
+Error: expect(received).not.toBeNull()
+
+Received: null
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/natal-permanent-v2.test.ts:633:39)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/natal-semantic-compiler.test.ts
+TEST active human natal products uses semantic cache versions and the compiler-owned chapter contracts
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "human_v3.semantic.base"
+Received string:    "natal.permanent.free.v8:voice:10"
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/natal-semantic-compiler.test.ts:349:34)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+TEST active human natal products builds evidence-backed deterministic fallbacks for both products
+Error: expect(received).toEqual(expected) // deep equality
+
+- Expected  - 6
++ Received  + 0
+
+  Array [
+    "base_portrait",
+-   "thinking",
+-   "reactions",
+-   "love_relationships",
+-   "work_money",
+-   "strengths",
+-   "difficulties",
+  ]
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/natal-semantic-compiler.test.ts:358:61)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+TEST active human natal products sends only exact semantic blocks to one writer call and keeps identity out of the prompt
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "AUTHORITATIVE SEMANTIC WRITING PLAN"
+Received string:    "You are an astrologer writing a natal reading from calculated chart data. Write in Russian and address the reader as «ты».·
+Return JSON only: {\"sections\":[{\"id\":\"...\",\"title\":\"...\",\"blocks\":[{\"text\":\"...\",\"evidence_ids\":[\"...\"]}]}]}.
+Return 2 to 7 sections, with one to three concise blocks each. You choose the section count, titles, order, and important links yourself from the supplied calculation. Do not invent placements, events, biography, diagnoses, or promises. Keep technical astrology out of prose. evidence_ids must refer only to existing calculated data paths or point names.·
+DIRECT CALCULATED NATAL CHART (authoritative; do not recalculate):
+{
+  \"sun\": {
+    \"planet\": \"Sun\",
+    \"sign\": \"Aries\",
+    \"degree\": 12,
+    \"longitude\": 12,
+    \"house\": 10,
+    \"description\": \"\"
+  },
+  \"moon\": {
+    \"planet\": \"Moon\",
+    \"sign\": \"Cancer\",
+    \"degree\": 12,
+    \"longitude\": 12,
+    \"house\": 1,
+    \"description\": \"\"
+  },
+  \"rising\": {
+    \"planet\": \"Ascendant\",
+    \"sign\": \"Scorpio\",
+    \"degree\": 12,
+    \"longitude\": 12,
+    \"house\": 1,
+    \"description\": \"\"
+  },
+  \"mercury\": {
+    \"planet\": \"Mercury\",
+    \"sign\": \"Virgo\",
+TEST active human natal products falls back deterministically when any writer block changes meaning
+Error: expect(received).toEqual(expected) // deep equality
+
+- Expected  -  2
++ Received  + 86
+
+  Array [
+    Object {
+      "access": "free",
+      "bullets": Array [],
+-     "content": "Расчёт карты готов; текстовый разбор временно недоступен.",
++     "content": "Переезд завтра неизбежен, потому что всё уже решено.
++
++ Общий способ действовать: Связь тем «мышление, речь и работу с информацией» и «действие, напор и ответ на конфликт» означает, что между функциями есть трение, поэтому навык формируется через действие и корректировку.",
+      "ctaLabel": "",
+      "evidenceIds": Array [],
+      "isLocked": false,
+      "key": "base_portrait",
+      "subtitle": "",
+      "teaser": "",
+-     "title": "Твоя карта",
++     "title": "",
++   },
++   Object {
++     "access": "free",
++     "bullets": Array [],
++     "content": "Мышление и решения: Связь тем «мышление, речь и работу с информацией» и «действие, напор и ответ на конфликт» означает, что между функциями есть трение, поэтому навык формируется через действие и корректировку.
++
++ Мышление и решения: Информация проверяется по фактам, последовательности и практической применимости. Функция раскрывается через корректировку, обучение и смену способа действия. При точном времени рождения эта функция особенно заметна в сфере «обучение, взгляды и расширение опыта».",
++     "ctaLabel": "",
++     "evidenceIds": Array [],
++     "isLocked": false,
++     "key": "thinking",
++     "subtitle": "",
++     "teaser": "",
++     "title": "",
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/compatibility-editorial-layout.test.ts
+TEST compatibility editorial layout scopes the light flow to every UnionRoom state and preserves its gates
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "<MeouLogo className=\"compat-result-brand\" />"
+Received string:    "import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import {
+  CalendarDays,
+  ChevronDown,
+  Clock3,
+  Info,
+  MapPin,
+  UserRound,
+} from 'lucide-react';
+import type { BirthTimeQuality, NatalChartData, SynastryResult, UserProfile } from '../../types';
+import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibility';
+import { getZodiacSign } from '../../constants';
+import { hasActivePremium } from '../../lib/accessMatrix';
+import { getCharts, type ChartListItem } from '../../services/storageService';
+import { getSignCompatibility, calculateExtendedSynastry } from '../../services/astrologyService';
+import { formatDisplayDate, toDateInputValue } from '../../lib/date-utils';
+import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { getCompatScore, sunSignFromDate, DIMENSION_LABELS, type CompatResult, type CompatDimension } from '../../lib/synastry/compatScore';
+import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
+import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
+import { ChevronRightIcon } from '../../components/icons/UiIcons';
+import { ZODIAC_KEYS } from '../../lib/zodiacKeys';
+import { shareToTelegram } from '../../lib/botLink';
+import { ContentActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
+import { MeouLogo } from '../../components/onboarding/MeouLogo';
+import { loadCompatHistory, addCompatHistory, removeCompatHistory, clearCompatHistory, buildCompatHistoryId, type CompatHistoryEntry } from '../../lib/compatHistory';
+import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import type { CompatGender } from '../../lib/synastry/localSignText';
+import {
+  getRelationshipContextLabel,
+  getRelationshipContextOption,
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/app-auth.test.ts
+TEST app auth providers and API security keeps daily sign content public while protecting Premium sign periods with app identity
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "ensureValidContext"
+Received string:    "import type { NextApiRequest, NextApiResponse } from 'next';
+import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
+import {
+  ensurePersonalForecast,
+  getCompatibleStalePersonalForecast,
+  getCachedPersonalForecast,
+} from '../../../../lib/personalForecastCache';
+import {
+  createUnavailablePersonalForecast,
+  getPersonalForecastPeriodKey,
+  isCurrentPersonalForecastPeriodKey,
+  normalizeForecastTimezone,
+  slicePersonalForecastForAccess,
+  type PersonalForecastAccessPayload,
+  type PersonalForecastPeriod,
+} from '../../../../lib/personalForecastContract';
+import { getPersonalForecastGenerationDiagnosticCode } from '../../../../lib/personalForecastGeneration';
+import {
+  buildPersonalForecastPrewarmProfile,
+  queuePersonalForecastPrewarm,
+} from '../../../../lib/personalForecastPrewarm';
+import { requireAppUser } from '../../../../lib/auth/appAuth';
+import { birthProfileRepository } from '../../../../lib/birthProfileRepository';
+import { db } from '../../../../lib/db';
+import { diagnosticErrorCode } from '../../../../lib/diagnosticTrace';
+import { startServerOperationalDiagnostic } from '../../../../lib/serverOperationalDiagnostics';
+import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';·
+export const config = { maxDuration: 180 };·
+function readPeriod(req: NextApiRequest): PersonalForecastPeriod | null {
+  const raw = String(req.method === 'GET' ? req.query.period || '' : req.body?.period || '').trim();
+  return (['day', 'week', 'month'] as const).includes(raw as PersonalForecastPeriod)
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/astrology-history-store.test.ts
+TEST durable astrology history foundation installs one idempotent history migration and deterministic chart roles
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "await mvp041AstrologyHistoryFoundation(pool)"
+Received string:    "// Database migrations for Your Horoscope
+// MVP schema plus cleanup migrations·
+import { Pool, type PoolClient } from 'pg';
+import { resolveDatabaseUrl } from './database-url';
+import { NOTIFICATION_SCENARIO_SEEDS } from './notificationScenarioCatalog';
+import { RETENTION_NOTIFICATION_SCENARIO_SEEDS } from './retentionNotificationCatalog';·
+const DATABASE_URL = resolveDatabaseUrl();
+const MIGRATION_LOCK_KEY = 20260711;·
+const log = {
+  info: (message: string, data?: any) => {
+    console.log(`[Migrations] ${message}`, data || '');
+  },
+  error: (message: string, error?: any) => {
+    console.error(`[Migrations] ERROR: ${message}`, error || '');
+  },
+  warn: (message: string, data?: any) => {
+    console.warn(`[Migrations] WARNING: ${message}`, data || '');
+  }
+};·
+async function tableExists(pool: Pool, tableName: string): Promise<boolean> {
+  try {
+    const result = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables·
+        WHERE table_schema = 'public' AND table_name = $1
+      );
+    `, [tableName]);
+    return result.rows[0].exists;
+  } catch (error: any) {
+    log.error(`Error checking table ${tableName}`, { error: error.message });
+    return false;
+  }
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/personal-forecast-visuals.test.ts
+TEST personal forecast editorial visual resolver selects one deterministic semantic transparent asset for the end of Today
+Error: expect(received).toMatchObject(expected)
+
+Matcher error: received value must be a non-null object
+
+Received has value: null
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/personal-forecast-visuals.test.ts:70:19)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/lumia-content-style.test.ts
+TEST app content style runtime copy avoids forbidden RU phrases
+Error: expect(received).toEqual(expected) // deep equality
+
+- Expected  - 1
++ Received  + 3
+
+- Array []
++ Array [
++   "lib/contentPromptBuilders.ts: кармический путь",
++ ]
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/lumia-content-style.test.ts:185:24)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+TEST app content style runtime copy avoids forbidden EN phrases
+Error: expect(received).toEqual(expected) // deep equality
+
+- Expected  - 1
++ Received  + 7
+
+- Array []
++ Array [
++   "views/v2/AstrologyEncyclopedia.tsx: deeper",
++   "lib/natalReading/permanentReport.ts: deeper",
++   "lib/natalReading/reportCatalogGeneration.ts: destiny",
++   "lib/natalReading/reportTopics.ts: deeper",
++   "lib/natalSemanticCompiler.ts: destiny",
++ ]
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/lumia-content-style.test.ts:200:24)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/android-account-auth-ui.test.ts
+TEST Android account authentication UI keeps Android Back inside multi-step authentication before root exit
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "if (screen === 'register') return"
+Received string:    "import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, Eye, EyeOff, Mail } from 'lucide-react';
+import { NeboLogo } from '../components/brand/NeboLogo';
+import type { UserProfile } from '../types';
+import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
+import { meetsMinimumPasswordLength } from '../lib/auth/passwordPolicy';
+import {
+  authenticateWithProvider,
+  completePasswordReset,
+  getAccountAuthCapabilities,
+  getLocalAccountAuthCapabilities,
+  loginWithTelegram,
+  loginWithEmailPassword,
+  registerEmailPassword,
+  requestPasswordReset,
+  verifyEmailPasswordRegistration,
+  type AccountAuthCapabilities,
+} from '../services/accountAuthService';
+import { hasTelegramMiniAppContext } from '../services/authSessionIntent';·
+type AuthGateProps = {
+  deleted?: boolean;
+  message?: string | null;
+  onAccountLogin: (profile: UserProfile) => void;
+  onGuestStart: () => Promise<void>;
+};·
+type AuthScreen = 'register' | 'verify' | 'login' | 'forgot' | 'reset';
+type Provider = 'yandex' | 'vk';·
+const PROVIDERS: Array<{ id: Provider; label: string; shortLabel: string }> = [
+  { id: 'yandex', label: 'Продолжить с Яндексом', shortLabel: 'Яндекс' },
+  { id: 'vk', label: 'Продолжить с VK ID', shortLabel: 'VK ID' },
+];·
+function authErrorCode(error: unknown): string {
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/personal-forecast-editorial-layouts.test.ts
+TEST Today editorial layout system keeps visual-anchor helpers deterministic while Today uses the calendar composition
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "<TodayLineField"
+Received string:    "import { useMemo } from 'react';
+import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
+import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
+import type { DiaryEditorialPause } from '../../lib/personalForecastVisuals';
+import { ForecastSectionBlock } from './ForecastSectionBlock';
+import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';
+import { isRenderableTodaySection } from './editorialLayout';
+import {
+  TodayCalendarClock,
+  type TodayClockSignal,
+} from './TodayCalendarClock';·
+type TodayEditorialFeedProps = {
+  sections: readonly ForecastSection[];
+  lockedSectionIds: ReadonlySet<string>;
+  userId: string;
+  periodKey: string;
+  timezone: string;
+  language: 'ru' | 'en';
+  tone: PersonalForecastAstrologerBrief['tone'];
+  personalAttribution?: string | null;
+  onRequestPremium: () => void;
+};·
+function resolveTitle(section?: ForecastSection): string {
+  if (!section || section.kind !== 'overview') return '';
+  return section.title?.replace(/\\s+/gu, ' ').trim() || '';
+}·
+function resolvePunchline(section?: ForecastSection): string {
+  if (!section || section.kind !== 'overview') return '';
+  return section.contentBlocks
+    .find((block) => block.role === 'lead')
+    ?.text.replace(/\\s+/gu, ' ')
+    .trim() || '';
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/liquid-glass-chrome.test.ts
+TEST application chrome uses My Charts as the primary-screen action and keeps Settings in Menu
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "EditorialChartsButton"
+Received string:    "import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import type { UserProfile } from '../../types';
+import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
+import {
+  buildKnowledgeInlineLinkCandidates,
+  getKnowledgeInlineTargetIds,
+  getKnowledgeSources,
+  getKnowledgeTopics,
+  getRelatedKnowledgeTopics,
+  groupKnowledgeTopicsByCategory,
+  INITIAL_KNOWLEDGE_NAVIGATION,
+  knowledgeLanguage,
+  knowledgeNavigationReducer,
+  normalizeKnowledgeSearch,
+  searchKnowledgeTopics,
+  splitKnowledgeBlockWithLinks,
+  type KnowledgeArticleSection,
+  type KnowledgeCategoryId,
+  type KnowledgeDiagramId,
+  type KnowledgeHubId,
+  type KnowledgeInlineTextSegment,
+} from '../../lib/knowledge';
+import { KnowledgeDiagram } from './KnowledgeDiagram';
+import { hasKnowledgeArticleVisual, KnowledgeArticleVisual } from './KnowledgeArticleVisual';
+import {
+  ENCYCLOPEDIA_HUBS,
+  getEncyclopediaCategoryGroups,
+  getEncyclopediaHub,
+  HUB_BRANCH_PREVIEW_TOPIC_IDS,
+  POPULAR_KNOWLEDGE_TOPICS,
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/horoscope-product-flow.test.ts
+TEST Horoscope product flow keeps the 12-sign grid, restores Today/Week/Month, and renders no sticker art in the reading
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "ZodiacSymbol"
+Received string:    "import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
+import { ChevronDown } from 'lucide-react';
+import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../types';
+import { getZodiacSign } from '../../constants';
+import { sunSignFromDate } from '../../lib/synastry/compatScore';
+import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
+import {
+  formatDisplayDate,
+  formatMonthPretty,
+  formatWeekRangePretty,
+  getMoscowIsoWeekKey,
+  getMoscowMonthKey,
+  getMoscowTodayKey,
+} from '../../lib/date-utils';
+import { getHoroscopeEngagementDateKey } from '../../lib/horoscope/signEngagement';
+import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { shareToTelegram } from '../../lib/botLink';
+import { APPROXIMATE_SUN_SIGN_DATES } from '../../lib/zodiac-utils';
+import {
+  ensureDailySignHoroscope,
+  ensureMonthlySignHoroscope,
+  ensureWeeklySignHoroscope,
+  getCachedDailySignHoroscope,
+  getCachedMonthlySignHoroscope,
+  getCachedWeeklySignHoroscope,
+  prefetchSignHoroscopePeriod,
+  readLocalSignHoroscope,
+} from '../../services/astrologyService';
+import { FreshTabs } from '../../components/fresh-ui';
+import { ZodiacIllustration, zodiacIllustrationUrl } from '../../components/icons/ZodiacArt';
+TEST Horoscope product flow loads the selected period before background prefetch and restores engagement
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "userId={profile.id ? String(profile.id) : undefined}"
+Received string:    "import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
+import { ChevronDown } from 'lucide-react';
+import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../types';
+import { getZodiacSign } from '../../constants';
+import { sunSignFromDate } from '../../lib/synastry/compatScore';
+import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
+import {
+  formatDisplayDate,
+  formatMonthPretty,
+  formatWeekRangePretty,
+  getMoscowIsoWeekKey,
+  getMoscowMonthKey,
+  getMoscowTodayKey,
+} from '../../lib/date-utils';
+import { getHoroscopeEngagementDateKey } from '../../lib/horoscope/signEngagement';
+import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { shareToTelegram } from '../../lib/botLink';
+import { APPROXIMATE_SUN_SIGN_DATES } from '../../lib/zodiac-utils';
+import {
+  ensureDailySignHoroscope,
+  ensureMonthlySignHoroscope,
+  ensureWeeklySignHoroscope,
+  getCachedDailySignHoroscope,
+  getCachedMonthlySignHoroscope,
+  getCachedWeeklySignHoroscope,
+  prefetchSignHoroscopePeriod,
+  readLocalSignHoroscope,
+} from '../../services/astrologyService';
+import { FreshTabs } from '../../components/fresh-ui';
+import { ZodiacIllustration, zodiacIllustrationUrl } from '../../components/icons/ZodiacArt';
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/premium-only-product-model.test.ts
+TEST Premium-only product model Personal horoscope opens Premium in place from the continuous reading
+Error: ENOENT: no such file or directory, open 'utf8'
+    at Object.openSync (node:fs:560:18)
+    at Object.readFileSync (node:fs:444:35)
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/premium-only-product-model.test.ts:130:24)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/chart-onboarding-flow.test.ts
+TEST chart onboarding and lazy sections keeps one free basic identity and loads the paid report only for Premium
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "if (!isPremium || !userId)"
+Received string:    "import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, Crown, Send } from 'lucide-react';
+import type {
+  NatalChartData,
+  UserProfile,
+} from '../../types';
+import {
+  HUMAN_PAID_SECTION_META,
+  type HumanPaidSectionKey,
+} from '../../lib/natalHumanShared';
+import {
+  askNatalQuestion,
+  ensureHumanBaseReport,
+  ensureHumanPremiumReport,
+  getHumanBaseReportCached,
+  getHumanPremiumReportCached,
+  loadNatalQuestionSnapshot,
+  type HumanReadingError,
+} from '../../services/natalReadingService';
+import { hasActivePremium } from '../../lib/accessMatrix';
+import {
+  NATAL_PERMANENT_CONTRACT_VERSION,
+  buildPermanentNatalChartFingerprint,
+  buildNatalModelContext,
+  getPermanentNatalReliability,
+  isNatalPermanentFreeReport,
+  type NatalEvidenceFact,
+  type NatalPermanentFreeReport,
+  type NatalPermanentPremiumReport,
+} from '../../lib/natalReading/permanentReport';
+import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
+import type { NatalQuestionStoredMessage } from '../../lib/natalReading/natalQuestionStore';
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/personal-forecast-screen-layout.test.ts
+TEST personal forecast screen layout ends Today with one decorative semantic personal cutout
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "selectTodayEndEditorialAsset"
+Received string:    "import { useMemo } from 'react';
+import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
+import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
+import type { DiaryEditorialPause } from '../../lib/personalForecastVisuals';
+import { ForecastSectionBlock } from './ForecastSectionBlock';
+import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';
+import { isRenderableTodaySection } from './editorialLayout';
+import {
+  TodayCalendarClock,
+  type TodayClockSignal,
+} from './TodayCalendarClock';·
+type TodayEditorialFeedProps = {
+  sections: readonly ForecastSection[];
+  lockedSectionIds: ReadonlySet<string>;
+  userId: string;
+  periodKey: string;
+  timezone: string;
+  language: 'ru' | 'en';
+  tone: PersonalForecastAstrologerBrief['tone'];
+  personalAttribution?: string | null;
+  onRequestPremium: () => void;
+};·
+function resolveTitle(section?: ForecastSection): string {
+  if (!section || section.kind !== 'overview') return '';
+  return section.title?.replace(/\\s+/gu, ' ').trim() || '';
+}·
+function resolvePunchline(section?: ForecastSection): string {
+  if (!section || section.kind !== 'overview') return '';
+  return section.contentBlocks
+    .find((block) => block.role === 'lead')
+    ?.text.replace(/\\s+/gu, ' ')
+    .trim() || '';
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/local-natal-chart-app-flow.test.ts
+TEST local natal chart app flow opens dashboard immediately after a DB chart and leaves forecast loading to Dashboard
+Error: expect(received).toBeGreaterThan(expected)
+
+Expected: > -1
+Received:   -1
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/local-natal-chart-app-flow.test.ts:36:21)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+TEST local natal chart app flow writes onboarding and force-recalculated charts to local cache
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "writeLocalNatalChart(fullProfile, generatedChart)"
+Received string:    "
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
+import { UserProfile, NatalChartData, ViewState } from './types';
+import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
+import { ServiceScreen, type ServiceTab } from './views/v2/ServiceScreen';
+import { Settings } from './views/Settings';
+import { MyCharts } from './views/MyCharts';
+import {
+    LegalAcknowledgementGate,
+    legalAcknowledgementGateContract,
+} from './views/LegalAcknowledgementGate';
+import {
+    getProfile,
+    saveProfile,
+    runReferralFromStartParam,
+    deleteCurrentAccount,
+    logoutCurrentAccount,
+    startGuestAccount,
+    isProfileAuthenticationError,
+    isProfileBlockedError,
+    type ChartListItem,
+} from './services/storageService';
+import {
+    APP_SESSION_INVALIDATED_EVENT,
+    clearAppSessionAndLocalData,
+    hasNativeAppSession,
+    isNativeAppRuntime,
+    type AppSessionInvalidatedDetail,
+} from './services/apiClient';
+TEST local natal chart app flow keeps the self cache stable because saved people cannot become primary
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "writeLocalNatalChart(profile, freshChart, freshPrimaryChartId ?? undefined)"
+Received string:    "
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
+import { UserProfile, NatalChartData, ViewState } from './types';
+import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
+import { ServiceScreen, type ServiceTab } from './views/v2/ServiceScreen';
+import { Settings } from './views/Settings';
+import { MyCharts } from './views/MyCharts';
+import {
+    LegalAcknowledgementGate,
+    legalAcknowledgementGateContract,
+} from './views/LegalAcknowledgementGate';
+import {
+    getProfile,
+    saveProfile,
+    runReferralFromStartParam,
+    deleteCurrentAccount,
+    logoutCurrentAccount,
+    startGuestAccount,
+    isProfileAuthenticationError,
+    isProfileBlockedError,
+    type ChartListItem,
+} from './services/storageService';
+import {
+    APP_SESSION_INVALIDATED_EVENT,
+    clearAppSessionAndLocalData,
+    hasNativeAppSession,
+    isNativeAppRuntime,
+    type AppSessionInvalidatedDetail,
+} from './services/apiClient';
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/android-meou-premium-recovery.test.ts
+TEST NEBO Android release controls preserves the selected plan across the existing recovery-identity flow
+Error: expect(received).toBeLessThan(expected)
+
+Expected: < -1
+Received:   -1
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/android-meou-premium-recovery.test.ts:86:60)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/product-model-guard.test.ts
+TEST product model guard personal forecast additive architecture stores one canonical Premium package and slices access only at response time
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "CANONICAL_CACHE_TIER = 'premium'"
+Received string:    "import type { ContentInterpretation, UserProfile } from '../types';
+import { PERSONAL_FORECAST_VOICE_VERSION } from './appVoice';
+import { getUnifiedContentModel } from './appSettings';
+import { buildContentGenerationLockKey, withContentGenerationLock, type ContentGenerationLockResult } from './contentGenerationLock';
+import { db, getPool } from './db';
+import { logForecastDeliveryMetric } from './forecastDeliveryMetrics';
+import {
+  PERSONAL_FORECAST_CALCULATION_VERSION,
+  PERSONAL_FORECAST_CONTRACT_VERSION,
+  PERSONAL_FORECAST_PROMPT_VERSION,
+  buildPersonalForecastBirthProfileFingerprint,
+  buildPersonalForecastCacheKey,
+  buildPersonalForecastInputHash,
+  getPersonalForecastPackageValidationError,
+  isPersonalForecastPeriodAllowedForTier,
+  isPersonalForecastPackage,
+  normalizeForecastTimezone,
+  resolvePersonalForecastWindow,
+  type PersonalForecastPackage,
+  type PersonalForecastPeriod,
+  type PersonalForecastRawProfile,
+  type PersonalForecastSemanticSignature,
+} from './personalForecastContract';
+import {
+  PERSONAL_FORECAST_CROSS_USER_REPEAT_FRAGMENT_LIMIT,
+  generatePersonalForecastPackage,
+  type PersonalForecastRecentReading,
+  type PersonalForecastRepeatFragment,
+} from './personalForecastGeneration';·
+const HISTORY_LIMIT = 15;
+const CROSS_USER_PACKAGE_LIMIT = 64;
+const VARIANT_BY_PERIOD = { day: 'daily', week: 'weekly', month: 'monthly' } as const;·
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/natal-chart-db-identity.test.ts
+TEST natal chart database identity contract treats a saved person as input hash plus normalized name while self stays hash-only
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "subjectType: 'self'"
+Received string:    "import { db } from './db';
+import { birthProfileRepository } from './birthProfileRepository';
+import { natalChartV2Repository } from './natalChartV2Repository';
+import { calculateNatalChart, resolveBirthCoordinates } from './swisseph-calculator';
+import {
+  buildCanonicalNatalInputHash,
+  isCanonicalNatalChartDataComplete,
+  normalizeBirthDateInput,
+  normalizeBirthPlaceInput,
+  normalizeBirthTimeInput,
+} from './natalChartCanonical';
+import { normalizeBirthTimeInput as normalizeBirthTimeContract, type BirthTimeMode } from './birthTime';·
+type ProvidedCoordinates = { lat?: number | null; lon?: number | null; timezone?: string | null };
+type ChartInput = {
+  userId: string;
+  name: string;
+  birthDate: string;
+  birthTime?: string;
+  birthTimeMode?: BirthTimeMode;
+  birthTimeUncertaintyMinutes?: number | null;
+  birthTimeRangeStart?: string | null;
+  birthTimeRangeEnd?: string | null;
+  birthPlace: string;
+  language?: string;
+  coordinates?: ProvidedCoordinates | null;
+};
+type EnsurePrimaryArgs = ChartInput & { forceRecalculate?: boolean };
+type CreateOrReuseArgs = ChartInput & { chartData?: any };·
+function normalizeInput(args: ChartInput) {
+  const birthDate = normalizeBirthDateInput(args.birthDate);
+  const birthPlace = normalizeBirthPlaceInput(args.birthPlace);
+  const legacyBirthTime = normalizeBirthTimeInput(args.birthTime);
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/today-navigation-shell.test.ts
+TEST Today minimal navigation shell mounts one five-button bottom navigation with a Menu hamburger
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: ">Знаки</span>"
+Received string:    "import React from 'react';
+import {
+  ChevronRight,
+  Menu,
+  MoonStar,
+  Orbit,
+  Star,
+  UserRound,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
+import type { UserProfile, ViewState } from '../../types';
+import { formatDisplayDate } from '../../lib/date-utils';
+import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { CosmicSheet } from './CosmicSheet';·
+export type LumiaNavigationSheetId = 'profile';·
+type LumiaBottomTabBarProps = {
+  profile: UserProfile;
+  view: ViewState;
+  onOpenToday: () => void;
+  onOpenZodiac: () => void;
+  onOpenServices: () => void;
+  onOpenCompatibility: () => void;
+  onOpenNatal: () => void;
+};·
+type LumiaNavigationSheetProps = {
+  activeSheet: LumiaNavigationSheetId | null;
+  profile: UserProfile;
+  onClose: () => void;
+  onOpenNatal: () => void;
+  onOpenCharts: () => void;
+};·
+TEST Today minimal navigation shell opens the three consolidated service sections and removes active MoreHub routing
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "void requestPremium('settings', undefined, undefined, {"
+Received string:    "
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
+import { UserProfile, NatalChartData, ViewState } from './types';
+import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
+import { ServiceScreen, type ServiceTab } from './views/v2/ServiceScreen';
+import { Settings } from './views/Settings';
+import { MyCharts } from './views/MyCharts';
+import {
+    LegalAcknowledgementGate,
+    legalAcknowledgementGateContract,
+} from './views/LegalAcknowledgementGate';
+import {
+    getProfile,
+    saveProfile,
+    runReferralFromStartParam,
+    deleteCurrentAccount,
+    logoutCurrentAccount,
+    startGuestAccount,
+    isProfileAuthenticationError,
+    isProfileBlockedError,
+    type ChartListItem,
+} from './services/storageService';
+import {
+    APP_SESSION_INVALIDATED_EVENT,
+    clearAppSessionAndLocalData,
+    hasNativeAppSession,
+    isNativeAppRuntime,
+    type AppSessionInvalidatedDetail,
+} from './services/apiClient';
+TEST Today minimal navigation shell keeps Matrix inside the persistent Natal tab shell
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "hidden={activeTab !== 'matrix'}"
+Received string:    "import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { CalendarDays, Clock3, MapPin, Orbit } from 'lucide-react';
+import type { NatalChartData, UserProfile } from '../../types';
+import type { PreloadedNatalReport } from '../../components/NatalReading/HumanReport';
+import type { NatalPermanentPremiumReport } from '../../lib/natalReading/permanentReport';
+import { formatDisplayDate } from '../../lib/date-utils';
+import { HumanReport } from '../../components/NatalReading/HumanReport';
+import {
+  NatalCatalogReport,
+  type NatalCatalogReportUiPreview,
+} from '../../components/NatalReading/NatalCatalogReport';
+import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { NatalChartWheel } from '../../components/NatalReading/NatalChartWheel';
+import { MatrixRoom } from './MatrixRoom';
+import {
+  EditorialCurve,
+  EditorialChartsButton,
+  EditorialTabs,
+} from '../../components/editorial/EditorialScreenChrome';
+import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
+import { NATAL_REPORT_CATALOG_CONTRACT_VERSION } from '../../lib/natalReading/reportCatalog';
+import {
+  ensureNatalCatalogCategory,
+  getNatalCatalogCategoryCached,
+} from '../../services/natalCatalogService';
+import {
+  readNatalReadingVariant,
+  resolveNatalReadingRenderer,
+  subscribeNatalReadingVariant,
+  type NatalReadingRenderer,
+  type NatalReadingVariant,
+} from '../../lib/natalReading/readingVariant';
+TEST Today minimal navigation shell keeps Today period tabs and reduced-motion guards unchanged
+Error: expect(received).not.toContain(expected) // indexOf
+
+Expected substring: not "text-align: justify"
+Received string:        "/* Today home: quiet editorial canvas and its five-button navigation. */
+
+.lumia-app-shell.has-today-bottom-navigation {
+  --today-bottom-nav-height: 5.15rem;
+  --lumia-bottom-tab-clearance: calc(
+    var(--today-bottom-nav-height) + var(--lumia-bottom-tab-safe-bottom) + 1rem
+  );
+}
+
+.has-today-bottom-navigation .lumia-main-scroll.lumia-bottom-tab-scroll {
+  padding-bottom: var(--lumia-bottom-tab-clearance);
+  scroll-padding-bottom: var(--lumia-bottom-tab-clearance);
+}
+
+/* The reference uses a single hairline, never a raised tab-bar capsule. */
+.today-bottom-navigation.lumia-bottom-tab-shell {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  padding: 0;
+  background: #fff;
+}
+
+.today-bottom-navigation::before {
+  position: absolute;
+  top: 0;
+  right: max(
+    1.25rem,
+    env(safe-area-inset-right, 0px),
+    var(--tg-content-safe-area-inset-right, 0px),
+    var(--tg-safe-area-inset-right, 0px)
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/content-prompt-builders.test.ts
+TEST Lumia content prompt builders keeps daily, weekly, natal, compatibility, and relationship prompts focused
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "AI-разбор по данным двух людей"
+Received string:    "Ты — только writer layer для уже рассчитанной совместимости двух людей. Имена бери из context.people.subject.name и context.people.partner.name. Сервер уже рассчитал score, dimensions и evidence: не пересчитывай, не исправляй и не оценивай их заново.·
+Правила типа контента:
+- Язык ответа: Russian.
+- Объём: не больше 1500 слов на весь ответ. Если ответ уже закончен — остановись раньше.
+- Назначение: Полный натальный или синастрический отчёт.
+- Ограничения содержания: Полный структурированный отчёт; никогда не генерировать при старте приложения.
+- Сразу отвечай по существу. Не добавляй вводные фразы о карте, «темах», «глубине» или процессе анализа.
+- Добавь хотя бы одну конкретную ситуацию, действие, разговор или решение, если это подтверждается контекстом.
+- Пиши только по context.calculated: dimensions, strongestDimensions, challengingDimensions, evidence, directionalPatterns, limitations, overallScore и sectionPlan. Не вычисляй и не выдумывай положения планет, дома, аспекты, градусы, орбы, мысли, мотивы или события. Не возвращай compatibilityScore, overallScore, dimensions, verdict или другие числа расчёта — их владельцем остаётся deterministic engine. Верни каждый id из context.calculated.sectionPlan ровно один раз и в том же порядке; title не возвращай. Для каждого раздела используй только его evidenceIds и связанные directionalPatterns. Если evidenceIds пуст, прямо оставайся на общем уровне и не достраивай детали. summary — 2–4 предложения: сразу назови главный сценарий именно этой пары, затем покажи конкретное несовпадение или риск и закончи тем, что удерживает контакт. Каждый section.text — 1–3 коротких абзаца и новая мысль: что происходит, как это выглядит в узнаваемой бытовой сцене, где помогает или мешает и что конкретно помогает. Не повторяй summary и соседние разделы. Меняй длину и ритм предложений; не начинай два раздела одинаково. Мини-сцены выводи только из рассчитанной темы: темп ответа, способ обсуждать решение, пауза, инициатива, конкретный поступок, распределение ролей или реакция под давлением. Не приписывай чувства и намерения как факты. В closing дай три самостоятельные короткие строки: strength — главная сила, risk — повторяющийся сбой, action — одно понятное действие; не копируй summary дословно. Не делай натальный портрет каждого человека. Не показывай в основном тексте внутренние поля и астрологический жаргон. Love описывает симпатию и сближение; Relationship — жизнь существующей пары. В Friendship, Family и Work не добавляй романтическое или сексуальное притяжение. Пол используй только для естественной грамматики, без стереотипов. Пиши прямым живым русским языком. Избегай машинных связок «здесь», «ощущается», «считывается», «между вами присутствует», «проявляется», «может быть непросто», «заметно там, где», «в этой связи», «наблюдается», «возникает динамика», а также слов «возможно» и «скорее всего» без необходимости. Не используй мистику, фатализм, психологические диагнозы, коучинговые формулы, «вам суждено», «кармический союз», обещания брака, разрыва, измены или карьерного результата. Используй имена естественно и редко, без приветствия. Никаких рекламных призывов.·
+Верни только валидный JSON по схеме, без markdown и текста вокруг.
+Схема JSON:
+{ \"summary\": \"...\", \"sections\": [{ \"id\": \"id из context.calculated.sectionPlan\", \"text\": \"...\" }], \"closing\": { \"strength\": \"...\", \"risk\": \"...\", \"action\": \"...\" } }·
+Контекст:
+Контекст не передан."
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/content-prompt-builders.test.ts:61:40)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/card-background-system.test.ts
+TEST card background UI wiring keeps diary copy image-free while allowing restrained inline visual pauses
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "<EditorialForecastVisual"
+Received string:    "import React from 'react';
+import type {
+  ForecastSection,
+  PersonalForecastPeriod,
+} from '../../lib/personalForecastContract';
+import type { DiaryEditorialPause } from '../../lib/personalForecastVisuals';
+import {
+  resolveLongForecastParagraphs,
+  resolveVisibleForecastTitle,
+} from './editorialLayout';
+import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';·
+type ForecastSectionBlockProps = {
+  section: ForecastSection;
+  period: PersonalForecastPeriod;
+  language: 'ru' | 'en';
+  locked: boolean;
+  onRequestPremium: () => void;
+  endVisualAsset?: DiaryEditorialPause['asset'] | null;
+};·
+function adviceLabel(
+  period: PersonalForecastPeriod,
+  language: 'ru' | 'en',
+): string {
+  if (language === 'en') {
+    return period === 'week'
+      ? 'Advice for the week'
+      : period === 'month'
+        ? 'Advice for the month'
+        : 'Advice for today';
+  }
+  return period === 'week'
+    ? 'Совет на неделю'
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/personal-forecast-question-catalog.test.ts
+TEST personal forecast approved question catalog keeps the audited bilingual catalog at 84 stable unique entries
+Error: expect(received).toHaveLength(expected)
+
+Expected length: 84
+Received length: 80
+Received array:  [{"id": "pfq_001_day_focus", "periods": ["day"], "text": {"en": "What should I focus on today?", "ru": "На чём мне лучше сосредоточиться сегодня?"}, "theme": "daily"}, {"id": "pfq_002_day_caution", "periods": ["day"], "text": {"en": "What calls for extra caution today?", "ru": "Что сегодня требует особой осторожности?"}, "theme": "daily"}, {"id": "pfq_003_day_conversation", "periods": ["day"], "text": {"en": "Is today suitable for an important conversation?", "ru": "Подходит ли сегодняшний день для важного разговора?"}, "theme": "daily"}, {"id": "pfq_004_day_work", "periods": ["day"], "text": {"en": "Which work matter deserves priority today?", "ru": "Какой рабочий вопрос сегодня приоритетнее?"}, "theme": "daily"}, {"id": "pfq_005_day_money", "periods": ["day"], "text": {"en": "Which money decision matters most today?", "ru": "Какое денежное решение сегодня важнее всего?"}, "theme": "money"}, {"id": "pfq_006_day_relationships", "periods": ["day"], "text": {"en": "What should I keep in mind in relationships today?", "ru": "Что важно учесть в отношениях сегодня?"}, "theme": "relationships"}, {"id": "pfq_007_day_risk", "periods": ["day"], "text": {"en": "Is the risk I am considering today justified?", "ru": "Оправдан ли риск, который я рассматриваю сегодня?"}, "theme": "decisions"}, {"id": "pfq_008_day_action", "periods": ["day"], "text": {"en": "Which action can bring the clearest result today?", "ru": "Какое действие сегодня даст самый заметный результат?"}, "theme": "daily"}, {"id": "pfq_009_love_period", "periods": ["day", "week", "month"], "text": {"en": "What matters most in my love life right now?", "ru": "Что сейчас главное в моей личной жизни?"}, "theme": "relationships"}, {"id": "pfq_010_relationship_priority", "periods": ["day", "week", "month"], "text": {"en": "Which theme is shaping my relationships now?", "ru": "Какая тема сейчас определяет мои отношения?"}, "theme": "relationships"}, …]
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/personal-forecast-question-catalog.test.ts:13:50)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/release-core-flow-regressions.test.ts
+TEST release-critical core flow regressions persists a normalized non-empty profile name before committing UI or quota
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "value={profile.birthPlace}"
+Received string:    "
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+    BadgeCheck,
+    Bell,
+    Cake,
+    Check,
+    ChevronLeft,
+    ChevronRight,
+    Code2,
+    Database,
+    Eye,
+    EyeOff,
+    Files,
+    Languages,
+    LifeBuoy,
+    LogIn,
+    Scale,
+    UserRound,
+    VenusAndMars,
+} from 'lucide-react';
+import { UserProfile, Language, NotificationFrequency } from '../types';
+import { getText } from '../constants';
+import { saveProfile } from '../services/storageService';
+import {
+    clearQueuedUserAppEvents,
+    updateUserNotificationSettings,
+    getUserNotificationSettings,
+    getTelegramInitDataHeaders,
+} from '../services/sessionService';
+import { hasActivePremium } from '../lib/accessMatrix';
+import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/e2e-smoke-flows.test.ts
+TEST E2E smoke flow contracts startup resolves an explicit app session before profile and chart work
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "CACHE_ONLY_PREWARM_BUDGET_MS"
+Received string:    "
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
+import { UserProfile, NatalChartData, ViewState } from './types';
+import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
+import { ServiceScreen, type ServiceTab } from './views/v2/ServiceScreen';
+import { Settings } from './views/Settings';
+import { MyCharts } from './views/MyCharts';
+import {
+    LegalAcknowledgementGate,
+    legalAcknowledgementGateContract,
+} from './views/LegalAcknowledgementGate';
+import {
+    getProfile,
+    saveProfile,
+    runReferralFromStartParam,
+    deleteCurrentAccount,
+    logoutCurrentAccount,
+    startGuestAccount,
+    isProfileAuthenticationError,
+    isProfileBlockedError,
+    type ChartListItem,
+} from './services/storageService';
+import {
+    APP_SESSION_INVALIDATED_EVENT,
+    clearAppSessionAndLocalData,
+    hasNativeAppSession,
+    isNativeAppRuntime,
+    type AppSessionInvalidatedDetail,
+} from './services/apiClient';
+TEST E2E smoke flow contracts chart creation reads and calculates through /api/charts
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "primary: true"
+Received string:    "import { NatalChartData, UserProfile } from '../types';
+import { isCanonicalNatalChartDataComplete } from '../lib/natalChartCanonical';
+import { assertValidUserId } from '../lib/userId';
+import { buildNatalChartCacheKey, writeLocalNatalChart } from '../lib/localNatalChartCache';
+import { getTelegramInitDataHeaders } from './sessionService';
+import { apiFetch } from './apiClient';
+import {
+  createDiagnosticTraceId,
+  diagnosticErrorCode,
+  diagnosticHttpStatus,
+  diagnosticTraceHeaders,
+  formatDiagnosticFields,
+} from '../lib/diagnosticTrace';
+import {
+  diagnosticLog,
+  showRuntimeDiagnosticsForFailure,
+} from '../lib/runtimeDiagnostics';·
+const CHART_FETCH_TIMEOUT_MS=90_000;
+const calculationInFlight=new Map<string,Promise<NatalChartData>>();
+const log={info:(message:string,data?:any)=>console.log(`[ChartService] ${message}`,data||''),warn:(message:string,data?:any)=>console.warn(`[ChartService] ${message}`,data||''),error:(message:string,error?:any)=>console.error(`[ChartService] ERROR: ${message}`,error||'')};·
+function chartDiagnostic(
+  level:'INFO'|'WARN'|'ERROR',
+  traceId:string,
+  fields:Omit<Parameters<typeof formatDiagnosticFields>[0],'traceId'|'side'>,
+) {
+  diagnosticLog(level,'natal_chart',formatDiagnosticFields({traceId,side:'client',...fields}));
+}·
+function chartError(code:string,message:string,status?:number):Error&{code:string;status?:number} {
+  const error=new Error(message) as Error&{code:string;status?:number};
+  error.code=code;
+  if (status!==undefined) error.status=status;
+  return error;
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/human-report-local-cache-flow.test.ts
+TEST human report local-cache flow uses the chart-scoped local human-base synchronously before showing a loading state
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "const initialBase = matchingPreloadedReport || cachedBase"
+Received string:    "import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, Crown, Send } from 'lucide-react';
+import type {
+  NatalChartData,
+  UserProfile,
+} from '../../types';
+import {
+  HUMAN_PAID_SECTION_META,
+  type HumanPaidSectionKey,
+} from '../../lib/natalHumanShared';
+import {
+  askNatalQuestion,
+  ensureHumanBaseReport,
+  ensureHumanPremiumReport,
+  getHumanBaseReportCached,
+  getHumanPremiumReportCached,
+  loadNatalQuestionSnapshot,
+  type HumanReadingError,
+} from '../../services/natalReadingService';
+import { hasActivePremium } from '../../lib/accessMatrix';
+import {
+  NATAL_PERMANENT_CONTRACT_VERSION,
+  buildPermanentNatalChartFingerprint,
+  buildNatalModelContext,
+  getPermanentNatalReliability,
+  isNatalPermanentFreeReport,
+  type NatalEvidenceFact,
+  type NatalPermanentFreeReport,
+  type NatalPermanentPremiumReport,
+} from '../../lib/natalReading/permanentReport';
+import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
+import type { NatalQuestionStoredMessage } from '../../lib/natalReading/natalQuestionStore';
+TEST human report local-cache flow writes server cache and background generation results with chart context
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "writeLocalHumanBaseReport(targetProfile, report, chartId, {"
+Received string:    "
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
+import { UserProfile, NatalChartData, ViewState } from './types';
+import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
+import { ServiceScreen, type ServiceTab } from './views/v2/ServiceScreen';
+import { Settings } from './views/Settings';
+import { MyCharts } from './views/MyCharts';
+import {
+    LegalAcknowledgementGate,
+    legalAcknowledgementGateContract,
+} from './views/LegalAcknowledgementGate';
+import {
+    getProfile,
+    saveProfile,
+    runReferralFromStartParam,
+    deleteCurrentAccount,
+    logoutCurrentAccount,
+    startGuestAccount,
+    isProfileAuthenticationError,
+    isProfileBlockedError,
+    type ChartListItem,
+} from './services/storageService';
+import {
+    APP_SESSION_INVALIDATED_EVENT,
+    clearAppSessionAndLocalData,
+    hasNativeAppSession,
+    isNativeAppRuntime,
+    type AppSessionInvalidatedDetail,
+} from './services/apiClient';
+TEST human report local-cache flow never publishes a background preload after the active snapshot changed
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "if (!cancelled && isCurrentSnapshot())"
+Received string:    "
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
+import { UserProfile, NatalChartData, ViewState } from './types';
+import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
+import { ServiceScreen, type ServiceTab } from './views/v2/ServiceScreen';
+import { Settings } from './views/Settings';
+import { MyCharts } from './views/MyCharts';
+import {
+    LegalAcknowledgementGate,
+    legalAcknowledgementGateContract,
+} from './views/LegalAcknowledgementGate';
+import {
+    getProfile,
+    saveProfile,
+    runReferralFromStartParam,
+    deleteCurrentAccount,
+    logoutCurrentAccount,
+    startGuestAccount,
+    isProfileAuthenticationError,
+    isProfileBlockedError,
+    type ChartListItem,
+} from './services/storageService';
+import {
+    APP_SESSION_INVALIDATED_EVENT,
+    clearAppSessionAndLocalData,
+    hasNativeAppSession,
+    isNativeAppRuntime,
+    type AppSessionInvalidatedDetail,
+} from './services/apiClient';
+TEST human report local-cache flow persists App prefetch results and clears local reports with chart invalidation
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "writeLocalHumanBaseReport(targetProfile, report, chartId, {"
+Received string:    "
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
+import { UserProfile, NatalChartData, ViewState } from './types';
+import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
+import { ServiceScreen, type ServiceTab } from './views/v2/ServiceScreen';
+import { Settings } from './views/Settings';
+import { MyCharts } from './views/MyCharts';
+import {
+    LegalAcknowledgementGate,
+    legalAcknowledgementGateContract,
+} from './views/LegalAcknowledgementGate';
+import {
+    getProfile,
+    saveProfile,
+    runReferralFromStartParam,
+    deleteCurrentAccount,
+    logoutCurrentAccount,
+    startGuestAccount,
+    isProfileAuthenticationError,
+    isProfileBlockedError,
+    type ChartListItem,
+} from './services/storageService';
+import {
+    APP_SESSION_INVALIDATED_EVENT,
+    clearAppSessionAndLocalData,
+    hasNativeAppSession,
+    isNativeAppRuntime,
+    type AppSessionInvalidatedDetail,
+} from './services/apiClient';
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/natal-personality-flow.test.ts
+TEST natal personality product flow lets every grounded assistant answer reveal its evidence
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "message.role === 'assistant'"
+Received string:    "import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, Crown, Send } from 'lucide-react';
+import type {
+  NatalChartData,
+  UserProfile,
+} from '../../types';
+import {
+  HUMAN_PAID_SECTION_META,
+  type HumanPaidSectionKey,
+} from '../../lib/natalHumanShared';
+import {
+  askNatalQuestion,
+  ensureHumanBaseReport,
+  ensureHumanPremiumReport,
+  getHumanBaseReportCached,
+  getHumanPremiumReportCached,
+  loadNatalQuestionSnapshot,
+  type HumanReadingError,
+} from '../../services/natalReadingService';
+import { hasActivePremium } from '../../lib/accessMatrix';
+import {
+  NATAL_PERMANENT_CONTRACT_VERSION,
+  buildPermanentNatalChartFingerprint,
+  buildNatalModelContext,
+  getPermanentNatalReliability,
+  isNatalPermanentFreeReport,
+  type NatalEvidenceFact,
+  type NatalPermanentFreeReport,
+  type NatalPermanentPremiumReport,
+} from '../../lib/natalReading/permanentReport';
+import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
+import type { NatalQuestionStoredMessage } from '../../lib/natalReading/natalQuestionStore';
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/long-form-editorial-reading.test.ts
+TEST long-form v2 editorial reading structure separates compatibility conclusions, technical scores, unnumbered reading, and the deep summary
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "compat-final-summary"
+Received string:    "import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import {
+  CalendarDays,
+  ChevronDown,
+  Clock3,
+  Info,
+  MapPin,
+  UserRound,
+} from 'lucide-react';
+import type { BirthTimeQuality, NatalChartData, SynastryResult, UserProfile } from '../../types';
+import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibility';
+import { getZodiacSign } from '../../constants';
+import { hasActivePremium } from '../../lib/accessMatrix';
+import { getCharts, type ChartListItem } from '../../services/storageService';
+import { getSignCompatibility, calculateExtendedSynastry } from '../../services/astrologyService';
+import { formatDisplayDate, toDateInputValue } from '../../lib/date-utils';
+import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { getCompatScore, sunSignFromDate, DIMENSION_LABELS, type CompatResult, type CompatDimension } from '../../lib/synastry/compatScore';
+import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
+import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
+import { ChevronRightIcon } from '../../components/icons/UiIcons';
+import { ZODIAC_KEYS } from '../../lib/zodiacKeys';
+import { shareToTelegram } from '../../lib/botLink';
+import { ContentActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
+import { MeouLogo } from '../../components/onboarding/MeouLogo';
+import { loadCompatHistory, addCompatHistory, removeCompatHistory, clearCompatHistory, buildCompatHistoryId, type CompatHistoryEntry } from '../../lib/compatHistory';
+import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import type { CompatGender } from '../../lib/synastry/localSignText';
+import {
+  getRelationshipContextLabel,
+  getRelationshipContextOption,
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/personal-forecast-header-logo.test.ts
+TEST personal forecast header and shared navigation uses the personal forecast title while keeping the selected period dynamic
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "<NeboLogo size=\"header\" priority />"
+Received string:    "import React from 'react';
+import { ChevronLeft } from 'lucide-react';
+import { NeboLogo } from '../brand/NeboLogo';·
+type AppTopBarProps = {
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+  rightAction?: React.ReactNode;
+  reserveSpace?: boolean;
+};·
+/**
+ * The single top bar used by every primary application screen.
+ * The optional context line sits below the glass so the bar itself never changes height.
+ */
+export function AppTopBar({
+  title,
+  subtitle,
+  onBack,
+  rightAction,
+  reserveSpace = true,
+}: AppTopBarProps) {
+  const isPersonalForecastHeader = title === 'NEBO';·
+  return (
+    <>
+      <div className=\"home-logo-bar app-top-bar\">
+        <div className=\"app-top-bar-side app-top-bar-side--start\">
+          {onBack ? (
+            <button
+              className=\"app-top-bar-action\"
+              onClick={onBack}
+              type=\"button\"
+              aria-label=\"Назад / Back\"
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/direct-product-copy-contract.test.ts
+TEST active product copy contract keeps the runtime voice versioned and enforced
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "APP_VOICE_VERSION = '5'"
+Received string:    "/**
+ * The shared runtime voice for user-facing AI content.
+ * Product-specific layers may sharpen it without changing the global tone.
+ */·
+export const APP_VOICE_VERSION = '10';
+export const PERSONAL_FORECAST_VOICE_VERSION = '9';·
+const APP_SYSTEM_VOICE_RU = `## ГОЛОС ПРИЛОЖЕНИЯ «ТВОЙ ГОРОСКОП»·
+Говори с человеком на «ты»: точно, спокойно, живо и без церемоний. Это разговор умного союзника, который превращает надёжный личный контекст в понятный рассказ, а не угадывает судьбу.·
+- Сразу называй главный вывод, затем показывай узнаваемое проявление в жизни.
+- Используй только переданный надёжный контекст. Не придумывай события, биографию, мотивы, диагнозы, травмы или астрологические факты.
+- В основном пользовательском тексте переводи контекст в обычный язык жизни. Астрологические термины допустимы только в явно запрошенном техническом пояснении.
+- Не повторяй мысль другими словами и не раздувай текст вступлениями, оговорками или универсальными советами.
+- Пиши как короткую личную заметку с живой сценой, а не как отчёт, разбор компетенций или служебную сводку. Сцена может быть узнаваемой, но не выдумывай события и биографию.
+- Без эзотерики, «энергий», «вибраций», коучинговой жвачки, канцелярита и искусственного молодёжного сленга.
+- Не делай тревогу, конфликт или риск обязательной темой. Хорошие возможности называй так же прямо, как ограничения.
+- Не упоминай конкретных родственников или партнёров в негативном ключе. Если нужен контекст близости, говори обобщённо.
+- Дерзость — это точный вывод и честная формулировка, не хамство и не кликбейт.
+- Если фразу можно удалить без потери смысла — удали её.·
+Не используй технические заголовки «Общий фон», «Личный гороскоп», «Главное», «Энергия дня», «Что делать» или «Вечер». Заголовок нужен только когда он действительно помогает читать.`;·
+const APP_SYSTEM_VOICE_EN = `## THE VOICE OF “YOUR HOROSCOPE”·
+Address the reader as “you”: precise, calm, vivid, and direct. You are an intelligent ally turning trusted personal context into a clear story, never guessing a fate.·
+- State the main conclusion first, then show a recognisable real-life manifestation.
+- Use only supplied trusted context. Never invent events, biography, motives, diagnoses, trauma, or astrological facts.
+- Translate context into ordinary real-life language in the main user-facing copy. Astrology terminology is allowed only in an explicitly requested technical explanation.
+- Do not repeat an idea in different words or inflate the text with introductions, caveats, or universal advice.
+- Write like a short personal note with a living scene, never like a report, competency assessment, or executive summary. A scene may be recognisable, but never invent an event or biography.
+- No mysticism, cosmic-energy language, coaching filler, corporate prose, or artificial youth slang.
+- Do not make anxiety, conflict, or risk mandatory. Name good opportunities as directly as constraints.
+- Never single out relatives or partners negatively. Use general interpersonal language if context is needed.
+- Bold means precise and honest, never rude or clickbait.
+- If a sentence can be removed without losing meaning, remove it.·
+Do not use the technical headings “General background”, “Personal horoscope”, “Main point”, “Energy of the day”, “What to do”, or “Evening”. Use a heading only when it makes the reading easier to scan.`;·
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/legacy-premium-grant-guard.test.ts
+TEST legacy Premium grant endpoints fail closed denies simulation without the explicit test flag
+TypeError: (0 , appAuth_1.requireTelegramPaymentUser) is not a function
+    at handler (/home/runner/work/ASTROT-NEW/ASTROT-NEW/pages/api/subscriptions/activate.ts:30:37)
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/legacy-premium-grant-guard.test.ts:79:26)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+TEST legacy Premium grant endpoints fail closed denies simulation in production even if the test flag is set
+TypeError: (0 , appAuth_1.requireTelegramPaymentUser) is not a function
+    at handler (/home/runner/work/ASTROT-NEW/ASTROT-NEW/pages/api/subscriptions/activate.ts:30:37)
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/legacy-premium-grant-guard.test.ts:96:26)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/settings-editorial-layout.test.ts
+TEST settings mobile information architecture returns details locally before App navigation handles root Back
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "settingsContentRef.current?.focus"
+Received string:    "
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+    BadgeCheck,
+    Bell,
+    Cake,
+    Check,
+    ChevronLeft,
+    ChevronRight,
+    Code2,
+    Database,
+    Eye,
+    EyeOff,
+    Files,
+    Languages,
+    LifeBuoy,
+    LogIn,
+    Scale,
+    UserRound,
+    VenusAndMars,
+} from 'lucide-react';
+import { UserProfile, Language, NotificationFrequency } from '../types';
+import { getText } from '../constants';
+import { saveProfile } from '../services/storageService';
+import {
+    clearQueuedUserAppEvents,
+    updateUserNotificationSettings,
+    getUserNotificationSettings,
+    getTelegramInitDataHeaders,
+} from '../services/sessionService';
+import { hasActivePremium } from '../lib/accessMatrix';
+import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/active-root-newspaper-visuals.test.ts
+TEST active root visual contract keeps the personal horoscope as one clean reading without visible evidence
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "<TodayLineField"
+Received string:    "import { useMemo } from 'react';
+import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
+import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
+import type { DiaryEditorialPause } from '../../lib/personalForecastVisuals';
+import { ForecastSectionBlock } from './ForecastSectionBlock';
+import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';
+import { isRenderableTodaySection } from './editorialLayout';
+import {
+  TodayCalendarClock,
+  type TodayClockSignal,
+} from './TodayCalendarClock';·
+type TodayEditorialFeedProps = {
+  sections: readonly ForecastSection[];
+  lockedSectionIds: ReadonlySet<string>;
+  userId: string;
+  periodKey: string;
+  timezone: string;
+  language: 'ru' | 'en';
+  tone: PersonalForecastAstrologerBrief['tone'];
+  personalAttribution?: string | null;
+  onRequestPremium: () => void;
+};·
+function resolveTitle(section?: ForecastSection): string {
+  if (!section || section.kind !== 'overview') return '';
+  return section.title?.replace(/\\s+/gu, ' ').trim() || '';
+}·
+function resolvePunchline(section?: ForecastSection): string {
+  if (!section || section.kind !== 'overview') return '';
+  return section.contentBlocks
+    .find((block) => block.role === 'lead')
+    ?.text.replace(/\\s+/gu, ' ')
+    .trim() || '';
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/pure-white-canvas.test.ts
+TEST pure-white application canvas aligns browser, Telegram and Android system surfaces with the same white
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "<meta name=\"theme-color\" content=\"#FFFFFF\" />"
+Received string:    "import Document, {
+  DocumentContext,
+  DocumentInitialProps,
+  Head,
+  Html,
+  Main,
+  NextScript,
+} from 'next/document';·
+type MeouDocumentProps = DocumentInitialProps & {
+  publicDocument: boolean;
+};·
+const PUBLIC_ROUTES = new Set([
+  '/404',
+  '/delete-account',
+  '/personal-data-consent',
+  '/privacy',
+  '/requisites',
+  '/site',
+  '/support',
+  '/terms',
+]);·
+const PUBLIC_ROUTE_PREFIXES = [
+  '/goroskop',
+  '/lichnyy-goroskop',
+  '/natalnaya-karta',
+  '/sovmestimost',
+];·
+function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTES.has(pathname)
+    || PUBLIC_ROUTE_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/settings-subscription-state.test.ts
+TEST Settings subscription state copy keeps gift, store trial, and paid distinct
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "Подарочный Premium"
+Received string:    "Premium закончился"
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/settings-subscription-state.test.ts:21:73)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+TEST Settings subscription state copy says cancellation preserves access through the paid end
+Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: "Автопродление выключено. Premium работает до 1 сентября 2026 г."
+Received: "Данные сохранены. Premium-функции и дополнительные карты заблокированы до восстановления доступа."
+    at Object.<anonymous> (/home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/settings-subscription-state.test.ts:28:8)
+    at Promise.finally.completed (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+    at _callCircusTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+    at _runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+    at /home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+    at run (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+    at jestAdapter (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-circus/build/runner.js:101:19)
+    at runTestInternal (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:275:16)
+    at runTest (/home/runner/work/ASTROT-NEW/ASTROT-NEW/node_modules/jest-runner/build/index.js:343:7)
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/birth-time-honesty.test.ts
+TEST birth-time honesty stores unknown time as a full-day interval without angles or houses
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "const includeHouses=time.mode!=='unknown'"
+Received string:    "/**
+ * Canonical Swiss Ephemeris calculator.
+ * It returns astronomical data only. It never inserts a missing birth time.
+ */
+import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import tzLookup from 'tz-lookup';
+import { lookupCityCoordinates } from './cityGazetteer';
+import {
+  CANONICAL_NATAL_CALCULATION_VERSION,
+  normalizeCoordinateForStorage,
+} from './natalChartCanonical';
+import {
+  buildBirthTimeInterval,
+  normalizeBirthTimeInput,
+  type BirthTimeInput,
+} from './birthTime';
+import type {
+  LongitudeRange,
+  NatalAngleKey,
+  NatalAngleV2,
+  NatalAspectPhase,
+  NatalAspectType,
+  NatalAspectV2,
+  NatalBodyKey,
+  NatalChartDataV2,
+  NatalHouseV2,
+  NatalPositionV2,
+  NatalReliability,
+} from './natalChartV2Types';·
+const ZODIAC_SIGNS = [
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/natal-chart-canonical-persistence-flow.test.ts
+TEST canonical natal chart persistence flow calculates through Swiss Ephemeris and persists the primary chart
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "await db.natal_charts.persistPrimary"
+Received string:    "import { db } from './db';
+import { birthProfileRepository } from './birthProfileRepository';
+import { natalChartV2Repository } from './natalChartV2Repository';
+import { calculateNatalChart, resolveBirthCoordinates } from './swisseph-calculator';
+import {
+  buildCanonicalNatalInputHash,
+  isCanonicalNatalChartDataComplete,
+  normalizeBirthDateInput,
+  normalizeBirthPlaceInput,
+  normalizeBirthTimeInput,
+} from './natalChartCanonical';
+import { normalizeBirthTimeInput as normalizeBirthTimeContract, type BirthTimeMode } from './birthTime';·
+type ProvidedCoordinates = { lat?: number | null; lon?: number | null; timezone?: string | null };
+type ChartInput = {
+  userId: string;
+  name: string;
+  birthDate: string;
+  birthTime?: string;
+  birthTimeMode?: BirthTimeMode;
+  birthTimeUncertaintyMinutes?: number | null;
+  birthTimeRangeStart?: string | null;
+  birthTimeRangeEnd?: string | null;
+  birthPlace: string;
+  language?: string;
+  coordinates?: ProvidedCoordinates | null;
+};
+type EnsurePrimaryArgs = ChartInput & { forceRecalculate?: boolean };
+type CreateOrReuseArgs = ChartInput & { chartData?: any };·
+function normalizeInput(args: ChartInput) {
+  const birthDate = normalizeBirthDateInput(args.birthDate);
+  const birthPlace = normalizeBirthPlaceInput(args.birthPlace);
+  const legacyBirthTime = normalizeBirthTimeInput(args.birthTime);
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/chart-service-canonical-endpoint.test.ts
+TEST chart service canonical calculation endpoint calculates onboarding charts through the canonical charts endpoint
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "const url = '/api/charts';"
+Received string:    "import { NatalChartData, UserProfile } from '../types';
+import { isCanonicalNatalChartDataComplete } from '../lib/natalChartCanonical';
+import { assertValidUserId } from '../lib/userId';
+import { buildNatalChartCacheKey, writeLocalNatalChart } from '../lib/localNatalChartCache';
+import { getTelegramInitDataHeaders } from './sessionService';
+import { apiFetch } from './apiClient';
+import {
+  createDiagnosticTraceId,
+  diagnosticErrorCode,
+  diagnosticHttpStatus,
+  diagnosticTraceHeaders,
+  formatDiagnosticFields,
+} from '../lib/diagnosticTrace';
+import {
+  diagnosticLog,
+  showRuntimeDiagnosticsForFailure,
+} from '../lib/runtimeDiagnostics';·
+const CHART_FETCH_TIMEOUT_MS=90_000;
+const calculationInFlight=new Map<string,Promise<NatalChartData>>();
+const log={info:(message:string,data?:any)=>console.log(`[ChartService] ${message}`,data||''),warn:(message:string,data?:any)=>console.warn(`[ChartService] ${message}`,data||''),error:(message:string,error?:any)=>console.error(`[ChartService] ERROR: ${message}`,error||'')};·
+function chartDiagnostic(
+  level:'INFO'|'WARN'|'ERROR',
+  traceId:string,
+  fields:Omit<Parameters<typeof formatDiagnosticFields>[0],'traceId'|'side'>,
+) {
+  diagnosticLog(level,'natal_chart',formatDiagnosticFields({traceId,side:'client',...fields}));
+}·
+function chartError(code:string,message:string,status?:number):Error&{code:string;status?:number} {
+  const error=new Error(message) as Error&{code:string;status?:number};
+  error.code=code;
+  if (status!==undefined) error.status=status;
+  return error;
+SUITE /home/runner/work/ASTROT-NEW/ASTROT-NEW/__tests__/native-mobile-document-bootstrap.test.ts
+TEST native mobile document bootstrap does not inject Telegram or remote font dependencies into mobile builds
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "&& !isNativeMobileBuild"
+Received string:    "import Document, {
+  DocumentContext,
+  DocumentInitialProps,
+  Head,
+  Html,
+  Main,
+  NextScript,
+} from 'next/document';·
+type MeouDocumentProps = DocumentInitialProps & {
+  publicDocument: boolean;
+};·
+const PUBLIC_ROUTES = new Set([
+  '/404',
+  '/delete-account',
+  '/personal-data-consent',
+  '/privacy',
+  '/requisites',
+  '/site',
+  '/support',
+  '/terms',
+]);·
+const PUBLIC_ROUTE_PREFIXES = [
+  '/goroskop',
+  '/lichnyy-goroskop',
+  '/natalnaya-karta',
+  '/sovmestimost',
+];·
+function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTES.has(pathname)
+    || PUBLIC_ROUTE_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
