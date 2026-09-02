@@ -23,6 +23,7 @@ import '../styles/todayHome.css';
 import '../styles/uiPreview.css';
 import '../styles/sharedShellFinal.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
+import { PublicAnalytics } from '../components/public-site/PublicAnalytics';
 import { installRuntimeDiagnostics } from '../lib/runtimeDiagnostics';
 
 if (typeof window !== 'undefined') {
@@ -33,12 +34,14 @@ export default function App({ Component, pageProps, router }: AppProps) {
   const viewport = router.pathname === '/'
     ? 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
     : 'width=device-width, initial-scale=1, viewport-fit=cover';
+  const publicAnalyticsEnabled = process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1';
   // Database migrations are handled during build process (npm run migrate)
   return (
     <>
       <Head>
         <meta name="viewport" content={viewport} />
       </Head>
+      {publicAnalyticsEnabled ? <PublicAnalytics /> : null}
       {/* Global hand-drawn SVG filter defs for the doodle skin (visual-only) */}
       <DoodleDefs />
       <Component {...pageProps} />
