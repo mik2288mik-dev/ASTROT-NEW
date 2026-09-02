@@ -9,6 +9,7 @@ import {
 } from '../components/public-site/PublicSiteShell';
 import { PUBLIC_SITE_CONFIG, isRuStorePublished } from '../lib/publicSiteConfig';
 import seo from '../styles/PublicSeoHome.module.css';
+import space from '../styles/SpaceHome.module.css';
 
 const PUBLIC_BRAND = 'NEBO';
 const PUBLIC_SEO_NAME = 'NEBO гороскоп натальная карта';
@@ -65,13 +66,13 @@ export default function PublicLandingPage() {
         jsonLd={homeSchema()}
       />
 
-      <main id="main-content" className={styles.homeMain}>
-        <section className={styles.hero} aria-labelledby="hero-title">
+      <main id="main-content" className={`${styles.homeMain} ${space.home}`}>
+        <section className={`${styles.hero} ${space.heroSpace}`} aria-labelledby="hero-title">
           <div className={styles.heroInner}>
-            <p className={styles.heroEyebrow}>{PUBLIC_BRAND} · личный прогноз</p>
+            <p className={`${styles.heroEyebrow} ${space.heroBadge}`}>{PUBLIC_BRAND} · личный прогноз</p>
             <h1 id="hero-title" className={styles.heroTitle} aria-label="Твой день. Твой текст.">
               <span className={styles.heroLineMask} aria-hidden="true"><span className={styles.heroLine}>Твой день.</span></span>
-              <span className={styles.heroLineMask} aria-hidden="true"><span className={`${styles.heroLine} ${styles.heroLineSecond}`}>Твой <span className={styles.heroStickerWord}>текст.</span></span></span>
+              <span className={styles.heroLineMask} aria-hidden="true"><span className={`${styles.heroLine} ${styles.heroLineSecond} ${space.heroTone}`}>Твой <span className={styles.heroStickerWord}>текст.</span></span></span>
             </h1>
             <div className={styles.heroFooter}>
               <div className={styles.heroLeadGroup}>
@@ -83,42 +84,41 @@ export default function PublicLandingPage() {
           </div>
         </section>
 
-        <section className={seo.seoSection} aria-labelledby="natal-home-title">
+        <section className={`${seo.seoSection} ${space.spaceSection} ${space.nebula}`} aria-labelledby="natal-home-title">
           <div className={`${seo.inner} ${seo.split}`}>
-            <div className={seo.copy}>
+            <div className={`${seo.copy} ${space.contentPlate}`}>
               <p className={seo.kicker}>Натальная карта</p>
-              <h2 id="natal-home-title">Посмотри карту рождения по частям.</h2>
-              <p>Натальная карта строится по дате, времени и месту рождения. На сайте можно отдельно открыть дома, планеты в знаках и планеты в домах — без необходимости читать огромную статью целиком.</p>
-              <p>Если время рождения неизвестно, часть карты всё равно можно посмотреть, но дома и некоторые точки уже нельзя считать такими же надёжными.</p>
+              <h2 id="natal-home-title">Натальная карта по дате рождения.</h2>
+              <p>Введи дату, время и место рождения, чтобы построить свою карту. Потом можно отдельно смотреть дома, планеты в знаках и планеты в домах — без длинного вступления перед ответом.</p>
+              <p>Если точное время неизвестно, часть карты всё равно можно посмотреть. Для домов и некоторых положений точное время уже важно.</p>
               <ul className={seo.linkList}>
-                <li><Link href="/natalnaya-karta">Натальная карта по дате рождения</Link></li>
-                <li><Link href="/natalnaya-karta/doma">Все 12 домов</Link></li>
+                <li><Link href="/natalnaya-karta">Рассчитать натальную карту</Link></li>
+                <li><Link href="/natalnaya-karta/doma">12 домов натальной карты</Link></li>
                 <li><Link href="/natalnaya-karta/planety-v-znakah">Планеты в знаках</Link></li>
                 <li><Link href="/natalnaya-karta/planety-v-domah">Планеты в домах</Link></li>
               </ul>
+              <div className={space.warmLine} aria-hidden="true" />
             </div>
-            <div className={seo.visual} aria-label="Схема натальной карты">
-              <div className={seo.chartVisual}>
-                <span className={seo.chartCrossH} />
-                <span className={seo.chartCrossV} />
-                <span className={seo.chartCenter}>NEBO</span>
+            <div className={seo.visual} aria-hidden="true">
+              <div className={`${space.visualFrame} ${space.galaxyCard}`}>
+                <div className={space.visualCopy}><span>NEBO · карта рождения</span><strong>Дата. Время. Место.</strong></div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className={`${seo.seoSection} ${seo.tint}`} aria-labelledby="today-home-title">
+        <section className={`${seo.seoSection} ${space.spaceSection} ${space.cloud}`} aria-labelledby="today-home-title">
           <div className={`${seo.inner} ${seo.split} ${seo.reverse}`}>
-            <div className={seo.copy}>
+            <div className={`${seo.copy} ${space.contentPlate}`}>
               <p className={seo.kicker}>Гороскоп на сегодня</p>
               <h2 id="today-home-title">Сначала ответ. Потом подробности.</h2>
-              <p>Общий гороскоп по знаку можно читать без регистрации и без времени рождения. Для личного прогноза NEBO использует сохранённую карту, поэтому текст получается ближе к конкретному человеку.</p>
-              <p>На сайте есть отдельные страницы всех знаков. В приложении — личный прогноз на сегодня, неделю и месяц.</p>
+              <p>Гороскоп на сегодня по знаку можно читать сразу. Для личного прогноза NEBO учитывает сохранённые данные рождения и показывает отдельный текст именно для твоей карты.</p>
+              <p>На сайте можно открыть гороскоп своего знака. В приложении — личный прогноз на сегодня, неделю и месяц.</p>
               <ul className={seo.linkList}>
                 <li><Link href="/lichnyy-goroskop">Личный гороскоп</Link></li>
-                <li><Link href="/goroskop">Гороскопы всех знаков</Link></li>
-                <li><Link href="/goroskop/oven">Овен</Link></li>
-                <li><Link href="/goroskop/skorpion">Скорпион</Link></li>
+                <li><Link href="/goroskop">Гороскоп на сегодня для всех знаков</Link></li>
+                <li><Link href="/goroskop/oven">Гороскоп для Овна</Link></li>
+                <li><Link href="/goroskop/skorpion">Гороскоп для Скорпиона</Link></li>
               </ul>
             </div>
             <div className={seo.visual}>
@@ -129,7 +129,7 @@ export default function PublicLandingPage() {
           </div>
         </section>
 
-        <section className={styles.forecastSection} id="forecast-example" aria-labelledby="forecast-example-title">
+        <section className={`${styles.forecastSection} ${space.forecastDark}`} id="forecast-example" aria-labelledby="forecast-example-title">
           <div className={styles.sectionInner}>
             <div className={styles.sectionHeadingWide}>
               <p className={styles.eyebrow}>Так звучит NEBO</p>
@@ -140,26 +140,26 @@ export default function PublicLandingPage() {
           </div>
         </section>
 
-        <section className={seo.seoSection} aria-labelledby="compat-home-title">
+        <section className={`${seo.seoSection} ${space.spaceSection} ${space.spiral}`} aria-labelledby="compat-home-title">
           <div className={`${seo.inner} ${seo.split}`}>
-            <div className={seo.copy}>
+            <div className={`${seo.copy} ${space.contentPlate}`}>
               <p className={seo.kicker}>Совместимость</p>
-              <h2 id="compat-home-title">Не процент любви. Нормальное сравнение.</h2>
-              <p>Совместимость знаков показывает общую картину. Если добавить данные рождения обоих людей, можно сравнить две натальные карты и увидеть больше различий: как вы разговариваете, реагируете и где чаще можете не понять друг друга.</p>
+              <h2 id="compat-home-title">Совместимость без случайного процента.</h2>
+              <p>Совместимость знаков даёт общую картину пары. Если добавить даты рождения обоих людей, можно сравнить две карты и посмотреть, где вы быстрее понимаете друг друга, а где чаще расходятся реакции.</p>
               <ul className={seo.linkList}>
-                <li><Link href="/sovmestimost">Совместимость по двум картам</Link></li>
+                <li><Link href="/sovmestimost">Совместимость по датам рождения</Link></li>
                 <li><Link href="/sovmestimost/znakov">Совместимость знаков зодиака</Link></li>
               </ul>
             </div>
-            <div className={seo.visual}>
-              <div className={seo.imageFrame}>
-                <Image src="/assets/sky-today-bg.webp" alt="Спокойный визуальный фон NEBO" width={1600} height={900} sizes="(max-width: 820px) 100vw, 48vw" />
+            <div className={seo.visual} aria-hidden="true">
+              <div className={`${space.visualFrame} ${space.cloudCard}`}>
+                <div className={space.visualCopy}><span>NEBO · совместимость</span><strong>Сравни вас двоих.</strong></div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className={styles.functionsSection} id="possibilities" aria-labelledby="possibilities-title">
+        <section className={`${styles.functionsSection} ${space.functionsDark}`} id="possibilities" aria-labelledby="possibilities-title">
           <div className={styles.sectionInner}>
             <div className={styles.functionsHeading}>
               <div><p className={styles.eyebrow}>В одном приложении</p><h2 id="possibilities-title">Прогноз, карта и совместимость.</h2></div>
@@ -176,17 +176,17 @@ export default function PublicLandingPage() {
           </div>
         </section>
 
-        <section className={`${seo.seoSection} ${seo.tint}`} aria-labelledby="learn-home-title">
+        <section className={`${seo.seoSection} ${space.spaceSection} ${space.nebula}`} aria-labelledby="learn-home-title">
           <div className={seo.inner}>
-            <div className={seo.copy}>
+            <div className={`${seo.copy} ${space.contentPlate}`}>
               <p className={seo.kicker}>Справочник NEBO</p>
-              <h2 id="learn-home-title">Если хочется разобраться самому.</h2>
-              <p>На сайте постепенно собирается большой справочник по натальной карте, знакам, домам и совместимости. Каждая страница отвечает на один конкретный вопрос и связана с соседними материалами.</p>
+              <h2 id="learn-home-title">Найди конкретный ответ.</h2>
+              <p>Знаки зодиака, дома натальной карты, планеты в знаках, планеты в домах и совместимость собраны в отдельных понятных разделах. Можно открыть именно то, что сейчас нужно, и перейти к связанным страницам.</p>
             </div>
             <div className={seo.textGrid}>
-              <article><h3>Знаки</h3><p>Что обычно связывают с Овном, Тельцом, Близнецами и другими знаками.</p></article>
-              <article><h3>Планеты и дома</h3><p>Что означает конкретная планета в знаке или доме и что смотреть рядом.</p></article>
-              <article><h3>Совместимость</h3><p>Отдельные страницы пар знаков и переход к сравнению двух карт.</p></article>
+              <article><h3>Знаки зодиака</h3><p>Характер знаков и общий гороскоп на сегодня.</p></article>
+              <article><h3>Планеты и дома</h3><p>Что означает конкретная планета в знаке или доме.</p></article>
+              <article><h3>Совместимость</h3><p>Пары знаков и сравнение двух карт по данным рождения.</p></article>
             </div>
           </div>
         </section>
@@ -209,7 +209,7 @@ export default function PublicLandingPage() {
           </div>
         </section>
 
-        <section className={styles.closingSection} aria-labelledby="release-title">
+        <section className={`${styles.closingSection} ${space.closingDark}`} aria-labelledby="release-title">
           <div className={styles.sectionInner}>
             <div className={styles.closing}>
               <div><p className={styles.eyebrow}>NEBO для Android</p><h2 id="release-title">Скоро в RuStore.</h2></div>
