@@ -24,8 +24,8 @@ export default function HousePage({ house }: InferGetStaticPropsType<typeof getS
     <PublicSeoPage
       path={house.path}
       title={`${house.title} в натальной карте — значение`}
-      description={`${house.title}: что означает этот дом в натальной карте, какие вопросы к нему относят и как его читать вместе со знаком и планетами.`}
-      eyebrow={`Дома · ${house.house} из 12`}
+      description={`${house.title}: что обычно связывают с этим домом натальной карты и что смотреть дальше.`}
+      eyebrow={`Натальная карта · ${house.title}`}
       heading={`${house.title} в натальной карте`}
       lead={<p>{house.summary}</p>}
       breadcrumbs={[
@@ -35,16 +35,16 @@ export default function HousePage({ house }: InferGetStaticPropsType<typeof getS
       ]}
       faq={[
         { question: `Что означает ${house.house} дом?`, answer: house.shortAnswer },
-        { question: 'Можно ли читать дом отдельно?', answer: 'Для первого знакомства — да, но в полной карте учитывают знак на границе дома, планеты внутри него и аспекты. Одно положение не описывает человека целиком.' },
+        { question: 'Можно ли судить о человеке только по этому дому?', answer: 'Нет. Это лишь одна часть карты. Для более полной картины смотрят также знак и планеты в этом доме.' },
       ]}
       relatedLinks={[
         { href: previous.path, label: previous.title },
         { href: next.path, label: next.title },
         { href: '/natalnaya-karta/planety-v-domah', label: 'Планеты в домах' },
-        { href: '/natalnaya-karta', label: 'Рассчитать натальную карту' },
+        { href: '/natalnaya-karta', label: 'Натальная карта' },
       ]}
     >
-      <section><h2>Короткий ответ</h2><p>{house.shortAnswer}</p></section>
+      <section><h2>Коротко</h2><p>{house.shortAnswer}</p></section>
       {house.sections.map((section) => (
         <section key={section.title}>
           <h2>{section.title}</h2>
@@ -52,8 +52,8 @@ export default function HousePage({ house }: InferGetStaticPropsType<typeof getS
         </section>
       ))}
       <section>
-        <h2>Что смотреть дальше</h2>
-        <p>Если в этом доме есть планета, её значение читается вместе с домом. Открой <Link href="/natalnaya-karta/planety-v-domah">каталог планет в домах</Link> или рассчитай собственную карту.</p>
+        <h2>Что посмотреть дальше</h2>
+        <p>Если в этом доме есть планета, открой <Link href="/natalnaya-karta/planety-v-domah">планеты в домах</Link> и посмотри, что она добавляет к общей картине.</p>
       </section>
     </PublicSeoPage>
   );
