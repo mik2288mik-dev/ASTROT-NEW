@@ -106,9 +106,8 @@ export function subscribeNatalReadingVariant(
 
 export function resolveNatalReadingRenderer(
   variant: NatalReadingVariant,
-  catalogCached: boolean,
+  _catalogCached: boolean,
 ): NatalReadingRenderer {
-  if (variant === 'catalog') return 'catalog';
   if (variant === 'classic') return 'classic';
-  return catalogCached ? 'catalog' : 'classic';
+  return 'catalog';
 }
