@@ -17,9 +17,9 @@ const OPTIONS: ReadonlyArray<{
   ru: string;
   en: string;
 }> = [
-  { value: 'auto', ru: 'Авто — безопасный режим', en: 'Auto — safe mode' },
-  { value: 'catalog', ru: 'Новый разбор', en: 'New reading' },
-  { value: 'classic', ru: 'Старый разбор', en: 'Classic reading' },
+  { value: 'auto', ru: 'Авто: новый, при сбое старый', en: 'Auto: new, then stable fallback' },
+  { value: 'catalog', ru: 'Новый каталог', en: 'New catalog' },
+  { value: 'classic', ru: 'Старый стабильный разбор', en: 'Stable classic reading' },
 ];
 
 export const NatalReadingVariantSettings: React.FC<Props> = ({ profile }) => {
@@ -39,12 +39,12 @@ export const NatalReadingVariantSettings: React.FC<Props> = ({ profile }) => {
   return (
     <div className="settings-natal-variant">
       <p className="settings-detail-intro">
-        {language === 'en' ? 'Natal reading version' : 'Версия разбора натальной карты'}
+        {language === 'en' ? 'Natal chart version' : 'Вариант натальной карты'}
       </p>
       <div
         className="settings-selection-list"
         role="radiogroup"
-        aria-label={language === 'en' ? 'Natal reading version' : 'Версия разбора натальной карты'}
+        aria-label={language === 'en' ? 'Natal chart version' : 'Вариант натальной карты'}
       >
         {OPTIONS.map((option) => {
           const selected = option.value === variant;
@@ -68,8 +68,8 @@ export const NatalReadingVariantSettings: React.FC<Props> = ({ profile }) => {
       </div>
       <p className="settings-helper-text settings-helper-text--spaced">
         {language === 'en'
-          ? 'Auto opens the new reading only when it is already ready; otherwise the stable classic reading opens immediately. This setting affects only this administrator on this device.'
-          : 'Авто открывает новый разбор, только когда он уже готов. Иначе сразу открывается стабильный старый. Настройка действует только для этого администратора на этом устройстве.'}
+          ? 'Auto tries the new catalog first. If it fails or is not ready within 12 seconds, the stable classic reading opens. This setting affects only this administrator on this device.'
+          : 'Авто сначала открывает новый каталог. Если он вернул ошибку или не загрузился за 12 секунд, откроется старый стабильный разбор. Настройка действует только для этого администратора на этом устройстве.'}
       </p>
     </div>
   );

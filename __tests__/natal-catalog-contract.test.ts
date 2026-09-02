@@ -190,6 +190,8 @@ describe('natal report catalog contract', () => {
     expect(requestStructured).toHaveBeenCalledTimes(2);
     expect(prompts[1]).toContain('REPAIR REQUIRED');
     expect(prompts[1]).toContain('SUMMARY_TOTAL_TOO_SHORT:300');
+    expect(prompts[1]).toContain('PREVIOUS REJECTED JSON');
+    expect(prompts[1]).toContain(JSON.stringify(tooShort, null, 2));
     expect(report.summary.reduce((sum, item) => sum + item.text.length, 0)).toBe(600);
   });
 

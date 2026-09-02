@@ -18,11 +18,6 @@ import {
   EditorialTabs,
 } from '../../components/editorial/EditorialScreenChrome';
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
-import { NATAL_REPORT_CATALOG_CONTRACT_VERSION } from '../../lib/natalReading/reportCatalog';
-import {
-  ensureNatalCatalogCategory,
-  getNatalCatalogCategoryCached,
-} from '../../services/natalCatalogService';
 import {
   readNatalReadingVariant,
   resolveNatalReadingRenderer,
@@ -62,6 +57,8 @@ type NatalMagazineProps = {
 };
 
 export type NatalScreenTab = 'map' | 'reading' | 'questions' | 'matrix';
+
+const NATAL_CATALOG_AUTO_FALLBACK_MS = 12_000;
 
 export function isSavedPersonChartSubject(
   chartSubject: Pick<ChartListItem, 'subject_type' | 'is_primary'> | null | undefined,
@@ -106,29 +103,17 @@ export function NatalMagazine({
     && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
       ? uiPreview
       : undefined;
-  const catalogCacheIdentity = useMemo(() => data ? ({
-    chartFingerprint: buildNatalChartFingerprint(data),
-    reportVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
-  }) : null, [data]);
   const [readingVariant, setReadingVariant] = useState<NatalReadingVariant>(() => (
     readNatalReadingVariant(profile.id, profile.isAdmin === true)
   ));
-  const [readingRenderer, setReadingRenderer] = useState<NatalReadingRenderer>(() => {
-    if (previewConfig?.catalog) return 'catalog';
-    if (!data || !catalogCacheIdentity) return 'classic';
-    const userId = String(profile.id || '').trim();
-    const cached = userId ? getNatalCatalogCategoryCached(
-      userId,
-      'main',
-      chartId,
-      language,
-      catalogCacheIdentity,
-    ) : null;
-    return resolveNatalReadingRenderer(
-      readNatalReadingVariant(profile.id, profile.isAdmin === true),
-      Boolean(cached),
-    );
-  });
+  const [readingRenderer, setReadingRenderer] = useState<NatalReadingRenderer>(() => (
+    previewConfig?.catalog
+      ? 'catalog'
+      : resolveNatalReadingRenderer(
+          readNatalReadingVariant(profile.id, profile.isAdmin === true),
+          false,
+        )
+  ));
   const [activeTab, setActiveTab] = useState<NatalScreenTab>(() => (
     normalizeNatalScreenTab(
       previewConfig?.openQuestion ? 'questions' : previewConfig?.initialTab || 'reading',
@@ -138,6 +123,8 @@ export function NatalMagazine({
   const normalizedActiveTab = normalizeNatalScreenTab(activeTab, isSavedPerson);
   const [matrixMounted, setMatrixMounted] = useState(false);
   const handledExternalQuestionRequestRef = useRef(0);
+  const catalogReadyRef = useRef(false);
+  const autoFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tabs = useMemo(() => {
     const availableTabs = [
       { id: 'map' as const, label: language === 'ru' ? 'Карта' : 'Chart' },
@@ -163,43 +150,40 @@ export function NatalMagazine({
   }, [profile.id, profile.isAdmin]);
 
   useEffect(() => {
+    if (autoFallbackTimerRef.current) {
+      clearTimeout(autoFallbackTimerRef.current);
+      autoFallbackTimerRef.current = null;
+    }
+    catalogReadyRef.current = false;
+
     if (normalizedActiveTab !== 'reading') return;
     if (previewConfig?.catalog) {
       setReadingRenderer('catalog');
       return;
     }
-    if (!data || !catalogCacheIdentity) {
+    if (!data) {
       setReadingRenderer('classic');
       return;
     }
-    const userId = String(profile.id || '').trim();
-    const cached = userId ? getNatalCatalogCategoryCached(
-      userId,
-      'main',
-      chartId,
-      language,
-      catalogCacheIdentity,
-    ) : null;
-    setReadingRenderer(resolveNatalReadingRenderer(readingVariant, Boolean(cached)));
-    if (readingVariant === 'auto' && !cached && userId) {
-      void ensureNatalCatalogCategory(
-        userId,
-        'main',
-        chartId,
-        language,
-        catalogCacheIdentity,
-      ).catch((error: unknown) => {
-        console.warn(
-          '[NatalMagazine] Natal catalog background warm-up failed:',
-          error instanceof Error ? error.message : error,
-        );
-      });
-    }
+
+    const nextRenderer = resolveNatalReadingRenderer(readingVariant, false);
+    setReadingRenderer(nextRenderer);
+    if (readingVariant !== 'auto' || nextRenderer !== 'catalog') return;
+
+    autoFallbackTimerRef.current = setTimeout(() => {
+      if (!catalogReadyRef.current) setReadingRenderer('classic');
+      autoFallbackTimerRef.current = null;
+    }, NATAL_CATALOG_AUTO_FALLBACK_MS);
+
+    return () => {
+      if (autoFallbackTimerRef.current) {
+        clearTimeout(autoFallbackTimerRef.current);
+        autoFallbackTimerRef.current = null;
+      }
+    };
   }, [
-    catalogCacheIdentity,
     chartId,
     data,
-    language,
     normalizedActiveTab,
     previewConfig?.catalog,
     profile.id,
@@ -397,6 +381,21 @@ export function NatalMagazine({
                 });
               }}
               hideIntro
+              onReady={() => {
+                catalogReadyRef.current = true;
+                if (autoFallbackTimerRef.current) {
+                  clearTimeout(autoFallbackTimerRef.current);
+                  autoFallbackTimerRef.current = null;
+                }
+              }}
+              onUnavailable={() => {
+                if (readingVariant !== 'auto' || catalogReadyRef.current) return;
+                if (autoFallbackTimerRef.current) {
+                  clearTimeout(autoFallbackTimerRef.current);
+                  autoFallbackTimerRef.current = null;
+                }
+                setReadingRenderer('classic');
+              }}
               uiPreview={previewConfig?.catalog}
             />
           ) : (

@@ -2,16 +2,16 @@ import { withAppVoiceCacheKey, withAppVoiceVersion } from '../appVoice';
 
 export const NATAL_REPORT_CATALOG_CONTRACT_VERSION = 'natal-report-catalog-v1';
 export const NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.category.v1`,
+  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.category.v2`,
 );
 export const NATAL_REPORT_CATALOG_ANSWER_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.answer.v1`,
+  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.answer.v2`,
 );
 export const NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.report-catalog.category.v1',
+  'natal.report-catalog.category.v2',
 );
 export const NATAL_REPORT_CATALOG_ANSWER_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.report-catalog.answer.v1',
+  'natal.report-catalog.answer.v2',
 );
 
 export const NATAL_REPORT_CATEGORY_KEYS = [

@@ -12,18 +12,27 @@ describe('natal reading variant UI contract', () => {
     expect(settings).toContain("case 'developer':");
     expect(settings).toContain('<NatalReadingVariantSettings profile={profile} />');
     expect(component).toContain('if (!isAdmin) return null;');
-    expect(component).toContain("value: 'auto'");
-    expect(component).toContain("value: 'catalog'");
-    expect(component).toContain("value: 'classic'");
+    expect(component).toContain('Вариант натальной карты');
+    expect(component).toContain('Авто: новый, при сбое старый');
+    expect(component).toContain('Новый каталог');
+    expect(component).toContain('Старый стабильный разбор');
   });
 
-  it('renders classic, forced catalog and cache-aware auto without a mid-reading swap', () => {
+  it('tries catalog first in auto, falls back after 12 seconds or main failure, and respects forced modes', () => {
     const magazine = source('views/v2/NatalMagazine.tsx');
-    expect(magazine).toContain("resolveNatalReadingRenderer(readingVariant, Boolean(cached))");
-    expect(magazine).toContain("readingVariant === 'auto' && !cached && userId");
-    expect(magazine).toContain('void ensureNatalCatalogCategory(');
+    const report = source('components/NatalReading/NatalCatalogReport.tsx');
+    expect(magazine).toContain('const NATAL_CATALOG_AUTO_FALLBACK_MS = 12_000;');
+    expect(magazine).toContain("resolveNatalReadingRenderer(readingVariant, false)");
+    expect(magazine).toContain("readingVariant !== 'auto'");
+    expect(magazine).toContain("setReadingRenderer('classic')");
+    expect(magazine).toContain('onReady={() =>');
+    expect(magazine).toContain('onUnavailable={() =>');
     expect(magazine).toContain("readingRenderer === 'catalog'");
     expect(magazine).toContain('surface="reading"');
-    expect(magazine).not.toContain('.then(() => setReadingRenderer');
+    expect(report).toContain('onReady?: () => void;');
+    expect(report).toContain('onUnavailable?: (error: unknown) => void;');
+    expect(report).toContain('activeCategory === DEFAULT_CATEGORY');
+    expect(report).toContain('notifyMainReady()');
+    expect(report).toContain('notifyMainUnavailable(loadError)');
   });
 });

@@ -23,6 +23,8 @@ describe('natal catalog semantic repair diagnostics', () => {
     expect(source).toContain('PERSONALITY_COPY means');
     expect(source).toContain('CATALOG_COPY means');
     expect(source).toContain('RELIABILITY means');
+    expect(source).toContain('PREVIOUS REJECTED JSON');
+    expect(source).toContain('previousCandidate = raw;');
     expect(source).not.toContain('generatedText:');
     expect(source).not.toContain('birthData: input.profile');
   });

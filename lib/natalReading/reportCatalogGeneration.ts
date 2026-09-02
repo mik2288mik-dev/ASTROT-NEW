@@ -572,6 +572,7 @@ export function getNatalReportAnswerValidationIssues(input: {
 function buildSemanticRepairPrompt(
   prompt: string,
   issues: readonly string[],
+  previousCandidate: unknown,
   language: 'ru' | 'en',
 ): string {
   const guide = language === 'ru'
@@ -584,7 +585,9 @@ function buildSemanticRepairPrompt(
     : '\n\nREPAIR REQUIRED:\nThe previous candidate failed server validation: '
       + JSON.stringify(issues)
       + '. Do not guess one offending word: use every field path and issue type, then rewrite the complete JSON without copying the previous wording.';
-  return prompt + instruction + guide;
+  const previous = '\n\nPREVIOUS REJECTED JSON:\n'
+    + JSON.stringify(previousCandidate, null, 2);
+  return prompt + instruction + guide + previous;
 }
 
 export function materializeNatalReportCategoryPack(input: {
@@ -721,12 +724,18 @@ export async function generateNatalReportCategoryPack(input: {
     mainAnchor: input.mainAnchor,
   });
   let validationIssues: string[] = [];
+  let previousCandidate: RawNatalReportCategoryPayload | null = null;
   for (let attempt = 1; attempt <= NATAL_REPORT_SEMANTIC_ATTEMPTS; attempt += 1) {
     const { result } = await callStructuredWithBudgetRetry({
       instructions: getNatalReportCatalogSystemPrompt(language),
       input: attempt === 1
         ? basePrompt
-        : buildSemanticRepairPrompt(basePrompt, validationIssues, language),
+        : buildSemanticRepairPrompt(
+            basePrompt,
+            validationIssues,
+            previousCandidate,
+            language,
+          ),
       maxOutputTokens: 2400,
       store: false,
       reasoningEffort: 'low',
@@ -738,6 +747,7 @@ export async function generateNatalReportCategoryPack(input: {
       request: input.requestStructured,
     });
     const raw = parseJson<RawNatalReportCategoryPayload>(result.content);
+    previousCandidate = raw;
     const report = materializeNatalReportCategoryPack({
       raw,
       built,
@@ -782,12 +792,18 @@ export async function generateNatalReportAnswer(input: {
     mainAnchor: input.mainAnchor,
   });
   let validationIssues: string[] = [];
+  let previousCandidate: RawNatalReportAnswerPayload | null = null;
   for (let attempt = 1; attempt <= NATAL_REPORT_SEMANTIC_ATTEMPTS; attempt += 1) {
     const { result } = await callStructuredWithBudgetRetry({
       instructions: getNatalReportCatalogSystemPrompt(language),
       input: attempt === 1
         ? basePrompt
-        : buildSemanticRepairPrompt(basePrompt, validationIssues, language),
+        : buildSemanticRepairPrompt(
+            basePrompt,
+            validationIssues,
+            previousCandidate,
+            language,
+          ),
       maxOutputTokens: 1400,
       store: false,
       reasoningEffort: 'low',
@@ -799,6 +815,7 @@ export async function generateNatalReportAnswer(input: {
       request: input.requestStructured,
     });
     const raw = parseJson<RawNatalReportAnswerPayload>(result.content);
+    previousCandidate = raw;
     const report = materializeNatalReportAnswer({
       raw,
       built,

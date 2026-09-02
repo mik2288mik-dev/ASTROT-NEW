@@ -31,8 +31,8 @@ describe('admin natal reading variant', () => {
     expect(readNatalReadingVariant('admin-3', true, storage)).toBe('auto');
   });
 
-  it('uses classic as the auto fallback and catalog only when it is ready', () => {
-    expect(resolveNatalReadingRenderer('auto', false)).toBe('classic');
+  it('starts auto with the catalog and preserves forced modes', () => {
+    expect(resolveNatalReadingRenderer('auto', false)).toBe('catalog');
     expect(resolveNatalReadingRenderer('auto', true)).toBe('catalog');
     expect(resolveNatalReadingRenderer('catalog', false)).toBe('catalog');
     expect(resolveNatalReadingRenderer('classic', true)).toBe('classic');

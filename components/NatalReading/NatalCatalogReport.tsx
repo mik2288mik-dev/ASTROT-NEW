@@ -51,6 +51,8 @@ type Props = {
   canPromotePremium?: boolean;
   onOpenQuestions?: () => void;
   hideIntro?: boolean;
+  onReady?: () => void;
+  onUnavailable?: (error: unknown) => void;
   uiPreview?: NatalCatalogReportUiPreview;
 };
 
@@ -200,6 +202,8 @@ export const NatalCatalogReport: React.FC<Props> = ({
   canPromotePremium = true,
   onOpenQuestions,
   hideIntro = false,
+  onReady,
+  onUnavailable,
   uiPreview,
 }) => {
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
@@ -241,6 +245,14 @@ export const NatalCatalogReport: React.FC<Props> = ({
   const [focusRequestId, setFocusRequestId] = useState(0);
   const firstResultIdentityRef = useRef('');
   const handledContinuationRef = useRef('');
+  const onReadyRef = useRef(onReady);
+  const onUnavailableRef = useRef(onUnavailable);
+  const mainAvailabilityRef = useRef<'pending' | 'ready' | 'unavailable'>('pending');
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+    onUnavailableRef.current = onUnavailable;
+  }, [onReady, onUnavailable]);
 
   const activeCategoryPack = categoryPacks[activeCategory] || null;
   const selectedAnswer = selectedAnswerKey ? answers[selectedAnswerKey] || null : null;
@@ -260,6 +272,22 @@ export const NatalCatalogReport: React.FC<Props> = ({
       || buildStaticDetailCategoryPack(selectedDefinition.categoryKey, language, selectedPreview);
   }, [categoryPacks, language, selectedDefinition, selectedPreview]);
   const displayCategoryPack = selectedAnswerKey ? detailCategoryPack : activeCategoryPack;
+
+  const notifyMainReady = () => {
+    if (mainAvailabilityRef.current === 'ready') return;
+    mainAvailabilityRef.current = 'ready';
+    onReadyRef.current?.();
+  };
+
+  const notifyMainUnavailable = (error: unknown) => {
+    if (mainAvailabilityRef.current === 'ready') return;
+    mainAvailabilityRef.current = 'unavailable';
+    onUnavailableRef.current?.(error);
+  };
+
+  useEffect(() => {
+    mainAvailabilityRef.current = 'pending';
+  }, [storageScope]);
 
   useEffect(() => {
     setStorageReady(false);
@@ -310,6 +338,11 @@ export const NatalCatalogReport: React.FC<Props> = ({
           ? 'Разбор не загрузился. Нажми «Попробовать снова».'
           : 'The reading did not load. Try again.'
         : null);
+      if (previewState === 'ready' && previewFixture.categoryPacks[DEFAULT_CATEGORY]) {
+        notifyMainReady();
+      } else if (previewState === 'error') {
+        notifyMainUnavailable(new Error('NATAL_REPORT_CATEGORY_PREVIEW_FAILED'));
+      }
       return;
     }
     if (!userId) {
@@ -317,6 +350,9 @@ export const NatalCatalogReport: React.FC<Props> = ({
       setCategoryError(language === 'ru'
         ? 'Разбор не открылся. Вернись к карте и попробуй ещё раз.'
         : 'The reading did not open. Return to the chart and try again.');
+      if (activeCategory === DEFAULT_CATEGORY) {
+        notifyMainUnavailable(new Error('NATAL_CATALOG_USER_ID_MISSING'));
+      }
       return;
     }
     let cancelled = false;
@@ -333,6 +369,7 @@ export const NatalCatalogReport: React.FC<Props> = ({
         ...current,
         ...Object.fromEntries(cached.freeAnswers.map((answer) => [answer.answerKey, answer])),
       }));
+      if (activeCategory === DEFAULT_CATEGORY) notifyMainReady();
     }
     setCategoryLoading(!cached);
     setCategoryError(null);
@@ -350,10 +387,14 @@ export const NatalCatalogReport: React.FC<Props> = ({
             ...current,
             ...Object.fromEntries(next.freeAnswers.map((answer) => [answer.answerKey, answer])),
           }));
+          if (activeCategory === DEFAULT_CATEGORY) notifyMainReady();
         }
       })
       .catch((loadError) => {
-        if (!cancelled && !cached) setCategoryError(formatLoadError(loadError, language));
+        if (!cancelled && !cached) {
+          setCategoryError(formatLoadError(loadError, language));
+          if (activeCategory === DEFAULT_CATEGORY) notifyMainUnavailable(loadError);
+        }
       })
       .finally(() => {
         if (!cancelled) setCategoryLoading(false);
