@@ -1,4 +1,4 @@
-head=44f3bd0056af7d655915fb760a7a2fda81362e63
+head=5a5d7399b19cd624f640f5257ff8640a063f1a03
 focused_tests=FAIL
 typescript=FAIL
 production_build=FAIL
@@ -465,33 +465,33 @@ PASS __tests__/natal-catalog-contract.test.ts
     ✓ defines 47 unique owned answers in the six requested categories (2 ms)
     ✓ keeps exactly seven free answers and one sample in each non-main category (1 ms)
     ✓ gives every answer useful locked-screen details and valid continuations (25 ms)
-    ✓ uses six personal continuation previews on Main without changing answer ownership
-    ✓ repairs a schema-shaped Main candidate that is too short before returning it (88 ms)
-    ✓ blocks report jargon in Russian and English without matching ordinary words by substring (4 ms)
+    ✓ uses six personal continuation previews on Main without changing answer ownership (1 ms)
+    ✓ repairs a schema-shaped Main candidate that is too short before returning it (89 ms)
+    ✓ blocks report jargon in Russian and English without matching ordinary words by substring (5 ms)
     ✓ keeps the Main reading between 600 and 1050 characters in three to five paragraphs
-    ✓ builds deterministic evidence for all answers without requiring angles or houses (10 ms)
+    ✓ builds deterministic evidence for all answers without requiring angles or houses (9 ms)
 
 PASS __tests__/natal-meaning-map-v3.test.ts
   natal meaning map v3
     ✓ uses one clear product hierarchy instead of nested natal and category tabs (1 ms)
-    ✓ keeps foundation, five directions, focused answers, and one premium block per direction
+    ✓ keeps foundation, five directions, focused answers, and one premium block per direction (1 ms)
     ✓ uses real chart evidence and explains birth-time accuracy without changing calculation (1 ms)
     ✓ makes custom questions contextual and keeps answers tied to evidence (1 ms)
-    ✓ keeps the UI monochrome except for the six navigation circles (1 ms)
+    ✓ keeps the UI monochrome except for the six navigation circles
 
 PASS __tests__/natal-mobile-interaction-contract.test.ts
   natal mobile interaction contract
-    ✓ keeps one fixed primary navigation and uses sheets for focused details (3 ms)
+    ✓ keeps one fixed primary navigation and uses sheets for focused details (5 ms)
 
 PASS __tests__/natal-reading-variant.test.ts
   admin natal reading variant
-    ✓ always keeps non-admin users in safe auto mode (2 ms)
+    ✓ always keeps non-admin users in safe auto mode (1 ms)
     ✓ stores an admin choice separately for every user (1 ms)
-    ✓ uses classic as the auto fallback and catalog only when it is ready (1 ms)
+    ✓ uses classic as the auto fallback and catalog only when it is ready
 
 PASS __tests__/natal-reading-variant-ui-contract.test.ts
   natal reading variant UI contract
-    ✓ keeps the switch inside the admin-only developer settings screen (2 ms)
+    ✓ keeps the switch inside the admin-only developer settings screen (1 ms)
     ✓ renders classic, forced catalog and cache-aware auto without a mid-reading swap (1 ms)
 
 PASS __tests__/natal-catalog-repair-diagnostics.test.ts
@@ -502,7 +502,7 @@ PASS __tests__/natal-catalog-repair-diagnostics.test.ts
 Test Suites: 1 failed, 6 passed, 7 total
 Tests:       1 failed, 112 passed, 113 total
 Snapshots:   0 total
-Time:        2.572 s
+Time:        2.658 s
 Ran all test suites matching __tests__/natal-meaning-map-v3.test.ts|__tests__/natal-reading-variant.test.ts|__tests__/natal-reading-variant-ui-contract.test.ts|__tests__/natal-catalog-contract.test.ts|__tests__/natal-catalog-repair-diagnostics.test.ts|__tests__/natal-question-policy.test.ts|__tests__/natal-mobile-interaction-contract.test.ts.
 
 ===== TYPESCRIPT =====
