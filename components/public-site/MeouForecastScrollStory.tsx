@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import styles from '../../styles/PublicSite.module.css';
+import styles from '../../styles/OpenAiPublicSite.module.css';
 
 const forecasts = [
   {
@@ -32,28 +32,16 @@ export function MeouForecastScrollStory() {
 
   useEffect(() => {
     if (!('IntersectionObserver' in window)) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
-        const closestEntry = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-
+        const closestEntry = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
         if (!closestEntry) return;
-
         const nextIndex = Number((closestEntry.target as HTMLElement).dataset.forecastIndex);
         if (Number.isInteger(nextIndex)) setActiveIndex(nextIndex);
       },
-      {
-        rootMargin: '-18% 0px -32%',
-        threshold: [0.25, 0.5, 0.75],
-      },
+      { rootMargin: '-18% 0px -32%', threshold: [0.25, 0.5, 0.75] },
     );
-
-    stepRefs.current.forEach((step) => {
-      if (step) observer.observe(step);
-    });
-
+    stepRefs.current.forEach((step) => { if (step) observer.observe(step); });
     return () => observer.disconnect();
   }, []);
 
@@ -61,63 +49,27 @@ export function MeouForecastScrollStory() {
     <div className={styles.forecastShowcase}>
       <aside className={styles.storyRail} aria-label="Навигация по примерам">
         <p className={styles.storyRailLabel}>Два человека. Два разных текста.</p>
-        <div className={styles.storyIndex} aria-hidden="true">
-          <span>0{activeIndex + 1}</span>
-          <span>/ 02</span>
-        </div>
-        <p className={styles.storyActiveName} aria-hidden="true">
-          {forecasts[activeIndex].name}
-        </p>
+        <div className={styles.storyIndex} aria-hidden="true"><span>0{activeIndex + 1}</span><span>/ 02</span></div>
+        <p className={styles.storyActiveName} aria-hidden="true">{forecasts[activeIndex].name}</p>
         <div className={styles.storyProgress} aria-hidden="true">
-          {forecasts.map((forecast, index) => (
-            <span
-              key={forecast.name}
-              className={index === activeIndex ? styles.storyProgressActive : undefined}
-            />
-          ))}
+          {forecasts.map((forecast, index) => <span key={forecast.name} className={index === activeIndex ? styles.storyProgressActive : undefined} />)}
         </div>
       </aside>
-
       <div className={styles.forecastStream}>
         {forecasts.map((forecast, index) => {
           const titleId = `forecast-example-${index + 1}`;
           const isActive = activeIndex === index;
-
           return (
-            <div
-              key={forecast.name}
-              ref={(node) => {
-                stepRefs.current[index] = node;
-              }}
-              className={styles.forecastStep}
-              data-forecast-index={index}
-            >
-              <p className={styles.forecastIdentity}>
-                Пример {index + 1}: {forecast.name}, {forecast.descriptor}
-              </p>
-              <article
-                className={`${styles.forecastPaper} ${forecast.accentClassName} ${
-                  isActive ? styles.forecastPaperActive : ''
-                }`}
-                aria-labelledby={titleId}
-              >
+            <div key={forecast.name} ref={(node) => { stepRefs.current[index] = node; }} className={styles.forecastStep} data-forecast-index={index}>
+              <p className={styles.forecastIdentity}>Пример {index + 1}: {forecast.name}, {forecast.descriptor}</p>
+              <article className={`${styles.forecastPaper} ${forecast.accentClassName} ${isActive ? styles.forecastPaperActive : ''}`} aria-labelledby={titleId}>
                 <header className={styles.forecastHeader}>
-                  <div>
-                    <p className={styles.forecastPeriod}>Сегодня</p>
-                    <h3 id={titleId}>{forecast.title}</h3>
-                  </div>
-                  <div className={styles.forecastClock} aria-hidden="true">
-                    <span />
-                  </div>
+                  <div><p className={styles.forecastPeriod}>Сегодня</p><h3 id={titleId}>{forecast.title}</h3></div>
+                  <div className={styles.forecastClock} aria-hidden="true"><span /></div>
                 </header>
-
                 <p className={styles.forecastBarb}>{forecast.barb}</p>
                 <p className={styles.forecastBody}>{forecast.body}</p>
-
-                <footer className={styles.forecastAdvice}>
-                  <p>Совет дня</p>
-                  <strong>{forecast.advice}</strong>
-                </footer>
+                <footer className={styles.forecastAdvice}><p>Совет дня</p><strong>{forecast.advice}</strong></footer>
               </article>
             </div>
           );
