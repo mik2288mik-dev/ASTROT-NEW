@@ -1,0 +1,91 @@
+name: Apply natal direct hotfix
+
+on:
+  push:
+    branches:
+      - fix/natal-reading-variants-20260902
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: horoscope
+          POSTGRES_PASSWORD: horoscope
+          POSTGRES_DB: horoscope_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U horoscope -d horoscope_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+      APP_SESSION_SECRET: ci-session-secret-not-for-production
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: fix/natal-reading-variants-20260902
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Restore canonical files and apply direct patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout 54cced79a292dd6cae79db929a0089ea41951021 -- \
+            views/Settings.tsx \
+            components/NatalReading/NatalCatalogReport.tsx \
+            services/natalCatalogService.ts \
+            lib/natalReading/reportCatalogGeneration.ts
+          rm -f \
+            views/SettingsBase.tsx \
+            components/NatalReading/NatalCatalogReportBase.tsx \
+            services/natalCatalogServiceBase.ts \
+            lib/natalReading/reportCatalogGenerationBase.ts
+          python3 -m py_compile scripts/apply-natal-direct-hotfix.py
+          python3 scripts/apply-natal-direct-hotfix.py
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply PostgreSQL migrations
+        run: npm run migrate
+
+      - name: Run tests
+        run: npm test -- --runInBand
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Build web application
+        run: npm run build
+
+      - name: Commit verified direct implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm --ignore-unmatch \
+            .github/workflows/natal-direct-hotfix.yml \
+            scripts/apply-natal-direct-hotfix.py
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(natal): integrate admin variants in canonical flow"
+          git push origin HEAD:fix/natal-reading-variants-20260902
