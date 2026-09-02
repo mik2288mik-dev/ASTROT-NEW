@@ -1,0 +1,68 @@
+name: Natal focused verification
+
+on:
+  push:
+    branches:
+      - fix/natal-admin-switch-final-20260902
+
+permissions:
+  contents: read
+
+jobs:
+  natal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: horoscope
+          POSTGRES_PASSWORD: horoscope
+          POSTGRES_DB: horoscope_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U horoscope -d horoscope_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+      APP_SESSION_SECRET: ci-session-secret-not-for-production
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply PostgreSQL migrations
+        run: npm run migrate
+
+      - name: Run natal and settings regression tests
+        run: >-
+          npm test -- --runInBand
+          __tests__/natal-reading-variant.test.ts
+          __tests__/natal-reading-variant-ui-contract.test.ts
+          __tests__/natal-catalog-repair-diagnostics.test.ts
+          __tests__/natal-karma-boundary.test.ts
+          __tests__/natal-catalog-contract.test.ts
+          __tests__/natal-catalog-ui-contract.test.ts
+          __tests__/natal-personality-cache.test.ts
+          __tests__/local-natal-chart-app-flow.test.ts
+          __tests__/chart-onboarding-flow.test.ts
+          __tests__/ui-preview-real-settings-paywall.test.ts
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Production web build
+        run: npm run build
