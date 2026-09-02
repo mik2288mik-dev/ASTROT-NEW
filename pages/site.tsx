@@ -10,7 +10,7 @@ import { PUBLIC_SITE_CONFIG, isRuStorePublished } from '../lib/publicSiteConfig'
 
 const PUBLIC_BRAND = 'NEBO';
 const PUBLIC_SEO_NAME = 'NEBO гороскоп натальная карта';
-const pageDescription = `${PUBLIC_SEO_NAME} — личный прогноз на сегодня, неделю и месяц по данным рождения, совместимость и гороскопы по знакам.`;
+const pageDescription = `${PUBLIC_SEO_NAME} — личный прогноз на сегодня, неделю и месяц, натальная карта, совместимость и гороскопы по знакам.`;
 
 function homeSchema() {
   const software: Record<string, unknown> = {
@@ -53,31 +53,27 @@ function homeSchema() {
 const productFunctions = [
   {
     number: '01',
-    title: 'Дневник',
+    title: 'Личный прогноз',
     href: '/lichnyy-goroskop',
-    description:
-      'Сегодня читается как лента из 4–6 связанных фрагментов. Неделя и месяц идут цельным текстом. Каждый период складывается в одну историю.',
+    description: 'Сегодня — несколько коротких фрагментов. Неделя и месяц — одним связным текстом. Без длинных вступлений.',
   },
   {
     number: '02',
     title: 'Гороскоп по знакам',
     href: '/goroskop',
-    description:
-      'Общий прогноз для каждого знака живёт в отдельном разделе. Это знакомый формат, когда хочется посмотреть день именно по знаку.',
+    description: 'Выбери свой знак и посмотри общий гороскоп, когда нужен быстрый ответ без ввода дополнительных данных.',
   },
   {
     number: '03',
     title: 'Совместимость',
     href: '/sovmestimost',
-    description:
-      'Сравни две карты и посмотри, где вы легко совпадаете, а где привычно спорите. Результат объясняет сильные точки пары и разницу в реакциях.',
+    description: 'Сравни вас двоих: где легко совпадаете, где по-разному реагируете и из-за чего чаще можете цепляться.',
   },
   {
     number: '04',
-    title: 'Карта',
+    title: 'Натальная карта',
     href: '/natalnaya-karta',
-    description:
-      'Дата, время и место рождения складываются в натальную карту с понятным разбором. Карта сохраняется, поэтому вводить данные заново не придётся.',
+    description: 'Добавь дату, время и место рождения. NEBO сохранит карту и поможет понятно разобрать планеты, знаки и дома.',
   },
 ] as const;
 
@@ -94,137 +90,89 @@ export default function PublicLandingPage() {
         <section className={styles.hero} aria-labelledby="hero-title">
           <div className={styles.heroInner}>
             <p className={styles.heroEyebrow}>{PUBLIC_BRAND} · личный прогноз</p>
-            <h1
-              id="hero-title"
-              className={styles.heroTitle}
-              aria-label="Твой день. Твой текст."
-            >
+            <h1 id="hero-title" className={styles.heroTitle} aria-label="Твой день. Твой текст.">
+              <span className={styles.heroLineMask} aria-hidden="true"><span className={styles.heroLine}>Твой день.</span></span>
               <span className={styles.heroLineMask} aria-hidden="true">
-                <span className={styles.heroLine}>Твой день.</span>
-              </span>
-              <span className={styles.heroLineMask} aria-hidden="true">
-                <span className={`${styles.heroLine} ${styles.heroLineSecond}`}>
-                  Твой <span className={styles.heroStickerWord}>текст.</span>
-                </span>
+                <span className={`${styles.heroLine} ${styles.heroLineSecond}`}>Твой <span className={styles.heroStickerWord}>текст.</span></span>
               </span>
             </h1>
 
-            <p className={styles.heroFact}>Сегодня: 4–6 фрагментов</p>
+            <p className={styles.heroFact}>Сегодня — коротко и по делу</p>
 
             <div className={styles.heroFooter}>
               <div className={styles.heroLeadGroup}>
                 <p className={styles.heroLead}>
-                  Выбираешь период и читаешь личный прогноз по сохранённой натальной карте. Сегодня
-                  это 4–6 связанных фрагментов. Неделя и месяц идут одним цельным текстом.
+                  Открываешь NEBO и читаешь личный прогноз на сегодня, неделю или месяц. Если хочешь больше деталей — добавляешь данные рождения один раз, и карта остаётся сохранённой.
                 </p>
-                <a className={styles.heroTextLink} href="#forecast-example">
-                  Прочитать два прогноза
-                </a>
+                <a className={styles.heroTextLink} href="#forecast-example">Посмотреть примеры</a>
               </div>
               <div className={styles.heroAction}>
                 <ReleaseAction />
-                <small>Android. Первый релиз готовится для RuStore.</small>
+                <small>Android · RuStore</small>
               </div>
             </div>
           </div>
         </section>
 
-        <section
-          className={styles.forecastSection}
-          id="forecast-example"
-          aria-labelledby="forecast-example-title"
-        >
+        <section className={styles.forecastSection} id="forecast-example" aria-labelledby="forecast-example-title">
           <div className={styles.sectionInner}>
             <div className={styles.sectionHeadingWide}>
-              <p className={styles.eyebrow}>Так звучит личный прогноз</p>
+              <p className={styles.eyebrow}>Так звучит NEBO</p>
               <h2 id="forecast-example-title">Два человека. Два разных прогноза.</h2>
-              <p className={styles.sectionLead}>
-                Имена нужны только для различия примеров. В самом прогнозе они не показываются.
-              </p>
+              <p className={styles.sectionLead}>Без одинакового текста для всех и без длинной воды перед главной мыслью.</p>
             </div>
             <MeouForecastScrollStory />
           </div>
         </section>
 
-        <section
-          className={styles.functionsSection}
-          id="possibilities"
-          aria-labelledby="possibilities-title"
-        >
+        <section className={styles.functionsSection} id="possibilities" aria-labelledby="possibilities-title">
           <div className={styles.sectionInner}>
             <div className={styles.functionsHeading}>
               <div>
-                <p className={styles.eyebrow}>Кроме личного прогноза</p>
-                <h2 id="possibilities-title">Что ещё есть в приложении.</h2>
+                <p className={styles.eyebrow}>В одном приложении</p>
+                <h2 id="possibilities-title">Прогноз, карта и совместимость.</h2>
               </div>
-              <p>
-                Дневник, гороскопы по знакам, совместимость и натальная карта собраны в четырёх
-                понятных разделах.
-              </p>
+              <p>Никаких спрятанных меню. Основные вещи всегда рядом.</p>
             </div>
 
             <dl className={styles.functionLedger}>
               {productFunctions.map((item) => (
                 <div className={styles.functionRow} key={item.title}>
-                  <dt>
-                    <span className={styles.functionNumber} aria-hidden="true">
-                      {item.number}
-                    </span>
-                    <Link href={item.href}>{item.title}</Link>
-                  </dt>
+                  <dt><span className={styles.functionNumber} aria-hidden="true">{item.number}</span><Link href={item.href}>{item.title}</Link></dt>
                   <dd>{item.description}</dd>
                 </div>
               ))}
             </dl>
-            <p className={styles.functionsSticker}>Всё по делу</p>
           </div>
         </section>
 
-        <section
-          className={styles.principlesSection}
-          id="principles"
-          aria-labelledby="principles-title"
-        >
+        <section className={styles.principlesSection} id="principles" aria-labelledby="principles-title">
           <div className={styles.sectionInner}>
             <div className={styles.principlesManifesto}>
               <div className={styles.principlesCopy}>
-                <p className={styles.darkEyebrow}>Как это работает</p>
-                <h2 id="principles-title">Карта считается отдельно. Текст пишется отдельно.</h2>
+                <p className={styles.darkEyebrow}>Без лишних обещаний</p>
+                <h2 id="principles-title">NEBO рассказывает. Решения принимаешь ты.</h2>
                 <p>
-                  Дата, время и место рождения используются для расчёта карты. Для личного прогноза
-                  ИИ получает выбранный период и данные сохранённой карты. Решения о здоровье,
-                  деньгах, праве и безопасности остаются за человеком и профильным специалистом.
+                  Добавь данные рождения, если хочешь более личный результат. NEBO учитывает сохранённую карту, но не обещает точные события и не решает за тебя вопросы здоровья, денег, права или безопасности.
                 </p>
-                <p className={styles.principlesSticker}>Расчёт + текст</p>
               </div>
 
               <dl className={styles.principleList}>
                 <div>
-                  <dt>Карта считается отдельно</dt>
-                  <dd>
-                    Дата, время и место рождения идут в расчёт натальной карты. Сохранённая карта
-                    становится основой для личного текста.
-                  </dd>
+                  <dt>Данные рождения вводятся один раз</dt>
+                  <dd>Дата, время и место сохраняются вместе с твоей картой, чтобы не вводить их заново.</dd>
                 </div>
                 <div>
-                  <dt>Решения остаются твоими</dt>
-                  <dd>
-                    Здоровье, деньги, право и безопасность требуют профильного специалиста. NEBO
-                    оставляет решения в этих темах тебе.
-                  </dd>
+                  <dt>Личный прогноз учитывает карту</dt>
+                  <dd>Поэтому он может быть заметно точнее по формулировкам, чем общий текст для одного знака.</dd>
                 </div>
                 <div>
-                  <dt>Данные другого человека с разрешением</dt>
-                  <dd>
-                    Перед добавлением данных другого человека нужно его разрешение или другое
-                    законное основание.
-                  </dd>
+                  <dt>Чужие данные — только с разрешения</dt>
+                  <dd>Если добавляешь другого человека для совместимости, используй его данные только с его разрешения.</dd>
                 </div>
                 <div>
-                  <dt>Удаление в настройках</dt>
-                  <dd>
-                    Аккаунт и связанные данные можно удалить в приложении после подтверждения.
-                  </dd>
+                  <dt>Аккаунт можно удалить</dt>
+                  <dd>Удаление аккаунта и связанных данных доступно в настройках приложения.</dd>
                 </div>
               </dl>
             </div>
@@ -235,19 +183,12 @@ export default function PublicLandingPage() {
           <div className={styles.sectionInner}>
             <div className={styles.closing}>
               <div>
-                <p className={styles.eyebrow}>Первый релиз</p>
-                <h2 id="release-title">
-                  {PUBLIC_BRAND} готовится к публикации в RuStore.
-                </h2>
+                <p className={styles.eyebrow}>NEBO для Android</p>
+                <h2 id="release-title">Скоро в RuStore.</h2>
               </div>
               <div className={styles.closingCopy}>
-                <p>
-                  Ссылка станет активной после публикации карточки. Сейчас сайт показывает текущий
-                  статус релиза.
-                </p>
-                <Link className={styles.closingLink} href="/support">
-                  Открыть поддержку и документы
-                </Link>
+                <p>После публикации здесь появится прямая ссылка на приложение.</p>
+                <Link className={styles.closingLink} href="/support">Поддержка и документы</Link>
               </div>
             </div>
           </div>
