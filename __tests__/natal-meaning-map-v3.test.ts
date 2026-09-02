@@ -17,6 +17,9 @@ describe('natal meaning map v3', () => {
     expect(magazine).toContain("'Круг карты'");
     expect(magazine).not.toContain("import { MatrixRoom } from './MatrixRoom'");
     expect(magazine).not.toContain('<EditorialTabs');
+    expect(magazine).toContain("readingRenderer === 'catalog'");
+    expect(magazine).toContain("tab === 'explore' && readingRenderer === 'classic'");
+    expect(magazine).toContain("data-items={primaryNavItemCount}");
     expect(catalog).toContain('<NatalMeaningExperience');
     expect(catalog).not.toContain('natal-catalog-tabs');
   });

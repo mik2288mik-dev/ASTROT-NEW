@@ -80,19 +80,21 @@ describe('Today minimal navigation shell', () => {
     expect(app).not.toContain("setNavigationSheet('services')");
   });
 
-  it('keeps Matrix as a separate product instead of nesting it inside the natal reading', () => {
+  it('keeps Matrix inside the persistent Natal tab shell', () => {
     const app = read('App.tsx');
     const natal = read('views/v2/NatalMagazine.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
 
-    expect(app).toContain("view === 'matrix'");
-    expect(app).toContain('<MatrixRoom');
-    expect(natal).not.toContain("{ id: 'matrix'");
-    expect(natal).not.toContain('setMatrixMounted');
-    expect(natal).not.toContain('<MatrixRoom');
+    expect(natal).toContain("{ id: 'matrix'");
+    expect(natal).toContain("if (tab === 'matrix') setMatrixMounted(true)");
+    expect(natal).toContain('hidden={activeTab !== \'matrix\'}');
+    expect(natal).toContain('<MatrixRoom');
+    expect(natal).toContain('embedded');
+    expect(natal).not.toContain('onOpenMatrix');
     expect(natal).not.toContain("navigateTo('matrix')");
     expect(matrix).toContain('embedded?: boolean');
     expect(matrix).toContain('{!embedded ? (');
+    expect(app).not.toContain('onOpenMatrix={() => navigateTo(\'matrix\')}');
   });
 
   it('keeps Today period tabs and reduced-motion guards unchanged', () => {

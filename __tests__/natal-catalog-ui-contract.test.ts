@@ -56,7 +56,7 @@ describe('natal catalog UI contract', () => {
     expect(report).toContain('document.getElementById(`natal-catalog-row-${answerKey}`)');
     expect(experience).toContain('className="natal-v3-sheet natal-v3-answer-sheet"');
     expect(experience).toContain('aria-modal="true"');
-    expect(experience).toContain('selectedAnswer.paragraphs.map');
+    expect(experience).toContain('answer.paragraphs.map');
   });
 
   it('shows one premium block for a direction rather than a lock on every row', () => {

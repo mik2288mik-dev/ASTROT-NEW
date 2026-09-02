@@ -580,7 +580,7 @@ export const NatalMeaningExperience: React.FC<Props> = ({
             <section className="natal-v3-foundation-copy" aria-labelledby="natal-v3-foundation-title">
               <div className="natal-v3-section-heading">
                 <h2 id="natal-v3-foundation-title">
-                  {language === 'ru' ? `Основа о ${subjectName || 'тебе'}` : `Foundation for ${subjectName || 'you'}`}
+                  {language === 'ru' ? 'Главные выводы' : `Key conclusions for ${subjectName || 'you'}`}
                 </h2>
               </div>
               {(mainExpanded ? mainPack.summary : mainPack.summary.slice(0, 3)).map(renderStatement)}

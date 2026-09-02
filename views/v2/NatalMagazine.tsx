@@ -148,10 +148,20 @@ export function NatalMagazine({
   const lastContentTabRef = useRef<Exclude<NatalScreenTab, 'map'>>('foundation');
   const handledExternalQuestionRequestRef = useRef(0);
   const normalizedActiveTab = normalizeNatalScreenTab(activeTab, isSavedPerson);
+  const showPrimaryNavigation = readingRenderer === 'catalog' || !isSavedPerson;
+  const primaryNavItemCount = readingRenderer === 'catalog'
+    ? (isSavedPerson ? 2 : 3)
+    : 2;
 
   useEffect(() => {
     if (normalizedActiveTab !== activeTab) setActiveTab(normalizedActiveTab);
   }, [activeTab, normalizedActiveTab]);
+
+  useEffect(() => {
+    if (readingRenderer !== 'classic' || normalizedActiveTab !== 'explore') return;
+    lastContentTabRef.current = 'foundation';
+    setActiveTab('foundation');
+  }, [normalizedActiveTab, readingRenderer]);
 
   useEffect(() => {
     const isAdmin = profile.isAdmin === true;
@@ -249,7 +259,10 @@ export function NatalMagazine({
   }, [isSavedPerson, onPremiumContinuationHandled, premiumContinuation]);
 
   const selectTab = (tab: NatalScreenTab) => {
-    const normalized = normalizeNatalScreenTab(tab, isSavedPerson);
+    const requestedTab = tab === 'explore' && readingRenderer === 'classic'
+      ? 'foundation'
+      : tab;
+    const normalized = normalizeNatalScreenTab(requestedTab, isSavedPerson);
     if (normalized === 'map') {
       if (normalizedActiveTab !== 'map') {
         lastContentTabRef.current = normalizedActiveTab as Exclude<NatalScreenTab, 'map'>;
@@ -307,24 +320,32 @@ export function NatalMagazine({
           )}
         </div>
       ) : null}
-      {data && normalizedActiveTab !== 'map' ? (
-        <nav className="natal-v3-primary-nav" aria-label={language === 'ru' ? 'Натальная карта' : 'Natal chart'}>
+      {data && normalizedActiveTab !== 'map' && showPrimaryNavigation ? (
+        <nav
+          className="natal-v3-primary-nav"
+          data-items={primaryNavItemCount}
+          aria-label={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
+        >
           <button
             type="button"
             className={normalizedActiveTab === 'foundation' ? 'is-active' : undefined}
             aria-current={normalizedActiveTab === 'foundation' ? 'page' : undefined}
             onClick={() => selectTab('foundation')}
           >
-            {language === 'ru' ? 'Основа' : 'Foundation'}
+            {readingRenderer === 'catalog'
+              ? (language === 'ru' ? 'Основа' : 'Foundation')
+              : (language === 'ru' ? 'Разбор' : 'Reading')}
           </button>
-          <button
-            type="button"
-            className={normalizedActiveTab === 'explore' ? 'is-active' : undefined}
-            aria-current={normalizedActiveTab === 'explore' ? 'page' : undefined}
-            onClick={() => selectTab('explore')}
-          >
-            {language === 'ru' ? 'Разобрать' : 'Explore'}
-          </button>
+          {readingRenderer === 'catalog' ? (
+            <button
+              type="button"
+              className={normalizedActiveTab === 'explore' ? 'is-active' : undefined}
+              aria-current={normalizedActiveTab === 'explore' ? 'page' : undefined}
+              onClick={() => selectTab('explore')}
+            >
+              {language === 'ru' ? 'Разобрать' : 'Explore'}
+            </button>
+          ) : null}
           {!isSavedPerson ? (
             <button
               type="button"
