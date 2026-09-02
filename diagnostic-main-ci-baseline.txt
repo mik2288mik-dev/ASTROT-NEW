@@ -1,0 +1,96 @@
+success=false
+failedSuites=38
+failedTests=55
+SUITE __tests__/natal-permanent-v2.test.ts
+TEST permanent natal V2 contract Premium task prompt has no changing-period inputs or prewritten interpretations
+TEST permanent natal V2 contract rejects future timing and unreliable structures in natal answers but accepts a timing refusal
+SUITE __tests__/natal-semantic-compiler.test.ts
+TEST active human natal products uses semantic cache versions and the compiler-owned chapter contracts
+TEST active human natal products builds evidence-backed deterministic fallbacks for both products
+TEST active human natal products sends only exact semantic blocks to one writer call and keeps identity out of the prompt
+TEST active human natal products falls back deterministically when any writer block changes meaning
+SUITE __tests__/compatibility-editorial-layout.test.ts
+TEST compatibility editorial layout scopes the light flow to every UnionRoom state and preserves its gates
+SUITE __tests__/app-auth.test.ts
+TEST app auth providers and API security keeps daily sign content public while protecting Premium sign periods with app identity
+SUITE __tests__/astrology-history-store.test.ts
+TEST durable astrology history foundation installs one idempotent history migration and deterministic chart roles
+SUITE __tests__/personal-forecast-visuals.test.ts
+TEST personal forecast editorial visual resolver selects one deterministic semantic transparent asset for the end of Today
+SUITE __tests__/lumia-content-style.test.ts
+TEST app content style runtime copy avoids forbidden RU phrases
+TEST app content style runtime copy avoids forbidden EN phrases
+SUITE __tests__/android-account-auth-ui.test.ts
+TEST Android account authentication UI keeps Android Back inside multi-step authentication before root exit
+SUITE __tests__/personal-forecast-editorial-layouts.test.ts
+TEST Today editorial layout system keeps visual-anchor helpers deterministic while Today uses the calendar composition
+SUITE __tests__/liquid-glass-chrome.test.ts
+TEST application chrome uses My Charts as the primary-screen action and keeps Settings in Menu
+SUITE __tests__/horoscope-product-flow.test.ts
+TEST Horoscope product flow keeps the 12-sign grid, restores Today/Week/Month, and renders no sticker art in the reading
+TEST Horoscope product flow loads the selected period before background prefetch and restores engagement
+SUITE __tests__/premium-only-product-model.test.ts
+TEST Premium-only product model Personal horoscope opens Premium in place from the continuous reading
+SUITE __tests__/chart-onboarding-flow.test.ts
+TEST chart onboarding and lazy sections keeps one free basic identity and loads the paid report only for Premium
+SUITE __tests__/personal-forecast-screen-layout.test.ts
+TEST personal forecast screen layout ends Today with one decorative semantic personal cutout
+SUITE __tests__/local-natal-chart-app-flow.test.ts
+TEST local natal chart app flow opens dashboard immediately after a DB chart and leaves forecast loading to Dashboard
+TEST local natal chart app flow writes onboarding and force-recalculated charts to local cache
+TEST local natal chart app flow keeps the self cache stable because saved people cannot become primary
+SUITE __tests__/android-meou-premium-recovery.test.ts
+TEST NEBO Android release controls preserves the selected plan across the existing recovery-identity flow
+SUITE __tests__/product-model-guard.test.ts
+TEST product model guard personal forecast additive architecture stores one canonical Premium package and slices access only at response time
+SUITE __tests__/natal-chart-db-identity.test.ts
+TEST natal chart database identity contract treats a saved person as input hash plus normalized name while self stays hash-only
+SUITE __tests__/today-navigation-shell.test.ts
+TEST Today minimal navigation shell mounts one five-button bottom navigation with a Menu hamburger
+TEST Today minimal navigation shell opens the three consolidated service sections and removes active MoreHub routing
+TEST Today minimal navigation shell keeps Matrix inside the persistent Natal tab shell
+TEST Today minimal navigation shell keeps Today period tabs and reduced-motion guards unchanged
+SUITE __tests__/content-prompt-builders.test.ts
+TEST Lumia content prompt builders keeps daily, weekly, natal, compatibility, and relationship prompts focused
+SUITE __tests__/card-background-system.test.ts
+TEST card background UI wiring keeps diary copy image-free while allowing restrained inline visual pauses
+SUITE __tests__/personal-forecast-question-catalog.test.ts
+TEST personal forecast approved question catalog keeps the audited bilingual catalog at 84 stable unique entries
+SUITE __tests__/release-core-flow-regressions.test.ts
+TEST release-critical core flow regressions persists a normalized non-empty profile name before committing UI or quota
+SUITE __tests__/e2e-smoke-flows.test.ts
+TEST E2E smoke flow contracts startup resolves an explicit app session before profile and chart work
+TEST E2E smoke flow contracts chart creation reads and calculates through /api/charts
+SUITE __tests__/human-report-local-cache-flow.test.ts
+TEST human report local-cache flow uses the chart-scoped local human-base synchronously before showing a loading state
+TEST human report local-cache flow writes server cache and background generation results with chart context
+TEST human report local-cache flow never publishes a background preload after the active snapshot changed
+TEST human report local-cache flow persists App prefetch results and clears local reports with chart invalidation
+SUITE __tests__/natal-personality-flow.test.ts
+TEST natal personality product flow lets every grounded assistant answer reveal its evidence
+SUITE __tests__/long-form-editorial-reading.test.ts
+TEST long-form v2 editorial reading structure separates compatibility conclusions, technical scores, unnumbered reading, and the deep summary
+SUITE __tests__/personal-forecast-header-logo.test.ts
+TEST personal forecast header and shared navigation uses the personal forecast title while keeping the selected period dynamic
+SUITE __tests__/direct-product-copy-contract.test.ts
+TEST active product copy contract keeps the runtime voice versioned and enforced
+SUITE __tests__/legacy-premium-grant-guard.test.ts
+TEST legacy Premium grant endpoints fail closed denies simulation without the explicit test flag
+TEST legacy Premium grant endpoints fail closed denies simulation in production even if the test flag is set
+SUITE __tests__/settings-editorial-layout.test.ts
+TEST settings mobile information architecture returns details locally before App navigation handles root Back
+SUITE __tests__/active-root-newspaper-visuals.test.ts
+TEST active root visual contract keeps the personal horoscope as one clean reading without visible evidence
+SUITE __tests__/pure-white-canvas.test.ts
+TEST pure-white application canvas aligns browser, Telegram and Android system surfaces with the same white
+SUITE __tests__/settings-subscription-state.test.ts
+TEST Settings subscription state copy keeps gift, store trial, and paid distinct
+TEST Settings subscription state copy says cancellation preserves access through the paid end
+SUITE __tests__/birth-time-honesty.test.ts
+TEST birth-time honesty stores unknown time as a full-day interval without angles or houses
+SUITE __tests__/natal-chart-canonical-persistence-flow.test.ts
+TEST canonical natal chart persistence flow calculates through Swiss Ephemeris and persists the primary chart
+SUITE __tests__/chart-service-canonical-endpoint.test.ts
+TEST chart service canonical calculation endpoint calculates onboarding charts through the canonical charts endpoint
+SUITE __tests__/native-mobile-document-bootstrap.test.ts
+TEST native mobile document bootstrap does not inject Telegram or remote font dependencies into mobile builds
