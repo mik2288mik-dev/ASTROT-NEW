@@ -1,0 +1,540 @@
+head=c9539a241dd50e7655d0799fadd5e6957780d35c
+focused_tests=FAIL
+typescript=FAIL
+production_build=FAIL
+
+===== FOCUSED TESTS =====
+      canPromotePremium?: boolean;
+      openQuestionRequest?: number;
+      onQuestionRequestHandled?: () => void;
+      onOpenCharts?: () => void;
+      onOpenEncyclopedia?: () => void;
+      uiPreview?: {
+        initialTab?: 'map' | 'reading' | 'questions' | 'foundation' | 'explore' | 'ask';
+        openQuestion?: boolean;
+        reportState?: 'ready' | 'loading' | 'error';
+        premiumReport?: NatalPermanentPremiumReport | null;
+        catalog?: NatalCatalogReportUiPreview;
+      };
+    };·
+    export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map';·
+    export function isSavedPersonChartSubject(
+      chartSubject: Pick<ChartListItem, 'subject_type' | 'is_primary'> | null | undefined,
+    ): boolean {
+      return chartSubject?.subject_type === 'saved_person' || chartSubject?.is_primary === false;
+    }·
+    export function normalizeNatalScreenTab(
+      tab: NatalScreenTab,
+      isSavedPerson: boolean,
+    ): NatalScreenTab {
+      return isSavedPerson && tab === 'ask' ? 'foundation' : tab;
+    }·
+    function previewTabToScreen(
+      value: NatalMagazineProps['uiPreview'] extends { initialTab?: infer T } ? T : never,
+      openQuestion: boolean,
+    ): NatalScreenTab {
+      if (openQuestion || value === 'questions' || value === 'ask') return 'ask';
+      if (value === 'map') return 'map';
+      if (value === 'explore') return 'explore';
+      return 'foundation';
+    }·
+    export function NatalMagazine({
+      data,
+      profile,
+      chartLoadState = 'idle',
+      onRetryChart,
+      chartId,
+      chartSubject,
+      requestPremium,
+      onUpdateProfile,
+      preloadedReport,
+      onCreateChart,
+      premiumContinuation,
+      onPremiumContinuationHandled,
+      canPromotePremium,
+      openQuestionRequest,
+      onQuestionRequestHandled,
+      onOpenCharts,
+      onOpenEncyclopedia,
+      uiPreview,
+    }: NatalMagazineProps) {
+      const language = profile.language === 'en' ? 'en' : 'ru';
+      const subjectName = chartSubject ? chartSubject.name : profile.name;
+      const subjectBirthDate = chartSubject ? chartSubject.birth_date : profile.birthDate;
+      const subjectBirthTime = chartSubject ? (chartSubject.birth_time ?? '') : profile.birthTime;
+      const subjectBirthPlace = chartSubject ? chartSubject.birth_place : profile.birthPlace;
+      const isSavedPerson = isSavedPersonChartSubject(chartSubject);
+      const previewConfig = process.env.NODE_ENV === 'development'
+        && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
+          ? uiPreview
+          : undefined;
+      const catalogCacheIdentity = useMemo(() => data ? ({
+        chartFingerprint: buildNatalChartFingerprint(data),
+        reportVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
+      }) : null, [data]);
+      const [readingVariant, setReadingVariant] = useState<NatalReadingVariant>(() => (
+        readNatalReadingVariant(profile.id, profile.isAdmin === true)
+      ));
+      const [readingRenderer, setReadingRenderer] = useState<NatalReadingRenderer>(() => {
+        if (previewConfig?.catalog) return 'catalog';
+        if (!data || !catalogCacheIdentity) return 'classic';
+        const userId = String(profile.id || '').trim();
+        const cached = userId ? getNatalCatalogCategoryCached(
+          userId,
+          'main',
+          chartId,
+          language,
+          catalogCacheIdentity,
+        ) : null;
+        return resolveNatalReadingRenderer(
+          readNatalReadingVariant(profile.id, profile.isAdmin === true),
+          Boolean(cached),
+        );
+      });
+      const [activeTab, setActiveTab] = useState<NatalScreenTab>(() => normalizeNatalScreenTab(
+        previewTabToScreen(previewConfig?.initialTab, Boolean(previewConfig?.openQuestion)),
+        isSavedPerson,
+      ));
+      const [questionContext, setQuestionContext] = useState<NatalReportCategoryKey>('main');
+      const lastContentTabRef = useRef<Exclude<NatalScreenTab, 'map'>>('foundation');
+      const handledExternalQuestionRequestRef = useRef(0);
+      const normalizedActiveTab = normalizeNatalScreenTab(activeTab, isSavedPerson);·
+      useEffect(() => {
+        if (normalizedActiveTab !== activeTab) setActiveTab(normalizedActiveTab);
+      }, [activeTab, normalizedActiveTab]);·
+      useEffect(() => {
+        const isAdmin = profile.isAdmin === true;
+        setReadingVariant(readNatalReadingVariant(profile.id, isAdmin));
+        return subscribeNatalReadingVariant(profile.id, isAdmin, (next) => {
+          setReadingVariant(next);
+        });
+      }, [profile.id, profile.isAdmin]);·
+      useEffect(() => {
+        if (normalizedActiveTab !== 'foundation' && normalizedActiveTab !== 'explore') return;
+        if (previewConfig?.catalog) {
+          setReadingRenderer('catalog');
+          return;
+        }
+        if (!data || !catalogCacheIdentity) {
+          setReadingRenderer('classic');
+          return;
+        }
+        const userId = String(profile.id || '').trim();
+        const cached = userId ? getNatalCatalogCategoryCached(
+          userId,
+          'main',
+          chartId,
+          language,
+          catalogCacheIdentity,
+        ) : null;
+        setReadingRenderer(resolveNatalReadingRenderer(readingVariant, Boolean(cached)));
+        if (readingVariant === 'auto' && !cached && userId) {
+          void ensureNatalCatalogCategory(
+            userId,
+            'main',
+            chartId,
+            language,
+            catalogCacheIdentity,
+          ).catch((error: unknown) => {
+            console.warn(
+              '[NatalMagazine] Natal catalog background warm-up failed:',
+              error instanceof Error ? error.message : error,
+            );
+          });
+        }
+      }, [
+        catalogCacheIdentity,
+        chartId,
+        data,
+        language,
+        normalizedActiveTab,
+        previewConfig?.catalog,
+        profile.id,
+        readingVariant,
+      ]);·
+      useEffect(() => {
+        if (
+          !openQuestionRequest
+          || handledExternalQuestionRequestRef.current === openQuestionRequest
+        ) return;
+        if (!data && chartLoadState === 'idle' && !profile.isSetup) {
+          onCreateChart?.();
+          return;
+        }
+        if (!data) return;
+        handledExternalQuestionRequestRef.current = openQuestionRequest;
+        if (!isSavedPerson) {
+          setQuestionContext('main');
+          setActiveTab('ask');
+          lastContentTabRef.current = 'ask';
+        }
+        onQuestionRequestHandled?.();
+      }, [chartLoadState, data, isSavedPerson, onCreateChart, onQuestionRequestHandled, openQuestionRequest, profile.isSetup]);·
+      useEffect(() => {
+        if (!premiumContinuation || premiumContinuation.returnView !== 'chart') return;
+        if (
+          premiumContinuation.featureKey === 'natal_questions'
+          && premiumContinuation.returnAction === 'open_natal_questions'
+        ) {
+          if (isSavedPerson) {
+            setActiveTab('foundation');
+            onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
+            return;
+          }
+          setActiveTab('ask');
+          lastContentTabRef.current = 'ask';
+          return;
+        }
+        if (
+          premiumContinuation.featureKey === 'natal_deep'
+          && premiumContinuation.returnAction === 'open_natal_answer'
+        ) {
+          setActiveTab('explore');
+          lastContentTabRef.current = 'explore';
+        }
+      }, [isSavedPerson, onPremiumContinuationHandled, premiumContinuation]);·
+      const selectTab = (tab: NatalScreenTab) => {
+        const normalized = normalizeNatalScreenTab(tab, isSavedPerson);
+        if (normalized === 'map') {
+          if (normalizedActiveTab !== 'map') {
+            lastContentTabRef.current = normalizedActiveTab as Exclude<NatalScreenTab, 'map'>;
+          }
+          setActiveTab('map');
+          return;
+        }
+        lastContentTabRef.current = normalized as Exclude<NatalScreenTab, 'map'>;
+        setActiveTab(normalized);
+      };·
+      const openQuestions = (categoryKey: NatalReportCategoryKey) => {
+        if (isSavedPerson) return;
+        setQuestionContext(categoryKey);
+        selectTab('ask');
+        requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+      };·
+      const header = (
+        <>
+          <AppTopBar title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} />
+          {data ? (
+            <div className=\"natal-v3-subject-bar\">
+              {onOpenCharts ? (
+                <button
+                  type=\"button\"
+                  className=\"natal-v3-subject-switch\"
+                  onClick={onOpenCharts}
+                  aria-label={language === 'ru' ? 'Выбрать другую карту' : 'Choose another chart'}
+                >
+                  <span>{subjectName || (language === 'ru' ? 'Моя карта' : 'My chart')}</span>
+                  <ChevronDown aria-hidden=\"true\" />
+                </button>
+              ) : (
+                <span className=\"natal-v3-subject-name\">{subjectName}</span>
+              )}
+              {normalizedActiveTab === 'map' ? (
+                <button
+                  type=\"button\"
+                  className=\"natal-v3-header-action\"
+                  onClick={() => selectTab(lastContentTabRef.current)}
+                >
+                  <ArrowLeft aria-hidden=\"true\" />
+                  {language === 'ru' ? 'К разбору' : 'Back to reading'}
+                </button>
+              ) : (
+                <button
+                  type=\"button\"
+                  className=\"natal-v3-header-action\"
+                  onClick={() => selectTab('map')}
+                >
+                  <Orbit aria-hidden=\"true\" />
+                  {language === 'ru' ? 'Круг карты' : 'Chart wheel'}
+                </button>
+              )}
+            </div>
+          ) : null}
+          {data && normalizedActiveTab !== 'map' ? (
+            <nav className=\"natal-v3-primary-nav\" aria-label={language === 'ru' ? 'Натальная карта' : 'Natal chart'}>
+              <button
+                type=\"button\"
+                className={normalizedActiveTab === 'foundation' ? 'is-active' : undefined}
+                aria-current={normalizedActiveTab === 'foundation' ? 'page' : undefined}
+                onClick={() => selectTab('foundation')}
+              >
+                {language === 'ru' ? 'Основа' : 'Foundation'}
+              </button>
+              <button
+                type=\"button\"
+                className={normalizedActiveTab === 'explore' ? 'is-active' : undefined}
+                aria-current={normalizedActiveTab === 'explore' ? 'page' : undefined}
+                onClick={() => selectTab('explore')}
+              >
+                {language === 'ru' ? 'Разобрать' : 'Explore'}
+              </button>
+              {!isSavedPerson ? (
+                <button
+                  type=\"button\"
+                  className={normalizedActiveTab === 'ask' ? 'is-active' : undefined}
+                  aria-current={normalizedActiveTab === 'ask' ? 'page' : undefined}
+                  onClick={() => selectTab('ask')}
+                >
+                  {language === 'ru' ? 'Спросить' : 'Ask'}
+                </button>
+              ) : null}
+            </nav>
+          ) : null}
+        </>
+      );·
+      if (!data) {
+        const isLoadingChart = chartLoadState === 'loading'
+          || (profile.isSetup && chartLoadState === 'idle');
+        const isChartError = chartLoadState === 'error'
+          || (profile.isSetup && chartLoadState === 'ready');
+        return (
+          <div className=\"fresh-page natal-editorial-page natal-mvp-page natal-v3-page\">
+            {header}
+            <section
+              className=\"natal-empty-content\"
+              aria-live=\"polite\"
+              aria-busy={isLoadingChart || undefined}
+              role={isChartError ? 'alert' : undefined}
+            >
+              <p className=\"natal-empty-kicker\">{language === 'ru' ? 'Твоя карта рождения' : 'Your birth chart'}</p>
+              {isLoadingChart ? (
+                <>
+                  <h1>{language === 'ru' ? 'Загружаем натальную карту' : 'Loading your natal chart'}</h1>
+                  <p>{language === 'ru' ? 'Сохранённые данные уже найдены.' : 'Your saved birth data is already available.'}</p>
+                </>
+              ) : isChartError ? (
+                <>
+                  <h1>{language === 'ru' ? 'Карта пока не загрузилась' : 'Your chart has not loaded yet'}</h1>
+                  <p>{language === 'ru' ? 'Проверь соединение и попробуй ещё раз.' : 'Check your connection and try again.'}</p>
+                  {onRetryChart ? (
+                    <button type=\"button\" className=\"fresh-btn-primary\" onClick={onRetryChart}>
+                      {language === 'ru' ? 'Повторить' : 'Retry'}
+                    </button>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <h1>{language === 'ru' ? 'Соберём твою натальную карту' : 'Create your birth chart'}</h1>
+                  <p>
+                    {language === 'ru'
+                      ? 'Для расчёта нужны дата, время и место рождения.'
+                      : 'The calculation needs your birth date, time, and place.'}
+                  </p>
+                  <button type=\"button\" className=\"fresh-btn-primary\" onClick={onCreateChart}>
+                    {language === 'ru' ? 'Ввести данные' : 'Enter birth details'}
+                  </button>
+                </>
+              )}
+            </section>
+          </div>
+        );
+      }·
+      const reportSubjectKey = [
+        chartSubject?.subject_type || 'self',
+        chartSubject?.id ?? chartId ?? 'primary',
+        chartSubject?.input_hash || buildNatalChartFingerprint(data),
+        chartSubject?.calculation_version || data.calculationVersion || 'unknown',
+      ].join(':');
+      const catalogView: NatalExperienceView = normalizedActiveTab === 'explore'
+        ? 'explore'
+        : 'foundation';·
+      return (
+        <div className=\"fresh-page natal-editorial-page natal-mvp-page natal-v3-page\">
+          {header}·
+          {normalizedActiveTab === 'map' ? (
+            <section className=\"natal-v3-wheel-stage\" aria-labelledby=\"natal-map-title\">
+              <header className=\"natal-v3-wheel-heading\">
+                <p>{language === 'ru' ? 'Карта рождения' : 'Birth chart'}</p>
+                <h1 id=\"natal-map-title\">{subjectName}</h1>
+              </header>·
+              <NatalChartWheel
+                chart={data}
+                language={language}
+                downloadName={`${subjectName || 'natal'}-chart`}
+              />·
+              <dl className=\"natal-v3-wheel-meta\">
+                <div>
+                  <dt><CalendarDays aria-hidden=\"true\" />{language === 'ru' ? 'Дата' : 'Date'}</dt>
+                  <dd>{formatDisplayDate(subjectBirthDate, language)}</dd>
+                </div>
+                <div>
+                  <dt><Clock3 aria-hidden=\"true\" />{language === 'ru' ? 'Время' : 'Time'}</dt>
+                  <dd>{subjectBirthTime || (language === 'ru' ? 'Не указано' : 'Not specified')}</dd>
+                </div>
+                <div>
+                  <dt><MapPin aria-hidden=\"true\" />{language === 'ru' ? 'Место' : 'Place'}</dt>
+                  <dd>{subjectBirthPlace || (language === 'ru' ? 'Не указано' : 'Not specified')}</dd>
+                </div>
+              </dl>·
+              {onOpenEncyclopedia ? (
+                <button type=\"button\" className=\"natal-v3-reference-link\" onClick={onOpenEncyclopedia}>
+                  <span>{language === 'ru' ? 'Что означают знаки, дома и аспекты' : 'What signs, houses, and aspects mean'}</span>
+                  <span aria-hidden=\"true\">→</span>
+                </button>
+              ) : null}
+            </section>
+          ) : null}·
+          {normalizedActiveTab === 'foundation' || normalizedActiveTab === 'explore' ? (
+            <section className=\"natal-reading-stage natal-catalog-stage natal-v3-reading-stage\">
+              {readingRenderer === 'catalog' ? (
+                <NatalCatalogReport
+                  key={`catalog:${reportSubjectKey}`}
+                  profile={profile}
+                  chartData={data}
+                  chartId={chartId}
+                  chartSubject={chartSubject}
+                  view={catalogView}
+                  onViewChange={(view) => selectTab(view)}
+                  requestPremium={requestPremium}
+                  premiumContinuation={premiumContinuation}
+                  onPremiumContinuationHandled={onPremiumContinuationHandled}
+                  canPromotePremium={canPromotePremium}
+                  onOpenQuestions={isSavedPerson ? undefined : openQuestions}
+                  hideIntro
+                  uiPreview={previewConfig?.catalog}
+                />
+              ) : (
+                <HumanReport
+                  key={`classic:${reportSubjectKey}`}
+                  profile={profile}
+                  chartData={data}
+                  chartId={chartId}
+                  chartSubject={chartSubject}
+                  requestPremium={requestPremium}
+                  onUpdateProfile={onUpdateProfile}
+                  preloadedReport={preloadedReport}
+                  hideIntro
+                  surface=\"reading\"
+                  premiumContinuation={premiumContinuation}
+                  onPremiumContinuationHandled={onPremiumContinuationHandled}
+                  canPromotePremium={canPromotePremium}
+                  onOpenQuestions={isSavedPerson ? undefined : () => openQuestions('main')}
+                  uiPreview={previewConfig ? {
+                    state: previewConfig.reportState || 'ready',
+                    premiumReport: previewConfig.premiumReport,
+                  } : undefined}
+                />
+              )}
+            </section>
+          ) : null}·
+          {normalizedActiveTab === 'ask' && !isSavedPerson ? (
+            <section className=\"natal-v3-question-stage\">
+              <NatalQuestionExperience
+                profile={profile}
+                chartData={data}
+                chartId={chartId}
+                contextCategory={questionContext}
+                onContextChange={setQuestionContext}
+                requestPremium={requestPremium}
+                premiumContinuation={premiumContinuation}
+                onPremiumContinuationHandled={onPremiumContinuationHandled}
+              />
+            </section>
+          ) : null}
+        </div>
+      );
+    }
+    "
+
+    [0m [90m 206 |[39m     [36mconst[39m magazine [33m=[39m read([32m'views/v2/NatalMagazine.tsx'[39m)[33m;[39m
+     [90m 207 |[39m
+    [31m[1m>[22m[39m[90m 208 |[39m     expect(magazine)[33m.[39mtoContain([32m"type NatalScreenTab = 'map' | 'reading' | 'questions' | 'matrix'"[39m)[33m;[39m
+     [90m     |[39m                      [31m[1m^[22m[39m
+     [90m 209 |[39m     expect(magazine)[33m.[39mtoContain([32m"{ id: 'questions' as const"[39m)[33m;[39m
+     [90m 210 |[39m     expect(magazine)[33m.[39mtoContain([32m"availableTabs.filter((tab) => tab.id !== 'questions')"[39m)[33m;[39m
+     [90m 211 |[39m     expect(magazine)[33m.[39mtoContain([32m"return isSavedPerson && tab === 'questions' ? 'map' : tab"[39m)[33m;[39m[0m
+
+      at Object.<anonymous> (__tests__/natal-question-policy.test.ts:208:22)
+
+  console.warn
+    [natal/catalog-validation] {"kind":"category","categoryKey":"main","semanticAttempt":1,"responseId":"test-response","validationIssues":["SUMMARY_TOTAL_TOO_SHORT:300","SUMMARY_SHAPE_INVALID"]}
+
+    [0m [90m 752 |[39m [32m    });[39m
+     [90m 753 |[39m [32m    if (validationIssues.length === 0) validationIssues = ['SEMANTIC_CONTRACT_INVALID'];[39m
+    [31m[1m>[22m[39m[90m 754 |[39m [32m    console.warn('[natal/catalog-validation]', JSON.stringify({[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 755 |[39m [32m      kind: 'category',[39m
+     [90m 756 |[39m [32m      categoryKey: input.categoryKey,[39m
+     [90m 757 |[39m [32m      semanticAttempt: attempt,[39m[0m
+
+      at generateNatalReportCategoryPack (lib/natalReading/reportCatalogGeneration.ts:754:13)
+      at Object.<anonymous> (__tests__/natal-catalog-contract.test.ts:183:20)
+
+PASS __tests__/natal-catalog-contract.test.ts
+  natal report catalog contract
+    ✓ defines 47 unique owned answers in the six requested categories (1 ms)
+    ✓ keeps exactly seven free answers and one sample in each non-main category
+    ✓ gives every answer useful locked-screen details and valid continuations (14 ms)
+    ✓ uses six personal continuation previews on Main without changing answer ownership (1 ms)
+    ✓ repairs a schema-shaped Main candidate that is too short before returning it (66 ms)
+    ✓ blocks report jargon in Russian and English without matching ordinary words by substring (3 ms)
+    ✓ keeps the Main reading between 600 and 1050 characters in three to five paragraphs
+    ✓ builds deterministic evidence for all answers without requiring angles or houses (6 ms)
+
+PASS __tests__/natal-meaning-map-v3.test.ts
+  natal meaning map v3
+    ✓ uses one clear product hierarchy instead of nested natal and category tabs (1 ms)
+    ✓ keeps foundation, five directions, focused answers, and one premium block per direction (1 ms)
+    ✓ uses real chart evidence and explains birth-time accuracy without changing calculation
+    ✓ makes custom questions contextual and keeps answers tied to evidence (1 ms)
+    ✓ keeps the UI monochrome except for the six navigation circles (1 ms)
+
+PASS __tests__/natal-mobile-interaction-contract.test.ts
+  natal mobile interaction contract
+    ✓ keeps both natal tab rows fixed to their layout and disables zoom only in the app (3 ms)
+
+PASS __tests__/natal-reading-variant.test.ts
+  admin natal reading variant
+    ✓ always keeps non-admin users in safe auto mode (1 ms)
+    ✓ stores an admin choice separately for every user
+    ✓ uses classic as the auto fallback and catalog only when it is ready (1 ms)
+
+PASS __tests__/natal-reading-variant-ui-contract.test.ts
+  natal reading variant UI contract
+    ✓ keeps the switch inside the admin-only developer settings screen (1 ms)
+    ✓ renders classic, forced catalog and cache-aware auto without a mid-reading swap
+
+PASS __tests__/natal-catalog-repair-diagnostics.test.ts
+  natal catalog semantic repair diagnostics
+    ✓ uses three semantic attempts and field-specific safe issue codes
+    ✓ logs only identifiers and issue codes and explains every repair class
+
+Test Suites: 1 failed, 6 passed, 7 total
+Tests:       1 failed, 112 passed, 113 total
+Snapshots:   0 total
+Time:        1.747 s
+Ran all test suites matching __tests__/natal-meaning-map-v3.test.ts|__tests__/natal-reading-variant.test.ts|__tests__/natal-reading-variant-ui-contract.test.ts|__tests__/natal-catalog-contract.test.ts|__tests__/natal-catalog-repair-diagnostics.test.ts|__tests__/natal-question-policy.test.ts|__tests__/natal-mobile-interaction-contract.test.ts.
+
+===== TYPESCRIPT =====
+views/v2/NatalMagazine.tsx(142,24): error TS2345: Argument of type '"map" | "reading" | "ask" | "questions" | "foundation" | "explore" | undefined' is not assignable to parameter of type 'never'.
+  Type 'undefined' is not assignable to type 'never'.
+
+===== PRODUCTION BUILD =====
+
+> copy-of-astrot---soulful-astrology@0.0.0 build
+> next build
+
+⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+   ▲ Next.js 15.5.14
+
+   Skipping linting
+   Checking validity of types ...
+Failed to compile.
+
+./views/v2/NatalMagazine.tsx:142:24
+Type error: Argument of type '"map" | "reading" | "ask" | "questions" | "foundation" | "explore" | undefined' is not assignable to parameter of type 'never'.
+  Type 'undefined' is not assignable to type 'never'.
+
+[0m [90m 140 |[39m   })[33m;[39m
+ [90m 141 |[39m   [36mconst[39m [activeTab[33m,[39m setActiveTab] [33m=[39m useState[33m<[39m[33mNatalScreenTab[39m[33m>[39m(() [33m=>[39m normalizeNatalScreenTab(
+[31m[1m>[22m[39m[90m 142 |[39m     previewTabToScreen(previewConfig[33m?[39m[33m.[39minitialTab[33m,[39m [33mBoolean[39m(previewConfig[33m?[39m[33m.[39mopenQuestion))[33m,[39m
+ [90m     |[39m                        [31m[1m^[22m[39m
+ [90m 143 |[39m     isSavedPerson[33m,[39m
+ [90m 144 |[39m   ))[33m;[39m
+ [90m 145 |[39m   [36mconst[39m [questionContext[33m,[39m setQuestionContext] [33m=[39m useState[33m<[39m[33mNatalReportCategoryKey[39m[33m>[39m([32m'main'[39m)[33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: null
