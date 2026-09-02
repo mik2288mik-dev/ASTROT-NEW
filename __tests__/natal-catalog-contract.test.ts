@@ -13,6 +13,7 @@ import {
 } from '../lib/natalReading/reportCatalog';
 import {
   buildNatalReportCategorySchema,
+  generateNatalReportCategoryPack,
   hasNatalReportCatalogCopyViolation,
   isNatalReportMainSummaryLengthAllowed,
   NATAL_REPORT_MAIN_SUMMARY_MAX_CHARS,
@@ -21,6 +22,7 @@ import {
 import {
   buildNatalReportCatalogContext,
   resolveNatalReportAnswerEvidence,
+  resolveNatalReportCategoryEvidence,
 } from '../lib/natalReading/reportCatalogEvidence';
 
 const profile: UserProfile = {
@@ -125,6 +127,70 @@ describe('natal report catalog contract', () => {
     expect(schema.properties.free_answers.maxItems).toBe(2);
     expect(schema.properties.previews.items.properties.preview.maxLength).toBe(150);
     expect(schema.properties.observations.items.properties.text.maxLength).toBe(150);
+    expect(schema.properties.summary.items.properties.text.minLength).toBe(200);
+    expect(schema.properties.summary.items.properties.text.maxLength).toBe(210);
+  });
+
+  it('repairs a schema-shaped Main candidate that is too short before returning it', async () => {
+    const built = buildNatalReportCatalogContext(profile, chart);
+    const plans = resolveNatalReportCategoryEvidence(built, 'main');
+    const planByKey = new Map(plans.map((plan) => [plan.answerKey, plan]));
+    const freeKeys = getNatalReportCategory('main')!.answerKeys.filter(isNatalReportAnswerFree);
+    const valid = {
+      summary: ['а', 'б', 'в'].map((letter) => ({
+        text: letter.repeat(200),
+        evidence_ids: [plans[0].evidenceIds[0]],
+      })),
+      observations: ['г', 'д', 'е', 'ж', 'з'].map((letter) => ({
+        text: letter.repeat(40),
+        evidence_ids: [plans[0].evidenceIds[0]],
+      })),
+      previews: NATAL_REPORT_MAIN_PREVIEW_KEYS.map((answerKey, index) => ({
+        answer_key: answerKey,
+        preview: 'Обычный личный вывод без лишних слов и обещаний, вариант номер ' + index + '.',
+        evidence_ids: [planByKey.get(answerKey)!.evidenceIds[0]],
+      })),
+      free_answers: freeKeys.map((answerKey) => {
+        const plan = planByKey.get(answerKey)!;
+        return {
+          answer_key: answerKey,
+          paragraphs: ['и', 'к', 'л'].map((letter, index) => ({
+            text: letter.repeat(45) + String(index),
+            evidence_ids: index === 0 ? plan.requiredEvidenceIds : [plan.evidenceIds[0]],
+          })),
+        };
+      }),
+    };
+    const tooShort = {
+      ...valid,
+      summary: valid.summary.map((statement) => ({
+        ...statement,
+        text: statement.text.slice(0, 100),
+      })),
+    };
+    const prompts: string[] = [];
+    const requestStructured = jest.fn(async (request: { input: string }) => {
+      prompts.push(request.input);
+      return {
+        content: JSON.stringify(prompts.length === 1 ? tooShort : valid),
+        responseId: 'test-response',
+        inputTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+      };
+    });
+
+    const report = await generateNatalReportCategoryPack({
+      profile,
+      chart,
+      categoryKey: 'main',
+      requestStructured,
+    });
+
+    expect(requestStructured).toHaveBeenCalledTimes(2);
+    expect(prompts[1]).toContain('REPAIR REQUIRED');
+    expect(prompts[1]).toContain('SUMMARY_TOTAL_TOO_SHORT:300');
+    expect(report.summary.reduce((sum, item) => sum + item.text.length, 0)).toBe(600);
   });
 
   it('blocks report jargon in Russian and English without matching ordinary words by substring', () => {

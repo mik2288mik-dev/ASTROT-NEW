@@ -62,6 +62,14 @@ const CHANGING_TIME_COPY = /(?:(?:^|[^\p{L}])(?:сегодня|завтра|ск
 
 export const NATAL_REPORT_MAIN_SUMMARY_MIN_CHARS = 600;
 export const NATAL_REPORT_MAIN_SUMMARY_MAX_CHARS = 1050;
+const NATAL_REPORT_MAIN_PARAGRAPH_MIN_CHARS = 200;
+const NATAL_REPORT_MAIN_PARAGRAPH_MAX_CHARS = 210;
+const NATAL_REPORT_SEMANTIC_ATTEMPTS = 2;
+
+type StructuredRequester = Exclude<
+  NonNullable<Parameters<typeof callStructuredWithBudgetRetry>[3]>['request'],
+  undefined
+>;
 
 function text(value: unknown): string {
   return String(value ?? '').trim();
@@ -223,7 +231,10 @@ export function buildNatalReportCategorySchema(
         type: 'array',
         minItems: isMain ? 3 : 0,
         maxItems: isMain ? 5 : 0,
-        items: statementSchema(45, 300),
+        items: statementSchema(
+          isMain ? NATAL_REPORT_MAIN_PARAGRAPH_MIN_CHARS : 45,
+          isMain ? NATAL_REPORT_MAIN_PARAGRAPH_MAX_CHARS : 300,
+        ),
       },
       observations: {
         type: 'array',
@@ -292,6 +303,8 @@ export function getNatalReportCatalogSystemPrompt(language: 'ru' | 'en'): string
 - Не используй универсальные формулы вроде «чувствуешь глубже, чем показываешь», «снаружи один, внутри другой» или «тебя не всегда понимают».
  - Preview — одно короткое законченное предложение с персональным выводом. Полный ответ — 3–5 коротких абзацев, первый абзац самый сильный.
 - Каждый текст возвращает только разрешённые evidence_ids и не печатает их для читателя.
+- Верни каждый указанный answer_key ровно один раз, без пропусков и дублей.
+- В полном бесплатном ответе сумма evidence_ids всех абзацев обязана включать каждый required_evidence_id этого ответа.
 - Ответ только JSON, без Markdown.`
     : `TASK
 - Write directly, vividly, and in ordinary words. Address the reader as “you”.
@@ -301,6 +314,8 @@ export function getNatalReportCatalogSystemPrompt(language: 'ru' | 'en'): string
 - Avoid universal formulas such as “you feel more deeply than you show” or “one way outside, another inside”.
  - A preview is one short, complete sentence with a personal conclusion. A full answer is 3–5 short paragraphs, with the strongest paragraph first.
 - Every text returns only allowed evidence_ids and never prints them for the reader.
+- Return every listed answer_key exactly once, with no omissions or duplicates.
+- Across a full free answer, paragraph evidence_ids must include every required_evidence_id for that answer.
 - Return JSON only, with no Markdown.`;
   return `${getAppSystemVoice(language)}\n\n${rules}`;
 }
@@ -322,11 +337,13 @@ export function buildNatalReportCategoryPrompt(input: {
     ? `${isMain
       ? `Напиши общий разбор на 40–60 секунд чтения: 3–5 коротких абзацев summary, суммарно ${NATAL_REPORT_MAIN_SUMMARY_MIN_CHARS}–${NATAL_REPORT_MAIN_SUMMARY_MAX_CHARS} знаков, ровно 5 коротких наблюдений и два полных бесплатных ответа.`
       : 'Для каждого вопроса напиши персональный preview. Затем напиши один полный бесплатный ответ, указанный в каталоге.'}
+Для main каждый абзац summary содержит 200–210 знаков.
 Preview не пересказывает название и не обрывается рекламной интригой. Закрытый preview даёт настоящий вывод, но не весь разбор.
 В каждом полном ответе 3–5 коротких абзацев. Не добавляй совет в конце.`
     : `${isMain
       ? `Write a 40–60 second main reading: 3–5 short summary paragraphs, ${NATAL_REPORT_MAIN_SUMMARY_MIN_CHARS}–${NATAL_REPORT_MAIN_SUMMARY_MAX_CHARS} characters total, exactly 5 short observations, and both full free answers.`
       : 'Write a personal preview for every question, then the single full free answer marked in the catalog.'}
+For main, every summary paragraph contains 200–210 characters.
 A preview does not repeat the title and does not end with an advertising cliffhanger. A locked preview gives a real conclusion, not the whole answer.
 Every full answer has 3–5 short paragraphs. Do not add advice at the end.`;
   const anchor = input.mainAnchor && input.categoryKey !== 'main'
@@ -381,6 +398,136 @@ function parseJson<T>(value: string): T {
   }
 }
 
+export function getNatalReportCategoryValidationIssues(input: {
+  raw: RawNatalReportCategoryPayload;
+  built: BuiltNatalModelContext;
+  categoryKey: NatalReportCategoryKey;
+}): string[] {
+  const issues: string[] = [];
+  const category = getNatalReportCategory(input.categoryKey);
+  if (!category) return ['CATEGORY_UNKNOWN'];
+  const isMain = input.categoryKey === 'main';
+  const plans = resolveNatalReportCategoryEvidence(input.built, input.categoryKey);
+  const planByKey = new Map(plans.map((plan) => [plan.answerKey, plan]));
+  const summary = Array.isArray(input.raw.summary) ? input.raw.summary : [];
+  const observations = Array.isArray(input.raw.observations) ? input.raw.observations : [];
+  const previews = Array.isArray(input.raw.previews) ? input.raw.previews : [];
+  const freeAnswers = Array.isArray(input.raw.free_answers) ? input.raw.free_answers : [];
+  const summaryLength = summary.reduce((sum, statement) => sum + text(statement?.text).length, 0);
+
+  if (isMain && summaryLength < NATAL_REPORT_MAIN_SUMMARY_MIN_CHARS) {
+    issues.push('SUMMARY_TOTAL_TOO_SHORT:' + summaryLength);
+  }
+  if (isMain && summaryLength > NATAL_REPORT_MAIN_SUMMARY_MAX_CHARS) {
+    issues.push('SUMMARY_TOTAL_TOO_LONG:' + summaryLength);
+  }
+  if (
+    (isMain && summary.some((statement) => {
+      const length = text(statement?.text).length;
+      return length < NATAL_REPORT_MAIN_PARAGRAPH_MIN_CHARS
+        || length > NATAL_REPORT_MAIN_PARAGRAPH_MAX_CHARS;
+    }))
+    || (!isMain && summary.length !== 0)
+  ) {
+    issues.push('SUMMARY_SHAPE_INVALID');
+  }
+  if (
+    (isMain && observations.length !== 5)
+    || (!isMain && observations.length !== 0)
+  ) {
+    issues.push('OBSERVATION_COUNT_INVALID');
+  }
+
+  const expectedPreviewKeys: readonly NatalReportAnswerKey[] = isMain
+    ? NATAL_REPORT_MAIN_PREVIEW_KEYS
+    : category.answerKeys;
+  const actualPreviewKeys = previews.map((preview) => text(preview?.answer_key));
+  if (
+    actualPreviewKeys.length !== expectedPreviewKeys.length
+    || new Set(actualPreviewKeys).size !== expectedPreviewKeys.length
+    || expectedPreviewKeys.some((key) => !actualPreviewKeys.includes(key))
+  ) {
+    issues.push('PREVIEW_KEYS_INVALID');
+  }
+
+  const expectedFreeKeys = category.answerKeys.filter(isNatalReportAnswerFree);
+  const actualFreeKeys = freeAnswers.map((answer) => text(answer?.answer_key));
+  if (
+    actualFreeKeys.length !== expectedFreeKeys.length
+    || new Set(actualFreeKeys).size !== expectedFreeKeys.length
+    || expectedFreeKeys.some((key) => !actualFreeKeys.includes(key))
+  ) {
+    issues.push('FREE_ANSWER_KEYS_INVALID');
+  }
+  for (const answerKey of expectedFreeKeys) {
+    const rawAnswer = freeAnswers.find((answer) => text(answer?.answer_key) === answerKey);
+    const plan = planByKey.get(answerKey);
+    if (!rawAnswer || !plan || !Array.isArray(rawAnswer.paragraphs)) continue;
+    const usedIds = new Set(rawAnswer.paragraphs.flatMap((paragraph) => (
+      Array.isArray(paragraph?.evidence_ids)
+        ? paragraph.evidence_ids.map(text).filter(Boolean)
+        : []
+    )));
+    const missingCount = plan.requiredEvidenceIds.filter((id) => !usedIds.has(id)).length;
+    if (missingCount > 0) {
+      issues.push('FREE_ANSWER_REQUIRED_EVIDENCE_MISSING:' + answerKey + ':' + missingCount);
+    }
+  }
+
+  const copyValues = [
+    ...summary.map((statement) => text(statement?.text)),
+    ...observations.map((statement) => text(statement?.text)),
+    ...previews.map((preview) => text(preview?.preview)),
+    ...freeAnswers.flatMap((answer) => (
+      Array.isArray(answer?.paragraphs)
+        ? answer.paragraphs.map((paragraph) => text(paragraph?.text))
+        : []
+    )),
+  ].filter(Boolean);
+  if (copyValues.some((value) => !isCopyAllowed(value, input.built))) {
+    issues.push('COPY_OR_RELIABILITY_VIOLATION');
+  }
+  return unique(issues);
+}
+
+export function getNatalReportAnswerValidationIssues(input: {
+  raw: RawNatalReportAnswerPayload;
+  built: BuiltNatalModelContext;
+  answerKey: NatalReportAnswerKey;
+}): string[] {
+  const issues: string[] = [];
+  const plan = resolveNatalReportAnswerEvidence(input.built, input.answerKey);
+  if (text(input.raw.answer_key) !== input.answerKey) issues.push('ANSWER_KEY_INVALID');
+  const paragraphs = Array.isArray(input.raw.paragraphs) ? input.raw.paragraphs : [];
+  if (paragraphs.length < 3 || paragraphs.length > 5) issues.push('PARAGRAPH_COUNT_INVALID');
+  const usedIds = new Set(paragraphs.flatMap((paragraph) => (
+    Array.isArray(paragraph?.evidence_ids)
+      ? paragraph.evidence_ids.map(text).filter(Boolean)
+      : []
+  )));
+  const missingCount = plan.requiredEvidenceIds.filter((id) => !usedIds.has(id)).length;
+  if (missingCount > 0) issues.push('REQUIRED_EVIDENCE_MISSING:' + missingCount);
+  if (paragraphs.some((paragraph) => !isCopyAllowed(text(paragraph?.text), input.built))) {
+    issues.push('COPY_OR_RELIABILITY_VIOLATION');
+  }
+  return unique(issues);
+}
+
+function buildSemanticRepairPrompt(
+  prompt: string,
+  issues: readonly string[],
+  language: 'ru' | 'en',
+): string {
+  const instruction = language === 'ru'
+    ? '\n\nREPAIR REQUIRED:\nПредыдущий вариант не прошёл серверную проверку: '
+      + JSON.stringify(issues)
+      + '. Напиши весь JSON заново. Исправь каждую причину, сохрани только разрешённые evidence_ids и не копируй предыдущий текст.'
+    : '\n\nREPAIR REQUIRED:\nThe previous candidate failed server validation: '
+      + JSON.stringify(issues)
+      + '. Rewrite the complete JSON. Fix every issue, keep only allowed evidence_ids, and do not copy the previous wording.';
+  return prompt + instruction;
+}
+
 export function materializeNatalReportCategoryPack(input: {
   raw: RawNatalReportCategoryPayload;
   built: BuiltNatalModelContext;
@@ -404,7 +551,11 @@ export function materializeNatalReportCategoryPack(input: {
     || (!isMain && input.raw.observations.length !== 0)
   ) return null;
   const summary = input.raw.summary.map((statement) => (
-    parseStatement(statement, allowedAll, input.built, { min: 45, max: 300, maxSentences: 2 })
+    parseStatement(statement, allowedAll, input.built, {
+      min: isMain ? NATAL_REPORT_MAIN_PARAGRAPH_MIN_CHARS : 45,
+      max: isMain ? NATAL_REPORT_MAIN_PARAGRAPH_MAX_CHARS : 300,
+      maxSentences: 2,
+    })
   ));
   const observations = input.raw.observations.map((statement) => (
     parseStatement(statement, allowedAll, input.built, { min: 35, max: 150, maxSentences: 1 })
@@ -500,34 +651,51 @@ export async function generateNatalReportCategoryPack(input: {
   chart: NatalChartData | NatalChartDataV2;
   categoryKey: NatalReportCategoryKey;
   mainAnchor?: NatalReportCategoryPack | null;
+  requestStructured?: StructuredRequester;
 }): Promise<NatalReportCategoryPack> {
   const language: 'ru' | 'en' = input.profile.language === 'en' ? 'en' : 'ru';
   const built = buildNatalReportCatalogContext(input.profile, input.chart);
-  const { result } = await callStructuredWithBudgetRetry({
-    instructions: getNatalReportCatalogSystemPrompt(language),
-    input: buildNatalReportCategoryPrompt({
-      language,
-      built,
-      categoryKey: input.categoryKey,
-      mainAnchor: input.mainAnchor,
-    }),
-    maxOutputTokens: 2400,
-    store: false,
-    reasoningEffort: 'low',
-    verbosity: 'low',
-    schemaName: `natal_report_category_${input.categoryKey}`,
-    schema: buildNatalReportCategorySchema(input.categoryKey),
-  }, [2400, 3600], undefined, {
-    incompleteErrorCode: 'NATAL_REPORT_CATEGORY_PROVIDER_INCOMPLETE',
-  });
-  const report = materializeNatalReportCategoryPack({
-    raw: parseJson<RawNatalReportCategoryPayload>(result.content),
+  const basePrompt = buildNatalReportCategoryPrompt({
+    language,
     built,
     categoryKey: input.categoryKey,
-    language,
+    mainAnchor: input.mainAnchor,
   });
-  if (!report) throw new Error('NATAL_REPORT_CATEGORY_VALIDATION_FAILED');
-  return report;
+  let validationIssues: string[] = [];
+  for (let attempt = 1; attempt <= NATAL_REPORT_SEMANTIC_ATTEMPTS; attempt += 1) {
+    const { result } = await callStructuredWithBudgetRetry({
+      instructions: getNatalReportCatalogSystemPrompt(language),
+      input: attempt === 1
+        ? basePrompt
+        : buildSemanticRepairPrompt(basePrompt, validationIssues, language),
+      maxOutputTokens: 2400,
+      store: false,
+      reasoningEffort: 'low',
+      verbosity: 'low',
+      schemaName: 'natal_report_category_' + input.categoryKey,
+      schema: buildNatalReportCategorySchema(input.categoryKey),
+    }, [2400, 3600], undefined, {
+      incompleteErrorCode: 'NATAL_REPORT_CATEGORY_PROVIDER_INCOMPLETE',
+      request: input.requestStructured,
+    });
+    const raw = parseJson<RawNatalReportCategoryPayload>(result.content);
+    const report = materializeNatalReportCategoryPack({
+      raw,
+      built,
+      categoryKey: input.categoryKey,
+      language,
+    });
+    if (report) return report;
+    validationIssues = getNatalReportCategoryValidationIssues({
+      raw,
+      built,
+      categoryKey: input.categoryKey,
+    });
+    if (validationIssues.length === 0) validationIssues = ['SEMANTIC_CONTRACT_INVALID'];
+  }
+  throw new Error(
+    'NATAL_REPORT_CATEGORY_VALIDATION_FAILED:' + validationIssues.join(','),
+  );
 }
 
 export async function generateNatalReportAnswer(input: {
@@ -536,33 +704,50 @@ export async function generateNatalReportAnswer(input: {
   answerKey: NatalReportAnswerKey;
   preview?: string | null;
   mainAnchor?: NatalReportCategoryPack | null;
+  requestStructured?: StructuredRequester;
 }): Promise<NatalReportAnswer> {
   const language: 'ru' | 'en' = input.profile.language === 'en' ? 'en' : 'ru';
   const built = buildNatalReportCatalogContext(input.profile, input.chart);
-  const { result } = await callStructuredWithBudgetRetry({
-    instructions: getNatalReportCatalogSystemPrompt(language),
-    input: buildNatalReportAnswerPrompt({
-      language,
-      built,
-      answerKey: input.answerKey,
-      preview: input.preview,
-      mainAnchor: input.mainAnchor,
-    }),
-    maxOutputTokens: 1400,
-    store: false,
-    reasoningEffort: 'low',
-    verbosity: 'low',
-    schemaName: `natal_report_answer_${input.answerKey}`,
-    schema: buildNatalReportAnswerSchema(input.answerKey),
-  }, [1400, 2200], undefined, {
-    incompleteErrorCode: 'NATAL_REPORT_ANSWER_PROVIDER_INCOMPLETE',
-  });
-  const report = materializeNatalReportAnswer({
-    raw: parseJson<RawNatalReportAnswerPayload>(result.content),
+  const basePrompt = buildNatalReportAnswerPrompt({
+    language,
     built,
     answerKey: input.answerKey,
-    language,
+    preview: input.preview,
+    mainAnchor: input.mainAnchor,
   });
-  if (!report) throw new Error('NATAL_REPORT_ANSWER_VALIDATION_FAILED');
-  return report;
+  let validationIssues: string[] = [];
+  for (let attempt = 1; attempt <= NATAL_REPORT_SEMANTIC_ATTEMPTS; attempt += 1) {
+    const { result } = await callStructuredWithBudgetRetry({
+      instructions: getNatalReportCatalogSystemPrompt(language),
+      input: attempt === 1
+        ? basePrompt
+        : buildSemanticRepairPrompt(basePrompt, validationIssues, language),
+      maxOutputTokens: 1400,
+      store: false,
+      reasoningEffort: 'low',
+      verbosity: 'low',
+      schemaName: 'natal_report_answer_' + input.answerKey,
+      schema: buildNatalReportAnswerSchema(input.answerKey),
+    }, [1400, 2200], undefined, {
+      incompleteErrorCode: 'NATAL_REPORT_ANSWER_PROVIDER_INCOMPLETE',
+      request: input.requestStructured,
+    });
+    const raw = parseJson<RawNatalReportAnswerPayload>(result.content);
+    const report = materializeNatalReportAnswer({
+      raw,
+      built,
+      answerKey: input.answerKey,
+      language,
+    });
+    if (report) return report;
+    validationIssues = getNatalReportAnswerValidationIssues({
+      raw,
+      built,
+      answerKey: input.answerKey,
+    });
+    if (validationIssues.length === 0) validationIssues = ['SEMANTIC_CONTRACT_INVALID'];
+  }
+  throw new Error(
+    'NATAL_REPORT_ANSWER_VALIDATION_FAILED:' + validationIssues.join(','),
+  );
 }

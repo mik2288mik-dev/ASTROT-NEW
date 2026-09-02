@@ -2420,6 +2420,7 @@ html, body {
   height: var(--tg-viewport-stable-height, 100dvh);
   min-height: var(--tg-viewport-stable-height, 100dvh);
   max-height: var(--tg-viewport-stable-height, 100dvh);
+  touch-action: pan-x pan-y;
 }
 
 /* Telegram Mini App / iPhone safe-area: use env() when viewport-fit=cover is set */

@@ -26,6 +26,7 @@ export function EditorialTabs<T extends string>({
       className={['editorial-tabs', className].filter(Boolean).join(' ')}
       role="group"
       aria-label={label}
+      style={{ '--editorial-tab-count': tabs.length } as React.CSSProperties}
     >
       {tabs.map((tab) => {
         const active = tab.id === activeTab;

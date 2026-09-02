@@ -169,7 +169,7 @@
 }
 
 .natal-editorial-page .natal-editorial-tabs {
-  --editorial-tab-count: 4;
+  transform: none;
 }
 
 .natal-map-stage,
@@ -469,7 +469,6 @@
 }
 
 .fresh-page.natal-mvp-page .natal-editorial-tabs {
-  --editorial-tab-count: 4;
   min-height: 58px;
 }
 
@@ -4111,58 +4110,40 @@
 }
 
 .fresh-page.natal-mvp-page .natal-catalog-tabs-wrap {
-  position: sticky;
-  top: calc(
-    max(
-      env(safe-area-inset-top, 0px),
-      var(--tg-safe-area-inset-top, 0px),
-      var(--tg-content-safe-area-inset-top, 0px),
-      18px
-    )
-    + 54px
-  );
-  z-index: 45;
+  position: static;
   box-sizing: border-box;
   width: 100%;
   border-bottom: 1px solid var(--natal-mvp-line);
-  background: rgba(255, 255, 255, 0.97);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
-  backdrop-filter: blur(14px) saturate(1.1);
+  background: #fff;
 }
 
 .fresh-page.natal-mvp-page .natal-catalog-tabs {
-  display: flex;
+  display: grid;
+  box-sizing: border-box;
   width: 100%;
   max-width: 620px;
   min-height: 52px;
   align-items: stretch;
-  gap: 24px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0;
   margin: 0 auto;
   padding: 0 22px;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: none;
-  scroll-padding-inline: 22px;
-  -webkit-overflow-scrolling: touch;
-}
-
-.fresh-page.natal-mvp-page .natal-catalog-tabs::-webkit-scrollbar {
-  display: none;
+  overflow: visible;
 }
 
 .fresh-page.natal-mvp-page .natal-catalog-tabs > button {
   position: relative;
-  min-width: max-content;
+  min-width: 0;
   min-height: 52px;
-  flex: 0 0 auto;
-  padding: 3px 0 0;
+  padding: 3px 2px 0;
   border: 0;
   background: transparent;
   color: var(--natal-mvp-muted);
   font: inherit;
-  font-size: 14px;
+  font-size: clamp(10px, 3vw, 12px);
   font-weight: 560;
   line-height: 1.2;
+  white-space: normal;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -4867,7 +4848,7 @@
   }
 
   .fresh-page.natal-mvp-page .natal-catalog-tabs {
-    gap: 21px;
+    gap: 0;
   }
 
   .fresh-page.natal-mvp-page .natal-catalog-category-heading {

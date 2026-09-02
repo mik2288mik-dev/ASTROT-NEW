@@ -144,6 +144,19 @@ const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
 const STARTUP_SAFETY_TIMEOUT_MS = 12_000;
 const STARTUP_PROFILE_FETCH_TIMEOUT_MS = 8_000;
 
+function useDisableAppZoom(): void {
+    useEffect(() => {
+        const preventGestureZoom = (event: Event) => event.preventDefault();
+        const options: AddEventListenerOptions = { passive: false };
+        document.addEventListener('gesturestart', preventGestureZoom, options);
+        document.addEventListener('gesturechange', preventGestureZoom, options);
+        return () => {
+            document.removeEventListener('gesturestart', preventGestureZoom);
+            document.removeEventListener('gesturechange', preventGestureZoom);
+        };
+    }, []);
+}
+
 function firstValueStorageKey(userId: string | number): string {
     return `lumia.firstValue.today.${String(userId)}`;
 }
@@ -347,6 +360,7 @@ function loadStartupPersonalForecasts(
 }
 
 const App: React.FC = () => {
+    useDisableAppZoom();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
     const [chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');

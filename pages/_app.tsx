@@ -29,12 +29,15 @@ if (typeof window !== 'undefined') {
   installRuntimeDiagnostics();
 }
 
-export default function App({ Component, pageProps }: AppProps) {
+export default function App({ Component, pageProps, router }: AppProps) {
+  const viewport = router.pathname === '/'
+    ? 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
+    : 'width=device-width, initial-scale=1, viewport-fit=cover';
   // Database migrations are handled during build process (npm run migrate)
   return (
     <>
       <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="viewport" content={viewport} />
       </Head>
       {/* Global hand-drawn SVG filter defs for the doodle skin (visual-only) */}
       <DoodleDefs />

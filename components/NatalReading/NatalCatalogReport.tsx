@@ -241,7 +241,6 @@ export const NatalCatalogReport: React.FC<Props> = ({
   const [focusRequestId, setFocusRequestId] = useState(0);
   const firstResultIdentityRef = useRef('');
   const handledContinuationRef = useRef('');
-  const categoryTabRefs = useRef<Partial<Record<NatalReportCategoryKey, HTMLButtonElement | null>>>({});
 
   const activeCategoryPack = categoryPacks[activeCategory] || null;
   const selectedAnswer = selectedAnswerKey ? answers[selectedAnswerKey] || null : null;
@@ -299,11 +298,6 @@ export const NatalCatalogReport: React.FC<Props> = ({
     if (!storageReady) return;
     writeStoredAnswerKey(`${storageScope}:last-read`, lastReadAnswerKey);
   }, [lastReadAnswerKey, storageReady, storageScope]);
-
-  useEffect(() => {
-    const activeTab = categoryTabRefs.current[activeCategory];
-    activeTab?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
-  }, [activeCategory]);
 
   useEffect(() => {
     if (previewFixture) {
@@ -652,7 +646,9 @@ export const NatalCatalogReport: React.FC<Props> = ({
     const next = NATAL_REPORT_CATEGORIES[nextIndex];
     if (!next) return;
     selectCategory(next.key);
-    requestAnimationFrame(() => categoryTabRefs.current[next.key]?.focus());
+    requestAnimationFrame(() => {
+      document.getElementById(`natal-catalog-tab-${next.key}`)?.focus();
+    });
   };
 
   const continueReading = useCallback(() => {
@@ -701,7 +697,6 @@ export const NatalCatalogReport: React.FC<Props> = ({
               <button
                 key={category.key}
                 id={`natal-catalog-tab-${category.key}`}
-                ref={(node) => { categoryTabRefs.current[category.key] = node; }}
                 type="button"
                 role="tab"
                 aria-selected={activeCategory === category.key}
