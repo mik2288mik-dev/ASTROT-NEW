@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
 import {
-  NATAL_REPORT_ANSWER_COUNT,
   getNatalReportAnswer,
   getNatalReportCategory,
   isNatalReportAnswerFree,
@@ -830,8 +829,8 @@ export const NatalMeaningExperience: React.FC<Props> = ({
                   ) : null}
                   <small>
                     {language === 'ru'
-                      ? `Один Premium открывает все ${NATAL_REPORT_ANSWER_COUNT} ответов в натальной карте.`
-                      : `One Premium opens all ${NATAL_REPORT_ANSWER_COUNT} birth-chart answers.`}
+                      ? 'После открытия здесь будут все ответы по этой карте.'
+                      : 'Once opened, all answers for this chart will be here.'}
                   </small>
                 </section>
               ) : null}

@@ -164,13 +164,13 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
   const value = error as HumanReadingError;
   if (value?.code === 'PREMIUM_REQUIRED') {
     return language === 'ru'
-      ? 'Вопросы по карте доступны в Premium.'
-      : 'Questions about the chart are available with Premium.';
+      ? 'Эта часть пока закрыта. Открой вопросы, чтобы продолжить.'
+      : 'This part is locked for now. Open questions to continue.';
   }
   if (value?.code === 'FREE_NATAL_QUESTION_USED') {
     return language === 'ru'
-      ? 'Бесплатный вопрос уже использован. В Premium можно задавать до 5 новых вопросов в день.'
-      : 'Your free question has already been used. Premium includes up to 5 new questions a day.';
+      ? 'Первый вопрос уже использован. Открой вопросы, чтобы продолжить.'
+      : 'Your first question has been used. Open questions to continue.';
   }
   if (value?.code === 'NATAL_QUESTION_DAILY_LIMIT') {
     return language === 'ru'
@@ -360,11 +360,11 @@ export const NatalQuestionExperience: React.FC<Props> = ({
       : questionLimitReached
         ? (isPremium
             ? (language === 'ru' ? 'На сегодня вопросы закончились.' : 'You have used today\'s questions.')
-            : (language === 'ru' ? 'Бесплатный вопрос уже использован.' : 'Your free question has already been used.'))
+            : (language === 'ru' ? 'Первый вопрос уже использован.' : 'Your first question has been used.'))
         : remainingQuestions != null
           ? (isPremium
               ? (language === 'ru' ? `Осталось сегодня: ${remainingQuestions}` : `Remaining today: ${remainingQuestions}`)
-              : (language === 'ru' ? 'Первый полный ответ — бесплатно.' : 'Your first full answer is free.'))
+              : (language === 'ru' ? 'Можно задать первый вопрос.' : 'You can ask your first question.'))
           : (language === 'ru' ? 'Ответ сохранится здесь.' : 'The answer will stay here.');
 
   return (
@@ -422,14 +422,14 @@ export const NatalQuestionExperience: React.FC<Props> = ({
 
       {!isPremium && snapshot?.access.freeQuestionRemaining === 0 && !unansweredQuestionText ? (
         <section className="natal-v3-question-paywall" aria-labelledby="natal-v3-question-paywall-title">
-          <p>{language === 'ru' ? 'Бесплатный вопрос использован' : 'Free question used'}</p>
+          <p>{language === 'ru' ? 'Первый вопрос уже использован' : 'First question used'}</p>
           <h2 id="natal-v3-question-paywall-title">
             {language === 'ru' ? 'Продолжай спрашивать по своей карте' : 'Keep asking about your chart'}
           </h2>
           <span>
             {language === 'ru'
-              ? 'Premium даёт до 5 новых вопросов в день и сохраняет историю ответов.'
-              : 'Premium includes up to 5 new questions a day and keeps your answer history.'}
+              ? 'Можно задавать до 5 новых вопросов в день. История ответов останется здесь.'
+              : 'You can ask up to 5 new questions a day. Your answer history stays here.'}
           </span>
           <button
             id="natal-question-premium-button"

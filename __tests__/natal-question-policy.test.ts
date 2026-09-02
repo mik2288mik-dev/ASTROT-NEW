@@ -228,8 +228,11 @@ describe('saved natal-chart question policy', () => {
     expect(report).toContain('money:');
     expect(report).toContain('type="button"');
     expect(report).toContain('setQuestionText(starter);');
-    expect(report).toContain('Первый полный ответ — бесплатно.');
+    expect(report).toContain('Можно задать первый вопрос.');
     expect(report).toMatch(/до 5 новых вопросов в день/iu);
+    expect(report).not.toContain('Первый полный ответ — бесплатно.');
+    expect(report).not.toContain('Вопросы по карте доступны в Premium.');
+    expect(report).not.toContain('Бесплатный вопрос уже использован.');
     expect(report).toContain('Не указывай документы, контакты, пароли, платёжные или медицинские данные.');
     expect(report).toContain('natal-v3-question-warning');
   });
