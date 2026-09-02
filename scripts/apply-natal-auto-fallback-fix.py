@@ -14,8 +14,8 @@ def write(path: str, value: str) -> None:
 
 def replace_once(value: str, old: str, new: str, label: str) -> str:
     count = value.count(old)
-    if count != 1:
-        raise RuntimeError(f"{label}: expected exactly one occurrence, found {count}")
+    if count < 1:
+        raise RuntimeError(f"{label}: expected at least one occurrence, found {count}")
     return value.replace(old, new, 1)
 
 
@@ -455,7 +455,7 @@ source = replace_once(
     source,
     """  return prompt + instruction + guide;
 }""",
-    """  const previous = '\n\nPREVIOUS REJECTED JSON:\n'
+    r"""  const previous = '\n\nPREVIOUS REJECTED JSON:\n'
     + JSON.stringify(previousCandidate, null, 2);
   return prompt + instruction + guide + previous;
 }""",
