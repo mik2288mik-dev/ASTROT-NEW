@@ -27,8 +27,8 @@ export default function PlanetInHousePage({ placement }: InferGetStaticPropsType
   const { planet, house, path } = placement;
   const related = relatedPlanetHousePlacements(placement);
   const title = `${planet.name} в ${house.name} натальной карты: значение`;
-  const description = `${planet.name} в ${house.name}: что означает положение в натальной карте, какие вопросы связывают с ${house.number}-м домом и как проверить свою карту.`;
-  const shortAnswer = `${planet.name} связывают с темой «${planet.meaning}», а ${house.number}-й дом — с темами «${house.meaning}». Такое положение читают как пересечение этих двух частей карты; знак планеты и аспекты дополнительно меняют контекст.`;
+  const description = `${planet.name} в ${house.name}: что обычно означает такое положение и как узнать свой дом в натальной карте.`;
+  const shortAnswer = `${planet.name} связывают с тем, ${planet.question}. ${house.number}-й дом показывает, где эта часть карты чаще становится заметной: ${house.meaning}.`;
 
   return (
     <PublicSeoPage
@@ -45,31 +45,31 @@ export default function PlanetInHousePage({ placement }: InferGetStaticPropsType
       ]}
       faq={[
         { question: `Что означает ${planet.name} в ${house.name}?`, answer: shortAnswer },
-        { question: `Как узнать дом ${planet.genitive.toLowerCase()}?`, answer: 'Нужно рассчитать натальную карту по дате, точному времени и месту рождения. Без времени рождения дома обычно нельзя определить надёжно.' },
-        { question: 'Дом и знак планеты — это одно и то же?', answer: 'Нет. Знак описывает способ выражения темы планеты, а дом — область жизненных вопросов. В полной карте учитывают оба параметра вместе.' },
+        { question: `Как узнать дом ${planet.genitive.toLowerCase()}?`, answer: 'Нужны дата, точное время и место рождения. Без времени дома карты нельзя определить надёжно.' },
+        { question: 'Дом и знак планеты — это одно и то же?', answer: 'Нет. Знак и дом показывают разные части карты, поэтому их смотрят вместе.' },
       ]}
       relatedLinks={related.map((item) => ({ href: item.path, label: `${item.planet.name} в ${item.house.name}` }))}
     >
       <section>
-        <h2>Что показывает {planet.name}</h2>
-        <p>В астрологической интерпретации {planet.name} связывают с тем, {planet.question}. Это символический способ читать карту, а не утверждение о физическом влиянии небесного тела на человека.</p>
+        <h2>За что отвечает {planet.name}</h2>
+        <p>{planet.name} обычно связывают с тем, {planet.question}.</p>
       </section>
 
       <section>
         <h2>Что показывает {house.number}-й дом</h2>
-        <p>{house.number}-й дом связывают с такими вопросами, как {house.meaning}. Дом определяется не только датой, но и временем и местом рождения.</p>
+        <p>{house.number}-й дом связывают с такими вопросами: {house.meaning}. Чтобы определить дома карты, нужны время и место рождения.</p>
       </section>
 
       <section>
-        <h2>Как читать сочетание</h2>
+        <h2>Что получается вместе</h2>
         <p>{shortAnswer}</p>
-        <p>Для полного чтения дополнительно смотрят знак, в котором находится {planet.name}, аспекты с другими планетами и положение управителя дома. Поэтому одинаковый дом одной планеты не делает две карты одинаковыми.</p>
+        <p>Чтобы увидеть картину точнее, посмотри ещё знак {planet.genitive.toLowerCase()} и его связи с другими планетами. Одно одинаковое положение не делает двух людей одинаковыми.</p>
       </section>
 
       <section>
-        <h2>Проверить свою карту</h2>
-        <p>Чтобы узнать дом {planet.genitive.toLowerCase()}, нужны дата, время и место рождения. Если время неизвестно, лучше не выдавать дом как точный результат.</p>
-        <p><Link href="/natalnaya-karta">Рассчитать натальную карту</Link></p>
+        <h2>Проверить у себя</h2>
+        <p>Чтобы узнать дом {planet.genitive.toLowerCase()}, укажи дату, точное время и место рождения.</p>
+        <p><Link href="/natalnaya-karta">Открыть натальную карту</Link></p>
         <ReleaseAction />
       </section>
     </PublicSeoPage>
