@@ -33,6 +33,8 @@ describe('natal reading variant UI contract', () => {
     expect(report).toContain('onUnavailable?: (error: unknown) => void;');
     expect(report).toContain('activeCategory === DEFAULT_CATEGORY');
     expect(report).toContain('notifyMainReady()');
-    expect(report).toContain('notifyMainUnavailable(loadError)');
+    expect(report).toMatch(
+      /activeCategory\s*===\s*DEFAULT_CATEGORY[\s\S]{0,180}notifyMainUnavailable\(loadError\)/,
+    );
   });
 });
