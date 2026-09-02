@@ -56,6 +56,43 @@ jobs:
             components/NatalReading/NatalCatalogReportBase.tsx \
             services/natalCatalogServiceBase.ts \
             lib/natalReading/reportCatalogGenerationBase.ts
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('scripts/apply-natal-direct-hotfix.py')
+          source = path.read_text(encoding='utf-8')
+          helper_anchor = '''def replace_once(content: str, old: str, new: str, label: str) -> str:
+              count = content.count(old)
+              if count != 1:
+                  raise RuntimeError(f"{label}: expected exactly one anchor, found {count}")
+              return content.replace(old, new, 1)
+          '''.replace('          ', '')
+          helper_replacement = helper_anchor + '''
+
+          def replace_first(content: str, old: str, new: str, label: str) -> str:
+              if old not in content:
+                  raise RuntimeError(f"{label}: anchor not found")
+              return content.replace(old, new, 1)
+          '''.replace('          ', '')
+          if helper_anchor not in source:
+              raise RuntimeError('replace_once helper anchor not found')
+          source = source.replace(helper_anchor, helper_replacement, 1)
+
+          def use_first_for_label(value: str, label: str) -> str:
+              label_index = value.index(f'"{label}",')
+              call_index = value.rfind('content = replace_once(', 0, label_index)
+              if call_index < 0:
+                  raise RuntimeError(f'{label}: replace_once call not found')
+              return value[:call_index] + value[call_index:].replace(
+                  'content = replace_once(',
+                  'content = replace_first(',
+                  1,
+              )
+
+          source = use_first_for_label(source, 'category generation state')
+          source = use_first_for_label(source, 'category repair call')
+          path.write_text(source, encoding='utf-8')
+          PY
           python3 -m py_compile scripts/apply-natal-direct-hotfix.py
           python3 scripts/apply-natal-direct-hotfix.py
 
