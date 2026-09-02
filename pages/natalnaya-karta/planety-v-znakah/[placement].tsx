@@ -27,8 +27,8 @@ export default function PlanetInSignPage({ placement }: InferGetStaticPropsType<
   const { planet, sign, path } = placement;
   const related = relatedPlanetSignPlacements(placement);
   const title = `${planet.name} в ${sign.prepositional} в натальной карте: значение`;
-  const description = `${planet.name} в ${sign.prepositional}: что означает это положение в натальной карте, как соединяются темы ${planet.genitive.toLowerCase()} и знака ${sign.name}, и как проверить своё положение.`;
-  const shortAnswer = `${planet.name} связывают с темой «${planet.meaning}», а знак ${sign.name} описывает способ её выражения. Поэтому это положение читают как сочетание значения ${planet.genitive.toLowerCase()} с характерными чертами знака ${sign.name}; окончательный вывод зависит и от дома, аспектов и остальных частей карты.`;
+  const description = `${planet.name} в ${sign.prepositional}: что обычно означает такое положение в натальной карте и как проверить его у себя.`;
+  const shortAnswer = `${planet.name} связывают с тем, ${planet.question}, а знак ${sign.name} добавляет к этому свои привычные черты. Это только одна часть карты — дом, другие планеты и связи между ними тоже важны.`;
 
   return (
     <PublicSeoPage
@@ -45,33 +45,33 @@ export default function PlanetInSignPage({ placement }: InferGetStaticPropsType<
       ]}
       faq={[
         { question: `Что означает ${planet.name} в ${sign.prepositional}?`, answer: shortAnswer },
-        { question: `Как узнать, находится ли ${planet.name} в ${sign.prepositional} у меня?`, answer: 'Нужно рассчитать натальную карту по дате рождения. Для домов также важны точное время и место рождения.' },
-        { question: 'Можно ли делать вывод по одному положению?', answer: 'Нет. Одно положение показывает только одну часть карты. Его обычно читают вместе с домом планеты, аспектами и другими рассчитанными точками.' },
+        { question: `Как узнать, где у меня ${planet.name}?`, answer: 'Построй натальную карту по дате рождения. Для домов дополнительно нужны время и место рождения.' },
+        { question: 'Можно ли судить о человеке по одному положению?', answer: 'Нет. Это только одна часть натальной карты, поэтому её лучше смотреть вместе с остальными.' },
       ]}
       relatedLinks={related.map((item) => ({ href: item.path, label: `${item.planet.name} в ${item.sign.prepositional}` }))}
     >
       <section>
-        <h2>Что показывает {planet.name}</h2>
-        <p>В астрологической интерпретации {planet.name} связывают с тем, {planet.question}. Это символический язык чтения карты, а не утверждение о физическом влиянии планеты на характер.</p>
+        <h2>За что отвечает {planet.name}</h2>
+        <p>{planet.name} обычно связывают с тем, {planet.question}.</p>
       </section>
 
       <section>
-        <h2>Что добавляет знак {sign.name}</h2>
+        <h2>Что добавляет {sign.name}</h2>
         <p>{sign.summary}</p>
         <p>{sign.shortAnswer}</p>
-        <p><Link href={`/goroskop/${sign.slug}`}>Подробнее о знаке {sign.name}</Link></p>
+        <p><Link href={`/goroskop/${sign.slug}`}>Подробнее про знак {sign.name}</Link></p>
       </section>
 
       <section>
-        <h2>Как читать сочетание</h2>
+        <h2>Что получается вместе</h2>
         <p>{shortAnswer}</p>
-        <p>Если это положение действительно есть в вашей карте, дальше имеет смысл посмотреть, в каком доме находится {planet.name} и какие аспекты оно образует. Именно контекст отличает две карты с одинаковым знаком одной планеты.</p>
+        <p>Если такое положение есть в твоей карте, дальше полезно посмотреть дом {planet.genitive.toLowerCase()} и его связи с другими планетами. Поэтому у двух людей с одинаковым положением итоговая картина всё равно может быть разной.</p>
       </section>
 
       <section>
-        <h2>Проверить свою карту</h2>
-        <p>Положение планет рассчитывается по дате рождения. Полная натальная карта также учитывает время и место рождения, чтобы определить дома и углы карты.</p>
-        <p><Link href="/natalnaya-karta">Рассчитать натальную карту</Link></p>
+        <h2>Проверить у себя</h2>
+        <p>Положение планет можно определить по дате рождения. Для полной карты лучше также указать точное время и место.</p>
+        <p><Link href="/natalnaya-karta">Открыть натальную карту</Link></p>
         <ReleaseAction />
       </section>
     </PublicSeoPage>
