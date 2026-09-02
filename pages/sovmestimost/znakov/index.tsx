@@ -1,24 +1,21 @@
 import Link from 'next/link';
 import { PublicSeoPage } from '../../../components/public-site/PublicSeoPage';
-import {
-  PUBLIC_SEO_PAIRS,
-  PUBLIC_SEO_SIGNS,
-} from '../../../lib/publicSeoContent';
+import { PUBLIC_SEO_PAIRS, PUBLIC_SEO_SIGNS } from '../../../lib/publicSeoContent';
 
 const path = '/sovmestimost/znakov';
 
 const faq = [
   {
-    question: 'Почему пар 78, а не 144?',
-    answer: 'Потому что порядок знаков не меняет пару. Двенадцать сочетаний одного знака с собой и 66 сочетаний разных знаков дают 78 уникальных страниц.',
-  },
-  {
     question: 'Совместимость знаков бесплатная?',
-    answer: 'Да. Общий разбор по двум солнечным знакам входит в бесплатный доступ NEBO.',
+    answer: 'Да. Можно выбрать два солнечных знака и прочитать общий разбор бесплатно.',
   },
   {
     question: 'Это точный разбор конкретных отношений?',
-    answer: 'Два солнечных знака дают общий разбор. Для сравнения двух натальных карт нужны дата, время и место рождения обоих людей.',
+    answer: 'Нет. Два знака дают только общий взгляд. Для более личного сравнения нужны данные рождения обоих людей.',
+  },
+  {
+    question: 'Имеет ли значение, какой знак выбрать первым?',
+    answer: 'Нет. Овен и Телец — та же пара, что Телец и Овен.',
   },
 ] as const;
 
@@ -26,11 +23,11 @@ export default function SignCompatibilityIndexPage() {
   return (
     <PublicSeoPage
       path={path}
-      title="Совместимость знаков зодиака: 78 уникальных пар"
-      description="Совместимость 12 знаков зодиака: 78 уникальных пар без дублей Овен–Телец и Телец–Овен. Бесплатный общий разбор в NEBO."
+      title="Совместимость знаков зодиака"
+      description="Совместимость знаков зодиака в NEBO: выберите два знака и посмотрите, что их сближает, где возникают разногласия и как они общаются."
       eyebrow="Совместимость по знакам"
-      heading="Совместимость знаков зодиака: 78 пар"
-      lead={<p>Выбери два солнечных знака и прочитай, что их сближает, где расходится темп и как им говорить яснее. Это общий разбор по знакам.</p>}
+      heading="Совместимость знаков зодиака"
+      lead={<p>Выбери два знака и посмотри, что между ними обычно складывается легко, а где характеры могут цепляться.</p>}
       breadcrumbs={[
         { name: 'Совместимость', path: '/sovmestimost' },
         { name: 'Совместимость знаков', path },
@@ -38,15 +35,14 @@ export default function SignCompatibilityIndexPage() {
       faq={faq}
       schemaType="CollectionPage"
       relatedLinks={[
-        { href: '/sovmestimost', label: 'Совместимость по двум картам' },
+        { href: '/sovmestimost', label: 'Совместимость по дате рождения' },
         { href: '/natalnaya-karta', label: 'Натальная карта' },
         { href: '/goroskop', label: 'Гороскоп по знакам' },
       ]}
     >
       <section>
-        <h2>Как устроен каталог</h2>
-        <p>«Овен и Телец» и «Телец и Овен» ведут к одному материалу. Порядок нужен только для списка: смысл пары от перестановки не меняется.</p>
-        <p>Тексты собраны из профилей двенадцати знаков и описаний их общей динамики. Проценты совместимости и биографии людей здесь не придумываются.</p>
+        <h2>Выбери первый знак</h2>
+        <p>Ниже собраны все сочетания. Открой нужную пару и сразу читай сравнение.</p>
       </section>
 
       {PUBLIC_SEO_SIGNS.map((sign) => {
@@ -56,9 +52,7 @@ export default function SignCompatibilityIndexPage() {
             <h2 id={`pairs-${sign.slug}`}>{sign.name}</h2>
             <ul>
               {pairs.map((pair) => (
-                <li key={pair.slug}>
-                  <Link href={pair.path}>{pair.first.name} и {pair.second.name}</Link>
-                </li>
+                <li key={pair.slug}><Link href={pair.path}>{pair.first.name} и {pair.second.name}</Link></li>
               ))}
             </ul>
           </section>
@@ -66,8 +60,8 @@ export default function SignCompatibilityIndexPage() {
       })}
 
       <section>
-        <h2>Чем сравнение знаков отличается от сравнения карт</h2>
-        <p>Солнечные знаки дают только общий первый слой. <Link href="/sovmestimost">Совместимость по двум натальным картам</Link> использует сохранённые расчётные данные обоих людей и доступна в Premium.</p>
+        <h2>Хочется точнее?</h2>
+        <p>Солнечные знаки дают только общее сравнение. <Link href="/sovmestimost">Совместимость по дате рождения</Link> учитывает две натальные карты и показывает больше деталей.</p>
       </section>
     </PublicSeoPage>
   );
