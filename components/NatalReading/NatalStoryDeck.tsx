@@ -57,7 +57,7 @@ const PAYWALL_DISMISS_SESSION_KEY = 'lumia_natal_story_paywall_dismissed_session
 function formatStoryError(error: unknown): string {
   const e = error as HumanReadingError;
   if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
-    return 'Этот раздел доступен в Premium.';
+    return 'Этот раздел пока закрыт.';
   }
   return e?.message || 'Не удалось открыть карточку. Попробуйте ещё раз.';
 }

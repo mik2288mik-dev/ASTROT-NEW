@@ -30,11 +30,10 @@ function accessLabel(
   if (accessState === 'open') return language === 'ru' ? 'Открыто' : 'Open';
   if (accessState === 'premium') {
     if (premiumLoading) return language === 'ru' ? 'Готовим' : 'Preparing';
-    return 'Premium';
+    return language === 'ru' ? 'Продолжение' : 'More';
   }
-  return 'Premium';
+  return language === 'ru' ? 'Продолжение' : 'More';
 }
-
 type LegacyNatalReportHubProps = {
   mode?: 'legacy';
   language: 'ru' | 'en';

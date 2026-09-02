@@ -1064,8 +1064,8 @@ export const HumanReport: React.FC<Props> = ({
                   ? `Осталось сегодня: ${remainingQuestions}`
                   : `Remaining today: ${remainingQuestions}`)
               : (language === 'ru'
-                  ? 'Первый вопрос по карте — бесплатно.'
-                  : 'Your first chart question is free.'))
+                  ? 'Сейчас можно задать один вопрос.'
+                  : 'You can ask one question now.'))
           : !userId && previewConfig
             ? (language === 'ru'
                 ? 'В локальном превью отправка отключена.'
