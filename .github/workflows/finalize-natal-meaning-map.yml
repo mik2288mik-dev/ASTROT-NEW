@@ -1,0 +1,348 @@
+name: Finalize natal meaning map
+
+on:
+  push:
+    branches:
+      - fix/natal-meaning-map-release-20260903
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-natal-meaning-map
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      APP_SESSION_SECRET: natal-meaning-map-release-check
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: horoscope
+          POSTGRES_PASSWORD: horoscope
+          POSTGRES_DB: horoscope_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U horoscope -d horoscope_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/natal-meaning-map-release-20260903
+          fetch-depth: 0
+          persist-credentials: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply release refinements
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding='utf-8')
+
+          def write(path: str, value: str) -> None:
+              Path(path).write_text(value, encoding='utf-8')
+
+          def replace_once(source: str, old: str, new: str, label: str) -> str:
+              count = source.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{label}: expected one match, found {count}')
+              return source.replace(old, new, 1)
+
+          def regex_once(source: str, pattern: str, replacement: str, label: str) -> str:
+              updated, count = re.subn(pattern, replacement, source, count=1, flags=re.S)
+              if count != 1:
+                  raise RuntimeError(f'{label}: expected one match, found {count}')
+              return updated
+
+          # New experience opens first. The screen itself owns the timed fallback.
+          path = 'lib/natalReading/readingVariant.ts'
+          source = read(path)
+          source = regex_once(
+              source,
+              r"export function resolveNatalReadingRenderer\([\s\S]*?\n\}",
+              """export function resolveNatalReadingRenderer(
+            variant: NatalReadingVariant,
+            _catalogCached: boolean,
+          ): NatalReadingRenderer {
+            if (variant === 'classic') return 'classic';
+            return 'catalog';
+          }""".replace('\n          ', '\n').lstrip(),
+              'reading renderer',
+          )
+          write(path, source)
+
+          # Auto mode shows the new product immediately and moves to the old reader only
+          # after a real error or an 18-second timeout. It never swaps back mid-read.
+          path = 'views/v2/NatalMagazine.tsx'
+          source = read(path)
+          source = replace_once(
+              source,
+              "export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map';",
+              "export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map';\n\nconst CATALOG_FALLBACK_MS = 18_000;",
+              'fallback constant',
+          )
+          effect_pattern = r"  useEffect\(\(\) => \{\n    if \(normalizedActiveTab !== 'foundation' && normalizedActiveTab !== 'explore'\) return;[\s\S]*?\n  \}, \[\n    catalogCacheIdentity,[\s\S]*?\n    readingVariant,\n  \]\);\n(?=\n  useEffect\(\(\) => \{\n    if \(\n      !openQuestionRequest)"
+          effect_replacement = """  useEffect(() => {
+            if (normalizedActiveTab !== 'foundation' && normalizedActiveTab !== 'explore') return;
+            if (previewConfig?.catalog) {
+              setReadingRenderer('catalog');
+              return;
+            }
+            if (!data || !catalogCacheIdentity) {
+              setReadingRenderer('classic');
+              return;
+            }
+            if (readingVariant === 'classic') {
+              setReadingRenderer('classic');
+              return;
+            }
+
+            setReadingRenderer('catalog');
+            if (readingVariant === 'catalog') return;
+
+            const userId = String(profile.id || '').trim();
+            if (!userId) {
+              setReadingRenderer('classic');
+              return;
+            }
+            const cached = getNatalCatalogCategoryCached(
+              userId,
+              'main',
+              chartId,
+              language,
+              catalogCacheIdentity,
+            );
+            if (cached) return;
+
+            let cancelled = false;
+            let fallbackActivated = false;
+            const fallbackTimer = window.setTimeout(() => {
+              if (cancelled) return;
+              fallbackActivated = true;
+              setReadingRenderer('classic');
+            }, CATALOG_FALLBACK_MS);
+
+            void ensureNatalCatalogCategory(
+              userId,
+              'main',
+              chartId,
+              language,
+              catalogCacheIdentity,
+            )
+              .then(() => {
+                if (!cancelled && !fallbackActivated) setReadingRenderer('catalog');
+              })
+              .catch((error: unknown) => {
+                if (cancelled) return;
+                fallbackActivated = true;
+                setReadingRenderer('classic');
+                console.warn(
+                  '[NatalMagazine] New natal reading was not ready:',
+                  error instanceof Error ? error.message : error,
+                );
+              })
+              .finally(() => window.clearTimeout(fallbackTimer));
+
+            return () => {
+              cancelled = true;
+              window.clearTimeout(fallbackTimer);
+            };
+          }, [
+            catalogCacheIdentity,
+            chartId,
+            data,
+            language,
+            normalizedActiveTab,
+            previewConfig?.catalog,
+            profile.id,
+            readingVariant,
+          ]);
+          """.replace('\n          ', '\n').lstrip()
+          source = regex_once(source, effect_pattern, effect_replacement, 'catalog-first fallback effect')
+          write(path, source)
+
+          # Keep the owner switch short and honest.
+          path = 'components/NatalReading/NatalReadingVariantSettings.tsx'
+          source = read(path)
+          replacements = {
+              "{ value: 'auto', ru: 'Авто — безопасный режим', en: 'Auto — safe mode' }": "{ value: 'auto', ru: 'Авто', en: 'Auto' }",
+              "{ value: 'catalog', ru: 'Новый разбор', en: 'New reading' }": "{ value: 'catalog', ru: 'Новый', en: 'New' }",
+              "{ value: 'classic', ru: 'Старый разбор', en: 'Classic reading' }": "{ value: 'classic', ru: 'Старый', en: 'Old' }",
+              "'Natal reading version'": "'Natal chart version'",
+              "'Версия разбора натальной карты'": "'Вариант натальной карты'",
+              "'Auto opens the new reading only when it is already ready; otherwise the stable classic reading opens immediately. This setting affects only this administrator on this device.'": "'Auto opens the new version. If it does not answer within 18 seconds, the old one opens. This choice applies only on this device.'",
+              "'Авто открывает новый разбор, только когда он уже готов. Иначе сразу открывается стабильный старый. Настройка действует только для этого администратора на этом устройстве.'": "'Авто открывает новый вариант. Если он не ответит за 18 секунд, откроется старый. Выбор действует только на этом устройстве.'",
+          }
+          for old, new in replacements.items():
+              source = replace_once(source, old, new, f'variant settings: {old[:28]}')
+          write(path, source)
+
+          # Rare old-reader fallback: no store vocabulary in user-facing copy.
+          path = 'components/NatalReading/NatalReportHub.tsx'
+          source = read(path)
+          source = regex_once(
+              source,
+              r"function accessLabel\([\s\S]*?\n\}\n\n(?=type LegacyNatalReportHubProps)",
+              """function accessLabel(
+            accessState: NatalTopicAccessState,
+            language: 'ru' | 'en',
+            premiumLoading: boolean,
+          ): string {
+            if (accessState === 'open') return language === 'ru' ? 'Открыто' : 'Open';
+            if (accessState === 'premium') {
+              if (premiumLoading) return language === 'ru' ? 'Готовим' : 'Preparing';
+              return language === 'ru' ? 'Продолжение' : 'More';
+            }
+            return language === 'ru' ? 'Продолжение' : 'More';
+          }
+          """.replace('\n          ', '\n').lstrip(),
+              'legacy access label',
+          )
+          source = source.replace(
+              "`6 разделов · ${NATAL_REPORT_ANSWER_COUNT} ответов · один Premium для всего NEBO`",
+              "`6 разделов · ${NATAL_REPORT_ANSWER_COUNT} ответов · всё открывается вместе`",
+          )
+          source = source.replace(
+              "`6 topics · ${NATAL_REPORT_ANSWER_COUNT} answers · one Premium across NEBO`",
+              "`6 topics · ${NATAL_REPORT_ANSWER_COUNT} answers · everything opens together`",
+          )
+          write(path, source)
+
+          path = 'components/NatalReading/HumanReport.tsx'
+          source = read(path)
+          human_replacements = {
+              "'Этот раздел доступен в Premium.'": "'Этот раздел пока закрыт.'",
+              "'Вопросы по карте доступны в Premium.'": "'Эта часть пока закрыта. Открой вопросы, чтобы продолжить.'",
+              "'Questions about the chart are available with Premium.'": "'This part is closed for now. Open questions to continue.'",
+              "'Бесплатный вопрос уже использован. В подписке можно задавать до 5 новых вопросов в день.'": "'Первый вопрос уже использован. Открой вопросы, чтобы продолжить.'",
+              "'Your free question has already been used. The subscription includes up to 5 new questions a day.'": "'Your first question has been used. Open questions to continue.'",
+              "'Первый вопрос по карте — бесплатно.'": "'Сейчас можно задать один вопрос.'",
+              "'Your first chart question is free.'": "'You can ask one question now.'",
+              "'Получить Premium'": "'Открыть всё'",
+              "'Полный доступ к подробному постоянному разбору карты — в Premium.'": "'Откроется весь подробный разбор карты.'",
+          }
+          for old, new in human_replacements.items():
+              if old in source:
+                  source = source.replace(old, new)
+          write(path, source)
+
+          path = 'components/NatalReading/NatalStoryDeck.tsx'
+          source = read(path)
+          source = source.replace(
+              "return 'Этот раздел доступен в Premium.';",
+              "return 'Этот раздел пока закрыт.';",
+          )
+          write(path, source)
+
+          # Existing unit expectation now follows catalog-first auto mode.
+          path = '__tests__/natal-reading-variant.test.ts'
+          source = read(path)
+          source = replace_once(
+              source,
+              "it('uses classic as the auto fallback and catalog only when it is ready', () => {\n    expect(resolveNatalReadingRenderer('auto', false)).toBe('classic');",
+              "it('opens the new experience first and keeps the old one as an explicit fallback', () => {\n    expect(resolveNatalReadingRenderer('auto', false)).toBe('catalog');",
+              'variant unit expectation',
+          )
+          write(path, source)
+
+          Path('__tests__/natal-meaning-map-release.test.ts').write_text("""import fs from 'fs';
+          import path from 'path';
+
+          const root = path.resolve(__dirname, '..');
+          const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
+
+          describe('natal meaning-map release behavior', () => {
+            it('opens the new product first and falls back without swapping back mid-read', () => {
+              const magazine = read('views/v2/NatalMagazine.tsx');
+              const variant = read('lib/natalReading/readingVariant.ts');
+
+              expect(variant).toContain("if (variant === 'classic') return 'classic'");
+              expect(variant).toContain("return 'catalog'");
+              expect(magazine).toContain('const CATALOG_FALLBACK_MS = 18_000');
+              expect(magazine).toContain('let fallbackActivated = false');
+              expect(magazine).toContain("setReadingRenderer('classic')");
+              expect(magazine).toContain('!cancelled && !fallbackActivated');
+            });
+
+            it('keeps store-tier words out of the new product and its old fallback', () => {
+              const copy = [
+                read('components/NatalReading/NatalMeaningExperience.tsx'),
+                read('components/NatalReading/NatalQuestionExperience.tsx'),
+                read('components/NatalReading/NatalEvidenceSheet.tsx'),
+                read('components/NatalReading/NatalReportHub.tsx'),
+                read('components/NatalReading/HumanReport.tsx'),
+                read('components/NatalReading/NatalStoryDeck.tsx'),
+              ].join('\\n');
+
+              [
+                'Получить Premium',
+                'доступен в Premium',
+                'доступны в Premium',
+                'один Premium для всего NEBO',
+                'Бесплатный вопрос',
+                'Первый вопрос по карте — бесплатно',
+              ].forEach((phrase) => expect(copy).not.toContain(phrase));
+            });
+
+            it('keeps the owner switch concise and device-scoped', () => {
+              const settings = read('components/NatalReading/NatalReadingVariantSettings.tsx');
+              expect(settings).toContain("ru: 'Авто'");
+              expect(settings).toContain("ru: 'Новый'");
+              expect(settings).toContain("ru: 'Старый'");
+              expect(settings).toContain('Выбор действует только на этом устройстве.');
+            });
+          });
+          """.replace('          ', ''), encoding='utf-8')
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply PostgreSQL migrations
+        run: npm run migrate
+
+      - name: Run focused tests
+        run: >-
+          npm test -- --runInBand
+          __tests__/natal-meaning-map-release.test.ts
+          __tests__/natal-meaning-map-v3.test.ts
+          __tests__/natal-catalog-ui-contract.test.ts
+          __tests__/natal-mobile-interaction-contract.test.ts
+          __tests__/natal-question-policy.test.ts
+          __tests__/natal-reading-variant.test.ts
+          __tests__/natal-catalog-contract.test.ts
+          __tests__/natal-catalog-repair-diagnostics.test.ts
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
+
+      - name: Commit validated refinements
+        shell: bash
+        run: |
+          rm -f .github/workflows/finalize-natal-meaning-map.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(natal): open the new experience first"
+          git push origin HEAD:fix/natal-meaning-map-release-20260903
