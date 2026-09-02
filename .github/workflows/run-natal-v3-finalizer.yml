@@ -1,0 +1,27 @@
+name: Run natal v3 finalizer
+
+on:
+  push:
+    branches:
+      - feat/natal-meaning-map-v3-20260902
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/natal-meaning-map-v3-20260902
+          fetch-depth: 0
+      - run: python3 scripts/finalize-natal-v3.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(natal): finalize meaning-map navigation"
+          git push origin HEAD:feat/natal-meaning-map-v3-20260902
