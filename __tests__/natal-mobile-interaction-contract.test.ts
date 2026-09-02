@@ -6,22 +6,30 @@ function read(relativePath: string): string {
 }
 
 describe('natal mobile interaction contract', () => {
-  it('keeps both natal tab rows fixed to their layout and disables zoom only in the app', () => {
+  it('keeps one fixed primary navigation and uses sheets for focused details', () => {
+    const magazine = read('views/v2/NatalMagazine.tsx');
     const report = read('components/NatalReading/NatalCatalogReport.tsx');
-    const chrome = read('components/editorial/EditorialScreenChrome.tsx');
-    const styles = read('styles/editorialStudio.css');
+    const experience = read('components/NatalReading/NatalMeaningExperience.tsx');
+    const styles = read('styles/natalMeaningMap.css');
     const globals = read('styles/globals.css');
     const app = read('pages/_app.tsx');
     const rootApp = read('App.tsx');
 
-    expect(report).not.toContain('categoryTabRefs');
-    expect(report).not.toContain("inline: 'center'");
-    expect(chrome).toContain("style={{ '--editorial-tab-count': tabs.length } as React.CSSProperties}");
-    expect(styles).toContain('.natal-editorial-page .natal-editorial-tabs {\n  transform: none;');
-    expect(styles).toContain('.fresh-page.natal-mvp-page .natal-catalog-tabs-wrap {\n  position: static;');
-    expect(styles).toContain('grid-template-columns: repeat(6, minmax(0, 1fr));');
-    expect(styles).toContain('font-size: clamp(10px, 3vw, 12px);');
-    expect(styles).not.toContain('.fresh-page.natal-mvp-page .natal-catalog-tabs::-webkit-scrollbar');
+    expect(magazine).toContain('className="natal-v3-primary-nav"');
+    expect(magazine).toContain("normalizedActiveTab === 'foundation'");
+    expect(magazine).toContain("normalizedActiveTab === 'explore'");
+    expect(magazine).toContain("normalizedActiveTab === 'ask'");
+    expect(magazine).not.toContain('<EditorialTabs');
+    expect(report).not.toContain('natal-catalog-tabs');
+    expect(experience).toContain('className="natal-v3-sheet natal-v3-answer-sheet"');
+    expect(experience).toContain('role="dialog"');
+    expect(experience).toContain('aria-modal="true"');
+    expect(styles).toContain('.natal-v3-primary-nav {');
+    expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));');
+    expect(styles).toContain('.natal-v3-sheet-layer {');
+    expect(styles).toContain('position: fixed;');
+    expect(styles).toContain('max-height: min(91dvh, 880px);');
+    expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
     expect(globals).toContain('.lumia-app-shell {\n  height:');
     expect(globals).toContain('touch-action: pan-x pan-y;');
     expect(app).toContain("router.pathname === '/'");
