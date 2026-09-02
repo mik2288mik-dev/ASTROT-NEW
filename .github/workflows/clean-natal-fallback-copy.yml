@@ -43,14 +43,10 @@ jobs:
 
           replace_once(
               'components/NatalReading/NatalReportHub.tsx',
-              """  if (accessState === 'premium') {
-              if (premiumLoading) return language === 'ru' ? 'Готовим' : 'Preparing';
-              return 'Premium';
+              """    return 'Premium';
             }
             return 'Premium';""",
-              """  if (accessState === 'premium') {
-              if (premiumLoading) return language === 'ru' ? 'Готовим' : 'Preparing';
-              return language === 'ru' ? 'Продолжение' : 'More';
+              """    return language === 'ru' ? 'Продолжение' : 'More';
             }
             return language === 'ru' ? 'Продолжение' : 'More';""",
           )
