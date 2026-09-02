@@ -313,7 +313,9 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key !== 'Escape') return;
+      event.stopImmediatePropagation();
+      onClose();
     };
     const handleNativeBack = (event: Event) => {
       const detail = (event as CustomEvent<NativeBackEventDetail>).detail;

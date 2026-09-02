@@ -491,6 +491,18 @@
   font-weight: 400;
 }
 
+.natal-v3-statement-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.natal-v3-statement-actions .natal-v3-inline-action {
+  margin: -6px 0;
+}
+
 .natal-v3-inline-action,
 .natal-v3-text-action {
   min-height: 38px;

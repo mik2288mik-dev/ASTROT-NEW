@@ -256,9 +256,6 @@ export const NatalCatalogReport: React.FC<Props> = ({
       setActiveCategory(desiredCategory);
       setCategoryError(null);
     }
-    setSelectedAnswerKey(null);
-    setAnswerOriginCategory(null);
-    setAnswerError(null);
   }, [view]);
 
   useEffect(() => {
@@ -579,7 +576,7 @@ export const NatalCatalogReport: React.FC<Props> = ({
         source: 'deep_natal',
         eventPayload: {
           section_key: categoryKey,
-          access_state: 'navigation',
+          access_state: 'open',
           source: 'meaning_map',
         },
       });

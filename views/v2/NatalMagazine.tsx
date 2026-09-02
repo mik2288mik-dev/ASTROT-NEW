@@ -75,8 +75,10 @@ export function normalizeNatalScreenTab(
   return isSavedPerson && tab === 'ask' ? 'foundation' : tab;
 }
 
+type NatalPreviewInitialTab = NonNullable<NatalMagazineProps['uiPreview']>['initialTab'];
+
 function previewTabToScreen(
-  value: NatalMagazineProps['uiPreview'] extends { initialTab?: infer T } ? T : never,
+  value: NatalPreviewInitialTab,
   openQuestion: boolean,
 ): NatalScreenTab {
   if (openQuestion || value === 'questions' || value === 'ask') return 'ask';

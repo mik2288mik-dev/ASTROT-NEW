@@ -202,33 +202,35 @@ describe('saved natal-chart question policy', () => {
     expect(endpoint).toContain('NATAL_QUESTION_SELF_CHART_REQUIRED');
   });
 
-  it('keeps Ask about yourself in the natal chart only for the self chart', () => {
+  it('keeps contextual questions in the natal chart only for the self chart', () => {
     const magazine = read('views/v2/NatalMagazine.tsx');
+    const questions = read('components/NatalReading/NatalQuestionExperience.tsx');
 
-    expect(magazine).toContain("type NatalScreenTab = 'map' | 'reading' | 'questions' | 'matrix'");
-    expect(magazine).toContain("{ id: 'questions' as const");
-    expect(magazine).toContain("availableTabs.filter((tab) => tab.id !== 'questions')");
-    expect(magazine).toContain("return isSavedPerson && tab === 'questions' ? 'map' : tab");
-    expect(magazine).toContain("if (isSavedPerson && tab === 'questions') return");
+    expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map'");
+    expect(magazine).toContain("return isSavedPerson && tab === 'ask' ? 'foundation' : tab");
     expect(magazine).toContain('onOpenQuestions={isSavedPerson ? undefined');
-    expect(magazine).toContain("setActiveTab('questions')");
-    expect(magazine).toContain('surface="questions"');
+    expect(magazine).toContain("setActiveTab('ask')");
+    expect(magazine).toContain("normalizedActiveTab === 'ask' && !isSavedPerson");
+    expect(magazine).toContain('<NatalQuestionExperience');
+    expect(questions).toContain('contextCategory');
+    expect(questions).toContain('QUESTION_CONTEXTS');
     expect(magazine).not.toContain('<CosmicSheet');
   });
 
-  it('offers six fill-only starters and explains the saved-chart boundary', () => {
-    const report = read('components/NatalReading/HumanReport.tsx');
-    const starterBlock = report.slice(
-      report.indexOf('const NATAL_QUESTION_STARTERS'),
-      report.indexOf('const ANGLE_NAMES'),
-    );
+  it('offers contextual fill-only starters and explains the saved-chart boundary', () => {
+    const report = read('components/NatalReading/NatalQuestionExperience.tsx');
 
-    expect(starterBlock.match(/\bru:/gu)).toHaveLength(6);
+    expect(report).toContain('const QUESTION_STARTERS');
+    expect(report).toContain('character:');
+    expect(report).toContain('love:');
+    expect(report).toContain('communication:');
+    expect(report).toContain('work:');
+    expect(report).toContain('money:');
     expect(report).toContain('type="button"');
-    expect(report).toContain('setQuestionText(suggestion);');
-    expect(report).toContain('Один полный ответ по твоей карте — бесплатно');
+    expect(report).toContain('setQuestionText(starter);');
+    expect(report).toContain('Первый полный ответ — бесплатно.');
     expect(report).toMatch(/до 5 новых вопросов в день/iu);
-    expect(report).toContain('Не указывай сведения о здоровье, документы, контакты, пароли или платёжные данные.');
-    expect(report).toContain('natal-question-sensitive-data-warning');
+    expect(report).toContain('Не указывай документы, контакты, пароли, платёжные или медицинские данные.');
+    expect(report).toContain('natal-v3-question-warning');
   });
 });

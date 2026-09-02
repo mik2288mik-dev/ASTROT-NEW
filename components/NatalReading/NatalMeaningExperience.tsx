@@ -241,16 +241,22 @@ const ReadingError: React.FC<{
 const StatementBlock: React.FC<{
   statement: NatalReportStatement;
   language: 'ru' | 'en';
+  onMeaning: () => void;
   onWhy: () => void;
-}> = ({ statement, language, onWhy }) => {
+}> = ({ statement, language, onMeaning, onWhy }) => {
   const copy = splitLead(statement.text);
   return (
     <article className="natal-v3-statement">
       <p className="natal-v3-statement-lead">{copy.lead}</p>
       {copy.body ? <p className="natal-v3-statement-body">{copy.body}</p> : null}
-      <button type="button" className="natal-v3-inline-action" onClick={onWhy}>
-        {language === 'ru' ? 'Почему так?' : 'Why?'}
-      </button>
+      <div className="natal-v3-statement-actions">
+        <button type="button" className="natal-v3-inline-action" onClick={onMeaning}>
+          {language === 'ru' ? 'Как это выглядит' : 'How this looks'}
+        </button>
+        <button type="button" className="natal-v3-inline-action" onClick={onWhy}>
+          {language === 'ru' ? 'Почему так?' : 'Why?'}
+        </button>
+      </div>
     </article>
   );
 };
@@ -294,9 +300,7 @@ const AnswerSheet: React.FC<{
   const definition = getNatalReportAnswer(answerKey);
   const canRead = isPremium || isNatalReportAnswerFree(answerKey);
   const title = answer?.title || preview?.title || definition?.title[language] || '';
-  const categoryKey = definition?.categoryKey || preview?.answerKey
-    ? definition?.categoryKey || 'main'
-    : 'main';
+  const categoryKey: NatalReportCategoryKey = definition?.categoryKey || 'main';
   const evidenceIds = answer?.evidenceIds || preview?.evidenceIds || [];
   const related = answer?.related || preview?.related || definition?.related || [];
   const includes = answer?.fullAnswerIncludes
@@ -496,6 +500,17 @@ export const NatalMeaningExperience: React.FC<Props> = ({
       key={`${activeCategoryKey}-statement-${index}`}
       statement={statement}
       language={language}
+      onMeaning={() => {
+        const copy = splitLead(statement.text);
+        setExplanation({
+          mode: 'meaning',
+          title: view === 'foundation'
+            ? (language === 'ru' ? 'Как это выглядит в жизни' : 'How this looks in life')
+            : categoryTitle(activeCategoryKey, language),
+          text: copy.body || statement.text,
+          evidenceIds: statement.evidenceIds,
+        });
+      }}
       onWhy={() => setExplanation({
         mode: 'why',
         title: view === 'foundation'
