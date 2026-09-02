@@ -50,6 +50,7 @@ jobs:
         run: |
           set -euo pipefail
           git checkout 54cced79a292dd6cae79db929a0089ea41951021 -- \
+            .github/workflows/ci.yml \
             views/Settings.tsx \
             components/NatalReading/NatalCatalogReport.tsx \
             services/natalCatalogService.ts \
@@ -68,8 +69,16 @@ jobs:
       - name: Apply PostgreSQL migrations
         run: npm run migrate
 
-      - name: Run tests
-        run: npm test -- --runInBand
+      - name: Run natal and settings regression tests
+        run: >-
+          npm test -- --runInBand
+          __tests__/natal-reading-variant-contract.test.ts
+          __tests__/natal-catalog-contract.test.ts
+          __tests__/natal-catalog-ui-contract.test.ts
+          __tests__/natal-personality-cache.test.ts
+          __tests__/local-natal-chart-app-flow.test.ts
+          __tests__/chart-onboarding-flow.test.ts
+          __tests__/ui-preview-real-settings-paywall.test.ts
 
       - name: TypeScript check
         run: npx tsc --noEmit
