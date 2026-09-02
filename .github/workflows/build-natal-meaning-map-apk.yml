@@ -1,0 +1,87 @@
+name: Build natal meaning map APK
+
+on:
+  push:
+    branches:
+      - feat/natal-meaning-map-20260903
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-natal-meaning-map-apk
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_MOBILE_BUILD: '1'
+      MOBILE_BUILD: '1'
+      NEXT_PUBLIC_API_URL: https://api.tvoi-goroskop.ru
+      NEXT_PUBLIC_DISTRIBUTION_CHANNEL: rustore
+      NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED: '0'
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH: test.nebo.month
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_QUARTER: test.nebo.quarter
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_YEAR: test.nebo.year
+      RUSTORE_ALLOWED_PRODUCT_IDS: test.nebo.month,test.nebo.quarter,test.nebo.year
+      RUSTORE_CONSOLE_APP_ID: '100000'
+      RUSTORE_PACKAGE_NAME: ru.tvoygoroskop.app
+      RUSTORE_PAY_MODE: sandbox
+      YANDEX_ANDROID_CLIENT_ID: ci-yandex-android-client
+      VK_ANDROID_CLIENT_ID: '100000'
+      VK_ID_ANDROID_CLIENT_SECRET: ci-vk-secret-not-for-production
+      APP_VERSION_CODE: '26090301'
+      APP_VERSION_NAME: 1.0.0-natal-meaning
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/natal-meaning-map-20260903
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build mobile bundle
+        run: |
+          npm run build:mobile
+          npx cap sync android
+
+      - name: Build RuStore debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRustoreDebug
+
+      - name: Verify APK and checksum
+        shell: bash
+        run: |
+          APK=android/app/build/outputs/apk/rustore/debug/app-rustore-debug.apk
+          test -f "$APK"
+          unzip -t "$APK" >/dev/null
+          sha256sum "$APK" | tee natal-meaning-map-apk-sha256.txt
+          cp "$APK" NEBO-natal-meaning-map-test.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEBO-natal-meaning-map-test
+          path: |
+            NEBO-natal-meaning-map-test.apk
+            natal-meaning-map-apk-sha256.txt
+          retention-days: 30
