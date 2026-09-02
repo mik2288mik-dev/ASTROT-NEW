@@ -522,7 +522,10 @@ const App: React.FC = () => {
                     setTimeout(() => reject(new Error('admin-status-timeout')), ADMIN_STATUS_TIMEOUT_MS)
                 ),
             ]);
-            return result.isAdmin;
+            // Native account sessions do not have Telegram initData. In that
+            // runtime getAdminStatus() returns false by design, so it must not
+            // downgrade the server profile or configured owner fallback.
+            return fallbackIsAdmin || result.isAdmin;
         } catch (error: any) {
             console.warn('[App] Failed to fetch authoritative admin status:', error?.message || error);
             return fallbackIsAdmin;
