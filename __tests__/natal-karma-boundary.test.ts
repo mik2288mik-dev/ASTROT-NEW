@@ -6,6 +6,7 @@ describe('Russian karma validator word boundaries', () => {
   it.each([
     'Деньги остались в кармане.',
     'Он положил ключи в карман.',
+    'В карманах ничего не осталось.',
     'Для мелочи есть отдельный кармашек.',
   ])('does not confuse an ordinary pocket word with karma: %s', (value) => {
     expect(hasAppVoiceMysticism(value)).toBe(false);
@@ -17,6 +18,7 @@ describe('Russian karma validator word boundaries', () => {
     'Карма обязательно вернётся.',
     'Это кармический урок.',
     'Всё объясняется кармичной связью.',
+    'Он приписал это карме.',
   ])('still rejects karma and karmic wording: %s', (value) => {
     expect(hasAppVoiceMysticism(value)).toBe(true);
     expect(hasNatalPersonalityCopyViolation(value)).toBe(true);
