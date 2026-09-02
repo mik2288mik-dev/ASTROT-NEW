@@ -21,17 +21,17 @@ if (isMobileBuild && !mobileDistributionChannels.has(distributionChannel)) {
 // legal configuration must not take the whole public site offline.
 
 const publicScriptSource = process.env.NODE_ENV === 'development'
-  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-  : "script-src 'self' 'unsafe-inline'";
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://mc.yandex.ru"
+  : "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://mc.yandex.ru";
 
 const publicCsp = [
   "default-src 'self'",
   "base-uri 'self'",
-  "connect-src 'self'",
+  "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://mc.yandex.ru",
   "font-src 'self' data:",
   "form-action 'none'",
   "frame-ancestors 'none'",
-  "img-src 'self' data:",
+  "img-src 'self' data: https://mc.yandex.ru",
   "object-src 'none'",
   publicScriptSource,
   "style-src 'self' 'unsafe-inline'",
@@ -155,10 +155,12 @@ const nextConfig = {
         '/goroskop/:path*',
         '/lichnyy-goroskop',
         '/natalnaya-karta',
+        '/natalnaya-karta/:path*',
         '/personal-data-consent',
         '/privacy',
         '/requisites',
         '/site',
+        '/sitemap.xml',
         '/sovmestimost',
         '/sovmestimost/:path*',
         '/support',
