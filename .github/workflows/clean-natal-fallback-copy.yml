@@ -1,0 +1,96 @@
+name: Clean natal fallback copy
+
+on:
+  push:
+    branches:
+      - feat/natal-meaning-map-20260903
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clean-natal-fallback-copy
+  cancel-in-progress: false
+
+jobs:
+  clean-and-check:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/natal-meaning-map-20260903
+          persist-credentials: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Clean the rare old-reader copy
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              source = file.read_text(encoding='utf-8')
+              count = source.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one match, found {count}')
+              file.write_text(source.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'components/NatalReading/NatalReportHub.tsx',
+              """  if (accessState === 'premium') {
+              if (premiumLoading) return language === 'ru' ? 'Готовим' : 'Preparing';
+              return 'Premium';
+            }
+            return 'Premium';""",
+              """  if (accessState === 'premium') {
+              if (premiumLoading) return language === 'ru' ? 'Готовим' : 'Preparing';
+              return language === 'ru' ? 'Продолжение' : 'More';
+            }
+            return language === 'ru' ? 'Продолжение' : 'More';""",
+          )
+
+          replace_once(
+              'components/NatalReading/HumanReport.tsx',
+              """                  ? 'Первый вопрос по карте — бесплатно.'
+                  : 'Your first chart question is free.'""",
+              """                  ? 'Сейчас можно задать один вопрос.'
+                  : 'You can ask one question now.'""",
+          )
+
+          replace_once(
+              'components/NatalReading/NatalStoryDeck.tsx',
+              "return 'Этот раздел доступен в Premium.';",
+              "return 'Этот раздел пока закрыт.';",
+          )
+          PY
+
+      - name: Install and verify
+        run: |
+          npm ci
+          npm test -- --runInBand \
+            __tests__/natal-meaning-experience.test.ts \
+            __tests__/natal-reading-variant.test.ts \
+            __tests__/natal-catalog-contract.test.ts \
+            __tests__/natal-catalog-repair-diagnostics.test.ts
+          npx tsc --noEmit
+          npm run build
+
+      - name: Commit only the copy cleanup
+        shell: bash
+        run: |
+          rm -f .github/workflows/clean-natal-fallback-copy.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/NatalReading/NatalReportHub.tsx \
+                  components/NatalReading/HumanReport.tsx \
+                  components/NatalReading/NatalStoryDeck.tsx \
+                  .github/workflows/clean-natal-fallback-copy.yml
+          git diff --cached --check
+          git commit -m "fix(natal): keep fallback copy human"
+          git push origin HEAD:feat/natal-meaning-map-20260903
