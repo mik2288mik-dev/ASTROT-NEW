@@ -38,7 +38,7 @@ jobs:
           old = """                  <small>\n                    {language === 'ru'\n                      ? `Один Premium открывает все ${NATAL_REPORT_ANSWER_COUNT} ответов в натальной карте.`\n                      : `One Premium opens all ${NATAL_REPORT_ANSWER_COUNT} birth-chart answers.`}\n                  </small>"""
           new = """                  <small>\n                    {language === 'ru'\n                      ? 'После открытия здесь будут все ответы по этой карте.'\n                      : 'Once opened, all answers for this chart will be here.'}\n                  </small>"""
           if old not in text:
-              raise SystemExit('expected Premium copy block not found')
+              raise SystemExit('expected access copy block not found')
           meaning.write_text(text.replace(old, new), encoding='utf-8')
 
           questions = Path('components/NatalReading/NatalQuestionExperience.tsx')
@@ -66,16 +66,41 @@ jobs:
           policy = Path('__tests__/natal-question-policy.test.ts')
           text = policy.read_text(encoding='utf-8')
           text = text.replace("expect(report).toContain('Первый полный ответ — бесплатно.');", "expect(report).toContain('Можно задать первый вопрос.');")
-          text = text.replace("expect(report).toMatch(/до 5 новых вопросов в день/iu);", "expect(report).toMatch(/до 5 новых вопросов в день/iu);\n    expect(report).not.toMatch(/Premium|бесплатн/iu);")
+          text = text.replace(
+              "expect(report).toMatch(/до 5 новых вопросов в день/iu);",
+              "expect(report).toMatch(/до 5 новых вопросов в день/iu);\n    expect(report).not.toContain('Первый полный ответ — бесплатно.');\n    expect(report).not.toContain('Вопросы по карте доступны в Premium.');\n    expect(report).not.toContain('Бесплатный вопрос уже использован.');",
+          )
           policy.write_text(text, encoding='utf-8')
           PY
 
       - name: Verify copy and focused tests
         shell: bash
         run: |
-          ! grep -RniE "Premium|бесплатн" \
-            components/NatalReading/NatalMeaningExperience.tsx \
-            components/NatalReading/NatalQuestionExperience.tsx
+          python3 - <<'PY'
+          from pathlib import Path
+          forbidden = [
+              'Один Premium открывает',
+              'Вопросы по карте доступны в Premium.',
+              'Бесплатный вопрос уже использован.',
+              'Первый полный ответ — бесплатно.',
+              'Бесплатный вопрос использован',
+              'Premium даёт до 5 новых вопросов',
+              'One Premium opens all',
+              'Questions about the chart are available with Premium.',
+              'Your free question has already been used.',
+              'Your first full answer is free.',
+              'Free question used',
+              'Premium includes up to 5 new questions',
+          ]
+          for filename in [
+              'components/NatalReading/NatalMeaningExperience.tsx',
+              'components/NatalReading/NatalQuestionExperience.tsx',
+          ]:
+              text = Path(filename).read_text(encoding='utf-8')
+              hits = [value for value in forbidden if value in text]
+              if hits:
+                  raise SystemExit(f'{filename}: forbidden visible copy remains: {hits}')
+          PY
           npm ci
           npm test -- --runInBand \
             __tests__/natal-meaning-map-v3.test.ts \
