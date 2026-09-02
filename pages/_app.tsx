@@ -1,5 +1,6 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
+import { useEffect } from 'react';
 import '../styles/globals.css';
 import '../styles/cardBackgrounds.css';
 import '../styles/cardBackgroundPolish.css';
@@ -23,6 +24,7 @@ import '../styles/todayHome.css';
 import '../styles/uiPreview.css';
 import '../styles/sharedShellFinal.css';
 import '../styles/natalMeaningMap.css';
+import '../styles/publicSiteDocument.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 import { PublicAnalytics } from '../components/public-site/PublicAnalytics';
 import { installRuntimeDiagnostics } from '../lib/runtimeDiagnostics';
@@ -32,19 +34,30 @@ if (typeof window !== 'undefined') {
 }
 
 export default function App({ Component, pageProps, router }: AppProps) {
-  const viewport = router.pathname === '/'
-    ? 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
-    : 'width=device-width, initial-scale=1, viewport-fit=cover';
-  const publicAnalyticsEnabled = process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1';
-  // Database migrations are handled during build process (npm run migrate)
+  const publicSiteEnabled = process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1';
+  const viewport = publicSiteEnabled
+    ? 'width=device-width, initial-scale=1, viewport-fit=cover'
+    : router.pathname === '/'
+      ? 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
+      : 'width=device-width, initial-scale=1, viewport-fit=cover';
+
+  useEffect(() => {
+    if (!publicSiteEnabled) return;
+    document.documentElement.classList.add('public-site-document');
+    document.body.classList.add('public-site-document');
+    return () => {
+      document.documentElement.classList.remove('public-site-document');
+      document.body.classList.remove('public-site-document');
+    };
+  }, [publicSiteEnabled]);
+
   return (
     <>
       <Head>
         <meta name="viewport" content={viewport} />
       </Head>
-      {publicAnalyticsEnabled ? <PublicAnalytics /> : null}
-      {/* Global hand-drawn SVG filter defs for the doodle skin (visual-only) */}
-      <DoodleDefs />
+      {publicSiteEnabled ? <PublicAnalytics /> : null}
+      {!publicSiteEnabled ? <DoodleDefs /> : null}
       <Component {...pageProps} />
     </>
   );
