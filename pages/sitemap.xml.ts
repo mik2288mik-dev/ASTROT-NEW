@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from 'next';
 import { PUBLIC_SEO_ORIGIN, PUBLIC_SEO_PAIRS, PUBLIC_SEO_SIGNS } from '../lib/publicSeoContent';
+import { PUBLIC_SEO_HOUSES } from '../lib/publicSeoHouses';
 import {
   PUBLIC_SEO_PLANET_HOUSE_PLACEMENTS,
   PUBLIC_SEO_PLANET_SIGN_PLACEMENTS,
@@ -10,6 +11,7 @@ const CORE_PATHS = [
   '/',
   '/lichnyy-goroskop',
   '/natalnaya-karta',
+  '/natalnaya-karta/doma',
   '/natalnaya-karta/planety-v-znakah',
   '/natalnaya-karta/planety-v-domah',
   '/goroskop',
@@ -27,18 +29,10 @@ const LEGAL_PATHS = [
 ] as const;
 
 function escapeXml(value: string) {
-  return value.replace(/[<>&'\"]/g, (char) => ({
-    '<': '&lt;',
-    '>': '&gt;',
-    '&': '&amp;',
-    "'": '&apos;',
-    '"': '&quot;',
-  }[char] || char));
+  return value.replace(/[<>&'\"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[char] || char));
 }
 
-function toAbsolute(path: string) {
-  return path === '/' ? `${PUBLIC_SEO_ORIGIN}/` : `${PUBLIC_SEO_ORIGIN}${path}`;
-}
+function toAbsolute(path: string) { return path === '/' ? `${PUBLIC_SEO_ORIGIN}/` : `${PUBLIC_SEO_ORIGIN}${path}`; }
 
 function buildSitemap() {
   const urls = [
@@ -46,6 +40,7 @@ function buildSitemap() {
     ...(isPublicLegalReady() ? LEGAL_PATHS : []),
     ...PUBLIC_SEO_SIGNS.map((sign) => `/goroskop/${sign.slug}`),
     ...PUBLIC_SEO_PAIRS.map((pair) => pair.path),
+    ...PUBLIC_SEO_HOUSES.map((house) => house.path),
     ...PUBLIC_SEO_PLANET_SIGN_PLACEMENTS.map((item) => item.path),
     ...PUBLIC_SEO_PLANET_HOUSE_PLACEMENTS.map((item) => item.path),
   ];
@@ -61,6 +56,4 @@ export const getServerSideProps: GetServerSideProps = async ({ res }) => {
   return { props: {} };
 };
 
-export default function SitemapXml() {
-  return null;
-}
+export default function SitemapXml() { return null; }
