@@ -1,0 +1,73 @@
+name: Diagnose main Jest baseline
+
+on:
+  push:
+    branches:
+      - diagnostic/main-ci-baseline-20260902
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: horoscope
+          POSTGRES_PASSWORD: horoscope
+          POSTGRES_DB: horoscope_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U horoscope -d horoscope_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+      APP_SESSION_SECRET: diagnostic-session-secret
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: diagnostic/main-ci-baseline-20260902
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run migrate
+      - name: Run full Jest and capture JSON
+        continue-on-error: true
+        run: npm test -- --runInBand --json --outputFile=jest-result.json > jest-console.txt 2>&1
+      - name: Write concise baseline
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('jest-result.json', 'utf8'));
+          const lines = [
+            `success=${data.success}`,
+            `failedSuites=${data.numFailedTestSuites}`,
+            `failedTests=${data.numFailedTests}`,
+          ];
+          for (const suite of data.testResults || []) {
+            const failures = (suite.assertionResults || []).filter((test) => test.status === 'failed');
+            if (!failures.length) continue;
+            lines.push(`SUITE ${suite.name.replace(process.cwd() + '/', '')}`);
+            for (const test of failures) lines.push(`TEST ${test.fullName}`);
+          }
+          fs.writeFileSync('diagnostic-main-ci-baseline.txt', lines.join('\n') + '\n');
+          NODE
+          cat diagnostic-main-ci-baseline.txt
+      - name: Commit baseline
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add diagnostic-main-ci-baseline.txt
+          git commit -m "chore: record main CI baseline"
+          git push origin HEAD:diagnostic/main-ci-baseline-20260902
