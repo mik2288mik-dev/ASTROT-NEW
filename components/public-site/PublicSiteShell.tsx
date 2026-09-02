@@ -1,7 +1,7 @@
 import Head from 'next/head';
-import Image from 'next/image';
 import Link from 'next/link';
 import type { PropsWithChildren, ReactNode } from 'react';
+import { NeboLogo } from '../brand/NeboLogo';
 import {
   PUBLIC_SITE_CONFIG,
   formatPublicationDate,
@@ -94,8 +94,7 @@ export function PageHead({
 function Brand({ footer = false }: { footer?: boolean }) {
   return (
     <Link href="/" className={footer ? styles.footerBrand : styles.brand} aria-label={`Главная ${PUBLIC_SITE_SEO.siteName}`}>
-      <Image src="/assets/brand/personal-horoscope-mark.svg" alt="" width={42} height={32} className={styles.brandMark} />
-      <span>{PUBLIC_SITE_SEO.siteName}</span>
+      <NeboLogo decorative priority size={footer ? 'header' : 'compact'} />
     </Link>
   );
 }
@@ -132,7 +131,7 @@ export function PublicSiteShell({ children }: PropsWithChildren) {
         <div className={styles.footerInner}>
           <div className={styles.footerIntro}>
             <Brand footer />
-            <p>Личные прогнозы, натальная карта и совместимость в одном приложении.</p>
+            <p>Личный прогноз, натальная карта и совместимость в одном приложении.</p>
           </div>
           <nav className={styles.footerLinks} aria-label="Правовая информация">
             <Link href="/privacy">Конфиденциальность</Link>
