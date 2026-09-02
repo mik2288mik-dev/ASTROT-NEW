@@ -100,7 +100,10 @@ jobs:
           ):
               path = temp / file_name
               rows = path.read_text(encoding='utf-8', errors='replace').splitlines() if path.exists() else []
-              out.extend(['', f'===== {title} =====', *rows[-500:]])
+              rows = [row.rstrip() for row in rows[-500:]]
+              out.extend(['', f'===== {title} =====', *rows])
+          while out and not out[-1]:
+              out.pop()
           Path('natal-v3-polish-validation.txt').write_text('\n'.join(out) + '\n', encoding='utf-8')
           PY
 
