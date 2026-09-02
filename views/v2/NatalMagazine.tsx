@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CalendarDays, ChevronDown, Clock3, MapPin, Orbit } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ChevronDown, ChevronRight, Clock3, MapPin, Orbit } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { PreloadedNatalReport } from '../../components/NatalReading/HumanReport';
 import type { NatalPermanentPremiumReport } from '../../lib/natalReading/permanentReport';
