@@ -1,0 +1,97 @@
+name: Finalize natal v3 copy
+
+on:
+  push:
+    branches:
+      - feat/natal-meaning-map-v3-20260902
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feat/natal-meaning-map-v3-20260902
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Remove product jargon from natal UI
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          meaning = Path('components/NatalReading/NatalMeaningExperience.tsx')
+          text = meaning.read_text(encoding='utf-8')
+          text = text.replace('  NATAL_REPORT_ANSWER_COUNT,\n', '')
+          old = """                  <small>\n                    {language === 'ru'\n                      ? `Один Premium открывает все ${NATAL_REPORT_ANSWER_COUNT} ответов в натальной карте.`\n                      : `One Premium opens all ${NATAL_REPORT_ANSWER_COUNT} birth-chart answers.`}\n                  </small>"""
+          new = """                  <small>\n                    {language === 'ru'\n                      ? 'После открытия здесь будут все ответы по этой карте.'\n                      : 'Once opened, all answers for this chart will be here.'}\n                  </small>"""
+          if old not in text:
+              raise SystemExit('expected Premium copy block not found')
+          meaning.write_text(text.replace(old, new), encoding='utf-8')
+
+          questions = Path('components/NatalReading/NatalQuestionExperience.tsx')
+          text = questions.read_text(encoding='utf-8')
+          replacements = {
+              "'Вопросы по карте доступны в Premium.'": "'Эта часть пока закрыта. Открой вопросы, чтобы продолжить.'",
+              "'Questions about the chart are available with Premium.'": "'This part is locked for now. Open questions to continue.'",
+              "'Бесплатный вопрос уже использован. В Premium можно задавать до 5 новых вопросов в день.'": "'Первый вопрос уже использован. Открой вопросы, чтобы продолжить.'",
+              "'Your free question has already been used. Premium includes up to 5 new questions a day.'": "'Your first question has been used. Open questions to continue.'",
+              "'Бесплатный вопрос уже использован.'": "'Первый вопрос уже использован.'",
+              "'Your free question has already been used.'": "'Your first question has been used.'",
+              "'Первый полный ответ — бесплатно.'": "'Можно задать первый вопрос.'",
+              "'Your first full answer is free.'": "'You can ask your first question.'",
+              "'Бесплатный вопрос использован'": "'Первый вопрос уже использован'",
+              "'Free question used'": "'First question used'",
+              "'Premium даёт до 5 новых вопросов в день и сохраняет историю ответов.'": "'Можно задавать до 5 новых вопросов в день. История ответов останется здесь.'",
+              "'Premium includes up to 5 new questions a day and keeps your answer history.'": "'You can ask up to 5 new questions a day. Your answer history stays here.'",
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'expected copy not found: {old}')
+              text = text.replace(old, new)
+          questions.write_text(text, encoding='utf-8')
+
+          policy = Path('__tests__/natal-question-policy.test.ts')
+          text = policy.read_text(encoding='utf-8')
+          text = text.replace("expect(report).toContain('Первый полный ответ — бесплатно.');", "expect(report).toContain('Можно задать первый вопрос.');")
+          text = text.replace("expect(report).toMatch(/до 5 новых вопросов в день/iu);", "expect(report).toMatch(/до 5 новых вопросов в день/iu);\n    expect(report).not.toMatch(/Premium|бесплатн/iu);")
+          policy.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Verify copy and focused tests
+        shell: bash
+        run: |
+          ! grep -RniE "Premium|бесплатн" \
+            components/NatalReading/NatalMeaningExperience.tsx \
+            components/NatalReading/NatalQuestionExperience.tsx
+          npm ci
+          npm test -- --runInBand \
+            __tests__/natal-meaning-map-v3.test.ts \
+            __tests__/natal-catalog-ui-contract.test.ts \
+            __tests__/natal-question-policy.test.ts \
+            __tests__/natal-mobile-interaction-contract.test.ts
+          npx tsc --noEmit
+
+      - name: Commit clean product copy
+        shell: bash
+        run: |
+          rm -f .github/workflows/finalize-natal-v3-copy.yml
+          rm -f .github/workflows/validate-natal-v3-release.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(natal): keep access boundaries inside the product flow"
+          git push origin HEAD:feat/natal-meaning-map-v3-20260902
