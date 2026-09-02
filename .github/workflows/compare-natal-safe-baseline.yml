@@ -1,0 +1,50 @@
+name: Compare safe natal Jest baseline
+
+on:
+  push:
+    branches:
+      - diagnostic/natal-safe-ci-20260902
+
+permissions:
+  contents: write
+
+jobs:
+  compare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: diagnostic/natal-safe-ci-20260902
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Fetch baseline report
+        run: |
+          git fetch origin diagnostic/main-ci-baseline-20260902
+          git show origin/diagnostic/main-ci-baseline-20260902:diagnostic-main-ci-baseline.txt > baseline.txt
+      - name: Compare failures
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          def ids(path):
+              return {line.strip() for line in Path(path).read_text().splitlines() if line.startswith(('SUITE ', 'TEST '))}
+          safe = ids('diagnostic-natal-safe-ci.txt')
+          base = ids('baseline.txt')
+          lines = [
+              f'baseline_ids={len(base)}',
+              f'safe_ids={len(safe)}',
+              f'new_failures={len(safe-base)}',
+              f'fixed_baseline_failures={len(base-safe)}',
+          ]
+          lines += ['NEW ' + item for item in sorted(safe-base)]
+          lines += ['MISSING ' + item for item in sorted(base-safe)]
+          Path('diagnostic-natal-safe-vs-main.txt').write_text('\n'.join(lines) + '\n')
+          PY
+          cat diagnostic-natal-safe-vs-main.txt
+      - name: Commit comparison
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add diagnostic-natal-safe-vs-main.txt
+          git commit -m "chore: compare safe natal CI with main baseline"
+          git push origin HEAD:diagnostic/natal-safe-ci-20260902
