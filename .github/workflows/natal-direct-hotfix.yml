@@ -61,6 +61,40 @@ jobs:
             services/natalCatalogServiceBase.ts \
             lib/natalReading/reportCatalogGenerationBase.ts
           python3 -m py_compile scripts/apply-natal-direct-hotfix.py
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('scripts/apply-natal-direct-hotfix.py')
+          content = path.read_text(encoding='utf-8')
+          insertion = content.index('\n\n\n# Settings:')
+          helper = '''
+
+          def replace_first(content: str, old: str, new: str, label: str) -> str:
+              count = content.count(old)
+              if count < 1:
+                  raise RuntimeError(f"{label}: expected at least one anchor, found {count}")
+              return content.replace(old, new, 1)
+          '''
+          content = content[:insertion] + helper + content[insertion:]
+
+          def use_first_for(label: str) -> None:
+              global content
+              marker = f'    "{label}",\n)'
+              marker_index = content.index(marker)
+              call_index = content.rfind('content = replace_once(', 0, marker_index)
+              if call_index < 0:
+                  raise RuntimeError(f'{label}: replace_once call not found')
+              content = (
+                  content[:call_index]
+                  + 'content = replace_first('
+                  + content[call_index + len('content = replace_once('):]
+              )
+
+          use_first_for('category generation state')
+          use_first_for('category repair call')
+          path.write_text(content, encoding='utf-8')
+          PY
+          python3 -m py_compile scripts/apply-natal-direct-hotfix.py
           python3 scripts/apply-natal-direct-hotfix.py
 
       - name: Install dependencies
