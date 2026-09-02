@@ -1,0 +1,31 @@
+/* Public website runs in the same Next.js bundle as the fixed-viewport mobile app.
+   The website must use normal document scrolling instead of the app WebView shell. */
+html.public-site-document,
+body.public-site-document {
+  position: static !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-x pan-y !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.public-site-document #__next {
+  position: static !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+body.public-site-document {
+  margin: 0;
+  background: #fff !important;
+  color: #0d0d0d;
+}
