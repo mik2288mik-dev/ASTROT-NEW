@@ -13,14 +13,8 @@ import {
   type PublicSeoPairContent,
 } from '../../../lib/publicSeoContent';
 
-type PairPageProps = {
-  pair: PublicSeoPair;
-  content: PublicSeoPairContent;
-};
-
-type PairPageParams = {
-  pair: string;
-};
+type PairPageProps = { pair: PublicSeoPair; content: PublicSeoPairContent };
+type PairPageParams = { pair: string };
 
 export const getStaticPaths: GetStaticPaths<PairPageParams> = async () => ({
   paths: PUBLIC_SEO_PAIRS.map((pair) => ({ params: { pair: pair.slug } })),
@@ -30,16 +24,9 @@ export const getStaticPaths: GetStaticPaths<PairPageParams> = async () => ({
 export const getStaticProps: GetStaticProps<PairPageProps, PairPageParams> = async ({ params }) => {
   const parsed = parsePublicSeoPairSlug(params?.pair || '');
   if (!parsed) return { notFound: true };
-
   if (!parsed.isCanonical) {
-    return {
-      redirect: {
-        destination: parsed.canonicalPair.path,
-        permanent: true,
-      },
-    };
+    return { redirect: { destination: parsed.canonicalPair.path, permanent: true } };
   }
-
   return {
     props: {
       pair: parsed.canonicalPair,
@@ -48,17 +35,12 @@ export const getStaticProps: GetStaticProps<PairPageProps, PairPageParams> = asy
   };
 };
 
-export default function SignCompatibilityPairPage({
-  pair,
-  content,
-}: InferGetStaticPropsType<typeof getStaticProps>) {
+export default function SignCompatibilityPairPage({ pair, content }: InferGetStaticPropsType<typeof getStaticProps>) {
   const names = pairNames(pair);
   const relatedPairs = [
     ...relatedPairsForSign(pair.first, pair.slug),
     ...relatedPairsForSign(pair.second, pair.slug),
-  ].filter((candidate, index, all) => (
-    all.findIndex((item) => item.slug === candidate.slug) === index
-  )).slice(0, 8);
+  ].filter((candidate, index, all) => all.findIndex((item) => item.slug === candidate.slug) === index).slice(0, 8);
   const signLinks = pair.first.key === pair.second.key
     ? [{ href: `/goroskop/${pair.first.slug}`, label: `Гороскоп для ${pair.first.genitive}` }]
     : [
@@ -68,15 +50,11 @@ export default function SignCompatibilityPairPage({
   const faq = [
     {
       question: `Совместимы ли ${names}?`,
-      answer: 'Общий разбор показывает точки контакта и разницу темпа. Для конкретных отношений нужны данные двух натальных карт и сами поступки людей.',
+      answer: 'По двум знакам можно увидеть общие совпадения и различия, но реальные отношения зависят от самих людей и их поступков.',
     },
     {
-      question: `Меняется ли смысл, если поставить ${pair.second.name} первым?`,
-      answer: 'Смысл не меняется. Оба варианта — одна пара, поэтому страница у неё тоже одна.',
-    },
-    {
-      question: 'Как получить более полный разбор?',
-      answer: 'Сохранить две натальные карты по дате, времени и месту рождения и открыть совместимость по рассчитанным картам в NEBO Premium.',
+      question: 'Как получить более личное сравнение?',
+      answer: 'Добавить дату, время и место рождения двух людей и открыть совместимость по двум натальным картам.',
     },
   ];
 
@@ -84,10 +62,10 @@ export default function SignCompatibilityPairPage({
     <PublicSeoPage
       path={pair.path}
       title={`${names}: совместимость знаков зодиака`}
-      description={`Совместимость ${pairNamesGenitive(pair)}: что сближает два знака, где расходится темп и как говорить яснее. Общий бесплатный разбор NEBO.`}
-      eyebrow="Совместимость солнечных знаков"
-      heading={`${names}: совместимость знаков зодиака`}
-      lead={<p>Общий разбор двух солнечных знаков: что может притягивать, где начинаются разногласия и как говорить яснее.</p>}
+      description={`Совместимость ${pairNamesGenitive(pair)}: что сближает два знака, где чаще возникают разногласия и как им проще понимать друг друга.`}
+      eyebrow="Совместимость знаков"
+      heading={`${names}: совместимость`}
+      lead={<p>Что между этими знаками обычно складывается легко, где начинаются разногласия и в чём они могут понимать друг друга по-разному.</p>}
       breadcrumbs={[
         { name: 'Совместимость', path: '/sovmestimost' },
         { name: 'Совместимость знаков', path: '/sovmestimost/znakov' },
@@ -95,60 +73,42 @@ export default function SignCompatibilityPairPage({
       ]}
       faq={faq}
       relatedLinks={[
-        { href: '/sovmestimost', label: 'Полная совместимость по двум картам' },
+        { href: '/sovmestimost', label: 'Совместимость по дате рождения' },
         ...signLinks,
       ]}
     >
-      <section>
-        <h2>Что вас сближает</h2>
-        <p>{content.compatibility.attraction}</p>
-      </section>
-
-      <section>
-        <h2>Где расходится темп</h2>
-        <p>{content.compatibility.difficulty}</p>
-      </section>
-
-      <section>
-        <h2>Как говорить яснее</h2>
-        <p>{content.compatibility.communication}</p>
-      </section>
+      <section><h2>Что вас сближает</h2><p>{content.compatibility.attraction}</p></section>
+      <section><h2>Где может быть сложно</h2><p>{content.compatibility.difficulty}</p></section>
+      <section><h2>Как проще договориться</h2><p>{content.compatibility.communication}</p></section>
 
       <section>
         <h2>Каждый знак отдельно</h2>
         <h3>{content.firstSnapshot.headline}</h3>
         <p>{content.firstSnapshot.body}</p>
         {content.secondSnapshot ? (
-          <>
-            <h3>{content.secondSnapshot.headline}</h3>
-            <p>{content.secondSnapshot.body}</p>
-          </>
+          <><h3>{content.secondSnapshot.headline}</h3><p>{content.secondSnapshot.body}</p></>
         ) : (
-          <p>Одинаковый солнечный знак усиливает узнавание, но не делает двух людей копиями. Остальные положения карт всё равно различаются.</p>
+          <p>Один знак не делает двух людей одинаковыми. В полной натальной карте у каждого остаётся много других отличий.</p>
         )}
       </section>
 
       <section>
-        <h2>Что важно учесть</h2>
+        <h2>Не делай вывод по одному знаку</h2>
         <p>{content.compatibility.limitation}</p>
-        <p>Повторяющиеся поступки и прямой разговор дают больше фактов, чем попытка угадать человека по одному знаку.</p>
+        <p>То, как человек реально разговаривает и поступает, всегда важнее общего описания его знака.</p>
       </section>
 
       <section>
-        <h2>Ещё пары с этими знаками</h2>
+        <h2>Другие сочетания</h2>
         <ul>
-          {relatedPairs.map((relatedPair) => (
-            <li key={relatedPair.slug}>
-              <Link href={relatedPair.path}>{pairNames(relatedPair)}</Link>
-            </li>
-          ))}
+          {relatedPairs.map((relatedPair) => <li key={relatedPair.slug}><Link href={relatedPair.path}>{pairNames(relatedPair)}</Link></li>)}
         </ul>
-        <p><Link href="/sovmestimost/znakov">Открыть каталог всех 78 пар</Link></p>
+        <p><Link href="/sovmestimost/znakov">Посмотреть все знаки</Link></p>
       </section>
 
       <section>
-        <h2>Полный разбор по двум картам</h2>
-        <p>Полная совместимость использует рассчитанные натальные карты обоих людей. Этот формат доступен в NEBO Premium.</p>
+        <h2>Сравнить вас по данным рождения</h2>
+        <p>Добавь две натальные карты — NEBO покажет больше деталей, чем сравнение только по знакам.</p>
         <ReleaseAction />
       </section>
     </PublicSeoPage>
