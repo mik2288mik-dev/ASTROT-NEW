@@ -35,7 +35,7 @@ export function middleware(request: NextRequest) {
       if (request.headers.get('x-meou-public-root-rewrite') === '1') {
         return NextResponse.next();
       }
-      return NextResponse.redirect(new URL('/', request.url), 308);
+      return NextResponse.redirect(new URL('/', request.url), 301);
     }
     return NextResponse.json(
       { error: 'NOT_FOUND' },
@@ -91,7 +91,7 @@ export function middleware(request: NextRequest) {
   if (!isAllowedNativeOrigin(origin)) {
     const response = NextResponse.json(
       { error: 'CORS_ORIGIN_DENIED', message: 'Origin is not allowed' },
-      { status: 403 }
+      { status: 403 },
     );
     addVaryOrigin(response.headers);
     return response;

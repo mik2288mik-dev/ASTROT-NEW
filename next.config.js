@@ -39,7 +39,7 @@ const publicCsp = [
 ].join('; ');
 
 const commonSecurityHeaders = [
-  { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
@@ -55,6 +55,7 @@ const publicPageHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   // Live View is the visual source of truth; keep Next's corner badge off the app navigation.
   devIndicators: false,
   output: isMobileBuild ? 'export' : 'standalone',
@@ -66,13 +67,12 @@ const nextConfig = {
   outputFileTracingIncludes: {
     '/api/**/*': ['./ephe/**/*'],
   },
-  // Оптимизация изображений
   images: {
-    domains: ['cdn.telegram.org'], // Telegram CDN для аватарок
+    domains: ['cdn.telegram.org'],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60, // Кэшировать изображения минимум 60 секунд
+    minimumCacheTTL: 60,
     unoptimized: isMobileBuild,
   },
   eslint: {
@@ -81,9 +81,6 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_MEOU_PUBLIC_SITE: isPublicWebsiteBuild ? '1' : '0',
   },
-  // Next передаёт собственный экземпляр webpack в callback. Не require('webpack') здесь:
-  // webpack не является прямой зависимостью проекта, и чистый Docker/npm ci обязан работать без
-  // случайно оставшегося локального пакета в node_modules.
   webpack: (config, { isServer, webpack }) => {
     if (isMobileBuild) {
       config.plugins.push(new webpack.IgnorePlugin({
@@ -97,7 +94,6 @@ const nextConfig = {
       ));
     }
     if (!isServer) {
-      // Исключаем Node.js модули из клиентского бандла
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
@@ -128,12 +124,12 @@ const nextConfig = {
           source: '/:path*',
           has: [{ type: 'host', value: 'tvoi-goroskop.ru' }],
           destination: 'https://www.tvoi-goroskop.ru/:path*',
-          permanent: true,
+          statusCode: 301,
         },
         {
           source: '/contacts',
           destination: '/support',
-          permanent: true,
+          statusCode: 301,
         },
       ];
     },

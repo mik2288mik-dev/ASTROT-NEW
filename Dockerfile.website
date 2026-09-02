@@ -47,7 +47,9 @@ ENV NEXT_PUBLIC_SUPPORT_EMAIL=${NEXT_PUBLIC_SUPPORT_EMAIL} \
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# Build only the public website surface. API/auth/mobile pages belong to the
+# separate astrot service and are removed from this ephemeral Docker stage.
+RUN node scripts/build-website.mjs
 
 FROM node:22-alpine AS runner
 WORKDIR /app
