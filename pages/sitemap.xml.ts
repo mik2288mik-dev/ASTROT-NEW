@@ -4,6 +4,7 @@ import {
   PUBLIC_SEO_PLANET_HOUSE_PLACEMENTS,
   PUBLIC_SEO_PLANET_SIGN_PLACEMENTS,
 } from '../lib/publicSeoPlacements';
+import { isPublicLegalReady } from '../lib/publicSiteConfig';
 
 const CORE_PATHS = [
   '/',
@@ -14,6 +15,9 @@ const CORE_PATHS = [
   '/goroskop',
   '/sovmestimost',
   '/sovmestimost/znakov',
+] as const;
+
+const LEGAL_PATHS = [
   '/privacy',
   '/terms',
   '/personal-data-consent',
@@ -39,6 +43,7 @@ function toAbsolute(path: string) {
 function buildSitemap() {
   const urls = [
     ...CORE_PATHS,
+    ...(isPublicLegalReady() ? LEGAL_PATHS : []),
     ...PUBLIC_SEO_SIGNS.map((sign) => `/goroskop/${sign.slug}`),
     ...PUBLIC_SEO_PAIRS.map((pair) => pair.path),
     ...PUBLIC_SEO_PLANET_SIGN_PLACEMENTS.map((item) => item.path),
