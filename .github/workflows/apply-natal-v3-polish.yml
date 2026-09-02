@@ -1,0 +1,116 @@
+name: Apply natal v3 polish
+
+on:
+  push:
+    branches:
+      - feat/natal-meaning-map-v3-20260902
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-natal-v3-polish
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: horoscope
+          POSTGRES_PASSWORD: horoscope
+          POSTGRES_DB: horoscope_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U horoscope -d horoscope_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+      APP_SESSION_SECRET: natal-v3-polish-session-secret
+      NODE_ENV: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feat/natal-meaning-map-v3-20260902
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply patch
+        run: python3 scripts/apply-natal-v3-polish.py
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply migrations
+        run: npm run migrate
+
+      - name: Run focused verification
+        shell: bash
+        run: |
+          set +e
+          npm test -- --runInBand \
+            __tests__/natal-meaning-map-v3.test.ts \
+            __tests__/natal-reading-variant.test.ts \
+            __tests__/natal-reading-variant-ui-contract.test.ts \
+            __tests__/natal-catalog-contract.test.ts \
+            __tests__/natal-catalog-ui-contract.test.ts \
+            __tests__/natal-catalog-repair-diagnostics.test.ts \
+            __tests__/natal-question-policy.test.ts \
+            __tests__/natal-mobile-interaction-contract.test.ts \
+            __tests__/today-navigation-shell.test.ts \
+            > "$RUNNER_TEMP/natal-v3-polish-tests.log" 2>&1
+          TEST_STATUS=$?
+          npx tsc --noEmit > "$RUNNER_TEMP/natal-v3-polish-tsc.log" 2>&1
+          TSC_STATUS=$?
+          npm run build > "$RUNNER_TEMP/natal-v3-polish-build.log" 2>&1
+          BUILD_STATUS=$?
+          set -e
+
+          TEST_STATUS="$TEST_STATUS" TSC_STATUS="$TSC_STATUS" BUILD_STATUS="$BUILD_STATUS" \
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          temp = Path(os.environ['RUNNER_TEMP'])
+          statuses = {
+              'focused_tests': int(os.environ['TEST_STATUS']),
+              'typescript': int(os.environ['TSC_STATUS']),
+              'production_build': int(os.environ['BUILD_STATUS']),
+          }
+          out = []
+          for key, value in statuses.items():
+              out.append(f"{key}={'PASS' if value == 0 else 'FAIL'}")
+          for title, file_name in (
+              ('FOCUSED TESTS', 'natal-v3-polish-tests.log'),
+              ('TYPESCRIPT', 'natal-v3-polish-tsc.log'),
+              ('PRODUCTION BUILD', 'natal-v3-polish-build.log'),
+          ):
+              path = temp / file_name
+              rows = path.read_text(encoding='utf-8', errors='replace').splitlines() if path.exists() else []
+              out.extend(['', f'===== {title} =====', *rows[-500:]])
+          Path('natal-v3-polish-validation.txt').write_text('\n'.join(out) + '\n', encoding='utf-8')
+          PY
+
+      - name: Commit patch and report
+        shell: bash
+        run: |
+          rm -f scripts/apply-natal-v3-polish.py .github/workflows/apply-natal-v3-polish.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(natal): polish meaning-map interaction and contracts"
+          git push origin HEAD:feat/natal-meaning-map-v3-20260902
