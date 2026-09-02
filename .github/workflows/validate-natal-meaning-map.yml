@@ -1,0 +1,89 @@
+name: Validate natal meaning map
+
+on:
+  push:
+    branches:
+      - feat/natal-meaning-map-20260903
+
+permissions:
+  contents: write
+
+concurrency:
+  group: validate-natal-meaning-map
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      APP_SESSION_SECRET: natal-meaning-map-validation-secret
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/natal-meaning-map-20260903
+          persist-credentials: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run focused checks and capture results
+        shell: bash
+        run: |
+          set +e
+          npm test -- --runInBand \
+            __tests__/natal-meaning-experience.test.ts \
+            __tests__/natal-reading-variant.test.ts \
+            __tests__/natal-catalog-contract.test.ts \
+            __tests__/natal-catalog-repair-diagnostics.test.ts \
+            > "$RUNNER_TEMP/natal-tests.log" 2>&1
+          TEST_STATUS=$?
+
+          npx tsc --noEmit > "$RUNNER_TEMP/natal-tsc.log" 2>&1
+          TSC_STATUS=$?
+
+          npm run build > "$RUNNER_TEMP/natal-build.log" 2>&1
+          BUILD_STATUS=$?
+
+          {
+            echo "test_status=$TEST_STATUS"
+            echo "tsc_status=$TSC_STATUS"
+            echo "build_status=$BUILD_STATUS"
+            echo
+            echo "=== TESTS ==="
+            tail -n 180 "$RUNNER_TEMP/natal-tests.log"
+            echo
+            echo "=== TYPESCRIPT ==="
+            tail -n 180 "$RUNNER_TEMP/natal-tsc.log"
+            echo
+            echo "=== BUILD ==="
+            tail -n 180 "$RUNNER_TEMP/natal-build.log"
+          } > validation-natal-meaning-map.txt
+
+          echo "TEST_STATUS=$TEST_STATUS" >> "$GITHUB_ENV"
+          echo "TSC_STATUS=$TSC_STATUS" >> "$GITHUB_ENV"
+          echo "BUILD_STATUS=$BUILD_STATUS" >> "$GITHUB_ENV"
+          exit 0
+
+      - name: Commit validation report
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add validation-natal-meaning-map.txt
+          git diff --cached --quiet || git commit -m "chore(natal): record meaning-map validation"
+          git push origin HEAD:feat/natal-meaning-map-20260903
+
+      - name: Enforce result
+        shell: bash
+        run: |
+          test "$TEST_STATUS" = "0"
+          test "$TSC_STATUS" = "0"
+          test "$BUILD_STATUS" = "0"
