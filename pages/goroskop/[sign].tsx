@@ -9,13 +9,8 @@ import {
   type PublicSeoSign,
 } from '../../lib/publicSeoContent';
 
-type SignPageProps = {
-  sign: PublicSeoSign;
-};
-
-type SignPageParams = {
-  sign: string;
-};
+type SignPageProps = { sign: PublicSeoSign };
+type SignPageParams = { sign: string };
 
 export const getStaticPaths: GetStaticPaths<SignPageParams> = async () => ({
   paths: PUBLIC_SEO_SIGNS.map((sign) => ({ params: { sign: sign.slug } })),
@@ -28,15 +23,13 @@ export const getStaticProps: GetStaticProps<SignPageProps, SignPageParams> = asy
   return { props: { sign } };
 };
 
-export default function SignHoroscopePage({
-  sign,
-}: InferGetStaticPropsType<typeof getStaticProps>) {
+export default function SignHoroscopePage({ sign }: InferGetStaticPropsType<typeof getStaticProps>) {
   const path = `/goroskop/${sign.slug}`;
   const relatedPairs = relatedPairsForSign(sign).slice(0, 6);
   const faq = [
     {
-      question: `Это гороскоп для ${sign.genitive} на сегодня?`,
-      answer: `На этой странице собраны постоянные темы знака ${sign.name}. Ежедневный гороскоп для ${sign.genitive} читается внутри NEBO.`,
+      question: `Здесь есть гороскоп для ${sign.genitive} на сегодня?`,
+      answer: `Здесь можно узнать главное про знак ${sign.name}. Ежедневный гороскоп для ${sign.genitive} доступен в NEBO.`,
     },
     {
       question: `Что значит знак ${sign.name} в натальной карте?`,
@@ -44,7 +37,7 @@ export default function SignHoroscopePage({
     },
     {
       question: 'Нужно ли точное время рождения?',
-      answer: 'Для общего гороскопа по солнечному знаку точное время не нужно. Для полной натальной карты время и место рождения добавляют дома, углы и другие рассчитанные положения.',
+      answer: 'Для общего гороскопа по знаку точное время не нужно. Для полной натальной карты лучше знать время и место рождения.',
     },
   ];
 
@@ -52,9 +45,9 @@ export default function SignHoroscopePage({
     <PublicSeoPage
       path={path}
       title={`Гороскоп для ${sign.genitive}: знак и личный прогноз`}
-      description={`${sign.name}: как читать общий гороскоп, что описывает знак и чем он отличается от личного прогноза NEBO по натальной карте.`}
+      description={`${sign.name}: что обычно связывают с этим знаком, ежедневный гороскоп и чем общий прогноз отличается от личного прогноза NEBO.`}
       eyebrow={`Гороскоп · ${sign.name}`}
-      heading={`Гороскоп для ${sign.genitive}: знак и личный прогноз`}
+      heading={`Гороскоп для ${sign.genitive}`}
       lead={<p>{sign.summary}</p>}
       breadcrumbs={[
         { name: 'Гороскоп по знакам', path: '/goroskop' },
@@ -62,47 +55,43 @@ export default function SignHoroscopePage({
       ]}
       faq={faq}
       relatedLinks={[
-        { href: '/lichnyy-goroskop', label: 'Личный гороскоп по сохранённой карте' },
-        { href: '/natalnaya-karta', label: 'Рассчитать натальную карту' },
-        { href: '/sovmestimost/znakov', label: 'Все пары знаков' },
+        { href: '/lichnyy-goroskop', label: 'Личный гороскоп' },
+        { href: '/natalnaya-karta', label: 'Натальная карта' },
+        { href: '/sovmestimost/znakov', label: 'Совместимость знаков' },
       ]}
     >
       <section>
-        <h2>Короткий ответ</h2>
+        <h2>Коротко</h2>
         <p>{sign.shortAnswer}</p>
       </section>
 
       {sign.sections.map((section) => (
         <section key={section.title}>
           <h2>{section.title}</h2>
-          {section.paragraphs.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
+          {section.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
         </section>
       ))}
 
       <section>
-        <h2>Что показывает общий гороскоп</h2>
-        <p>Ежедневный гороскоп для {sign.genitive} опирается на один солнечный знак. Это быстрый общий формат, а не персональное заключение о человеке.</p>
-        <p><Link href="/natalnaya-karta">Натальная карта</Link> учитывает несколько рассчитанных положений, дома и аспекты. <Link href="/lichnyy-goroskop">Личный прогноз</Link> получает данные сохранённой карты и выбранный период.</p>
+        <h2>Общий и личный гороскоп</h2>
+        <p>Ежедневный гороскоп для {sign.genitive} опирается на солнечный знак, поэтому остаётся общим для многих людей.</p>
+        <p><Link href="/natalnaya-karta">Натальная карта</Link> показывает намного больше деталей. <Link href="/lichnyy-goroskop">Личный прогноз</Link> учитывает твою сохранённую карту.</p>
       </section>
 
       <section>
-        <h2>{sign.name} в совместимости</h2>
-        <p>Сравнение двух солнечных знаков показывает общую динамику. Вот несколько пар с участием знака {sign.name}:</p>
+        <h2>{sign.name} и другие знаки</h2>
+        <p>Посмотри несколько сочетаний со знаком {sign.name}:</p>
         <ul>
           {relatedPairs.map((pair) => (
-            <li key={pair.slug}>
-              <Link href={pair.path}>{pair.first.name} и {pair.second.name}</Link>
-            </li>
+            <li key={pair.slug}><Link href={pair.path}>{pair.first.name} и {pair.second.name}</Link></li>
           ))}
         </ul>
-        <p><Link href="/sovmestimost/znakov">Открыть все 78 пар знаков</Link></p>
+        <p><Link href="/sovmestimost/znakov">Посмотреть совместимость знаков</Link></p>
       </section>
 
       <section>
-        <h2>Где читать ежедневный прогноз</h2>
-        <p>Общий ежедневный гороскоп доступен бесплатно. Личный текст использует данные сохранённой натальной карты и предыдущие прогнозы.</p>
+        <h2>Гороскоп на сегодня</h2>
+        <p>Общий ежедневный гороскоп доступен бесплатно в NEBO.</p>
         <ReleaseAction />
       </section>
     </PublicSeoPage>
