@@ -16,6 +16,7 @@ import { recordUserAppEvent } from '../../services/sessionService';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import { NatalWhySheet } from './NatalWhySheet';
 import styles from '../../styles/NatalMeaningExperience.module.css';
+import questionStyles from '../../styles/NatalQuestionExperience.module.css';
 
 type Props = {
   profile: UserProfile;
@@ -315,8 +316,8 @@ export const NatalQuestionExperience: React.FC<Props> = ({
 
   return (
     <>
-      <main className={styles.questionRoot}>
-        <header className={styles.questionIntro}>
+      <main className={questionStyles.questionRoot}>
+        <header className={questionStyles.questionIntro}>
           <p className={styles.eyebrow}>
             {language === 'ru' ? 'Спроси по своей карте' : 'Ask from your chart'}
           </p>
@@ -325,7 +326,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         </header>
 
         {locked ? (
-          <section className={styles.questionAccess}>
+          <section className={questionStyles.questionAccess}>
             <h2>{language === 'ru' ? 'Продолжим?' : 'Keep going?'}</h2>
             <p>
               {language === 'ru'
@@ -350,11 +351,11 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         ) : (
           <form
             id="natal-question-composer"
-            className={styles.questionComposer}
+            className={questionStyles.questionComposer}
             onSubmit={submitQuestion}
             aria-busy={loading || submitting || undefined}
           >
-            <div className={styles.questionSuggestions}>
+            <div className={questionStyles.questionSuggestions}>
               <p>{language === 'ru' ? 'Можно начать так' : 'You can start here'}</p>
               <div>
                 {starters.map((starter) => {
@@ -376,7 +377,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
               </div>
             </div>
 
-            <label className={styles.questionLabel} htmlFor="natal-question-input">
+            <label className={questionStyles.questionLabel} htmlFor="natal-question-input">
               {language === 'ru' ? 'Свой вопрос' : 'Your question'}
             </label>
             <textarea
@@ -389,13 +390,13 @@ export const NatalQuestionExperience: React.FC<Props> = ({
               placeholder={language === 'ru'
                 ? 'Например: почему я быстро теряю интерес?'
                 : 'For example: why do I lose interest quickly?'}
-              className={styles.questionInput}
+              className={questionStyles.questionInput}
             />
-            <div className={styles.questionComposerFooter}>
+            <div className={questionStyles.questionComposerFooter}>
               <p role="status" aria-live="polite">{status}</p>
               <button
                 type="submit"
-                className={styles.questionSubmit}
+                className={questionStyles.questionSubmit}
                 disabled={inputDisabled || !question.trim()}
                 aria-label={language === 'ru' ? 'Отправить вопрос' : 'Send question'}
               >
@@ -405,11 +406,11 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                   : (language === 'ru' ? 'Спросить' : 'Ask')}</span>
               </button>
             </div>
-            {error ? <p className={styles.questionError} role="alert">{error}</p> : null}
+            {error ? <p className={questionStyles.questionError} role="alert">{error}</p> : null}
           </form>
         )}
 
-        <section className={styles.questionHistory} aria-labelledby="natal-question-history">
+        <section className={questionStyles.questionHistory} aria-labelledby="natal-question-history">
           <header>
             <h2 id="natal-question-history">
               {language === 'ru' ? 'Твои ответы' : 'Your answers'}
@@ -435,16 +436,16 @@ export const NatalQuestionExperience: React.FC<Props> = ({
               </button>
             </section>
           ) : pairs.length ? (
-            <ol className={styles.questionPairs}>
+            <ol className={questionStyles.questionPairs}>
               {pairs.map(({ question: userQuestion, answer }) => (
-                <li key={userQuestion.id} className={styles.questionPair}>
-                  <p className={styles.userQuestion}>{userQuestion.text}</p>
+                <li key={userQuestion.id} className={questionStyles.questionPair}>
+                  <p className={questionStyles.userQuestion}>{userQuestion.text}</p>
                   {answer ? (
-                    <article className={styles.assistantAnswer}>
+                    <article className={questionStyles.assistantAnswer}>
                       <FormattedAiText
                         text={answer.text}
-                        className={styles.answerFormatted}
-                        paragraphClassName={styles.answerParagraph}
+                        className={questionStyles.answerFormatted}
+                        paragraphClassName={questionStyles.answerParagraph}
                       />
                       <button
                         type="button"
@@ -458,7 +459,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                       </button>
                     </article>
                   ) : (
-                    <p className={styles.questionPending}>
+                    <p className={questionStyles.questionPending}>
                       {language === 'ru'
                         ? 'Ответ оборвался. Повтори этот вопрос выше.'
                         : 'The answer stopped. Retry this question above.'}
@@ -468,7 +469,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
               ))}
             </ol>
           ) : (
-            <p className={styles.questionEmpty}>
+            <p className={questionStyles.questionEmpty}>
               {language === 'ru'
                 ? 'Здесь появятся ответы. Пока тихо — и это легко исправить.'
                 : 'Your answers will appear here. It is quiet for now, which is easy to fix.'}
