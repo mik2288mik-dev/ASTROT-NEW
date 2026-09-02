@@ -32,9 +32,9 @@ describe('natal mobile interaction contract', () => {
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
     expect(globals).toContain('.lumia-app-shell {\n  height:');
     expect(globals).toContain('touch-action: pan-x pan-y;');
-    expect(app).toContain("router.pathname === '/'");
+    expect(app).toContain('const viewport = publicSiteEnabled');
+    expect(app).toContain(": router.pathname === '/'");
     expect(app).toContain('maximum-scale=1, user-scalable=no');
-    expect(app).toContain("const viewport = router.pathname === '/'");
     expect(rootApp).toContain("document.addEventListener('gesturestart', preventGestureZoom, options)");
     expect(rootApp).toContain("document.removeEventListener('gesturestart', preventGestureZoom)");
   });
