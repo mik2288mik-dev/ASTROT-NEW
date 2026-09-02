@@ -32,38 +32,59 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
-          def replace_once(path: str, old: str, new: str) -> None:
-              file = Path(path)
-              source = file.read_text(encoding='utf-8')
-              count = source.count(old)
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding='utf-8')
+
+          def write(path: str, value: str) -> None:
+              Path(path).write_text(value, encoding='utf-8')
+
+          hub_path = 'components/NatalReading/NatalReportHub.tsx'
+          hub = read(hub_path)
+          hub, count = re.subn(
+              r"function accessLabel\([\s\S]*?\n\}\n\n(?=type LegacyNatalReportHubProps)",
+              """function accessLabel(
+            accessState: NatalTopicAccessState,
+            language: 'ru' | 'en',
+            premiumLoading: boolean,
+          ): string {
+            if (accessState === 'open') return language === 'ru' ? 'Открыто' : 'Open';
+            if (accessState === 'premium') {
+              if (premiumLoading) return language === 'ru' ? 'Готовим' : 'Preparing';
+              return language === 'ru' ? 'Продолжение' : 'More';
+            }
+            return language === 'ru' ? 'Продолжение' : 'More';
+          }
+          """.replace('\n          ', '\n').lstrip(),
+              hub,
+              count=1,
+          )
+          if count != 1:
+              raise RuntimeError(f'{hub_path}: accessLabel match count={count}')
+          write(hub_path, hub)
+
+          human_path = 'components/NatalReading/HumanReport.tsx'
+          human = read(human_path)
+          replacements = {
+              "'Первый вопрос по карте — бесплатно.'": "'Сейчас можно задать один вопрос.'",
+              "'Your first chart question is free.'": "'You can ask one question now.'",
+          }
+          for old, new in replacements.items():
+              count = human.count(old)
               if count != 1:
-                  raise RuntimeError(f'{path}: expected one match, found {count}')
-              file.write_text(source.replace(old, new, 1), encoding='utf-8')
+                  raise RuntimeError(f'{human_path}: {old} match count={count}')
+              human = human.replace(old, new, 1)
+          write(human_path, human)
 
-          replace_once(
-              'components/NatalReading/NatalReportHub.tsx',
-              """    return 'Premium';
-            }
-            return 'Premium';""",
-              """    return language === 'ru' ? 'Продолжение' : 'More';
-            }
-            return language === 'ru' ? 'Продолжение' : 'More';""",
-          )
-
-          replace_once(
-              'components/NatalReading/HumanReport.tsx',
-              """                  ? 'Первый вопрос по карте — бесплатно.'
-                  : 'Your first chart question is free.'""",
-              """                  ? 'Сейчас можно задать один вопрос.'
-                  : 'You can ask one question now.'""",
-          )
-
-          replace_once(
-              'components/NatalReading/NatalStoryDeck.tsx',
-              "return 'Этот раздел доступен в Premium.';",
-              "return 'Этот раздел пока закрыт.';",
-          )
+          story_path = 'components/NatalReading/NatalStoryDeck.tsx'
+          story = read(story_path)
+          old = "return 'Этот раздел доступен в Premium.';"
+          new = "return 'Этот раздел пока закрыт.';"
+          count = story.count(old)
+          if count != 1:
+              raise RuntimeError(f'{story_path}: locked copy match count={count}')
+          write(story_path, story.replace(old, new, 1))
           PY
 
       - name: Install and verify
