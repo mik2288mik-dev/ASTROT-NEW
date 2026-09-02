@@ -6,47 +6,43 @@ function read(relativePath: string): string {
 }
 
 describe('natal catalog UI contract', () => {
-  it('keeps the four product tabs and opens the reading first', () => {
+  it('starts with a clear foundation and keeps wheel, exploration and questions separate', () => {
     const magazine = read('views/v2/NatalMagazine.tsx');
-    const styles = read('styles/editorialStudio.css');
-    const map = magazine.indexOf("{ id: 'map' as const");
-    const reading = magazine.indexOf("{ id: 'reading' as const");
-    const questions = magazine.indexOf("{ id: 'questions' as const");
-    const matrix = magazine.indexOf("{ id: 'matrix' as const");
+    const styles = read('styles/natalMeaningMap.css');
 
-    expect(map).toBeGreaterThan(-1);
-    expect(reading).toBeGreaterThan(map);
-    expect(questions).toBeGreaterThan(reading);
-    expect(matrix).toBeGreaterThan(questions);
-    expect(magazine).toContain("previewConfig?.initialTab || 'reading'");
-    expect(magazine).toContain('aria-label={language === \'ru\' ? \'Открыть круг карты\'');
-    expect(magazine).toContain('label={language === \'ru\' ? \'Открыть мои карты\'');
-    expect(styles).toContain('.natal-editorial-page .app-top-bar {\n  /* The bar already removes safe-area padding from its content width. */\n  --app-top-bar-title-rail: 94px;');
-    expect(styles).toContain('@media (max-width: 360px)');
-    expect(styles).toContain('--app-top-bar-title-rail: 90px;');
+    expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map'");
+    expect(magazine).toContain("return 'foundation'");
+    expect(magazine).toContain("selectTab('map')");
+    expect(magazine).toContain("selectTab('foundation')");
+    expect(magazine).toContain("selectTab('explore')");
+    expect(magazine).toContain("selectTab('ask')");
+    expect(magazine).toContain("'Круг карты'");
+    expect(magazine).toContain('onClick={onOpenCharts}');
+    expect(magazine).not.toContain('<EditorialTabs');
+    expect(magazine).not.toContain('<MatrixRoom');
+    expect(styles).toContain('.natal-v3-primary-nav {');
+    expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));');
   });
 
-  it('uses six inner topics, a flat list, and a separate answer state', () => {
+  it('uses foundation plus five directions instead of six inner tabs', () => {
     const report = read('components/NatalReading/NatalCatalogReport.tsx');
-    const hub = read('components/NatalReading/NatalReportHub.tsx');
-    const styles = read('styles/editorialStudio.css');
+    const experience = read('components/NatalReading/NatalMeaningExperience.tsx');
 
-    expect(report).toContain('NATAL_REPORT_CATEGORIES.map((category, index) =>');
-    expect(report).toContain("role=\"tablist\"");
-    expect(report).toContain('{!selectedAnswerKey ? (');
-    expect(hub).toContain('className="natal-catalog-list"');
-    expect(hub).toContain('{locked ? <LockKeyhole className="natal-catalog-row-lock"');
-    expect(hub).not.toContain('className="natal-catalog-row-premium"');
-    expect(hub).toContain('selectedAnswer.paragraphs.map((paragraph, index) =>');
-    expect(hub).toContain("{language === 'ru' ? 'В полном ответе'");
-    expect(hub).toContain("heading?.closest('.natal-catalog-detail')?.scrollIntoView");
-    expect(styles).toContain('.natal-catalog-detail-heading h2:focus');
-    expect(styles).toContain('scroll-margin-top: calc(');
+    expect(report).toContain('<NatalMeaningExperience');
+    expect(report).not.toContain('role="tablist"');
+    expect(report).not.toContain('natal-catalog-tabs');
+    expect(experience).toContain('const DOMAIN_KEYS = [');
+    ['character', 'love', 'communication', 'work', 'money']
+      .forEach((key) => expect(experience).toContain(`'${key}'`));
+    expect(experience).toContain('className={`natal-v3-map-node is-foundation');
+    expect(experience).toContain('className={`natal-v3-map-node is-${categoryKey}');
+    expect(experience).toContain('Главное о тебе');
+    expect(experience).toContain('Что можно разобрать');
   });
 
-  it('returns to the exact paid answer and keeps reading state per chart', () => {
+  it('opens one focused answer in a sheet and returns to the exact row', () => {
     const report = read('components/NatalReading/NatalCatalogReport.tsx');
-    const app = read('App.tsx');
+    const experience = read('components/NatalReading/NatalMeaningExperience.tsx');
 
     expect(report).toContain("returnAction: 'open_natal_answer'");
     expect(report).toContain('returnEntityId: answerKey');
@@ -55,50 +51,46 @@ describe('natal catalog UI contract', () => {
     expect(report).toContain('previewAlreadyLoaded');
     expect(report).toContain('if (!previewAlreadyLoaded) setActiveCategory(definition.categoryKey)');
     expect(report).toContain('.flatMap((pack) => pack?.previews || [])');
-    expect(report).toContain('ensureNatalCatalogCategory(\n        userId,\n        definition.categoryKey,');
     expect(report).toContain('buildStaticDetailCategoryPack(selectedDefinition.categoryKey, language, selectedPreview)');
-    expect(report).toContain('categoryPack={displayCategoryPack}');
     expect(report).toContain('setAnswerLoading(canReadAnswer && !readableAnswerLoaded)');
-    expect(report).toContain('setCategoryLoading(!categoryPacks[categoryKey])');
-    expect(report).toContain('const target = answerRow || document.getElementById(\'natal-catalog-category-title\')');
-    expect(report).toContain('id={`natal-catalog-tab-${category.key}`}');
-    expect(report).toContain('aria-labelledby={!selectedAnswerKey ? `natal-catalog-tab-${activeCategory}` : undefined}');
-    expect(app).toContain("'.pw2-close, .pw2 .app-top-bar-side--start .app-top-bar-action'");
-    expect(report).toContain('`${storageScope}:read`');
-    expect(report).toContain('`${storageScope}:bookmarks`');
-    expect(report).toContain('`${storageScope}:recent`');
-    expect(report).toContain('`${storageScope}:last-read`');
+    expect(report).toContain('document.getElementById(`natal-catalog-row-${answerKey}`)');
+    expect(experience).toContain('className="natal-v3-sheet natal-v3-answer-sheet"');
+    expect(experience).toContain('aria-modal="true"');
+    expect(experience).toContain('answer.paragraphs.map');
   });
 
-  it('prefers the preview from the tapped topic before owning and fallback packs', () => {
+  it('shows one premium block for a direction rather than a lock on every row', () => {
+    const experience = read('components/NatalReading/NatalMeaningExperience.tsx');
+
+    expect(experience).toContain('const lockedPreviews = isPremium');
+    expect(experience).toContain('className="natal-v3-premium-section"');
+    expect(experience).toContain('lockedPreviews.slice(0, 4)');
+    expect(experience).toContain('Открыть раздел полностью');
+    expect(experience).not.toContain('natal-catalog-row-lock');
+  });
+
+  it('keeps bookmarks only for a readable full answer', () => {
+    const experience = read('components/NatalReading/NatalMeaningExperience.tsx');
     const report = read('components/NatalReading/NatalCatalogReport.tsx');
-    const priorityLookup = report.indexOf('categoryPacks[categoryKey]?.previews.find');
-    const fallbackLookup = report.indexOf('return Object.values(categoryPacks)', priorityLookup);
 
-    expect(report).toContain('answerOriginCategory || activeCategory');
-    expect(report).toContain('const priority = [primaryCategoryKey, definition?.categoryKey]');
-    expect(priorityLookup).toBeGreaterThan(-1);
-    expect(fallbackLookup).toBeGreaterThan(priorityLookup);
+    expect(experience).toContain('{canRead && answer ? (');
+    expect(experience).toContain('onToggleBookmark(answerKey)');
+    expect(experience).toContain("bookmarked ? 'Сохранено' : 'Сохранить'");
+    expect(report).toContain('`${storageScope}:bookmarks`');
+    expect(report).not.toContain('`${storageScope}:recent`');
+    expect(report).not.toContain('`${storageScope}:last-read`');
   });
 
-  it('keeps a newly unlocked answer in loading until content or an API error arrives', () => {
-    const hub = read('components/NatalReading/NatalReportHub.tsx');
-    const pendingState = hub.indexOf('const answerPending = canReadAnswer');
-    const pendingRender = hub.indexOf(') : answerPending ? (', pendingState);
-    const errorRender = hub.indexOf(') : canReadAnswer && answerError ? (', pendingRender);
+  it('explains each conclusion with real evidence and birth-time reliability', () => {
+    const experience = read('components/NatalReading/NatalMeaningExperience.tsx');
+    const evidence = read('components/NatalReading/NatalEvidenceSheet.tsx');
 
-    expect(hub).toContain('&& !selectedAnswer\n      && !answerError');
-    expect(pendingState).toBeGreaterThan(-1);
-    expect(pendingRender).toBeGreaterThan(pendingState);
-    expect(errorRender).toBeGreaterThan(pendingRender);
-  });
-
-  it('shows history and saved full answers without bookmarking a locked preview', () => {
-    const hub = read('components/NatalReading/NatalReportHub.tsx');
-
-    expect(hub).toContain("{language === 'ru' ? 'Сохранённое'");
-    expect(hub).toContain("{language === 'ru' ? 'Недавно открыто'");
-    expect(hub).toContain('{canReadAnswer && selectedAnswer ? (');
-    expect(hub).toContain('onToggleBookmark(selectedAnswerKey)');
+    expect(experience).toContain('Почему так?');
+    expect(experience).toContain('<NatalEvidenceSheet');
+    expect(evidence).toContain('buildNatalModelContext(profile, chartData)');
+    expect(evidence).toContain('getPermanentNatalReliability(chartData)');
+    expect(evidence).toContain('Что именно использовано');
+    expect(evidence).toContain('Насколько это зависит от времени рождения');
+    expect(evidence).toContain('Показать данные карты');
   });
 });

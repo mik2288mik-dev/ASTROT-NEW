@@ -15,6 +15,14 @@ const BUILD_ENV_NAMES = [
 ];
 const CHANNELS = new Set(['telegram', 'rustore', 'google_play', 'development']);
 
+// Capacitor needs a fully static Next export. Server-rendered marketing routes
+// belong to the web deployment and must not participate in the mobile bundle.
+// The public/static sitemap asset remains available to the website; only the
+// getServerSideProps page is parked while `next build` performs the export.
+const MOBILE_EXCLUDED_PAGE_PATHS = [
+  path.resolve('pages', 'sitemap.xml.ts'),
+];
+
 function loadBuildEnv() {
   const loaded = {};
   for (const file of ['.env', '.env.production', '.env.local', '.env.production.local']) {
@@ -55,6 +63,28 @@ function validateApiUrl(value) {
   }
 }
 
+function parkServerRenderedPages() {
+  const parked = [];
+  for (const sourcePath of MOBILE_EXCLUDED_PAGE_PATHS) {
+    if (!fs.existsSync(sourcePath)) continue;
+    const parkedPath = `${sourcePath}.mobile-excluded`;
+    if (fs.existsSync(parkedPath)) {
+      fail(`Cannot park ${path.relative(process.cwd(), sourcePath)} because ${path.basename(parkedPath)} already exists.`);
+    }
+    fs.renameSync(sourcePath, parkedPath);
+    parked.push({ sourcePath, parkedPath });
+    console.log(`[build:mobile] Excluded server-rendered page ${path.relative(process.cwd(), sourcePath)}.`);
+  }
+  return parked;
+}
+
+function restoreServerRenderedPages(parked) {
+  for (const { sourcePath, parkedPath } of [...parked].reverse()) {
+    if (!fs.existsSync(parkedPath)) continue;
+    fs.renameSync(parkedPath, sourcePath);
+  }
+}
+
 loadBuildEnv();
 
 const channel = String(process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL || '').trim().toLowerCase();
@@ -82,11 +112,17 @@ process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
 process.env.NEXT_PUBLIC_ANDROID_BUILD = '1';
 
 const nextBin = path.resolve('node_modules', 'next', 'dist', 'bin', 'next');
-const result = spawnSync(process.execPath, [nextBin, 'build'], {
-  cwd: process.cwd(),
-  env: process.env,
-  stdio: 'inherit',
-});
+const parkedPages = parkServerRenderedPages();
+let result;
+try {
+  result = spawnSync(process.execPath, [nextBin, 'build'], {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: 'inherit',
+  });
+} finally {
+  restoreServerRenderedPages(parkedPages);
+}
 
 if (result.error) fail(result.error.message);
 if (result.status !== 0) process.exit(result.status ?? 1);
