@@ -7,7 +7,7 @@ export default function SupportPage() {
 
   return (
     <LegalPage
-      title="Поддержка NEBO"
+      title="Поддержка NEBO — помощь по аккаунту и оплате"
       description="Контакты поддержки NEBO, запросы по аккаунту, оплате, персональным данным и удалению."
       path="/support"
       lead={<p>В приложении можно создать обращение и выбрать его тип. Email остаётся запасным каналом связи.</p>}
