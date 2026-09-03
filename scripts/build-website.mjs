@@ -23,15 +23,26 @@ writeFileSync(
   'utf8',
 );
 
-const result = spawnSync(process.execPath, [path.join(root, 'node_modules/next/dist/bin/next'), 'build'], {
+const env = {
+  ...process.env,
+  MEOU_PUBLIC_SITE: '1',
+  NEXT_PUBLIC_MEOU_PUBLIC_SITE: '1',
+};
+
+const build = spawnSync(process.execPath, [path.join(root, 'node_modules/next/dist/bin/next'), 'build'], {
   cwd: root,
-  env: {
-    ...process.env,
-    MEOU_PUBLIC_SITE: '1',
-    NEXT_PUBLIC_MEOU_PUBLIC_SITE: '1',
-  },
+  env,
   stdio: 'inherit',
 });
 
-if (result.error) throw result.error;
-process.exit(result.status ?? 1);
+if (build.error) throw build.error;
+if ((build.status ?? 1) !== 0) process.exit(build.status ?? 1);
+
+const audit = spawnSync(process.execPath, [path.join(root, 'scripts/audit-public-seo.mjs')], {
+  cwd: root,
+  env,
+  stdio: 'inherit',
+});
+
+if (audit.error) throw audit.error;
+process.exit(audit.status ?? 1);
