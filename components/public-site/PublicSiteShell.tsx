@@ -19,6 +19,7 @@ import {
   type PublicSiteJsonLdInput,
   type PublicSiteSocialImage,
 } from './publicSiteSeo';
+import { PublicAnalytics } from './PublicAnalytics';
 
 export type PageHeadProps = {
   title: string;
@@ -83,7 +84,7 @@ function Brand({ footer = false }: { footer?: boolean }) {
 }
 
 function DownloadAction({ compact = false }: { compact?: boolean }) {
-  if (isRuStorePublished()) return <a className={compact ? styles.headerCta : styles.primaryCta} href={PUBLIC_SITE_CONFIG.rustoreUrl} rel="noreferrer" data-analytics-event="rustore_download_click">Скачать в RuStore</a>;
+  if (isRuStorePublished()) return <a className={compact ? styles.headerCta : styles.primaryCta} href={PUBLIC_SITE_CONFIG.rustoreUrl} rel="noreferrer" data-analytics-event="rustore_click">Скачать в RuStore</a>;
   return <span className={compact ? styles.headerStatus : styles.releaseStatus} role="status" aria-label="Приложение скоро появится в RuStore">Скоро в RuStore</span>;
 }
 
@@ -92,9 +93,10 @@ export function PublicSiteShell({ children }: PropsWithChildren) {
   return (
     <div className={styles.siteRoot}>
       <a className={styles.skipLink} href="#main-content">К основному содержанию</a>
+      <PublicAnalytics />
       <header className={styles.siteHeader}><div className={styles.headerInner}><Brand /><nav className={styles.headerNav} aria-label="Основная навигация">{PUBLIC_SITE_SEO.navigation.map((item) => <Link key={item.href} href={item.href}>{item.label}</Link>)}</nav><details className={styles.mobileNav}><summary className={styles.mobileNavSummary}>Меню</summary><nav className={styles.mobileNavPanel} aria-label="Мобильная навигация">{PUBLIC_SITE_SEO.navigation.map((item) => <Link key={item.href} href={item.href} className={styles.mobileNavLink}>{item.label}</Link>)}</nav></details><DownloadAction compact /></div></header>
       {children}
-      <footer className={styles.siteFooter}><div className={styles.footerInner}><div className={styles.footerIntro}><Brand footer /><p>Личный прогноз, натальная карта и совместимость в одном приложении.</p></div><nav className={styles.footerLinks} aria-label="Правовая информация"><Link href="/privacy">Конфиденциальность</Link><Link href="/personal-data-consent">Согласие на обработку ПД</Link><Link href="/terms">Пользовательское соглашение</Link><Link href="/delete-account">Удаление аккаунта</Link><Link href="/support">Поддержка</Link><Link href="/requisites">Реквизиты</Link>{supportHref ? <a href={supportHref} data-analytics-event="click_email">Написать в поддержку</a> : null}</nav><p className={styles.footerMeta}>© 2026 {PUBLIC_SITE_SEO.siteName}. Приложение для Android.</p></div></footer>
+      <footer className={styles.siteFooter}><div className={styles.footerInner}><div className={styles.footerIntro}><Brand footer /><p>Личный прогноз, натальная карта и совместимость в одном приложении.</p></div><nav className={styles.footerLinks} aria-label="Правовая информация"><Link href="/privacy">Конфиденциальность</Link><Link href="/personal-data-consent">Согласие на обработку ПД</Link><Link href="/terms">Пользовательское соглашение</Link><Link href="/delete-account">Удаление аккаунта</Link><Link href="/support">Поддержка</Link><Link href="/requisites">Реквизиты</Link><button className={styles.footerAnalyticsButton} type="button" onClick={() => window.dispatchEvent(new Event('nebo-open-analytics-consent'))}>Настройки аналитики</button>{supportHref ? <a href={supportHref}>Написать в поддержку</a> : null}</nav><p className={styles.footerMeta}>© 2026 {PUBLIC_SITE_SEO.siteName}. Приложение для Android.</p></div></footer>
     </div>
   );
 }

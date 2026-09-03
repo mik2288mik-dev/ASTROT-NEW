@@ -50,6 +50,8 @@ const supportRetentionMonths = publicValue(
 );
 const minimumAge = publicValue(process.env.NEXT_PUBLIC_MINIMUM_AGE, 'approved-minimum-age');
 const rustoreUrl = clean(process.env.NEXT_PUBLIC_RUSTORE_URL);
+const yandexMetrikaId = clean(process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID);
+const ga4MeasurementId = clean(process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID);
 
 export const PUBLIC_SITE_CONFIG = {
   appName,
@@ -65,6 +67,8 @@ export const PUBLIC_SITE_CONFIG = {
   supportRetentionMonths,
   minimumAge,
   rustoreUrl,
+  yandexMetrikaId: /^\d+$/.test(yandexMetrikaId) ? yandexMetrikaId : '',
+  ga4MeasurementId: /^G-[A-Z0-9]+$/i.test(ga4MeasurementId) ? ga4MeasurementId : '',
   yandexWebmasterVerification: clean(process.env.NEXT_PUBLIC_YANDEX_WEBMASTER_VERIFICATION),
   googleSiteVerification: clean(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION),
   privacyUrl: `${baseUrl}/privacy`,
