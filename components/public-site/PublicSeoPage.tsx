@@ -137,7 +137,7 @@ export function PublicSeoPage({
         jsonLd={jsonLd}
       />
       <main id="main-content" className={styles.seoMain}>
-        <nav className={styles.breadcrumbs} aria-label="Хлебные крошки">
+        <nav className={`${styles.breadcrumbs} ${styles.seoBreadcrumbs}`} aria-label="Хлебные крошки">
           {visibleBreadcrumbs.map((item, index) => {
             const isCurrent = index === visibleBreadcrumbs.length - 1;
             return (

@@ -49,7 +49,8 @@ const supportRetentionMonths = publicValue(
   'approved-support-retention-months',
 );
 const minimumAge = publicValue(process.env.NEXT_PUBLIC_MINIMUM_AGE, 'approved-minimum-age');
-const rustoreUrl = clean(process.env.NEXT_PUBLIC_RUSTORE_URL);
+const rustoreUrl = clean(process.env.NEXT_PUBLIC_RUSTORE_URL)
+  || 'https://www.rustore.ru/catalog/app/ru.tvoygoroskop.app';
 const yandexMetrikaId = clean(process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID);
 const ga4MeasurementId = clean(process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID);
 

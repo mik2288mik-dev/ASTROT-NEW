@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import Image from 'next/image';
 import Link from 'next/link';
 import type { PropsWithChildren, ReactNode } from 'react';
 import {
@@ -78,7 +79,15 @@ export function PageHead({ title, description, path, canonical: includeCanonical
 function Brand({ footer = false }: { footer?: boolean }) {
   return (
     <Link href="/" className={footer ? styles.footerBrand : styles.brand} aria-label={`Главная ${PUBLIC_SITE_SEO.siteName}`}>
-      <span aria-hidden="true" style={{ display: 'inline-block', color: '#f5f0e7', fontFamily: 'Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: footer ? '1.55rem' : '1.35rem', fontWeight: 680, lineHeight: 1, letterSpacing: '0.16em' }}>NEBO</span>
+      <Image
+        className={styles.brandIcon}
+        src="/assets/brand/nebo-app-icon-192.png"
+        alt=""
+        width={32}
+        height={32}
+        priority={!footer}
+      />
+      <span className={styles.brandWordmark} aria-hidden="true">NEBO</span>
     </Link>
   );
 }

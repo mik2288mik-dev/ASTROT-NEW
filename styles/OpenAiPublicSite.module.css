@@ -20,9 +20,12 @@
 .skipLink:focus { transform: translateY(0); }
 
 .siteHeader { position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,.1); background: rgba(7,7,7,.74); backdrop-filter: blur(22px) saturate(120%); }
-.headerInner, .footerInner, .legalMain, .seoMain, .sectionInner { width: min(calc(100% - 48px), 92rem); margin-inline: auto; }
+.headerInner, .footerInner, .sectionInner { width: min(calc(100% - 48px), 92rem); margin-inline: auto; }
 .headerInner { min-height: 68px; display: flex; align-items: center; gap: 28px; }
-.brand, .footerBrand { display: inline-flex; align-items: center; text-decoration: none; min-width: 90px; }
+.brand, .footerBrand { display: inline-flex; align-items: center; gap: 9px; color: var(--site-ink); text-decoration: none; min-width: 118px; }
+.brandIcon { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px; box-shadow: 0 6px 18px rgba(71, 189, 220, .16); }
+.brandWordmark { color: inherit; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 16px; font-weight: 700; letter-spacing: .14em; line-height: 1; }
+.footerBrand .brandIcon { width: 32px; height: 32px; }
 .headerNav { display: flex; gap: 26px; align-items: center; margin-left: 24px; font-size: 13px; color: #c6beb3; }
 .headerNav a { text-decoration: none; transition: color .18s ease; }
 .headerNav a:hover { color: #fff; }
@@ -97,10 +100,11 @@
 .breadcrumbs { display: flex; flex-wrap: wrap; gap: 6px; color: #7d766e; font-size: 12px; }
 .breadcrumbs a { color: #aaa198; text-decoration: none; }
 .breadcrumbs a:hover { color: #fff; }
-.legalMain, .seoMain { position: relative; min-height: 70svh; padding: 32px 0 clamp(90px,10vw,160px); background: radial-gradient(circle at 88% 0%, rgba(205,153,84,.12), transparent 26%), #080808; }
-.legalMain::before, .seoMain::before { content: ''; position: absolute; inset: 0 0 auto; height: 520px; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.18), #080808 94%), url('/space/nebula.webp') 75% 35% / cover no-repeat; opacity: .42; }
+.legalMain, .seoMain { position: relative; width: 100%; min-height: 70svh; padding: 32px 0 clamp(90px,10vw,160px); background: radial-gradient(circle at 88% 0%, rgba(205,153,84,.12), transparent 26%), #080808; }
+.legalMain::before, .seoMain::before { content: ''; position: absolute; inset: 0 0 auto; height: min(620px, 62vw); min-height: 460px; pointer-events: none; background: linear-gradient(90deg, #080808 0%, rgba(8,8,8,.72) 38%, rgba(8,8,8,.08) 74%, rgba(8,8,8,.35) 100%), linear-gradient(180deg, rgba(0,0,0,.08), #080808 96%), url('/space/nebula.webp') center 28% / cover no-repeat; opacity: .46; }
 .legalMain > *, .seoMain > * { position: relative; }
-.legalArticle, .seoArticle { max-width: 900px; margin: clamp(62px,8vw,120px) auto 0; }
+.seoBreadcrumbs { width: min(calc(100% - 48px), 92rem); margin-inline: auto; }
+.legalArticle, .seoArticle { width: min(calc(100% - 48px), 900px); margin: clamp(62px,8vw,120px) auto 0; }
 .legalHeading, .seoHero { padding: 0 0 48px; border-bottom: 1px solid rgba(255,255,255,.5); }
 .legalHeading h1, .seoHero h1 { max-width: 14ch; margin: 0; font-family: ui-serif, Georgia, serif; font-size: clamp(52px,7vw,100px); font-weight: 400; line-height: .93; letter-spacing: -.05em; }
 .legalLead, .seoLead { max-width: 66ch; margin-top: 26px; color: #bcb3a8; font-size: 18px; line-height: 1.65; }
@@ -137,9 +141,12 @@
 }
 
 @media (max-width: 720px) {
-  .headerInner, .footerInner, .legalMain, .seoMain, .sectionInner, .heroInner { width: min(calc(100% - 32px), 92rem); }
+  .headerInner, .footerInner, .sectionInner, .heroInner, .seoBreadcrumbs { width: min(calc(100% - 32px), 92rem); }
   .headerInner { gap: 10px; min-height: 62px; }
-  .brand { min-width: 74px; }
+  .brand { min-width: 106px; }
+  .brandIcon { width: 28px; height: 28px; border-radius: 8px; }
+  .brandWordmark { font-size: 15px; }
+  .legalArticle, .seoArticle { width: min(calc(100% - 32px), 900px); }
   .headerCta, .headerStatus { min-height: 38px; padding: 0 12px; font-size: 11px; }
   .forecastShowcase { grid-template-columns: 1fr; }
   .storyRail { position: static; min-height: auto; display: grid; grid-template-columns: 1fr auto; align-items: end; }
