@@ -97,7 +97,7 @@ for (const file of htmlFiles) {
 }
 
 for (const page of indexable) {
-  const expected = page.route === '/' ? `${canonicalOrigin}/` : `${canonicalOrigin}${page.route}`;
+  const expected = page.route === '/' ? canonicalOrigin : `${canonicalOrigin}${page.route}`;
   if (page.canonical !== expected) errors.push(`${page.route}: self-canonical ожидается ${expected}, получено ${page.canonical || 'EMPTY'}`);
 }
 
