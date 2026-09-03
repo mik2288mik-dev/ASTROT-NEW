@@ -1,0 +1,164 @@
+name: Restore matrix in natal navigation
+
+on:
+  push:
+    branches:
+      - fix/restore-matrix-in-natal-20260903
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/restore-matrix-in-natal-20260903
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Restore Matrix of Destiny inside natal navigation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding='utf-8')
+
+          def write(path: str, value: str) -> None:
+              Path(path).write_text(value, encoding='utf-8')
+
+          def replace_once(source: str, old: str, new: str, label: str) -> str:
+              count = source.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{label}: expected one match, found {count}')
+              return source.replace(old, new, 1)
+
+          path = 'views/v2/NatalMagazine.tsx'
+          source = read(path)
+          source = replace_once(
+              source,
+              "import { NatalChartWheel } from '../../components/NatalReading/NatalChartWheel';",
+              "import { NatalChartWheel } from '../../components/NatalReading/NatalChartWheel';\nimport { MatrixRoom } from './MatrixRoom';",
+              'matrix import',
+          )
+          source = replace_once(
+              source,
+              "initialTab?: 'map' | 'reading' | 'questions' | 'foundation' | 'explore' | 'ask';",
+              "initialTab?: 'map' | 'reading' | 'questions' | 'foundation' | 'explore' | 'ask' | 'matrix';",
+              'preview matrix tab',
+          )
+          source = replace_once(
+              source,
+              "export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map';",
+              "export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix';",
+              'screen tab type',
+          )
+          source = replace_once(
+              source,
+              "  if (value === 'map') return 'map';\n  if (value === 'explore') return 'explore';",
+              "  if (value === 'map') return 'map';\n  if (value === 'matrix') return 'matrix';\n  if (value === 'explore') return 'explore';",
+              'preview resolver',
+          )
+          source = replace_once(
+              source,
+              "  const [questionContext, setQuestionContext] = useState<NatalReportCategoryKey>('main');\n  const lastContentTabRef",
+              "  const [questionContext, setQuestionContext] = useState<NatalReportCategoryKey>('main');\n  const [matrixMounted, setMatrixMounted] = useState(false);\n  const lastContentTabRef",
+              'matrix mounted state',
+          )
+          source = replace_once(
+              source,
+              "  const showPrimaryNavigation = readingRenderer === 'catalog' || !isSavedPerson;\n  const primaryNavItemCount = readingRenderer === 'catalog'\n    ? (isSavedPerson ? 2 : 3)\n    : 2;",
+              "  const showPrimaryNavigation = true;\n  const primaryNavItemCount = readingRenderer === 'catalog'\n    ? (isSavedPerson ? 3 : 4)\n    : (isSavedPerson ? 2 : 3);",
+              'primary nav count',
+          )
+          source = replace_once(
+              source,
+              "    const normalized = normalizeNatalScreenTab(requestedTab, isSavedPerson);\n    if (normalized === 'map') {",
+              "    const normalized = normalizeNatalScreenTab(requestedTab, isSavedPerson);\n    if (normalized === 'matrix') {\n      setMatrixMounted(true);\n      lastContentTabRef.current = 'matrix';\n      setActiveTab('matrix');\n      return;\n    }\n    if (normalized === 'map') {",
+              'matrix select behavior',
+          )
+          source = replace_once(
+              source,
+              "              {language === 'ru' ? 'К разбору' : 'Back to reading'}",
+              "              {lastContentTabRef.current === 'matrix'\n                ? (language === 'ru' ? 'К матрице' : 'Back to matrix')\n                : (language === 'ru' ? 'К разбору' : 'Back to reading')}",
+              'map back label',
+          )
+          ask_block = """          {!isSavedPerson ? (\n            <button\n              type=\"button\"\n              className={normalizedActiveTab === 'ask' ? 'is-active' : undefined}\n              aria-current={normalizedActiveTab === 'ask' ? 'page' : undefined}\n              onClick={() => selectTab('ask')}\n            >\n              {language === 'ru' ? 'Спросить' : 'Ask'}\n            </button>\n          ) : null}\n"""
+          matrix_button = ask_block + """          <button\n            type=\"button\"\n            className={normalizedActiveTab === 'matrix' ? 'is-active' : undefined}\n            aria-current={normalizedActiveTab === 'matrix' ? 'page' : undefined}\n            onClick={() => selectTab('matrix')}\n          >\n            {language === 'ru' ? 'Матрица судьбы' : 'Matrix'}\n          </button>\n"""
+          source = replace_once(source, ask_block, matrix_button, 'matrix nav button')
+          source = replace_once(
+              source,
+              """      {normalizedActiveTab === 'ask' && !isSavedPerson ? (\n        <section className=\"natal-v3-question-stage\">\n          <NatalQuestionExperience\n            profile={profile}\n            chartData={data}\n            chartId={chartId}\n            contextCategory={questionContext}\n            onContextChange={setQuestionContext}\n            requestPremium={requestPremium}\n            premiumContinuation={premiumContinuation}\n            onPremiumContinuationHandled={onPremiumContinuationHandled}\n          />\n        </section>\n      ) : null}\n    </div>\n""",
+              """      {normalizedActiveTab === 'ask' && !isSavedPerson ? (\n        <section className=\"natal-v3-question-stage\">\n          <NatalQuestionExperience\n            profile={profile}\n            chartData={data}\n            chartId={chartId}\n            contextCategory={questionContext}\n            onContextChange={setQuestionContext}\n            requestPremium={requestPremium}\n            premiumContinuation={premiumContinuation}\n            onPremiumContinuationHandled={onPremiumContinuationHandled}\n          />\n        </section>\n      ) : null}\n\n      {matrixMounted ? (\n        <div className=\"natal-matrix-stage\" hidden={normalizedActiveTab !== 'matrix'}>\n          <MatrixRoom\n            profile={profile}\n            onBack={() => selectTab('foundation')}\n            embedded\n          />\n        </div>\n      ) : null}\n    </div>\n""",
+              'matrix stage',
+          )
+          write(path, source)
+
+          path = 'styles/natalMeaningMap.css'
+          source = read(path)
+          source = replace_once(
+              source,
+              ".natal-v3-primary-nav[data-items='2'] {\n  grid-template-columns: repeat(2, minmax(0, 1fr));\n}\n",
+              ".natal-v3-primary-nav[data-items='2'] {\n  grid-template-columns: repeat(2, minmax(0, 1fr));\n}\n\n.natal-v3-primary-nav[data-items='4'] {\n  grid-template-columns: repeat(4, minmax(0, 1fr));\n}\n\n.natal-v3-primary-nav[data-items='4'] button {\n  padding-inline: 4px;\n  font-size: 12px;\n  line-height: 1.12;\n}\n",
+              'four item nav css',
+          )
+          write(path, source)
+
+          for path in [
+              '__tests__/natal-meaning-map-v3.test.ts',
+              '__tests__/natal-catalog-ui-contract.test.ts',
+              '__tests__/natal-question-policy.test.ts',
+          ]:
+              source = read(path).replace(
+                  "export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map'",
+                  "export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix'",
+              )
+              write(path, source)
+
+          path = '__tests__/natal-meaning-map-v3.test.ts'
+          source = read(path)
+          source = source.replace(
+              "expect(magazine).not.toContain(\"import { MatrixRoom } from './MatrixRoom'\");",
+              "expect(magazine).toContain(\"import { MatrixRoom } from './MatrixRoom'\");\n    expect(magazine).toContain(\"'Матрица судьбы'\");",
+          )
+          write(path, source)
+
+          path = '__tests__/natal-catalog-ui-contract.test.ts'
+          source = read(path)
+          source = source.replace(
+              "expect(magazine).not.toContain('<MatrixRoom');",
+              "expect(magazine).toContain('<MatrixRoom');\n    expect(magazine).toContain(\"selectTab('matrix')\");\n    expect(magazine).toContain(\"'Матрица судьбы'\");",
+          )
+          source = source.replace(
+              "expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));');",
+              "expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));');\n    expect(styles).toContain(\".natal-v3-primary-nav[data-items='4']\");\n    expect(styles).toContain('grid-template-columns: repeat(4, minmax(0, 1fr));');",
+          )
+          write(path, source)
+          PY
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify natal navigation
+        run: >-
+          npm test -- --runInBand
+          __tests__/natal-meaning-map-v3.test.ts
+          __tests__/natal-catalog-ui-contract.test.ts
+          __tests__/natal-question-policy.test.ts
+          __tests__/natal-mobile-interaction-contract.test.ts
+          __tests__/today-navigation-shell.test.ts
+          __tests__/long-form-editorial-reading.test.ts
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Commit verified change
+        shell: bash
+        run: |
+          rm -f .github/workflows/restore-matrix-in-natal.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add views/v2/NatalMagazine.tsx styles/natalMeaningMap.css __tests__/natal-meaning-map-v3.test.ts __tests__/natal-catalog-ui-contract.test.ts __tests__/natal-question-policy.test.ts .github/workflows/restore-matrix-in-natal.yml
+          git commit -m "fix(natal): restore Matrix of Destiny navigation"
+          git push origin HEAD:fix/restore-matrix-in-natal-20260903
