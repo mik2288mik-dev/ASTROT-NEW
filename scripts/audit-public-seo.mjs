@@ -6,6 +6,7 @@ const pagesDir = path.join(root, '.next', 'server', 'pages');
 const sitemapSource = path.join(root, 'pages', 'sitemap.xml.ts');
 const robotsPath = path.join(root, 'public', 'robots.txt');
 const canonicalOrigin = 'https://www.tvoi-goroskop.ru';
+const errorRoutes = new Set(['/404', '/500']);
 const errors = [];
 const warnings = [];
 
@@ -67,6 +68,11 @@ for (const file of htmlFiles) {
     || first(html, /<link[^>]+href=["']([^"']+)["'][^>]+rel=["']canonical["'][^>]*>/i);
   const h1s = [...html.matchAll(/<h1\b[^>]*>/gi)].length;
 
+  if (errorRoutes.has(route)) {
+    if (!noindex) errors.push(`${route}: системная error-page обязана иметь noindex`);
+    continue;
+  }
+
   if (/OWNER_REQUIRED:|React App|Vite App|Untitled Page/i.test(html) && !noindex) {
     errors.push(`${route}: служебный/placeholder текст на индексируемой странице`);
   }
@@ -90,7 +96,6 @@ for (const file of htmlFiles) {
   }
 }
 
-const expectedCanonical = new Set(indexable.map((page) => page.canonical).filter(Boolean));
 for (const page of indexable) {
   const expected = page.route === '/' ? `${canonicalOrigin}/` : `${canonicalOrigin}${page.route}`;
   if (page.canonical !== expected) errors.push(`${page.route}: self-canonical ожидается ${expected}, получено ${page.canonical || 'EMPTY'}`);
