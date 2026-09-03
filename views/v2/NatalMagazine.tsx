@@ -13,6 +13,7 @@ import { NatalQuestionExperience } from '../../components/NatalReading/NatalQues
 import type { NatalExperienceView } from '../../components/NatalReading/NatalMeaningExperience';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { NatalChartWheel } from '../../components/NatalReading/NatalChartWheel';
+import { MatrixRoom } from './MatrixRoom';
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
 import {
   NATAL_REPORT_CATALOG_CONTRACT_VERSION,
@@ -52,7 +53,7 @@ type NatalMagazineProps = {
   onOpenCharts?: () => void;
   onOpenEncyclopedia?: () => void;
   uiPreview?: {
-    initialTab?: 'map' | 'reading' | 'questions' | 'foundation' | 'explore' | 'ask';
+    initialTab?: 'map' | 'reading' | 'questions' | 'foundation' | 'explore' | 'ask' | 'matrix';
     openQuestion?: boolean;
     reportState?: 'ready' | 'loading' | 'error';
     premiumReport?: NatalPermanentPremiumReport | null;
@@ -60,7 +61,7 @@ type NatalMagazineProps = {
   };
 };
 
-export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map';
+export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix';
 
 export function isSavedPersonChartSubject(
   chartSubject: Pick<ChartListItem, 'subject_type' | 'is_primary'> | null | undefined,
@@ -83,6 +84,7 @@ function previewTabToScreen(
 ): NatalScreenTab {
   if (openQuestion || value === 'questions' || value === 'ask') return 'ask';
   if (value === 'map') return 'map';
+  if (value === 'matrix') return 'matrix';
   if (value === 'explore') return 'explore';
   return 'foundation';
 }
@@ -145,13 +147,14 @@ export function NatalMagazine({
     isSavedPerson,
   ));
   const [questionContext, setQuestionContext] = useState<NatalReportCategoryKey>('main');
+  const [matrixMounted, setMatrixMounted] = useState(false);
   const lastContentTabRef = useRef<Exclude<NatalScreenTab, 'map'>>('foundation');
   const handledExternalQuestionRequestRef = useRef(0);
   const normalizedActiveTab = normalizeNatalScreenTab(activeTab, isSavedPerson);
-  const showPrimaryNavigation = readingRenderer === 'catalog' || !isSavedPerson;
+  const showPrimaryNavigation = true;
   const primaryNavItemCount = readingRenderer === 'catalog'
-    ? (isSavedPerson ? 2 : 3)
-    : 2;
+    ? (isSavedPerson ? 3 : 4)
+    : (isSavedPerson ? 2 : 3);
 
   useEffect(() => {
     if (normalizedActiveTab !== activeTab) setActiveTab(normalizedActiveTab);
@@ -263,6 +266,12 @@ export function NatalMagazine({
       ? 'foundation'
       : tab;
     const normalized = normalizeNatalScreenTab(requestedTab, isSavedPerson);
+    if (normalized === 'matrix') {
+      setMatrixMounted(true);
+      lastContentTabRef.current = 'matrix';
+      setActiveTab('matrix');
+      return;
+    }
     if (normalized === 'map') {
       if (normalizedActiveTab !== 'map') {
         lastContentTabRef.current = normalizedActiveTab as Exclude<NatalScreenTab, 'map'>;
@@ -306,7 +315,9 @@ export function NatalMagazine({
               onClick={() => selectTab(lastContentTabRef.current)}
             >
               <ArrowLeft aria-hidden="true" />
-              {language === 'ru' ? 'К разбору' : 'Back to reading'}
+              {lastContentTabRef.current === 'matrix'
+                ? (language === 'ru' ? 'К матрице' : 'Back to matrix')
+                : (language === 'ru' ? 'К разбору' : 'Back to reading')}
             </button>
           ) : (
             <button
@@ -356,6 +367,14 @@ export function NatalMagazine({
               {language === 'ru' ? 'Спросить' : 'Ask'}
             </button>
           ) : null}
+          <button
+            type="button"
+            className={normalizedActiveTab === 'matrix' ? 'is-active' : undefined}
+            aria-current={normalizedActiveTab === 'matrix' ? 'page' : undefined}
+            onClick={() => selectTab('matrix')}
+          >
+            {language === 'ru' ? 'Матрица судьбы' : 'Matrix'}
+          </button>
         </nav>
       ) : null}
     </>
@@ -517,6 +536,16 @@ export function NatalMagazine({
             onPremiumContinuationHandled={onPremiumContinuationHandled}
           />
         </section>
+      ) : null}
+
+      {matrixMounted ? (
+        <div className="natal-matrix-stage" hidden={normalizedActiveTab !== 'matrix'}>
+          <MatrixRoom
+            profile={profile}
+            onBack={() => selectTab('foundation')}
+            embedded
+          />
+        </div>
       ) : null}
     </div>
   );

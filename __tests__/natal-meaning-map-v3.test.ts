@@ -10,12 +10,13 @@ describe('natal meaning map v3', () => {
     const magazine = source('views/v2/NatalMagazine.tsx');
     const catalog = source('components/NatalReading/NatalCatalogReport.tsx');
 
-    expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map'");
+    expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix'");
     expect(magazine).toContain("'Основа'");
     expect(magazine).toContain("'Разобрать'");
     expect(magazine).toContain("'Спросить'");
     expect(magazine).toContain("'Круг карты'");
-    expect(magazine).not.toContain("import { MatrixRoom } from './MatrixRoom'");
+    expect(magazine).toContain("import { MatrixRoom } from './MatrixRoom'");
+    expect(magazine).toContain("'Матрица судьбы'");
     expect(magazine).not.toContain('<EditorialTabs');
     expect(magazine).toContain("readingRenderer === 'catalog'");
     expect(magazine).toContain("tab === 'explore' && readingRenderer === 'classic'");
