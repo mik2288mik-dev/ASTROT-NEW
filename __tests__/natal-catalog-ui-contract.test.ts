@@ -10,7 +10,7 @@ describe('natal catalog UI contract', () => {
     const magazine = read('views/v2/NatalMagazine.tsx');
     const styles = read('styles/natalMeaningMap.css');
 
-    expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map'");
+    expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix'");
     expect(magazine).toContain("return 'foundation'");
     expect(magazine).toContain("selectTab('map')");
     expect(magazine).toContain("selectTab('foundation')");
@@ -19,9 +19,13 @@ describe('natal catalog UI contract', () => {
     expect(magazine).toContain("'Круг карты'");
     expect(magazine).toContain('onClick={onOpenCharts}');
     expect(magazine).not.toContain('<EditorialTabs');
-    expect(magazine).not.toContain('<MatrixRoom');
+    expect(magazine).toContain('<MatrixRoom');
+    expect(magazine).toContain("selectTab('matrix')");
+    expect(magazine).toContain("'Матрица судьбы'");
     expect(styles).toContain('.natal-v3-primary-nav {');
     expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));');
+    expect(styles).toContain(".natal-v3-primary-nav[data-items='4']");
+    expect(styles).toContain('grid-template-columns: repeat(4, minmax(0, 1fr));');
   });
 
   it('uses foundation plus five directions instead of six inner tabs', () => {

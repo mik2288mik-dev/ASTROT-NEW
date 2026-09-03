@@ -206,7 +206,7 @@ describe('saved natal-chart question policy', () => {
     const magazine = read('views/v2/NatalMagazine.tsx');
     const questions = read('components/NatalReading/NatalQuestionExperience.tsx');
 
-    expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map'");
+    expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix'");
     expect(magazine).toContain("return isSavedPerson && tab === 'ask' ? 'foundation' : tab");
     expect(magazine).toContain('onOpenQuestions={isSavedPerson ? undefined');
     expect(magazine).toContain("setActiveTab('ask')");

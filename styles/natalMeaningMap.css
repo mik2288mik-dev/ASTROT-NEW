@@ -104,6 +104,16 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.natal-v3-primary-nav[data-items='4'] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.natal-v3-primary-nav[data-items='4'] button {
+  padding-inline: 4px;
+  font-size: 12px;
+  line-height: 1.12;
+}
+
 .natal-v3-primary-nav button {
   position: relative;
   min-width: 0;
