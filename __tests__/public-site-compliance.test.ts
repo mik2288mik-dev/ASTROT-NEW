@@ -28,14 +28,15 @@ describe('NEBO public website release contract', () => {
     expect(shell).not.toMatch(/<form\b/i);
   });
 
-  it('keeps legal readiness tied to real operator facts', () => {
+  it('keeps legal readiness tied to real operator facts without exposing a home address', () => {
     const publicConfig = read('lib/publicSiteConfig.ts');
     const privacy = read('pages/privacy.tsx');
+    const consent = read('pages/personal-data-consent.tsx');
+    const requisites = read('pages/requisites.tsx');
     [
       'NEXT_PUBLIC_SUPPORT_EMAIL',
       'NEXT_PUBLIC_PRIVACY_EMAIL',
       'NEXT_PUBLIC_DEVELOPER_NAME',
-      'NEXT_PUBLIC_OPERATOR_ADDRESS',
       'NEXT_PUBLIC_OPERATOR_INN',
       'NEXT_PUBLIC_OPERATOR_OGRNIP',
       'NEXT_PUBLIC_LEGAL_PUBLICATION_DATE',
@@ -44,6 +45,8 @@ describe('NEBO public website release contract', () => {
       'NEXT_PUBLIC_SUPPORT_RETENTION_MONTHS',
       'NEXT_PUBLIC_MINIMUM_AGE',
     ].forEach((name) => expect(publicConfig).toContain(name));
+    expect(publicConfig).not.toContain('NEXT_PUBLIC_OPERATOR_ADDRESS');
+    expect([privacy, consent, requisites].join('\n')).not.toContain('operatorAddress');
     expect(publicConfig).not.toMatch(/HOSTING_PROVIDER|DATA_LOCATION|russianHosting/i);
     expect(privacy).not.toMatch(/Railway|хостинг|hosting/i);
   });

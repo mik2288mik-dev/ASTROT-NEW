@@ -19,9 +19,8 @@ export default function PersonalDataConsentPage() {
       <section>
         <h2>1. Оператор</h2>
         <p>
-          {PUBLIC_SITE_CONFIG.operatorName}, ИНН {PUBLIC_SITE_CONFIG.operatorInn}, ОГРНИП{' '}
-          {PUBLIC_SITE_CONFIG.operatorOgrnip}, адрес: {PUBLIC_SITE_CONFIG.operatorAddress}, email:{' '}
-          {PUBLIC_SITE_CONFIG.privacyEmail}.
+          {PUBLIC_SITE_CONFIG.operatorName}, ОГРНИП {PUBLIC_SITE_CONFIG.operatorOgrnip}, ИНН{' '}
+          {PUBLIC_SITE_CONFIG.operatorInn}, email: {PUBLIC_SITE_CONFIG.privacyEmail}.
         </p>
       </section>
 

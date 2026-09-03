@@ -30,7 +30,6 @@ const appName = clean(process.env.NEXT_PUBLIC_APP_NAME) || 'NEBO';
 const supportEmail = publicValue(process.env.NEXT_PUBLIC_SUPPORT_EMAIL, 'support-email');
 const privacyEmail = publicValue(process.env.NEXT_PUBLIC_PRIVACY_EMAIL, 'privacy-email');
 const operatorName = publicValue(process.env.NEXT_PUBLIC_DEVELOPER_NAME, 'operator-name');
-const operatorAddress = publicValue(process.env.NEXT_PUBLIC_OPERATOR_ADDRESS, 'operator-address');
 const operatorInn = publicValue(process.env.NEXT_PUBLIC_OPERATOR_INN, 'operator-inn');
 const operatorOgrnip = publicValue(process.env.NEXT_PUBLIC_OPERATOR_OGRNIP, 'operator-ogrnip');
 const publicationDate = publicValue(
@@ -58,7 +57,6 @@ export const PUBLIC_SITE_CONFIG = {
   supportEmail,
   privacyEmail,
   operatorName,
-  operatorAddress,
   operatorInn,
   operatorOgrnip,
   publicationDate,
@@ -85,7 +83,6 @@ export function getPublicLegalProblems(): string[] {
   if (!isEmail(supportEmail)) problems.push('support email');
   if (!isEmail(privacyEmail)) problems.push('privacy email');
   if (operatorName.startsWith('OWNER_REQUIRED:')) problems.push('operator name');
-  if (operatorAddress.startsWith('OWNER_REQUIRED:')) problems.push('operator address');
   if (!/^(?:\d{10}|\d{12})$/.test(operatorInn)) problems.push('operator INN');
   if (!/^\d{15}$/.test(operatorOgrnip)) problems.push('operator OGRNIP');
   if (!isIsoDate(publicationDate)) problems.push('legal publication date');

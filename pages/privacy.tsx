@@ -12,8 +12,8 @@ export default function PrivacyPage() {
       lead={(
         <p>
           Политика относится к приложению и сайту NEBO. Оператор —{' '}
-          <strong>{PUBLIC_SITE_CONFIG.operatorName}</strong>, ИНН {PUBLIC_SITE_CONFIG.operatorInn},
-          ОГРНИП {PUBLIC_SITE_CONFIG.operatorOgrnip}, адрес: {PUBLIC_SITE_CONFIG.operatorAddress}.
+          <strong>{PUBLIC_SITE_CONFIG.operatorName}</strong>, ОГРНИП {PUBLIC_SITE_CONFIG.operatorOgrnip},
+          ИНН {PUBLIC_SITE_CONFIG.operatorInn}, email: {PUBLIC_SITE_CONFIG.privacyEmail}.
         </p>
       )}
     >
