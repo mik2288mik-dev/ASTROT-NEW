@@ -1,0 +1,94 @@
+name: Restore matrix in natal navigation follow-up
+
+on:
+  push:
+    branches:
+      - fix/restore-matrix-in-natal-20260903
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/restore-matrix-in-natal-20260903
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply Matrix restoration patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          workflow = Path('.github/workflows/restore-matrix-in-natal.yml').read_text(encoding='utf-8')
+          marker = "          python3 - <<'PY'\n"
+          start = workflow.index(marker) + len(marker)
+          end = workflow.index("\n          PY\n", start)
+          script = textwrap.dedent(workflow[start:end])
+          Path('/tmp/restore_matrix.py').write_text(script, encoding='utf-8')
+          PY
+          python3 /tmp/restore_matrix.py
+
+      - name: Align persistent Matrix navigation contract
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('__tests__/today-navigation-shell.test.ts')
+          source = path.read_text(encoding='utf-8')
+          old = """    expect(natal).toContain(\"{ id: 'matrix'\");
+              expect(natal).toContain(\"if (tab === 'matrix') setMatrixMounted(true)\");
+              expect(natal).toContain('hidden={activeTab !== \\'matrix\\'}');
+          """.replace('              ', '')
+          new = """    expect(natal).toContain(\"onClick={() => selectTab('matrix')}\");
+              expect(natal).toContain(\"setMatrixMounted(true)\");
+              expect(natal).toContain(\"hidden={normalizedActiveTab !== 'matrix'}\");
+          """.replace('              ', '')
+          if old not in source:
+              raise RuntimeError('old Matrix navigation contract was not found')
+          path.write_text(source.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Matrix and natal navigation
+        run: >-
+          npm test -- --runInBand
+          __tests__/natal-meaning-map-v3.test.ts
+          __tests__/natal-catalog-ui-contract.test.ts
+          __tests__/natal-question-policy.test.ts
+          __tests__/natal-mobile-interaction-contract.test.ts
+          __tests__/today-navigation-shell.test.ts
+          __tests__/long-form-editorial-reading.test.ts
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Verify restored surface exists
+        shell: bash
+        run: |
+          grep -F "import { MatrixRoom } from './MatrixRoom';" views/v2/NatalMagazine.tsx
+          grep -F "onClick={() => selectTab('matrix')}" views/v2/NatalMagazine.tsx
+          grep -F "Матрица судьбы" views/v2/NatalMagazine.tsx
+          grep -F "<MatrixRoom" views/v2/NatalMagazine.tsx
+
+      - name: Commit verified change
+        shell: bash
+        run: |
+          rm -f .github/workflows/restore-matrix-in-natal.yml
+          rm -f .github/workflows/restore-matrix-in-natal-followup.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(natal): restore Matrix of Destiny navigation"
+          git push origin HEAD:fix/restore-matrix-in-natal-20260903
