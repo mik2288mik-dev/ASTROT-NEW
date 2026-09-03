@@ -5,6 +5,12 @@ import {
   PUBLIC_SEO_PLANET_HOUSE_PLACEMENTS,
   PUBLIC_SEO_PLANET_SIGN_PLACEMENTS,
 } from '../lib/publicSeoPlacements';
+import {
+  PUBLIC_SEO_ASPECT_PLACEMENTS,
+  PUBLIC_SEO_HOUSE_SIGN_PLACEMENTS,
+  PUBLIC_SEO_POINT_HOUSE_PLACEMENTS,
+  PUBLIC_SEO_POINT_SIGN_PLACEMENTS,
+} from '../lib/publicSeoExpansion';
 import { isPublicLegalReady } from '../lib/publicSiteConfig';
 
 const CORE_PATHS = [
@@ -14,6 +20,10 @@ const CORE_PATHS = [
   '/natalnaya-karta/doma',
   '/natalnaya-karta/planety-v-znakah',
   '/natalnaya-karta/planety-v-domah',
+  '/natalnaya-karta/aspekty',
+  '/natalnaya-karta/doma-v-znakah',
+  '/natalnaya-karta/tochki-v-znakah',
+  '/natalnaya-karta/tochki-v-domah',
   '/goroskop',
   '/sovmestimost',
   '/sovmestimost/znakov',
@@ -43,6 +53,10 @@ function buildSitemap() {
     ...PUBLIC_SEO_HOUSES.map((house) => house.path),
     ...PUBLIC_SEO_PLANET_SIGN_PLACEMENTS.map((item) => item.path),
     ...PUBLIC_SEO_PLANET_HOUSE_PLACEMENTS.map((item) => item.path),
+    ...PUBLIC_SEO_ASPECT_PLACEMENTS.map((item) => item.path),
+    ...PUBLIC_SEO_HOUSE_SIGN_PLACEMENTS.map((item) => item.path),
+    ...PUBLIC_SEO_POINT_SIGN_PLACEMENTS.map((item) => item.path),
+    ...PUBLIC_SEO_POINT_HOUSE_PLACEMENTS.map((item) => item.path),
   ];
   const unique = Array.from(new Set(urls));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${unique.map((path) => `  <url><loc>${escapeXml(toAbsolute(path))}</loc></url>`).join('\n')}\n</urlset>`;
