@@ -1,5 +1,5 @@
 {
-  "name": "NEBO гороскоп натальная карта",
+  "name": "NEBO — гороскоп и натальная карта",
   "short_name": "NEBO",
   "description": "Личные прогнозы, гороскопы по знакам, натальная карта и совместимость.",
   "lang": "ru-RU",
@@ -7,20 +7,10 @@
   "start_url": "/",
   "scope": "/",
   "display": "browser",
-  "background_color": "#fbfaf8",
-  "theme_color": "#fbfaf8",
+  "background_color": "#070707",
+  "theme_color": "#070707",
   "icons": [
-    {
-      "src": "/assets/brand/nebo-app-icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/assets/brand/nebo-app-icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    }
+    { "src": "/assets/brand/nebo-app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/brand/nebo-app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }

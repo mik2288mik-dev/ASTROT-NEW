@@ -15,7 +15,7 @@ export default function NatalChartPage() {
     <PublicSeoPage
       path={path}
       title="Натальная карта по дате, времени и месту рождения"
-      description="Натальная карта NEBO по дате, времени и месту рождения: базовый разбор бесплатно, значения планет, знаков и домов."
+      description="Натальная карта NEBO по дате, времени и месту рождения: базовый разбор бесплатно, значения планет, знаков, домов, аспектов и точек карты."
       eyebrow="Натальная карта NEBO"
       heading="Натальная карта по дате, времени и месту рождения"
       lead={<p>Добавь дату, время и место рождения — NEBO покажет карту и поможет понятно разобрать её основные части.</p>}
@@ -25,6 +25,10 @@ export default function NatalChartPage() {
         { href: '/natalnaya-karta/doma', label: 'Дома натальной карты' },
         { href: '/natalnaya-karta/planety-v-znakah', label: 'Планеты в знаках' },
         { href: '/natalnaya-karta/planety-v-domah', label: 'Планеты в домах' },
+        { href: '/natalnaya-karta/aspekty', label: 'Аспекты натальной карты' },
+        { href: '/natalnaya-karta/doma-v-znakah', label: 'Дома в знаках' },
+        { href: '/natalnaya-karta/tochki-v-znakah', label: 'Узлы, Хирон и Лилит в знаках' },
+        { href: '/natalnaya-karta/tochki-v-domah', label: 'Узлы, Хирон и Лилит в домах' },
         { href: '/lichnyy-goroskop', label: 'Личный гороскоп' },
         { href: '/sovmestimost', label: 'Совместимость' },
       ]}
@@ -39,16 +43,20 @@ export default function NatalChartPage() {
       </section>
       <section>
         <h2>Что есть в карте</h2>
-        <p>На карте видны планеты, знаки, дома и связи между ними. NEBO помогает смотреть их по отдельности и затем складывать в общую картину.</p>
+        <p>На карте видны планеты, знаки, дома, аспекты и дополнительные точки. NEBO помогает смотреть их по отдельности и затем складывать в общую картину.</p>
         <p>Один знак зодиака не описывает человека целиком. Поэтому <Link href="/goroskop">гороскоп по знаку</Link> — быстрый общий формат, а натальная карта показывает намного больше деталей.</p>
       </section>
       <section>
         <h2>Разобрать карту по частям</h2>
-        <p>Можно начать с домов, затем посмотреть нужную планету в знаке или доме и постепенно собрать картину целиком.</p>
+        <p>Начни с базовых разделов, а затем переходи к сочетаниям. Все каталоги связаны обычными ссылками, поэтому до нужной страницы можно дойти без поиска по сайту.</p>
         <ul>
           <li><Link href="/natalnaya-karta/doma">Что означают дома натальной карты</Link></li>
-          <li><Link href="/natalnaya-karta/planety-v-znakah">Что означают планеты в знаках</Link></li>
-          <li><Link href="/natalnaya-karta/planety-v-domah">Что означают планеты в домах</Link></li>
+          <li><Link href="/natalnaya-karta/planety-v-znakah">Планеты в знаках</Link></li>
+          <li><Link href="/natalnaya-karta/planety-v-domah">Планеты в домах</Link></li>
+          <li><Link href="/natalnaya-karta/aspekty">Аспекты между планетами и точками</Link></li>
+          <li><Link href="/natalnaya-karta/doma-v-znakah">12 домов во всех 12 знаках</Link></li>
+          <li><Link href="/natalnaya-karta/tochki-v-znakah">Северный и Южный узлы, Хирон и Лилит в знаках</Link></li>
+          <li><Link href="/natalnaya-karta/tochki-v-domah">Северный и Южный узлы, Хирон и Лилит в домах</Link></li>
         </ul>
       </section>
       <section>
