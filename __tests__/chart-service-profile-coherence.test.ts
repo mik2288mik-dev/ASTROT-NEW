@@ -17,6 +17,7 @@ jest.mock('../lib/runtimeDiagnostics', () => ({
 
 import type { UserProfile } from '../types';
 import { getOrCalculateChart, natalChartMatchesProfile } from '../services/chartService';
+import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 
 function response(payload: unknown) {
   return {
@@ -27,51 +28,13 @@ function response(payload: unknown) {
 }
 
 function canonicalChart(mode: 'exact' | 'approximate' | 'unknown', time: string | null) {
-  const quality = mode === 'unknown' ? 'unknown' : mode;
-  const position = { sign: 'Aries', reliability: mode === 'exact' ? 'exact' : 'stable_in_range' };
-  const positions = {
-    sun: { ...position },
-    moon: { ...position },
-    chiron: { ...position },
-    northNode: { ...position },
-  };
-  const timed = mode !== 'unknown';
-  return {
-    schemaVersion: 'natal-chart-data-v2',
-    calculationVersion: 'swisseph-canonical-v2',
-    birth: {
-      localDate: '1991-06-12',
-      localTime: time,
-      place: 'Москва, Россия',
-      latitude: 55.7558,
-      longitude: 37.6173,
-      timezone: 'Europe/Moscow',
-      time: {
-        mode,
-        localTime: time,
-        uncertaintyMinutes: mode === 'approximate' ? 30 : null,
-        rangeStart: null,
-        rangeEnd: null,
-      },
-    },
-    positions,
-    angles: timed
-      ? { ascendant: { sign: 'Libra' }, mc: { sign: 'Cancer' }, descendant: {}, ic: {} }
-      : { ascendant: null, mc: null, descendant: null, ic: null },
-    houses: timed ? Array.from({ length: 12 }, (_, index) => ({ house: index + 1 })) : [],
-    aspects: [],
-    chartQuality: {
-      birthTimeMode: mode,
-      birthTimeQuality: quality,
-    },
-    calculationMetadata: { ephemerisEngine: 'Swiss Ephemeris' },
-    birthTimeQuality: quality,
-    sun: positions.sun,
-    moon: positions.moon,
-    rising: timed ? { sign: 'Libra' } : null,
-  } as any;
+  return canonicalNatalChart({
+    birthDate: '1991-06-12',
+    birthPlace: 'Москва, Россия',
+    coordinates: { lat: 55.7558, lon: 37.6173, timezone: 'Europe/Moscow' },
+    time: { mode, localTime: time, uncertaintyMinutes: mode === 'approximate' ? 30 : null, rangeStart: null, rangeEnd: null },
+  }) as any;
 }
-
 function profile(mode: 'exact' | 'approximate' | 'unknown'): UserProfile {
   return {
     id: '1001',
@@ -127,14 +90,23 @@ describe('chart service profile coherence', () => {
     });
   });
 
-  it('treats an incomplete saved self chart as a miss and replaces it through POST', async () => {
-    const unknown = canonicalChart('unknown', null);
+  it('reports an incomplete saved self chart without an automatic POST or repair', async () => {
     mockApiFetch
-      .mockResolvedValueOnce(response({ charts: [{ subject_type: 'self', is_primary: true, chart_data: { sun: {} } }] }))
-      .mockResolvedValueOnce(response({ chart_data: unknown }));
+      .mockResolvedValueOnce(response({ charts: [{ subject_type: 'self', is_primary: true, chart_data: { sun: {} } }] }));
 
-    await expect(getOrCalculateChart(profile('unknown'))).resolves.toBe(unknown);
-    expect(mockApiFetch).toHaveBeenCalledTimes(2);
-    expect(mockApiFetch.mock.calls[1][0]).toBe('/api/charts');
+    await expect(getOrCalculateChart(profile('unknown'))).rejects.toMatchObject({ code: 'CHART_REPAIR_REQUIRED', status: 409 });
+    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+    expect(mockApiFetch.mock.calls[0][1].method).toBe('GET');
+  });
+
+  it('honors the server repair flag when a complete-looking snapshot has no input hash', async () => {
+    mockApiFetch.mockResolvedValueOnce(response({ charts: [{
+      subject_type: 'self', is_primary: true, input_hash: null,
+      chart_data: canonicalChart('exact', '08:45'), repair_required: true,
+    }] }));
+
+    await expect(getOrCalculateChart(profile('exact'))).rejects.toMatchObject({ code: 'CHART_REPAIR_REQUIRED', status: 409 });
+    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+    expect(mockApiFetch.mock.calls[0][1].method).toBe('GET');
   });
 });

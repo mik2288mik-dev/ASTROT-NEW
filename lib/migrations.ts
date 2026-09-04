@@ -1943,6 +1943,7 @@ async function lumia026AccessFoundation(pool: Pool): Promise<void> {
 async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'app_settings',
+    'natal_chart_revisions',
     'daily_horoscopes', 'daily_natal_cards',
     'dictionary', 'synastry_cache', 'star_payments',
     'content_interpretations', 'content_cache', 'content_unlocks', 'premium_entitlements',
@@ -3757,6 +3758,45 @@ async function mvp052UserAppEventIdempotency(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+async function mvp053NatalChartRevisions(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_053_natal_chart_revisions';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS natal_chart_revisions (
+      id BIGSERIAL PRIMARY KEY,
+      chart_id BIGINT NOT NULL REFERENCES natal_charts(id) ON DELETE CASCADE,
+      input_hash TEXT NOT NULL,
+      chart_data JSONB NOT NULL,
+      calculation_hash TEXT NOT NULL,
+      calculated_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (chart_id, input_hash, calculation_hash)
+    )
+  `);
+  await pool.query(`
+    INSERT INTO natal_chart_revisions (chart_id, input_hash, chart_data, calculation_hash, calculated_at)
+    SELECT id, input_hash, chart_data, md5(chart_data::text), COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)
+    FROM natal_charts
+    WHERE input_hash IS NOT NULL AND LENGTH(BTRIM(input_hash)) > 0
+      AND chart_data IS NOT NULL AND jsonb_typeof(chart_data) = 'object'
+    ON CONFLICT (chart_id, input_hash, calculation_hash) DO NOTHING
+  `);
+  await pool.query(`
+    ALTER TABLE astrology_calculation_snapshots
+      ADD COLUMN IF NOT EXISTS natal_chart_revision_id BIGINT
+        REFERENCES natal_chart_revisions(id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS counterpart_natal_chart_revision_id BIGINT
+        REFERENCES natal_chart_revisions(id) ON DELETE SET NULL
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -3842,6 +3882,7 @@ export async function runMigrations(): Promise<void> {
     await mvp050LegalAcknowledgements(migrationDb);
     await mvp051SupportDeliveryOutbox(migrationDb);
     await mvp052UserAppEventIdempotency(migrationDb);
+    await mvp053NatalChartRevisions(migrationDb);
     await mvp044PremiumEntitlementLifecycle(migrationDb);
     await mvp045RuStoreCallbackOrdering(migrationDb);
     await mvp046RuStoreProviderOverlay(migrationDb);

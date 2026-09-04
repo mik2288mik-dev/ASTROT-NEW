@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { ContentInterpretation, NatalAnchorReading, NatalChartData, UserProfile } from '../../../../types';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
+import { resolveNatalContentChartContext, natalContentChartErrorStatus } from '../../../../lib/natalContentChartContext';
 import { getContentLayer } from '../../../../lib/contentArchitecture';
 import {
   buildContentGenerationLockKey,
@@ -18,46 +19,6 @@ import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { persistNatalReadingHistory } from '../../../../lib/astrologyHistoryPersistence';
 import { buildCanonicalNatalReport, isNatalChartDataV2 } from '../../../../lib/natal/canonicalReport';
-
-function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
-  return {
-    id: user.id,
-    name: fallback?.name || user.name || '',
-    birthDate: fallback?.birthDate || user.birth_date || '',
-    birthTime: fallback?.birthTime ?? user.birth_time ?? '',
-    birthPlace: fallback?.birthPlace || user.birth_place || '',
-    isSetup: user.is_setup ?? true,
-    language: (fallback?.language as 'ru' | 'en') || user.language || 'ru',
-    theme: (fallback?.theme as 'dark' | 'light') || user.theme || 'dark',
-    isPremium: !!user.is_premium,
-    isAdmin: !!user.is_admin,
-    loginStreak: user.login_streak ?? 0,
-    chartSlots: user.chart_slots ?? 1,
-    generatedContent: fallback?.generatedContent,
-  };
-}
-
-async function resolveContext(
-  userId: string,
-  chartId?: number | null,
-  profileFallback?: Partial<UserProfile>,
-  chartDataFallback?: NatalChartData | null
-) {
-  const user = await db.users.get(userId);
-  if (!user) return null;
-
-  const chart = chartId != null
-    ? await db.natal_charts.getById(chartId)
-    : await db.natal_charts.getPrimary(userId);
-  if (chart && String(chart.user_id) !== userId) return null;
-
-  return {
-    user,
-    profile: toProfile(user, profileFallback),
-    chartId: chart?.id ?? null,
-    chartData: (chartDataFallback || chart?.chart_data || null) as NatalChartData | null,
-  };
-}
 
 function normalizeInterpretation(
   interpretation: ContentInterpretation | null | undefined,
@@ -101,12 +62,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     throw error;
   }
 
-  const context = await resolveContext(
-    safeUserId,
-    Number.isFinite(chartId as number) ? chartId : null,
-    req.method === 'POST' ? req.body?.profile : undefined,
-    req.method === 'POST' ? req.body?.chartData : undefined
-  );
+  let context: Awaited<ReturnType<typeof resolveNatalContentChartContext>>;
+  try {
+    context = await resolveNatalContentChartContext(
+      safeUserId,
+      Number.isFinite(chartId as number) ? chartId : null,
+      req.method === 'POST' ? req.body?.profile : undefined,
+    );
+  } catch (error: any) {
+    const status = natalContentChartErrorStatus(error);
+    if (status) return res.status(status).json({ error: error.message, code: error.code });
+    throw error;
+  }
 
   if (!context) {
     return res.status(404).json({ error: 'User not found', message: 'Profile not found' });
@@ -122,6 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const chartData = context.chartData;
+  const cacheKey = NATAL_ANCHOR_CACHE_KEY + ":natal:" + context.snapshotKey;
   const baseReport = isNatalChartDataV2(chartData) ? buildCanonicalNatalReport(chartData) : undefined;
 
   const existing = await getContentLayer({
@@ -130,7 +98,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     accessTier: 'free',
     contentSurface: 'natal',
     contentVariant: 'anchor',
-    cacheKey: NATAL_ANCHOR_CACHE_KEY,
+    cacheKey,
   });
 
   if (req.method === 'GET') {
@@ -170,7 +138,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       accessTier: 'free',
       contentSurface: 'natal',
       contentVariant: 'anchor',
-      cacheKey: NATAL_ANCHOR_CACHE_KEY,
+      cacheKey,
       promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
     }),
     operation: 'natal-anchor-generation',
@@ -181,7 +149,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         accessTier: 'free',
         contentSurface: 'natal',
         contentVariant: 'anchor',
-        cacheKey: NATAL_ANCHOR_CACHE_KEY,
+        cacheKey,
       });
       if (!layer.interpretation || !isCurrentPromptVersion(layer.interpretation)) {
         return null;
@@ -201,8 +169,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           accessTier: 'free',
           contentSurface: 'natal',
           contentVariant: 'anchor',
-          cacheKey: NATAL_ANCHOR_CACHE_KEY,
-          inputHash: NATAL_ANCHOR_CACHE_KEY,
+          cacheKey,
+          inputHash: cacheKey,
           content: reading,
           modelTier,
           promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
@@ -216,8 +184,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             accessTier: 'free',
             contentSurface: 'natal',
             contentVariant: 'anchor',
-            cacheKey: NATAL_ANCHOR_CACHE_KEY,
-            inputHash: NATAL_ANCHOR_CACHE_KEY,
+            cacheKey,
+            inputHash: cacheKey,
             content: reading,
             modelTier,
             promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
@@ -233,8 +201,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         language: context.profile.language === 'en' ? 'en' : 'ru',
         accessTier: 'free',
         contentVariant: 'anchor',
-        cacheKey: NATAL_ANCHOR_CACHE_KEY,
-        inputHash: NATAL_ANCHOR_CACHE_KEY,
+        cacheKey,
+        inputHash: cacheKey,
         promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
         content: reading,
         generation: { modelId: model },
@@ -253,7 +221,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     interpretation: normalizeInterpretation(lockResult.value, context.profile.language, context.chartData),
     source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
     chartId: context.chartId,
-    cacheKey: NATAL_ANCHOR_CACHE_KEY,
+    cacheKey,
     ...(baseReport ? { baseReport } : {}),
   });
 }

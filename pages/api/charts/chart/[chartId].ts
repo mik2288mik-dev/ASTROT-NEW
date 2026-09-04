@@ -1,13 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../../lib/db';
-import { repairCanonicalChartRecord } from '../../../../lib/natalChartPersistence';
-import { isCanonicalNatalChartDataComplete } from '../../../../lib/natalChartCanonical';
+import { getCanonicalNatalChart } from '../../../../lib/natalChartRead';
+import chartsHandler from '../index';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import {
   assertChartCanBeArchived,
-  assertChartReadable,
   ChartAccessPolicyError,
   exposeChartAccess,
 } from '../../../../lib/chartAccessPolicy';
@@ -18,10 +17,12 @@ const log = {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const id = Number.parseInt(String(req.query.chartId), 10);
-  if (!Number.isFinite(id)) {
+  const id = Number(req.query.chartId);
+  if (!Number.isSafeInteger(id) || id <= 0) {
     return res.status(400).json({ error: 'Invalid chartId' });
   }
+
+  if(req.method==='PUT') { req.body={...req.body,chartId:id,primary:false}; return chartsHandler(req,res); }
 
   try {
     const auth = await requireAppUser(req, { allowGuest: true });
@@ -29,18 +30,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const entitlement = await getPremiumEntitlementState(userId);
 
     if (req.method === 'GET') {
-      let chart = await db.natal_charts.getById(id);
-      if (!chart || String(chart.user_id) !== userId) {
-        return res.status(404).json({ error: 'Chart not found' });
-      }
-      assertChartReadable(chart, entitlement.isPremium);
-
-      if (!isCanonicalNatalChartDataComplete(chart.chart_data) && chart.birth_date && chart.birth_place) {
-        const repaired = await repairCanonicalChartRecord(userId, id);
-        chart = repaired?.chart || chart;
-      }
-
-      return res.status(200).json(exposeChartAccess(chart!, entitlement.isPremium));
+      const chart = await getCanonicalNatalChart(userId, id);
+      const active = await db.natal_charts.getAll(userId);
+      return res.status(200).json(exposeChartAccess(chart, entitlement.isPremium, active));
     }
 
     if (req.method === 'DELETE') {
@@ -67,6 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (error instanceof ChartAccessPolicyError) {
       return res.status(error.status).json({ error: error.message, code: error.code });
     }
+    if(error?.code==='CHART_REPAIR_REQUIRED'||error?.code==='CHART_NOT_FOUND') return res.status(error.status).json({error:error.message,code:error.code});
     log.error('Error', { error: error.message });
     return res.status(500).json({
       error: 'Internal server error',

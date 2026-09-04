@@ -174,8 +174,8 @@ describe('compatibility editorial layout', () => {
     expect(service).toContain('subjectName: subject?.name');
     expect(extendedApi).toContain('const hasManualSubject');
     expect(extendedApi).toContain('buildWriterPersonContext');
-    expect(extendedApi).toContain("from '../../../../lib/swisseph-calculator'");
-    expect(extendedApi).toContain('calculateManualNatal');
+    expect(extendedApi).not.toContain('swisseph-calculator');
+    expect(extendedApi).toContain('createOrReuseCanonicalChart');
     expect(extendedApi).toContain('calculateCompatibility({');
     expect(extendedApi).toContain('calculated.aspects.map');
   });

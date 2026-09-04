@@ -33,6 +33,8 @@ describe('saved-person birth-time input contract', () => {
 
     expect(room).toContain("subjectSource === 'birth' && sTimePrecision !== 'unknown' && !sTime");
     expect(room).toContain("partnerSource === 'birth' && fTimePrecision !== 'unknown' && !fTime");
-    expect(api).toContain("birthTimeMode === 'approximate' ? 30 : undefined");
+    expect(api).toContain("birthTimeUncertaintyMinutes: input.birthTimeQuality === 'approximate' ? 30 : undefined");
+    expect(api).toContain('createOrReuseCanonicalChart({');
+    expect(api).not.toContain('swisseph-calculator');
   });
 });

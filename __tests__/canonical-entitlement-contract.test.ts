@@ -131,12 +131,12 @@ describe('canonical Free/Premium entitlement contract', () => {
   it('defines the promised product limits and product-level features in one contract', () => {
     expect(CANONICAL_ACCESS_CONTRACT.free).toMatchObject({
       ownChartLimit: 1,
-      additionalSavedPeopleLimit: 0,
+      additionalSavedPeopleLimit: 1,
       todayOpenFragmentCount: { min: 1, max: 2 },
     });
     expect(CANONICAL_ACCESS_CONTRACT.premium).toMatchObject({
       ownChartLimit: 1,
-      additionalSavedPeopleLimit: 5,
+      additionalSavedPeopleLimit: 20,
     });
     expect(CANONICAL_ACCESS_CONTRACT.free.featureKeys).toEqual(expect.arrayContaining([
       'natal_basic',
@@ -144,6 +144,7 @@ describe('canonical Free/Premium entitlement contract', () => {
       'daily_sign_horoscope',
       'zodiac_compatibility',
       'own_chart',
+      'saved_people',
     ]));
     expect(CANONICAL_ACCESS_CONTRACT.premium.featureKeys).toEqual(expect.arrayContaining([
       'personal_daily_full',
@@ -153,7 +154,6 @@ describe('canonical Free/Premium entitlement contract', () => {
       'personality_deep',
       'natal_questions',
       'synastry_by_charts',
-      'saved_people',
     ]));
   });
 

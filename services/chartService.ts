@@ -82,7 +82,7 @@ function selectSelfChart(payload:any):any|null {
   const charts=Array.isArray(payload?.charts)?payload.charts:[];
   return charts.find((row:any)=>row.subject_type==='self')||charts.find((row:any)=>row.is_primary===true)||null;
 }
-function chartRequest(profile:UserProfile,forceRecalculate=false) {
+function chartRequest(profile:UserProfile) {
   return {
     name:profile.name,
     birthDate:profile.birthDate,
@@ -97,7 +97,6 @@ function chartRequest(profile:UserProfile,forceRecalculate=false) {
     timezone:profile.birthTimezone??undefined,
     language:profile.language,
     primary: true,
-    forceRecalculate,
   };
 }
 function assertChart(value:any):NatalChartData {
@@ -146,24 +145,24 @@ export async function getChartFromDB(userId:string,traceId=createDiagnosticTrace
   }
   let chart:NatalChartData;
   try {
+    if (self.repair_required === true) throw new Error('Saved chart repair required');
     chart=assertChart(self.chart_data||self.chartData);
   } catch {
-    chartDiagnostic('WARN',traceId,{stage:'fast_read',status:'cache_miss',durationMs:Date.now()-startedAt,httpStatus:response.status,errorCode:'INVALID_STORED_CHART',source:'invalid_cache'});
-    log.warn('[getChartFromDB] Ignoring an incomplete saved chart',{code:'INVALID_STORED_CHART'});
-    return null;
+    chartDiagnostic('WARN',traceId,{stage:'fast_read',status:'error',durationMs:Date.now()-startedAt,httpStatus:409,errorCode:'CHART_REPAIR_REQUIRED',source:'invalid_cache'});
+    throw chartError('CHART_REPAIR_REQUIRED','Сохранённая карта требует восстановления.',409);
   }
   chartDiagnostic('INFO',traceId,{stage:'fast_read',status:'cache_hit',durationMs:Date.now()-startedAt,httpStatus:response.status,source:'cache'});
   return chart;
 }
 
-async function calculateChart(profile:UserProfile,forceRecalculate=false,traceId=createDiagnosticTraceId('chart-calculate')):Promise<NatalChartData> {
+async function calculateChart(profile:UserProfile,traceId=createDiagnosticTraceId('chart-calculate')):Promise<NatalChartData> {
   assertValidUserId(profile.id);
   const startedAt=Date.now();
   const url = '/api/charts';
   chartDiagnostic('INFO',traceId,{stage:'calculation_request',status:'start',birthTimeMode:diagnosticBirthTimeMode(profile),hasCoordinates:Number.isFinite(profile.birthLatitude)&&Number.isFinite(profile.birthLongitude)});
   let response:Response;
   try {
-    response=await apiFetch(url,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json',...getTelegramInitDataHeaders(),...diagnosticTraceHeaders(traceId)},body:JSON.stringify(chartRequest(profile,forceRecalculate))},CHART_FETCH_TIMEOUT_MS);
+    response=await apiFetch(url,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json',...getTelegramInitDataHeaders(),...diagnosticTraceHeaders(traceId)},body:JSON.stringify(chartRequest(profile))},CHART_FETCH_TIMEOUT_MS);
   } catch (error) {
     chartDiagnostic('ERROR',traceId,{stage:'calculation_request',status:'error',durationMs:Date.now()-startedAt,errorCode:diagnosticErrorCode(error,'CHART_CALCULATION_NETWORK_FAILED'),birthTimeMode:diagnosticBirthTimeMode(profile)});
     throw chartError('CHART_CALCULATION_NETWORK_FAILED','Ошибка сети. Проверь интернет и попробуй снова.');
@@ -200,10 +199,7 @@ export async function getOrCalculateChart(
       if (stored) {
         chartDiagnostic('INFO',traceId,{stage:'profile_match',status:'cache_miss',durationMs:Date.now()-startedAt,source:'stale_cache',birthTimeMode:diagnosticBirthTimeMode(profile)});
       }
-      const chart=await Promise.race([
-        calculateChart(profile,false,traceId),
-        new Promise<NatalChartData>((_,reject)=>setTimeout(()=>reject(chartError('CHART_CALCULATION_TIMEOUT','Превышено время ожидания расчёта карты.')),120_000)),
-      ]);
+      const chart=await calculateChart(profile,traceId);
       if (shouldCommitLocalCache()) writeLocalNatalChart(profile, chart);
       chartDiagnostic('INFO',traceId,{stage:'finished',status:'ok',durationMs:Date.now()-startedAt,source:'calculated',birthTimeMode:diagnosticBirthTimeMode(profile)});
       return chart;
@@ -218,8 +214,7 @@ export async function getOrCalculateChart(
 }
 
 export async function forceRecalculateChart(profile:UserProfile):Promise<NatalChartData> {
-  const traceId=createDiagnosticTraceId('chart-force');
-  const chart=await calculateChart(profile,true,traceId); writeLocalNatalChart(profile, chart); return chart;
+  return getOrCalculateChart(profile);
 }
 
 export function birthDataChanged(oldProfile:UserProfile|null,newProfile:UserProfile):boolean {

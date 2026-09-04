@@ -104,12 +104,13 @@ export const CANONICAL_ACCESS_CONTRACT = {
       'daily_sign_horoscope',
       'zodiac_compatibility',
       'own_chart',
+      'saved_people',
       // Existing utility surfaces remain additive to the promised Free core.
       'moon_calendar',
       'retrograde_tracker',
     ] as const satisfies readonly FeatureKey[],
     ownChartLimit: 1,
-    additionalSavedPeopleLimit: 0,
+    additionalSavedPeopleLimit: 1,
     todayOpenFragmentCount: { min: 1, max: 2 },
   },
   premium: {
@@ -121,7 +122,6 @@ export const CANONICAL_ACCESS_CONTRACT = {
       'personality_deep',
       'natal_questions',
       'synastry_by_charts',
-      'saved_people',
       // Existing implementation keys are aliases inside the same paid contract.
       'weekly_sign_horoscope',
       'natal_love',
@@ -137,13 +137,14 @@ export const CANONICAL_ACCESS_CONTRACT = {
       'deep_report',
     ] as const satisfies readonly FeatureKey[],
     ownChartLimit: 1,
-    additionalSavedPeopleLimit: 5,
+    additionalSavedPeopleLimit: 20,
   },
 } as const;
 
-export const FREE_ACTIVE_CHART_LIMIT = CANONICAL_ACCESS_CONTRACT.free.ownChartLimit;
+export const FREE_SAVED_PERSON_LIMIT = CANONICAL_ACCESS_CONTRACT.free.additionalSavedPeopleLimit;
+export const FREE_ACTIVE_CHART_LIMIT = CANONICAL_ACCESS_CONTRACT.free.ownChartLimit + FREE_SAVED_PERSON_LIMIT;
 export const PREMIUM_SAVED_PERSON_LIMIT = CANONICAL_ACCESS_CONTRACT.premium.additionalSavedPeopleLimit;
-export const PREMIUM_ACTIVE_CHART_LIMIT = FREE_ACTIVE_CHART_LIMIT + PREMIUM_SAVED_PERSON_LIMIT;
+export const PREMIUM_ACTIVE_CHART_LIMIT = CANONICAL_ACCESS_CONTRACT.premium.ownChartLimit + PREMIUM_SAVED_PERSON_LIMIT;
 
 const FEATURE_DETAILS: Record<FeatureKey, Omit<FeatureAccessConfig, 'key' | 'tier'>> = {
   daily_sign_horoscope: { needsChart: false, label: 'Daily sign horoscope' },

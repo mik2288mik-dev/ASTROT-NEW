@@ -8,10 +8,10 @@ describe('natal personality API snapshot policy', () => {
   it('never recalculates or duplicates a selected saved-person chart while resolving a report', () => {
     const helper = read('lib/natalReading/apiHelper.ts');
 
-    expect(helper).toContain('&& isSelfChart(resolvedChart)');
-    expect(helper).toContain('repairCanonicalChartRecord(userId, resolvedChart.id)');
+    expect(helper).not.toContain('repairCanonicalChartRecord');
+    expect(helper).not.toContain('repairCanonicalChartForUser');
     expect(helper).toContain('requireCanonicalSnapshot');
-    expect(helper).toContain("code: 'NATAL_SNAPSHOT_INVALID'");
+    expect(helper).toContain("code: 'CHART_REPAIR_REQUIRED'");
   });
 
   it('loads the personality subject list without repairing the primary chart', () => {
@@ -21,8 +21,8 @@ describe('natal personality API snapshot policy', () => {
 
     expect(view).toContain('getCharts(profile.id, { repairPrimary: false })');
     expect(storage).toContain("options.repairPrimary === false ? '/api/charts?repairPrimary=0'");
-    expect(endpoint).toContain("const repairPrimary=req.query.repairPrimary!=='0'");
-    expect(endpoint).toContain('if (repairPrimary&&(!selfChart');
+    const getRoute = endpoint.slice(endpoint.indexOf("req.method==='GET'"), endpoint.indexOf("req.method!=='POST'"));
+    expect(getRoute).not.toContain('repairCanonicalChartForUser');
   });
 
   it.each([

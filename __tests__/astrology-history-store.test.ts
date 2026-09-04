@@ -103,7 +103,7 @@ describe('durable astrology history foundation', () => {
     expect(migration).toContain('ROW_NUMBER() OVER');
     expect(migration).toContain('idx_natal_charts_one_active_self');
     expect(migration).toContain('generated_artifacts_display_only CHECK (is_factual_evidence = FALSE)');
-    expect(migration).toContain('await mvp041AstrologyHistoryFoundation(pool)');
+    expect(migration).toContain('await mvp041AstrologyHistoryFoundation(migrationDb)');
   });
 
   it('appends scoped calculations and display-only artifacts', async () => {
@@ -163,6 +163,30 @@ describe('durable astrology history foundation', () => {
     expect(artifactInsert?.sql).toContain('FALSE');
     expect(artifactInsert?.sql).toContain('snapshot.user_id = $1');
     expect(artifactInsert?.values?.[10]).toBe('["communication:pressure"]');
+  });
+
+  it('binds history to the original natal snapshots even after the current charts change', async () => {
+    const subject = { birth: { localDate: '1990-01-01' }, calculationVersion: 'swiss-v2' };
+    const counterpart = { birth: { localDate: '1992-01-01' }, calculationVersion: 'swiss-v2' };
+    const mock = databaseWith(() => ({ rows: [calculationRow({
+      natal_chart_revision_id: 12,
+      counterpart_natal_chart_revision_id: 18,
+    })] }));
+
+    const saved = await appendCalculationSnapshot({
+      userId: '9001', subjectChartId: 7, counterpartChartId: 9,
+      surface: 'synastry', inputHash: 'ai-pair-hash', calculationVersion: 'comparison-v1',
+      ephemerisSource: 'swisseph', birthTimeStatus: 'exact',
+      calculationPayload: {}, evidencePayload: [], schemaVersion: 'history-v1',
+      natalSourceChart: subject, counterpartNatalSourceChart: counterpart,
+    }, mock.database);
+
+    expect(saved.natalChartRevisionId).toBe(12);
+    expect(saved.counterpartNatalChartRevisionId).toBe(18);
+    expect(mock.queries[0].values?.slice(17)).toEqual([JSON.stringify(subject), JSON.stringify(counterpart)]);
+    expect(mock.queries[0].sql).toContain('chart_id = subject.id AND chart_data = $18::jsonb');
+    expect(mock.queries[0].sql).toContain('chart_id = counterpart.id AND chart_data = $19::jsonb');
+    expect(mock.queries[0].sql).not.toContain('input_hash = subject.input_hash');
   });
 
   it('inherits chart scope from an owned thread when appending a message', async () => {

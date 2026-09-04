@@ -62,6 +62,7 @@ async function setup() {
     ensureCanonicalPrimaryChart,
     repairCanonicalChartForUser,
   }));
+  jest.doMock('../lib/natalChartV2Repository', () => ({ natalChartV2Repository: { getAll: jest.fn().mockResolvedValue([]) } }));
   jest.doMock('../lib/serverLocks', () => ({
     tryAcquireLock: jest.fn().mockReturnValue(true),
     releaseLock: jest.fn(),
@@ -108,7 +109,7 @@ describe('primary chart app auth', () => {
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ chart_data: chartData }));
-    expect(primaryChartCalculation).toHaveBeenCalledWith(guestUserId);
+    expect(primaryChartCalculation).not.toHaveBeenCalled();
     expect(ensureCanonicalPrimaryChart).toHaveBeenCalledWith(expect.objectContaining({ userId: guestUserId }));
   });
 

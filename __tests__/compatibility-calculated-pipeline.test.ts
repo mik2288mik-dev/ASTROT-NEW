@@ -106,7 +106,8 @@ describe('calculated compatibility pipeline', () => {
 
     expect(result.overallScore).toBe(calculated.overallScore);
     expect(result.compatibilityScore).toBe(calculated.overallScore);
-    expect(api).toContain("from '../../../../lib/swisseph-calculator'");
+    expect(api).not.toContain('swisseph-calculator');
+    expect(api).toContain("from '../../../../lib/natalChartPersistence'");
     expect(api).toContain('calculateCompatibility({');
     expect(api).toContain('calculated.aspects.map');
     expect(api).not.toContain("compatibilityScore: { type: 'number' }");

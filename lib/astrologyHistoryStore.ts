@@ -34,6 +34,8 @@ export type StoredCalculationSnapshot = {
   userId: string;
   subjectChartId: number;
   counterpartChartId: number | null;
+  natalChartRevisionId: number | null;
+  counterpartNatalChartRevisionId: number | null;
   surface: AstrologyHistorySurface;
   period: string | null;
   periodKey: string | null;
@@ -154,6 +156,9 @@ export type AppendCalculationSnapshotInput = {
   userId: string;
   subjectChartId: number;
   counterpartChartId?: number | null;
+  /** Original saved calculations consumed by generation, even if birth data changed meanwhile. */
+  natalSourceChart?: unknown;
+  counterpartNatalSourceChart?: unknown;
   surface: AstrologyHistorySurface;
   period?: string | null;
   periodKey?: string | null;
@@ -314,6 +319,8 @@ function mapCalculationSnapshot(row: any): StoredCalculationSnapshot {
     userId: String(row.user_id),
     subjectChartId: Number(row.subject_chart_id),
     counterpartChartId: nullableId(row.counterpart_chart_id),
+    natalChartRevisionId: nullableId(row.natal_chart_revision_id),
+    counterpartNatalChartRevisionId: nullableId(row.counterpart_natal_chart_revision_id),
     surface: row.surface as AstrologyHistorySurface,
     period: optionalText(row.period),
     periodKey: optionalText(row.period_key),
@@ -428,13 +435,25 @@ export async function appendCalculationSnapshot(
        user_id, subject_chart_id, counterpart_chart_id, surface, period, period_key,
        input_hash, calculation_version, semantic_version, ephemeris_source,
        house_system, birth_time_status, calculation_payload, evidence_payload,
-       provenance, schema_version, calculated_at
+       provenance, schema_version, calculated_at,
+       natal_chart_revision_id, counterpart_natal_chart_revision_id
      )
      SELECT
        $1, subject.id, counterpart.id, $4, $5, $6, $7, $8, $9, $10,
-       $11, $12, $13::jsonb, $14::jsonb, $15::jsonb, $16, COALESCE($17::timestamptz, CURRENT_TIMESTAMP)
+       $11, $12, $13::jsonb, $14::jsonb, $15::jsonb, $16, COALESCE($17::timestamptz, CURRENT_TIMESTAMP),
+       subject_revision.id, counterpart_revision.id
      FROM natal_charts AS subject
      LEFT JOIN natal_charts AS counterpart ON counterpart.id = $3::bigint
+     LEFT JOIN LATERAL (
+       SELECT id FROM natal_chart_revisions
+       WHERE chart_id = subject.id AND chart_data = $18::jsonb
+       ORDER BY id DESC LIMIT 1
+     ) AS subject_revision ON TRUE
+     LEFT JOIN LATERAL (
+       SELECT id FROM natal_chart_revisions
+       WHERE chart_id = counterpart.id AND chart_data = $19::jsonb
+       ORDER BY id DESC LIMIT 1
+     ) AS counterpart_revision ON TRUE
      WHERE subject.id = $2
        AND subject.user_id = $1
        AND subject.archived_at IS NULL
@@ -463,6 +482,8 @@ export async function appendCalculationSnapshot(
       jsonParameter(input.provenance, {}),
       requiredText(input.schemaVersion, 'schema_version'),
       input.calculatedAt ? iso(input.calculatedAt) : null,
+      input.natalSourceChart == null ? null : jsonParameter(input.natalSourceChart, null),
+      input.counterpartNatalSourceChart == null ? null : jsonParameter(input.counterpartNatalSourceChart, null),
     ],
   );
   return mapCalculationSnapshot(throwWhenMissing(result.rows));

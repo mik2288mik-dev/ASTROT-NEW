@@ -1,11 +1,14 @@
 export {
   FREE_ACTIVE_CHART_LIMIT,
+  FREE_SAVED_PERSON_LIMIT,
   PREMIUM_ACTIVE_CHART_LIMIT,
   PREMIUM_SAVED_PERSON_LIMIT,
 } from './accessMatrix';
 import {
   FREE_ACTIVE_CHART_LIMIT,
+  FREE_SAVED_PERSON_LIMIT,
   PREMIUM_ACTIVE_CHART_LIMIT,
+  PREMIUM_SAVED_PERSON_LIMIT,
 } from './accessMatrix';
 
 const LOCKED_CALCULATION_FIELDS = [
@@ -38,6 +41,7 @@ export type ChartIdentityRecord = {
   subject_type?: string | null;
   archived_at?: string | Date | null;
   relation_label?: string | null;
+  created_at?: string | Date | null;
 };
 
 export type ChartAccessErrorCode =
@@ -90,6 +94,23 @@ export function getSelfChart<T extends ChartIdentityRecord>(charts: T[]): T | nu
   return getActiveCharts(charts).find(isSelfChart) || null;
 }
 
+export function getAccessibleSavedPersonIds(
+  charts: ChartIdentityRecord[],
+  isPremium: boolean,
+): Set<number> {
+  const timestamp = (value: string | Date | null | undefined) => {
+    const parsed = value ? new Date(value).getTime() : Number.NaN;
+    return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
+  };
+  const saved = getActiveCharts(charts)
+    .filter((chart) => !isSelfChart(chart) && Number.isFinite(chart.id))
+    .sort((left, right) => timestamp(left.created_at) - timestamp(right.created_at)
+      || Number(left.id) - Number(right.id));
+  return new Set(saved
+    .slice(0, isPremium ? PREMIUM_SAVED_PERSON_LIMIT : FREE_SAVED_PERSON_LIMIT)
+    .map((chart) => Number(chart.id)));
+}
+
 export function assertCanCreateSavedPerson(
   charts: ChartIdentityRecord[],
   isPremium: boolean,
@@ -102,12 +123,6 @@ export function assertCanCreateSavedPerson(
       409,
     );
   }
-  if (!isPremium) {
-    throw new ChartAccessPolicyError(
-      'PREMIUM_REQUIRED',
-      'Premium is required to add and read saved people.',
-    );
-  }
   const limit = getEffectiveChartLimit(isPremium);
   if (activeCharts.length >= limit) {
     throw new ChartAccessPolicyError(
@@ -117,14 +132,18 @@ export function assertCanCreateSavedPerson(
   }
 }
 
-export function assertChartReadable(chart: ChartIdentityRecord, isPremium: boolean): void {
+export function assertChartReadable(
+  chart: ChartIdentityRecord,
+  isPremium: boolean,
+  charts: ChartIdentityRecord[] = [],
+): void {
   if (!isActiveChart(chart)) {
     throw new ChartAccessPolicyError('CHART_ARCHIVED', 'Chart is archived.', 404);
   }
-  if (!isSelfChart(chart) && !isPremium) {
+  if (!isSelfChart(chart) && !getAccessibleSavedPersonIds(charts, isPremium).has(Number(chart.id))) {
     throw new ChartAccessPolicyError(
-      'PREMIUM_REQUIRED',
-      'Premium is required to read a saved person.',
+      isPremium ? 'CHART_LIMIT_REACHED' : 'PREMIUM_REQUIRED',
+      'This saved person exceeds the current chart access limit.',
     );
   }
 }
@@ -151,13 +170,15 @@ export function normalizeRelationLabel(value: unknown): string | null {
 export function exposeChartAccess<T extends ChartIdentityRecord>(
   chart: T,
   isPremium: boolean,
+  charts: ChartIdentityRecord[] = [],
 ): T & {
   subject_type: ChartSubjectType;
   relation_label: string | null;
   access_locked: boolean;
 } {
   const subjectType = getChartSubjectType(chart);
-  const accessLocked = subjectType === 'saved_person' && !isPremium;
+  const accessLocked = subjectType === 'saved_person'
+    && !getAccessibleSavedPersonIds(charts, isPremium).has(Number(chart.id));
   const exposed = {
     ...chart,
     subject_type: subjectType,

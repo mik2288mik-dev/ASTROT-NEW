@@ -14,28 +14,17 @@ jest.mock('../lib/localNatalChartCache', () => ({
 }));
 
 import { getChartFromDB, getPrimaryChartId } from '../services/chartService';
+import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 function chartData(sign: string) {
-  return {
-    schemaVersion: 'natal-chart-data-v2',
-    calculationVersion: 'swisseph-canonical-v2',
-    birth: { time: { mode: 'unknown' } },
-    positions: {
-      sun: { sign },
-      moon: { sign },
-      chiron: { sign },
-      northNode: { sign },
-    },
-    angles: { ascendant: null, mc: null, descendant: null, ic: null },
-    houses: [],
-    aspects: [],
-    chartQuality: { birthTimeMode: 'unknown', birthTimeQuality: 'unknown' },
-    calculationMetadata: { ephemerisEngine: 'Swiss Ephemeris' },
-    birthTimeQuality: 'unknown',
-  };
+  const chart = canonicalNatalChart({ time: {
+    mode: 'unknown', localTime: null, uncertaintyMinutes: null, rangeStart: null, rangeEnd: null,
+  } });
+  chart.positions.sun.sign = sign;
+  return chart;
 }
 
 describe('forecast and synastry access integration', () => {
@@ -111,8 +100,8 @@ describe('forecast and synastry access integration', () => {
     expect(route).not.toContain('expectedUserId');
     expect(route).toContain('String(partnerChartRecord.user_id) !== userId');
     expect(route).toContain('String(primaryChartRecord.user_id) !== userId');
-    expect(route).toContain('assertChartReadable(primaryChartRecord, isPremium)');
-    expect(route).toContain('assertChartReadable(partnerChartRecord, isPremium)');
+    expect(route).toContain('assertChartReadable(primaryChartRecord, isPremium, accessibleCharts)');
+    expect(route).toContain('assertChartReadable(partnerChartRecord, isPremium, accessibleCharts)');
     expect(route).toContain('partnerChartRecord.id === primaryChartRecord.id');
     expect(route).toContain('partnerChartRecord?.birth_date || partnerDate');
 

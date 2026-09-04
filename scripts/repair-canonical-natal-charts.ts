@@ -14,11 +14,16 @@ async function main() {
   let runMigrations: typeof import('../lib/migrations').runMigrations;
   let db: typeof import('../lib/db').db;
   let repairCanonicalChartRecord: typeof import('../lib/natalChartPersistence').repairCanonicalChartRecord;
+  const args = process.argv.slice(2);
+  const apply = args.includes('--apply');
 
   try {
-    ({ runMigrations } = await import('../lib/migrations'));
     ({ db } = await import('../lib/db'));
-    ({ repairCanonicalChartRecord } = await import('../lib/natalChartPersistence'));
+    if (apply) {
+      ({ runMigrations } = await import('../lib/migrations'));
+      ({ repairCanonicalChartRecord } = await import('../lib/natalChartPersistence'));
+      await runMigrations();
+    }
   } catch (error: any) {
     const message = String(error?.message || error);
     if (message.includes('swisseph.node') || message.includes('swisseph-v2')) {
@@ -29,20 +34,22 @@ async function main() {
     throw error;
   }
 
-  await runMigrations();
-
-  const limitArg = Number(process.argv[2] || '200');
+  const limitArg = Number(args.find((arg) => /^\d+$/.test(arg)) || '200');
   const limit = Number.isFinite(limitArg) && limitArg > 0 ? Math.floor(limitArg) : 200;
   const candidates = await db.natal_charts.listRepairCandidates(limit);
 
   console.log(`Found ${candidates.length} canonical natal repair candidate(s).`);
+  if (!apply) {
+    console.log('Dry run: no charts calculated or changed. Run with --apply to repair these candidates.');
+    return;
+  }
 
   let repaired = 0;
   let failed = 0;
 
   for (const candidate of candidates) {
     try {
-      const result = await repairCanonicalChartRecord(candidate.userId, candidate.chartId);
+      const result = await repairCanonicalChartRecord!(candidate.userId, candidate.chartId);
       if (result?.chart) {
         repaired += 1;
         console.log(`OK ${candidate.userId} -> chart ${result.chart.id} (${result.source})`);

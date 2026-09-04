@@ -8,6 +8,7 @@ import {
   withContentGenerationLock,
 } from '../../../../lib/contentGenerationLock';
 import { db } from '../../../../lib/db';
+import { resolveNatalContentChartContext, natalContentChartErrorStatus } from '../../../../lib/natalContentChartContext';
 import {
   PLANET_INSIGHT_PROMPT_VERSION,
   generatePlanetInsight,
@@ -18,50 +19,6 @@ import { type NatalPlanetKey } from '../../../../lib/natalPlanetMeta';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { persistNatalReadingHistory } from '../../../../lib/astrologyHistoryPersistence';
-
-function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
-  return {
-    id: user.id,
-    name: fallback?.name || user.name || '',
-    birthDate: fallback?.birthDate || user.birth_date || '',
-    birthTime: fallback?.birthTime ?? user.birth_time ?? '',
-    birthPlace: fallback?.birthPlace || user.birth_place || '',
-    isSetup: user.is_setup ?? true,
-    language: (fallback?.language as 'ru' | 'en') || user.language || 'ru',
-    theme: (fallback?.theme as 'dark' | 'light') || user.theme || 'dark',
-    isPremium: !!user.is_premium,
-    isAdmin: !!user.is_admin,
-    loginStreak: user.login_streak ?? 0,
-    chartSlots: user.chart_slots ?? 1,
-    generatedContent: fallback?.generatedContent,
-  };
-}
-
-async function resolveContext(
-  userId: string,
-  chartId?: number | null,
-  profileFallback?: Partial<UserProfile>,
-  chartDataFallback?: NatalChartData | null
-) {
-  const user = await db.users.get(userId);
-  if (!user) return null;
-
-  const chart = chartId != null
-    ? await db.natal_charts.getById(chartId)
-    : await db.natal_charts.getPrimary(userId);
-  if (chart && String(chart.user_id) !== userId) return null;
-
-  if (!chart?.chart_data && !chartDataFallback) {
-    return { user, profile: toProfile(user, profileFallback), chartId: chart?.id ?? null, chartData: null };
-  }
-
-  return {
-    user,
-    profile: toProfile(user, profileFallback),
-    chartId: chart?.id ?? null,
-    chartData: (chartDataFallback || chart?.chart_data || null) as NatalChartData | null,
-  };
-}
 
 function normalizeInsight(
   interpretation: ContentInterpretation | null | undefined,
@@ -104,12 +61,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const language = ((req.method === 'POST' ? req.body?.profile?.language : req.query.language) === 'en' ? 'en' : 'ru') as 'ru' | 'en';
-  const context = await resolveContext(
-    safeUserId,
-    Number.isFinite(chartId as number) ? chartId : null,
-    req.method === 'POST' ? req.body?.profile : undefined,
-    req.method === 'POST' ? req.body?.chartData : undefined
-  );
+  let context: Awaited<ReturnType<typeof resolveNatalContentChartContext>>;
+  try {
+    context = await resolveNatalContentChartContext(
+      safeUserId,
+      Number.isFinite(chartId as number) ? chartId : null,
+      req.method === 'POST' ? req.body?.profile : undefined,
+    );
+  } catch (error: any) {
+    const status = natalContentChartErrorStatus(error);
+    if (status) return res.status(status).json({ error: error.message, code: error.code });
+    throw error;
+  }
 
   if (!context) {
     return res.status(404).json({ error: 'User not found', message: 'Profile not found' });
@@ -139,6 +102,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message: error.message,
     });
   }
+
+  planetRequest.cacheKey += ":natal:" + context.snapshotKey;
 
   const entitlement = await getPremiumEntitlementState(safeUserId);
   const isPremium = entitlement.isPremium;

@@ -62,7 +62,7 @@ const self = {
   chart_data: { sun: { sign: 'Aries' }, moon: {}, rising: {} },
 };
 
-const savedPeople = Array.from({ length: 5 }, (_, index) => ({
+const savedPeople = Array.from({ length: 20 }, (_, index) => ({
   id: index + 2,
   user_id: '101',
   name: `Person ${index + 1}`,
@@ -82,7 +82,7 @@ describe('chart list entitlement access', () => {
     mockGetAll.mockResolvedValue([self, ...savedPeople]);
   });
 
-  it('keeps five saved people after expiry but locks and redacts their calculations', async () => {
+  it('keeps twenty saved people after expiry and only exposes the first calculation', async () => {
     mockGetPremiumEntitlementState.mockResolvedValue({ isPremium: false, entitlement: null });
     const res = response();
 
@@ -92,14 +92,15 @@ describe('chart list entitlement access', () => {
     expect(res.status).toHaveBeenCalledWith(200);
     const payload = res.json.mock.calls[0][0];
     expect(payload).toMatchObject({
-      chartSlots: 1,
+      chartSlots: 2,
       canAddMore: false,
       canAddSavedPeople: false,
       isPremium: false,
     });
-    expect(payload.charts).toHaveLength(6);
+    expect(payload.charts).toHaveLength(21);
     expect(payload.charts[0]).toMatchObject({ id: 1, access_locked: false, chart_data: self.chart_data });
-    for (const chart of payload.charts.slice(1)) {
+    expect(payload.charts[1]).toMatchObject({ id: 2, access_locked: false, chart_data: savedPeople[0].chart_data });
+    for (const chart of payload.charts.slice(2)) {
       expect(chart).toMatchObject({ subject_type: 'saved_person', access_locked: true });
       expect(chart).not.toHaveProperty('chart_data');
       expect(chart).not.toHaveProperty('aspects');
@@ -107,7 +108,7 @@ describe('chart list entitlement access', () => {
     }
   });
 
-  it('unlocks all five additional charts on Premium and reports six active slots', async () => {
+  it('unlocks all twenty additional charts on Premium and reports twenty-one active slots', async () => {
     mockGetPremiumEntitlementState.mockResolvedValue({ isPremium: true, entitlement: { id: 9 } });
     const res = response();
 
@@ -116,12 +117,12 @@ describe('chart list entitlement access', () => {
     expect(res.status).toHaveBeenCalledWith(200);
     const payload = res.json.mock.calls[0][0];
     expect(payload).toMatchObject({
-      chartSlots: 6,
+      chartSlots: 21,
       canAddMore: false,
       canAddSavedPeople: false,
       isPremium: true,
     });
-    expect(payload.charts).toHaveLength(6);
+    expect(payload.charts).toHaveLength(21);
     expect(payload.charts.slice(1)).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 2, access_locked: false, chart_data: savedPeople[0].chart_data }),
     ]));
@@ -131,10 +132,18 @@ describe('chart list entitlement access', () => {
     mockGetPremiumEntitlementState.mockResolvedValue({ isPremium: true, entitlement: { id: 9 } });
     const res = response();
 
-    await handler({ method: 'GET', query: { repairPrimary: '0' }, headers: {} } as any, res);
+    await handler({ method: 'GET', query: { repairPrimary: '1' }, headers: {} } as any, res);
 
     expect(mockRepairCanonicalChartForUser).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json.mock.calls[0][0].charts).toHaveLength(6);
+    expect(res.json.mock.calls[0][0].charts).toHaveLength(21);
+  });
+
+  it('offers the first saved-person slot to Free users', async () => {
+    mockGetAll.mockResolvedValueOnce([self]);
+    mockGetPremiumEntitlementState.mockResolvedValue({ isPremium: false });
+    const res = response();
+    await handler({ method: 'GET', query: {}, headers: {} } as any, res);
+    expect(res.json.mock.calls[0][0]).toMatchObject({ chartSlots: 2, canAddMore: true, canAddSavedPeople: true });
   });
 });

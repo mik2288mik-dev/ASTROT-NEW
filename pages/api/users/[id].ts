@@ -6,6 +6,8 @@ import { requireAppUser } from '../../../lib/auth/appAuth';
 import { hasDatabaseUrl } from '../../../lib/database-url';
 import { toDateInputValue } from '../../../lib/date-utils';
 import { normalizeBirthClockTime, normalizeBirthTimeInput } from '../../../lib/birthTime';
+import { normalizeBirthTimeInput as normalizeLegacyBirthTime } from '../../../lib/natalChartCanonical';
+import { ensureCanonicalPrimaryChart } from '../../../lib/natalChartPersistence';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { getPremiumEntitlementState, publicPremiumEntitlementSnapshot } from '../../../lib/contentArchitecture';
 import {
@@ -60,20 +62,41 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     if(!hasDatabaseUrl())return res.status(500).json({error:'Database not configured',message:'DATABASE_URL is not set.'});
 
     const data=req.body||{};
+    const current=await db.users.get(userId,{hydratePrimaryChart:false});
+    if(!current)return res.status(401).json({error:'APP_SESSION_REVOKED',message:'This account no longer exists'});
+    const currentBirth=await birthProfileRepository.get(userId);
+    const hasBirthInput=['birthDate','birthTime','birthTimeMode','birthTimeUncertaintyMinutes','birthTimeRangeStart','birthTimeRangeEnd','birthPlace','birthLatitude','birthLongitude','birthTimezone'].some((field)=>Object.prototype.hasOwnProperty.call(data,field));
+    const birthDate=normalizeNullableString(data.birthDate!==undefined?data.birthDate:toDateInputValue(current.birth_date));
+    const birthPlace=normalizeNullableString(data.birthPlace!==undefined?data.birthPlace:current.birth_place);
+    const birthTime=normalizeLegacyBirthTime(data.birthTime!==undefined?data.birthTime:current.birth_time);
     let time;
     try{
-      time=normalizeBirthTimeInput({mode:data.birthTimeMode,localTime:data.birthTime,uncertaintyMinutes:data.birthTimeUncertaintyMinutes,rangeStart:data.birthTimeRangeStart,rangeEnd:data.birthTimeRangeEnd,legacyBirthTime:data.birthTime});
+      time=normalizeBirthTimeInput({mode:data.birthTimeMode!==undefined?data.birthTimeMode:currentBirth?.birth_time_mode,localTime:birthTime,uncertaintyMinutes:data.birthTimeUncertaintyMinutes!==undefined?data.birthTimeUncertaintyMinutes:currentBirth?.birth_time_uncertainty_minutes,rangeStart:data.birthTimeRangeStart!==undefined?data.birthTimeRangeStart:currentBirth?.birth_time_range_start,rangeEnd:data.birthTimeRangeEnd!==undefined?data.birthTimeRangeEnd:currentBirth?.birth_time_range_end,legacyBirthTime:birthTime});
     }catch(error:any){return res.status(400).json({error:'Invalid birth time',message:error.message});}
     const dbUser:Record<string,any>={
-      name:normalizeNullableString(data.name),birth_date:normalizeNullableString(data.birthDate),birth_time:time.localTime,
-      birth_place:normalizeNullableString(data.birthPlace),language:data.language||'ru',theme:data.theme||'light',
+      name:normalizeNullableString(data.name!==undefined?data.name:current.name),
+      language:data.language||current.language||'ru',theme:data.theme||current.theme||'light',
     };
+    if(hasBirthInput&&(!birthDate||!birthPlace)&&(data.isSetup===true||(current.birth_date&&current.birth_place))){
+      return res.status(400).json({error:'Invalid birth data',message:'Birth date and place are required.'});
+    }
+    if(hasBirthInput&&birthDate&&birthPlace){
+      // The canonical writer commits the snapshot and birth profile together.
+      // Do not write birth fields again below: another edit may already be next.
+      await ensureCanonicalPrimaryChart({
+        userId,name:dbUser.name||current.name||'',birthDate,birthPlace,
+        birthTime:time.localTime||undefined,birthTimeMode:time.mode,
+        birthTimeUncertaintyMinutes:time.uncertaintyMinutes,
+        birthTimeRangeStart:time.rangeStart,birthTimeRangeEnd:time.rangeEnd,
+        language:dbUser.language,
+        coordinates:{lat:data.birthLatitude,lon:data.birthLongitude,timezone:data.birthTimezone},
+      });
+    }
     if(data.isSetup!==undefined)dbUser.is_setup=data.isSetup===true;
     if(data.selectedZodiacSign!==undefined||data.selected_zodiac_sign!==undefined)dbUser.selected_zodiac_sign=normalizeNullableString(data.selectedZodiacSign??data.selected_zodiac_sign);
     if(data.gender!==undefined){const gender=String(data.gender??'');dbUser.gender=['male','female','unspecified'].includes(gender)?gender:null;}
     const saved=await db.users.updateExisting(userId,dbUser);
     if(!saved)return res.status(401).json({error:'APP_SESSION_REVOKED',message:'This account no longer exists'});
-    await birthProfileRepository.set(userId,time);
     await saveNotificationFrequency(userId,data.notificationFrequency);
     const refreshed=await db.users.get(userId);
     const birthSettings=await birthProfileRepository.get(userId);

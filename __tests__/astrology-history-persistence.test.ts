@@ -92,7 +92,8 @@ describe('natal and synastry durable history persistence', () => {
     }));
     const snapshot = mockAppendCalculationSnapshot.mock.calls[0][0];
     expect(JSON.stringify(snapshot)).not.toContain('Generated interpretation');
-    expect(JSON.stringify(snapshot)).not.toContain('generated natal summary');
+    expect(JSON.stringify(snapshot.calculationPayload)).not.toContain('generated natal summary');
+    expect(snapshot.natalSourceChart).toBe(natal);
     expect(mockAppendGeneratedArtifact).toHaveBeenCalledWith(expect.objectContaining({
       calculationSnapshotId: 101,
       contentPayload: content,
@@ -145,6 +146,8 @@ describe('natal and synastry durable history persistence', () => {
     expect(mockAppendCalculationSnapshot).toHaveBeenCalledWith(expect.objectContaining({
       subjectChartId: 7,
       counterpartChartId: 9,
+      natalSourceChart: subject,
+      counterpartNatalSourceChart: counterpart,
       surface: 'synastry',
       birthTimeStatus: 'exact',
       calculationPayload: expect.objectContaining({ counterpartBirthTimeStatus: 'unknown' }),

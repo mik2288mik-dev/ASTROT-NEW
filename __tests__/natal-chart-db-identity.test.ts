@@ -42,7 +42,7 @@ describe('natal chart database identity contract', () => {
     expect(payload).not.toContain("birthTime: normalizedBirthTime || data.birthTime || '12:00'");
 
     const repairCandidates = between('async listRepairCandidates(', '/** OpenAI cache');
-    expect(repairCandidates).toContain('COALESCE(nc.birth_time, u.birth_time) AS birth_time');
+    expect(repairCandidates).toContain('nc.birth_time AS birth_time');
     expect(repairCandidates).toContain("birthTime: normalizeStoredBirthTime(row.birth_time) || ''");
   });
 
@@ -63,24 +63,15 @@ describe('natal chart database identity contract', () => {
     expect(archive).not.toContain('DELETE FROM content_interpretations');
   });
 
-  it('enforces five additional Premium charts (six including self) transactionally without users.chart_slots', () => {
+  it('routes legacy writes through the shared service with its transaction and live chart limits', () => {
     const create = between('async create(userId:', 'async setIdentityMetadata(');
-    expect(create).toContain("pg_advisory_xact_lock(hashtext('natal-chart-limit:'");
-    expect(create).toContain('COUNT(*)::int AS total');
-    expect(create).toContain('archived_at IS NULL');
-    expect(create).toContain('u.premium_until > CURRENT_TIMESTAMP');
-    expect(create).toContain("pe.status = 'active'");
-    expect(create).toContain('pe.ends_at > CURRENT_TIMESTAMP');
-    expect(create).toContain('const slots = PREMIUM_ACTIVE_CHART_LIMIT');
+    expect(create).toContain('createOrReuseCanonicalChart');
     expect(create).not.toContain('chart_slots');
-    expect(create).toContain("subjectType: 'saved_person'");
-    expect(create.indexOf('has_current_premium_until')).toBeLessThan(
-      create.indexOf('existingSameHashResult'),
-    );
+    expect(create).not.toContain('INSERT INTO natal_charts');
 
     const persistPrimary = between('async persistPrimary(', 'async create(userId:');
-    expect(persistPrimary).toContain("pg_advisory_xact_lock(hashtext('natal-chart-self:'");
-    expect(persistPrimary).toContain("subject_type = 'self'");
+    expect(persistPrimary).toContain('ensureCanonicalPrimaryChart');
+    expect(persistPrimary).not.toContain('UPDATE natal_charts');
   });
 
   it('treats a saved person as input hash plus normalized name while self stays hash-only', () => {
@@ -90,10 +81,8 @@ describe('natal chart database identity contract', () => {
     expect(findByHash).toContain('normalizeChartIdentityName(identity.name)');
 
     const create = between('async create(userId:', 'async setIdentityMetadata(');
-    expect(create).toContain("subject_type = 'saved_person'");
-    expect(create).toContain('normalizeChartIdentityName(payload.name)');
-    expect(create).toContain("REGEXP_REPLACE(BTRIM(COALESCE(name, ''))");
-    expect(create).toContain('this._updateChartRow(client, existing.id, payload, false)');
+    expect(create).toContain('createOrReuseCanonicalChart');
+    expect(persistence).toContain('nameKey(chart.name) === nameKey(args.name)');
 
     expect(persistence).toMatch(/subjectType:\s*'self'/);
     expect(persistence).toMatch(/subjectType:\s*'saved_person'/);
@@ -105,6 +94,6 @@ describe('natal chart database identity contract', () => {
     expect(migration).toContain('DROP INDEX IF EXISTS idx_natal_charts_user_input_hash');
     expect(migration).toContain('CREATE INDEX IF NOT EXISTS idx_natal_charts_active_identity_hash');
     expect(migration).not.toContain('CREATE UNIQUE INDEX');
-    expect(migrations).toContain('await mvp042SavedPersonIdentity(migrationDb)');
+    expect(migrations).toMatch(/await mvp042SavedPersonIdentity\(\w+\)/);
   });
 });

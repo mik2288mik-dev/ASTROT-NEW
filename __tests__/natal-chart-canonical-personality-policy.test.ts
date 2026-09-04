@@ -1,35 +1,18 @@
 import {
-  CANONICAL_NATAL_CALCULATION_VERSION,
-  NATAL_CHART_SCHEMA_VERSION,
   isCanonicalNatalChartDataComplete,
 } from '../lib/natalChartCanonical';
+import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 
 function canonicalChart(
   mode: 'exact' | 'approximate' | 'range' | 'unknown',
 ) {
-  const quality = mode === 'exact' ? 'exact' : mode === 'unknown' ? 'unknown' : 'approximate';
-  const angle = { sign: 'Aries', degree: 3, reliability: mode === 'exact' ? 'exact' : 'stable_in_range' };
-  return {
-    schemaVersion: NATAL_CHART_SCHEMA_VERSION,
-    calculationVersion: CANONICAL_NATAL_CALCULATION_VERSION,
-    birth: { time: { mode } },
-    positions: {
-      sun: { sign: 'Aries' },
-      moon: { sign: 'Cancer' },
-      chiron: { sign: 'Gemini' },
-      northNode: { sign: 'Libra' },
-    },
-    angles: mode === 'unknown'
-      ? { ascendant: null, mc: null, descendant: null, ic: null }
-      : { ascendant: angle, mc: angle, descendant: angle, ic: angle },
-    houses: mode === 'unknown'
-      ? []
-      : Array.from({ length: 12 }, (_, index) => ({ house: index + 1 })),
-    aspects: [],
-    chartQuality: { birthTimeMode: mode, birthTimeQuality: quality },
-    calculationMetadata: { ephemerisEngine: 'Swiss Ephemeris' },
-    birthTimeQuality: quality,
-  };
+  return canonicalNatalChart({ time: {
+    mode,
+    localTime: mode === 'exact' || mode === 'approximate' ? '08:15' : null,
+    uncertaintyMinutes: mode === 'approximate' ? 30 : null,
+    rangeStart: mode === 'range' ? '08:00' : null,
+    rangeEnd: mode === 'range' ? '09:00' : null,
+  } });
 }
 
 describe('canonical personality snapshot policy', () => {

@@ -29,9 +29,9 @@ describe('backend production safety contract', () => {
     const calls = [...runner.matchAll(/await ((?:migrationReset|lumia\w+|mvp\w+))\(migrationDb\)/g)]
       .map((match) => match[1]);
 
-    expect(names).toHaveLength(53);
+    expect(names).toHaveLength(54);
     expect(new Set(names).size).toBe(names.length);
-    expect(calls).toHaveLength(53);
+    expect(calls).toHaveLength(54);
     expect(new Set(calls).size).toBe(calls.length);
     expect(calls.slice(calls.indexOf('mvp040AccountIdentitySessions'), calls.indexOf('mvp044PremiumEntitlementLifecycle')))
       .toEqual([
@@ -46,12 +46,14 @@ describe('backend production safety contract', () => {
         'mvp050LegalAcknowledgements',
         'mvp051SupportDeliveryOutbox',
         'mvp052UserAppEventIdempotency',
+        'mvp053NatalChartRevisions',
       ]);
   });
 
-  it('blocks the old natal reset instead of truncating charts or clearing profiles', () => {
+  it('adds natal metadata without truncating charts or clearing profiles', () => {
     const migration = read('scripts/migrate-natal-v2.ts');
-    expect(migration).toContain('DESTRUCTIVE_NATAL_V2_MIGRATION_BLOCKED');
+    expect(migration).toContain('ADD COLUMN IF NOT EXISTS birth_time_mode');
+    expect(migration).not.toContain('DESTRUCTIVE_NATAL_V2_MIGRATION_BLOCKED');
     expect(migration).not.toContain("await client.query('TRUNCATE TABLE natal_charts");
     expect(migration).not.toContain('UPDATE users SET');
   });

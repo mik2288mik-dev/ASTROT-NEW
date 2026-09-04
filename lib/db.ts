@@ -6,7 +6,7 @@
 // Format: postgresql://user:password@host:port/database
 
 import crypto from 'crypto';
-import { Pool, Client } from 'pg';
+import { Pool, Client, types as pgTypes } from 'pg';
 import { LEGACY_NOTIFICATION_SEEDS, SCHEDULED_NOTIFICATION_SEEDS } from './adminNotificationSeedCatalog';
 import { resolveDatabaseUrl } from './database-url';
 import {
@@ -15,7 +15,6 @@ import {
 } from './referralEconomy';
 import {
   CANONICAL_NATAL_CALCULATION_VERSION,
-  buildCanonicalNatalInputHash,
   hasCanonicalNatalRowFields,
   isCanonicalNatalChartDataComplete,
   normalizeBirthDateInput,
@@ -24,7 +23,6 @@ import {
 } from './natalChartCanonical';
 import {
   normalizeRelationLabel,
-  PREMIUM_ACTIVE_CHART_LIMIT,
 } from './chartAccessPolicy';
 import { trustedBirthContext } from './birthProfileIdentity';
 import type {
@@ -454,6 +452,10 @@ export function getPool(): Pool {
     
     pool = new Pool({
       connectionString: DATABASE_URL,
+      // PostgreSQL DATE is a calendar date, never a timestamp. The default pg
+      // parser creates a local-midnight Date that shifts birth dates on UTC conversion.
+      types: { getTypeParser: (oid: number, format?: 'text' | 'binary') =>
+        oid === 1082 ? (value: string) => value : pgTypes.getTypeParser(oid, format) },
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 30000,
@@ -900,7 +902,7 @@ export const db = {
         `UPDATE users SET
            name = COALESCE($2, name),
            birth_date = COALESCE($3, birth_date),
-           birth_time = $4,
+           birth_time = CASE WHEN $13::boolean THEN $4 ELSE birth_time END,
            birth_place = COALESCE($5, birth_place),
            is_setup = COALESCE($6::boolean, is_setup),
            selected_zodiac_sign = CASE WHEN $7::boolean THEN $8 ELSE selected_zodiac_sign END,
@@ -923,6 +925,7 @@ export const db = {
           data.theme ?? null,
           gender !== undefined,
           gender ?? null,
+          data.birth_time !== undefined,
         ],
       );
       if (!result.rows[0]) return null;
@@ -1448,216 +1451,25 @@ export const db = {
       return this._rowToChart(result.rows[0]);
     },
 
-    async persistPrimary(userId: string, data: { name?: string; birthDate: string; birthTime?: string; birthPlace: string; inputHash: string; chartData: any }) {
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      const id = toUserId(userId);
-      const payload = this._toPersistencePayload(data);
-      const client = await getPool().connect();
-
-      try {
-        await client.query('BEGIN');
-        await client.query(
-          `SELECT pg_advisory_xact_lock(hashtext('natal-chart-self:' || $1::text))`,
-          [id],
-        );
-
-        const sameHashResult = await client.query(
-          `SELECT ${this._selectColumns}
-           FROM natal_charts
-           WHERE user_id = $1
-             AND input_hash = $2
-             AND subject_type = 'self'
-             AND archived_at IS NULL
-           ORDER BY is_primary DESC NULLS LAST, id ASC
-           LIMIT 1`,
-          [id, payload.inputHash]
-        );
-        const sameHash = sameHashResult.rows[0] ? this._rowToChart(sameHashResult.rows[0]) : null;
-
-        const primaryResult = await client.query(
-          `SELECT ${this._selectColumns}
-           FROM natal_charts
-           WHERE user_id = $1
-             AND subject_type = 'self'
-             AND archived_at IS NULL
-           ORDER BY is_primary DESC NULLS LAST, id ASC
-           LIMIT 1`,
-          [id]
-        );
-        const primary = primaryResult.rows[0] ? this._rowToChart(primaryResult.rows[0]) : null;
-        const previousInputHash = primary?.input_hash ?? null;
-        const chartIdToInvalidate = primary?.id ?? null;
-
-        await client.query(
-          `UPDATE natal_charts
-           SET is_primary = FALSE
-           WHERE user_id = $1 AND subject_type = 'self'`,
-          [id],
-        );
-
-        const saved = sameHash
-          ? await this._updateChartRow(client, sameHash.id, payload, true)
-          : primary
-            ? await this._updateChartRow(client, primary.id, payload, true)
-            : await this._insertChartRow(client, userId, payload, true, {
-                subjectType: 'self',
-                relationLabel: null,
-              });
-
-        await client.query(
-          `UPDATE natal_charts
-           SET subject_type = 'self',
-               relation_label = NULL,
-               archived_at = NULL,
-               is_primary = TRUE,
-               updated_at = CURRENT_TIMESTAMP
-           WHERE id = $1`,
-          [saved.id],
-        );
-
-        if (
-          chartIdToInvalidate != null
-          && previousInputHash
-          && previousInputHash !== payload.inputHash
-        ) {
-          await client.query(
-            `DELETE FROM content_interpretations WHERE chart_id = $1`,
-            [chartIdToInvalidate]
-          );
-          await client.query(
-            `DELETE FROM synastry_cache WHERE chart1_id = $1 OR chart2_id = $1`,
-            [chartIdToInvalidate]
-          );
-          log.info('[DB] Invalidated cached interpretations after primary chart input change', {
-            chartId: chartIdToInvalidate,
-            previousInputHash,
-            nextInputHash: payload.inputHash,
-          });
-        }
-
-        await client.query('COMMIT');
-        return saved;
-      } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-      } finally {
-        client.release();
-      }
+    // Legacy adapters accept birth input only. Every calculation and write uses
+    // the canonical service's transaction, identity, revisions and live limits.
+    async persistPrimary(userId: string, data: { name?: string; birthDate: string; birthTime?: string; birthPlace: string; inputHash?: string; chartData?: any }) {
+      const { ensureCanonicalPrimaryChart } = await import('./natalChartPersistence');
+      const result = await ensureCanonicalPrimaryChart({
+        userId, name: data.name || 'Моя карта', birthDate: data.birthDate,
+        birthTime: data.birthTime, birthPlace: data.birthPlace,
+      });
+      return result.chart;
     },
 
-    async create(userId: string, data: { name: string; birthDate: string; birthTime?: string; birthPlace: string; chartData: any; inputHash?: string }) {
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      const id = toUserId(userId);
-      const chartData = data.chartData?.chart_data || data.chartData;
-      const inferredInputHash = data.inputHash || (
-        typeof chartData?.latitude === 'number' &&
-        typeof chartData?.longitude === 'number' &&
-        typeof chartData?.timezone === 'string'
-          ? buildCanonicalNatalInputHash({
-              birthDate: data.birthDate,
-              birthTime: data.birthTime,
-              birthTimeQuality: chartData.birthTimeQuality || chartData.chartQuality?.birthTimeQuality || undefined,
-              latitude: chartData.latitude,
-              longitude: chartData.longitude,
-              timezone: chartData.timezone,
-            })
-          : null
-      );
-
-      if (!inferredInputHash) {
-        throw new Error('Canonical chart input hash is required');
-      }
-
-      const payload = this._toPersistencePayload({ ...data, inputHash: inferredInputHash });
-      const client = await getPool().connect();
-
-      try {
-        await client.query('BEGIN');
-        await client.query(
-          `SELECT pg_advisory_xact_lock(hashtext('natal-chart-limit:' || $1::text))`,
-          [id],
-        );
-
-        const countResult = await client.query(
-          `SELECT
-             COUNT(*)::int AS total,
-             BOOL_OR(subject_type = 'self') AS has_self
-           FROM natal_charts
-           WHERE user_id = $1 AND archived_at IS NULL`,
-          [id],
-        );
-        const chartsCount = countResult.rows[0]?.total ?? 0;
-        if (!countResult.rows[0]?.has_self) {
-          throw new Error('Self chart is required before adding a saved person.');
-        }
-
-        const entitlementResult = await client.query(
-          `SELECT
-             u.is_admin,
-             (u.premium_until > CURRENT_TIMESTAMP) AS has_current_premium_until,
-             EXISTS (
-               SELECT 1
-               FROM premium_entitlements pe
-               WHERE pe.user_id = u.id
-                 AND pe.status = 'active'
-                 AND pe.ends_at > CURRENT_TIMESTAMP
-             ) AS has_active_entitlement
-           FROM users u
-           WHERE u.id = $1
-           FOR UPDATE`,
-          [id],
-        );
-        const entitlement = entitlementResult.rows[0] || {};
-        const configuredOwnerId = configuredServerOwnerId();
-        const isPremium = (
-          String(id) === String(configuredOwnerId)
-          || entitlement.is_admin === true
-          || entitlement.has_active_entitlement === true
-          || entitlement.has_current_premium_until === true
-        );
-        if (!isPremium) {
-          throw new Error('Premium is required to add a saved person.');
-        }
-
-        const existingSameHashResult = await client.query(
-          `SELECT ${this._selectColumns}
-           FROM natal_charts
-           WHERE user_id = $1
-             AND input_hash = $2
-             AND subject_type = 'saved_person'
-             AND archived_at IS NULL
-             AND LOWER(REGEXP_REPLACE(BTRIM(COALESCE(name, '')), '[[:space:]]+', ' ', 'g')) = $3
-           ORDER BY id ASC
-           LIMIT 1`,
-          [id, payload.inputHash, normalizeChartIdentityName(payload.name)],
-        );
-
-        if (existingSameHashResult.rows.length > 0) {
-          const existing = this._rowToChart(existingSameHashResult.rows[0]);
-          const saved = await this._updateChartRow(client, existing.id, payload, false);
-          await client.query('COMMIT');
-          return saved;
-        }
-
-        const slots = PREMIUM_ACTIVE_CHART_LIMIT;
-        if (chartsCount >= slots) {
-          throw new Error(`Chart slots limit reached (${slots}).`);
-        }
-
-        const saved = await this._insertChartRow(client, userId, payload, false, {
-          subjectType: 'saved_person',
-          relationLabel: null,
-        });
-        await client.query('COMMIT');
-        return saved;
-      } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-      } finally {
-        client.release();
-      }
+    async create(userId: string, data: { name: string; birthDate: string; birthTime?: string; birthPlace: string; chartData?: any; inputHash?: string }) {
+      const { createOrReuseCanonicalChart } = await import('./natalChartPersistence');
+      const result = await createOrReuseCanonicalChart({
+        userId, name: data.name, birthDate: data.birthDate,
+        birthTime: data.birthTime, birthPlace: data.birthPlace,
+      });
+      return result.chart;
     },
-
     async setIdentityMetadata(
       chartId: number,
       subjectType: 'self' | 'saved_person',
@@ -1762,120 +1574,73 @@ export const db = {
       if (!isCanonical) {
         return { needsCalc: true, existingChart: existing, reason: 'INCOMPLETE_CANONICAL_CHART' };
       }
-      if (existing.calculation_version !== CANONICAL_NATAL_CALCULATION_VERSION) {
-        return { needsCalc: true, existingChart: existing, reason: 'CALCULATION_VERSION_CHANGED' };
-      }
-
       return { needsCalc: false, existingChart: existing, reason: 'CACHE_HIT' };
     },
 
-    async set(userId: string, chartData: any, birthDate?: string, birthTime?: string, birthPlace?: string, inputHash?: string) {
-      const data = chartData.chart_data || chartData;
+    async set(userId: string, chartData: any, birthDate?: string, birthTime?: string, birthPlace?: string, _inputHash?: string) {
       if (!birthDate || !birthPlace) {
         throw new Error('birthDate and birthPlace are required for canonical chart persistence');
       }
-
-      const resolvedInputHash = inputHash || (
-        typeof data?.latitude === 'number' &&
-        typeof data?.longitude === 'number' &&
-        typeof data?.timezone === 'string'
-          ? buildCanonicalNatalInputHash({
-              birthDate,
-              birthTime,
-              birthTimeQuality: data.birthTimeQuality || data.chartQuality?.birthTimeQuality || undefined,
-              latitude: data.latitude,
-              longitude: data.longitude,
-              timezone: data.timezone,
-            })
-          : null
-      );
-
-      if (!resolvedInputHash) {
-        throw new Error('Canonical chart input hash is required');
-      }
-
       return this.persistPrimary(userId, {
         name: chartData?.name,
         birthDate,
         birthTime,
         birthPlace,
-        inputHash: resolvedInputHash,
-        chartData: data,
       });
     },
 
     async listRepairCandidates(limit = 200) {
       if (!DATABASE_URL) return [];
+      const target = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 200;
+      const candidates: Array<{ userId: string; name: string; birthDate: string; birthTime: string; birthPlace: string; chartId: number | null }> = [];
+      let cursorUser: string | null = null;
+      let cursorChart = 0;
+      const batchSize = 200;
       try {
         const dbPool = getPool();
-        const result = await dbPool.query(
-          `WITH incomplete_charts AS (
-             SELECT
-               u.id AS user_id,
-               COALESCE(nc.name, u.name, 'Chart') AS display_name,
-               COALESCE(nc.birth_date, u.birth_date) AS birth_date,
-               COALESCE(nc.birth_time, u.birth_time) AS birth_time,
-               COALESCE(nc.birth_place, u.birth_place) AS birth_place,
-               nc.id AS chart_id
-             FROM users u
-             JOIN natal_charts nc ON nc.user_id = u.id
-             WHERE COALESCE(nc.birth_date, u.birth_date) IS NOT NULL
-               AND COALESCE(nc.birth_place, u.birth_place) IS NOT NULL
-               AND nc.archived_at IS NULL
-               AND (
-                 nc.latitude IS NULL OR
-                 nc.longitude IS NULL OR
-                 nc.timezone IS NULL OR
-                 nc.sun_sign IS NULL OR
-                 nc.moon_sign IS NULL OR
-                 nc.ascendant_sign IS NULL OR
-                 nc.calculation_version IS DISTINCT FROM $1
-               )
-           ),
-           missing_primary AS (
-             SELECT
-               u.id AS user_id,
-               COALESCE(u.name, 'Chart') AS display_name,
-               u.birth_date,
-               u.birth_time,
-               u.birth_place,
-               NULL::bigint AS chart_id
-             FROM users u
-             WHERE u.birth_date IS NOT NULL
-               AND u.birth_place IS NOT NULL
-               AND NOT EXISTS (
-                 SELECT 1
-                 FROM natal_charts nc
-                 WHERE nc.user_id = u.id
-                   AND nc.subject_type = 'self'
-                   AND nc.archived_at IS NULL
-               )
-           )
-           SELECT *
-           FROM (
-             SELECT * FROM incomplete_charts
-             UNION ALL
-             SELECT * FROM missing_primary
-           ) candidates
-           ORDER BY user_id ASC, chart_id ASC NULLS FIRST
-           LIMIT $2`,
-          [CANONICAL_NATAL_CALCULATION_VERSION, limit]
-        );
-        return result.rows.map((row: any) => ({
-          userId: String(row.user_id),
-          name: row.display_name || 'Chart',
-          birthDate: row.birth_date ? normalizeBirthDateValue(row.birth_date) : '',
-          birthTime: normalizeStoredBirthTime(row.birth_time) || '',
-          birthPlace: row.birth_place || '',
-          chartId: row.chart_id ? Number(row.chart_id) : null,
-        }));
+        while (candidates.length < target) {
+          // Scan past healthy rows instead of allowing them to consume the
+          // repair limit. Only the canonical JSON validator decides completeness.
+          const result: { rows: any[] } = await dbPool.query(`WITH chart_candidates AS (
+            SELECT u.id AS user_id, COALESCE(nc.name,u.name,'Chart') AS display_name,
+              CASE WHEN nc.subject_type='self' THEN COALESCE(u.birth_date,nc.birth_date) ELSE nc.birth_date END AS birth_date,
+              nc.birth_time AS birth_time,
+              CASE WHEN nc.subject_type='self' THEN COALESCE(u.birth_place,nc.birth_place) ELSE nc.birth_place END AS birth_place,
+              nc.id AS chart_id,nc.input_hash,nc.chart_data
+            FROM users u JOIN natal_charts nc ON nc.user_id=u.id
+            WHERE nc.archived_at IS NULL
+            UNION ALL
+            SELECT u.id,COALESCE(u.name,'Chart'),u.birth_date,u.birth_time,u.birth_place,
+              NULL::integer,NULL::text,NULL::jsonb
+            FROM users u WHERE u.birth_date IS NOT NULL AND u.birth_place IS NOT NULL
+              AND NOT EXISTS(SELECT 1 FROM natal_charts nc WHERE nc.user_id=u.id
+                AND nc.subject_type='self' AND nc.archived_at IS NULL)
+          ) SELECT * FROM chart_candidates
+            WHERE birth_date IS NOT NULL AND birth_place IS NOT NULL
+              AND ($1::bigint IS NULL OR user_id>$1 OR (user_id=$1 AND COALESCE(chart_id,0)>$2))
+            ORDER BY user_id ASC,chart_id ASC NULLS FIRST LIMIT $3`, [cursorUser,cursorChart,batchSize]);
+          for (const row of result.rows) {
+            if (row.chart_id && String(row.input_hash || '').trim() && isCanonicalNatalChartDataComplete(row.chart_data)) continue;
+            candidates.push({
+              userId: String(row.user_id), name: row.display_name || 'Chart',
+              birthDate: row.birth_date ? normalizeBirthDateValue(row.birth_date) : '',
+              birthTime: normalizeStoredBirthTime(row.birth_time) || '', birthPlace: row.birth_place || '',
+              chartId: row.chart_id ? Number(row.chart_id) : null,
+            });
+            if (candidates.length === target) break;
+          }
+          if (result.rows.length < batchSize) break;
+          const last: any = result.rows[result.rows.length - 1];
+          cursorUser = String(last.user_id);
+          cursorChart = Number(last.chart_id || 0);
+        }
+        return candidates;
       } catch (error: any) {
         log.error('[DB] Error listing canonical chart repair candidates', { error: error.message });
         throw error;
       }
     },
   },
-
   /** OpenAI cache - interpretations table */
   interpretations: {
     async supportsChartScope() {

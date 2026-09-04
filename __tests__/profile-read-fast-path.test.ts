@@ -33,8 +33,8 @@ describe('profile read fast path', () => {
     expect(db).toContain('birth_time_uncertainty_minutes: u.birth_time_uncertainty_minutes ?? null');
     expect(db).toContain('birth_time_range_start: u.birth_time_range_start ?? null');
     expect(db).toContain('birth_time_range_end: u.birth_time_range_end ?? null');
-    expect(db).toContain('const trustedPrimaryChart = trustedBirthContext({');
     expect(db).toContain('birth_timezone: trustedPrimaryChart?.timezone ?? legacyUserBirthContext?.birth_timezone ?? null');
+    expect(db).toContain('trustedBirthContext({');
     expect(db).toContain('AS primary_chart_summary');
     expect(db).toContain('normalizeJsonColumn(u.primary_chart_summary)');
   });

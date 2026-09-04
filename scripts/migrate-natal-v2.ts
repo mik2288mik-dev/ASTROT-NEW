@@ -48,23 +48,8 @@ async function main(){
 
     }
 
-    const chartRows=await tableExists(client,'natal_charts')
-      ? await client.query('SELECT COUNT(*)::int AS count FROM natal_charts')
-      : {rows:[{count:0}]};
-    const profiledUsers=await tableExists(client,'users')
-      ? await client.query(`SELECT COUNT(*)::int AS count FROM users
-          WHERE birth_date IS NOT NULL OR birth_time IS NOT NULL OR birth_place IS NOT NULL`)
-      : {rows:[{count:0}]};
-    const chartCount=Number(chartRows.rows[0]?.count||0);
-    const profileCount=Number(profiledUsers.rows[0]?.count||0);
-    if(chartCount>0||profileCount>0){
-      throw new Error(
-        `DESTRUCTIVE_NATAL_V2_MIGRATION_BLOCKED: found ${chartCount} natal chart rows and `+
-        `${profileCount} users with birth data. Automatic TRUNCATE/profile reset is disabled; `+
-        'take a verified backup and run an owner-reviewed one-off migration.'
-      );
-    }
-
+    // The migration only adds nullable metadata columns. Existing birth data,
+    // natal calculations and interpretations remain intact on populated databases.
     await client.query('INSERT INTO migrations(name) VALUES($1)',[MIGRATION]);
     await client.query('COMMIT');
     inTransaction=false;

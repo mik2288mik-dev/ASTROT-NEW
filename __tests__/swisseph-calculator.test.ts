@@ -13,7 +13,19 @@ jest.mock('swisseph-v2', () => ({
   swe_houses: jest.fn(),
 }));
 
-const { getZodiacSign, getDegreeInSign } = require('../lib/swisseph-calculator');
+const { getZodiacSign, getDegreeInSign, resolveBirthCoordinates } = require('../lib/swisseph-calculator');
+
+describe('explicit birth coordinates', () => {
+  it('accepts zero latitude and longitude without geocoding', async () => {
+    await expect(resolveBirthCoordinates('An unresolvable place', { lat: 0, lon: 0, timezone: 'UTC' }))
+      .resolves.toEqual({ lat: 0, lon: 0, timezone: 'UTC' });
+  });
+
+  it('validates an explicit timezone before geocoding even when coordinates are absent', async () => {
+    await expect(resolveBirthCoordinates('An unresolvable place', { timezone: 'Not/A_Zone' }))
+      .rejects.toMatchObject({ code: 'INVALID_TIMEZONE' });
+  });
+});
 
 // Экспортируем внутренние функции для тестирования
 // В реальности эти функции могут быть приватными, но для тестов мы их тестируем

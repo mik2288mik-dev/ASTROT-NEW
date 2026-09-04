@@ -149,6 +149,7 @@ export async function persistNatalReadingHistory(input: {
   const snapshot = await appendCalculationSnapshot({
     userId: input.userId,
     subjectChartId: input.chartId,
+    natalSourceChart: input.chart,
     surface: 'natal',
     period: generation.period ?? null,
     periodKey: generation.periodKey ?? null,
@@ -223,6 +224,8 @@ export async function persistSavedSynastryHistory(input: {
     userId: input.userId,
     subjectChartId: input.subjectChartId,
     counterpartChartId: input.counterpartChartId,
+    natalSourceChart: input.subjectChart,
+    counterpartNatalSourceChart: input.counterpartChart,
     surface: 'synastry',
     inputHash: input.inputHash,
     calculationVersion: SYNASTRY_HISTORY_CALCULATION_VERSION,

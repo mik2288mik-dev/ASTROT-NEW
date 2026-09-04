@@ -30,7 +30,8 @@ import {
   type CompatibilityPersonSource,
 } from '../../../../lib/synastry/compatibilityInput';
 import { normalizeZodiacKey } from '../../../../lib/zodiacKeys';
-import { calculateNatalChart } from '../../../../lib/swisseph-calculator';
+import { createOrReuseCanonicalChart } from '../../../../lib/natalChartPersistence';
+import { isCanonicalNatalChartDataComplete } from '../../../../lib/natalChartCanonical';
 import {
   calculateCompatibility,
   COMPATIBILITY_ENGINE_VERSION,
@@ -91,6 +92,10 @@ const SYNASTRY_RESPONSE_SCHEMA: StrictJsonSchema = {
 
 type SynastryChartData = NatalChartData | NatalChartDataV2;
 
+function savedSunSign(chart: SynastryChartData | null): string {
+  return String((chart as NatalChartDataV2 | null)?.positions?.sun?.sign || chart?.sun?.sign || '').trim();
+}
+
 type FlexiblePersonInput = {
   source: CompatibilityPersonSource;
   name: string;
@@ -121,10 +126,8 @@ function validateFlexiblePerson(input: FlexiblePersonInput, fieldPrefix: 'subjec
     const time = validateTime(input.time);
     if (!time.isValid) errors.push({ field: `${fieldPrefix}Time`, message: time.error || 'Invalid birth time' });
   }
-  if (input.place) {
-    const place = validateBirthPlace(input.place);
-    if (!place.isValid) errors.push({ field: `${fieldPrefix}Place`, message: place.error || 'Invalid birth place' });
-  }
+  const place = validateBirthPlace(input.place);
+  if (!place.isValid) errors.push({ field: `${fieldPrefix}Place`, message: place.error || 'Invalid birth place' });
   return errors;
 }
 
@@ -196,13 +199,18 @@ function resolveRelationshipContext(value: unknown, legacyLabel: string): Relati
   return 'romance';
 }
 
-async function calculateManualNatal(input: FlexiblePersonInput): Promise<SynastryChartData | null> {
-  if (input.source !== 'birth' || !input.date || !input.place) return null;
-  const birthTimeMode = input.birthTimeQuality;
-  return calculateNatalChart(input.name, input.date, input.time, input.place, {
-    birthTimeMode,
-    birthTimeUncertaintyMinutes: birthTimeMode === 'approximate' ? 30 : undefined,
+async function saveManualNatal(userId: string, input: FlexiblePersonInput, language: string) {
+  const result = await createOrReuseCanonicalChart({
+    userId,
+    name: input.name,
+    birthDate: input.date,
+    birthTime: input.time,
+    birthPlace: input.place,
+    birthTimeMode: input.birthTimeQuality,
+    birthTimeUncertaintyMinutes: input.birthTimeQuality === 'approximate' ? 30 : undefined,
+    language,
   });
+  return result.chart;
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -302,6 +310,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const userLang = (language || profile.language || 'ru') === 'en' ? 'en' : 'ru';
   const currentLanguage = userLang === 'en' ? 'en' : 'ru';
   const langRu = currentLanguage === 'ru';
+  if (normalizedSubjectSource === 'sign' || normalizedPartnerSource === 'sign') {
+    return res.status(400).json({
+      error: 'Use free sign compatibility',
+      code: 'USE_SIGN_COMPATIBILITY',
+      message: langRu
+        ? 'Для сравнения по знакам используй бесплатный режим. Для полного сравнения нужны две сохранённые карты.'
+        : 'Use the free mode for zodiac signs. Full compatibility requires two saved charts.',
+    });
+  }
   const rel = String(relationshipType || 'романтика').trim();
   const relationshipContext = resolveRelationshipContext(requestedRelationshipContext, rel);
   const entitlementState = await getPremiumEntitlementState(userId);
@@ -341,6 +358,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   let partnerChartRecord: any = null;
   let userChartData: SynastryChartData | null = null;
   let partnerChartData: SynastryChartData | null = null;
+  const accessibleCharts = await db.natal_charts.getAll(userId);
 
   const resolvedManualSubjectName = String(subjectName || '').trim();
   const resolvedManualSubjectDate = String(subjectDate || '').trim();
@@ -362,7 +380,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
     try {
-      assertChartReadable(primaryChartRecord, isPremium);
+      assertChartReadable(primaryChartRecord, isPremium, accessibleCharts);
     } catch (error) {
       if (error instanceof ChartAccessPolicyError) {
         return res.status(error.status).json({
@@ -374,10 +392,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       throw error;
     }
     userChartData = (primaryChartRecord.chart_data as SynastryChartData) || null;
-    if (!primaryChartRecord.id || !userChartData) {
+    if (!primaryChartRecord.id || !primaryChartRecord.input_hash || !isCanonicalNatalChartDataComplete(userChartData)) {
       return res.status(409).json({
         error: 'Natal chart required',
-        code: 'NEEDS_CHART',
+        code: 'CHART_REPAIR_REQUIRED',
         message: langRu ? 'В первой карте нет готового расчёта.' : 'The first chart has no calculation.',
       });
     }
@@ -413,7 +431,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
     try {
-      assertChartReadable(partnerChartRecord, isPremium);
+      assertChartReadable(partnerChartRecord, isPremium, accessibleCharts);
     } catch (error) {
       if (error instanceof ChartAccessPolicyError) {
         return res.status(error.status).json({
@@ -443,7 +461,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     birthTime: String(primaryChartRecord?.birth_time ?? resolvedManualSubjectTime ?? '').trim(),
     birthPlace: String(primaryChartRecord?.birth_place || resolvedManualSubjectPlace || '').trim(),
   } as UserProfile;
-  const primaryChartId = primaryChartRecord?.id ?? null;
   const resolvedPartnerName = String(partnerChartRecord?.name || partnerName || fallbackPartnerName).trim();
   const resolvedPartnerDate = String(partnerChartRecord?.birth_date || partnerDate || '').trim();
   const resolvedPartnerTime = String(partnerChartRecord?.birth_time ?? partnerTime ?? '').trim();
@@ -456,7 +473,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     date: subjectProfile.birthDate || '',
     time: subjectProfile.birthPlace ? (subjectProfile.birthTime || '') : '',
     place: subjectProfile.birthPlace || '',
-    sign: String(subjectSign || userChartData?.sun?.sign || '').trim(),
+    sign: savedSunSign(userChartData),
     birthTimeQuality: normalizedSubjectSource === 'saved'
       ? normalizeBirthTimeQuality((userChartData as any)?.birthTimeQuality, subjectProfile.birthTime || '')
       : normalizeBirthTimeQuality(subjectBirthTimeQuality, resolvedManualSubjectTime),
@@ -467,7 +484,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     date: resolvedPartnerDate,
     time: resolvedPartnerPlace ? resolvedPartnerTime : '',
     place: resolvedPartnerPlace,
-    sign: String(partnerSign || partnerChartData?.sun?.sign || '').trim(),
+    sign: savedSunSign(partnerChartData),
     birthTimeQuality: normalizedPartnerSource === 'saved'
       ? normalizeBirthTimeQuality((partnerChartData as any)?.birthTimeQuality, resolvedPartnerTime)
       : normalizeBirthTimeQuality(partnerBirthTimeQuality, resolvedPartnerTime),
@@ -487,23 +504,34 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   try {
-    if (normalizedSubjectSource === 'birth' && subjectInput.place) {
-      userChartData = await calculateManualNatal(subjectInput);
-      subjectInput.sign = String(userChartData?.sun?.sign || subjectInput.sign || '').trim();
+    if (normalizedSubjectSource === 'birth') {
+      primaryChartRecord = await saveManualNatal(userId, subjectInput, currentLanguage);
+      userChartData = primaryChartRecord.chart_data || null;
+      subjectInput.source = 'saved';
+      subjectInput.sign = savedSunSign(userChartData);
       subjectInput.birthTimeQuality = normalizeBirthTimeQuality(
         (userChartData as NatalChartDataV2 | null)?.birthTimeQuality,
         subjectInput.time,
       );
     }
-    if (normalizedPartnerSource === 'birth' && partnerInput.place) {
-      partnerChartData = await calculateManualNatal(partnerInput);
-      partnerInput.sign = String(partnerChartData?.sun?.sign || partnerInput.sign || '').trim();
+    if (normalizedPartnerSource === 'birth') {
+      partnerChartRecord = await saveManualNatal(userId, partnerInput, currentLanguage);
+      partnerChartData = partnerChartRecord.chart_data || null;
+      partnerInput.source = 'saved';
+      partnerInput.sign = savedSunSign(partnerChartData);
       partnerInput.birthTimeQuality = normalizeBirthTimeQuality(
         (partnerChartData as NatalChartDataV2 | null)?.birthTimeQuality,
         partnerInput.time,
       );
     }
   } catch (error: any) {
+    if (error instanceof ChartAccessPolicyError) {
+      return res.status(error.status).json({
+        error: error.message,
+        code: error.code,
+        premiumRequired: error.code === 'PREMIUM_REQUIRED',
+      });
+    }
     warnContentApi(
       { scope: SCOPE, userId, chartId: primaryChartRecord?.id ?? null, surface: 'synastry', variant: 'full' },
       'calculation_failed',
@@ -515,6 +543,22 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       message: langRu
         ? 'Не удалось рассчитать одну из карт. Проверь дату, время и место и повтори.'
         : 'One of the charts could not be calculated. Check the date, time and place and try again.',
+    });
+  }
+
+  const primaryChartId = primaryChartRecord?.id ?? null;
+  if (!primaryChartId || !partnerChartRecord?.id || !primaryChartRecord?.input_hash || !partnerChartRecord.input_hash || !isCanonicalNatalChartDataComplete(userChartData) || !isCanonicalNatalChartDataComplete(partnerChartData)) {
+    return res.status(409).json({
+      error: 'Saved natal charts required',
+      code: 'CHART_REPAIR_REQUIRED',
+      message: langRu ? 'Для сравнения нужны две сохранённые карты с готовым расчётом.' : 'Two saved calculated charts are required.',
+    });
+  }
+  if (primaryChartId === partnerChartRecord.id) {
+    return res.status(400).json({
+      error: 'Select two different charts',
+      code: 'CHART_PAIR_DUPLICATE',
+      message: langRu ? 'Для сравнения нужны две разные карты.' : 'Choose two different charts.',
     });
   }
 
@@ -544,19 +588,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     userId,
     primaryChartId,
     partnerChartRecord?.id ?? null,
-    resolvedPartnerName,
-    resolvedPartnerDate,
+    partnerChartRecord.name,
+    partnerChartRecord.birth_date,
     rel,
     currentLanguage,
-    resolvedPartnerTime,
-    resolvedPartnerPlace,
-    subjectProfile.name,
-    subjectProfile.birthDate,
-    subjectProfile.birthTime || '',
-    subjectProfile.birthPlace || '',
+    partnerChartRecord.birth_time || '',
+    partnerChartRecord.birth_place,
+    primaryChartRecord.name,
+    primaryChartRecord.birth_date,
+    primaryChartRecord.birth_time || '',
+    primaryChartRecord.birth_place,
     [
-      normalizedSubjectSource,
-      normalizedPartnerSource,
+      subjectInput.source,
+      partnerInput.source,
       subjectInput.sign,
       partnerInput.sign,
       normalizedSubjectGender,
@@ -567,6 +611,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       partnerInput.birthTimeQuality,
       primaryChartRecord?.input_hash || primaryChartRecord?.calculation_version || '',
       partnerChartRecord?.input_hash || partnerChartRecord?.calculation_version || '',
+      (userChartData as NatalChartDataV2).calculationMetadata?.calculatedAt || primaryChartRecord.calculation_version || '',
+      (partnerChartData as NatalChartDataV2).calculationMetadata?.calculatedAt || partnerChartRecord.calculation_version || '',
     ].join(':'),
   );
 
@@ -611,6 +657,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(200).json({
       result: cachedResult,
       fromCache: true,
+      subjectChartId: primaryChartId,
+      partnerChartId: partnerChartRecord.id,
       accessTier: 'premium',
       calculationLevel,
       contentKey: buildDeepCompatibilityReactionKey(contentCacheKey),
@@ -863,6 +911,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   return res.status(200).json({
     result: resultPayload,
     fromCache: false,
+    subjectChartId: primaryChartId,
+    partnerChartId: partnerChartRecord.id,
     accessTier,
     calculationLevel,
     contentKey: buildDeepCompatibilityReactionKey(contentCacheKey),

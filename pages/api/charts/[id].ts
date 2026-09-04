@@ -8,7 +8,6 @@ import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import {
   ensureCanonicalPrimaryChart,
-  repairCanonicalChartForUser,
 } from '../../../lib/natalChartPersistence';
 
 const log={error:(message:string,error?:any)=>console.error(`[API/charts] ERROR: ${message}`,error||'')};
@@ -35,15 +34,7 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     }
     if(req.method==='GET'){
       let chart=await natalChartV2Repository.getPrimary(userId);
-      if(!chart||!isCanonicalNatalChartDataComplete(chart.chart_data)){
-        console.info('[API/charts] restoring primary V2 chart from birth profile',{
-          userId,
-          reason:chart?'invalid_chart_data':'primary_chart_missing',
-        });
-        const repaired=await repairCanonicalChartForUser(userId);
-        chart=repaired?.chart||null;
-      }
-      if(!chart||!isCanonicalNatalChartDataComplete(chart.chart_data)){
+      if(!chart||!chart.input_hash||!isCanonicalNatalChartDataComplete(chart.chart_data)){
         const user=await db.users.get(userId);
         const missingFields=missingBirthProfileFields(user);
         if (missingFields.length) {
@@ -56,8 +47,8 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
           });
         }
         return res.status(409).json({
-          error:'Chart recalculation required',
-          code:'CHART_RECALCULATION_REQUIRED',
+          error:'Chart repair required',
+          code:'CHART_REPAIR_REQUIRED',
         });
       }
       res.setHeader('X-Chart-Source','database');

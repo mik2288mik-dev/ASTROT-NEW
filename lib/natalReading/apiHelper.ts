@@ -7,10 +7,6 @@ import type {
 import { toDateInputValue } from '../date-utils';
 import { db } from '../db';
 import { isCanonicalNatalChartDataComplete } from '../natalChartCanonical';
-import {
-  repairCanonicalChartForUser,
-  repairCanonicalChartRecord,
-} from '../natalChartPersistence';
 import { getContentLayer, getPremiumEntitlementState } from '../contentArchitecture';
 import { AdminAuthError, handleAdminError } from '../adminAuth';
 import { requireAppUser } from '../auth/appAuth';
@@ -32,6 +28,7 @@ export type ReadingContext = {
   profile: UserProfile;
   chartId: number | null;
   chartData: NatalChartData | null;
+  chartInputHash?: string | null;
   chartSubjectType?: ChartSubjectType | null;
   relationLabel?: string | null;
 };
@@ -81,7 +78,7 @@ export async function resolveReadingContext(
   chartId: number | null,
   profileFallback?: Partial<UserProfile>,
   _chartDataFallback?: NatalChartData | null,
-  options: { repairCanonical?: boolean } = {},
+  _options: { repairCanonical?: boolean } = {},
 ): Promise<ReadingContext | null> {
   const user = await db.users.get(userId);
   if (!user) return null;
@@ -94,32 +91,7 @@ export async function resolveReadingContext(
     (chartId != null || isSelfChart(chart))
       ? chart
       : null;
-  let resolvedChart = ownedChart;
-  const profileHasBirthData = Boolean(
-    (resolvedChart?.birth_date || user.birth_date)
-    && (resolvedChart?.birth_place || user.birth_place),
-  );
-  const repairCanonical = options.repairCanonical !== false;
-  if (repairCanonical && !resolvedChart && chartId == null && profileHasBirthData) {
-    console.info('[natal/context] restoring missing primary V2 chart from birth profile', { userId });
-    const repaired = await repairCanonicalChartForUser(userId);
-    if (repaired?.chart && isCanonicalNatalChartDataComplete(repaired.chart.chart_data)) {
-      resolvedChart = repaired.chart;
-    }
-  }
-  if (
-    repairCanonical
-    && resolvedChart
-    && isSelfChart(resolvedChart)
-    && !isCanonicalNatalChartDataComplete(resolvedChart.chart_data)
-    && resolvedChart.birth_date
-    && resolvedChart.birth_place
-  ) {
-    const repaired = await repairCanonicalChartRecord(userId, resolvedChart.id);
-    if (repaired?.chart && isCanonicalNatalChartDataComplete(repaired.chart.chart_data)) {
-      resolvedChart = repaired.chart;
-    }
-  }
+  const resolvedChart = ownedChart;
   const chartProfile = resolvedChart ? {
     ...profileFallback,
     name: resolvedChart.name || profileFallback?.name,
@@ -132,6 +104,7 @@ export async function resolveReadingContext(
     profile: toProfile(user, chartProfile),
     chartId: resolvedChart?.id ?? null,
     chartData: (resolvedChart?.chart_data || null) as NatalChartData | null,
+    chartInputHash: resolvedChart?.input_hash || null,
     chartSubjectType: resolvedChart ? getChartSubjectType(resolvedChart) : null,
     relationLabel: (resolvedChart as any)?.relation_label || null,
   };
@@ -333,14 +306,14 @@ export async function ensureValidContext(
     let effectiveChart = await db.natal_charts.getById(chartId);
     if (!effectiveChart || String(effectiveChart.user_id) !== userId || !isActiveChart(effectiveChart)) {
       if (options.requireSelfChart) {
-        console.info('[natal/context] replacing stale requested chart id with repaired primary chart', {
+        console.info('[natal/context] replacing stale requested chart id with saved primary chart', {
           userId,
           requestedChartId: chartId,
         });
-        const repaired = await repairCanonicalChartForUser(userId);
-        if (repaired?.chart && isCanonicalNatalChartDataComplete(repaired.chart.chart_data)) {
-          chartId = repaired.chart.id;
-          effectiveChart = repaired.chart;
+        const primaryChart = await db.natal_charts.getPrimary(userId);
+        if (primaryChart && String(primaryChart.user_id) === userId && isActiveChart(primaryChart) && isSelfChart(primaryChart)) {
+          chartId = primaryChart.id;
+          effectiveChart = primaryChart;
         } else {
           options.onChartFailed?.({
             userId,
@@ -365,7 +338,7 @@ export async function ensureValidContext(
       }
     }
     if (!effectiveChart) {
-      throw new Error('CHART_REPAIR_RETURNED_EMPTY');
+      throw new Error('SAVED_CHART_NOT_FOUND');
     }
     if (options.requireSelfChart && !isSelfChart(effectiveChart)) {
       options.onChartFailed?.({
@@ -383,7 +356,8 @@ export async function ensureValidContext(
     }
     try {
       const entitlement = await getPremiumEntitlementState(userId);
-      assertChartReadable(effectiveChart, entitlement.isPremium);
+      const allCharts = await db.natal_charts.getAll(userId);
+      assertChartReadable(effectiveChart, entitlement.isPremium, allCharts);
     } catch (error) {
       if (error instanceof ChartAccessPolicyError) {
         options.onChartFailed?.({ userId, chartId, status: error.status, code: error.code, error });
@@ -425,16 +399,16 @@ export async function ensureValidContext(
     });
     return null;
   }
-  if (options.requireCanonicalSnapshot && !isCanonicalNatalChartDataComplete(ctx.chartData)) {
+  if (!ctx.chartInputHash || !isCanonicalNatalChartDataComplete(ctx.chartData)) {
     options.onChartFailed?.({
       userId,
       chartId: ctx.chartId ?? chartId,
       status: 409,
-      code: 'NATAL_SNAPSHOT_INVALID',
+      code: 'CHART_REPAIR_REQUIRED',
       error: new Error('A complete saved natal snapshot is required.'),
     });
     res.status(409).json({
-      error: 'NATAL_SNAPSHOT_INVALID',
+      error: 'CHART_REPAIR_REQUIRED',
       message: 'A complete saved natal snapshot is required. Open the natal chart and check its data.',
     });
     return null;

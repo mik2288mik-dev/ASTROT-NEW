@@ -160,17 +160,21 @@ describe('content cache architecture', () => {
   });
 
   describe('natal chart persistence policy', () => {
-    it('documents invalidation on birth data change', () => {
-      const dbSource = readApiSource('lib/db.ts');
-      expect(dbSource).toContain('DELETE FROM content_interpretations WHERE chart_id');
-      expect(dbSource).toContain('Invalidated cached interpretations after primary chart input change');
+    it('scopes natal content to the immutable birth snapshot without deleting history', () => {
+      const context = readApiSource('lib/natalContentChartContext.ts');
+      expect(context).toContain('chart.input_hash');
+      expect(context).toContain('calculationMetadata?.calculatedAt');
+      for (const route of ['anchor', 'full', 'living', 'planet-insight']) {
+        expect(readApiSource(`pages/api/content/natal/${route}.ts`)).toContain('context.snapshotKey');
+      }
     });
 
     it('primary chart flow uses input hash cache before recalculating', () => {
       const api = readApiSource('pages/api/charts/index.ts');
       const persistence = readApiSource('lib/natalChartPersistence.ts');
       expect(api).toContain('ensureCanonicalPrimaryChart');
-      expect(persistence).toContain('findByInputHash');
+      expect(persistence).toContain('repo.getCalculations(args.userId)');
+      expect(persistence).toContain('sameBirth(existing.chart_data, normalized, args.coordinates)');
     });
   });
 

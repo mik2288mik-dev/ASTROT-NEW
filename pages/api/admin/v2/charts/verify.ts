@@ -26,6 +26,7 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     const started=Date.now();
     const coordinates=await resolveBirthCoordinates(birthPlace,{lat:Number(req.body?.latitude),lon:Number(req.body?.longitude),timezone:req.body?.timezone});
     const chart=await calculateNatalChart(name,birthDate,time.localTime||'',birthPlace,{coordinates,birthTime:time});
+    console.info('[natal/chart]', { chart_source: 'calculated', reason: 'admin_verify' });
     return res.status(200).json({
       ok:true,
       durationMs:Date.now()-started,

@@ -474,16 +474,13 @@ export async function resolveBirthCoordinates(
     timezone?: string | null;
   } | null,
 ): Promise<Coordinates> {
-  const latitude = Number(provided?.lat);
-  const longitude = Number(provided?.lon);
+  const latitude = provided?.lat == null ? NaN : Number(provided.lat);
+  const longitude = provided?.lon == null ? NaN : Number(provided.lon);
   const validCoordinates =
     Number.isFinite(latitude) &&
     Number.isFinite(longitude) &&
     Math.abs(latitude) <= 90 &&
-    Math.abs(longitude) <= 180 &&
-    !(latitude === 0 && longitude === 0);
-
-  if (!validCoordinates) return getCoordinates(placeName);
+    Math.abs(longitude) <= 180;
 
   const suppliedTimezone = String(provided?.timezone || '').trim();
   if (suppliedTimezone && !isValidIanaTimezone(suppliedTimezone)) {
@@ -491,6 +488,11 @@ export async function resolveBirthCoordinates(
       `Invalid timezone: ${suppliedTimezone}`,
       'INVALID_TIMEZONE',
     );
+  }
+
+  if (!validCoordinates) {
+    const resolved = await getCoordinates(placeName);
+    return { ...resolved, timezone: suppliedTimezone || resolved.timezone };
   }
 
   return {

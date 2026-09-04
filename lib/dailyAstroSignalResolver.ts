@@ -1,8 +1,8 @@
 import type { NatalChartData, DailyAstroSignal, DailyAstroSignalResult, UserProfile } from '../types';
+import type { NatalCalculationMetadataV2 } from './natalChartV2Types';
 import { db } from './db';
 import { getMoscowTodayKey } from './date-utils';
 import { isCanonicalNatalChartDataComplete } from './natalChartCanonical';
-import { repairCanonicalChartRecord } from './natalChartPersistence';
 import { DAILY_ASTRO_SIGNAL_CALCULATION_VERSION, buildDailyAstroSignal, isFullSwissDailyAstroSignal } from './dailyAstroSignal';
 import { fromZonedTime } from 'date-fns-tz';
 
@@ -29,7 +29,7 @@ function toProfile(user: any | null, fallback?: Partial<UserProfile>): UserProfi
     id: fallback?.id || user?.id,
     name: fallback?.name || user?.name || '',
     birthDate: fallback?.birthDate || user?.birth_date || '',
-    birthTime: fallback?.birthTime || user?.birth_time || '12:00',
+    birthTime: fallback?.birthTime ?? user?.birth_time ?? '',
     birthPlace: fallback?.birthPlace || user?.birth_place || '',
     isSetup: fallback?.isSetup ?? user?.is_setup ?? false,
     language: (fallback?.language as 'ru' | 'en') || user?.language || 'ru',
@@ -42,12 +42,8 @@ function toProfile(user: any | null, fallback?: Partial<UserProfile>): UserProfi
   };
 }
 
-function hasBirthData(profile: UserProfile) {
-  return !!profile.birthDate && !!profile.birthPlace;
-}
-
-function isUsableChartData(chartData: NatalChartData | null | undefined): chartData is NatalChartData {
-  return !!chartData && !!chartData.sun && !!chartData.moon && !!chartData.rising;
+function isUsableChartData(chartData: NatalChartData | null | undefined): chartData is NatalChartData & { calculationMetadata: NatalCalculationMetadataV2 } {
+  return isCanonicalNatalChartDataComplete(chartData);
 }
 
 function normalizeTimezone(timezone?: string | null) {
@@ -150,23 +146,14 @@ export async function resolveDailyAstroSignalForUser({
   const requestedChart = chartId != null ? await db.natal_charts.getById(chartId).catch(() => null) : null;
   const ownedRequestedChart = requestedChart && String(requestedChart.user_id) === String(userId) ? requestedChart : null;
   const primaryChart = ownedRequestedChart || await db.natal_charts.getPrimary(userId).catch(() => null);
-  let chartRow = primaryChart;
-  let chartData = (primaryChart?.chart_data || null) as NatalChartData | null;
-  let repaired = false;
-
-  if (!isCanonicalNatalChartDataComplete(chartData) && hasBirthData(profile)) {
-    const repair = await repairCanonicalChartRecord(userId, chartRow?.id ?? chartId ?? null).catch(() => null);
-    if (repair?.chart?.chart_data) {
-      chartRow = repair.chart;
-      chartData = repair.chart.chart_data as NatalChartData;
-      repaired = true;
-    }
-  }
+  const chartRow = primaryChart;
+  const chartData = (primaryChart?.chart_data || null) as NatalChartData | null;
+  const repaired = false;
 
   if (!user && !profileFallback) return null;
 
   const resolvedChartId = chartRow?.id ?? chartId ?? null;
-  if (!isUsableChartData(chartData)) {
+  if (!chartRow?.input_hash || !isUsableChartData(chartData)) {
     return {
       status: 'needs_setup',
       code: 'PROFILE_BIRTH_DATA_REQUIRED',
@@ -180,7 +167,7 @@ export async function resolveDailyAstroSignalForUser({
   }
 
   const timezone = normalizeTimezone(chartData.timezone || chartRow?.timezone);
-  const cacheKey = `daily-astro-signal:${dateKey}:${timezone}:${DAILY_ASTRO_SIGNAL_CALCULATION_VERSION}`;
+  const cacheKey = `daily-astro-signal:${dateKey}:${timezone}:${DAILY_ASTRO_SIGNAL_CALCULATION_VERSION}:${chartRow.input_hash}:${chartData.calculationMetadata?.calculatedAt || ''}`;
   const cached = await readCachedPulse(resolvedChartId, userId, cacheKey);
   if (cached) {
     return {

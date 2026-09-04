@@ -1,11 +1,11 @@
-import fs from 'fs';
-import path from 'path';
-
 const mockChartGetById = jest.fn();
 const mockRepairSaved = jest.fn();
 const mockUserGet = jest.fn();
 const mockResolveBirthCoordinates = jest.fn();
 const mockCalculateNatalChart = jest.fn();
+const mockGetAll = jest.fn();
+const mockWithUserLock = jest.fn();
+const mockCreate = jest.fn();
 
 jest.mock('../lib/db', () => ({
   db: {
@@ -20,7 +20,7 @@ jest.mock('../lib/birthProfileRepository', () => ({
 jest.mock('../lib/natalChartV2Repository', () => ({
   natalChartV2Repository: {
     getById: (...args: unknown[]) => mockChartGetById(...args),
-    repairSaved: (...args: unknown[]) => mockRepairSaved(...args),
+    withUserLock: (...args: unknown[]) => mockWithUserLock(...args),
   },
 }));
 
@@ -30,23 +30,27 @@ jest.mock('../lib/swisseph-calculator', () => ({
 }));
 
 import { repairCanonicalChartRecord } from '../lib/natalChartPersistence';
-
-const ROOT = path.resolve(__dirname, '..');
+import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 
 describe('saved-person canonical repair identity', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(console, 'info').mockImplementation(() => {});
+    mockWithUserLock.mockImplementation(async (_userId: string, work: (repo: any) => Promise<unknown>) => work({
+      getAll: (...args: unknown[]) => mockGetAll(...args),
+      getCalculations: async () => [],
+      repairSaved: (...args: unknown[]) => mockRepairSaved(...args),
+      create: mockCreate,
+    }));
+    mockGetAll.mockImplementation(async () => [await mockChartGetById()]);
     mockUserGet.mockResolvedValue({ id: 'owner-1' });
     mockResolveBirthCoordinates.mockResolvedValue({ lat: 55.79, lon: 49.12, timezone: 'Europe/Moscow' });
-    mockCalculateNatalChart.mockResolvedValue({
-      schemaVersion: 'natal-chart-data-v2',
-      calculationVersion: 'swisseph-canonical-v2',
-      latitude: 55.79,
-      longitude: 49.12,
-      timezone: 'Europe/Moscow',
-    });
+    mockCalculateNatalChart.mockImplementation(async (_name: string, date: string, _time: string, place: string, options: any) => canonicalNatalChart({
+      birthDate: date, birthPlace: place, time: options.birthTime, coordinates: options.coordinates,
+    }));
     mockRepairSaved.mockResolvedValue({ id: 77, user_id: 'owner-1', subject_type: 'saved_person' });
   });
+  afterEach(() => jest.restoreAllMocks());
 
   it('updates the same chart id and preserves approximate-time metadata', async () => {
     mockChartGetById.mockResolvedValue({
@@ -138,13 +142,22 @@ describe('saved-person canonical repair identity', () => {
     expect(mockRepairSaved).not.toHaveBeenCalled();
   });
 
-  it('uses an UPDATE-only repository path for an existing saved-person row', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'lib/natalChartV2Repository.ts'), 'utf8');
-    const repairBlock = source.slice(source.indexOf('async repairSaved('));
+  it('uses the locked current saved-person row and never creates another identity', async () => {
+    const chart = {
+      id: 77, user_id: 'owner-1', subject_type: 'saved_person', name: 'Марина',
+      birth_date: '1991-06-10', birth_time: '12:20', birth_time_mode: 'exact', birth_place: 'Казань',
+    };
+    mockChartGetById.mockResolvedValueOnce(chart);
+    mockGetAll.mockResolvedValueOnce([{ ...chart, birth_date: '1992-07-11', birth_time: '15:30', relation_label: 'подруга' }]);
 
-    expect(repairBlock).toContain('FOR UPDATE');
-    expect(repairBlock).toContain('UPDATE natal_charts SET');
-    expect(repairBlock).toContain('WHERE id=$15 AND user_id=$16');
-    expect(repairBlock).not.toContain('INSERT INTO natal_charts');
+    await repairCanonicalChartRecord('owner-1', 77);
+
+    expect(mockCalculateNatalChart).toHaveBeenCalledWith('Марина', '1992-07-11', '15:30', 'Казань', expect.anything());
+    expect(mockRepairSaved).toHaveBeenCalledWith('owner-1', 77, expect.objectContaining({
+      birthDate: '1992-07-11', birthTime: '15:30', relationLabel: 'подруга',
+    }));
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockWithUserLock.mock.invocationCallOrder[0]).toBeLessThan(mockGetAll.mock.invocationCallOrder[0]);
+    expect(mockGetAll.mock.invocationCallOrder[0]).toBeLessThan(mockCalculateNatalChart.mock.invocationCallOrder[0]);
   });
 });

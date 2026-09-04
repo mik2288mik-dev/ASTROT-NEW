@@ -146,6 +146,18 @@ type Selected = {
   calculationLevel?: CompatibilityPairLevel;
 };
 
+function compatibilityRequestKey(selected: Selected): string {
+  return JSON.stringify([
+    selected.subjectSource, selected.subjectChartId, selected.subjectName,
+    selected.subjectDate, selected.subjectTime, selected.subjectPlace,
+    selected.subjectSign, selected.subjectBirthTimeQuality,
+    selected.partnerSource, selected.chartId, selected.name,
+    selected.date, selected.time, selected.place,
+    selected.partnerSign, selected.partnerBirthTimeQuality,
+    selected.youGender, selected.themGender, selected.relationshipContext,
+  ]);
+}
+
 /* Переключатель пола М/Ж — две кнопки, без эмодзи. */
 function GenderToggle({ value, onChange, ru, compact = false, labelledBy }: { value: CompatGender; onChange: (g: CompatGender) => void; ru: boolean; compact?: boolean; labelledBy?: string }) {
   return (
@@ -1116,6 +1128,26 @@ export function UnionRoom(props: UnionRoomProps) {
       });
       return;
     }
+    if (subjectSource === 'birth' && sTimePrecision !== 'unknown' && !sTime) {
+      setError(ru ? 'Укажи время рождения первого человека или выбери «Не знаю».' : 'Add the first person\'s birth time or choose “Unknown”.');
+      return;
+    }
+    if (partnerSource === 'birth' && fTimePrecision !== 'unknown' && !fTime) {
+      setError(ru ? 'Укажи время рождения второго человека или выбери «Не знаю».' : 'Add the second person\'s birth time or choose “Unknown”.');
+      return;
+    }
+    if (subjectResolvedSource === 'sign' || partnerResolvedSource === 'sign') {
+      setError(ru ? 'Выбери две карты или два знака.' : 'Choose two charts or two zodiac signs.');
+      return;
+    }
+    if (subjectResolvedSource === 'birth' && !sPlace.trim()) {
+      setError(ru ? 'Укажи место рождения первого человека.' : 'Add the first person\'s birth place.');
+      return;
+    }
+    if (partnerResolvedSource === 'birth' && !fPlace.trim()) {
+      setError(ru ? 'Укажи место рождения второго человека.' : 'Add the second person\'s birth place.');
+      return;
+    }
     if (!premium) {
       void requestPremium('compatibility_by_charts', {
         placement: 'compatibility_by_charts',
@@ -1157,9 +1189,7 @@ export function UnionRoom(props: UnionRoomProps) {
         ? sTimePrecision
         : 'unknown';
     const subjectResolvedSign = String(
-      subjectResolvedSource === 'sign'
-        ? youSign
-        : firstChart?.chart_data?.sun?.sign || sunSignFromDate(subjectDate) || youSign,
+      firstChart?.chart_data?.sun?.sign || sunSignFromDate(subjectDate) || youSign,
     ).toLowerCase();
 
     const partnerName = partnerSource === 'saved'
@@ -1180,9 +1210,7 @@ export function UnionRoom(props: UnionRoomProps) {
         ? fTimePrecision
         : 'unknown';
     const partnerResolvedSign = String(
-      partnerResolvedSource === 'sign'
-        ? pickSign
-        : secondChart?.chart_data?.sun?.sign || sunSignFromDate(partnerDate) || pickSign,
+      secondChart?.chart_data?.sun?.sign || sunSignFromDate(partnerDate) || pickSign,
     ).toLowerCase();
 
     setError(null);
@@ -1239,15 +1267,7 @@ export function UnionRoom(props: UnionRoomProps) {
       setScreen('add');
       return;
     }
-    const requestKey = [
-      selected.subjectSource,
-      selected.subjectChartId || `${selected.subjectName || ''}:${selected.subjectDate || ''}:${selected.subjectSign || ''}`,
-      selected.subjectBirthTimeQuality,
-      selected.partnerSource,
-      selected.chartId || `${selected.name || ''}:${selected.date || ''}:${selected.partnerSign || ''}`,
-      selected.partnerBirthTimeQuality,
-      selected.relationshipContext,
-    ].join('|');
+    const requestKey = compatibilityRequestKey(selected);
     setDeepLoading(true); setError(null);
     try {
       const context = getRelationshipContextOption(selected.relationshipContext);
@@ -1282,11 +1302,27 @@ export function UnionRoom(props: UnionRoomProps) {
         setDeep(out.result);
         setDeepReactionKey(out.contentKey || null);
         const resolvedLevel = out.result.calculationLevel || out.calculationLevel;
-        if (resolvedLevel) {
-          setSelected((current) => current ? { ...current, calculationLevel: resolvedLevel } : current);
+        let resolvedSelection: Selected = { ...selected, calculationLevel: resolvedLevel || selected.calculationLevel };
+        if (profile.id && out.subjectChartId && out.partnerChartId && (selected.subjectSource === 'birth' || selected.partnerSource === 'birth')) {
+          // The API has already saved both people. Refresh the ordinary chart
+          // list before using their IDs, so access checks see the same records.
+          const saved = await getCharts(profile.id).catch(() => null);
+          if (autoDeepKeyRef.current !== requestKey) return;
+          const readable = saved?.charts.filter((chart) => !chart.archived_at && !chart.access_locked);
+          if (readable?.some((chart) => chart.id === out.subjectChartId) && readable.some((chart) => chart.id === out.partnerChartId)) {
+            setAvailableCharts(readable);
+            resolvedSelection = {
+              ...resolvedSelection,
+              subjectSource: 'saved', subjectChartId: out.subjectChartId,
+              partnerSource: 'saved', chartId: out.partnerChartId,
+            };
           }
+        }
+        setDeepLoading(false);
+        autoDeepKeyRef.current = compatibilityRequestKey(resolvedSelection);
+        setSelected(resolvedSelection);
         const calculatedScore = out.result.overallScore ?? out.result.compatibilityScore;
-        if (typeof calculatedScore === 'number') persistCalculatedHistory(selected, Math.round(calculatedScore));
+        if (typeof calculatedScore === 'number') persistCalculatedHistory(resolvedSelection, Math.round(calculatedScore));
       }
     } catch (e: any) {
       if (autoDeepKeyRef.current === requestKey) {
@@ -1319,15 +1355,7 @@ export function UnionRoom(props: UnionRoomProps) {
   useEffect(() => {
     if (previewResultState) return;
     if (screen !== 'result' || selected?.kind !== 'person' || !premium || !peopleLoaded) return;
-    const key = [
-      selected.subjectSource,
-      selected.subjectChartId || `${selected.subjectName || ''}:${selected.subjectDate || ''}:${selected.subjectSign || ''}`,
-      selected.subjectBirthTimeQuality,
-      selected.partnerSource,
-      selected.chartId || `${selected.name || ''}:${selected.date || ''}:${selected.partnerSign || ''}`,
-      selected.partnerBirthTimeQuality,
-      selected.relationshipContext,
-    ].join('|');
+    const key = compatibilityRequestKey(selected);
     if (autoDeepKeyRef.current === key) return;
     autoDeepKeyRef.current = key;
     void runDeep();

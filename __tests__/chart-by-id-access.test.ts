@@ -1,4 +1,5 @@
 const mockGetById = jest.fn();
+const mockGetAll = jest.fn();
 const mockArchive = jest.fn();
 const mockRequireAppUser = jest.fn();
 const mockGetPremiumEntitlementState = jest.fn();
@@ -8,10 +9,15 @@ jest.mock('../lib/db', () => ({
   db: {
     natal_charts: {
       getById: (...args: unknown[]) => mockGetById(...args),
+      getAll: (...args: unknown[]) => mockGetAll(...args),
       archive: (...args: unknown[]) => mockArchive(...args),
     },
   },
 }));
+jest.mock('../lib/natalChartV2Repository', () => ({ natalChartV2Repository: {
+  getById: (...args: unknown[]) => mockGetById(...args),
+  getAll: (...args: unknown[]) => mockGetAll(...args),
+} }));
 jest.mock('../lib/auth/appAuth', () => ({
   requireAppUser: (...args: unknown[]) => mockRequireAppUser(...args),
 }));
@@ -23,6 +29,7 @@ jest.mock('../lib/natalChartPersistence', () => ({
 }));
 
 import handler from '../pages/api/charts/chart/[chartId]';
+import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 
 function response() {
   const res: any = { status: jest.fn(), json: jest.fn() };
@@ -35,6 +42,7 @@ describe('chart by id access', () => {
     jest.clearAllMocks();
     mockRequireAppUser.mockResolvedValue({ userId: 'owner-1', isGuest: false });
     mockGetPremiumEntitlementState.mockResolvedValue({ isPremium: false, entitlement: null });
+    mockGetAll.mockResolvedValue([{ id: 7, user_id: 'owner-1', subject_type: 'saved_person' }, { id: 8, user_id: 'owner-1', subject_type: 'saved_person' }]);
   });
 
   it('never lets a query userId redirect an authenticated chart read', async () => {
@@ -49,7 +57,7 @@ describe('chart by id access', () => {
     await handler({ method: 'GET', query: { chartId: '7', userId: 'owner-2' }, headers: {} } as any, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Chart not found' });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'CHART_NOT_FOUND' }));
     expect(mockRequireAppUser).toHaveBeenCalledWith(expect.anything(), { allowGuest: true });
   });
 
@@ -70,7 +78,7 @@ describe('chart by id access', () => {
     expect(mockArchive).not.toHaveBeenCalled();
   });
 
-  it('repairs the same saved-chart record without dropping approximate-time metadata', async () => {
+  it('reports a damaged saved-chart record without repairing or changing approximate-time metadata', async () => {
     mockGetPremiumEntitlementState.mockResolvedValue({ isPremium: true, entitlement: null });
     mockGetById.mockResolvedValue({
       id: 9,
@@ -87,35 +95,19 @@ describe('chart by id access', () => {
       birth_place: 'Казань',
       chart_data: {},
     });
-    mockRepairCanonicalChartRecord.mockResolvedValue({
-      source: 'repaired',
-      chart: {
-        id: 9,
-        user_id: 'owner-1',
-        name: 'Марина',
-        subject_type: 'saved_person',
-        is_primary: false,
-        birth_date: '1991-06-10',
-        birth_time: '12:20',
-        birth_time_mode: 'approximate',
-        birth_time_uncertainty_minutes: 30,
-        birth_time_range_start: null,
-        birth_time_range_end: null,
-        birth_place: 'Казань',
-        chart_data: { schemaVersion: 'natal-chart-v2' },
-      },
-    });
+    mockGetAll.mockResolvedValue([{ id: 9, user_id: 'owner-1', subject_type: 'saved_person' }]);
     const res = response();
 
     await handler({ method: 'GET', query: { chartId: '9' }, headers: {} } as any, res);
 
-    expect(mockRepairCanonicalChartRecord).toHaveBeenCalledWith('owner-1', 9);
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      id: 9,
+    expect(mockRepairCanonicalChartRecord).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'CHART_REPAIR_REQUIRED' }));
+    expect(await mockGetById.mock.results[0].value).toMatchObject({
       birth_time_mode: 'approximate',
       birth_time_uncertainty_minutes: 30,
-    }));
+      chart_data: {},
+    });
   });
 
   it('refuses to archive the self chart', async () => {
@@ -131,6 +123,20 @@ describe('chart by id access', () => {
 
     expect(res.status).toHaveBeenCalledWith(409);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'SELF_CHART_IMMUTABLE' }));
+    expect(mockArchive).not.toHaveBeenCalled();
+  });
+
+  it('reads the first Free saved person and rejects an incomplete snapshot without repair', async () => {
+    mockGetById.mockResolvedValue({ id: 7, user_id: 'owner-1', subject_type: 'saved_person', input_hash: 'saved', chart_data: canonicalNatalChart() });
+    const allowed = response();
+    await handler({ method: 'GET', query: { chartId: '7' }, headers: {} } as any, allowed);
+    expect(allowed.status).toHaveBeenCalledWith(200);
+    expect(allowed.json).toHaveBeenCalledWith(expect.objectContaining({ access_locked: false }));
+    mockGetById.mockResolvedValue({ id: 7, user_id: 'owner-1', subject_type: 'saved_person', chart_data: {} });
+    const incomplete = response();
+    await handler({ method: 'GET', query: { chartId: '7' }, headers: {} } as any, incomplete);
+    expect(incomplete.status).toHaveBeenCalledWith(409);
+    expect(incomplete.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'CHART_REPAIR_REQUIRED' }));
     expect(mockArchive).not.toHaveBeenCalled();
   });
 });

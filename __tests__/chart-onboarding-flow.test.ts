@@ -32,8 +32,9 @@ describe('chart onboarding and lazy sections', () => {
     expect(service.indexOf('calculationInFlight.set(requestKey,request)'))
       .toBeLessThan(service.indexOf('return request;'));
     expect(service).toContain('const requestKey=buildNatalChartCacheKey(profile)');
-    expect(route).toContain('chartMatchesPrimaryRequest(completed,common,coordinates)');
-    expect(route).toContain("code:'CHART_CALCULATION_IN_PROGRESS'");
+    expect(service).toContain('natalChartMatchesProfile(stored,profile)');
+    expect(route).toContain('await ensureCanonicalPrimaryChart(common)');
+    expect(route).not.toContain('tryAcquireLock');
   });
 
   it('guards every direct primary-chart refresh against a changed profile identity', () => {

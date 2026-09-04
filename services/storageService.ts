@@ -66,7 +66,7 @@ export async function startGuestAccount(): Promise<UserProfile> {
 }
 
 const PROFILE_FETCH_TIMEOUT_MS = 20_000;
-const PROFILE_SAVE_TIMEOUT_MS = 45_000;
+const PROFILE_SAVE_TIMEOUT_MS = 90_000;
 const CHART_GET_TIMEOUT_MS = 25_000;
 const PROFILE_FETCH_ATTEMPTS = 3;
 const PROFILE_FETCH_RETRY_DELAYS_MS = [0, 700, 1600];
@@ -531,7 +531,12 @@ export const createChart = async (
     birthTime?: string;
     birthTimeMode?: BirthTimeMode;
     birthTimeUncertaintyMinutes?: number | null;
+    birthTimeRangeStart?: string | null;
+    birthTimeRangeEnd?: string | null;
     birthPlace: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    timezone?: string | null;
     chartData?: any;
     language?: string;
     relationLabel?: string | null;

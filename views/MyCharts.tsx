@@ -11,9 +11,9 @@ import { getText, getZodiacSign } from '../constants';
 import { formatDisplayDate } from '../lib/date-utils';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
-import { hasActivePremium, PREMIUM_SAVED_PERSON_LIMIT } from '../lib/accessMatrix';
+import { FREE_SAVED_PERSON_LIMIT, hasActivePremium, PREMIUM_SAVED_PERSON_LIMIT } from '../lib/accessMatrix';
 import { clearLocalHumanBaseReport } from '../lib/localHumanBaseReportCache';
-import { getChartSubjectType, isSelfChart } from '../lib/chartAccessPolicy';
+import { getAccessibleSavedPersonIds, getChartSubjectType, isSelfChart } from '../lib/chartAccessPolicy';
 import type { PaywallContext } from '../lib/paywallContext';
 import type { BirthTimeMode } from '../lib/birthTime';
 import {
@@ -161,12 +161,14 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   // The profile carries the latest backend-validated entitlement. A cached
   // chart-list boolean must never outlive its dated canonical snapshot.
   const hasPremiumAccess = hasActivePremium(profile, entitlementNow);
-  const canAddMore = hasPremiumAccess && serverCanAddMore;
+  const accessibleSavedIds = getAccessibleSavedPersonIds(charts, hasPremiumAccess);
+  const canAddMore = serverCanAddMore
+    && savedCharts.length < (hasPremiumAccess ? PREMIUM_SAVED_PERSON_LIMIT : FREE_SAVED_PERSON_LIMIT);
   const canOpenPremiumFlow = canPromotePremium && Boolean(onRequestPremium);
   const isChartEffectivelyLocked = useCallback((chart: ChartListItem) => (
     chart.access_locked === true
-    || (getChartSubjectType(chart) === 'saved_person' && !hasPremiumAccess)
-  ), [hasPremiumAccess]);
+    || (getChartSubjectType(chart) === 'saved_person' && !accessibleSavedIds.has(chart.id))
+  ), [accessibleSavedIds]);
   const lockedChartCount = savedCharts.filter(isChartEffectivelyLocked).length;
   const showPremiumSlotsCta = canOpenPremiumFlow && !canAddMore && !hasPremiumAccess;
 
@@ -647,9 +649,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                 {lang === 'ru' ? 'Сохранённых карт пока нет' : 'No saved charts yet'}
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
-                {hasPremiumAccess
-                  ? (lang === 'ru' ? 'Добавь карту близкого человека для чтения или совместимости.' : 'Add someone close for a reading or compatibility.')
-                  : (lang === 'ru' ? 'Сохранённые карты станут доступны после подключения Premium.' : 'Saved charts become available with Premium.')}
+                {lang === 'ru' ? 'Добавь карту близкого человека для чтения или совместимости.' : 'Add someone close for a reading or compatibility.'}
               </p>
             </div>
           )}
@@ -657,7 +657,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           {!hasPremiumAccess ? (
             <aside className="fresh-card fresh-card--flat space-y-3 p-4" aria-label={lang === 'ru' ? 'Доступ к сохранённым картам' : 'Saved charts access'}>
               <p className="text-[14px] font-semibold text-mono-ink">
-                {lang === 'ru' ? 'Сохранённые карты доступны с Premium' : 'Saved charts are available with Premium'}
+                {lang === 'ru' ? 'Одна дополнительная карта доступна бесплатно' : 'One additional chart is included for free'}
               </p>
               <p className="text-[13px] leading-relaxed text-mono-muted">
                 {lockedChartCount > 0

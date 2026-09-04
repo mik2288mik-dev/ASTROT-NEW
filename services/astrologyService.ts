@@ -1,4 +1,4 @@
-﻿import { UserProfile, NatalChartData, SynastryResult, UserEvolution, ForecastDailyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, ContentAccessTier, PlanetInsight, HoroscopeReactionKey, HoroscopeReactionSummary, HoroscopeEngagementSummary } from "../types";
+import { UserProfile, NatalChartData, SynastryResult, UserEvolution, ForecastDailyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, ContentAccessTier, PlanetInsight, HoroscopeReactionKey, HoroscopeReactionSummary, HoroscopeEngagementSummary } from "../types";
 import { getElementForSign } from "../lib/zodiac-utils";
 import type { SignHoroscopeReadingV2 } from '../types';
 import type { BirthTimeQuality } from '../types';
@@ -903,126 +903,10 @@ export const getPlanetInsight = async (
  * - Если карта уже есть в БД и данные не изменились - возвращает из кэша
  * - Если карты нет или данные изменились - рассчитывает и сохраняет
  */
-export const calculateNatalChart = async (profile: UserProfile, forceRecalculate = false): Promise<NatalChartData> => {
-  const url = `${API_BASE_URL}/api/charts`;
-  log.info('[calculateNatalChart] Starting calculation', {
-    userId: profile.id,
-    name: profile.name,
-    birthDate: profile.birthDate,
-    birthPlace: profile.birthPlace,
-    forceRecalculate
-  });
-
-  try {
-    const requestBody = {
-      userId: profile.id, // Важно для идемпотентности
-      name: profile.name,
-      birthDate: profile.birthDate,
-      birthTime: profile.birthTime,
-      birthPlace: profile.birthPlace,
-      language: profile.language,
-      forceRecalculate
-    };
-
-    log.info(`[calculateNatalChart] Sending POST request to: ${url}`);
-
-    const startTime = Date.now();
-    const response = await apiFetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-      body: JSON.stringify(requestBody)
-    });
-
-    const duration = Date.now() - startTime;
-    log.info(`[calculateNatalChart] Response received in ${duration}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      let errorMessage = '';
-      let errorDetails: any = null;
-      
-      try {
-        const errorData = await response.json();
-        // Используем новую структуру ошибок с полем message
-        errorMessage = errorData.message || errorData.error || 'Unknown error';
-        errorDetails = errorData.errors || errorData.details;
-      } catch {
-        // Если не удалось распарсить JSON, пробуем прочитать как текст
-        try {
-          errorMessage = await response.text();
-        } catch {
-          errorMessage = `Ошибка сервера: ${response.status} ${response.statusText}`;
-        }
-      }
-      
-      log.error(`[calculateNatalChart] Server returned error status ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        errorMessage,
-        errorDetails,
-        url,
-        contentType: response.headers.get('content-type')
-      });
-      
-      // Для ошибок валидации (400) возвращаем понятное сообщение
-      if (response.status === 400) {
-        const validationError = errorMessage || 'Ошибка валидации данных';
-        throw new Error(validationError);
-      }
-      
-      // Для ошибок инициализации (500) возвращаем понятное сообщение
-      if (response.status === 500 && errorMessage) {
-        // Используем сообщение от сервера, если оно есть
-        throw new Error(errorMessage);
-      }
-      
-      // Для других ошибок возвращаем понятное сообщение
-      const userFriendlyError = errorMessage || `Ошибка сервера: ${response.status}`;
-      throw new Error(userFriendlyError);
-    }
-
-    let payload: any;
-    let chartData: NatalChartData;
-    try {
-      payload = await response.json();
-      chartData = (payload?.chart_data || payload?.chartData || payload) as NatalChartData;
-    } catch (parseError: any) {
-      log.error('[calculateNatalChart] Failed to parse response JSON', {
-        error: parseError.message
-      });
-      throw new Error('Invalid response format from server');
-    }
-
-    // Валидация полученных данных
-    if (!chartData || !chartData.sun) {
-      log.error('[calculateNatalChart] Invalid chart data received', {
-        hasData: !!chartData,
-        hasSun: !!chartData?.sun
-      });
-      throw new Error('Invalid chart data received from server');
-    }
-
-    log.info('[calculateNatalChart] Successfully calculated natal chart', {
-      hasSun: !!chartData.sun,
-      hasMoon: !!chartData.moon,
-      element: chartData.element
-    });
-    return chartData;
-  } catch (error: any) {
-    log.error('[calculateNatalChart] Error occurred', {
-      error: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-    
-    // Всегда пробрасываем ошибку - не используем mock данные
-    throw error;
-  }
+export const calculateNatalChart = async (profile: UserProfile, _forceRecalculate = false): Promise<NatalChartData> => {
+  const { getOrCalculateChart } = await import('./chartService');
+  return getOrCalculateChart(profile);
 };
-
 /**
  * Get Natal Chart Introduction (новый формат вместо "трех ключей")
  * @param chartId - optional; when provided, cache is chart-level (multi-chart)
@@ -1072,6 +956,8 @@ export async function getSignCompatibility(
 export type SynastryExtendedApiOutcome = {
   result: SynastryResult;
   fromCache: boolean;
+  subjectChartId?: number;
+  partnerChartId?: number;
   calculationLevel?: 'full' | 'reduced' | 'date_only' | 'hybrid_sign';
   contentKey?: string;
 };
@@ -1155,6 +1041,8 @@ export const calculateExtendedSynastry = async (
   const data = (await response.json()) as {
     result: SynastryResult;
     fromCache?: boolean;
+    subjectChartId?: number;
+    partnerChartId?: number;
     calculationLevel?: 'full' | 'reduced' | 'date_only' | 'hybrid_sign';
     contentKey?: string;
   };
@@ -1162,6 +1050,8 @@ export const calculateExtendedSynastry = async (
   return {
     result: data.result,
     fromCache: !!data.fromCache,
+    subjectChartId: data.subjectChartId,
+    partnerChartId: data.partnerChartId,
     calculationLevel: data.calculationLevel,
     contentKey: data.contentKey,
   };

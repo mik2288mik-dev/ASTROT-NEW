@@ -39,6 +39,7 @@ export function normalizeCoordinateForStorage(value: number): number {
 
 export function buildCanonicalNatalInputHash(input: {
   birthDate: string;
+  birthPlace?: string;
   birthTime?: string | null;
   birthTimeMode?: string | null;
   birthTimeUncertaintyMinutes?: number | null;
@@ -62,9 +63,10 @@ export function buildCanonicalNatalInputHash(input: {
   const latitude = normalizeCoordinateForStorage(input.latitude).toFixed(6);
   const longitude = normalizeCoordinateForStorage(input.longitude).toFixed(6);
   const raw = [
-    CANONICAL_NATAL_CALCULATION_VERSION,
+    'natal-birth-input-v1',
     normalizedBirthDate,
     birthTimeFingerprint(time),
+    normalizeBirthPlaceInput(input.birthPlace).toLocaleLowerCase('ru'),
     latitude,
     longitude,
     timezone,
@@ -81,9 +83,15 @@ export function isCanonicalNatalChartDataComplete(chartData: any): boolean {
   const data = parseJson(chartData);
   if (!data || typeof data !== 'object') return false;
   if (data.schemaVersion !== NATAL_CHART_SCHEMA_VERSION) return false;
-  if (data.calculationVersion !== CANONICAL_NATAL_CALCULATION_VERSION) return false;
+  // A calculator release never invalidates a saved astronomical calculation.
+  if (typeof data.calculationVersion !== 'string' || !data.calculationVersion) return false;
   if (!data.birth || !data.positions || !data.chartQuality || !data.calculationMetadata) return false;
-  if (!data.positions.sun || !data.positions.moon || !data.positions.chiron || !data.positions.northNode) return false;
+  const bodies = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'northNode', 'southNode'];
+  if (bodies.some((key) => !Number.isFinite(data.positions[key]?.longitude)
+    || !Number.isFinite(data.positions[key]?.degree) || !data.positions[key]?.sign)) return false;
+  if (!data.birth.localDate || !data.birth.place || !data.birth.timezone
+    || !Number.isFinite(data.birth.latitude) || !Number.isFinite(data.birth.longitude)) return false;
+  if (!data.calculationMetadata.ephemerisEngine || !data.calculationMetadata.calculatedAt) return false;
   if (!Array.isArray(data.houses) || !Array.isArray(data.aspects)) return false;
   const timeMode = data.birth.time?.mode;
   if (!['exact', 'approximate', 'range', 'unknown'].includes(timeMode)) return false;
@@ -111,6 +119,6 @@ export function isCanonicalNatalChartDataComplete(chartData: any): boolean {
 export function hasCanonicalNatalRowFields(row: any): boolean {
   if (!row || typeof row !== 'object') return false;
   if (!row.input_hash) return false;
-  if (row.calculation_version !== CANONICAL_NATAL_CALCULATION_VERSION) return false;
+  if (!row.calculation_version) return false;
   return isCanonicalNatalChartDataComplete(row.chart_data);
 }

@@ -6,6 +6,7 @@ const mockSynastryGet = jest.fn();
 const mockSynastrySet = jest.fn();
 const mockUpsertByChart = jest.fn();
 const mockCalculateNatalChart = jest.fn();
+const mockCreateOrReuseCanonicalChart = jest.fn();
 
 jest.mock('../lib/rateLimit', () => ({
   RATE_LIMIT_CONFIGS: { AI_FREE: {} },
@@ -42,6 +43,7 @@ jest.mock('../lib/db', () => ({
     users: { get: jest.fn().mockResolvedValue({ id: '42', language: 'ru' }) },
     natal_charts: {
       getById: (...args: unknown[]) => mockGetById(...args),
+      getAll: jest.fn().mockResolvedValue([]),
       getPrimary: jest.fn().mockResolvedValue(null),
     },
     synastry: {
@@ -55,8 +57,8 @@ jest.mock('../lib/db', () => ({
 }));
 
 jest.mock('../lib/chartAccessPolicy', () => ({
+  ...jest.requireActual('../lib/chartAccessPolicy'),
   assertChartReadable: jest.fn(),
-  ChartAccessPolicyError: class ChartAccessPolicyError extends Error {},
 }));
 
 jest.mock('../lib/astrologyHistoryPersistence', () => ({
@@ -82,18 +84,25 @@ jest.mock('../lib/swisseph-calculator', () => ({
   calculateNatalChart: (...args: unknown[]) => mockCalculateNatalChart(...args),
 }));
 
-import handler from '../pages/api/content/synastry/extended';
+jest.mock('../lib/natalChartPersistence', () => ({
+  createOrReuseCanonicalChart: (...args: unknown[]) => mockCreateOrReuseCanonicalChart(...args),
+}));
 
-function chart(id?: number) {
-  const value = {
-    sun: { longitude: 10, sign: 'Aries' },
-    moon: { longitude: 42, sign: 'Taurus' },
-    mercury: { longitude: 70, sign: 'Gemini' },
-    venus: { longitude: 100, sign: 'Cancer' },
-    mars: { longitude: 130, sign: 'Leo' },
-    jupiter: { longitude: 160, sign: 'Virgo' },
-    saturn: { longitude: 190, sign: 'Libra' },
-  };
+import handler from '../pages/api/content/synastry/extended';
+import { ChartAccessPolicyError } from '../lib/chartAccessPolicy';
+import { getPremiumEntitlementState } from '../lib/contentArchitecture';
+import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
+
+function chart(id?: number, birthTimeQuality: 'exact' | 'approximate' | 'unknown' = 'exact') {
+  const value = canonicalNatalChart({
+    birthDate: id === 2 ? '1990-08-22' : '1992-03-14',
+    time: {
+      mode: birthTimeQuality,
+      localTime: birthTimeQuality === 'unknown' ? null : '09:30',
+      uncertaintyMinutes: birthTimeQuality === 'approximate' ? 30 : null,
+      rangeStart: null, rangeEnd: null,
+    },
+  });
   return id == null
     ? value
     : {
@@ -103,6 +112,7 @@ function chart(id?: number) {
         birth_date: id === 1 ? '1992-03-14' : '1990-08-22',
         birth_time: '09:30',
         birth_place: 'Москва',
+        input_hash: `birth-input-${id}`,
         chart_data: value,
       };
 }
@@ -133,10 +143,25 @@ async function post(body: Record<string, unknown>) {
 describe('extended synastry delivery resilience', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCreateLunaStructuredResponse.mockReset();
+    mockCreateOrReuseCanonicalChart.mockReset();
+    mockGetById.mockReset();
     mockSynastryGet.mockResolvedValue(null);
     mockSynastrySet.mockResolvedValue({ success: true });
     mockUpsertByChart.mockResolvedValue({ id: 9 });
     mockCalculateNatalChart.mockResolvedValue(chart());
+    (getPremiumEntitlementState as jest.Mock).mockResolvedValue({ isPremium: true, entitlement: null });
+    mockCreateOrReuseCanonicalChart.mockImplementation(async (input) => ({
+      chart: {
+        ...chart(input.name === 'Анна' ? 1 : 2),
+        name: input.name,
+        birth_date: input.birthDate,
+        birth_time: input.birthTime,
+        birth_place: input.birthPlace,
+        chart_data: chart(undefined, input.birthTimeMode),
+      },
+      reused: false,
+    }));
   });
 
   it('returns a data-grounded reading for two manually entered people when the model is unavailable', async () => {
@@ -170,8 +195,11 @@ describe('extended synastry delivery resilience', () => {
     });
     expect(result.payload.result.summary).toContain('Анна');
     expect(result.payload.result.summary).toContain('Максим');
-    expect(mockCalculateNatalChart).toHaveBeenCalledTimes(2);
-    expect(mockCalculateNatalChart).toHaveBeenCalledWith('Анна', '1992-03-14', '09:30', 'Москва', expect.objectContaining({ birthTimeMode: 'exact' }));
+    expect(mockCreateOrReuseCanonicalChart).toHaveBeenCalledTimes(2);
+    expect(mockCreateOrReuseCanonicalChart).toHaveBeenCalledWith(expect.objectContaining({ userId: '42', name: 'Анна', birthDate: '1992-03-14', birthTime: '09:30', birthPlace: 'Москва', birthTimeMode: 'exact' }));
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expect(result.payload).toMatchObject({ subjectChartId: 1, partnerChartId: 2 });
+    expect(mockCreateOrReuseCanonicalChart.mock.invocationCallOrder[1]).toBeLessThan(mockCreateLunaStructuredResponse.mock.invocationCallOrder[0]);
   });
 
   it('delivers a generated reading for two saved charts even when cache persistence fails', async () => {
@@ -207,9 +235,7 @@ describe('extended synastry delivery resilience', () => {
     expect(mockCalculateNatalChart).not.toHaveBeenCalled();
   });
 
-  it('builds a premium hybrid from a date-only person and a zodiac-sign person', async () => {
-    mockCreateLunaStructuredResponse.mockRejectedValueOnce(new Error('model unavailable'));
-
+  it('keeps zodiac signs on the free route and refuses a hybrid full comparison', async () => {
     const result = await post({
       subjectSource: 'birth',
       subjectDate: '1989-03-06',
@@ -221,20 +247,14 @@ describe('extended synastry delivery resilience', () => {
       language: 'ru',
     });
 
-    expect(result.status).toBe(200);
-    expect(result.payload).toMatchObject({
-      calculationLevel: 'hybrid_sign',
-      result: {
-        summary: expect.any(String),
-        fullAnalysis: {
-          attraction: expect.any(String),
-          difficulties: expect.any(String),
-        },
-      },
-    });
+    expect(result.status).toBe(400);
+    expect(result.payload.code).toBe('USE_SIGN_COMPATIBILITY');
+    expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expect(mockCreateLunaStructuredResponse).not.toHaveBeenCalled();
   });
 
-  it('keeps manual unknown birth time reduced and passes unknown mode to Swiss calculation', async () => {
+  it('keeps unknown birth time reduced in the ordinary saved chart path', async () => {
     mockCreateLunaStructuredResponse.mockRejectedValueOnce(new Error('model unavailable'));
 
     const result = await post({
@@ -257,8 +277,9 @@ describe('extended synastry delivery resilience', () => {
     expect(result.status).toBe(200);
     expect(result.payload.calculationLevel).toBe('reduced');
     expect(result.payload.result.calculationLevel).toBe('reduced');
-    expect(mockCalculateNatalChart).toHaveBeenCalledWith('Анна', '1992-03-14', '', 'Москва', expect.objectContaining({ birthTimeMode: 'unknown' }));
-    expect(result.payload.result.evidence.some((item: any) => item.type === 'house_overlay')).toBe(false);
+    expect(mockCreateOrReuseCanonicalChart).toHaveBeenCalledWith(expect.objectContaining({ name: 'Анна', birthDate: '1992-03-14', birthTime: '', birthPlace: 'Москва', birthTimeMode: 'unknown' }));
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expect(result.payload.result.evidence.some((item: any) => item.type === 'house_overlay' && item.direction === 'partner_to_subject')).toBe(false);
   });
 
   it('uses a 30-minute uncertainty for an approximate manually entered time', async () => {
@@ -283,16 +304,12 @@ describe('extended synastry delivery resilience', () => {
     });
 
     expect(result.status).toBe(200);
-    expect(mockCalculateNatalChart).toHaveBeenCalledWith(
-      'Анна',
-      '1992-03-14',
-      '09:30',
-      'Москва',
-      expect.objectContaining({
-        birthTimeMode: 'approximate',
-        birthTimeUncertaintyMinutes: 30,
-      }),
-    );
+    expect(result.payload.calculationLevel).toBe('reduced');
+    expect(mockCreateOrReuseCanonicalChart).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Анна', birthDate: '1992-03-14', birthTime: '09:30', birthPlace: 'Москва',
+      birthTimeMode: 'approximate', birthTimeUncertaintyMinutes: 30,
+    }));
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
   });
 
   it('still rejects comparing the same saved chart with itself', async () => {
@@ -310,6 +327,127 @@ describe('extended synastry delivery resilience', () => {
 
     expect(result.status).toBe(400);
     expect(result.payload.code).toBe('CHART_PAIR_DUPLICATE');
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('creates a new partner through My Charts before comparing with the saved subject', async () => {
+    mockGetById.mockResolvedValueOnce(chart(1));
+    const result = await post({
+      subjectChartId: 1,
+      partnerSource: 'birth', partnerName: 'Максим', partnerDate: '1990-08-22',
+      partnerPlace: 'Казань', partnerTime: '18:15',
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.payload).toMatchObject({ subjectChartId: 1, partnerChartId: 2 });
+    expect(mockCreateOrReuseCanonicalChart).toHaveBeenCalledTimes(1);
+    expect(mockSynastrySet).toHaveBeenCalledWith(1, 2, 'extended', expect.any(String), expect.anything());
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('reuses the saved-pair cache without creating charts or invoking Swiss or AI', async () => {
+    mockGetById.mockImplementation(async (id) => chart(id));
+    const cached = { schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1', summary: 'Saved result' };
+    mockSynastryGet.mockResolvedValue(cached);
+
+    const first = await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'romance' });
+    const second = await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'romance' });
+
+    expect(first.status).toBe(200);
+    expect(second.payload).toMatchObject({ fromCache: true, subjectChartId: 1, partnerChartId: 2, result: cached });
+    expect(mockSynastryGet.mock.calls[0][3]).toBe(mockSynastryGet.mock.calls[1][3]);
+    expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expect(mockCreateLunaStructuredResponse).not.toHaveBeenCalled();
+  });
+
+  it('changes the saved-pair cache key when either input hash or the relationship context changes', async () => {
+    let subjectHash = 'subject-v1';
+    let partnerHash = 'partner-v1';
+    mockGetById.mockImplementation(async (id) => ({ ...chart(id), input_hash: id === 1 ? subjectHash : partnerHash }));
+    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1' });
+    await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'romance' });
+    subjectHash = 'subject-v2';
+    await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'romance' });
+    partnerHash = 'partner-v2';
+    await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'romance' });
+    await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'friendship' });
+
+    expect(new Set(mockSynastryGet.mock.calls.map((call) => call[3])).size).toBe(4);
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('does not compare or call AI when a new person cannot be saved', async () => {
+    mockGetById.mockResolvedValueOnce(chart(1));
+    mockCreateOrReuseCanonicalChart.mockRejectedValueOnce(new ChartAccessPolicyError('CHART_LIMIT_REACHED', 'Chart limit reached.'));
+    const result = await post({
+      subjectChartId: 1, partnerSource: 'birth', partnerName: 'Максим',
+      partnerDate: '1990-08-22', partnerPlace: 'Казань',
+    });
+
+    expect(result.status).toBe(403);
+    expect(result.payload.code).toBe('CHART_LIMIT_REACHED');
+    expect(mockSynastryGet).not.toHaveBeenCalled();
+    expect(mockCreateLunaStructuredResponse).not.toHaveBeenCalled();
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('invalidates a pair cache after explicit repair even when the birth hash is unchanged', async () => {
+    let calculatedAt = '2026-09-01T00:00:00.000Z';
+    mockGetById.mockImplementation(async (id) => {
+      const record = chart(id) as any;
+      return { ...record, chart_data: { ...record.chart_data, calculationMetadata: { ...record.chart_data.calculationMetadata, calculatedAt: id === 1 ? calculatedAt : '2026-09-01T00:00:00.000Z' } } };
+    });
+    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1' });
+    await post({ subjectChartId: 1, partnerChartId: 2 });
+    calculatedAt = '2026-09-04T00:00:00.000Z';
+    await post({ subjectChartId: 1, partnerChartId: 2 });
+
+    expect(mockSynastryGet.mock.calls[0][3]).not.toBe(mockSynastryGet.mock.calls[1][3]);
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('requires birthplace before attempting to save a manual natal chart', async () => {
+    const result = await post({
+      subjectSource: 'birth', subjectName: 'Анна', subjectDate: '1992-03-14',
+      partnerSource: 'birth', partnerName: 'Максим', partnerDate: '1990-08-22', partnerPlace: 'Казань',
+    });
+
+    expect(result.status).toBe(400);
+    expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('never recalculates a saved chart with missing calculation data', async () => {
+    mockGetById.mockResolvedValueOnce(chart(1)).mockResolvedValueOnce({ ...chart(2), chart_data: null });
+    const result = await post({ subjectChartId: 1, partnerChartId: 2 });
+
+    expect(result.status).toBe(409);
+    expect(result.payload.code).toBe('CHART_REPAIR_REQUIRED');
+    expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it.each([1, 2])('requires repair when saved chart %i has no input hash', async (missingHashId) => {
+    mockGetById.mockImplementation(async (id) => ({ ...chart(id), input_hash: id === missingHashId ? null : `birth-input-${id}` }));
+
+    const result = await post({ subjectChartId: 1, partnerChartId: 2 });
+
+    expect(result.status).toBe(409);
+    expect(result.payload.code).toBe('CHART_REPAIR_REQUIRED');
+    expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expect(mockSynastryGet).not.toHaveBeenCalled();
+    expect(mockCreateLunaStructuredResponse).not.toHaveBeenCalled();
+  });
+
+  it('does not create partner charts for a free account', async () => {
+    (getPremiumEntitlementState as jest.Mock).mockResolvedValueOnce({ isPremium: false });
+    const result = await post({ subjectChartId: 1, partnerSource: 'birth', partnerDate: '1990-08-22', partnerPlace: 'Казань' });
+
+    expect(result.status).toBe(403);
+    expect(result.payload.code).toBe('PREMIUM_REQUIRED');
+    expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
     expect(mockCalculateNatalChart).not.toHaveBeenCalled();
   });
 });
