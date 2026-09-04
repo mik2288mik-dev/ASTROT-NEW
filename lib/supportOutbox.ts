@@ -71,6 +71,7 @@ export async function enqueueSupportDeliveryOutbox(
 async function claimDueRows(
   limit: number,
   ticketId?: number,
+  channel?: SupportDeliveryChannel,
 ): Promise<{ rows: SupportOutboxRow[]; staleRecovered: number }> {
   const pool = getPool();
   const client = await pool.connect();
@@ -100,10 +101,11 @@ async function claimDueRows(
          AND attempts < $1
          AND next_attempt_at <= CURRENT_TIMESTAMP
          AND ($3::BIGINT IS NULL OR ticket_id = $3::BIGINT)
+         AND ($4::TEXT IS NULL OR channel = $4::TEXT)
        ORDER BY next_attempt_at, id
        FOR UPDATE SKIP LOCKED
        LIMIT $2`,
-      [SUPPORT_OUTBOX_MAX_ATTEMPTS, boundedLimit(limit), ticketId ?? null],
+      [SUPPORT_OUTBOX_MAX_ATTEMPTS, boundedLimit(limit), ticketId ?? null, channel ?? null],
     );
 
     const rows: SupportOutboxRow[] = [];
@@ -133,7 +135,7 @@ async function claimDueRows(
 
 async function loadCanonicalTicket(ticketId: number) {
   const result = await getPool().query(
-    `SELECT t.tags, first_message.body
+    `SELECT t.tags, t.user_id, t.created_at AT TIME ZONE 'UTC' AS created_at, first_message.body
      FROM support_tickets t
      JOIN LATERAL (
        SELECT m.body
@@ -152,12 +154,13 @@ async function loadCanonicalTicket(ticketId: number) {
   if (!row || !metadata || typeof row.body !== 'string') {
     throw new Error('SUPPORT_CANONICAL_TICKET_INVALID');
   }
-  return parseSupportTicketPayload({
+  const payload = parseSupportTicketPayload({
     category: metadata.category,
     message: row.body,
     replyEmail: metadata.replyEmail,
     diagnostics: metadata.diagnostics,
   });
+  return { ...payload, userId: String(row.user_id), createdAt: row.created_at as Date | string };
 }
 
 async function markSent(id: number): Promise<void> {
@@ -171,7 +174,32 @@ async function markSent(id: number): Promise<void> {
   );
 }
 
-async function markFailure(id: number, attempt: number, errorCode: string): Promise<'retried' | 'dead'> {
+function providerRetryDelaySeconds(value?: number): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(1, Math.min(86_400, Math.ceil(value)))
+    : 5;
+}
+
+async function markDeferred(id: number, attempt: number, retryAfterSeconds?: number): Promise<void> {
+  // Claiming reserves an attempt, but a busy gateway or an existing cooldown
+  // never calls Telegram. Restore that attempt even at the final retry limit.
+  await getPool().query(
+    `UPDATE support_delivery_outbox
+     SET status = 'pending', processing_started_at = NULL,
+         attempts = GREATEST(0, attempts - 1),
+         next_attempt_at = CURRENT_TIMESTAMP + ($2::INTEGER * INTERVAL '1 second'),
+         last_error_code = 'SUPPORT_DELIVERY_DEFERRED', updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND status = 'processing' AND attempts = $3`,
+    [id, providerRetryDelaySeconds(retryAfterSeconds), attempt],
+  );
+}
+
+async function markFailure(
+  id: number,
+  attempt: number,
+  errorCode: string,
+  retryAfterSeconds?: number,
+): Promise<'retried' | 'dead'> {
   if (attempt >= SUPPORT_OUTBOX_MAX_ATTEMPTS) {
     await getPool().query(
       `UPDATE support_delivery_outbox
@@ -188,7 +216,7 @@ async function markFailure(id: number, attempt: number, errorCode: string): Prom
          next_attempt_at = CURRENT_TIMESTAMP + ($2::INTEGER * INTERVAL '1 second'),
          last_error_code = $3, updated_at = CURRENT_TIMESTAMP
      WHERE id = $1 AND status = 'processing'`,
-    [id, retryDelaySeconds(attempt), errorCode],
+    [id, Math.max(retryDelaySeconds(attempt), providerRetryDelaySeconds(retryAfterSeconds)), errorCode],
   );
   return 'retried';
 }
@@ -200,11 +228,15 @@ async function markFailure(id: number, attempt: number, errorCode: string): Prom
 export async function processSupportDeliveryOutbox(
   limit = 20,
   ticketId?: number,
+  channel?: SupportDeliveryChannel,
 ): Promise<SupportOutboxProcessingResult> {
   if (ticketId !== undefined && (!Number.isSafeInteger(ticketId) || ticketId < 1)) {
     throw new Error('SUPPORT_TICKET_ID_INVALID');
   }
-  const claimed = await claimDueRows(limit, ticketId);
+  if (channel !== undefined && channel !== 'email' && channel !== 'telegram') {
+    throw new Error('SUPPORT_CHANNEL_INVALID');
+  }
+  const claimed = await claimDueRows(limit, ticketId, channel);
   const summary: SupportOutboxProcessingResult = {
     claimed: claimed.rows.length,
     sent: 0,
@@ -219,6 +251,7 @@ export async function processSupportDeliveryOutbox(
     const attempt = Number(row.attempts);
     const channel = row.channel;
     let errorCode = 'SUPPORT_DELIVERY_FAILED';
+    let retryAfterSeconds: number | undefined;
     try {
       const payload = await loadCanonicalTicket(canonicalTicketId);
       const delivery = await deliverSupportTicketChannel(
@@ -231,6 +264,15 @@ export async function processSupportDeliveryOutbox(
         outboxLog('info', { id, ticketId: canonicalTicketId, channel, status: 'sent', attempt });
         continue;
       }
+      if (delivery.deferred) {
+        await markDeferred(id, attempt, delivery.retryAfterSeconds);
+        summary.retried += 1;
+        outboxLog('info', {
+          id, ticketId: canonicalTicketId, channel, status: 'deferred', attempt: Math.max(0, attempt - 1),
+        });
+        continue;
+      }
+      retryAfterSeconds = delivery.retryAfterSeconds;
       errorCode = delivery.result === 'unconfigured'
         ? 'SUPPORT_CHANNEL_UNCONFIGURED'
         : 'SUPPORT_PROVIDER_FAILED';
@@ -238,7 +280,7 @@ export async function processSupportDeliveryOutbox(
       errorCode = 'SUPPORT_CANONICAL_OR_DELIVERY_FAILED';
     }
 
-    const outcome = await markFailure(id, attempt, errorCode);
+    const outcome = await markFailure(id, attempt, errorCode, retryAfterSeconds);
     summary[outcome] += 1;
     outboxLog('warn', {
       id,

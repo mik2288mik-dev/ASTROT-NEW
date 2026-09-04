@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import { getPool } from '../../../lib/db';
+import { enqueueNeboOpsEvent, wakeNeboOpsDelivery } from '../../../lib/neboOps';
 import {
   isUserAppEventBodyTooLarge,
   sanitizeUserAppEvent,
@@ -37,20 +38,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const pool = getPool();
-    await pool.query(
-      `INSERT INTO user_app_events (user_id, event_id, event_type, section, source, payload_json)
-       VALUES ($1, $2, $3, $4, $5, $6::jsonb)
-       ON CONFLICT (event_id) WHERE event_id IS NOT NULL DO NOTHING`,
-      [
-        appUser.userId,
-        event.eventId || null,
-        event.eventType,
-        event.section,
-        event.source,
-        JSON.stringify(event.eventPayload),
-      ]
-    );
+    const client = await getPool().connect();
+    try {
+      await client.query('BEGIN');
+      const inserted = await client.query(
+        `INSERT INTO user_app_events (user_id, event_id, event_type, section, source, payload_json)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+         ON CONFLICT (event_id) WHERE event_id IS NOT NULL DO NOTHING RETURNING id`,
+        [
+          appUser.userId,
+          event.eventId || null,
+          event.eventType,
+          event.section,
+          event.source,
+          JSON.stringify(event.eventPayload),
+        ],
+      );
+      if (inserted.rows[0]) {
+        await enqueueNeboOpsEvent(client, {
+          eventKey: `activity:${inserted.rows[0].id}`,
+          eventType: 'activity',
+          userId: appUser.userId,
+          payload: {
+            eventType: event.eventType,
+            section: event.section,
+            source: event.source,
+            eventPayload: event.eventPayload,
+          },
+        });
+      }
+      await client.query('COMMIT');
+      if (inserted.rows[0]) wakeNeboOpsDelivery();
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
 
     return res.status(200).json({ success: true });
   } catch (error: any) {

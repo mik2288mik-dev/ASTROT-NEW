@@ -6,7 +6,9 @@
  * - premium_until (${PREMIUM_WEEK_DAYS} days for Premium week via Telegram Stars)
  */
 
+import crypto from 'crypto';
 import { getPool } from '../lib/db';
+import { enqueueNeboOpsEvent, wakeNeboOpsDelivery } from '../lib/neboOps';
 import { PREMIUM_WEEK_DAYS } from '../lib/premiumPricing';
 import { queuePersonalForecastPrewarmForUser } from '../lib/personalForecastPrewarm';
 
@@ -138,7 +140,16 @@ export async function activatePremium(
         JSON.stringify({ provider: 'telegram_stars', paymentType }),
       ],
     );
+    if (inserted) {
+      await enqueueNeboOpsEvent(client, {
+        eventKey: `stars:${crypto.createHash('sha256').update(telegramPaymentChargeId).digest('hex')}:confirmed`,
+        eventType: 'payment_confirmed',
+        userId: id,
+        payload: { provider: 'telegram_stars', starsAmount, paymentType },
+      });
+    }
     await client.query('COMMIT');
+    if (inserted) wakeNeboOpsDelivery();
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
     throw error;

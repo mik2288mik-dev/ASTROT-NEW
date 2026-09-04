@@ -3797,6 +3797,109 @@ async function mvp053NatalChartRevisions(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+async function mvp054NeboOpsOutbox(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_054_nebo_ops_outbox';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  // runMigrations passes its locked session, so DDL and the migration marker
+  // commit together even though historical helpers accept the Pool type.
+  await pool.query('BEGIN');
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS nebo_ops_outbox (
+        id BIGSERIAL PRIMARY KEY,
+        event_key TEXT UNIQUE NOT NULL,
+        event_type TEXT NOT NULL,
+        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        payload_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+        occurred_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        status TEXT NOT NULL DEFAULT 'pending',
+        attempts INTEGER NOT NULL DEFAULT 0,
+        next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        locked_at TIMESTAMPTZ,
+        lease_token UUID,
+        sent_at TIMESTAMPTZ,
+        telegram_message_id BIGINT,
+        last_error_code TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT nebo_ops_outbox_event_key_check
+          CHECK (LENGTH(event_key) BETWEEN 1 AND 180 AND event_key = BTRIM(event_key)),
+        CONSTRAINT nebo_ops_outbox_event_type_check
+          CHECK (event_type ~ '^[a-z][a-z0-9_.:-]{0,63}$'),
+        CONSTRAINT nebo_ops_outbox_payload_check
+          CHECK (jsonb_typeof(payload_json) = 'object'),
+        CONSTRAINT nebo_ops_outbox_status_check
+          CHECK (status IN ('pending', 'processing', 'sent', 'failed', 'dead')),
+        CONSTRAINT nebo_ops_outbox_attempts_check
+          CHECK (attempts >= 0),
+        CONSTRAINT nebo_ops_outbox_processing_lease_check
+          CHECK (
+            (status = 'processing' AND locked_at IS NOT NULL AND lease_token IS NOT NULL)
+            OR (status <> 'processing' AND locked_at IS NULL AND lease_token IS NULL)
+          ),
+        CONSTRAINT nebo_ops_outbox_delivery_check
+          CHECK ((status = 'sent') = (sent_at IS NOT NULL)),
+        CONSTRAINT nebo_ops_outbox_error_code_check
+          CHECK (last_error_code IS NULL OR last_error_code ~ '^[A-Z0-9_]{1,64}$')
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_nebo_ops_outbox_due
+        ON nebo_ops_outbox(status, next_attempt_at, id)
+        WHERE status IN ('pending', 'failed')
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_nebo_ops_outbox_processing
+        ON nebo_ops_outbox(locked_at, id)
+        WHERE status = 'processing'
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS nebo_ops_delivery_state (
+        id SMALLINT PRIMARY KEY CHECK (id = 1),
+        next_send_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        cooldown_until TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`
+      INSERT INTO nebo_ops_delivery_state (id) VALUES (1)
+      ON CONFLICT (id) DO NOTHING
+    `);
+    await pool.query(`
+      CREATE OR REPLACE FUNCTION notify_nebo_ops_ready()
+      RETURNS TRIGGER
+      LANGUAGE plpgsql
+      AS $$
+      BEGIN
+        -- Only a wakeup signal: event details stay in the durable outbox.
+        -- PostgreSQL delivers notifications after the insert commits.
+        PERFORM pg_notify('nebo_ops_ready', '');
+        RETURN NULL;
+      EXCEPTION WHEN OTHERS THEN
+        -- Delivery also polls the outbox if this optional signal fails.
+        RETURN NULL;
+      END;
+      $$
+    `);
+    await pool.query('DROP TRIGGER IF EXISTS nebo_ops_outbox_ready ON nebo_ops_outbox');
+    await pool.query(`
+      CREATE TRIGGER nebo_ops_outbox_ready
+        AFTER INSERT ON nebo_ops_outbox
+        FOR EACH STATEMENT EXECUTE FUNCTION notify_nebo_ops_ready()
+    `);
+
+    await markMigrationApplied(pool, migrationName);
+    await pool.query('COMMIT');
+    log.info(`Migration ${migrationName} applied`);
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    throw error;
+  }
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -3883,6 +3986,7 @@ export async function runMigrations(): Promise<void> {
     await mvp051SupportDeliveryOutbox(migrationDb);
     await mvp052UserAppEventIdempotency(migrationDb);
     await mvp053NatalChartRevisions(migrationDb);
+    await mvp054NeboOpsOutbox(migrationDb);
     await mvp044PremiumEntitlementLifecycle(migrationDb);
     await mvp045RuStoreCallbackOrdering(migrationDb);
     await mvp046RuStoreProviderOverlay(migrationDb);

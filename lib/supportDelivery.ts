@@ -1,5 +1,6 @@
 import { logger } from './logger';
 import { sendTelegramTextMessage } from './telegramBot';
+import { isNeboOpsEnabled, sendNeboOpsText } from './neboOps';
 
 export const SUPPORT_CATEGORIES = ['problem', 'idea', 'payment', 'question', 'other'] as const;
 export type SupportCategory = typeof SUPPORT_CATEGORIES[number];
@@ -21,11 +22,15 @@ export type SupportTicketPayload = {
 
 export type SupportDeliveryInput = SupportTicketPayload & {
   ticketId: number;
+  userId?: string;
+  createdAt?: Date | string;
 };
 
 export type SupportDeliveryResult = {
   channel: 'email' | 'telegram';
   result: 'sent' | 'failed' | 'unconfigured';
+  deferred?: boolean;
+  retryAfterSeconds?: number;
 };
 
 export type SupportDeliveryChannel = SupportDeliveryResult['channel'];
@@ -311,18 +316,31 @@ async function sendSupportTelegram(input: SupportDeliveryInput): Promise<Support
   if (!chatId) return { channel: 'telegram', result: 'unconfigured' };
   try {
     const adminUrl = supportAdminUrl();
-    const result = await sendTelegramTextMessage(
-      chatId,
-      [
-        `Новое обращение NEBO #${input.ticketId}`,
-        `Категория: ${CATEGORY_LABELS[input.category]}`,
-        `Версия: ${versionText(input.diagnostics)}`,
-        `Канал: ${input.diagnostics?.distributionChannel || 'не указан'}`,
-      ].join('\n'),
-      adminUrl
-        ? { replyMarkup: { inline_keyboard: [[{ text: 'Открыть админку', url: adminUrl }]] } }
-        : undefined,
-    );
+    const message = [
+      `✉️ Новое обращение NEBO #${input.ticketId}`,
+      ...(input.userId && /^-?\d+$/.test(input.userId) ? [`🙋 Пользователь: ID ${input.userId}`] : []),
+      `📂 Категория: ${CATEGORY_LABELS[input.category]}`,
+      `📱 Версия: ${versionText(input.diagnostics)}`,
+      `🏪 Канал: ${input.diagnostics?.distributionChannel || 'не указан'}`,
+      ...(input.createdAt && Number.isFinite(new Date(input.createdAt).getTime()) ? [
+        `🕒 ${new Intl.DateTimeFormat('ru-RU', {
+          timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'medium',
+        }).format(new Date(input.createdAt))} МСК`,
+      ] : []),
+    ].join('\n');
+    const options = adminUrl
+      ? { replyMarkup: { inline_keyboard: [[{ text: 'Открыть обращение', url: adminUrl }]] } }
+      : undefined;
+    if (isNeboOpsEnabled()) {
+      const result = await sendNeboOpsText(message, options);
+      return {
+        channel: 'telegram',
+        result: result.ok ? 'sent' : 'failed',
+        ...(result.deferred ? { deferred: true } : {}),
+        ...(result.retryAfterSeconds !== undefined ? { retryAfterSeconds: result.retryAfterSeconds } : {}),
+      };
+    }
+    const result = await sendTelegramTextMessage(chatId, message, options);
     return { channel: 'telegram', result: result.ok ? 'sent' : 'failed' };
   } catch {
     return { channel: 'telegram', result: 'failed' };

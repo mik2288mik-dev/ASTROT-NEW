@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import type { PremiumEntitlementState } from '../types';
 import { getPool } from './db';
+import { enqueueNeboOpsEvent, wakeNeboOpsDelivery } from './neboOps';
 import {
   getPremiumEntitlementState,
   publicPremiumEntitlementSnapshot,
@@ -375,6 +376,7 @@ async function upsertSubscription(
     throw new RuStorePaymentError('RUSTORE_CALLBACK_EVENT_TIME_REQUIRED');
   }
   let appliedProviderEventTime: string | null = null;
+  let queuedNotification = false;
 
   const pool = getPool();
   const client = await pool.connect();
@@ -625,7 +627,47 @@ async function upsertSubscription(
         ],
       );
     }
+    const previousState = String(existing.rows[0].entitlement_state || existing.rows[0].status || 'expired');
+    const previousExpiresAt = existing.rows[0].expires_at
+      ? new Date(existing.rows[0].expires_at).getTime()
+      : 0;
+    const newPaidPeriod = (snapshot.state === 'paid' || snapshot.state === 'cancelled_active')
+      && (inserted || previousState === 'store_trial'
+        || (!!expiresAt && expiresAt.getTime() > previousExpiresAt));
+    const stateChanged = inserted || previousState !== snapshot.state;
+    const eventTypes: string[] = [];
+    if (newPaidPeriod) eventTypes.push('payment_confirmed');
+    if (snapshot.state === 'store_trial' && stateChanged) eventTypes.push('trial_started');
+    if (lifecycleEventType && stateChanged) eventTypes.push(lifecycleEventType);
+    if (snapshot.state === 'grace' && stateChanged) eventTypes.push('subscription_grace');
+    if (snapshot.state === 'paid' && !newPaidPeriod && stateChanged) eventTypes.push('subscription_resumed');
+    const purchaseHash = crypto.createHash('sha256').update(purchaseId).digest('hex');
+    for (const eventType of eventTypes) {
+      // A paid-through date identifies a confirmed period. Other transitions
+      // also use the accepted provider event time, allowing a later cancel
+      // after a resume while repeated validation stays silent.
+      const transitionIdentity = eventType === 'payment_confirmed'
+        ? snapshot.expiresAt || 'unknown'
+        : `${snapshot.expiresAt || 'unknown'}:${appliedProviderEventTime || validationTimestamp}`;
+      const transitionHash = crypto.createHash('sha256').update(transitionIdentity).digest('hex');
+      await enqueueNeboOpsEvent(client, {
+        eventKey: `rustore:${purchaseHash}:${eventType}:${transitionHash}`,
+        eventType,
+        userId: input.userId,
+        occurredAt: new Date(appliedProviderEventTime || validationTimestamp),
+        payload: {
+          provider: 'rustore',
+          productId,
+          state: snapshot.state,
+          expiresAt: snapshot.expiresAt,
+          autoRenewing: snapshot.autoRenewing,
+          sandbox: input.sandbox === true,
+        },
+      });
+      queuedNotification = true;
+    }
     await client.query('COMMIT');
+    if (queuedNotification) wakeNeboOpsDelivery();
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
     throw error;

@@ -824,7 +824,24 @@ export function pickRetentionCandidate(
   };
 }
 
-async function listRecipients(limit = 250): Promise<RecipientRow[]> {
+export function normalizeNotificationTelegramChatId(subject: unknown): string | null {
+  const candidate = typeof subject === 'string' ? subject.trim() : '';
+  if (!/^[1-9]\d{0,15}$/u.test(candidate) || !Number.isSafeInteger(Number(candidate))) return null;
+  return candidate;
+}
+
+export async function resolveNotificationTelegramRecipient(userId: string): Promise<string | null> {
+  const result = await getPool().query(
+    `SELECT provider_subject
+     FROM account_identities
+     WHERE user_id = $1 AND provider = 'telegram' AND verified_at IS NOT NULL
+     LIMIT 1`,
+    [userId]
+  );
+  return normalizeNotificationTelegramChatId(result.rows[0]?.provider_subject);
+}
+
+async function listRecipients(limit = 250, telegramOnly = false): Promise<RecipientRow[]> {
   const result = await getPool().query(
     `SELECT u.id,
             u.name,
@@ -861,7 +878,11 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
      -- на неделю глушить реально достижимого человека — так владелец и живые премиум-юзеры выпадали из
      -- рассылки после единичного фейла. Стойкий блокировщик фейлит каждый раз → быстро набирает 2 и
      -- отсекается (нет 90%+ спама по «мёртвым»). Самоисцеляется: успешная отправка/7 дней → снова в базе.
-     WHERE (
+     WHERE ($2::boolean = FALSE OR EXISTS (
+       SELECT 1 FROM account_identities ai
+       WHERE ai.user_id = u.id AND ai.provider = 'telegram' AND ai.verified_at IS NOT NULL
+         AND ai.provider_subject ~ '^[1-9][0-9]{0,15}$'
+     )) AND (
        SELECT COUNT(*) FROM scheduled_notifications sn
        WHERE sn.user_id = u.id
          AND sn.status = 'failed'
@@ -874,7 +895,7 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
      ) < 2
      ORDER BY COALESCE(u.last_login, u.created_at) DESC NULLS LAST, u.id DESC
      LIMIT $1`,
-    [Math.max(1, Math.min(limit, 2000))]
+    [Math.max(1, Math.min(limit, 2000)), telegramOnly]
   );
   return result.rows.map((row: any) => ({
     id: String(row.id),
@@ -1195,12 +1216,16 @@ export async function planRetentionNotifications(
   const allowedTypes = jobAllowedTypes(jobType);
   const recipients = options?.userId
     ? [await buildPersonalizationContext(options.userId, now).then((ctx) => ctx.user)]
-    : await listRecipients(options?.limit ?? 250);
+    : await listRecipients(options?.limit ?? 250, true);
   const results: Array<{ userId: string; status: string; type?: string; detail?: string; id?: number | null }> = [];
   let enqueued = 0;
 
   for (const recipient of recipients) {
     try {
+      if (!await resolveNotificationTelegramRecipient(recipient.id)) {
+        results.push({ userId: recipient.id, status: 'skipped', detail: 'telegram_identity_missing' });
+        continue;
+      }
       const context = await buildContextForRecipient(recipient, now);
       const candidate = await createCandidate(context, scenarios, allowedTypes);
       if (!candidate) {
@@ -1501,11 +1526,29 @@ export async function dispatchScheduledNotifications(
   const results: Array<{ id: number; ok: boolean; detail: string; dryRun?: boolean }> = [];
   let successCount = 0;
   let failureCount = 0;
+  let skippedCount = 0;
 
   for (const row of rows) {
     const payload = json(row.payload_json, {});
     let logId: number | null = null;
     try {
+      const telegramChatId = await resolveNotificationTelegramRecipient(String(row.user_id));
+      if (!telegramChatId) {
+        if (!dryRun) {
+          // Locking the row reserves an attempt; no delivery was attempted without a linked Telegram account.
+          await getPool().query(
+            `UPDATE scheduled_notifications
+             SET status = 'skipped', locked_at = NULL, next_retry_at = NULL,
+                 attempt_count = GREATEST(0, attempt_count - 1),
+                 reason = 'telegram_identity_missing', error = NULL, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1 AND status = 'sending'`,
+            [row.id]
+          );
+        }
+        skippedCount += 1;
+        results.push({ id: Number(row.id), ok: true, detail: 'skipped:telegram_identity_missing', dryRun });
+        continue;
+      }
       if (dryRun) {
         const deepLink = buildNotificationDeepLink({
           baseUrl: appBaseUrl(),
@@ -1549,8 +1592,8 @@ export async function dispatchScheduledNotifications(
         notificationType: row.notification_type,
       });
       const sendResult = payload.assetPublicUrl
-          ? await sendTelegramPhotoMessage(String(row.user_id), absoluteAssetUrl(payload.assetPublicUrl), payload.caption || payload.body || '', { replyMarkup })
-          : await sendTelegramTextMessage(String(row.user_id), payload.caption || [payload.title, payload.body].filter(Boolean).join('\n\n'), { replyMarkup });
+          ? await sendTelegramPhotoMessage(telegramChatId, absoluteAssetUrl(payload.assetPublicUrl), payload.caption || payload.body || '', { replyMarkup })
+          : await sendTelegramTextMessage(telegramChatId, payload.caption || [payload.title, payload.body].filter(Boolean).join('\n\n'), { replyMarkup });
       await markQueueResult(row, logId, sendResult, finalPayload);
       if (sendResult.ok) successCount += 1;
       else failureCount += 1;
@@ -1567,6 +1610,7 @@ export async function dispatchScheduledNotifications(
     total: rows.length,
     successCount,
     failureCount,
+    skippedCount,
     results,
   };
 }
@@ -1596,6 +1640,10 @@ export async function sendNotificationSelfTest(userId: string): Promise<Notifica
     return { ok: false, dryRun: true, error: 'NOTIFICATION_DRY_RUN=1 — реальная отправка отключена' };
   }
 
+  const telegramChatId = await resolveNotificationTelegramRecipient(userId);
+  if (!telegramChatId) {
+    return { ok: false, error: 'Подключите Telegram к аккаунту, чтобы получить тестовое уведомление' };
+  }
   const context = await buildPersonalizationContext(userId);
   const scenarios = await listEnabledRetentionScenarios();
   if (!scenarios.length) {
@@ -1653,8 +1701,8 @@ export async function sendNotificationSelfTest(userId: string): Promise<Notifica
     });
 
     const result = candidate.template?.asset_public_url
-      ? await sendTelegramPhotoMessage(userId, absoluteAssetUrl(candidate.template.asset_public_url), rendered.caption || rendered.body, { replyMarkup })
-      : await sendTelegramTextMessage(userId, rendered.caption || [rendered.title, rendered.body].filter(Boolean).join('\n\n'), { replyMarkup });
+      ? await sendTelegramPhotoMessage(telegramChatId, absoluteAssetUrl(candidate.template.asset_public_url), rendered.caption || rendered.body, { replyMarkup })
+      : await sendTelegramTextMessage(telegramChatId, rendered.caption || [rendered.title, rendered.body].filter(Boolean).join('\n\n'), { replyMarkup });
 
     await recordEvent({
       userId,

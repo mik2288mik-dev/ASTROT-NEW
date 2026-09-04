@@ -17,6 +17,7 @@ import {
 } from '../services/notificationRetentionService';
 import { processPendingRuStoreEvents } from './rustorePayments';
 import { processSupportDeliveryOutbox } from './supportOutbox';
+import { ensureNeboOpsWorker } from './neboOps';
 
 const MSK_TZ = 'Europe/Moscow';
 const DISPATCH_INTERVAL_MS = 3 * 60 * 1000; // отправка очереди каждые 3 минуты
@@ -191,6 +192,7 @@ export function isSchedulerAllowedByEnv(): boolean {
  * вызывать многократно — реальный старт произойдёт один раз (флаг started).
  */
 export function ensureNotificationScheduler(source = 'unknown'): void {
+  ensureNeboOpsWorker();
   if (started) return;
   if (!isSchedulerAllowedByEnv()) return;
   startNotificationScheduler();

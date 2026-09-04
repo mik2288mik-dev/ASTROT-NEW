@@ -1,7 +1,9 @@
 import crypto from 'crypto';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import type { PoolClient } from 'pg';
 import { AdminAuthError, getVerifiedTelegramUser } from '../adminAuth';
 import { db, getPool } from '../db';
+import { enqueueNeboOpsEvent, wakeNeboOpsDelivery } from '../neboOps';
 import { isGuestUserId } from '../userId';
 import {
   assertAppSessionActive,
@@ -265,6 +267,23 @@ const INSERT_APP_SESSION_SQL = `INSERT INTO app_sessions
   VALUES ($1, $2, $3, $4, $5, $6::SMALLINT, $7, 0, $8,
           CASE WHEN $6::SMALLINT = 2 THEN clock_timestamp() ELSE NULL END)`;
 
+async function loginNotificationContext(client: PoolClient, userId: string) {
+  if (process.env.NEBO_OPS_TELEGRAM_ENABLED !== '1') return null;
+  // Serialize first-session classification without changing the account and
+  // password credential locks that protect session issuance against resets.
+  await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`nebo-login:${userId}`]);
+  const result = await client.query(
+    `SELECT auth_provider,
+            (last_login IS NULL AND created_at >= NOW() - INTERVAL '30 minutes'
+             AND NOT EXISTS (SELECT 1 FROM app_sessions WHERE user_id = users.id)) AS is_first_login
+     FROM users WHERE id = $1`,
+    [userId],
+  );
+  return result.rows[0]
+    ? { provider: result.rows[0].auth_provider, isFirstLogin: result.rows[0].is_first_login === true }
+    : null;
+}
+
 export async function createGuestAppUser(
   res: NextApiResponse,
   sessionVersion?: unknown,
@@ -346,6 +365,7 @@ export async function createAppUserSession(input: {
     const client = await getPool().connect();
     try {
       await client.query('BEGIN');
+      const notification = await loginNotificationContext(client, input.userId);
       const account = await client.query(
         `SELECT is_blocked
          FROM users
@@ -363,7 +383,16 @@ export async function createAppUserSession(input: {
         INSERT_APP_SESSION_SQL,
         sessionInsertValues(input, plan),
       );
+      if (notification) {
+        await enqueueNeboOpsEvent(client, {
+          eventKey: `auth:${sessionId}`,
+          eventType: 'login',
+          userId: input.userId,
+          payload: { ...notification, runtime: input.kind },
+        });
+      }
       await client.query('COMMIT');
+      if (notification) wakeNeboOpsDelivery();
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
       throw error;
@@ -398,6 +427,7 @@ export async function createPasswordAppUserSession(input: {
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
+    const notification = await loginNotificationContext(client, input.userId);
     const credential = await client.query(
       `SELECT c.password_version, u.is_blocked
        FROM account_password_credentials c
@@ -419,7 +449,16 @@ export async function createPasswordAppUserSession(input: {
       INSERT_APP_SESSION_SQL,
       sessionInsertValues(input, plan),
     );
+    if (notification) {
+      await enqueueNeboOpsEvent(client, {
+        eventKey: `auth:${sessionId}`,
+        eventType: 'login',
+        userId: input.userId,
+        payload: { ...notification, runtime: input.kind },
+      });
+    }
     await client.query('COMMIT');
+    if (notification) wakeNeboOpsDelivery();
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
     throw error;
@@ -446,7 +485,39 @@ async function resolveTelegramUser(req: NextApiRequest): Promise<AppUserContext>
   const rawInitData = header(req, 'x-telegram-init-data');
   const sessionId = `telegram:${crypto.createHash('sha256').update(rawInitData).digest('hex')}`;
   if (process.env.DATABASE_URL) {
-    await persistAppSession({ sessionId, userId: identity.userId, kind: 'telegram' });
+    if (process.env.NEBO_OPS_TELEGRAM_ENABLED === '1') {
+      const client = await getPool().connect();
+      try {
+        await client.query('BEGIN');
+        const notification = await loginNotificationContext(client, identity.userId);
+        const account = await client.query('SELECT is_blocked FROM users WHERE id = $1 FOR SHARE', [identity.userId]);
+        if (!account.rows[0]) throw new AdminAuthError(401, 'APP_ACCOUNT_NOT_FOUND', 'Account no longer exists');
+        if (account.rows[0].is_blocked === true) throw new AdminAuthError(403, 'ACCOUNT_BLOCKED', 'Account is blocked');
+        const inserted = await client.query(
+          `INSERT INTO app_sessions (session_id, user_id, session_kind, expires_at)
+           VALUES ($1, $2, 'telegram', $3)
+           ON CONFLICT (session_id) DO NOTHING RETURNING session_id`,
+          [sessionId, identity.userId, new Date(Date.now() + LEGACY_SESSION_TTL_SECONDS * 1000).toISOString()],
+        );
+        if (inserted.rowCount && notification) {
+          await enqueueNeboOpsEvent(client, {
+            eventKey: `auth:${sessionId}`,
+            eventType: 'login',
+            userId: identity.userId,
+            payload: { ...notification, runtime: 'telegram' },
+          });
+        }
+        await client.query('COMMIT');
+        if (inserted.rowCount && notification) wakeNeboOpsDelivery();
+      } catch (error) {
+        await client.query('ROLLBACK').catch(() => undefined);
+        throw error;
+      } finally {
+        client.release();
+      }
+    } else {
+      await persistAppSession({ sessionId, userId: identity.userId, kind: 'telegram' });
+    }
     await assertAppSessionActive(sessionId, identity.userId);
   }
   return {
