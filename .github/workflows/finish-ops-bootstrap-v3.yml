@@ -1,0 +1,110 @@
+name: Finish ops and APK fixes v3
+
+on:
+  push:
+    branches:
+      - fix/finish-ops-apk-20260905
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/finish-ops-apk-20260905
+          fetch-depth: 0
+
+      - name: Apply remaining fixes
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const read = (path) => fs.readFileSync(path, 'utf8');
+          const write = (path, value) => fs.writeFileSync(path, value, 'utf8');
+          function replaceOnce(path, from, to) {
+            const current = read(path);
+            const count = current.split(from).length - 1;
+            if (count !== 1) throw new Error(`${path}: expected one match, got ${count}`);
+            write(path, current.replace(from, to));
+          }
+
+          replaceOnce(
+            'services/astrologyService.ts',
+            "const SIGN_HOROSCOPE_POLL_TIMEOUT_MS = 90_000;\n",
+            "const SIGN_HOROSCOPE_POLL_TIMEOUT_MS = 90_000;\nconst SYNASTRY_EXTENDED_REQUEST_TIMEOUT_MS = 90_000;\n",
+          );
+          {
+            const path = 'services/astrologyService.ts';
+            const current = read(path);
+            const start = current.indexOf('export const calculateExtendedSynastry = async');
+            const end = current.indexOf('export const updateUserEvolution', start);
+            if (start < 0 || end < 0) throw new Error('calculateExtendedSynastry block not found');
+            const before = current.slice(0, start);
+            let block = current.slice(start, end);
+            const close = "\n  });\n\n  if (!response.ok)";
+            if (!block.includes(close)) throw new Error('extended synastry apiFetch closing marker not found');
+            block = block.replace(close, "\n  }, SYNASTRY_EXTENDED_REQUEST_TIMEOUT_MS);\n\n  if (!response.ok)");
+            write(path, before + block + current.slice(end));
+          }
+
+          replaceOnce(
+            'scripts/build-mobile.mjs',
+            "const sourceRevision = spawnSync('git', ['rev-parse', '--verify', 'HEAD'], {\n  cwd: process.cwd(),\n  encoding: 'utf8',\n  shell: false,\n});\nif (sourceRevision.error || sourceRevision.status !== 0) {\n  fail('Could not resolve the source commit for the mobile build marker.');\n}\nconst sourceCommit = String(sourceRevision.stdout || '').trim().toLowerCase();\nif (!/^[0-9a-f]{40}$/.test(sourceCommit)) fail('The resolved source commit is invalid.');",
+            "const sourceCommitOverride = [\n  process.env.SOURCE_COMMIT,\n  process.env.RAILWAY_GIT_COMMIT_SHA,\n  process.env.GITHUB_SHA,\n].map((value) => String(value || '').trim().toLowerCase()).find((value) => /^[0-9a-f]{40}$/.test(value));\nlet sourceCommit = sourceCommitOverride || '';\nif (!sourceCommit) {\n  const sourceRevision = spawnSync('git', ['rev-parse', '--verify', 'HEAD'], {\n    cwd: process.cwd(),\n    encoding: 'utf8',\n    shell: false,\n  });\n  if (sourceRevision.error || sourceRevision.status !== 0) {\n    fail('Could not resolve the source commit for the mobile build marker. Set SOURCE_COMMIT in archive-only build environments.');\n  }\n  sourceCommit = String(sourceRevision.stdout || '').trim().toLowerCase();\n}\nif (!/^[0-9a-f]{40}$/.test(sourceCommit)) fail('The resolved source commit is invalid.');",
+          );
+
+          replaceOnce(
+            'android/app/build.gradle',
+            "def vkIdAndroidClientSecret = authValue('VK_ID_ANDROID_CLIENT_SECRET')\ndef vkIdConfigured = !vkAndroidClientId.isEmpty() && !vkIdAndroidClientSecret.isEmpty()",
+            "def vkIdAndroidClientSecret = authValue('VK_ID_ANDROID_CLIENT_SECRET')\ndef vkIdConfigured = !vkAndroidClientId.isEmpty() && !vkIdAndroidClientSecret.isEmpty()\ndef myTrackerSdkKey = authValue('MYTRACKER_SDK_KEY')",
+          );
+          replaceOnce(
+            'android/app/build.gradle',
+            "        buildConfigField 'boolean', 'VK_ID_CONFIGURED', vkIdConfigured ? 'true' : 'false'\n",
+            "        buildConfigField 'boolean', 'VK_ID_CONFIGURED', vkIdConfigured ? 'true' : 'false'\n        buildConfigField 'String', 'MYTRACKER_SDK_KEY', buildConfigString(myTrackerSdkKey)\n",
+          );
+          replaceOnce(
+            'android/app/build.gradle',
+            "def mobileBuildMarkerFile = file('src/main/assets/public/nebo-mobile-build.json')\ndef currentSourceCommit = providers.exec {\n    workingDir rootProject.file('..')\n    commandLine 'git', 'rev-parse', '--verify', 'HEAD'\n}.standardOutput.asText.map { it.trim().toLowerCase() }",
+            "def mobileBuildMarkerFile = file('src/main/assets/public/nebo-mobile-build.json')\ndef sourceCommitOverride = authValue('SOURCE_COMMIT') ?: authValue('RAILWAY_GIT_COMMIT_SHA') ?: authValue('GITHUB_SHA')\ndef currentSourceCommit = sourceCommitOverride\n    ? providers.provider { sourceCommitOverride.toLowerCase() }\n    : providers.exec {\n        workingDir rootProject.file('..')\n        commandLine 'git', 'rev-parse', '--verify', 'HEAD'\n      }.standardOutput.asText.map { it.trim().toLowerCase() }",
+          );
+          replaceOnce(
+            'android/app/build.gradle',
+            "    implementation 'com.vk.id:vkid:2.7.2'\n",
+            "    implementation 'com.vk.id:vkid:2.7.2'\n    implementation 'com.my.tracker:mytracker-sdk:3.6.0'\n",
+          );
+
+          replaceOnce(
+            'android/app/src/main/AndroidManifest.xml',
+            "    <application\n        android:allowBackup=\"false\"",
+            "    <application\n        android:name=\".NeboApplication\"\n        android:allowBackup=\"false\"",
+          );
+
+          write('android/app/src/main/java/ru/tvoygoroskop/app/NeboApplication.java', `package ru.tvoygoroskop.app;\n\nimport android.app.Application;\nimport android.util.Log;\n\nimport com.my.tracker.MyTracker;\nimport com.my.tracker.MyTrackerConfig;\n\n/** Optional Android analytics setup. An empty SDK key keeps MyTracker disabled. */\npublic final class NeboApplication extends Application {\n    private static final String TAG = \"NEBO-MYTRACKER\";\n\n    @Override\n    public void onCreate() {\n        super.onCreate();\n        final String sdkKey = BuildConfig.MYTRACKER_SDK_KEY == null ? \"\" : BuildConfig.MYTRACKER_SDK_KEY.trim();\n        if (sdkKey.isEmpty()) {\n            Log.i(TAG, \"disabled: SDK key is not configured\");\n            return;\n        }\n        try {\n            MyTrackerConfig config = MyTracker.getTrackerConfig();\n            config.setAutotrackingPurchaseEnabled(false);\n            MyTracker.initTracker(sdkKey, this);\n            Log.i(TAG, \"initialized\");\n        } catch (Throwable error) {\n            Log.e(TAG, \"initialization failed without blocking app startup\", error);\n        }\n    }\n}\n`);
+
+          {
+            const path = '.env.example';
+            let env = read(path);
+            if (!env.includes('MYTRACKER_SDK_KEY=')) {
+              const marker = 'VK_ID_ANDROID_CLIENT_SECRET=\n';
+              if (!env.includes(marker)) throw new Error('.env.example VK marker not found');
+              env = env.replace(marker, `${marker}# Optional Android analytics/attribution. Leave empty to disable MyTracker entirely.\nMYTRACKER_SDK_KEY=\n`);
+              write(path, env);
+            }
+          }
+
+          write('__tests__/finish-ops-apk-contract.test.ts', `import fs from 'fs';\nimport path from 'path';\n\nconst read = (file: string) => fs.readFileSync(path.resolve(process.cwd(), file), 'utf8');\n\ndescribe('remaining ops/APK release contracts', () => {\n  it('lets extended compatibility wait for a second generation attempt', () => {\n    const service = read('services/astrologyService.ts');\n    expect(service).toContain('const SYNASTRY_EXTENDED_REQUEST_TIMEOUT_MS = 90_000;');\n    expect(service).toContain('}, SYNASTRY_EXTENDED_REQUEST_TIMEOUT_MS);');\n  });\n\n  it('resolves mobile provenance from CI/Railway when the source archive has no .git directory', () => {\n    const mobile = read('scripts/build-mobile.mjs');\n    const gradle = read('android/app/build.gradle');\n    expect(mobile).toContain('process.env.RAILWAY_GIT_COMMIT_SHA');\n    expect(mobile).toContain('process.env.GITHUB_SHA');\n    expect(gradle).toContain("authValue('RAILWAY_GIT_COMMIT_SHA')");\n    expect(gradle).toContain("authValue('GITHUB_SHA')");\n  });\n\n  it('keeps MyTracker disabled without a key and avoids duplicate payment tracking', () => {\n    const gradle = read('android/app/build.gradle');\n    const manifest = read('android/app/src/main/AndroidManifest.xml');\n    const app = read('android/app/src/main/java/ru/tvoygoroskop/app/NeboApplication.java');\n    expect(gradle).toContain("implementation 'com.my.tracker:mytracker-sdk:3.6.0'");\n    expect(gradle).toContain("buildConfigField 'String', 'MYTRACKER_SDK_KEY'");\n    expect(manifest).toContain('android:name=\".NeboApplication\"');\n    expect(app).toContain('if (sdkKey.isEmpty())');\n    expect(app).toContain('setAutotrackingPurchaseEnabled(false)');\n  });\n});\n`);
+          NODE
+
+          git rm .github/workflows/finish-ops-bootstrap-v3.yml
+          git add services/astrologyService.ts scripts/build-mobile.mjs android/app/build.gradle \
+            android/app/src/main/AndroidManifest.xml android/app/src/main/java/ru/tvoygoroskop/app/NeboApplication.java \
+            .env.example __tests__/finish-ops-apk-contract.test.ts
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "Fix compatibility timeout and Android tracking setup"
+          git push origin HEAD:fix/finish-ops-apk-20260905
