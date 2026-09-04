@@ -7,6 +7,7 @@
   --line: rgba(255,255,255,.14);
   --gold: #d5a45e;
   --gold-soft: #f0d7ad;
+  --display-font: "Segoe UI Variable Display", "Segoe UI", Inter, Arial, sans-serif;
   overflow: clip;
   background: var(--bg);
   color: var(--ink);
@@ -20,8 +21,8 @@
 .heroShade { position: absolute; inset: 0; z-index: -2; background: linear-gradient(90deg, rgba(5,5,5,.98) 0%, rgba(5,5,5,.88) 42%, rgba(5,5,5,.22) 76%, rgba(5,5,5,.48) 100%), linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.76)); }
 .heroInner { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, .82fr); gap: clamp(50px, 7vw, 110px); align-items: center; padding: clamp(56px, 8svh, 88px) 0 clamp(44px, 6svh, 72px); }
 .heroCopy { position: relative; z-index: 4; max-width: 760px; }
-.heroCopy h1 { margin: 0; font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif; font-size: clamp(58px, 7.2vw, 118px); font-weight: 400; line-height: .89; letter-spacing: -.055em; text-wrap: balance; }
-.heroCopy h1 em { color: var(--gold-soft); font-weight: 400; }
+.heroCopy h1 { margin: 0; font-family: var(--display-font); font-size: clamp(54px, 5.3vw, 88px); font-weight: 650; line-height: .94; letter-spacing: -.055em; text-wrap: balance; }
+.heroCopy h1 em { color: var(--gold-soft); font-style: normal; font-weight: 700; }
 .heroLead { max-width: 59ch; margin: 34px 0 0; color: #d1c9be; font-size: clamp(17px, 1.25vw, 21px); line-height: 1.6; }
 .heroActions, .inlineActions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 34px; }
 .secondaryButton, .lightButton { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; padding: 0 20px; border: 1px solid rgba(255,255,255,.28); border-radius: 999px; color: #fff; text-decoration: none; backdrop-filter: blur(16px); background: rgba(12,12,12,.26); transition: transform .2s ease, border-color .2s ease, background .2s ease; }
@@ -42,7 +43,7 @@
 
 .intro, .forecastSection, .exploreSection, .howSection, .faqSection { position: relative; border-bottom: 1px solid var(--line); background: var(--bg); padding: clamp(90px, 10vw, 160px) 0; content-visibility: auto; contain-intrinsic-size: 800px; }
 .introHeading, .exploreHeader { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(260px,.55fr); gap: clamp(40px, 8vw, 120px); align-items: end; margin-bottom: 64px; }
-.introHeading h2, .exploreHeader h2, .forecastHeading h2, .howSection h2, .faqIntro h2, .finalInner h2, .editorialCopy h2 { margin: 0; font-family: ui-serif, Georgia, serif; font-size: clamp(42px, 5.2vw, 80px); font-weight: 400; line-height: .98; letter-spacing: -.045em; }
+.introHeading h2, .exploreHeader h2, .forecastHeading h2, .howSection h2, .faqIntro h2, .finalInner h2, .editorialCopy h2 { margin: 0; font-family: var(--display-font); font-size: clamp(40px, 4.7vw, 72px); font-weight: 650; line-height: 1; letter-spacing: -.045em; text-wrap: balance; }
 .introHeading p, .exploreHeader > p, .forecastHeading > p { margin: 0; max-width: 48ch; color: var(--muted); font-size: 17px; line-height: 1.6; }
 
 .featureGrid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 230px; gap: 16px; }
@@ -56,7 +57,7 @@
 .featureMedia img { object-fit: cover; transition: transform .65s cubic-bezier(.2,.7,.2,1); }
 .featureCard:hover .featureMedia img { transform: scale(1.035); }
 .featureCopy { position: absolute; z-index: 2; left: 26px; right: 26px; bottom: 24px; display: grid; gap: 8px; }
-.featureCopy h3 { margin: 0; font-family: ui-serif, Georgia, serif; font-size: clamp(26px, 3vw, 42px); font-weight: 400; letter-spacing: -.035em; }
+.featureCopy h3 { margin: 0; font-family: var(--display-font); font-size: clamp(26px, 3vw, 42px); font-weight: 650; letter-spacing: -.035em; }
 .featureCopy p { margin: 0; max-width: 52ch; color: #c4bcb1; line-height: 1.45; }
 .featureCopy span { margin-top: 6px; color: var(--gold-soft); font-size: 13px; }
 
@@ -83,7 +84,7 @@
 .exploreGrid a:nth-child(3n) { border-right: 0; }
 .exploreGrid a:hover { background: rgba(255,255,255,.035); }
 .exploreGrid span { color: var(--muted); font-size: 12px; }
-.exploreGrid strong { max-width: 12ch; font-family: ui-serif, Georgia, serif; font-size: clamp(25px, 3vw, 39px); font-weight: 400; line-height: 1.02; }
+.exploreGrid strong { max-width: 12ch; font-family: var(--display-font); font-size: clamp(25px, 3vw, 39px); font-weight: 650; line-height: 1.02; letter-spacing: -.035em; }
 .exploreGrid b { position: absolute; right: 24px; top: 22px; color: var(--gold); font-weight: 400; }
 
 .howSection { background: #f0ebe2; color: #111; }
@@ -94,7 +95,7 @@
 .steps li + li { padding-left: 34px; }
 .steps li:last-child { border-right: 0; }
 .steps span { font-size: 11px; color: #8d7d69; }
-.steps h3 { margin: 62px 0 12px; font-family: ui-serif, Georgia, serif; font-size: 30px; font-weight: 400; letter-spacing: -.03em; }
+.steps h3 { margin: 62px 0 12px; font-family: var(--display-font); font-size: 30px; font-weight: 650; letter-spacing: -.03em; }
 .steps p { margin: 0; max-width: 34ch; color: #5a554d; line-height: 1.55; }
 
 .faqGrid { display: grid; grid-template-columns: minmax(280px,.55fr) minmax(0,1fr); gap: clamp(50px, 10vw, 160px); }
@@ -123,7 +124,7 @@
 
 @media (max-height: 700px) and (min-width: 981px) {
   .heroInner { padding-block: 42px; }
-  .heroCopy h1 { font-size: clamp(58px, 6vw, 92px); }
+  .heroCopy h1 { font-size: clamp(52px, 5vw, 76px); }
   .heroLead, .heroActions { margin-top: 24px; }
   .heroFacts { margin-top: 26px; }
   .productStage { min-height: 410px; }

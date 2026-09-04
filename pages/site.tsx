@@ -2,8 +2,8 @@ import { PageHead, PublicSiteShell } from '../components/public-site/PublicSiteS
 import { NeboLanding } from '../components/public-site/NeboLanding';
 import { PUBLIC_SITE_CONFIG, isRuStorePublished } from '../lib/publicSiteConfig';
 
-const title = 'NEBO — личный гороскоп, натальная карта и совместимость';
-const description = 'NEBO — личный прогноз на сегодня, неделю и месяц, натальная карта по дате рождения, совместимость и гороскопы всех знаков.';
+const title = 'Гороскоп на сегодня, натальная карта и совместимость | NEBO';
+const description = 'Гороскоп на сегодня для всех знаков зодиака в NEBO. Натальная карта по дате рождения, личный прогноз и совместимость двух людей.';
 
 function homeSchema() {
   const software: Record<string, unknown> = {

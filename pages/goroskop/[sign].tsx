@@ -44,10 +44,10 @@ export default function SignHoroscopePage({ sign }: InferGetStaticPropsType<type
   return (
     <PublicSeoPage
       path={path}
-      title={`Гороскоп для ${sign.genitive}: знак и личный прогноз`}
-      description={`${sign.name}: что обычно связывают с этим знаком, ежедневный гороскоп и чем общий прогноз отличается от личного прогноза NEBO.`}
-      eyebrow={`Гороскоп · ${sign.name}`}
-      heading={`Гороскоп для ${sign.genitive}`}
+      title={`Гороскоп для ${sign.genitive} на сегодня`}
+      description={`Гороскоп для ${sign.genitive} на сегодня в NEBO. Кратко о знаке ${sign.name}, его сильных сторонах, общении и личном прогнозе.`}
+      eyebrow={`Гороскоп на сегодня · ${sign.name}`}
+      heading={`Гороскоп для ${sign.genitive} на сегодня`}
       lead={<p>{sign.summary}</p>}
       breadcrumbs={[
         { name: 'Гороскоп по знакам', path: '/goroskop' },
@@ -75,7 +75,7 @@ export default function SignHoroscopePage({ sign }: InferGetStaticPropsType<type
       <section>
         <h2>Общий и личный гороскоп</h2>
         <p>Ежедневный гороскоп для {sign.genitive} опирается на солнечный знак, поэтому остаётся общим для многих людей.</p>
-        <p><Link href="/natalnaya-karta">Натальная карта</Link> показывает намного больше деталей. <Link href="/lichnyy-goroskop">Личный прогноз</Link> учитывает твою сохранённую карту.</p>
+        <p><Link href="/natalnaya-karta">Натальная карта</Link> показывает намного больше деталей. <Link href="/lichnyy-goroskop">Личный прогноз</Link> учитывает дату, время и место рождения.</p>
       </section>
 
       <section>

@@ -25,17 +25,17 @@ export const PUBLIC_SITE_SEO = {
   logoPath: '/assets/brand/nebo-app-icon-512.png',
   manifestPath: '/site.webmanifest',
   navigation: [
-    { href: '/lichnyy-goroskop', label: 'Личный гороскоп' },
-    { href: '/natalnaya-karta', label: 'Натальная карта' },
     { href: '/goroskop', label: 'Гороскопы' },
+    { href: '/natalnaya-karta', label: 'Натальная карта' },
     { href: '/sovmestimost', label: 'Совместимость' },
+    { href: '/lichnyy-goroskop', label: 'Личный прогноз' },
     { href: '/support', label: 'Поддержка' },
   ],
   defaultSocialImage: {
     path: '/home/cards/today-hero.webp',
     width: 1400,
     height: 788,
-    alt: `${PUBLIC_SITE_CONFIG.appName}: персональный прогноз, натальная карта и совместимость`,
+    alt: `${PUBLIC_SITE_CONFIG.appName}: гороскоп на сегодня, натальная карта и совместимость`,
     type: 'image/webp',
   } satisfies PublicSiteSocialImage,
 } as const;

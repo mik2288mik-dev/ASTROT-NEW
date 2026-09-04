@@ -16,7 +16,10 @@ import { isPublicLegalReady } from '../lib/publicSiteConfig';
 const CORE_PATHS = [
   '/',
   '/lichnyy-goroskop',
+  '/znak-zodiaka-po-date-rozhdeniya',
   '/natalnaya-karta',
+  '/natalnaya-karta/ascendent',
+  '/natalnaya-karta/lunnyy-znak',
   '/natalnaya-karta/doma',
   '/natalnaya-karta/planety-v-znakah',
   '/natalnaya-karta/planety-v-domah',
