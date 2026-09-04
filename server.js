@@ -1,0 +1,1 @@
+require('./scripts/auth-apk-server.cjs');
