@@ -130,15 +130,23 @@ if (result.status !== 0) process.exit(result.status ?? 1);
 const outputDirectory = path.resolve('out');
 if (!fs.existsSync(outputDirectory)) fail('Next did not produce the static mobile output directory.');
 
-const sourceRevision = spawnSync('git', ['rev-parse', '--verify', 'HEAD'], {
-  cwd: process.cwd(),
-  encoding: 'utf8',
-  shell: false,
-});
-if (sourceRevision.error || sourceRevision.status !== 0) {
-  fail('Could not resolve the source commit for the mobile build marker.');
+const sourceCommitOverride = [
+  process.env.SOURCE_COMMIT,
+  process.env.RAILWAY_GIT_COMMIT_SHA,
+  process.env.GITHUB_SHA,
+].map((value) => String(value || '').trim().toLowerCase()).find((value) => /^[0-9a-f]{40}$/.test(value));
+let sourceCommit = sourceCommitOverride || '';
+if (!sourceCommit) {
+  const sourceRevision = spawnSync('git', ['rev-parse', '--verify', 'HEAD'], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    shell: false,
+  });
+  if (sourceRevision.error || sourceRevision.status !== 0) {
+    fail('Could not resolve the source commit for the mobile build marker. Set SOURCE_COMMIT in archive-only build environments.');
+  }
+  sourceCommit = String(sourceRevision.stdout || '').trim().toLowerCase();
 }
-const sourceCommit = String(sourceRevision.stdout || '').trim().toLowerCase();
 if (!/^[0-9a-f]{40}$/.test(sourceCommit)) fail('The resolved source commit is invalid.');
 
 const versionCode = String(process.env.APP_VERSION_CODE || (storeProfile ? '' : '1')).trim();

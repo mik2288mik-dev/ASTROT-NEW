@@ -134,6 +134,7 @@ const signPeriodPrefetchInFlight = new Map<string, Promise<Record<string, SignHo
 const SIGN_HOROSCOPE_LOCAL_CACHE_PREFIX = 'tvoi-goroskop:sign-horoscope-v4';
 const SIGN_HOROSCOPE_REQUEST_TIMEOUT_MS = 95_000;
 const SIGN_HOROSCOPE_POLL_TIMEOUT_MS = 90_000;
+const SYNASTRY_EXTENDED_REQUEST_TIMEOUT_MS = 90_000;
 
 export type SignHoroscopeClientPeriod = 'today' | 'week' | 'month';
 
@@ -1019,7 +1020,7 @@ export const calculateExtendedSynastry = async (
       partnerBirthTimeQuality: partner?.birthTimeQuality,
       relationshipContext,
     }),
-  });
+  }, SYNASTRY_EXTENDED_REQUEST_TIMEOUT_MS);
 
   if (!response.ok) {
     let errorMessage = `Synastry full failed: ${response.status}`;
