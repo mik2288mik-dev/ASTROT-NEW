@@ -1,0 +1,119 @@
+name: Verify remaining ops and Android fixes
+
+on:
+  push:
+    branches:
+      - fix/finish-ops-apk-20260905
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+      APP_SESSION_SECRET: ci-session-secret-not-for-production
+      NODE_ENV: test
+      NEXT_PUBLIC_MOBILE_BUILD: '1'
+      MOBILE_BUILD: '1'
+      NEXT_PUBLIC_API_URL: https://api.ci.example.invalid
+      NEXT_PUBLIC_DISTRIBUTION_CHANNEL: development
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH: ci.premium.month
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_QUARTER: ci.premium.quarter
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_YEAR: ci.premium.year
+      RUSTORE_ALLOWED_PRODUCT_IDS: ci.premium.month,ci.premium.quarter,ci.premium.year
+      RUSTORE_CONSOLE_APP_ID: '100000'
+      RUSTORE_PACKAGE_NAME: ru.tvoygoroskop.app
+      RUSTORE_PAY_MODE: sandbox
+      YANDEX_ANDROID_CLIENT_ID: ci-yandex-android-client
+      VK_ANDROID_CLIENT_ID: '100000'
+      VK_ID_ANDROID_CLIENT_SECRET: ci-vk-secret-not-for-production
+      APP_VERSION_CODE: '1'
+      APP_VERSION_NAME: 1.0.0-ci
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: horoscope
+          POSTGRES_PASSWORD: horoscope
+          POSTGRES_DB: horoscope_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U horoscope -d horoscope_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/finish-ops-apk-20260905
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply migrations
+        run: npm run migrate
+
+      - name: Run full tests
+        run: npm test -- --runInBand
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
+
+      - name: Verify diff
+        run: git diff --check origin/main...HEAD
+
+      - name: Build development mobile bundle
+        run: |
+          npm run android:validate
+          npm run build:mobile
+          npx cap sync android
+
+      - name: Resolve MyTracker dependency
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon app:dependencies --configuration developmentDebugRuntimeClasspath > "$RUNNER_TEMP/deps.txt"
+          grep -q "com.my.tracker:mytracker-sdk:3.6.0" "$RUNNER_TEMP/deps.txt"
+
+      - name: Compile development APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDevelopmentDebug
+
+      - name: Verify APK
+        run: |
+          APK=android/app/build/outputs/apk/development/debug/app-development-debug.apk
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          sha256sum "$APK"
+
+      - name: Remove temporary workflow after successful verification
+        run: |
+          git rm .github/workflows/verify-finish-ops.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "ci: remove temporary ops verification"
+          git push origin HEAD:fix/finish-ops-apk-20260905
