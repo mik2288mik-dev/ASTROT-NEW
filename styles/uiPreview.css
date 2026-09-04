@@ -549,6 +549,7 @@ body.ui-preview-document-scroll {
 .ui-preview-onboarding > label { display: grid; gap: 0.35rem; margin-top: 1.25rem; color: #77716b; font-size: 12px; }
 .ui-preview-onboarding input { min-height: 48px; border: 0; border-bottom: 1px solid rgba(57, 53, 48, 0.22); border-radius: 0; }
 .ui-preview-onboarding fieldset { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin: 1.7rem 0; padding: 0; border: 0; }
+.ui-preview-onboarding fieldset.ui-preview-gender { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 0; }
 .ui-preview-onboarding legend { grid-column: 1 / -1; margin-bottom: 0.6rem; color: #77716b; font-size: 12px; }
 .ui-preview-onboarding fieldset button { min-height: 44px; border: 1px solid rgba(57, 53, 48, 0.16); background: #fff; font-size: 12px; }
 .ui-preview-onboarding fieldset button[aria-pressed='true'] { border-color: #292724; background: #292724; color: #fff; }

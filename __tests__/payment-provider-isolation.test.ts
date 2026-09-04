@@ -17,9 +17,18 @@ describe('payment provider isolation', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('only asks Telegram Stars on the telegram channel', async () => {
-    telegram.mockResolvedValue(true);
+    telegram.mockResolvedValue('paid');
     await expect(getPaymentProvider('telegram').purchase(profile, 'premium_week')).resolves.toEqual({ status: 'completed' });
     expect(telegram).toHaveBeenCalledTimes(1);
+    expect(rustore).not.toHaveBeenCalled();
+  });
+
+  it('keeps an unresolved Telegram invoice pending instead of reporting payment success', async () => {
+    telegram.mockResolvedValue('pending');
+    await expect(getPaymentProvider('telegram').purchase(profile, 'premium_week')).resolves.toEqual({
+      status: 'pending',
+      reason: 'TELEGRAM_STARS_CONFIRMATION_PENDING',
+    });
     expect(rustore).not.toHaveBeenCalled();
   });
 

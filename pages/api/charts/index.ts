@@ -4,7 +4,7 @@ import { formatValidationErrors, validateNatalChartInput } from '../../../lib/va
 import { natalChartV2Repository } from '../../../lib/natalChartV2Repository';
 import { createOrReuseCanonicalChart, ensureCanonicalPrimaryChart, repairCanonicalChartForUser } from '../../../lib/natalChartPersistence';
 import { isCanonicalNatalChartDataComplete, normalizeBirthPlaceInput } from '../../../lib/natalChartCanonical';
-import { normalizeBirthTimeInput } from '../../../lib/birthTime';
+import { normalizeBirthClockTime, normalizeBirthTimeInput } from '../../../lib/birthTime';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
 import { requireAppUser } from '../../../lib/auth/appAuth';
@@ -29,11 +29,11 @@ async function persistChartIdentity(chart:any,subjectType:'self'|'saved_person',
 function chartMatchesPrimaryRequest(chart:any,input:any,coordinates:{lat:number;lon:number;timezone?:string}|null):boolean {
   if (!chart) return false;
   if (String(chart.birth_date||'')!==String(input.birthDate||'')) return false;
-  if (String(chart.birth_time||'')!==String(input.birthTime||'')) return false;
+  if (normalizeBirthClockTime(chart.birth_time)!==normalizeBirthClockTime(input.birthTime)) return false;
   if (String(chart.birth_time_mode||'')!==String(input.birthTimeMode||'')) return false;
   if (String(chart.birth_time_uncertainty_minutes??'')!==String(input.birthTimeUncertaintyMinutes??'')) return false;
-  if (String(chart.birth_time_range_start||'')!==String(input.birthTimeRangeStart||'')) return false;
-  if (String(chart.birth_time_range_end||'')!==String(input.birthTimeRangeEnd||'')) return false;
+  if (normalizeBirthClockTime(chart.birth_time_range_start)!==normalizeBirthClockTime(input.birthTimeRangeStart)) return false;
+  if (normalizeBirthClockTime(chart.birth_time_range_end)!==normalizeBirthClockTime(input.birthTimeRangeEnd)) return false;
   if (normalizeBirthPlaceInput(chart.birth_place)!==normalizeBirthPlaceInput(input.birthPlace)) return false;
   if (!coordinates) return true;
   if (Math.abs(Number(chart.latitude)-coordinates.lat)>0.000001) return false;
@@ -83,7 +83,9 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
       return res.status(405).json({error:'Method not allowed'});
     }
     const body=req.body||{};
-    const rawBirthTime=typeof body.birthTime==='string'?body.birthTime.trim():'';
+    const suppliedBirthTime=typeof body.birthTime==='string'?body.birthTime.trim():'';
+    let rawBirthTime=suppliedBirthTime;
+    try { rawBirthTime=normalizeBirthClockTime(suppliedBirthTime)||''; } catch { /* validation below returns the public input error */ }
     const language=body.language==='en'?'en':'ru';
     const validation=validateNatalChartInput({name:body.name||'My Chart',birthDate:body.birthDate,birthTime:rawBirthTime,birthPlace:body.birthPlace,language});
     if (!validation.isValid) {

@@ -7,7 +7,8 @@ import { isValidUserId } from "../lib/userId";
 import { ensureWebGuestSession, getTelegramInitDataHeaders } from "./sessionService";
 import { apiFetch, clearNativeSession, isNativeAppRuntime } from "./apiClient";
 import { clearNativeProviderCredentialState } from './accountAuthService';
-import type { BirthTimeMode } from '../lib/birthTime';
+import { normalizeBirthClockTime, type BirthTimeMode } from '../lib/birthTime';
+import { isReadableNatalChart } from '../lib/readableNatalChart';
 
 export class ProfileLoadError extends Error {
   status: number;
@@ -423,16 +424,17 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
     });
     
     if (response.ok) {
-      const chartData = await response.json() as NatalChartData;
+      const chartData: unknown = await response.json();
       
       // Валидация данных карты перед возвратом
-      if (!chartData || !chartData.sun || !chartData.moon || !chartData.rising) {
+      if (!isReadableNatalChart(chartData)) {
+        const diagnosticChart = chartData as Partial<NatalChartData> | null;
         log.error(`[getChartData] Invalid chart data received from database`, {
           userId,
           hasData: !!chartData,
-          hasSun: !!chartData?.sun,
-          hasMoon: !!chartData?.moon,
-          hasRising: !!chartData?.rising,
+          hasSun: !!diagnosticChart?.sun,
+          hasMoon: !!diagnosticChart?.moon,
+          hasRising: !!diagnosticChart?.rising,
         });
         return null;
       }
@@ -491,9 +493,10 @@ export interface ChartsResponse {
   isPremium?: boolean;
 }
 
-const normalizeChartListItem = (chart: ChartListItem): ChartListItem => ({
+export const normalizeChartListItem = (chart: ChartListItem): ChartListItem => ({
   ...chart,
   birth_date: toDateInputValue(chart.birth_date) || chart.birth_date,
+  birth_time: normalizeBirthClockTime(chart.birth_time),
 });
 
 /**

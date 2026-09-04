@@ -83,7 +83,10 @@ describe('NEBO Android release controls', () => {
     expect(settings).toContain('verifyEmailPasswordRegistration');
     expect(settings).toContain('if (recoveryIdentityRequired) onRecoveryIdentityReady?.()');
     expect(settings).toContain('VK ID, Яндекс или email');
-    expect(rustore.indexOf('await hasRecoveryIdentity()')).toBeLessThan(rustore.indexOf('await nativeBridge.purchase'));
+    const identityCheck = rustore.indexOf('hasRecoveryIdentity(),');
+    const purchase = rustore.indexOf('nativeBridge.purchase');
+    expect(identityCheck).toBeGreaterThan(-1);
+    expect(purchase).toBeGreaterThan(identityCheck);
     expect(rustore).toContain("'RECOVERY_IDENTITY_REQUIRED'");
     expect(rustore).toContain('SDK_TERMINAL_PURCHASE_FAILURE_REASONS.has(result.reason)');
   });

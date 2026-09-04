@@ -4,7 +4,11 @@ import type { PremiumPlanId } from '../lib/premiumPricing';
 import type { PaywallContext } from '../lib/paywallContext';
 import { hasActivePremium } from '../lib/accessMatrix';
 import { lumiaSelectionHaptic } from '../lib/haptics';
-import { canUseRuStorePay, resolveDistributionChannel } from '../lib/distributionChannel';
+import {
+  canUseRuStorePay,
+  canUseTelegramStars,
+  resolveDistributionChannel,
+} from '../lib/distributionChannel';
 import {
   loadRuStoreProducts,
   type RuStoreProduct,
@@ -13,6 +17,8 @@ import { STORE_RELEASE_CONFIG } from '../lib/storeReleaseConfig';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { NeboLogo } from '../components/brand/NeboLogo';
 import type { PurchaseRestoreStatus } from '../services/paymentProvider';
+import { loadTelegramPremiumPlans } from '../services/paymentPlanCatalog';
+import { paymentFailureCopy } from '../lib/paymentFailureCopy';
 import {
   getNatalReportAnswer,
   isNatalReportAnswerKey,
@@ -34,7 +40,7 @@ interface PaywallProps {
   onClose: () => void;
   onContinueFree: () => void;
   onRestore: () => Promise<PurchaseRestoreStatus>;
-  onManageSubscription?: () => Promise<void> | void;
+  onManageSubscription?: () => Promise<boolean> | boolean;
   onPlanSelected?: (planId: PremiumPlanId) => void;
   initialPlanId?: PremiumPlanId;
   resumeNotice?: string | null;
@@ -57,7 +63,13 @@ type CatalogPlan = {
   product?: RuStoreProduct;
 };
 
-const ORDER: PremiumPlanId[] = ['premium_month', 'premium_quarter', 'premium_year'];
+const RUSTORE_PLAN_ORDER: PremiumPlanId[] = ['premium_month', 'premium_quarter', 'premium_year'];
+const TELEGRAM_PLAN_ORDER: PremiumPlanId[] = [
+  'premium_week',
+  'premium_month',
+  'premium_quarter',
+  'premium_year',
+];
 const DEFAULT_PERIODS: Record<PremiumPlanId, { ru: string; en: string }> = {
   premium_week: { ru: '1 неделя', en: '1 week' },
   premium_month: { ru: '1 месяц', en: '1 month' },
@@ -112,6 +124,17 @@ function formatCatalogDuration(duration: string, language: 'ru' | 'en'): string 
   return labels[normalized]?.[language] || duration;
 }
 
+function formatCatalogDays(days: number, language: 'ru' | 'en'): string {
+  const exactPlanId = ({
+    7: 'premium_week',
+    30: 'premium_month',
+    90: 'premium_quarter',
+    365: 'premium_year',
+  } as Partial<Record<number, PremiumPlanId>>)[days];
+  if (exactPlanId) return DEFAULT_PERIODS[exactPlanId][language];
+  return language === 'ru' ? `${days} дн.` : `${days} days`;
+}
+
 export const Paywall: React.FC<PaywallProps> = ({
   profile,
   context,
@@ -131,8 +154,12 @@ export const Paywall: React.FC<PaywallProps> = ({
   const ru = language === 'ru';
   const distributionChannel = resolveDistributionChannel();
   const rustorePaymentsEnabled = canUseRuStorePay(distributionChannel);
+  const telegramPaymentsEnabled = canUseTelegramStars(distributionChannel);
+  const paymentCatalogEnabled = rustorePaymentsEnabled || telegramPaymentsEnabled;
+  const planOrder = telegramPaymentsEnabled ? TELEGRAM_PLAN_ORDER : RUSTORE_PLAN_ORDER;
   const alreadyPremium = hasActivePremium(profile);
-  const canManageInRuStore = profile.premiumEntitlement?.source === 'rustore';
+  const canManageInRuStore = rustorePaymentsEnabled
+    && profile.premiumEntitlement?.source === 'rustore';
   const natalAnswer = context.placement === 'deep_natal'
     && isNatalReportAnswerKey(context.returnEntityId)
       ? getNatalReportAnswer(context.returnEntityId)
@@ -149,33 +176,36 @@ export const Paywall: React.FC<PaywallProps> = ({
   const [catalogState, setCatalogState] = useState<
     'loading' | 'ready' | 'not_configured' | 'empty' | 'error'
   >(
-    previewFixture ? 'ready' : rustorePaymentsEnabled ? 'loading' : 'not_configured',
+    previewFixture ? 'ready' : paymentCatalogEnabled ? 'loading' : 'not_configured',
   );
   const [catalogRetryToken, setCatalogRetryToken] = useState(0);
   const [paying, setPaying] = useState(false);
   const [purchaseState, setPurchaseState] = useState<'idle' | 'pending' | 'failed'>('idle');
   const [restoring, setRestoring] = useState(false);
   const [restoreError, setRestoreError] = useState(false);
+  const [restoreFailureReason, setRestoreFailureReason] = useState('');
   const [restorePending, setRestorePending] = useState(false);
+  const [managingSubscription, setManagingSubscription] = useState(false);
+  const [manageError, setManageError] = useState(false);
   const [previewNotice, setPreviewNotice] = useState('');
 
   useEffect(() => {
     if (previewFixture) return;
     let cancelled = false;
     setPlans({});
-    if (!rustorePaymentsEnabled) {
+    if (!paymentCatalogEnabled) {
       setCatalogState('not_configured');
       return;
     }
     setCatalogState('loading');
 
-    void loadRuStoreProducts()
-      .then((products) => {
+    const catalogRequest: Promise<Partial<Record<PremiumPlanId, CatalogPlan>>> = rustorePaymentsEnabled
+      ? loadRuStoreProducts().then((products) => {
         const entries: Array<readonly [PremiumPlanId, CatalogPlan]> = [];
         for (const [rawId, product] of Object.entries(products)) {
           const id = rawId as PremiumPlanId;
           if (
-            !ORDER.includes(id)
+            !RUSTORE_PLAN_ORDER.includes(id)
             || !product
             || product.type !== 'SUBSCRIPTION'
             || !product.amountLabel
@@ -195,10 +225,20 @@ export const Paywall: React.FC<PaywallProps> = ({
         }
         return Object.fromEntries(entries) as Partial<Record<PremiumPlanId, CatalogPlan>>;
       })
+      : loadTelegramPremiumPlans().then((telegramPlans) => Object.fromEntries(
+        telegramPlans.map((plan) => [plan.id, {
+          id: plan.id,
+          periodLabel: formatCatalogDays(plan.days, language),
+          priceLabel: `${plan.stars} Stars`,
+          autoRenew: false,
+        }]),
+      ) as Partial<Record<PremiumPlanId, CatalogPlan>>);
+
+    void catalogRequest
       .then((nextPlans) => {
         if (cancelled) return;
         setPlans(nextPlans);
-        const available = ORDER.filter((id) => nextPlans[id]);
+        const available = planOrder.filter((id) => nextPlans[id]);
         if (!nextPlans.premium_quarter && available[0]) setSelected(available[0]);
         setCatalogState(available.length ? 'ready' : 'empty');
       })
@@ -207,20 +247,34 @@ export const Paywall: React.FC<PaywallProps> = ({
       });
 
     return () => { cancelled = true; };
-  }, [catalogRetryToken, language, rustorePaymentsEnabled, previewFixture]);
+  }, [
+    catalogRetryToken,
+    language,
+    paymentCatalogEnabled,
+    planOrder,
+    previewFixture,
+    rustorePaymentsEnabled,
+  ]);
 
   const visiblePlans = useMemo(
-    () => ORDER.map((id): CatalogPlan => plans[id] || ({
+    () => planOrder.map((id): CatalogPlan => plans[id] || ({
       id,
       periodLabel: DEFAULT_PERIODS[id][language],
       priceLabel: '',
-      autoRenew: true,
+      autoRenew: rustorePaymentsEnabled,
     })),
-    [language, plans],
+    [language, planOrder, plans, rustorePaymentsEnabled],
   );
   const selectedPlan = plans[selected] || null;
   const selectedOption = visiblePlans.find((plan) => plan.id === selected) || visiblePlans[0];
   const catalogLoading = catalogState === 'loading';
+  const operationBusy = paying
+    || restoring
+    || managingSubscription
+    || restorePending;
+  const planSelectionLocked = operationBusy || purchaseState === 'pending';
+  const purchaseActionLocked = operationBusy
+    || (purchaseState === 'pending' && !telegramPaymentsEnabled);
 
   const missingPriceLabel = catalogLoading
     ? (ru ? 'Загрузка…' : 'Loading…')
@@ -229,6 +283,7 @@ export const Paywall: React.FC<PaywallProps> = ({
       : (ru ? 'Цена позже' : 'Price later');
 
   const selectPlan = (planId: PremiumPlanId) => {
+    if (planSelectionLocked) return;
     lumiaSelectionHaptic();
     setSelected(planId);
     setPurchaseState('idle');
@@ -237,7 +292,7 @@ export const Paywall: React.FC<PaywallProps> = ({
   };
 
   const buy = async () => {
-    if (paying || purchaseState === 'pending' || restorePending || !selectedPlan) return;
+    if (purchaseActionLocked || !selectedPlan) return;
     if (previewFixture) {
       setPreviewNotice('Оплата отключена в локальном Preview.');
       return;
@@ -258,21 +313,44 @@ export const Paywall: React.FC<PaywallProps> = ({
   };
 
   const restore = async () => {
-    if (restoring) return;
+    if (restoring || paying || managingSubscription) return;
     if (previewFixture) {
       setPreviewNotice('Восстановление покупок отключено в локальном Preview.');
       return;
     }
     setRestoreError(false);
+    setRestoreFailureReason('');
     setRestorePending(false);
     setRestoring(true);
     try {
       const result = await onRestore();
       if (result === 'pending') setRestorePending(true);
-    } catch {
+    } catch (error) {
       setRestoreError(true);
+      setRestoreFailureReason(error instanceof Error ? error.message : '');
+      // The service keeps the durable checkout marker, so unlocking the CTA is
+      // safe: the next attempt reconciles that order instead of creating one.
+      setPurchaseState('idle');
     } finally {
       setRestoring(false);
+    }
+  };
+
+  const manageSubscription = async () => {
+    if (!onManageSubscription || managingSubscription || restoring || paying) return;
+    if (previewFixture) {
+      setPreviewNotice('Управление подпиской отключено в локальном Preview.');
+      return;
+    }
+    setManageError(false);
+    setManagingSubscription(true);
+    try {
+      const opened = await onManageSubscription();
+      if (!opened) setManageError(true);
+    } catch {
+      setManageError(true);
+    } finally {
+      setManagingSubscription(false);
     }
   };
 
@@ -353,13 +431,26 @@ export const Paywall: React.FC<PaywallProps> = ({
             <p>{ru ? 'Управление и отмена — в RuStore: Профиль → Подписки.' : 'Manage or cancel in RuStore: Profile → Subscriptions.'}</p>
           ) : null}
           {canManageInRuStore && onManageSubscription ? (
-            <button type="button" className="pw2-cta" onClick={() => void onManageSubscription()}>
-              {ru ? 'Управлять подпиской' : 'Manage subscription'}
+            <button
+              type="button"
+              className="pw2-cta"
+              onClick={() => void manageSubscription()}
+              disabled={managingSubscription}
+              aria-busy={managingSubscription}
+            >
+              {managingSubscription
+                ? (ru ? 'Открываем RuStore…' : 'Opening RuStore…')
+                : (ru ? 'Управлять подпиской' : 'Manage subscription')}
             </button>
           ) : !embedded ? (
             <button type="button" className="pw2-cta" onClick={onClose}>
               {ru ? 'Продолжить' : 'Continue'}
             </button>
+          ) : null}
+          {manageError ? (
+            <p className="pw2-state" role="alert">
+              {ru ? 'Не удалось открыть управление подпиской. Открой раздел подписок в RuStore.' : 'Could not open subscription management. Open Subscriptions in RuStore.'}
+            </p>
           ) : null}
         </section>
       ) : (
@@ -370,7 +461,11 @@ export const Paywall: React.FC<PaywallProps> = ({
                 ? (ru ? 'Срок подписки' : 'Subscription term')
                 : (ru ? 'Выбери подписку' : 'Choose a subscription')}
             </h2>
-            <div className="pw2-plans" role="radiogroup" aria-label={ru ? 'Тариф Premium' : 'Premium plan'}>
+            <div
+              className={`pw2-plans${visiblePlans.length === 4 ? ' pw2-plans--four' : ''}`}
+              role="radiogroup"
+              aria-label={ru ? 'Тариф Premium' : 'Premium plan'}
+            >
               {visiblePlans.map((plan) => {
                 const isSelected = plan.id === selected;
                 const hasCatalogPrice = Boolean(plans[plan.id]);
@@ -386,6 +481,7 @@ export const Paywall: React.FC<PaywallProps> = ({
                       type="radio"
                       name={`premium-plan-${context.paywallInstanceId}`}
                       checked={isSelected}
+                      disabled={planSelectionLocked}
                       onChange={() => selectPlan(plan.id)}
                     />
                     <div className="pw2-plan-heading">
@@ -447,23 +543,29 @@ export const Paywall: React.FC<PaywallProps> = ({
 
             {catalogLoading ? (
               <p className="pw2-state" role="status">
-                {ru ? 'Получаем цены из RuStore. Остальные разделы приложения уже доступны.' : 'Loading prices from RuStore. The rest of the app remains available.'}
+                {telegramPaymentsEnabled
+                  ? (ru ? 'Получаем цены в Stars. Остальные разделы приложения уже доступны.' : 'Loading Stars prices. The rest of the app remains available.')
+                  : (ru ? 'Получаем цены из RuStore. Остальные разделы приложения уже доступны.' : 'Loading prices from RuStore. The rest of the app remains available.')}
               </p>
             ) : null}
             {catalogState === 'not_configured' ? (
               <p className="pw2-state" role="status">
-                {ru ? 'Цена появится после подключения RuStore. Покупка пока недоступна.' : 'Prices appear after RuStore is connected. Purchase is unavailable for now.'}
+                {ru ? 'Покупки недоступны в этой версии приложения.' : 'Purchases are unavailable in this version of the app.'}
               </p>
             ) : null}
             {catalogState === 'empty' ? (
               <p className="pw2-state" role="status">
-                {ru ? 'В RuStore пока нет доступных подписок. Цена появится после подключения товаров.' : 'No subscriptions are available in RuStore yet. Prices appear after products are connected.'}
+                {telegramPaymentsEnabled
+                  ? (ru ? 'Сейчас нет доступных тарифов для оплаты Stars.' : 'No Stars plans are available right now.')
+                  : (ru ? 'В RuStore пока нет доступных подписок. Цена появится после подключения товаров.' : 'No subscriptions are available in RuStore yet. Prices appear after products are connected.')}
               </p>
             ) : null}
             {catalogState === 'error' ? (
               <div className="pw2-catalog-error" role="alert">
                 <p className="pw2-state">
-                  {ru ? 'Не удалось получить цены из RuStore.' : 'Unable to load prices from RuStore.'}
+                  {telegramPaymentsEnabled
+                    ? (ru ? 'Не удалось получить цены в Stars.' : 'Unable to load Stars prices.')
+                    : (ru ? 'Не удалось получить цены из RuStore.' : 'Unable to load prices from RuStore.')}
                 </p>
                 <button
                   type="button"
@@ -492,52 +594,67 @@ export const Paywall: React.FC<PaywallProps> = ({
               className="pw2-cta"
               onClick={() => void buy()}
               aria-busy={paying}
-              disabled={paying || purchaseState === 'pending' || restorePending || catalogLoading || !selectedPlan}
+              disabled={purchaseActionLocked || catalogLoading || !selectedPlan}
             >
               {paying
-                ? (ru ? 'Открываем RuStore…' : 'Opening RuStore…')
+                ? (telegramPaymentsEnabled
+                    ? (ru ? 'Открываем Telegram…' : 'Opening Telegram…')
+                    : (ru ? 'Открываем RuStore…' : 'Opening RuStore…'))
                 : purchaseState === 'pending'
-                  ? (ru ? 'Оплата обрабатывается' : 'Payment is processing')
+                  ? (telegramPaymentsEnabled
+                      ? (ru ? 'Проверить оплату' : 'Check payment')
+                      : (ru ? 'Оплата обрабатывается' : 'Payment is processing'))
                   : selectedPlan
-                    ? `${ru ? 'Оформить подписку' : 'Subscribe'} · ${selectedPlan.priceLabel}`
+                    ? `${telegramPaymentsEnabled
+                        ? (ru ? 'Оплатить' : 'Pay')
+                        : (ru ? 'Оформить подписку' : 'Subscribe')} · ${selectedPlan.priceLabel}`
                     : (ru ? 'Покупка сейчас недоступна' : 'Purchase is unavailable')}
             </button>
 
             {purchaseState === 'pending' ? (
               <p className="pw2-state" role="status">
-                {ru ? 'RuStore подтверждает оплату. Не покупай повторно — проверь статус через «Восстановить покупку».' : 'RuStore is confirming the payment. Do not buy again — check through Restore purchase.'}
+                {telegramPaymentsEnabled
+                  ? (ru ? 'Telegram ещё подтверждает оплату. Новый счёт не откроется — этой же кнопкой можно безопасно проверить статус.' : 'Telegram is still confirming the payment. No new invoice will open — use the same button to safely check its status.')
+                  : (ru ? 'RuStore подтверждает оплату. Не покупай повторно — проверь статус через «Восстановить покупку».' : 'RuStore is confirming the payment. Do not buy again — check through Restore purchase.')}
               </p>
             ) : null}
             {purchaseState === 'failed' ? (
               <p className="pw2-state" role="alert">
-                {ru ? 'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.' : 'Could not open checkout. Check RuStore and your internet connection.'}
+                {telegramPaymentsEnabled
+                  ? (ru ? 'Не удалось открыть оплату в Telegram. Проверь подключение к интернету.' : 'Could not open Telegram checkout. Check your internet connection.')
+                  : (ru ? 'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.' : 'Could not open checkout. Check RuStore and your internet connection.')}
               </p>
             ) : null}
           </section>
 
-          <div className="pw2-secondary-actions">
-            {!embedded ? (
-              <button type="button" className="pw2-free" onClick={onContinueFree}>
-                {ru ? 'Остаться на Free' : 'Stay on Free'}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="pw2-free"
-              onClick={() => void restore()}
-              disabled={restoring}
-              aria-busy={restoring}
-            >
-              {restoring
-                ? (ru ? 'Проверяем покупки…' : 'Checking purchases…')
-                : (ru ? 'Восстановить покупку' : 'Restore purchase')}
-            </button>
-          </div>
-          {restoreError ? (
+          {!embedded || rustorePaymentsEnabled ? (
+            <div className="pw2-secondary-actions">
+              {!embedded ? (
+                <button type="button" className="pw2-free" onClick={onContinueFree}>
+                  {ru ? 'Остаться на Free' : 'Stay on Free'}
+                </button>
+              ) : null}
+              {rustorePaymentsEnabled ? (
+                <button
+                  type="button"
+                  className="pw2-free"
+                  onClick={() => void restore()}
+                  disabled={restoring || paying || managingSubscription}
+                  aria-busy={restoring}
+                >
+                  {restoring
+                    ? (ru ? 'Проверяем покупки…' : 'Checking purchases…')
+                    : (ru ? 'Восстановить покупку' : 'Restore purchase')}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          {rustorePaymentsEnabled && restoreError ? (
             <p className="pw2-state" role="alert">
-              {ru ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.'}
+              {paymentFailureCopy(restoreFailureReason, language)
+                || (ru ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.')}
             </p>
-          ) : restorePending ? (
+          ) : rustorePaymentsEnabled && restorePending ? (
             <p className="pw2-state" role="status">
               {ru
                 ? 'RuStore ещё подтверждает покупку. Подожди немного и проверь снова — повторно покупать не нужно.'

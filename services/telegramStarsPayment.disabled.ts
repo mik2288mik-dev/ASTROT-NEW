@@ -1,5 +1,6 @@
 import type { PremiumPlanId } from '../lib/premiumPricing';
 import type { UserProfile } from '../types';
+import type { TelegramStarsPaymentOutcome } from './telegramService';
 
 /**
  * Store-channel replacement injected at build time.
@@ -8,6 +9,6 @@ import type { UserProfile } from '../types';
 export async function requestStarsPayment(
   _profile: UserProfile,
   _planId: PremiumPlanId = 'premium_week',
-): Promise<boolean> {
-  return false;
+): Promise<TelegramStarsPaymentOutcome> {
+  return 'cancelled';
 }

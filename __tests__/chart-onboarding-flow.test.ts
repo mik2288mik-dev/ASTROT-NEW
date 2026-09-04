@@ -8,7 +8,7 @@ describe('chart onboarding and lazy sections', () => {
   it('shows a create-chart CTA instead of auto-starting onboarding from chart navigation', () => {
     const chart = read('views/v2/NatalMagazine.tsx');
     const app = read('App.tsx');
-    expect(chart).toContain('Соберём настоящий натальный круг');
+    expect(chart).toContain('Соберём твою натальную карту');
     expect(chart).toContain('Для расчёта нужны дата, время и место рождения.');
     expect(chart).toContain('Ввести данные');
     expect(chart).toContain('onCreateChart');
@@ -34,6 +34,13 @@ describe('chart onboarding and lazy sections', () => {
     expect(service).toContain('const requestKey=buildNatalChartCacheKey(profile)');
     expect(route).toContain('chartMatchesPrimaryRequest(completed,common,coordinates)');
     expect(route).toContain("code:'CHART_CALCULATION_IN_PROGRESS'");
+  });
+
+  it('guards every direct primary-chart refresh against a changed profile identity', () => {
+    const app = read('App.tsx');
+    expect(app).toContain('natalChartMatchesProfile');
+    expect(app.match(/natalChartMatchesProfile\(freshChart, targetProfile\)/g)).toHaveLength(3);
+    expect(app).toContain('freshChart = await getOrCalculateChart(');
   });
 
   it('lets a signed web guest complete onboarding without trusting newProfile identity or granting trial', () => {
@@ -69,7 +76,7 @@ describe('chart onboarding and lazy sections', () => {
     expect(report).toContain('ensureHumanBaseReport');
     expect(report).toContain('ensureHumanPremiumReport');
     expect(report).toContain('getHumanPremiumReportCached');
-    expect(report).toContain('if (!isPremium || !userId)');
+    expect(report).toContain('if (!isPremium || !userId || !report)');
     expect(prompt).toContain('natalPromptPayload({ ...compilation, sections: plans })');
     expect(semantics).toContain('requiredBlocks');
     expect(prompt).toContain('validateGeneratedNatalPayload');

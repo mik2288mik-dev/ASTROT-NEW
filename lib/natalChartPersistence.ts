@@ -128,8 +128,12 @@ export async function repairCanonicalChartForUser(userId:string) {
   const user = await db.users.get(userId);
   const birthSettings = await birthProfileRepository.get(userId);
   const chart = await natalChartV2Repository.getPrimary(userId);
-  const birthDate = normalizeBirthDateInput(chart?.birth_date || user?.birth_date);
-  const birthPlace = normalizeBirthPlaceInput(chart?.birth_place || user?.birth_place);
+  // The account profile is the source of truth for a self chart. A legacy or
+  // incomplete chart may describe an older birth profile, so using chart-first
+  // values here can both repair the wrong chart and write those stale values
+  // back into users through ensureMinimalUser().
+  const birthDate = normalizeBirthDateInput(user?.birth_date || chart?.birth_date);
+  const birthPlace = normalizeBirthPlaceInput(user?.birth_place || chart?.birth_place);
   if (!birthDate || !birthPlace) {
     console.warn('[natal/chart-repair] skipped: birth profile is incomplete', {
       missingFields: [!birthDate && 'birthDate', !birthPlace && 'birthPlace'].filter(Boolean),
@@ -137,15 +141,18 @@ export async function repairCanonicalChartForUser(userId:string) {
     });
     return null;
   }
+  const profileTimeMode = birthSettings?.birth_time_mode
+    || (user ? (user.birth_time ? 'exact' : 'unknown') : undefined);
+  const timeMetadata = user ? birthSettings : chart;
   return ensureCanonicalPrimaryChart({
     userId,
     name:(user?.name || chart?.name || 'Chart').trim(),
     birthDate,
-    birthTime:chart?.birth_time || user?.birth_time || '',
-    birthTimeMode:chart?.birth_time_mode || birthSettings?.birth_time_mode || undefined,
-    birthTimeUncertaintyMinutes:chart?.birth_time_uncertainty_minutes ?? birthSettings?.birth_time_uncertainty_minutes ?? null,
-    birthTimeRangeStart:chart?.birth_time_range_start || birthSettings?.birth_time_range_start || null,
-    birthTimeRangeEnd:chart?.birth_time_range_end || birthSettings?.birth_time_range_end || null,
+    birthTime:user ? (user.birth_time ?? '') : (chart?.birth_time ?? ''),
+    birthTimeMode:profileTimeMode || timeMetadata?.birth_time_mode || undefined,
+    birthTimeUncertaintyMinutes:timeMetadata?.birth_time_uncertainty_minutes ?? null,
+    birthTimeRangeStart:timeMetadata?.birth_time_range_start || null,
+    birthTimeRangeEnd:timeMetadata?.birth_time_range_end || null,
     birthPlace,
     language:user?.language || 'ru',
   });

@@ -8,7 +8,6 @@ import { formatPersonalForecastAttribution } from '../../lib/personalForecastPre
 import { resolvePersonalForecastWindow } from '../../lib/personalForecastContract';
 import {
   EditorialChartsButton,
-  EditorialProfileButton,
   EditorialTabs,
 } from '../editorial/EditorialScreenChrome';
 import { AppTopBar } from '../lumia-ui/AppTopBar';
@@ -135,10 +134,6 @@ function StateScene({
       ) : null}
     </section>
   );
-}
-
-function ProfileAction({ onOpen }: { onOpen: () => void }) {
-  return <EditorialProfileButton label="Открыть профиль" onClick={onOpen} />;
 }
 
 function DiaryScene({
@@ -356,7 +351,7 @@ function SettingsScene({
       onRequestPremium={() => onNavigate('paywall')}
       canPromotePremium
       onRestorePurchase={async () => 'completed'}
-      onManageSubscription={() => undefined}
+      onManageSubscription={() => false}
       onOpenCharts={onOpenCharts}
       onLogout={async () => undefined}
       onDeleteAccount={async () => undefined}
@@ -374,12 +369,27 @@ function OnboardingScene({
   onBirthTime: (birthTime: UiPreviewScenario['birthTime']) => void;
   onContinue: () => void;
 }) {
+  const [gender, setGender] = useState<'male' | 'female' | 'unspecified'>('unspecified');
+
   return (
     <div className="ui-preview-onboarding">
       <NeboLogo className="ui-preview-wordmark" priority />
       <h1>Начнём с тебя</h1>
       <p>Эти данные нужны только для персонального опыта. В Preview они никуда не отправляются.</p>
       <label>Имя<input defaultValue="Алина" /></label>
+      <fieldset className="ui-preview-gender">
+        <legend>Пол (необязательно)</legend>
+        {([['male', 'Мужчина'], ['female', 'Женщина']] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={gender === value}
+            onClick={() => setGender((current) => current === value ? 'unspecified' : value)}
+          >
+            {gender === value ? <span aria-hidden="true">✓ </span> : null}{label}
+          </button>
+        ))}
+      </fieldset>
       <label>Дата рождения<input type="date" defaultValue="1990-03-14" /></label>
       <fieldset>
         <legend>Насколько точно известно время?</legend>
@@ -429,7 +439,7 @@ function PaywallScene({
       onClose={onClose}
       onContinueFree={onClose}
       onRestore={async () => 'completed'}
-      onManageSubscription={() => undefined}
+      onManageSubscription={() => false}
       uiPreview={embedded ? undefined : { plans: UI_PREVIEW_PAYWALL_PLANS }}
     />
   );
@@ -545,8 +555,6 @@ export default function UiPreviewApp() {
     window.scrollTo({ top: 0, behavior: 'auto' });
     scrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
   }, [scenario.screen, scenario.state]);
-
-  const openProfile = () => setNavigationSheet('profile');
 
   let scene: React.ReactNode;
   const usesRealNatalState = scenario.screen === 'natal'

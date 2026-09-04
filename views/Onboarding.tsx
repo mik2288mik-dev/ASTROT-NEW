@@ -12,6 +12,8 @@ import {
   PeopleArtwork,
 } from '../components/onboarding/OnboardingArtwork';
 import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTime';
+import { validateDate, validateName } from '../lib/validation';
+import { onboardingCalculationStatus } from '../lib/onboardingCalculationStatus';
 
 type OnboardingStart = 'stories' | 'birth';
 type OnboardingScreen = 'day' | 'self' | 'people' | 'choice' | 'birth' | 'calculating';
@@ -36,13 +38,19 @@ const initialTimeMode = (profile?: UserProfile): Exclude<BirthTimeMode, 'range'>
 };
 const initialUncertainty = (profile?: UserProfile): BirthTimeUncertaintyMinutes | null => {
   const value = profile?.birthTimeUncertaintyMinutes;
-  return value === 15 || value === 30 || value === 60 ? value : null;
+  if (value === 15 || value === 30 || value === 60) return value;
+  return profile?.birthTimeMode === 'approximate' ? 30 : null;
 };
 const initialCoordinates = (profile?: UserProfile) => (
   typeof profile?.birthLatitude === 'number' && typeof profile?.birthLongitude === 'number'
     ? { lat: profile.birthLatitude, lon: profile.birthLongitude, timezone: profile.birthTimezone || undefined }
     : null
 );
+const localDateInputValue = (date: Date): string => [
+  date.getFullYear(),
+  String(date.getMonth() + 1).padStart(2, '0'),
+  String(date.getDate()).padStart(2, '0'),
+].join('-');
 const OnboardingProgress = ({ current, count, labelled = true }: { current: number; count: number; labelled?: boolean }) => (
   <div className="meou-progress" aria-label={`${current} из ${count}`}>
     <div className="meou-progress-lines" aria-hidden="true">
@@ -63,7 +71,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
 }) => {
   const [screen, setScreen] = useState<OnboardingScreen>(initialStep === 'birth' ? 'birth' : 'day');
   const [name, setName] = useState(initialProfile?.name || '');
-  const [gender] = useState<'male' | 'female' | 'unspecified'>(initialProfile?.gender || 'unspecified');
+  const [gender, setGender] = useState<'male' | 'female' | 'unspecified'>(initialProfile?.gender || 'unspecified');
   const [date, setDate] = useState(initialProfile?.birthDate || '');
   const [time, setTime] = useState(initialProfile?.birthTime || '');
   const [timeMode, setTimeMode] = useState<Exclude<BirthTimeMode, 'range'>>(() => initialTimeMode(initialProfile));
@@ -73,6 +81,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   const [error, setError] = useState('');
   const [errorField, setErrorField] = useState<ErrorField>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [calculationElapsedSeconds, setCalculationElapsedSeconds] = useState(0);
   const submittingRef = useRef(false);
   const touchStartX = useRef<number | null>(null);
   const suppressTapUntilRef = useRef(0);
@@ -104,6 +113,16 @@ export const Onboarding: React.FC<OnboardingProps> = ({
       window.cancelAnimationFrame(frame);
       window.clearTimeout(timer);
     };
+  }, [screen]);
+
+  useEffect(() => {
+    if (screen !== 'calculating') return;
+    const startedAt = Date.now();
+    setCalculationElapsedSeconds(0);
+    const timer = window.setInterval(() => {
+      setCalculationElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
   }, [screen]);
 
   useEffect(() => {
@@ -230,14 +249,30 @@ export const Onboarding: React.FC<OnboardingProps> = ({
 
   const handleSubmit = async () => {
     if (submittingRef.current) return;
-    if (!name.trim()) {
-      setError('Укажи имя.');
+    const nameValidation = validateName(name);
+    if (!nameValidation.isValid) {
+      setError(!name.trim()
+        ? 'Укажи имя.'
+        : name.trim().length < 2
+          ? 'Имя должно содержать минимум 2 символа.'
+          : 'Проверь имя: максимум 100 символов без служебных знаков.');
       setErrorField('name');
       focusField('name');
       return;
     }
     if (!date) {
       setError('Укажи дату рождения.');
+      setErrorField('date');
+      focusField('date');
+      return;
+    }
+    const dateValidation = validateDate(date);
+    if (!dateValidation.isValid) {
+      setError(dateValidation.error?.includes('future')
+        ? 'Дата рождения не может быть в будущем.'
+        : dateValidation.error?.includes('before 1900')
+          ? 'Укажи дату не раньше 1900 года.'
+          : 'Проверь дату рождения.');
       setErrorField('date');
       focusField('date');
       return;
@@ -401,14 +436,31 @@ export const Onboarding: React.FC<OnboardingProps> = ({
               <BirthOrbitArtwork />
             </div>
 
-            <form className="meou-birth-form" onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
+            <form className="meou-birth-form" noValidate onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
               <label className="meou-field" htmlFor="onboarding-name">
                 <span>Имя</span>
-                <input id="onboarding-name" ref={nameRef} name="name" type="text" value={name} placeholder="Ваше имя" onChange={(event) => { setName(event.target.value); clearError(); }} aria-invalid={errorField === 'name' || undefined} aria-describedby={errorField === 'name' ? 'onboarding-error' : undefined} />
+                <input id="onboarding-name" ref={nameRef} name="name" type="text" minLength={2} maxLength={100} value={name} placeholder="Ваше имя" onChange={(event) => { setName(event.target.value); clearError(); }} aria-invalid={errorField === 'name' || undefined} aria-describedby={errorField === 'name' ? 'onboarding-error' : undefined} />
               </label>
+              <fieldset className="meou-gender-mode">
+                <legend>Пол <span>(необязательно)</span></legend>
+                <div>
+                  {([['male', 'Мужчина'], ['female', 'Женщина']] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={gender === value ? 'is-active' : ''}
+                      aria-pressed={gender === value}
+                      onClick={() => setGender((current) => current === value ? 'unspecified' : value)}
+                    >
+                      <span aria-hidden="true">{gender === value ? '✓' : ''}</span>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
               <label className="meou-field" htmlFor="onboarding-birth-date">
                 <span>Дата рождения</span>
-                <input id="onboarding-birth-date" ref={dateRef} name="birth-date" type="date" value={date} onChange={(event) => { setDate(event.target.value); clearError(); }} aria-invalid={errorField === 'date' || undefined} aria-describedby={errorField === 'date' ? 'onboarding-error' : undefined} />
+                <input id="onboarding-birth-date" ref={dateRef} name="birth-date" type="date" min="1900-01-01" max={localDateInputValue(new Date())} value={date} onChange={(event) => { setDate(event.target.value); clearError(); }} aria-invalid={errorField === 'date' || undefined} aria-describedby={errorField === 'date' ? 'onboarding-error' : undefined} />
               </label>
               <label className={`meou-field meou-time-field${time ? '' : ' is-empty'}`} htmlFor="onboarding-birth-time">
                 <span>Время рождения</span>
@@ -450,7 +502,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({
               <p>Определяем положение Солнца, Луны<br />и планет на момент вашего рождения.</p>
             </div>
             <NatalWheelArtwork compact />
-            <div className="meou-calculating-footer"><MeouSpark /><p>Обычно это занимает<br />до 10 секунд</p></div>
+            <div className="meou-calculating-footer">
+              <MeouSpark />
+              <p>{onboardingCalculationStatus(calculationElapsedSeconds, timeMode)}</p>
+            </div>
           </section>
         ) : null}
       </div>

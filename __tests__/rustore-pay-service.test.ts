@@ -158,6 +158,7 @@ describe('RuStore Pay client service', () => {
       productId: 'premium.month',
       productType: 'SUBSCRIPTION',
       purchaseId: 'purchase-recovered-after-timeout',
+      orderId: '',
       status: 'ACTIVE',
     };
     const nativeBridge = {
@@ -205,6 +206,7 @@ describe('RuStore Pay client service', () => {
       });
       expect(nativeBridge.purchase).toHaveBeenCalledTimes(1);
       expect(stored.size).toBe(1);
+      recoveredPurchase.orderId = nativeBridge.purchase.mock.calls[0][0].orderId;
 
       const stalledRecovery = service.requestRuStorePayment({ id: 42 } as never, 'premium_year');
       await jest.advanceTimersByTimeAsync(service.RUSTORE_RESTORE_TIMEOUT_MS);
@@ -406,7 +408,7 @@ describe('RuStore Pay client service', () => {
     jest.useRealTimers();
   });
 
-  it('returns pending after 30 seconds, retains the purchase, and reuses it on retry', async () => {
+  it('returns pending after 30 seconds and reconciles it before honoring a plan change', async () => {
     jest.useFakeTimers();
     const stored = new Map<string, string>();
     Object.defineProperty(global, 'window', {
@@ -473,12 +475,83 @@ describe('RuStore Pay client service', () => {
         .mockResolvedValueOnce(response({ identities: [{ provider: 'email' }] }))
         .mockResolvedValueOnce(response({ purchaseActive: true, entitlement }));
 
-      await expect(service.requestRuStorePayment({ id: 42 } as never, 'premium_month')).resolves.toEqual({
+      await expect(service.requestRuStorePayment({ id: 42 } as never, 'premium_year')).resolves.toEqual({
         status: 'completed',
         entitlement,
       });
       expect(nativeBridge.purchase).toHaveBeenCalledTimes(1);
+      expect(nativeBridge.getProducts).toHaveBeenLastCalledWith({ productIds: ['premium.month'] });
       expect(stored.size).toBe(0);
+    } finally {
+      jest.useRealTimers();
+      Reflect.deleteProperty(global, 'window');
+    }
+  });
+
+  it('keeps a provider-confirmed pending purchase in memory when localStorage writes fail', async () => {
+    jest.useFakeTimers();
+    Object.defineProperty(global, 'window', {
+      configurable: true,
+      value: {
+        localStorage: {
+          getItem: () => null,
+          setItem: () => { throw new Error('quota exceeded'); },
+          removeItem: () => undefined,
+        },
+      },
+    });
+    const pendingPurchase = {
+      productId: 'premium.month',
+      productType: 'SUBSCRIPTION',
+      purchaseId: 'purchase-memory-pending',
+      status: 'PROCESSING',
+    };
+    const nativeBridge = {
+      getAvailability: jest.fn().mockResolvedValue({ available: true }),
+      getProducts: jest.fn().mockImplementation(({ productIds }: { productIds: string[] }) => Promise.resolve({
+        products: [{
+          productId: productIds[0],
+          type: 'SUBSCRIPTION',
+          subscriptionInfo: { periods: [{ type: 'MainPeriod', duration: 'P1M' }] },
+        }],
+      })),
+      purchase: jest.fn().mockResolvedValue(pendingPurchase),
+      getPurchases: jest.fn().mockResolvedValue({ purchases: [pendingPurchase] }),
+    };
+    const { apiFetch, service } = loadService(nativeBridge);
+    apiFetch
+      .mockResolvedValueOnce(response({ identities: [{ provider: 'email' }] }))
+      .mockResolvedValue(response({ error: 'RUSTORE_API_VALIDATION_FAILED' }, false, 422));
+
+    try {
+      const first = service.requestRuStorePayment({ id: 42 } as never, 'premium_month');
+      await jest.advanceTimersByTimeAsync(30_000);
+      await expect(first).resolves.toEqual({
+        status: 'pending',
+        reason: 'RUSTORE_PURCHASE_VALIDATION_PENDING',
+      });
+
+      const entitlement = {
+        state: 'paid',
+        isPremium: true,
+        source: 'rustore',
+        startsAt: '2026-09-04T00:00:00.000Z',
+        endsAt: '2026-10-04T00:00:00.000Z',
+        autoRenew: true,
+        productId: 'premium.month',
+        period: 'P1M',
+      } as const;
+      apiFetch.mockReset();
+      apiFetch
+        .mockResolvedValueOnce(response({ identities: [{ provider: 'email' }] }))
+        .mockResolvedValueOnce(response({ purchaseActive: true, entitlement }));
+
+      await expect(service.requestRuStorePayment({ id: 42 } as never, 'premium_year')).resolves.toEqual({
+        status: 'completed',
+        entitlement,
+      });
+      expect(nativeBridge.purchase).toHaveBeenCalledTimes(1);
+      expect(nativeBridge.getProducts).toHaveBeenLastCalledWith({ productIds: ['premium.month'] });
     } finally {
       jest.useRealTimers();
       Reflect.deleteProperty(global, 'window');
@@ -740,7 +813,7 @@ describe('RuStore Pay client service', () => {
       }))
       .mockRejectedValueOnce(new Error('network unavailable'));
 
-    await expect(service.restoreRuStorePurchases()).resolves.toEqual([
+    await expect(service.restoreRuStorePurchases('42')).resolves.toEqual([
       {
         status: 'completed',
         entitlement: {
@@ -768,9 +841,90 @@ describe('RuStore Pay client service', () => {
     const { apiFetch, service } = loadService(nativeBridge);
     apiFetch.mockResolvedValueOnce(response({ purchaseActive: true, entitlement: { isPremium: true } }));
 
-    await expect(service.restoreRuStorePurchases()).resolves.toEqual([
+    await expect(service.restoreRuStorePurchases('42')).resolves.toEqual([
       { status: 'pending', reason: 'RUSTORE_ENTITLEMENT_SNAPSHOT_INVALID' },
     ]);
+  });
+
+  it('validates a durable pending purchase when RuStore returns an empty purchase list', async () => {
+    const pendingKey = 'lumia:rustore:pending:42:premium.month';
+    const stored = new Map<string, string>([[pendingKey, JSON.stringify({
+      productId: 'premium.month',
+      productType: 'SUBSCRIPTION',
+      purchaseId: 'purchase-durable-empty-list',
+      status: 'PROCESSING',
+    })]]);
+    Object.defineProperty(global, 'window', {
+      configurable: true,
+      value: {
+        localStorage: {
+          getItem: (key: string) => stored.get(key) ?? null,
+          setItem: (key: string, value: string) => stored.set(key, value),
+          removeItem: (key: string) => stored.delete(key),
+        },
+      },
+    });
+    const nativeBridge = {
+      getPurchases: jest.fn().mockResolvedValue({ purchases: [] }),
+    };
+    const { apiFetch, service } = loadService(nativeBridge);
+    apiFetch.mockRejectedValueOnce(new Error('backend unavailable'));
+
+    try {
+      await expect(service.restoreRuStorePurchases('42')).resolves.toEqual([
+        { status: 'pending', reason: 'RUSTORE_SERVER_VALIDATION_PENDING' },
+      ]);
+      expect(apiFetch).toHaveBeenCalledTimes(1);
+      expect(stored.has(pendingKey)).toBe(true);
+    } finally {
+      Reflect.deleteProperty(global, 'window');
+    }
+  });
+
+  it('falls back to backend validation of a durable purchase when the native restore query fails', async () => {
+    const pendingKey = 'lumia:rustore:pending:42:premium.month';
+    const stored = new Map<string, string>([[pendingKey, JSON.stringify({
+      productId: 'premium.month',
+      productType: 'SUBSCRIPTION',
+      purchaseId: 'purchase-durable-native-error',
+      status: 'PROCESSING',
+    })]]);
+    Object.defineProperty(global, 'window', {
+      configurable: true,
+      value: {
+        localStorage: {
+          getItem: (key: string) => stored.get(key) ?? null,
+          setItem: (key: string, value: string) => stored.set(key, value),
+          removeItem: (key: string) => stored.delete(key),
+        },
+      },
+    });
+    const nativeBridge = {
+      getPurchases: jest.fn().mockRejectedValue(new Error('RuStore unavailable')),
+    };
+    const entitlement = {
+      state: 'paid',
+      isPremium: true,
+      source: 'rustore',
+      startsAt: '2026-09-04T00:00:00.000Z',
+      endsAt: '2026-10-04T00:00:00.000Z',
+      autoRenew: true,
+      productId: 'premium.month',
+      period: 'P1M',
+    } as const;
+    const { apiFetch, service } = loadService(nativeBridge);
+    apiFetch.mockResolvedValueOnce(response({ purchaseActive: true, entitlement }));
+
+    try {
+      await expect(service.restoreRuStorePurchases('42')).resolves.toEqual([{
+        status: 'completed',
+        entitlement,
+      }]);
+      expect(apiFetch).toHaveBeenCalledTimes(1);
+      expect(stored.has(pendingKey)).toBe(false);
+    } finally {
+      Reflect.deleteProperty(global, 'window');
+    }
   });
 
   it('server-validates PAUSED restores once and finishes without granting Premium', async () => {
@@ -785,22 +939,23 @@ describe('RuStore Pay client service', () => {
       }),
     };
     const { apiFetch, service } = loadService(nativeBridge);
+    const entitlement = {
+      state: 'expired',
+      isPremium: false,
+      source: 'rustore',
+      startsAt: '2026-08-13T00:00:00.000Z',
+      endsAt: '2026-09-13T00:00:00.000Z',
+      autoRenew: true,
+      productId: 'premium.month',
+      period: 'P1M',
+    } as const;
     apiFetch.mockResolvedValueOnce(response({
       purchaseActive: false,
-      entitlement: {
-        state: 'expired',
-        isPremium: false,
-        source: 'rustore',
-        startsAt: '2026-08-13T00:00:00.000Z',
-        endsAt: '2026-09-13T00:00:00.000Z',
-        autoRenew: true,
-        productId: 'premium.month',
-        period: 'P1M',
-      },
+      entitlement,
     }));
 
-    await expect(service.restoreRuStorePurchases()).resolves.toEqual([
-      { status: 'failed', reason: 'RUSTORE_SUBSCRIPTION_PAUSED' },
+    await expect(service.restoreRuStorePurchases('42')).resolves.toEqual([
+      { status: 'inactive', reason: 'RUSTORE_SUBSCRIPTION_PAUSED', entitlement },
     ]);
     expect(apiFetch).toHaveBeenCalledTimes(1);
   });
@@ -811,7 +966,7 @@ describe('RuStore Pay client service', () => {
     };
     const { service } = loadService(nativeBridge);
 
-    await expect(service.restoreRuStorePurchases()).resolves.toEqual([
+    await expect(service.restoreRuStorePurchases('42')).resolves.toEqual([
       { status: 'failed', reason: 'RUSTORE_RESTORE_FAILED' },
     ]);
   });
@@ -824,7 +979,7 @@ describe('RuStore Pay client service', () => {
     const { service } = loadService(nativeBridge);
 
     try {
-      const restore = service.restoreRuStorePurchases();
+      const restore = service.restoreRuStorePurchases('42');
       await jest.advanceTimersByTimeAsync(service.RUSTORE_RESTORE_TIMEOUT_MS);
       await expect(restore).resolves.toEqual([
         { status: 'failed', reason: 'RUSTORE_RESTORE_TIMEOUT' },
@@ -832,6 +987,55 @@ describe('RuStore Pay client service', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('deduplicates concurrent restore requests from startup and a manual tap', async () => {
+    let resolvePurchases!: (value: { purchases: never[] }) => void;
+    const nativeBridge = {
+      getPurchases: jest.fn().mockReturnValue(new Promise<{ purchases: never[] }>((resolve) => {
+        resolvePurchases = resolve;
+      })),
+    };
+    const { service } = loadService(nativeBridge);
+
+    const startupRestore = service.restoreRuStorePurchases('42');
+    const manualRestore = service.restoreRuStorePurchases('42');
+    expect(nativeBridge.getPurchases).toHaveBeenCalledTimes(1);
+
+    resolvePurchases({ purchases: [] });
+    await expect(startupRestore).resolves.toEqual([]);
+    await expect(manualRestore).resolves.toEqual([]);
+    expect(nativeBridge.getPurchases).toHaveBeenCalledTimes(1);
+  });
+
+  it('isolates concurrent restore requests by app account', async () => {
+    const resolvers: Array<(value: { purchases: never[] }) => void> = [];
+    const nativeBridge = {
+      getPurchases: jest.fn().mockImplementation(() => new Promise<{ purchases: never[] }>((resolve) => {
+        resolvers.push(resolve);
+      })),
+    };
+    const { service } = loadService(nativeBridge);
+
+    const accountA = service.restoreRuStorePurchases('42');
+    const accountASecondTap = service.restoreRuStorePurchases('42');
+    const accountB = service.restoreRuStorePurchases('84');
+    expect(nativeBridge.getPurchases).toHaveBeenCalledTimes(2);
+
+    resolvers.forEach((resolve) => resolve({ purchases: [] }));
+    await expect(accountA).resolves.toEqual([]);
+    await expect(accountASecondTap).resolves.toEqual([]);
+    await expect(accountB).resolves.toEqual([]);
+  });
+
+  it('requires a valid app account before restoring purchases', async () => {
+    const nativeBridge = { getPurchases: jest.fn() };
+    const { service } = loadService(nativeBridge);
+
+    await expect(service.restoreRuStorePurchases('')).resolves.toEqual([
+      { status: 'unavailable', reason: 'RUSTORE_ACCOUNT_ID_REQUIRED' },
+    ]);
+    expect(nativeBridge.getPurchases).not.toHaveBeenCalled();
   });
 
   it('keeps checkout locked when recovery sees the product before RuStore assigns a purchase id', async () => {
@@ -884,6 +1088,203 @@ describe('RuStore Pay client service', () => {
     }
   });
 
+  it('never attaches a persisted checkout attempt to a different historical order', async () => {
+    const checkoutKey = 'lumia:rustore:checkout:42:premium';
+    const stored = new Map<string, string>([[
+      checkoutKey,
+      JSON.stringify({ orderId: 'order-current', productId: 'premium.month', startedAt: Date.now() }),
+    ]]);
+    Object.defineProperty(global, 'window', {
+      configurable: true,
+      value: {
+        localStorage: {
+          getItem: (key: string) => stored.get(key) ?? null,
+          setItem: (key: string, value: string) => stored.set(key, value),
+          removeItem: (key: string) => stored.delete(key),
+        },
+      },
+    });
+    const nativeBridge = {
+      getAvailability: jest.fn().mockResolvedValue({ available: true }),
+      getProducts: jest.fn().mockResolvedValue({
+        products: [{
+          productId: 'premium.month',
+          type: 'SUBSCRIPTION',
+          subscriptionInfo: { periods: [{ type: 'MainPeriod', duration: 'P1M' }] },
+        }],
+      }),
+      purchase: jest.fn(),
+      getPurchases: jest.fn().mockResolvedValue({
+        purchases: [{
+          productId: 'premium.month',
+          productType: 'SUBSCRIPTION',
+          purchaseId: 'purchase-historical',
+          orderId: 'order-historical',
+          status: 'ACTIVE',
+        }],
+      }),
+    };
+    const { apiFetch, service } = loadService(nativeBridge);
+    apiFetch.mockResolvedValue(response({ identities: [{ provider: 'email' }] }));
+
+    try {
+      await expect(service.requestRuStorePayment({ id: 42 } as never, 'premium_year')).resolves.toEqual({
+        status: 'pending',
+        reason: 'RUSTORE_PURCHASE_RESULT_PENDING',
+      });
+      expect(nativeBridge.purchase).not.toHaveBeenCalled();
+      expect(apiFetch).toHaveBeenCalledTimes(1);
+      expect(stored.has(checkoutKey)).toBe(true);
+      expect([...stored.keys()].filter((key) => key.startsWith('lumia:rustore:pending:'))).toHaveLength(0);
+    } finally {
+      Reflect.deleteProperty(global, 'window');
+    }
+  });
+
+  it('finishes startup restore before buy and reuses the restored entitlement', async () => {
+    let resolvePurchases!: (value: { purchases: Array<Record<string, string>> }) => void;
+    const entitlement = {
+      state: 'paid',
+      isPremium: true,
+      source: 'rustore',
+      startsAt: '2026-09-04T00:00:00.000Z',
+      endsAt: '2026-10-04T00:00:00.000Z',
+      autoRenew: true,
+      productId: 'premium.month',
+      period: 'P1M',
+    } as const;
+    const nativeBridge = {
+      getPurchases: jest.fn().mockReturnValue(new Promise((resolve) => { resolvePurchases = resolve; })),
+      getAvailability: jest.fn(),
+      getProducts: jest.fn(),
+      purchase: jest.fn(),
+    };
+    const { apiFetch, service } = loadService(nativeBridge);
+    apiFetch.mockResolvedValue(response({ purchaseActive: true, entitlement }));
+
+    const startupRestore = service.restoreRuStorePurchases('42');
+    const buy = service.requestRuStorePayment({ id: 42 } as never, 'premium_year');
+    expect(nativeBridge.getPurchases).toHaveBeenCalledTimes(1);
+    expect(nativeBridge.purchase).not.toHaveBeenCalled();
+
+    resolvePurchases({
+      purchases: [{
+        productId: 'premium.month',
+        productType: 'SUBSCRIPTION',
+        purchaseId: 'purchase-restored-first',
+        status: 'ACTIVE',
+      }],
+    });
+    await expect(startupRestore).resolves.toEqual([{ status: 'completed', entitlement }]);
+    await expect(buy).resolves.toEqual({ status: 'completed', entitlement });
+    expect(nativeBridge.getAvailability).not.toHaveBeenCalled();
+    expect(nativeBridge.getProducts).not.toHaveBeenCalled();
+    expect(nativeBridge.purchase).not.toHaveBeenCalled();
+  });
+
+  it('joins an active buy from restore instead of querying purchases in parallel', async () => {
+    const entitlement = {
+      state: 'paid',
+      isPremium: true,
+      source: 'rustore',
+      startsAt: '2026-09-04T00:00:00.000Z',
+      endsAt: '2026-10-04T00:00:00.000Z',
+      autoRenew: true,
+      productId: 'premium.month',
+      period: 'P1M',
+    } as const;
+    const nativeBridge = {
+      getAvailability: jest.fn().mockResolvedValue({ available: true }),
+      getProducts: jest.fn().mockResolvedValue({
+        products: [{
+          productId: 'premium.month',
+          type: 'SUBSCRIPTION',
+          subscriptionInfo: { periods: [{ type: 'MainPeriod', duration: 'P1M' }] },
+        }],
+      }),
+      purchase: jest.fn().mockResolvedValue({
+        productId: 'premium.month',
+        productType: 'SUBSCRIPTION',
+        purchaseId: 'purchase-buy-first',
+      }),
+      getPurchases: jest.fn(),
+    };
+    const { apiFetch, service } = loadService(nativeBridge);
+    apiFetch
+      .mockResolvedValueOnce(response({ identities: [{ provider: 'email' }] }))
+      .mockResolvedValueOnce(response({ purchaseActive: true, entitlement }));
+
+    const buy = service.requestRuStorePayment({ id: 42 } as never, 'premium_month');
+    const restore = service.restoreRuStorePurchases('42');
+    await expect(buy).resolves.toEqual({ status: 'completed', entitlement });
+    await expect(restore).resolves.toEqual([{ status: 'completed', entitlement }]);
+    expect(nativeBridge.purchase).toHaveBeenCalledTimes(1);
+    expect(nativeBridge.getPurchases).not.toHaveBeenCalled();
+  });
+
+  it('hands a late successful checkout back to the next tap without opening a second order', async () => {
+    jest.useFakeTimers();
+    let resolvePurchase!: (value: Record<string, string>) => void;
+    const nativeBridge = {
+      getAvailability: jest.fn().mockImplementation(() => new Promise((resolve) => {
+        setTimeout(() => resolve({ available: true }), 1_000);
+      })),
+      getProducts: jest.fn().mockResolvedValue({
+        products: [{
+          productId: 'premium.month',
+          type: 'SUBSCRIPTION',
+          subscriptionInfo: { periods: [{ type: 'MainPeriod', duration: 'P1M' }] },
+        }],
+      }),
+      purchase: jest.fn().mockReturnValue(new Promise<Record<string, string>>((resolve) => {
+        resolvePurchase = resolve;
+      })),
+      getPurchases: jest.fn(),
+    };
+    const entitlement = {
+      state: 'paid',
+      isPremium: true,
+      source: 'rustore',
+      startsAt: '2026-09-04T00:00:00.000Z',
+      endsAt: '2026-10-04T00:00:00.000Z',
+      autoRenew: true,
+      productId: 'premium.month',
+      period: 'P1M',
+    } as const;
+    const { apiFetch, service } = loadService(nativeBridge);
+    apiFetch
+      .mockResolvedValueOnce(response({ identities: [{ provider: 'email' }] }))
+      .mockResolvedValueOnce(response({ purchaseActive: true, entitlement }));
+
+    try {
+      const firstTap = service.requestRuStorePayment({ id: 42 } as never, 'premium_month');
+      await jest.advanceTimersByTimeAsync(1_000);
+      expect(nativeBridge.purchase).toHaveBeenCalledTimes(1);
+
+      await jest.advanceTimersByTimeAsync(service.RUSTORE_PURCHASE_RESULT_TIMEOUT_MS - 1_000);
+      await expect(firstTap).resolves.toEqual({
+        status: 'pending',
+        reason: 'RUSTORE_PURCHASE_RESULT_PENDING',
+      });
+
+      resolvePurchase({
+        productId: 'premium.month',
+        productType: 'SUBSCRIPTION',
+        purchaseId: 'purchase-late-success',
+      });
+      await jest.advanceTimersByTimeAsync(0);
+
+      await expect(service.requestRuStorePayment({ id: 42 } as never, 'premium_year')).resolves.toEqual({
+        status: 'completed',
+        entitlement,
+      });
+      expect(nativeBridge.purchase).toHaveBeenCalledTimes(1);
+      expect(nativeBridge.getPurchases).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('bounds stalled backend validation after the native restore query completes', async () => {
     jest.useFakeTimers();
     const nativeBridge = {
@@ -900,7 +1301,7 @@ describe('RuStore Pay client service', () => {
     apiFetch.mockReturnValue(new Promise(() => undefined));
 
     try {
-      const restore = service.restoreRuStorePurchases();
+      const restore = service.restoreRuStorePurchases('42');
       await jest.advanceTimersByTimeAsync(0);
       await jest.advanceTimersByTimeAsync(service.RUSTORE_RESTORE_TIMEOUT_MS);
       await expect(restore).resolves.toEqual([
@@ -921,6 +1322,30 @@ describe('RuStore Pay client service', () => {
 
     await expect(service.openRuStoreSubscriptionManagement()).resolves.toBe(true);
     expect(nativeBridge.openSubscriptionManagement).toHaveBeenCalledTimes(1);
+  });
+
+  it('bounds and deduplicates a stalled subscription-management transition', async () => {
+    jest.useFakeTimers();
+    const nativeBridge = {
+      openSubscriptionManagement: jest.fn()
+        .mockReturnValueOnce(new Promise(() => undefined))
+        .mockResolvedValueOnce({ opened: true }),
+    };
+    const { service } = loadService(nativeBridge);
+
+    try {
+      const firstTap = service.openRuStoreSubscriptionManagement();
+      const secondTap = service.openRuStoreSubscriptionManagement();
+      await jest.advanceTimersByTimeAsync(service.RUSTORE_MANAGEMENT_TIMEOUT_MS);
+      await expect(firstTap).resolves.toBe(false);
+      await expect(secondTap).resolves.toBe(false);
+      expect(nativeBridge.openSubscriptionManagement).toHaveBeenCalledTimes(1);
+
+      await expect(service.openRuStoreSubscriptionManagement()).resolves.toBe(true);
+      expect(nativeBridge.openSubscriptionManagement).toHaveBeenCalledTimes(2);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('passes subscription periods and the management deep link through the native plugin', () => {

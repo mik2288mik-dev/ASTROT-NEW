@@ -47,10 +47,17 @@ const PURCHASE_RECONCILIATION_DELAY_MS = 1_000;
 const PURCHASE_RECONCILIATION_WINDOW_MS = 30_000;
 const PURCHASE_VALIDATION_TIMEOUT_MS = 10_000;
 const CHECKOUT_ATTEMPT_TTL_MS = 10 * 60_000;
+export const RUSTORE_RESULT_HANDOFF_TTL_MS = 10 * 60_000;
 const inFlightPayments = new Map<string, {
   source: Promise<PaymentResult>;
   startedAt: number;
 }>();
+const inFlightRestores = new Map<string, Promise<PaymentResult[]>>();
+const settledPaymentResultHandoffs = new Map<string, {
+  result: Extract<PaymentResult, { status: 'completed' | 'inactive' }>;
+  settledAt: number;
+}>();
+let inFlightSubscriptionManagement: Promise<boolean> | null = null;
 
 const TERMINAL_BACKEND_VALIDATION_REASONS = new Set([
   'RECOVERY_IDENTITY_REQUIRED',
@@ -77,6 +84,29 @@ type PendingRuStoreCheckoutAttempt = {
 };
 
 const pendingCheckoutAttempts = new Map<string, PendingRuStoreCheckoutAttempt>();
+const pendingPurchases = new Map<string, PendingRuStorePurchase>();
+
+function paymentOperationKey(userId: string): string {
+  return `rustore:${userId}:premium`;
+}
+
+function readSettledPaymentResultHandoff(
+  key: string,
+): Extract<PaymentResult, { status: 'completed' | 'inactive' }> | null {
+  const handoff = settledPaymentResultHandoffs.get(key);
+  if (!handoff) return null;
+  const ageMs = Date.now() - handoff.settledAt;
+  if (!Number.isFinite(ageMs) || ageMs < 0 || ageMs > RUSTORE_RESULT_HANDOFF_TTL_MS) {
+    settledPaymentResultHandoffs.delete(key);
+    return null;
+  }
+  return handoff.result;
+}
+
+function rememberSettledPaymentResultHandoff(key: string, result: PaymentResult): void {
+  if (result.status !== 'completed' && result.status !== 'inactive') return;
+  settledPaymentResultHandoffs.set(key, { result, settledAt: Date.now() });
+}
 
 const delay = (milliseconds: number) => new Promise<void>((resolve) => {
   globalThis.setTimeout(resolve, milliseconds);
@@ -147,10 +177,7 @@ function terminalPurchaseResult(purchase: RuStorePurchase): 'active' | 'cancelle
   return null;
 }
 
-type BackendValidationResult = PaymentResult | {
-  status: 'inactive';
-  entitlement: PaymentEntitlementSnapshot;
-};
+type BackendValidationResult = PaymentResult;
 
 async function reconcilePurchaseResult(
   nativeBridge: RuStorePayBridge,
@@ -192,7 +219,10 @@ async function reconcilePurchaseResult(
     }
     if (validated.status === 'completed' || validated.status === 'failed') return validated;
     if (validated.status === 'inactive' && String(current.status || '').toUpperCase() === 'PAUSED') {
-      return { status: 'failed', reason: 'RUSTORE_SUBSCRIPTION_PAUSED' };
+      return {
+        ...validated,
+        reason: 'RUSTORE_SUBSCRIPTION_PAUSED',
+      };
     }
 
     const delayTimeLeft = deadline - Date.now();
@@ -236,7 +266,7 @@ async function validateRestoredPurchase(purchase: RuStorePurchase): Promise<Paym
   const validated = await validateWithBackend(purchase);
   if (validated.status === 'inactive') {
     return {
-      status: 'failed',
+      ...validated,
       reason: String(purchase.status || '').toUpperCase() === 'PAUSED'
         ? 'RUSTORE_SUBSCRIPTION_PAUSED'
         : 'RUSTORE_PREMIUM_NOT_CONFIRMED',
@@ -314,39 +344,54 @@ function clearPendingCheckoutAttempt(userId: string): void {
 }
 
 function readPendingPurchase(userId: string, productId: string): PendingRuStorePurchase | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(pendingPurchaseStorageKey(userId, productId));
-    const value = raw ? JSON.parse(raw) as RuStorePurchase : null;
-    if (!value?.purchaseId || value.productId !== productId) return null;
-    return {
-      productId,
-      purchaseId: value.purchaseId,
-      productType: 'SUBSCRIPTION',
-      orderId: value.orderId,
-      status: value.status,
-    };
-  } catch {
-    return null;
+  const key = pendingPurchaseStorageKey(userId, productId);
+  let pending = pendingPurchases.get(key) || null;
+  if (!pending && typeof window !== 'undefined') {
+    try {
+      const raw = window.localStorage.getItem(key);
+      const value = raw ? JSON.parse(raw) as RuStorePurchase : null;
+      if (value?.purchaseId && value.productId === productId) {
+        pending = {
+          productId,
+          purchaseId: value.purchaseId,
+          productType: 'SUBSCRIPTION',
+          orderId: value.orderId,
+          status: value.status,
+        };
+      }
+    } catch {
+      // Keep the in-memory marker when durable storage is unavailable.
+    }
   }
+  if (pending) pendingPurchases.set(key, pending);
+  return pending;
 }
 
 function writePendingPurchase(userId: string, purchase: RuStorePurchase): void {
-  if (typeof window === 'undefined' || !purchase.purchaseId) return;
+  if (!purchase.purchaseId) return;
+  const key = pendingPurchaseStorageKey(userId, purchase.productId);
+  const pending: PendingRuStorePurchase = {
+    productId: purchase.productId,
+    purchaseId: purchase.purchaseId,
+    productType: 'SUBSCRIPTION',
+    orderId: purchase.orderId,
+    status: purchase.status,
+  };
+  pendingPurchases.set(key, pending);
+  if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(
-      pendingPurchaseStorageKey(userId, purchase.productId),
-      JSON.stringify(purchase),
-    );
+    window.localStorage.setItem(key, JSON.stringify(pending));
   } catch {
-    // The in-memory promise still prevents duplicate checkout in this session.
+    // The in-memory purchase marker still prevents a duplicate checkout.
   }
 }
 
 function clearPendingPurchase(userId: string, productId: string): void {
+  const key = pendingPurchaseStorageKey(userId, productId);
+  pendingPurchases.delete(key);
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.removeItem(pendingPurchaseStorageKey(userId, productId));
+    window.localStorage.removeItem(key);
   } catch {
     // A terminal provider result remains authoritative even if cleanup fails.
   }
@@ -392,6 +437,7 @@ export const RUSTORE_CATALOG_TIMEOUT_MS = 9_000;
 export const RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS = 10_000;
 export const RUSTORE_PURCHASE_RESULT_TIMEOUT_MS = 60_000;
 export const RUSTORE_RESTORE_TIMEOUT_MS = 10_000;
+export const RUSTORE_MANAGEMENT_TIMEOUT_MS = 10_000;
 const RUSTORE_RESTORE_VALIDATION_TIMEOUT_MS = PURCHASE_VALIDATION_TIMEOUT_MS;
 
 async function withBoundedTimeout<T>(
@@ -486,7 +532,11 @@ async function validateWithBackend(
         : { status: 'pending', reason: 'RUSTORE_PREMIUM_NOT_CONFIRMED' };
     }
     if (body?.purchaseActive === false && entitlement.isPremium === false) {
-      return { status: 'inactive', entitlement };
+      return {
+        status: 'inactive',
+        reason: 'RUSTORE_PREMIUM_NOT_CONFIRMED',
+        entitlement,
+      };
     }
     return { status: 'pending', reason: 'RUSTORE_PURCHASE_VALIDATION_PENDING' };
   } catch {
@@ -523,13 +573,22 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
     );
     if (!availability.available) return { status: 'unavailable', reason: availability.reason || 'RUSTORE_NOT_AVAILABLE' };
     const canonicalUserId = String(profile.id);
-    const configuredProductIds = new Set(configuredPlanEntries().map(([, configuredId]) => configuredId));
+    const configuredProductIdList = configuredPlanEntries().map(([, configuredId]) => configuredId);
+    const configuredProductIds = new Set(configuredProductIdList);
     let pendingAttempt = readPendingCheckoutAttempt(canonicalUserId);
     if (pendingAttempt && !configuredProductIds.has(pendingAttempt.productId)) {
       clearPendingCheckoutAttempt(canonicalUserId);
       pendingAttempt = null;
     }
-    const productId = pendingAttempt?.productId || requestedProductId;
+    // A provider-confirmed purchase can remain unresolved after its checkout
+    // marker is cleared. Reconcile that durable purchase before honoring a plan
+    // change, otherwise month -> year can open a second order.
+    const durablePendingPurchase = configuredProductIdList
+      .map((configuredProductId) => readPendingPurchase(canonicalUserId, configuredProductId))
+      .find((candidate): candidate is PendingRuStorePurchase => candidate !== null) || null;
+    const productId = pendingAttempt?.productId
+      || durablePendingPurchase?.productId
+      || requestedProductId;
     const products = await withBoundedTimeout(
       nativeBridge.getProducts({ productIds: [productId] }),
       RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS,
@@ -551,7 +610,9 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
     if (!hasMainSubscriptionPeriod(product)) {
       return { status: 'unavailable', reason: 'RUSTORE_SUBSCRIPTION_INFO_MISSING' };
     }
-    let purchase: RuStorePurchase | null | undefined = readPendingPurchase(canonicalUserId, productId);
+    let purchase: RuStorePurchase | null | undefined = durablePendingPurchase?.productId === productId
+      ? durablePendingPurchase
+      : readPendingPurchase(canonicalUserId, productId);
     if (!purchase) {
       if (pendingAttempt) {
         try {
@@ -563,6 +624,7 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
           purchase = recovered.purchases.find((candidate) => (
             candidate.productId === productId
             && candidate.productType === 'SUBSCRIPTION'
+            && candidate.orderId === pendingAttempt.orderId
             && (
               Boolean(candidate.purchaseId)
               || terminalPurchaseResult(candidate) === 'cancelled'
@@ -620,6 +682,7 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
     clearPendingCheckoutAttempt(canonicalUserId);
     const result = await reconcilePurchaseResult(nativeBridge, purchase);
     if (result.status === 'completed'
+      || result.status === 'inactive'
       || result.status === 'cancelled'
       || (result.status === 'failed' && SDK_TERMINAL_PURCHASE_FAILURE_REASONS.has(result.reason))) {
       clearPendingPurchase(canonicalUserId, productId);
@@ -631,27 +694,66 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
   }
 }
 
-export async function restoreRuStorePurchases(): Promise<PaymentResult[]> {
+async function performRuStoreRestore(userId: string): Promise<PaymentResult[]> {
   const nativeBridge = bridge();
   if (!nativeBridge) return [{ status: 'unavailable', reason: 'RUSTORE_PAY_NOT_AVAILABLE' }];
+  const configuredProductIdList = configuredPlanEntries().map(([, productId]) => productId);
+  const configuredProductIds = new Set(configuredProductIdList);
+  const durablePendingPurchases = configuredProductIdList
+    .map((productId) => readPendingPurchase(userId, productId))
+    .filter((purchase): purchase is PendingRuStorePurchase => purchase !== null);
+
+  let nativePurchases: RuStorePurchase[];
   try {
     const result = await withBoundedTimeout(
       nativeBridge.getPurchases(),
       RUSTORE_RESTORE_TIMEOUT_MS,
       'RUSTORE_RESTORE_TIMEOUT',
     );
-    const configuredProductIds = new Set(configuredPlanEntries().map(([, productId]) => productId));
-    const subscriptions = result.purchases.filter(
+    nativePurchases = result.purchases;
+  } catch (error: any) {
+    if (!durablePendingPurchases.length) {
+      const reason = String(error?.message || error?.code || 'RUSTORE_RESTORE_FAILED');
+      return [{
+        status: 'failed',
+        reason: reason === 'RUSTORE_RESTORE_TIMEOUT' ? reason : 'RUSTORE_RESTORE_FAILED',
+      }];
+    }
+    // The SDK list can lag or fail while a provider-confirmed purchase id is
+    // already durable. Backend validation remains authoritative for recovery.
+    nativePurchases = [];
+  }
+
+  try {
+    const subscriptions = nativePurchases.filter(
       (purchase) => purchase.productType === 'SUBSCRIPTION' && configuredProductIds.has(purchase.productId),
     );
+    durablePendingPurchases.forEach((pendingPurchase) => {
+      const alreadyReturnedByRuStore = subscriptions.some((purchase) => (
+        purchase.productId === pendingPurchase.productId
+        && purchase.purchaseId === pendingPurchase.purchaseId
+      ));
+      if (!alreadyReturnedByRuStore) subscriptions.push(pendingPurchase);
+    });
+    const durablePendingIds = new Set(durablePendingPurchases.map(
+      (purchase) => `${purchase.productId}:${purchase.purchaseId}`,
+    ));
     const settled = await Promise.allSettled(
       subscriptions.map(async (purchase) => {
         try {
-          return await withBoundedTimeout(
+          const validation = await withBoundedTimeout(
             validateRestoredPurchase(purchase),
             RUSTORE_RESTORE_VALIDATION_TIMEOUT_MS,
             'RUSTORE_RESTORE_VALIDATION_TIMEOUT',
           );
+          if (durablePendingIds.has(`${purchase.productId}:${purchase.purchaseId}`)
+            && (validation.status === 'completed'
+              || validation.status === 'inactive'
+              || validation.status === 'cancelled'
+              || (validation.status === 'failed' && SDK_TERMINAL_PURCHASE_FAILURE_REASONS.has(validation.reason)))) {
+            clearPendingPurchase(userId, purchase.productId);
+          }
+          return validation;
         } catch (error: any) {
           const reason = String(error?.message || error?.code || 'RUSTORE_SERVER_VALIDATION_FAILED');
           if (reason === 'RUSTORE_RESTORE_VALIDATION_TIMEOUT') {
@@ -673,51 +775,109 @@ export async function restoreRuStorePurchases(): Promise<PaymentResult[]> {
   }
 }
 
-export function requestRuStorePayment(profile: UserProfile, planId: PremiumPlanId): Promise<PaymentResult> {
-  const key = `rustore:${String(profile.id || '')}:premium`;
-  const current = inFlightPayments.get(key);
-  const observe = (entry: { source: Promise<PaymentResult>; startedAt: number }) => {
-    const releaseExpiredEntry = () => {
-      if (inFlightPayments.get(key)?.source === entry.source) inFlightPayments.delete(key);
-    };
-    const remainingMs = RUSTORE_PURCHASE_RESULT_TIMEOUT_MS - (Date.now() - entry.startedAt);
-    if (remainingMs <= 0) {
-      releaseExpiredEntry();
-      return Promise.resolve<PaymentResult>({
-        status: 'pending',
-        reason: 'RUSTORE_PURCHASE_RESULT_PENDING',
-      });
-    }
-    return withBoundedTimeout(
-      entry.source,
-      remainingMs,
-      'RUSTORE_PURCHASE_RESULT_TIMEOUT',
-    ).catch((error: any): PaymentResult => {
-      const reason = String(error?.message || error?.code || 'RUSTORE_PURCHASE_FAILED');
-      if (reason === 'RUSTORE_PURCHASE_RESULT_TIMEOUT') {
-        releaseExpiredEntry();
-        return { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' };
-      }
-      return { status: 'failed', reason };
-    });
+export function restoreRuStorePurchases(userId: string): Promise<PaymentResult[]> {
+  if (!isValidUserId(userId)) {
+    return Promise.resolve([{ status: 'unavailable', reason: 'RUSTORE_ACCOUNT_ID_REQUIRED' }]);
+  }
+  const canonicalUserId = String(userId).trim();
+  const operationKey = paymentOperationKey(canonicalUserId);
+  const activePayment = inFlightPayments.get(operationKey);
+  if (activePayment) {
+    return observeInFlightPayment(operationKey, activePayment)
+      .then((result) => [result]);
+  }
+  const settledHandoff = readSettledPaymentResultHandoff(operationKey);
+  if (settledHandoff) return Promise.resolve([settledHandoff]);
+  const current = inFlightRestores.get(canonicalUserId);
+  if (current) return current;
+  const source = performRuStoreRestore(canonicalUserId).finally(() => {
+    if (inFlightRestores.get(canonicalUserId) === source) inFlightRestores.delete(canonicalUserId);
+  });
+  inFlightRestores.set(canonicalUserId, source);
+  return source;
+}
+
+function observeInFlightPayment(
+  key: string,
+  entry: { source: Promise<PaymentResult>; startedAt: number },
+): Promise<PaymentResult> {
+  const releaseExpiredEntry = () => {
+    if (inFlightPayments.get(key)?.source === entry.source) inFlightPayments.delete(key);
   };
-  if (current) return observe(current);
+  const remainingMs = RUSTORE_PURCHASE_RESULT_TIMEOUT_MS - (Date.now() - entry.startedAt);
+  if (remainingMs <= 0) {
+    releaseExpiredEntry();
+    return Promise.resolve({
+      status: 'pending',
+      reason: 'RUSTORE_PURCHASE_RESULT_PENDING',
+    });
+  }
+  return withBoundedTimeout(
+    entry.source,
+    remainingMs,
+    'RUSTORE_PURCHASE_RESULT_TIMEOUT',
+  ).catch((error: any): PaymentResult => {
+    const reason = String(error?.message || error?.code || 'RUSTORE_PURCHASE_FAILED');
+    if (reason === 'RUSTORE_PURCHASE_RESULT_TIMEOUT') {
+      releaseExpiredEntry();
+      return { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' };
+    }
+    return { status: 'failed', reason };
+  });
+}
+
+function paymentResultFromRestore(results: PaymentResult[]): PaymentResult | null {
+  return results.find((result) => result.status === 'completed')
+    || results.find((result) => result.status === 'inactive')
+    || results.find((result) => result.status === 'pending')
+    || results[0]
+    || null;
+}
+
+export function requestRuStorePayment(profile: UserProfile, planId: PremiumPlanId): Promise<PaymentResult> {
+  const canonicalUserId = isValidUserId(profile.id) ? String(profile.id).trim() : '';
+  const key = paymentOperationKey(canonicalUserId);
+  const current = inFlightPayments.get(key);
+  if (current) return observeInFlightPayment(key, current);
+  const settledHandoff = canonicalUserId ? readSettledPaymentResultHandoff(key) : null;
+  if (settledHandoff) return Promise.resolve(settledHandoff);
 
   const startedAt = Date.now();
-  const source = performRuStorePayment(profile, planId).finally(() => {
+  const source = (async () => {
+    const activeRestore = canonicalUserId ? inFlightRestores.get(canonicalUserId) : null;
+    if (activeRestore) {
+      const restored = paymentResultFromRestore(await activeRestore);
+      // A restore that observed any purchase state is authoritative for this
+      // tap. Only a completed empty restore may proceed to a new checkout.
+      if (restored) return restored;
+    }
+    return performRuStorePayment(profile, planId);
+  })().then((result) => {
+    rememberSettledPaymentResultHandoff(key, result);
+    return result;
+  }).finally(() => {
     if (inFlightPayments.get(key)?.source === source) inFlightPayments.delete(key);
   });
   const entry = { source, startedAt };
   inFlightPayments.set(key, entry);
-  return observe(entry);
+  return observeInFlightPayment(key, entry);
 }
 
-export async function openRuStoreSubscriptionManagement(): Promise<boolean> {
+export function openRuStoreSubscriptionManagement(): Promise<boolean> {
   const nativeBridge = bridge();
-  if (!nativeBridge) return false;
-  try {
-    return (await nativeBridge.openSubscriptionManagement()).opened;
-  } catch {
-    return false;
-  }
+  if (!nativeBridge) return Promise.resolve(false);
+  if (inFlightSubscriptionManagement) return inFlightSubscriptionManagement;
+
+  const source = withBoundedTimeout(
+    Promise.resolve().then(() => nativeBridge.openSubscriptionManagement()),
+    RUSTORE_MANAGEMENT_TIMEOUT_MS,
+    'RUSTORE_SUBSCRIPTION_MANAGEMENT_TIMEOUT',
+  )
+    .then((result) => result.opened)
+    .catch(() => false)
+    .finally(() => {
+      if (inFlightSubscriptionManagement === source) inFlightSubscriptionManagement = null;
+    });
+  inFlightSubscriptionManagement = source;
+  return source;
 }

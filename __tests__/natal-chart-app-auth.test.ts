@@ -135,6 +135,20 @@ describe('primary chart app auth', () => {
     expect(ensureCanonicalPrimaryChart).toHaveBeenCalledWith(expect.objectContaining({ userId: '-42' }));
   });
 
+  it('normalizes PostgreSQL TIME before validation and canonical calculation', async () => {
+    const { createAppSessionToken, ensureCanonicalPrimaryChart, handler } = await setup();
+    const token = createAppSessionToken({ userId: '-42', sessionId: 'guest-session-time', provider: 'web_guest' });
+
+    const res = await call(handler, { ...validBody, birthTime: '12:30:00' }, {
+      cookie: `lumia_app_session=${token}`,
+    });
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(ensureCanonicalPrimaryChart).toHaveBeenCalledWith(expect.objectContaining({
+      birthTime: '12:30',
+    }));
+  });
+
   it('requires an authenticated session instead of accepting a request userId', async () => {
     const { ensureCanonicalPrimaryChart, handler } = await setup();
 

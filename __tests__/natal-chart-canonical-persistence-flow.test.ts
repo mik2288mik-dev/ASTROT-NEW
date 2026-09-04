@@ -10,9 +10,9 @@ describe('canonical natal chart persistence flow', () => {
 
     expect(persistence).toContain("import { calculateNatalChart, resolveBirthCoordinates } from './swisseph-calculator';");
     expect(persistence).toContain('await calculateNatalChart(');
-    expect(persistence).toContain('await db.natal_charts.persistPrimary');
+    expect(persistence).toContain('await natalChartV2Repository.persistPrimary');
     expect(api).toContain('ensureCanonicalPrimaryChart({');
-    expect(api).toContain("persistChartIdentity(result.chart, 'self', null)");
+    expect(api).toMatch(/persistChartIdentity\(result\.chart,\s*'self',\s*null\)/);
   });
 
   it('never accepts a client chart payload as the canonical calculation', () => {

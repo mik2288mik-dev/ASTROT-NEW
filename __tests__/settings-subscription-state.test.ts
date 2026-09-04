@@ -17,14 +17,16 @@ const entitlement = (
 });
 
 describe('Settings subscription state copy', () => {
+  const activePeriodNow = Date.parse('2026-08-01T00:00:00.000Z');
+
   it('keeps gift, store trial, and paid distinct', () => {
-    expect(describePremiumEntitlement(entitlement('gift'), 'ru').title).toContain('Подарочный Premium');
-    expect(describePremiumEntitlement(entitlement('store_trial'), 'ru').title).toContain('Пробный период RuStore');
-    expect(describePremiumEntitlement(entitlement('paid'), 'ru').title).toBe('Premium активен');
+    expect(describePremiumEntitlement(entitlement('gift'), 'ru', activePeriodNow).title).toContain('Подарочный Premium');
+    expect(describePremiumEntitlement(entitlement('store_trial'), 'ru', activePeriodNow).title).toContain('Пробный период RuStore');
+    expect(describePremiumEntitlement(entitlement('paid'), 'ru', activePeriodNow).title).toBe('Premium активен');
   });
 
   it('says cancellation preserves access through the paid end', () => {
-    expect(describePremiumEntitlement(entitlement('cancelled_active'), 'ru').body)
+    expect(describePremiumEntitlement(entitlement('cancelled_active'), 'ru', activePeriodNow).body)
       .toBe('Автопродление выключено. Premium работает до 1 сентября 2026 г.');
   });
 

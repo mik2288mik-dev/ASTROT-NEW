@@ -28,7 +28,7 @@ describe('honest contextual paywall', () => {
     expect(source).not.toMatch(/эконом|скидк|выгодн|популярн/i);
   });
 
-  it('defaults to three months and uses only a loaded RuStore subscription catalog', () => {
+  it('defaults to three months and uses only loaded channel-authoritative catalogs', () => {
     expect(source).toContain("initialPlanId = 'premium_quarter'");
     expect(source).toContain('useState<PremiumPlanId>(initialPlanId)');
     expect(source).toContain("product.type !== 'SUBSCRIPTION'");
@@ -36,7 +36,8 @@ describe('honest contextual paywall', () => {
     expect(source).not.toContain('priceRub');
     expect(source).not.toContain('savings(');
     expect(source).not.toContain('setTimeout(');
-    expect(source).toContain('if (!rustorePaymentsEnabled)');
+    expect(source).toContain('if (!paymentCatalogEnabled)');
+    expect(source).toContain('loadTelegramPremiumPlans()');
     expect(rustoreService).toContain('if (!entries.length) return {}');
   });
 

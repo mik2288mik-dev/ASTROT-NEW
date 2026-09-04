@@ -4,50 +4,20 @@ import { getZodiacSign } from '../../constants';
 import type { NatalChartData } from '../../types';
 import type { NatalChartDataV2 } from '../../lib/natalChartV2Types';
 import { getPermanentNatalReliability } from '../../lib/natalReading/permanentReport';
+import {
+  NATAL_CHART_WHEEL_BODY_KEYS,
+  buildNatalChartWheelModel as buildWheelModel,
+  getNatalChartWheelCaption as getWheelCaption,
+  natalChartWheelBodyLane,
+  natalChartWheelHouseLabelLongitude,
+  normalizeNatalWheelLongitude,
+} from '../../lib/natalChartWheelModel';
 import { PlanetIcon, type PlanetKey } from '../icons/PlanetIcon';
 import { ZodiacIcon } from '../icons/ZodiacIcon';
 
 type Language = 'ru' | 'en';
 type ChartSource = NatalChartData | NatalChartDataV2;
-
-type WheelPoint = {
-  key: string;
-  name: string;
-  sign: string;
-  degree: number;
-  longitude: number;
-  icon: PlanetKey;
-};
-
-type WheelAspect = {
-  id: string;
-  type: 'conjunction' | 'sextile' | 'square' | 'trine' | 'opposition';
-  fromKey: string;
-  toKey: string;
-  fromLongitude: number;
-  toLongitude: number;
-};
-
-type WheelHouse = {
-  house: number;
-  longitude: number;
-};
-
-const BODY_KEYS = [
-  'sun',
-  'moon',
-  'mercury',
-  'venus',
-  'mars',
-  'jupiter',
-  'saturn',
-  'uranus',
-  'neptune',
-  'pluto',
-  'chiron',
-  'northNode',
-  'southNode',
-] as const;
+type BodyKey = (typeof NATAL_CHART_WHEEL_BODY_KEYS)[number];
 
 const SIGNS = [
   'Aries',
@@ -64,7 +34,7 @@ const SIGNS = [
   'Pisces',
 ] as const;
 
-const PLANET_ICONS: Record<(typeof BODY_KEYS)[number], PlanetKey> = {
+const PLANET_ICONS: Record<BodyKey, PlanetKey> = {
   sun: 'sun',
   moon: 'moon',
   mercury: 'mercury',
@@ -80,7 +50,7 @@ const PLANET_ICONS: Record<(typeof BODY_KEYS)[number], PlanetKey> = {
   southNode: 'south-node',
 };
 
-const PLANET_NAMES: Record<(typeof BODY_KEYS)[number] | 'ascendant' | 'mc', Record<Language, string>> = {
+const PLANET_NAMES: Record<BodyKey | 'ascendant' | 'mc', Record<Language, string>> = {
   sun: { ru: 'Солнце', en: 'Sun' },
   moon: { ru: 'Луна', en: 'Moon' },
   mercury: { ru: 'Меркурий', en: 'Mercury' },
@@ -98,195 +68,12 @@ const PLANET_NAMES: Record<(typeof BODY_KEYS)[number] | 'ascendant' | 'mc', Reco
   mc: { ru: 'MC', en: 'MC' },
 };
 
-const ASPECT_TYPES = new Set<WheelAspect['type']>([
-  'conjunction',
-  'sextile',
-  'square',
-  'trine',
-  'opposition',
-]);
-
-function finite(value: unknown): number | null {
-  const parsed = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-function normalizeLongitude(value: number): number {
-  return ((value % 360) + 360) % 360;
-}
-
 function pointOnWheel(longitude: number, radius: number) {
-  const radians = ((normalizeLongitude(longitude) - 90) * Math.PI) / 180;
+  const radians = ((normalizeNatalWheelLongitude(longitude) - 90) * Math.PI) / 180;
   return {
     x: 180 + Math.cos(radians) * radius,
     y: 180 + Math.sin(radians) * radius,
   };
-}
-
-function canonicalKey(value: unknown): string {
-  const compact = String(value ?? '').trim().toLocaleLowerCase('en-US').replace(/[\s_-]+/g, '');
-  const aliases: Record<string, string> = {
-    asc: 'ascendant',
-    rising: 'ascendant',
-    midheaven: 'mc',
-    northnode: 'northnode',
-    truenode: 'northnode',
-    southnode: 'southnode',
-  };
-  return aliases[compact] || compact;
-}
-
-function objectRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' ? value as Record<string, unknown> : null;
-}
-
-function positionRecord(chart: ChartSource, key: (typeof BODY_KEYS)[number]): Record<string, unknown> | null {
-  const rawChart = chart as unknown as Record<string, unknown>;
-  const positions = objectRecord(rawChart.positions);
-  return objectRecord(positions?.[key] ?? rawChart[key]);
-}
-
-function exactWheelCoordinate(chart: ChartSource, value: Record<string, unknown>): boolean {
-  const rawChart = chart as unknown as Record<string, unknown>;
-  if (rawChart.schemaVersion === 'natal-chart-data-v2') return value.reliability === 'exact';
-  return getPermanentNatalReliability(chart).quality === 'exact'
-    && value.reliability !== 'variable_in_range';
-}
-
-function collectBodies(chart: ChartSource): WheelPoint[] {
-  return BODY_KEYS.flatMap((key) => {
-    const position = positionRecord(chart, key);
-    if (!position || !exactWheelCoordinate(chart, position)) return [];
-    const longitude = finite(position.longitude);
-    if (longitude == null) return [];
-    const degree = finite(position.degree);
-    const sign = String(position.sign || '').trim();
-    return [{
-      key,
-      name: String(position.object || position.planet || key),
-      sign,
-      degree: degree == null ? normalizeLongitude(longitude) % 30 : degree,
-      longitude: normalizeLongitude(longitude),
-      icon: PLANET_ICONS[key],
-    }];
-  });
-}
-
-function angleAllowed(chart: ChartSource, key: 'ascendant' | 'mc'): boolean {
-  const reliability = getPermanentNatalReliability(chart);
-  if (!reliability.anglesIncluded || reliability.quality !== 'exact') return false;
-
-  const rawChart = chart as unknown as Record<string, unknown>;
-  const angles = objectRecord(rawChart.angles);
-  const angle = objectRecord(angles?.[key] ?? (key === 'ascendant' ? rawChart.rising : rawChart.mc));
-  return !!angle
-    && finite(angle.longitude) != null
-    && exactWheelCoordinate(chart, angle);
-}
-
-function collectAngles(chart: ChartSource): WheelPoint[] {
-  const rawChart = chart as unknown as Record<string, unknown>;
-  const angles = objectRecord(rawChart.angles);
-  return (['ascendant', 'mc'] as const).flatMap((key) => {
-    if (!angleAllowed(chart, key)) return [];
-    const angle = objectRecord(angles?.[key] ?? (key === 'ascendant' ? rawChart.rising : rawChart.mc));
-    if (!angle) return [];
-    const longitude = finite(angle.longitude);
-    if (longitude == null) return [];
-    return [{
-      key,
-      name: String(angle.object || angle.planet || key),
-      sign: String(angle.sign || '').trim(),
-      degree: finite(angle.degree) ?? normalizeLongitude(longitude) % 30,
-      longitude: normalizeLongitude(longitude),
-      icon: key === 'ascendant' ? 'asc' : 'mc',
-    }];
-  });
-}
-
-function collectHouses(chart: ChartSource): WheelHouse[] {
-  const reliability = getPermanentNatalReliability(chart);
-  if (reliability.quality !== 'exact' || !reliability.housesIncluded || !Array.isArray(chart.houses)) return [];
-
-  const rawChart = chart as unknown as Record<string, unknown>;
-  const quality = objectRecord(rawChart.chartQuality);
-  const variableHouses = new Set(
-    Array.isArray(quality?.variableHouses)
-      ? quality.variableHouses.map(finite).filter((value): value is number => value != null)
-      : [],
-  );
-
-  return chart.houses.flatMap((raw, index) => {
-    const house = raw as unknown as Record<string, unknown>;
-    const number = finite(house.house) ?? index + 1;
-    const longitude = finite(house.longitude);
-    const reliable = exactWheelCoordinate(chart, house) && !variableHouses.has(number);
-    if (longitude == null || !reliable) return [];
-    return [{ house: number, longitude: normalizeLongitude(longitude) }];
-  }).sort((left, right) => left.house - right.house);
-}
-
-function houseLabelLongitude(house: WheelHouse, houses: WheelHouse[]): number {
-  const nextHouseNumber = house.house === 12 ? 1 : house.house + 1;
-  const next = houses.find((candidate) => candidate.house === nextHouseNumber);
-  if (!next) return normalizeLongitude(house.longitude + 15);
-  const forward = normalizeLongitude(next.longitude - house.longitude);
-  return normalizeLongitude(house.longitude + forward / 2);
-}
-
-function aliasesForPoint(point: WheelPoint): string[] {
-  const aliases = [point.key, point.name];
-  if (point.key === 'northNode') aliases.push('north node', 'true node');
-  if (point.key === 'southNode') aliases.push('south node');
-  if (point.key === 'ascendant') aliases.push('asc', 'rising');
-  if (point.key === 'mc') aliases.push('midheaven');
-  return aliases.map(canonicalKey);
-}
-
-function collectAspects(chart: ChartSource, points: WheelPoint[]): WheelAspect[] {
-  const longitudeByAlias = new Map<string, number>();
-  points.forEach((point) => {
-    aliasesForPoint(point).forEach((alias) => longitudeByAlias.set(alias, point.longitude));
-    if (point.key === 'ascendant') {
-      longitudeByAlias.set('descendant', normalizeLongitude(point.longitude + 180));
-      longitudeByAlias.set('dsc', normalizeLongitude(point.longitude + 180));
-    }
-    if (point.key === 'mc') {
-      longitudeByAlias.set('ic', normalizeLongitude(point.longitude + 180));
-      longitudeByAlias.set('imumcoeli', normalizeLongitude(point.longitude + 180));
-    }
-  });
-
-  const aspects = Array.isArray(chart.aspects) ? chart.aspects : [];
-  return aspects.flatMap((raw, index) => {
-    const aspect = raw as unknown as Record<string, unknown>;
-    const type = String(aspect.type || '').toLocaleLowerCase('en-US') as WheelAspect['type'];
-    if (!ASPECT_TYPES.has(type) || aspect.reliable === false) return [];
-    const fromKey = canonicalKey(aspect.fromKey ?? aspect.from);
-    const toKey = canonicalKey(aspect.toKey ?? aspect.to);
-    const fromLongitude = longitudeByAlias.get(fromKey);
-    const toLongitude = longitudeByAlias.get(toKey);
-    if (fromLongitude == null || toLongitude == null) return [];
-    return [{
-      id: String(aspect.id || `${fromKey}-${type}-${toKey}-${index}`),
-      type,
-      fromKey,
-      toKey,
-      fromLongitude,
-      toLongitude,
-    }];
-  });
-}
-
-function bodyLane(points: WheelPoint[], index: number): number {
-  const current = points[index];
-  const nearBefore = points
-    .slice(0, index)
-    .filter((candidate) => {
-      const distance = Math.abs(candidate.longitude - current.longitude);
-      return Math.min(distance, 360 - distance) < 13;
-    })
-    .length;
-  return nearBefore % 3;
 }
 
 export function NatalChartWheel({
@@ -300,12 +87,8 @@ export function NatalChartWheel({
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const reliability = getPermanentNatalReliability(chart);
-  const bodies = collectBodies(chart);
-  const angles = collectAngles(chart);
-  const houses = collectHouses(chart);
-  const allPoints = [...bodies, ...angles];
-  const aspects = collectAspects(chart, allPoints);
-  const omittedBodyCount = BODY_KEYS.length - bodies.length;
+  const { bodies, angles, houses, allPoints, aspects } = buildWheelModel(chart);
+  const omittedBodyCount = NATAL_CHART_WHEEL_BODY_KEYS.length - bodies.length;
   const ascendant = angles.find((angle) => angle.key === 'ascendant');
   const midheaven = angles.find((angle) => angle.key === 'mc');
   const wheelRotation = ascendant
@@ -315,9 +98,7 @@ export function NatalChartWheel({
       : 0;
   const chartPoint = (longitude: number, radius: number) => pointOnWheel(wheelRotation - longitude, radius);
   const title = language === 'ru' ? 'Круг натальной карты' : 'Natal chart wheel';
-  const caption = language === 'ru'
-    ? `Точные положения рассчитанных объектов и аспекты из карты.${omittedBodyCount > 0 ? ' Координаты с недостаточной точностью не показаны.' : ''}`
-    : `Exact calculated placements and chart aspects.${omittedBodyCount > 0 ? ' Coordinates without sufficient precision are omitted.' : ''}`;
+  const caption = getWheelCaption(reliability.quality, language, omittedBodyCount);
   const precisionLabel = reliability.quality === 'unknown'
     ? (language === 'ru' ? 'Время не указано' : 'Time not specified')
     : reliability.quality === 'approximate'
@@ -428,7 +209,7 @@ export function NatalChartWheel({
           {houses.map((house) => {
             const cusp = chartPoint(house.longitude, 137);
             const center = chartPoint(house.longitude, 66);
-            const label = chartPoint(houseLabelLongitude(house, houses), 123);
+            const label = chartPoint(natalChartWheelHouseLabelLongitude(house, houses), 123);
             return (
               <g key={house.house} className="natal-chart-wheel-house">
                 <line x1={center.x} y1={center.y} x2={cusp.x} y2={cusp.y} />
@@ -472,7 +253,7 @@ export function NatalChartWheel({
         </g>
 
         {bodies.map((body, index) => {
-          const radius = [116, 96, 77][bodyLane(bodies, index)];
+          const radius = [116, 96, 77][natalChartWheelBodyLane(bodies, index)];
           const marker = chartPoint(body.longitude, radius);
           return (
             <g
@@ -483,9 +264,9 @@ export function NatalChartWheel({
             >
               <circle r="12" />
               <g transform="translate(-8 -10)">
-                <PlanetIcon planet={body.icon} size={16} strokeWidth={1.45} />
+                <PlanetIcon planet={PLANET_ICONS[body.key as BodyKey]} size={16} strokeWidth={1.45} />
               </g>
-              <text x="0" y="9" textAnchor="middle">{Math.floor(normalizeLongitude(body.degree) % 30)}°</text>
+              <text x="0" y="9" textAnchor="middle">{Math.floor(normalizeNatalWheelLongitude(body.degree) % 30)}°</text>
             </g>
           );
         })}
@@ -501,7 +282,7 @@ export function NatalChartWheel({
             >
               <circle r="10" />
               <g transform="translate(-8 -8)">
-                <PlanetIcon planet={angle.icon} size={16} strokeWidth={1.55} />
+                <PlanetIcon planet={angle.key === 'ascendant' ? 'asc' : 'mc'} size={16} strokeWidth={1.55} />
               </g>
             </g>
           );
@@ -527,7 +308,7 @@ export function NatalChartWheel({
         {allPoints.map((point) => (
           <li key={point.key}>
             {PLANET_NAMES[point.key as keyof typeof PLANET_NAMES]?.[language] || point.name}: {' '}
-            {getZodiacSign(language, point.sign)} {(normalizeLongitude(point.degree) % 30).toFixed(1)}°
+            {getZodiacSign(language, point.sign)} {(normalizeNatalWheelLongitude(point.degree) % 30).toFixed(1)}°
           </li>
         ))}
         {houses.map((house) => {

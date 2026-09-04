@@ -4,6 +4,7 @@ import {
   type PremiumEntitlementState,
   type UserProfile,
 } from '../types';
+import { isReadableNatalChart } from './readableNatalChart';
 
 export const ENTITLEMENT_STATES = PREMIUM_ENTITLEMENT_STATES;
 export type EntitlementState = PremiumEntitlementState;
@@ -297,16 +298,10 @@ function toPositiveId(value: unknown): boolean {
   return Number.isFinite(numeric) && numeric > 0;
 }
 
-function isNatalChartData(value: unknown): value is NatalChartData {
-  const chart = value as NatalChartData | null;
-  const quality = chart?.birthTimeQuality || chart?.chartQuality?.birthTimeQuality;
-  return !!chart && !!chart.sun && !!chart.moon && (quality === 'unknown' || !!chart.rising);
-}
-
 function readChartData(input: unknown): NatalChartData | null {
-  if (isNatalChartData(input)) return input;
+  if (isReadableNatalChart(input)) return input;
   const state = input as ChartAccessState | null;
-  if (isNatalChartData(state?.chartData)) return state.chartData;
+  if (isReadableNatalChart(state?.chartData)) return state.chartData;
   return null;
 }
 
@@ -325,7 +320,7 @@ export function hasNatalChart(
   const states = [chartState, profileOrState].filter(Boolean);
 
   for (const state of states) {
-    if (isNatalChartData(state)) return true;
+    if (isReadableNatalChart(state)) return true;
     if (readChartData(state)) return true;
     const chartLike = state as ChartAccessState;
     if (toPositiveId(chartLike.primaryChartId) || toPositiveId(chartLike.chartId)) return true;

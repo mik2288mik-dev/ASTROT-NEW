@@ -30,7 +30,7 @@ import {
     isNativeAppRuntime,
     type AppSessionInvalidatedDetail,
 } from './services/apiClient';
-import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './services/chartService';
+import { getChartFromDB, getOrCalculateChart, getPrimaryChartId, natalChartMatchesProfile } from './services/chartService';
 import { buildNatalChartCacheKey, clearLocalNatalChart, readLocalNatalChartCache, writeLocalNatalChart } from './lib/localNatalChartCache';
 import { createPrimaryChartRequestGuard } from './lib/primaryChartRequestGuard';
 import {
@@ -118,11 +118,26 @@ import {
 } from './services/authSessionIntent';
 import {
     createPaywallContextFromRequest,
+    isCurrentPaywallInstance,
     resolvePaywallOutcome,
     type PaywallContext,
     type PaywallOutcome,
 } from './lib/paywallContext';
 import type { PaywallPurchaseStatus } from './views/Paywall';
+import { paymentFailureCopy } from './lib/paymentFailureCopy';
+import {
+    mergePaymentProfilePatch,
+    paymentProfilePatchFromEntitlement,
+    paymentProfilePatchFromProfile,
+    type PaymentProfilePatch,
+} from './lib/paymentProfile';
+import { pollForPaymentEntitlement } from './lib/paymentEntitlementPolling';
+import { isReadableNatalChart } from './lib/readableNatalChart';
+import {
+    canRestorePaywallFocus,
+    getPaywallFocusableElements,
+    trapPaywallTabKey,
+} from './lib/paywallDialogFocus';
 const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
     ssr: false,
 });
@@ -193,11 +208,6 @@ type SynastryPrefill = {
 } | null;
 
 type ChartLoadState = 'idle' | 'loading' | 'ready' | 'error';
-const hasReadableNatalChart = (chart: NatalChartData | null | undefined): chart is NatalChartData => {
-    if (!chart?.sun || !chart?.moon) return false;
-    const quality = chart.birthTimeQuality || chart.chartQuality?.birthTimeQuality;
-    return quality === 'unknown' || !!chart.rising;
-};
 type TelegramWebAppUser = {
     id?: string | number;
     first_name?: string;
@@ -385,7 +395,13 @@ const App: React.FC = () => {
         currentView: 'services',
     }));
     const [natalQuestionRequest, setNatalQuestionRequest] = useState(0);
-    const [paywallContext, setPaywallContext] = useState<PaywallContext | null>(null);
+    const [paywallContext, setPaywallContextState] = useState<PaywallContext | null>(null);
+    const paywallContextRef = useRef<PaywallContext | null>(null);
+    const setPaywallContext = useCallback((nextContext: PaywallContext | null) => {
+        paywallContextRef.current = nextContext;
+        setPaywallContextState(nextContext);
+    }, []);
+    paywallContextRef.current = paywallContext;
     const [premiumContinuation, setPremiumContinuation] = useState<PaywallContext | null>(null);
     const [pendingPremiumRecovery, setPendingPremiumRecovery] = useState<{
         context: PaywallContext;
@@ -415,6 +431,8 @@ const App: React.FC = () => {
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
     const appScrollRef = useRef<HTMLDivElement | null>(null);
     const paywallHostRef = useRef<HTMLDivElement | null>(null);
+    const paywallTriggerRef = useRef<HTMLElement | null>(null);
+    const paywallDismissRef = useRef<(context: PaywallContext) => void>(() => undefined);
     const currentDateTimezone = normalizeForecastTimezone(
         primaryChartDataRef.current?.timezone || profile?.birthTimezone || chartData?.timezone,
     );
@@ -422,8 +440,10 @@ const App: React.FC = () => {
     const onboardingTargetViewRef = useRef<ViewState>('dashboard');
     const onboardingCompletionRef = useRef(false);
     const restoredRuStoreUserRef = useRef<string | null>(null);
+    const activeProfileUserIdRef = useRef('');
     const firstValueReachedRef = useRef(false);
     const navigationHistoryRef = useRef<ViewState[]>([]);
+    activeProfileUserIdRef.current = profile?.id ? String(profile.id) : '';
 
     useEffect(() => {
         const accountKey = profile?.id ? String(profile.id) : '';
@@ -573,7 +593,7 @@ const App: React.FC = () => {
         const key = buildNatalChartCacheKey(targetProfile);
         const current = primaryChartSessionRef.current;
 
-        if (current.key === key && hasReadableNatalChart(current.data)) {
+        if (current.key === key && isReadableNatalChart(current.data)) {
             setChartData(current.data);
             setChartLoadState('ready');
             return current.data;
@@ -601,7 +621,8 @@ const App: React.FC = () => {
             void getChartFromDB(String(targetProfile.id))
                 .then((freshChart) => {
                     if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
-                    if (!freshChart) return; // Do not recalculate a DB miss while a valid local chart exists.
+                    if (!freshChart || !natalChartMatchesProfile(freshChart, targetProfile)) return;
+                    // Do not recalculate a DB miss/stale row while a valid local chart exists.
                     primaryChartSessionRef.current = { key, data: freshChart, promise: null };
                     primaryChartDataRef.current = freshChart;
                     writeLocalNatalChart(targetProfile, freshChart, localEntry.chartId);
@@ -623,7 +644,7 @@ const App: React.FC = () => {
         )
             .then((chart) => {
                 if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return null;
-                if (hasReadableNatalChart(chart)) {
+                if (isReadableNatalChart(chart)) {
                     primaryChartSessionRef.current = { key, data: chart, promise: null };
                     primaryChartDataRef.current = chart;
                     writeLocalNatalChart(targetProfile, chart);
@@ -863,7 +884,8 @@ const App: React.FC = () => {
                     ? getChartFromDB(String(targetProfile.id))
                         .then((freshChart) => {
                             if (cancelled || !primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
-                            if (!hasReadableNatalChart(freshChart)) return;
+                            if (!isReadableNatalChart(freshChart)
+                                || !natalChartMatchesProfile(freshChart, targetProfile)) return;
                             chart = freshChart;
                             const key = buildNatalChartCacheKey(targetProfile);
                             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
@@ -1222,9 +1244,7 @@ const App: React.FC = () => {
             );
             if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
             
-            const birthTimeUnknown = generatedChart?.birthTimeQuality === 'unknown'
-                || generatedChart?.birth?.time?.mode === 'unknown';
-            if (!generatedChart || !generatedChart.sun || !generatedChart.moon || (!birthTimeUnknown && !generatedChart.rising)) {
+            if (!isReadableNatalChart(generatedChart)) {
                 throw new Error('Не удалось получить данные карты. Попробуйте ещё раз.');
             }
 
@@ -1500,12 +1520,24 @@ const App: React.FC = () => {
         restoredRuStoreUserRef.current = userId;
 
         // The bridge is a no-op outside the explicit RuStore Android channel.
-        // A returned SDK purchase still becomes Premium only after backend
-        // validation; the next profile load is therefore authoritative.
-        void restoreRuStorePurchases().then(async (results) => {
-            if (!results.some((result) => result.status === 'completed')) return;
-            const refreshed = await getProfile();
-            if (refreshed) setProfile(refreshed);
+        // Apply only the backend-owned entitlement fields so a long restore
+        // cannot roll back profile edits made in the meantime.
+        void restoreRuStorePurchases(userId).then(async (results) => {
+            if (activeProfileUserIdRef.current !== userId) return;
+            const authoritative = results.find((result) => result.status === 'completed')
+                || results.find((result) => result.status === 'inactive');
+            if (!authoritative) return;
+            let patch: PaymentProfilePatch | null = authoritative.entitlement
+                ? paymentProfilePatchFromEntitlement(authoritative.entitlement)
+                : null;
+            if (!patch && authoritative.status === 'completed') {
+                const refreshed = await getProfile().catch(() => null);
+                if (!refreshed || String(refreshed.id) !== userId) return;
+                patch = paymentProfilePatchFromProfile(refreshed);
+            }
+            if (!patch || activeProfileUserIdRef.current !== userId) return;
+            setProfile((current) => mergePaymentProfilePatch(current, userId, patch));
+            clearPersonalForecastSessionCache();
         }).catch(() => undefined);
     }, [profile?.id]);
 
@@ -1568,16 +1600,49 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (!paywallContext || typeof window === 'undefined') return;
+        const context = paywallContext;
         const host = paywallHostRef.current;
-        host?.focus();
+        if (!host) return;
+        const activeElement = document.activeElement;
+        if (
+            activeElement instanceof HTMLElement
+            && activeElement !== document.body
+            && !host.contains(activeElement)
+        ) {
+            paywallTriggerRef.current = activeElement;
+        }
+        const trigger = paywallTriggerRef.current;
+        host.focus({ preventScroll: true });
         const frame = window.requestAnimationFrame(() => {
-            const closeButton = host?.querySelector<HTMLButtonElement>(
+            const closeButton = host.querySelector<HTMLButtonElement>(
                 '.pw2-close, .pw2 .app-top-bar-side--start .app-top-bar-action',
             );
-            (closeButton || host)?.focus();
+            const initialFocus = closeButton || getPaywallFocusableElements(host)[0] || host;
+            initialFocus.focus({ preventScroll: true });
         });
-        return () => window.cancelAnimationFrame(frame);
-    }, [paywallContext?.paywallInstanceId]);
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                paywallDismissRef.current(context);
+                return;
+            }
+            trapPaywallTabKey(host, event);
+        };
+
+        document.addEventListener('keydown', handleKeyDown, true);
+        return () => {
+            window.cancelAnimationFrame(frame);
+            document.removeEventListener('keydown', handleKeyDown, true);
+            if (paywallTriggerRef.current !== trigger) return;
+            window.requestAnimationFrame(() => {
+                if (canRestorePaywallFocus(trigger)) {
+                    trigger.focus({ preventScroll: true });
+                }
+            });
+        };
+    }, [paywallContext]);
 
     const paywallEventPayload = (
         context: PaywallContext,
@@ -1603,13 +1668,17 @@ const App: React.FC = () => {
 
     const restoreScrollAnchor = (
         anchor: string | null,
-        options?: { focus?: boolean },
+        options?: { focus?: boolean; restoreFocusTo?: HTMLElement | null },
     ) => {
-        if (!anchor || typeof window === 'undefined') return;
+        if ((!anchor && !options?.restoreFocusTo) || typeof window === 'undefined') return;
         window.requestAnimationFrame(() => {
             window.requestAnimationFrame(() => {
-                const target = document.getElementById(anchor);
-                if (options?.focus) target?.focus({ preventScroll: true });
+                const target = anchor ? document.getElementById(anchor) : null;
+                if (canRestorePaywallFocus(options?.restoreFocusTo)) {
+                    options.restoreFocusTo.focus({ preventScroll: true });
+                } else if (options?.focus) {
+                    target?.focus({ preventScroll: true });
+                }
                 target?.scrollIntoView({ block: 'center' });
             });
         });
@@ -1621,6 +1690,8 @@ const App: React.FC = () => {
         notice?: string,
     ) => {
         const destination = resolvePaywallOutcome(context, outcome);
+        const trigger = paywallTriggerRef.current;
+        paywallTriggerRef.current = null;
         if (context.placement === 'today') setDashboardPeriod('day');
         if (outcome === 'purchase_succeeded' && context.placement === 'week') setDashboardPeriod('week');
         if (outcome === 'purchase_succeeded' && context.placement === 'month') setDashboardPeriod('month');
@@ -1631,23 +1702,33 @@ const App: React.FC = () => {
         if (notice) setCheckoutNotice(notice);
         restoreScrollAnchor(destination.scrollAnchor, {
             focus: !destination.shouldOpenFeature,
+            restoreFocusTo: destination.shouldOpenFeature ? null : trigger,
         });
     };
+    paywallDismissRef.current = (context) => returnFromPaywall(context, 'close');
 
-    const profileFromValidatedPayment = async (
-        result: Extract<PaymentResult, { status: 'completed' }>,
-    ): Promise<UserProfile | null> => {
-        if (result.entitlement) {
-            return {
-                ...profile!,
-                isPremium: result.entitlement.isPremium,
-                premiumUntil: result.entitlement.endsAt,
-                premiumEntitlement: result.entitlement,
-            };
-        }
-        const fresh = await getProfile().catch(() => null);
-        return fresh && hasActivePremium(fresh) ? fresh : null;
+    const paymentPatchFromServer = async (
+        expectedUserId: string,
+    ): Promise<PaymentProfilePatch | null> => {
+        const fresh = await pollForPaymentEntitlement({
+            load: () => getProfile({ maxAttempts: 1, timeoutMs: 5_000 }),
+            isEntitled: (candidate) => (
+                String(candidate.id) === expectedUserId && hasActivePremium(candidate)
+            ),
+        });
+        return fresh
+            ? paymentProfilePatchFromProfile(fresh)
+            : null;
     };
+
+    const paymentPatchFromValidatedPayment = async (
+        result: Extract<PaymentResult, { status: 'completed' }>,
+        expectedUserId: string,
+    ): Promise<PaymentProfilePatch | null> => (
+        result.entitlement
+            ? paymentProfilePatchFromEntitlement(result.entitlement)
+            : paymentPatchFromServer(expectedUserId)
+    );
 
     const purchasePremiumPlan = async (
         planId: PremiumPlanId,
@@ -1655,10 +1736,32 @@ const App: React.FC = () => {
     ): Promise<PaywallPurchaseStatus> => {
         const context = paywallContext || contextOverride;
         if (!profile || !context) return 'unavailable';
-        const contextualOverlayOpen = paywallContext?.paywallInstanceId === context.paywallInstanceId;
+        const paymentUserId = String(profile.id);
+        const startedFromFullscreenPaywall = isCurrentPaywallInstance(paywallContextRef.current, context);
         const finishPurchase = (outcome: PaywallOutcome, notice: string) => {
-            if (contextualOverlayOpen) returnFromPaywall(context, outcome, notice);
-            else setCheckoutNotice(notice);
+            const activeContext = paywallContextRef.current;
+            if (activeContext && isCurrentPaywallInstance(activeContext, context)) {
+                returnFromPaywall(activeContext, outcome, notice);
+            }
+            setCheckoutNotice(notice);
+        };
+        const applyCompletedPurchase = (validatedPatch: PaymentProfilePatch) => {
+            setProfile((current) => mergePaymentProfilePatch(current, paymentUserId, validatedPatch));
+            firstValueReachedRef.current = true;
+            setFirstValueReached(true);
+            clearPersonalForecastSessionCache();
+            void recordUserAppEvent({
+                eventType: 'purchase_succeeded',
+                section: 'premium',
+                source: paywallEventSource(context),
+                eventPayload: paywallEventPayload(context, {
+                    planId,
+                    entitlementState: validatedPatch.premiumEntitlement?.state || 'paid',
+                    entitlementEndsAt: validatedPatch.premiumEntitlement?.endsAt || undefined,
+                }),
+            });
+            finishPurchase('purchase_succeeded', 'Premium открыт. Возвращаем туда, где ты остановился.');
+            return 'completed' as const;
         };
         void recordUserAppEvent({
             eventType: 'checkout_started',
@@ -1668,6 +1771,7 @@ const App: React.FC = () => {
         });
 
         const paymentResult = await getPaymentProvider().purchase(profile, planId);
+        if (activeProfileUserIdRef.current !== paymentUserId) return 'failed';
         if (
             (paymentResult.status === 'unavailable' || paymentResult.status === 'failed')
             && paymentResult.reason === 'RECOVERY_IDENTITY_REQUIRED'
@@ -1681,6 +1785,13 @@ const App: React.FC = () => {
             setPendingPremiumRecovery({ context, planId });
             setPaywallInitialPlanId(planId);
             setPaywallResumeNotice(null);
+            const canOpenRecovery = startedFromFullscreenPaywall
+                ? isCurrentPaywallInstance(paywallContextRef.current, context)
+                : !paywallContextRef.current && viewRef.current === context.returnView;
+            if (!canOpenRecovery) {
+                setCheckoutNotice(paymentFailureCopy(paymentResult.reason, 'ru'));
+                return 'recovery_required';
+            }
             setPaywallContext(null);
             setNavigationSheet(null);
             setView('settings');
@@ -1696,8 +1807,34 @@ const App: React.FC = () => {
             return 'recovery_required';
         }
         if (paymentResult.status === 'pending') {
-            setCheckoutNotice('Оплата ещё обрабатывается в RuStore. Дождись результата или нажми «Восстановить покупку».');
+            if (paymentResult.reason.startsWith('TELEGRAM_')) {
+                const validatedPatch = await paymentPatchFromServer(paymentUserId);
+                if (activeProfileUserIdRef.current !== paymentUserId) return 'failed';
+                if (validatedPatch && hasActivePremium(validatedPatch)) {
+                    return applyCompletedPurchase(validatedPatch);
+                }
+            }
+            setCheckoutNotice(paymentResult.reason.startsWith('TELEGRAM_')
+                ? 'Telegram ещё подтверждает оплату. Не открывай новый счёт — Premium включится после подтверждения.'
+                : 'Оплата ещё обрабатывается в RuStore. Дождись результата или нажми «Восстановить покупку».');
             return 'pending';
+        }
+        if (paymentResult.status === 'inactive') {
+            const inactivePatch = paymentProfilePatchFromEntitlement(paymentResult.entitlement);
+            setProfile((current) => mergePaymentProfilePatch(current, paymentUserId, inactivePatch));
+            clearPersonalForecastSessionCache();
+            void recordUserAppEvent({
+                eventType: 'purchase_failed',
+                section: 'premium',
+                source: paywallEventSource(context),
+                eventPayload: paywallEventPayload(context, { planId, reasonCode: paymentResult.reason }),
+            });
+            finishPurchase(
+                'checkout_failed',
+                paymentFailureCopy(paymentResult.reason, 'ru')
+                    || 'Подписка сейчас не активна. Проверь её статус в RuStore — повторно покупать не нужно.',
+            );
+            return 'failed';
         }
         if (paymentResult.status === 'cancelled') {
             void recordUserAppEvent({
@@ -1726,12 +1863,21 @@ const App: React.FC = () => {
                 source: paywallEventSource(context),
                 eventPayload: paywallEventPayload(context, { planId, reasonCode: paymentResult.reason }),
             });
-            finishPurchase('checkout_failed', 'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.');
+            finishPurchase(
+                'checkout_failed',
+                paymentFailureCopy(paymentResult.reason, 'ru')
+                    || 'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.',
+            );
             return 'failed';
         }
 
-        const validatedProfile = await profileFromValidatedPayment(paymentResult);
-        if (!validatedProfile || !hasActivePremium(validatedProfile)) {
+        const validatedPatch = await paymentPatchFromValidatedPayment(paymentResult, paymentUserId);
+        if (activeProfileUserIdRef.current !== paymentUserId) return 'failed';
+        if (!validatedPatch || !hasActivePremium(validatedPatch)) {
+            if (!paymentResult.entitlement) {
+                setCheckoutNotice('Оплата завершена, но сервер ещё подтверждает Premium. Новый счёт не откроется — проверь статус этой же кнопкой.');
+                return 'pending';
+            }
             void recordUserAppEvent({
                 eventType: 'purchase_failed',
                 section: 'premium',
@@ -1742,27 +1888,14 @@ const App: React.FC = () => {
             return 'failed';
         }
 
-        setProfile(validatedProfile);
-        firstValueReachedRef.current = true;
-        setFirstValueReached(true);
-        clearPersonalForecastSessionCache();
-        void recordUserAppEvent({
-            eventType: 'purchase_succeeded',
-            section: 'premium',
-            source: paywallEventSource(context),
-            eventPayload: paywallEventPayload(context, {
-                planId,
-                entitlementState: validatedProfile.premiumEntitlement?.state || 'paid',
-                entitlementEndsAt: validatedProfile.premiumEntitlement?.endsAt || undefined,
-            }),
-        });
-        finishPurchase('purchase_succeeded', 'Premium открыт. Возвращаем туда, где ты остановился.');
-        return 'completed';
+        return applyCompletedPurchase(validatedPatch);
     };
 
     const restorePremiumPurchases = async (
         context?: PaywallContext,
     ): Promise<PurchaseRestoreStatus> => {
+        const restoreUserId = profile?.id ? String(profile.id) : '';
+        if (!restoreUserId) throw new Error('RUSTORE_RESTORE_ACCOUNT_REQUIRED');
         const analyticsContext = context || createPaywallContextFromRequest({
             source: 'settings',
             currentView: viewRef.current,
@@ -1773,30 +1906,57 @@ const App: React.FC = () => {
             source: paywallEventSource(analyticsContext),
             eventPayload: paywallEventPayload(analyticsContext),
         });
-        const results = await restoreRuStorePurchases();
+        const results = await restoreRuStorePurchases(restoreUserId);
+        if (activeProfileUserIdRef.current !== restoreUserId) {
+            throw new Error('RUSTORE_RESTORE_ACCOUNT_CHANGED');
+        }
         const completed = results.find((result): result is Extract<PaymentResult, { status: 'completed' }> => (
             result.status === 'completed'
+        ));
+        const inactive = results.find((result): result is Extract<PaymentResult, { status: 'inactive' }> => (
+            result.status === 'inactive'
         ));
         const pending = results.find((result): result is Extract<PaymentResult, { status: 'pending' }> => (
             result.status === 'pending'
         ));
-        const validatedProfile = completed
-            ? await profileFromValidatedPayment(completed)
-            : null;
-        if (!validatedProfile || !hasActivePremium(validatedProfile)) {
-            if (!completed && pending) return 'pending';
-            const reason = results.find((result) => result.status === 'failed' || result.status === 'unavailable');
+        const validatedPatch = completed
+            ? await paymentPatchFromValidatedPayment(completed, restoreUserId)
+            : (inactive ? paymentProfilePatchFromEntitlement(inactive.entitlement) : null);
+        if (activeProfileUserIdRef.current !== restoreUserId) {
+            throw new Error('RUSTORE_RESTORE_ACCOUNT_CHANGED');
+        }
+        if (inactive && !completed && validatedPatch) {
+            setProfile((current) => mergePaymentProfilePatch(current, restoreUserId, validatedPatch));
+            clearPersonalForecastSessionCache();
             void recordUserAppEvent({
                 eventType: 'restore_failed',
                 section: 'premium',
                 source: paywallEventSource(analyticsContext),
                 eventPayload: paywallEventPayload(analyticsContext, {
-                    reasonCode: reason && 'reason' in reason ? reason.reason : 'NO_VALID_PURCHASE',
+                    reasonCode: inactive.reason,
                 }),
             });
-            throw new Error('RUSTORE_RESTORE_NOT_CONFIRMED');
+            throw new Error(inactive.reason);
         }
-        setProfile(validatedProfile);
+        if (!validatedPatch || !hasActivePremium(validatedPatch)) {
+            if (!completed && !inactive && pending) return 'pending';
+            const reason = results.find((result) => (
+                result.status === 'inactive'
+                || result.status === 'failed'
+                || result.status === 'unavailable'
+            ));
+            const reasonCode = reason && 'reason' in reason ? reason.reason : 'NO_VALID_PURCHASE';
+            void recordUserAppEvent({
+                eventType: 'restore_failed',
+                section: 'premium',
+                source: paywallEventSource(analyticsContext),
+                eventPayload: paywallEventPayload(analyticsContext, {
+                    reasonCode,
+                }),
+            });
+            throw new Error(reasonCode);
+        }
+        setProfile((current) => mergePaymentProfilePatch(current, restoreUserId, validatedPatch));
         firstValueReachedRef.current = true;
         setFirstValueReached(true);
         clearPersonalForecastSessionCache();
@@ -1805,16 +1965,18 @@ const App: React.FC = () => {
             section: 'premium',
             source: paywallEventSource(analyticsContext),
             eventPayload: paywallEventPayload(analyticsContext, {
-                entitlementState: validatedProfile.premiumEntitlement?.state || 'paid',
-                entitlementEndsAt: validatedProfile.premiumEntitlement?.endsAt || undefined,
+                entitlementState: validatedPatch.premiumEntitlement?.state || 'paid',
+                entitlementEndsAt: validatedPatch.premiumEntitlement?.endsAt || undefined,
             }),
         });
-        if (context) {
+        if (context && isCurrentPaywallInstance(paywallContextRef.current, context)) {
             returnFromPaywall(
-                context,
+                paywallContextRef.current!,
                 'purchase_succeeded',
                 'Premium открыт. Возвращаем туда, где ты остановился.',
             );
+        } else if (context) {
+            setCheckoutNotice('Premium открыт. Текущий экран оставлен без изменений.');
         }
         return 'completed';
     };
@@ -2000,11 +2162,20 @@ const App: React.FC = () => {
         const requestToken = primaryChartRequestGuardRef.current.begin(accountKey);
         if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
         try {
-            const [freshChart, freshPrimaryChartId] = await Promise.all([
+            let [freshChart, freshPrimaryChartId] = await Promise.all([
                 getChartFromDB(accountKey),
                 getPrimaryChartId(accountKey),
             ]);
             if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
+            if (!freshChart || !natalChartMatchesProfile(freshChart, targetProfile)) {
+                freshChart = await getOrCalculateChart(
+                    targetProfile,
+                    () => primaryChartRequestGuardRef.current.isCurrent(requestToken),
+                );
+                if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
+                freshPrimaryChartId = await getPrimaryChartId(accountKey);
+                if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
+            }
             const key = buildNatalChartCacheKey(targetProfile);
             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
             primaryChartDataRef.current = freshChart;
@@ -2240,6 +2411,7 @@ const App: React.FC = () => {
         if (!opened) {
             setCheckoutNotice('Не удалось открыть управление подпиской. Открой раздел подписок в RuStore.');
         }
+        return opened;
     }, []);
     const completePremiumRecoveryIdentity = useCallback(() => {
         if (!pendingPremiumRecovery) return;

@@ -60,6 +60,18 @@ describe('Lumia content matrix', () => {
     expect(hasNatalChart({ hasChart: true })).toBe(false);
     expect(hasNatalChart({ primaryChartId: 7 })).toBe(true);
     expect(hasNatalChart({ chartData: { sun: {} as any, moon: {} as any, rising: {} as any } as any })).toBe(true);
+    expect(hasNatalChart({ chartData: {
+      sun: {} as any,
+      moon: {} as any,
+      rising: null,
+      birthTimeQuality: 'approximate',
+    } as any })).toBe(true);
+    expect(hasNatalChart({ chartData: {
+      sun: {} as any,
+      moon: {} as any,
+      rising: null,
+      birthTimeQuality: 'exact',
+    } as any })).toBe(false);
   });
 
   it('keeps sign and personal horoscope content chart-free while preserving Premium gates', () => {

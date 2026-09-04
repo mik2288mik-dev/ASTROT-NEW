@@ -21,7 +21,7 @@ describe('birth-time honesty',()=>{
     expect(interval.referenceUtc).toBeNull();
     expect(interval.sampleUtc.length).toBeGreaterThan(2);
     const calculator=read('lib/swisseph-calculator.ts');
-    expect(calculator).toContain("const includeHouses=time.mode!=='unknown'");
+    expect(calculator).toMatch(/const includeHouses\s*=\s*timeInput\.mode\s*!==\s*'unknown'/);
   });
 
   it('accepts only the approved approximate uncertainties',()=>{
@@ -29,5 +29,20 @@ describe('birth-time honesty',()=>{
     expect(normalizeBirthTimeInput({mode:'approximate',localTime:'23:15',uncertaintyMinutes:30}).uncertaintyMinutes).toBe(30);
     expect(normalizeBirthTimeInput({mode:'approximate',localTime:'23:15',uncertaintyMinutes:60}).uncertaintyMinutes).toBe(60);
     expect(()=>normalizeBirthTimeInput({mode:'approximate',localTime:'23:15',uncertaintyMinutes:45})).toThrow();
+  });
+
+  it('normalizes PostgreSQL TIME values before a profile/chart round trip',()=>{
+    expect(normalizeBirthTimeInput({mode:'exact',localTime:'08:45:00',legacyBirthTime:'08:45:00'})).toMatchObject({
+      mode:'exact',
+      localTime:'08:45',
+    });
+    expect(normalizeBirthTimeInput({
+      mode:'range',
+      rangeStart:'08:00:00',
+      rangeEnd:'09:00:00',
+    })).toMatchObject({
+      rangeStart:'08:00',
+      rangeEnd:'09:00',
+    });
   });
 });

@@ -160,3 +160,10 @@ export function resolvePaywallOutcome(
     shouldOpenFeature: outcome === 'purchase_succeeded',
   };
 }
+
+export function isCurrentPaywallInstance(
+  activeContext: PaywallContext | null | undefined,
+  expectedContext: Pick<PaywallContext, 'paywallInstanceId'>,
+): boolean {
+  return activeContext?.paywallInstanceId === expectedContext.paywallInstanceId;
+}

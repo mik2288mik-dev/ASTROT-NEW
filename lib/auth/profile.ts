@@ -1,4 +1,5 @@
 import { toDateInputValue } from '../date-utils';
+import { normalizeBirthClockTime } from '../birthTime';
 import type { AppUserContext } from './appAuth';
 
 function finiteNumberOrNull(value: unknown): number | null {
@@ -11,11 +12,11 @@ export function toPublicAppProfile(user:any,auth:AppUserContext){
   return {
     id:String(user.id),name:user.name||(auth.isGuest?'Гость':''),
     birthDate:toDateInputValue(user.birth_date)||user.birth_date||'',
-    birthTime:user.birth_time||'',
+    birthTime:normalizeBirthClockTime(user.birth_time)||'',
     birthTimeMode:user.birth_time_mode||undefined,
     birthTimeUncertaintyMinutes:user.birth_time_uncertainty_minutes??null,
-    birthTimeRangeStart:user.birth_time_range_start||null,
-    birthTimeRangeEnd:user.birth_time_range_end||null,
+    birthTimeRangeStart:normalizeBirthClockTime(user.birth_time_range_start),
+    birthTimeRangeEnd:normalizeBirthClockTime(user.birth_time_range_end),
     birthPlace:user.birth_place||'',
     birthTimezone:user.birth_timezone||null,
     birthLatitude:finiteNumberOrNull(user.latitude),

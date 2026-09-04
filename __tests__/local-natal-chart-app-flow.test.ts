@@ -26,17 +26,17 @@ describe('local natal chart app flow', () => {
     expect(app).toContain('Background primary chart refresh failed; keeping local cache');
   });
 
-  it('opens dashboard immediately after a DB chart and leaves forecast loading to Dashboard', () => {
+  it('opens dashboard before the background DB chart and leaves forecast loading to Dashboard', () => {
     const app = read('App.tsx');
     const dashboardView = read('views/Dashboard.tsx');
-    const dbChart = app.indexOf('const chart = await loadPrimaryChartOnce(updatedProfile)');
-    const dashboard = app.indexOf("showStartupDashboard(requestedViewRef.current || 'dashboard')", dbChart);
-    const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, chart, null, false)', dashboard);
+    const dashboard = app.indexOf("showStartupDashboard(requestedViewRef.current || 'dashboard')");
+    const dbChart = app.indexOf('void loadPrimaryChartOnce(updatedProfile).then((chart) => {', dashboard);
+    const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, chart, null, false)', dbChart);
 
-    expect(dbChart).toBeGreaterThan(-1);
-    expect(dashboard).toBeGreaterThan(dbChart);
-    expect(background).toBeGreaterThan(dashboard);
-    expect(app.slice(dbChart, dashboard)).not.toContain('await prewarmUserContent');
+    expect(dashboard).toBeGreaterThan(-1);
+    expect(dbChart).toBeGreaterThan(dashboard);
+    expect(background).toBeGreaterThan(dbChart);
+    expect(app.slice(dashboard, dbChart)).not.toContain('await prewarmUserContent');
     expect(app).not.toContain('prepareUserContentDbFirst');
     expect(dashboardView).toContain('loadPersonalForecast({');
   });
@@ -57,9 +57,9 @@ describe('local natal chart app flow', () => {
     const app = read('App.tsx');
     const chartService = read('services/chartService.ts');
 
-    expect(app).toContain('writeLocalNatalChart(fullProfile, generatedChart)');
-    expect(app).toContain('writeLocalNatalChart(fullProfile, generatedChart, primaryChartId)');
-    expect(chartService).toContain('writeLocalNatalChart(profile, chartData)');
+    expect(app).toContain('writeLocalNatalChart(canonicalFullProfile, generatedChart)');
+    expect(app).toContain('writeLocalNatalChart(canonicalFullProfile, generatedChart, primaryChartId)');
+    expect(chartService).toContain('writeLocalNatalChart(profile, chart)');
   });
 
   it('keeps the self cache stable because saved people cannot become primary', () => {
@@ -68,8 +68,8 @@ describe('local natal chart app flow', () => {
 
     expect(myCharts).not.toContain('clearLocalNatalChart(profile)');
     expect(myCharts).not.toContain('setPrimaryChart');
-    expect(app).toContain('writeLocalNatalChart(profile, freshChart, freshPrimaryChartId ?? undefined)');
-    expect(app).toContain('clearLocalNatalChart(profile)');
+    expect(app).toContain('writeLocalNatalChart(targetProfile, freshChart, freshPrimaryChartId ?? undefined)');
+    expect(app).toContain('clearLocalNatalChart(targetProfile)');
   });
 
   it('starts the main natal catalog prefetch with the resolved chart ID after the first dashboard paint', () => {
@@ -85,7 +85,7 @@ describe('local natal chart app flow', () => {
     expect(scheduleCall).toBeGreaterThan(dashboard);
     expect(earlyPrefetch).toBeGreaterThan(scheduler);
     expect(earlyPrefetch).toBeLessThan(backgroundRefresh);
-    expect(app).toContain("ensureNatalCatalogCategory(\n                    userId,\n                    'main',");
+    expect(app).toMatch(/ensureNatalCatalogCategory\(\s*userId,\s*'main',/);
     expect(app).toContain('startNatalCatalogPrefetch(freshPrimaryChartId, reportChart, () => (');
     expect(app).not.toContain('prefetchHumanBaseReport(');
   });
@@ -106,7 +106,7 @@ describe('local natal chart app flow', () => {
     expect(writeWithId).toBeGreaterThan(currentChartGuard);
     expect(catalogPrefetch).toBeGreaterThan(writeWithId);
     expect(catalogPrefetch).toBeLessThan(onboardingEnd);
-    expect(app.slice(catalogPrefetch, onboardingEnd)).toContain("safeUserId,\n                            'main',\n                            primaryChartId,");
+    expect(app.slice(catalogPrefetch, onboardingEnd)).toMatch(/safeUserId,\s*'main',\s*primaryChartId,/);
     expect(app.slice(catalogPrefetch, onboardingEnd)).toContain('canonicalFullProfile.language');
     expect(app.slice(currentChartGuard, catalogPrefetch)).toContain('buildNatalChartFingerprint(generatedChart)');
     expect(app.slice(currentChartGuard, catalogPrefetch)).toContain('NATAL_REPORT_CATALOG_CONTRACT_VERSION');

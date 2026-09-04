@@ -1,6 +1,7 @@
 import {
   createPaywallContextFromRequest,
   createPaywallContext,
+  isCurrentPaywallInstance,
   resolvePaywallOutcome,
   type PaywallContext,
 } from '../lib/paywallContext';
@@ -41,6 +42,30 @@ describe('contextual paywall return contract', () => {
       featureKey: 'personal_daily_full',
       shouldOpenFeature: true,
     });
+  });
+
+  it('allows late checkout navigation only for the still-open paywall instance', () => {
+    const replacement = createPaywallContext({
+      ...context,
+      paywallInstanceId: 'pw-test-2',
+    });
+
+    expect(isCurrentPaywallInstance(context, context)).toBe(true);
+    expect(isCurrentPaywallInstance(null, context)).toBe(false);
+    expect(isCurrentPaywallInstance(replacement, context)).toBe(false);
+
+    const app = read('App.tsx');
+    const purchaseFlow = app.slice(
+      app.indexOf('const purchasePremiumPlan = async'),
+      app.indexOf('const restorePremiumPurchases = async'),
+    );
+    const restoreFlow = app.slice(
+      app.indexOf('const restorePremiumPurchases = async'),
+      app.indexOf('const requestPremium = async'),
+    );
+    expect(purchaseFlow).toContain('isCurrentPaywallInstance(paywallContextRef.current, context)');
+    expect(purchaseFlow).toContain('const activeContext = paywallContextRef.current');
+    expect(restoreFlow).toContain('isCurrentPaywallInstance(paywallContextRef.current, context)');
   });
 
   it('renders Premium as the embedded store without a second Open store step', () => {
@@ -94,7 +119,7 @@ describe('contextual paywall return contract', () => {
     );
     const returnFlow = app.slice(
       app.indexOf('const returnFromPaywall'),
-      app.indexOf('const profileFromValidatedPayment'),
+      app.indexOf('const paymentPatchFromValidatedPayment'),
     );
 
     expect(requestPremium).toContain(
@@ -146,7 +171,7 @@ describe('contextual paywall return contract', () => {
     expect(paywall).toContain('Не удалось получить цены из RuStore.');
     expect(paywall).toContain('setCatalogRetryToken((value) => value + 1)');
     expect(paywall).toContain('Повторить');
-    expect(paywall).toContain('if (!rustorePaymentsEnabled)');
+    expect(paywall).toContain('if (!paymentCatalogEnabled)');
     expect(paywall).not.toMatch(/priceLabel:\s*['"]\d[\d\s]*\s*₽/);
     expect(paywall).not.toMatch(/эконом|скидк|выгодн|популярн/i);
   });

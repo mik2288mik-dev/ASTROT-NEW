@@ -22,6 +22,7 @@ import {
 import { UserProfile, Language, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
+import { saveServerAuthoritativeGender } from '../lib/settingsGender';
 import {
     clearQueuedUserAppEvents,
     updateUserNotificationSettings,
@@ -35,6 +36,8 @@ import { EditorialChartsButton } from '../components/editorial/EditorialScreenCh
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
 import type { PurchaseRestoreStatus } from '../services/paymentProvider';
+import { paymentFailureCopy } from '../lib/paymentFailureCopy';
+import { canUseRuStorePay, resolveDistributionChannel } from '../lib/distributionChannel';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
 import {
     authenticateWithProvider,
@@ -189,7 +192,7 @@ export interface SettingsProps {
     onRequestPremium?: () => void;
     canPromotePremium?: boolean;
     onRestorePurchase?: () => Promise<PurchaseRestoreStatus>;
-    onManageSubscription?: () => Promise<void> | void;
+    onManageSubscription?: () => Promise<boolean> | boolean;
     onOpenAdmin?: () => void;
     onOpenCharts?: () => void;
     onBack?: () => void;
@@ -273,11 +276,15 @@ export const Settings: React.FC<SettingsProps> = ({
     embedded = false,
 }) => {
     const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
+    const rustorePurchaseControlsAvailable = Boolean(previewFixture)
+        || canUseRuStorePay(resolveDistributionChannel());
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
     const [savingProfile, setSavingProfile] = useState(false);
     const [profileSaveError, setProfileSaveError] = useState('');
+    const [savingGender, setSavingGender] = useState(false);
+    const [genderSaveError, setGenderSaveError] = useState('');
     const [selfTest, setSelfTest] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
     const [selfTestInfo, setSelfTestInfo] = useState('');
     const [dailyPush, setDailyPush] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
@@ -311,6 +318,9 @@ export const Settings: React.FC<SettingsProps> = ({
     );
     const [authCapabilitiesLoadFailed, setAuthCapabilitiesLoadFailed] = useState(false);
     const [restoreState, setRestoreState] = useState<'idle' | 'running' | 'success' | 'pending' | 'error'>('idle');
+    const [restoreFailureReason, setRestoreFailureReason] = useState('');
+    const [managingSubscription, setManagingSubscription] = useState(false);
+    const [manageSubscriptionError, setManageSubscriptionError] = useState(false);
     const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
     const [previewNotice, setPreviewNotice] = useState('');
     const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>('root');
@@ -327,8 +337,10 @@ export const Settings: React.FC<SettingsProps> = ({
     const feedbackReplyEmailTouchedRef = useRef(false);
     const lastRootTargetRef = useRef<Exclude<SettingsScreen, 'root'> | null>(null);
     const settingsDetailBusy = savingProfile
+        || savingGender
         || identityBusy
         || restoreState === 'running'
+        || managingSubscription
         || feedbackStatus === 'submitting'
         || loggingOut
         || deletingAccount;
@@ -644,24 +656,39 @@ export const Settings: React.FC<SettingsProps> = ({
         && profile.premiumEntitlement.autoRenew === true;
 
     const restorePurchase = () => {
+        if (!rustorePurchaseControlsAvailable) return;
         if (previewFixture) {
             setRestoreState('success');
             setPreviewNotice('В Preview восстановление покупок отключено.');
             return;
         }
-        if (!onRestorePurchase || restoreState === 'running') return;
+        if (!onRestorePurchase || restoreState === 'running' || managingSubscription) return;
+        setRestoreFailureReason('');
         setRestoreState('running');
         void onRestorePurchase()
             .then((result) => setRestoreState(result === 'pending' ? 'pending' : 'success'))
-            .catch(() => setRestoreState('error'));
+            .catch((error) => {
+                setRestoreFailureReason(error instanceof Error ? error.message : '');
+                setRestoreState('error');
+            });
     };
 
-    const manageSubscription = () => {
+    const manageSubscription = async () => {
         if (previewFixture) {
             setPreviewNotice('В Preview управление подпиской отключено.');
             return;
         }
-        void onManageSubscription?.();
+        if (!onManageSubscription || managingSubscription || restoreState === 'running') return;
+        setManageSubscriptionError(false);
+        setManagingSubscription(true);
+        try {
+            const opened = await onManageSubscription();
+            if (!opened) setManageSubscriptionError(true);
+        } catch {
+            setManageSubscriptionError(true);
+        } finally {
+            setManagingSubscription(false);
+        }
     };
 
     const submitFeedback = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -788,33 +815,27 @@ export const Settings: React.FC<SettingsProps> = ({
         });
     };
 
-    const genderStorageKey = `lumia.gender.${profile.id || 'anonymous'}`;
-
-    // Пол иногда терялся при перезагрузке профиля и сбрасывался на «не указывать».
-    // Дублируем выбор в localStorage и восстанавливаем его — как частоту уведомлений.
-    useEffect(() => {
-        if (previewFixture) return;
-        let stored: string | null = null;
-        try { stored = window.localStorage.getItem(genderStorageKey); } catch { /* ignore */ }
-        if (stored && ['male', 'female', 'unspecified'].includes(stored) && (profile.gender || null) !== stored) {
-            const updated = { ...profile, gender: stored as 'male' | 'female' | 'unspecified' };
-            onUpdate(updated);
-            saveProfile(updated).catch(() => { /* ignore */ });
-        }
-    }, [profile.id, profile.gender, onUpdate, previewFixture]);
-
-    const handleGenderChange = (gender: 'male' | 'female' | 'unspecified') => {
+    const handleGenderChange = async (gender: 'male' | 'female' | 'unspecified') => {
+        if (savingGender || gender === (profile.gender || 'unspecified')) return;
         if (previewFixture) {
             onUpdate({ ...profile, gender });
             setPreviewNotice('Пол изменён только в локальном Preview.');
             return;
         }
-        try { window.localStorage.setItem(genderStorageKey, gender); } catch { /* ignore */ }
-        const updated = { ...profile, gender };
-        onUpdate(updated);
-        saveProfile(updated).catch(error => {
+        setSavingGender(true);
+        setGenderSaveError('');
+        try {
+            // The server is authoritative across devices. Update visible state
+            // only after persistence succeeds, so a failed save cannot stick.
+            await saveServerAuthoritativeGender(profile, gender, saveProfile, onUpdate);
+        } catch (error) {
             console.error('[Settings] Failed to save gender:', error);
-        });
+            setGenderSaveError(profile.language === 'en'
+                ? 'Gender was not saved. Check your connection and try again.'
+                : 'Не удалось сохранить пол. Проверь соединение и попробуй ещё раз.');
+        } finally {
+            setSavingGender(false);
+        }
     };
 
     const handleSaveProfile = async () => {
@@ -872,7 +893,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 ? 'Auto-renewal is active in RuStore. Deleting this account will not cancel it automatically. Select OK to continue deleting, or Cancel to manage the subscription in RuStore first.'
                 : 'В RuStore включено автопродление. Удаление аккаунта не отменит его автоматически. Нажми «ОК», чтобы продолжить удаление, или «Отмена», чтобы сначала открыть управление подпиской в RuStore.');
             if (!continueDeletion) {
-                manageSubscription();
+                void manageSubscription();
                 return;
             }
         }
@@ -1104,7 +1125,10 @@ export const Settings: React.FC<SettingsProps> = ({
                                         type="button"
                                         className="settings-selection-row"
                                         aria-pressed={selected}
-                                        onClick={() => handleGenderChange(value)}
+                                        aria-busy={savingGender && !selected}
+                                        aria-describedby={genderSaveError ? 'settings-gender-save-error' : undefined}
+                                        disabled={savingGender}
+                                        onClick={() => { void handleGenderChange(value); }}
                                     >
                                         <span>{profile.language === 'en' ? en : ru}</span>
                                         {selected ? <Check aria-hidden size={16} strokeWidth={2} /> : null}
@@ -1112,6 +1136,11 @@ export const Settings: React.FC<SettingsProps> = ({
                                 );
                             })}
                         </div>
+                        {genderSaveError ? (
+                            <p id="settings-gender-save-error" role="alert" className="settings-error-text">
+                                {genderSaveError}
+                            </p>
+                        ) : null}
                     </section>
                 );
 
@@ -1398,36 +1427,56 @@ export const Settings: React.FC<SettingsProps> = ({
                                     {profile.language === 'ru' ? 'Посмотреть Premium' : 'View Premium'}
                                 </button>
                             ) : null}
-                            {subscriptionPresentation.canManageInStore && onManageSubscription ? (
-                                <button type="button" className="fresh-btn-ghost" onClick={manageSubscription}>
-                                    {profile.language === 'ru' ? 'Управлять в RuStore' : 'Manage in RuStore'}
+                            {rustorePurchaseControlsAvailable
+                            && subscriptionPresentation.canManageInStore
+                            && onManageSubscription ? (
+                                <button
+                                    type="button"
+                                    className="fresh-btn-ghost"
+                                    onClick={() => void manageSubscription()}
+                                    disabled={managingSubscription || restoreState === 'running'}
+                                    aria-busy={managingSubscription}
+                                >
+                                    {managingSubscription
+                                        ? (profile.language === 'ru' ? 'Открываем RuStore…' : 'Opening RuStore…')
+                                        : (profile.language === 'ru' ? 'Управлять в RuStore' : 'Manage in RuStore')}
                                 </button>
                             ) : null}
-                            <button
-                                type="button"
-                                className="fresh-btn-ghost"
-                                disabled={!onRestorePurchase || restoreState === 'running'}
-                                aria-busy={restoreState === 'running'}
-                                onClick={restorePurchase}
-                            >
-                                {restoreState === 'running'
-                                    ? (profile.language === 'ru' ? 'Проверяем…' : 'Checking…')
-                                    : (profile.language === 'ru' ? 'Восстановить покупку' : 'Restore purchase')}
-                            </button>
+                            {rustorePurchaseControlsAvailable ? (
+                                <button
+                                    type="button"
+                                    className="fresh-btn-ghost"
+                                    disabled={!onRestorePurchase || restoreState === 'running' || managingSubscription}
+                                    aria-busy={restoreState === 'running'}
+                                    onClick={restorePurchase}
+                                >
+                                    {restoreState === 'running'
+                                        ? (profile.language === 'ru' ? 'Проверяем…' : 'Checking…')
+                                        : (profile.language === 'ru' ? 'Восстановить покупку' : 'Restore purchase')}
+                                </button>
+                            ) : null}
                         </div>
-                        {restoreState === 'success' ? (
+                        {rustorePurchaseControlsAvailable && restoreState === 'success' ? (
                             <p role="status" className="settings-helper-text">
                                 {profile.language === 'ru' ? 'Покупки проверены сервером.' : 'Purchases were checked by the server.'}
                             </p>
-                        ) : restoreState === 'pending' ? (
+                        ) : rustorePurchaseControlsAvailable && restoreState === 'pending' ? (
                             <p role="status" className="settings-helper-text">
                                 {profile.language === 'ru'
                                     ? 'RuStore ещё подтверждает покупку. Подожди немного и проверь снова — повторно покупать не нужно.'
                                     : 'RuStore is still confirming the purchase. Wait a moment and check again — do not buy it again.'}
                             </p>
-                        ) : restoreState === 'error' ? (
+                        ) : rustorePurchaseControlsAvailable && restoreState === 'error' ? (
                             <p role="alert" className="settings-error-text">
-                                {profile.language === 'ru' ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.'}
+                                {paymentFailureCopy(restoreFailureReason, profile.language)
+                                    || (profile.language === 'ru' ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.')}
+                            </p>
+                        ) : null}
+                        {manageSubscriptionError ? (
+                            <p role="alert" className="settings-error-text">
+                                {profile.language === 'ru'
+                                    ? 'Не удалось открыть управление подпиской. Открой раздел подписок в RuStore.'
+                                    : 'Could not open subscription management. Open Subscriptions in RuStore.'}
                             </p>
                         ) : null}
                     </section>

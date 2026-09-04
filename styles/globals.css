@@ -5512,8 +5512,9 @@ a,
 .services-screen-page .service-premium-content .pw2-sub { width: auto; max-width: none; margin-top: 10px; font-size: 14px; line-height: 1.45; }
 .services-screen-page .service-premium-content .pw2-purchase { margin-top: 18px; }
 
-/* All three terms stay visible at once in the embedded mobile store. */
+/* All available terms stay visible at once in the embedded mobile store. */
 .pw2--embedded .pw2-plans { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.pw2--embedded .pw2-plans--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .pw2--embedded .pw2-plan { min-height: 204px; padding: 12px 9px 10px; border-radius: 12px; }
 .pw2--embedded .pw2-plan-heading { flex-direction: column; gap: 8px; }
 .pw2--embedded .pw2-plan-period { font-size: 16px; line-height: 1.15; }
@@ -5549,6 +5550,7 @@ a,
 @media (min-width: 760px) {
   .pw2-purchase { width: min(100% - 48px, 920px); }
   .pw2-plans { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pw2-plans--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .pw2-plan { height: 100%; min-height: 410px; }
   .pw2--embedded .pw2-plan { min-height: 218px; }
 }
@@ -9256,7 +9258,7 @@ body,
 .meou-button { box-sizing: border-box; min-height: 3.15rem; border-radius: 999px; padding: 0.75rem 1.2rem; font-family: var(--fresh-font); font-size: 0.98rem; font-weight: 400; line-height: 1.2; cursor: pointer; }
 .meou-button--primary { border: 1px solid var(--meou-ink); background: var(--meou-ink); color: #fff; }
 .meou-button--secondary { border: 1px solid rgba(23, 23, 23, 0.7); background: transparent; color: var(--meou-ink); }
-.meou-button:focus-visible, .meou-sign-in:focus-visible, .meou-time-mode button:focus-visible { outline: 2px solid var(--meou-gold); outline-offset: 2px; }
+.meou-button:focus-visible, .meou-sign-in:focus-visible, .meou-time-mode button:focus-visible, .meou-gender-mode button:focus-visible { outline: 2px solid var(--meou-gold); outline-offset: 2px; }
 .meou-sign-in { border: 0; background: transparent; color: var(--meou-muted); font-family: var(--fresh-font); font-size: 0.8rem; cursor: pointer; }
 .meou-sign-in span { color: var(--meou-gold); }
 
@@ -9268,7 +9270,7 @@ body,
 .meou-birth-orbit .meou-spark { position: absolute; right: 3rem; bottom: 0.7rem; font-size: 0.9rem; }
 .meou-birth-form { display: grid; gap: 1.15rem; padding-top: 2.5rem; }
 .meou-field { display: grid; gap: 0.25rem; color: var(--meou-ink); font-size: 0.82rem; }
-.meou-field > span, .meou-field > label, .meou-time-mode legend { padding: 0; color: var(--meou-ink); font-size: 0.82rem; font-weight: 400; }
+.meou-field > span, .meou-field > label, .meou-time-mode legend, .meou-gender-mode legend { padding: 0; color: var(--meou-ink); font-size: 0.82rem; font-weight: 400; }
 .meou-field input, .meou-city-field .fresh-input { box-sizing: border-box; width: 100%; min-height: 2.75rem; border: 0; border-bottom: 1px solid rgba(23, 23, 23, 0.15); border-radius: 0; background: transparent; padding: 0.28rem 2rem 0.5rem 0; color: var(--meou-ink); font-family: var(--fresh-font); font-size: 1rem; outline: none; }
 .meou-field input:focus, .meou-city-field .fresh-input:focus { border-bottom-color: var(--meou-ink); }
 .meou-field input::placeholder, .meou-city-field .fresh-input::placeholder { color: #afb0b4; }
@@ -9278,6 +9280,12 @@ body,
 .meou-time-mode button { min-height: 2.75rem; border: 0; border-right: 1px solid rgba(23, 23, 23, 0.08); background: transparent; color: var(--meou-muted); font-family: var(--fresh-font); font-size: 0.82rem; cursor: pointer; }
 .meou-time-mode button:last-child { border-right: 0; }
 .meou-time-mode .is-active { border-radius: 999px; background: var(--meou-ink); color: #fff; }
+.meou-gender-mode { min-width: 0; margin: 0; padding: 0; border: 0; }
+.meou-gender-mode legend span { color: var(--meou-muted); }
+.meou-gender-mode > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.3rem; margin-top: 0.35rem; }
+.meou-gender-mode button { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; border: 1px solid rgba(23, 23, 23, 0.1); border-radius: 999px; background: #f4f2f0; color: var(--meou-muted); font-family: var(--fresh-font); font-size: 0.76rem; cursor: pointer; }
+.meou-gender-mode button > span { width: 0; overflow: visible; transform: translateX(-0.8rem); color: currentColor; }
+.meou-gender-mode button.is-active { border-color: var(--meou-ink); background: var(--meou-ink); color: #fff; }
 .meou-city-field { position: relative; }
 .meou-city-field::after { position: absolute; right: 0.1rem; bottom: 0.6rem; width: 0.95rem; height: 0.95rem; border: 1px solid #74767a; border-radius: 50% 50% 50% 0; content: ''; transform: rotate(-45deg); }
 .meou-city-field::before { position: absolute; z-index: 1; right: 0.42rem; bottom: 0.94rem; width: 0.26rem; height: 0.26rem; border: 1px solid #74767a; border-radius: 50%; content: ''; }
@@ -9831,7 +9839,6 @@ body,
   padding-top: var(--birth-form-top);
 }
 
-.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-form > :first-child,
 .meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode,
 .meou-onboarding[data-onboarding-screen='birth'] .meou-city-field,
 .meou-onboarding[data-onboarding-screen='birth'] .meou-form-error,
@@ -9907,13 +9914,15 @@ body,
   }
 
   .meou-onboarding[data-onboarding-screen='birth'] .meou-field,
-  .meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode {
+  .meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode,
+  .meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode {
     gap: 0.05rem;
   }
 
   .meou-onboarding[data-onboarding-screen='birth'] .meou-field > span,
   .meou-onboarding[data-onboarding-screen='birth'] .meou-field > label,
-  .meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode legend {
+  .meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode legend,
+  .meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode legend {
     font-size: 0.7rem;
     line-height: 1.15;
   }
@@ -9927,6 +9936,10 @@ body,
 
   .meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode > div {
     margin-top: 0.2rem;
+  }
+
+  .meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode > div {
+    margin-top: 0.12rem;
   }
 
   .meou-onboarding[data-onboarding-screen='birth'] .meou-calculate-button,

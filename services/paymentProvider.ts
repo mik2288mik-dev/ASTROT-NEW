@@ -9,6 +9,7 @@ export type PurchaseRestoreStatus = 'completed' | 'pending';
 
 export type PaymentResult =
   | { status: 'completed'; entitlement?: PaymentEntitlementSnapshot }
+  | { status: 'inactive'; reason: string; entitlement: PaymentEntitlementSnapshot }
   | { status: 'cancelled' }
   | { status: 'pending'; reason: string }
   | { status: 'unavailable'; reason: string }
@@ -23,9 +24,12 @@ class TelegramStarsPaymentProvider implements PaymentProvider {
   readonly channel: DistributionChannel = 'telegram';
   async purchase(profile: UserProfile, planId: PremiumPlanId): Promise<PaymentResult> {
     if (!canUseTelegramStars(this.channel)) return { status: 'unavailable', reason: 'TELEGRAM_STARS_DISABLED' };
-    return (await requestStarsPayment(profile, planId))
-      ? { status: 'completed' }
-      : { status: 'failed', reason: 'TELEGRAM_STARS_NOT_COMPLETED' };
+    const outcome = await requestStarsPayment(profile, planId);
+    if (outcome === 'paid') return { status: 'completed' };
+    if (outcome === 'pending') {
+      return { status: 'pending', reason: 'TELEGRAM_STARS_CONFIRMATION_PENDING' };
+    }
+    return { status: 'cancelled' };
   }
 }
 

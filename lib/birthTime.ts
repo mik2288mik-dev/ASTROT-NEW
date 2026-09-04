@@ -25,7 +25,7 @@ export interface BirthTimeInterval {
   sampleUtc: string[];
 }
 
-const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d(?:\.\d+)?)?$/;
 const ALLOWED_UNCERTAINTY = new Set<number>([15, 30, 60]);
 
 function assertDate(value: string): void {
@@ -43,7 +43,7 @@ function assertDate(value: string): void {
   }
 }
 
-function normalizeTime(value: unknown): string | null {
+export function normalizeBirthClockTime(value: unknown): string | null {
   const normalized = typeof value === 'string' ? value.trim() : '';
   if (!normalized) return null;
   const match = normalized.match(TIME_PATTERN);
@@ -92,7 +92,7 @@ export function normalizeBirthTimeInput(input: {
   rangeEnd?: unknown;
   legacyBirthTime?: unknown;
 }): BirthTimeInput {
-  const legacyTime = normalizeTime(input.legacyBirthTime);
+  const legacyTime = normalizeBirthClockTime(input.legacyBirthTime);
   const rawMode = typeof input.mode === 'string' ? input.mode.trim() : '';
   const mode: BirthTimeMode =
     rawMode === 'exact' || rawMode === 'approximate' || rawMode === 'range' || rawMode === 'unknown'
@@ -106,14 +106,14 @@ export function normalizeBirthTimeInput(input: {
   }
 
   if (mode === 'range') {
-    const rangeStart = normalizeTime(input.rangeStart);
-    const rangeEnd = normalizeTime(input.rangeEnd);
+    const rangeStart = normalizeBirthClockTime(input.rangeStart);
+    const rangeEnd = normalizeBirthClockTime(input.rangeEnd);
     if (!rangeStart || !rangeEnd) throw new Error('Birth time range requires start and end.');
     if (rangeStart >= rangeEnd) throw new Error('Birth time range end must be later than start.');
     return { mode, localTime: null, uncertaintyMinutes: null, rangeStart, rangeEnd };
   }
 
-  const localTime = normalizeTime(input.localTime) || legacyTime;
+  const localTime = normalizeBirthClockTime(input.localTime) || legacyTime;
   if (!localTime) throw new Error('Birth time is required for exact or approximate mode.');
 
   if (mode === 'exact') {

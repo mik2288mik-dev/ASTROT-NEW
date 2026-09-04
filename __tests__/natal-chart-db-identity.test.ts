@@ -95,16 +95,16 @@ describe('natal chart database identity contract', () => {
     expect(create).toContain("REGEXP_REPLACE(BTRIM(COALESCE(name, ''))");
     expect(create).toContain('this._updateChartRow(client, existing.id, payload, false)');
 
-    expect(persistence).toContain("subjectType: 'self'");
-    expect(persistence).toContain("subjectType: 'saved_person'");
+    expect(persistence).toMatch(/subjectType:\s*'self'/);
+    expect(persistence).toMatch(/subjectType:\s*'saved_person'/);
     expect(persistence).toContain('name: args.name');
 
     const migrationStart = migrations.indexOf('async function mvp042SavedPersonIdentity');
-    const migrationEnd = migrations.indexOf('export async function runMigrations', migrationStart);
+    const migrationEnd = migrations.indexOf('async function mvp043PasswordAuthentication', migrationStart);
     const migration = migrations.slice(migrationStart, migrationEnd);
     expect(migration).toContain('DROP INDEX IF EXISTS idx_natal_charts_user_input_hash');
     expect(migration).toContain('CREATE INDEX IF NOT EXISTS idx_natal_charts_active_identity_hash');
     expect(migration).not.toContain('CREATE UNIQUE INDEX');
-    expect(migrations).toContain('await mvp042SavedPersonIdentity(pool)');
+    expect(migrations).toContain('await mvp042SavedPersonIdentity(migrationDb)');
   });
 });

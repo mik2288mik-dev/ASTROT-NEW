@@ -351,7 +351,7 @@ describe('mobile API and native auth', () => {
       expect(read(file)).not.toMatch(/\bfetch\s*\(\s*['"`]\/api\//);
       expect(read(file)).not.toContain('process.env.NEXT_PUBLIC_API_URL');
     }
-    expect(read('services/telegramService.ts')).toContain('if (isNativeAppRuntime()) return false');
+    expect(read('services/telegramService.ts')).toContain("if (isNativeAppRuntime() || !canUseTelegramStars()) return 'cancelled'");
     expect(read('package.json')).toContain('"build:mobile": "node scripts/build-mobile.mjs"');
     const mobileBuild = read('scripts/build-mobile.mjs');
     expect(mobileBuild).toContain('NEXT_PUBLIC_DISTRIBUTION_CHANNEL');

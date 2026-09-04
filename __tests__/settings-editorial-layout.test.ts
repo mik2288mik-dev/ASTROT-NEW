@@ -51,7 +51,7 @@ describe('settings mobile information architecture', () => {
     expect(settings).toContain('if (settingsDetailBusy) return');
     expect(settings).toContain('data-settings-target={target}');
     expect(settings).toContain('lastRootTargetRef.current');
-    expect(settings).toContain('settingsContentRef.current?.focus');
+    expect(settings).toContain('content?.focus({ preventScroll: true })');
     expect(settings).not.toContain('<main className="fresh-page settings-editorial-page"');
     expect(settings).toContain("embedded && settingsScreen !== 'root'");
   });

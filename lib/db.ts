@@ -26,6 +26,7 @@ import {
   normalizeRelationLabel,
   PREMIUM_ACTIVE_CHART_LIMIT,
 } from './chartAccessPolicy';
+import { trustedBirthContext } from './birthProfileIdentity';
 import type {
   AdminNotificationTargetSegment,
   DailyCheckIn,
@@ -668,6 +669,13 @@ export const db = {
                  'timezone', nc.timezone,
                  'latitude', nc.latitude,
                  'longitude', nc.longitude,
+                 'birth_date', nc.birth_date,
+                 'birth_time', nc.birth_time,
+                 'birth_time_mode', nc.birth_time_mode,
+                 'birth_time_uncertainty_minutes', nc.birth_time_uncertainty_minutes,
+                 'birth_time_range_start', nc.birth_time_range_start,
+                 'birth_time_range_end', nc.birth_time_range_end,
+                 'birth_place', nc.birth_place,
                  'sun_sign', nc.sun_sign,
                  'moon_sign', nc.moon_sign,
                  'ascendant_sign', nc.ascendant_sign
@@ -695,6 +703,26 @@ export const db = {
             });
           }
         }
+        const hasPrimaryChart = Boolean(primaryChart);
+        const trustedPrimaryChart = trustedBirthContext({
+          birthDate: u.birth_date,
+          birthTime: u.birth_time,
+          birthTimeMode: u.birth_time_mode,
+          birthTimeUncertaintyMinutes: u.birth_time_uncertainty_minutes,
+          birthTimeRangeStart: u.birth_time_range_start,
+          birthTimeRangeEnd: u.birth_time_range_end,
+          birthPlace: u.birth_place,
+        }, primaryChart ? {
+          birthDate: primaryChart.birth_date,
+          birthTime: primaryChart.birth_time,
+          birthTimeMode: primaryChart.birth_time_mode,
+          birthTimeUncertaintyMinutes: primaryChart.birth_time_uncertainty_minutes,
+          birthTimeRangeStart: primaryChart.birth_time_range_start,
+          birthTimeRangeEnd: primaryChart.birth_time_range_end,
+          birthPlace: primaryChart.birth_place,
+          ...primaryChart,
+        } : null);
+        const legacyUserBirthContext = hasPrimaryChart ? null : u;
         const isPremium = isFutureTimestamp(u.premium_until) || u.has_active_premium_entitlement === true;
         const premiumUntil = u.entitlement_premium_until && (!u.premium_until || new Date(u.entitlement_premium_until) > new Date(u.premium_until))
           ? u.entitlement_premium_until
@@ -710,12 +738,12 @@ export const db = {
           birth_time_range_start: u.birth_time_range_start ?? null,
           birth_time_range_end: u.birth_time_range_end ?? null,
           birth_place: u.birth_place,
-          birth_timezone: primaryChart?.timezone ?? u.birth_timezone ?? null,
-          latitude: primaryChart?.latitude ?? u.latitude,
-          longitude: primaryChart?.longitude ?? u.longitude,
-          sun_sign: primaryChart?.sun_sign ?? u.sun_sign,
-          moon_sign: primaryChart?.moon_sign ?? u.moon_sign,
-          ascendant: primaryChart?.ascendant_sign ?? u.ascendant,
+          birth_timezone: trustedPrimaryChart?.timezone ?? legacyUserBirthContext?.birth_timezone ?? null,
+          latitude: trustedPrimaryChart?.latitude ?? legacyUserBirthContext?.latitude ?? null,
+          longitude: trustedPrimaryChart?.longitude ?? legacyUserBirthContext?.longitude ?? null,
+          sun_sign: trustedPrimaryChart?.sun_sign ?? legacyUserBirthContext?.sun_sign ?? null,
+          moon_sign: trustedPrimaryChart?.moon_sign ?? legacyUserBirthContext?.moon_sign ?? null,
+          ascendant: trustedPrimaryChart?.ascendant_sign ?? legacyUserBirthContext?.ascendant ?? null,
           premium_until: premiumUntil,
           trial_started_at: u.trial_started_at,
           ref_code: u.ref_code,
@@ -1095,7 +1123,8 @@ export const db = {
       latitude, longitude, timezone,
       sun_sign, moon_sign, ascendant_sign,
       input_hash, calculation_version,
-      birth_date, birth_time, birth_place,
+      birth_date, birth_time, birth_time_mode, birth_time_uncertainty_minutes,
+      birth_time_range_start, birth_time_range_end, birth_place,
       is_primary, subject_type, relation_label, archived_at,
       created_at, updated_at
     `,
@@ -1141,6 +1170,10 @@ export const db = {
         chart_data: chartData,
         birth_date: row.birth_date,
         birth_time: row.birth_time,
+        birth_time_mode: row.birth_time_mode,
+        birth_time_uncertainty_minutes: row.birth_time_uncertainty_minutes,
+        birth_time_range_start: row.birth_time_range_start,
+        birth_time_range_end: row.birth_time_range_end,
         birth_place: row.birth_place,
         latitude: row.latitude ?? chartData.latitude ?? null,
         longitude: row.longitude ?? chartData.longitude ?? null,

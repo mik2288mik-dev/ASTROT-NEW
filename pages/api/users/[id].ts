@@ -5,7 +5,7 @@ import { AdminAuthError, getConfiguredOwnerId, handleAdminError } from '../../..
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import { hasDatabaseUrl } from '../../../lib/database-url';
 import { toDateInputValue } from '../../../lib/date-utils';
-import { normalizeBirthTimeInput } from '../../../lib/birthTime';
+import { normalizeBirthClockTime, normalizeBirthTimeInput } from '../../../lib/birthTime';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { getPremiumEntitlementState, publicPremiumEntitlementSnapshot } from '../../../lib/contentArchitecture';
 import {
@@ -26,8 +26,8 @@ async function saveNotificationFrequency(userId:string,value:unknown):Promise<vo
 function publicUser(user:any,userId:string,premiumEntitlement:Awaited<ReturnType<typeof getPremiumEntitlementState>>,notificationFrequency?:string|null,refCode?:string|null){
   const entitlement=publicPremiumEntitlementSnapshot(premiumEntitlement);
   return {
-    id:user.id,name:user.name,birthDate:toDateInputValue(user.birth_date)||user.birth_date,birthTime:user.birth_time||'',birthTimeMode:user.birth_time_mode||undefined,
-    birthTimeUncertaintyMinutes:user.birth_time_uncertainty_minutes??null,birthTimeRangeStart:user.birth_time_range_start||null,birthTimeRangeEnd:user.birth_time_range_end||null,
+    id:user.id,name:user.name,birthDate:toDateInputValue(user.birth_date)||user.birth_date,birthTime:normalizeBirthClockTime(user.birth_time)||'',birthTimeMode:user.birth_time_mode||undefined,
+    birthTimeUncertaintyMinutes:user.birth_time_uncertainty_minutes??null,birthTimeRangeStart:normalizeBirthClockTime(user.birth_time_range_start),birthTimeRangeEnd:normalizeBirthClockTime(user.birth_time_range_end),
     birthPlace:user.birth_place,birthTimezone:user.birth_timezone||null,birthLatitude:user.latitude??null,birthLongitude:user.longitude??null,isSetup:user.is_setup,language:user.language,theme:user.theme,isPremium:entitlement.isPremium,premiumEntitlement:entitlement,
     premiumUntil:entitlement.endsAt,trialStartedAt:user.trial_started_at?new Date(user.trial_started_at).toISOString():null,
     selectedZodiacSign:user.selected_zodiac_sign||null,gender:user.gender||null,createdAt:user.created_at?new Date(user.created_at).toISOString():null,

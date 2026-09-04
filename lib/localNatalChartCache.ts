@@ -1,4 +1,5 @@
 import type { NatalChartData, UserProfile } from "../types";
+import { isReadableNatalChart } from './readableNatalChart';
 
 const NATAL_CHART_CACHE_SCHEMA_VERSION = 2;
 const NATAL_CHART_CACHE_PREFIX = `your-horoscope:natal-chart:v${NATAL_CHART_CACHE_SCHEMA_VERSION}`;
@@ -52,12 +53,6 @@ function profileIdentity(profile: UserProfile) {
   };
 }
 
-function isChartData(value: unknown): value is NatalChartData {
-  const chart = value as NatalChartData | null;
-  const quality = chart?.birthTimeQuality || chart?.chartQuality?.birthTimeQuality;
-  return !!chart?.sun && !!chart?.moon && (quality === 'unknown' || !!chart?.rising);
-}
-
 function getStorage(): Storage | null {
   if (typeof window === "undefined") return null;
   try {
@@ -106,7 +101,7 @@ export function isLocalNatalChartValid(
     entry.birthTimezone === identity.birthTimezone &&
     entry.birthLatitude === identity.birthLatitude &&
     entry.birthLongitude === identity.birthLongitude &&
-    isChartData(entry.chartData)
+    isReadableNatalChart(entry.chartData)
   );
 }
 
@@ -140,7 +135,7 @@ export function writeLocalNatalChart(
 ): void {
   const storage = getStorage();
   const identity = profileIdentity(profile);
-  if (!storage || !identity.userId || !isChartData(chartData)) return;
+  if (!storage || !identity.userId || !isReadableNatalChart(chartData)) return;
 
   const existing = readLocalNatalChartCache(profile);
   const resolvedChartId =
