@@ -20,7 +20,7 @@
 .heroBackground, .sectionBackground { z-index: -3; object-fit: cover; object-position: center; }
 .heroShade { position: absolute; inset: 0; z-index: -2; background: linear-gradient(90deg, rgba(5,5,5,.98) 0%, rgba(5,5,5,.88) 42%, rgba(5,5,5,.22) 76%, rgba(5,5,5,.48) 100%), linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.76)); }
 .heroInner { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, .82fr); gap: clamp(50px, 7vw, 110px); align-items: center; padding: clamp(56px, 8svh, 88px) 0 clamp(44px, 6svh, 72px); }
-.heroCopy { position: relative; z-index: 4; max-width: 760px; }
+.heroCopy { position: relative; z-index: 4; min-width: 0; max-width: 760px; }
 .heroCopy h1 { margin: 0; font-family: var(--display-font); font-size: clamp(54px, 5.3vw, 88px); font-weight: 650; line-height: .94; letter-spacing: -.055em; text-wrap: balance; }
 .heroCopy h1 em { color: var(--gold-soft); font-style: normal; font-weight: 700; }
 .heroLead { max-width: 59ch; margin: 34px 0 0; color: #d1c9be; font-size: clamp(17px, 1.25vw, 21px); line-height: 1.6; }
@@ -131,7 +131,7 @@
 }
 
 @media (max-width: 980px) {
-  .heroInner { grid-template-columns: 1fr; padding-top: clamp(72px, 10svh, 104px); }
+  .heroInner { grid-template-columns: minmax(0, 1fr); padding-top: clamp(72px, 10svh, 104px); }
   .productStage { min-height: 520px; max-width: 680px; width: 100%; margin: 0 auto; }
   .featureGrid { grid-auto-rows: 210px; }
   .featureWide, .featureTall, .featureSmall { grid-column: span 6; grid-row: span 2; }
@@ -147,11 +147,14 @@
   .sectionInner, .heroInner, .finalInner { width: min(calc(100% - 32px), 92rem); }
   .hero { min-height: auto; }
   .heroShade { background: linear-gradient(180deg, rgba(5,5,5,.38) 0%, rgba(5,5,5,.74) 43%, rgba(5,5,5,.98) 76%); }
-  .heroInner { padding: 72px 0 56px; gap: 38px; }
-  .heroCopy h1 { font-size: clamp(50px, 15vw, 76px); }
-  .heroLead { margin-top: 24px; }
+  .heroInner { padding: 54px 0 48px; gap: 34px; }
+  .heroCopy { width: 100%; max-width: 100%; }
+  .heroCopy h1 { max-width: 100%; font-size: clamp(36px, 12vw, 46px); line-height: .98; letter-spacing: -.06em; }
+  .heroLead { width: 100%; max-width: 34rem; margin-top: 22px; font-size: 17px; line-height: 1.55; overflow-wrap: break-word; text-wrap: pretty; }
   .heroActions { align-items: stretch; flex-direction: column; }
-  .heroActions > * { width: 100%; }
+  .heroActions > * { width: 100%; min-height: 52px; padding-inline: 20px; }
+  .heroFacts { gap: 10px 16px; margin-top: 28px; }
+  .heroFacts span { min-width: 0; }
   .productStage { min-height: 430px; }
   .productCard { border-radius: 22px; }
   .productCardPrimary { width: 68%; height: 72%; right: 2%; }

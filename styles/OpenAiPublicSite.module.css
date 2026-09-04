@@ -13,6 +13,7 @@
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
 }
 .siteRoot *, .siteRoot *::before, .siteRoot *::after { box-sizing: border-box; }
 .siteRoot a { color: inherit; }
@@ -144,7 +145,7 @@
 @media (max-width: 720px) {
   .headerInner, .footerInner, .sectionInner, .heroInner, .seoBreadcrumbs { width: min(calc(100% - 32px), 92rem); }
   .headerInner { gap: 10px; min-height: 62px; }
-  .brand { min-width: 106px; }
+  .brand { min-width: 0; flex: 0 1 auto; }
   .brandIcon { width: 28px; height: 28px; border-radius: 8px; }
   .brandWordmark { font-size: 15px; }
   .legalArticle, .seoArticle { width: min(calc(100% - 32px), 900px); }
@@ -158,4 +159,12 @@
   .footerInner { grid-template-columns: 1fr; gap: 36px; }
   .footerLinks { grid-template-columns: 1fr; }
   .legalArticle, .seoArticle { margin-top: 54px; }
+}
+
+@media (max-width: 420px) {
+  .headerInner { width: calc(100% - 24px); gap: 8px; }
+  .brand { gap: 7px; }
+  .brandWordmark { font-size: 14px; letter-spacing: .11em; }
+  .mobileNavSummary { min-height: 38px; padding-inline: 10px; }
+  .headerCta, .headerStatus { flex: 0 1 auto; min-width: 0; padding-inline: 10px; font-size: 10.5px; }
 }
