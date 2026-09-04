@@ -72,7 +72,8 @@ export const PUBLIC_SITE_CONFIG = {
   ga4MeasurementId: /^G-[A-Z0-9]+$/i.test(ga4MeasurementId) ? ga4MeasurementId : '',
   yandexWebmasterVerification: clean(process.env.NEXT_PUBLIC_YANDEX_WEBMASTER_VERIFICATION)
     || '481b459c5d07b8a1',
-  googleSiteVerification: clean(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION),
+  googleSiteVerification: clean(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION)
+    || 'UnPXKaQfJjuqsTQ-CbVnCDzoS95g_i5hKs9ypWqTWRs',
   privacyUrl: `${baseUrl}/privacy`,
   termsUrl: `${baseUrl}/terms`,
   consentUrl: `${baseUrl}/personal-data-consent`,
