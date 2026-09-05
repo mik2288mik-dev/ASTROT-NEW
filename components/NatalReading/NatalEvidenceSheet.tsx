@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
 import {
@@ -188,15 +189,6 @@ function isTimeDependentFact(fact: NatalEvidenceFact): boolean {
   return false;
 }
 
-function basisSummary(facts: readonly NatalEvidenceFact[], language: 'ru' | 'en'): string {
-  if (!facts.length) return language === 'ru'
-    ? 'Для этого старого наблюдения не сохранилась ссылка на данные карты.'
-    : 'The chart references for this older observation are unavailable.';
-  return language === 'ru'
-    ? 'Это астрологическая интерпретация данных ниже. В разборе они прочитаны вместе, с учётом остальной карты.'
-    : 'This is an astrological interpretation of the data below, read together in the context of the rest of your chart.';
-}
-
 function reliabilityCopy(
   quality: 'exact' | 'approximate' | 'unknown',
   timeDependent: boolean,
@@ -205,28 +197,24 @@ function reliabilityCopy(
   if (language === 'en') {
     if (quality === 'exact') {
       return timeDependent
-        ? 'The recorded birth time is treated as exact, so reliable houses and chart angles can be used. These are the parts most sensitive to a difference of several minutes.'
-        : 'This conclusion mostly uses facts that do not change with a small difference of several minutes in birth time.';
+        ? 'Birth time is recorded as exact. Houses and angles are sensitive to its accuracy.'
+        : 'Small differences in birth time do not change these facts.';
     }
     if (quality === 'approximate') {
-      return timeDependent
-        ? 'Only houses and angles that remain stable across the entered time range are used here.'
-        : 'This conclusion uses only facts that remain stable across the entered time range.';
+      return 'Birth time is approximate. Only facts stable across that range are shown.';
     }
-    return 'Birth time is unknown, so houses and chart angles are excluded. This conclusion uses only time-stable facts.';
+    return 'Birth time is unknown. Houses, Ascendant and MC are excluded.';
   }
 
   if (quality === 'exact') {
     return timeDependent
-      ? 'Здесь учтено точное время рождения. При его изменении дома и углы карты тоже могут измениться.'
-      : 'Этот вывод в основном опирается на данные, которые не меняются из-за небольшой разницы во времени рождения.';
+      ? 'Время указано точно. Дома и углы чувствительны к его погрешности.'
+      : 'Небольшая погрешность времени рождения не меняет эти данные.';
   }
   if (quality === 'approximate') {
-    return timeDependent
-      ? 'Здесь использованы только те дома и углы, которые не меняются во всём указанном диапазоне времени.'
-      : 'Этот вывод использует только данные, которые остаются одинаковыми во всём указанном диапазоне времени.';
+    return 'Время приблизительное. Показаны только данные, устойчивые в этом диапазоне.';
   }
-  return 'Время рождения неизвестно, поэтому дома и углы карты исключены. Вывод построен только по данным, которые от времени не зависят.';
+  return 'Время рождения неизвестно. Дома, Асцендент и MC не используются.';
 }
 
 function accuracyDescription(
@@ -235,21 +223,88 @@ function accuracyDescription(
 ): string {
   if (language === 'en') {
     if (quality === 'exact') {
-      return 'The date, place, and recorded time are used as entered. Planet positions are calculated first; houses and angles are added because an exact time is available. A difference of several minutes affects houses and angles much more than most planet positions.';
+      return 'The saved birth time is used as entered. A difference of a few minutes mainly affects houses, Ascendant and MC.';
     }
     if (quality === 'approximate') {
-      return 'When the chart is saved, NEBO checks which details remain stable across the entered uncertainty range. The reading uses that saved result.';
+      return 'Birth time is approximate. The reading uses details that remain stable across the entered time range.';
     }
-    return 'With unknown birth time, NEBO uses only reliable saved data and leaves out houses, Ascendant, MC and other details that require a known time.';
+    return 'Birth time is unknown. The reading leaves out houses, Ascendant, MC and other details that require a known time.';
   }
 
   if (quality === 'exact') {
-    return 'Дата, место и сохранённое время используются как введены. Сначала рассчитываются положения планет, затем дома и углы карты. Разница в несколько минут сильнее влияет именно на дома и углы, а не на большинство положений планет.';
+    return 'Используется сохранённое время рождения. Погрешность в несколько минут влияет прежде всего на дома, Асцендент и MC.';
   }
   if (quality === 'approximate') {
-    return 'При сохранении карты NEBO проверяет, какие детали остаются стабильными в указанном диапазоне времени. Разбор использует уже сохранённый результат этой проверки.';
+    return 'Время приблизительное. Разбор использует только детали, устойчивые в указанном диапазоне времени.';
   }
-  return 'При неизвестном времени NEBO использует только надёжные сохранённые данные. Дома, Асцендент, MC и другие детали, которым нужен точный час, в разбор не попадают.';
+  return 'Время рождения неизвестно. Дома, Асцендент, MC и другие детали, которым нужен точный час, в разбор не попадают.';
+}
+
+/** Native, non-passive move handling lets iOS keep normal body scrolling. */
+export function bindNatalEvidenceSwipe(
+  panel: HTMLElement,
+  scrollBody: HTMLElement,
+  onClose: () => void,
+  reducedMotion: boolean,
+): () => void {
+  let gesture: { id: number; x: number; y: number; startedAt: number; distance: number; dragging: boolean } | null = null;
+  let closeTimer: ReturnType<typeof setTimeout> | undefined;
+  const reset = () => {
+    gesture = null;
+    panel.style.transition = reducedMotion ? 'none' : 'transform 180ms cubic-bezier(0.22, 1, 0.36, 1)';
+    panel.style.transform = '';
+    panel.style.willChange = '';
+  };
+  const start = (event: TouchEvent) => {
+    if (closeTimer) return;
+    if (event.touches.length !== 1) { reset(); return; }
+    const target = event.target as Element | null;
+    if (target?.closest('button, a, input, textarea, select, summary')) return;
+    if (scrollBody.contains(target) && scrollBody.scrollTop > 0) return;
+    const touch = event.touches[0];
+    gesture = { id: touch.identifier, x: touch.clientX, y: touch.clientY, startedAt: event.timeStamp, distance: 0, dragging: false };
+  };
+  const move = (event: TouchEvent) => {
+    if (!gesture) return;
+    if (event.touches.length !== 1) { reset(); return; }
+    const touch = Array.from(event.touches).find((item) => item.identifier === gesture?.id);
+    if (!touch) { reset(); return; }
+    const dx = touch.clientX - gesture.x;
+    const dy = touch.clientY - gesture.y;
+    if (!gesture.dragging) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      if (dy <= 0 || Math.abs(dx) >= dy || !event.cancelable) { reset(); return; }
+      gesture.dragging = true;
+      panel.style.transition = 'none';
+      panel.style.willChange = 'transform';
+    }
+    if (event.cancelable) event.preventDefault();
+    gesture.distance = Math.max(0, dy);
+    panel.style.transform = `translateY(${gesture.distance}px)`;
+  };
+  const end = (event: TouchEvent) => {
+    if (!gesture) return;
+    const { distance, startedAt, dragging } = gesture;
+    const velocity = distance / Math.max(1, event.timeStamp - startedAt);
+    if (!dragging || (distance < 88 && !(distance >= 32 && velocity > 0.45))) { reset(); return; }
+    gesture = null;
+    if (reducedMotion) { onClose(); return; }
+    panel.style.transition = 'transform 160ms cubic-bezier(0.22, 1, 0.36, 1)';
+    panel.style.transform = `translateY(${panel.getBoundingClientRect().height + 24}px)`;
+    closeTimer = setTimeout(onClose, 160);
+  };
+  panel.addEventListener('touchstart', start, { passive: true });
+  panel.addEventListener('touchmove', move, { passive: false });
+  panel.addEventListener('touchend', end, { passive: true });
+  panel.addEventListener('touchcancel', reset, { passive: true });
+  return () => {
+    clearTimeout(closeTimer);
+    panel.removeEventListener('touchstart', start);
+    panel.removeEventListener('touchmove', move);
+    panel.removeEventListener('touchend', end);
+    panel.removeEventListener('touchcancel', reset);
+    reset();
+  };
 }
 
 export const NatalEvidenceSheet: React.FC<Props> = ({
@@ -261,6 +316,12 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
 }) => {
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   const built = useMemo(
     () => buildNatalModelContext(profile, chartData),
     [chartData, profile],
@@ -285,45 +346,74 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
   );
   const reliability = getPermanentNatalReliability(chartData);
   const timeDependent = facts.some(isTimeDependentFact);
+  const isOpen = target !== null;
 
   useEffect(() => {
-    if (!target) return;
+    setPortalHost(document.body);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || !portalHost || !layerRef.current) return;
     const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const background = Array.from(portalHost.children)
+      .filter((element): element is HTMLElement => element instanceof HTMLElement && element !== layerRef.current
+        && !['SCRIPT', 'STYLE', 'LINK', 'META'].includes(element.tagName))
+      .map((element) => ({ element, inert: element.getAttribute('inert'), ariaHidden: element.getAttribute('aria-hidden') }));
     headingRef.current?.focus({ preventScroll: true });
+    for (const { element } of background) {
+      element.setAttribute('inert', '');
+      element.setAttribute('aria-hidden', 'true');
+    }
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Tab') {
-        const dialog = headingRef.current?.closest('[role="dialog"]');
+        const dialog = panelRef.current;
         const controls = dialog?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), summary, [tabindex="0"]');
         const first = controls?.[0];
         const last = controls?.[controls.length - 1];
-        if (first && last && (document.activeElement === headingRef.current || (event.shiftKey ? document.activeElement === first : document.activeElement === last))) {
+        if (first && last && (document.activeElement === headingRef.current || !dialog?.contains(document.activeElement)
+          || (event.shiftKey ? document.activeElement === first : document.activeElement === last))) {
           event.preventDefault();
           (event.shiftKey ? last : first).focus();
         }
         return;
       }
       if (event.key !== 'Escape') return;
+      event.preventDefault();
       event.stopImmediatePropagation();
-      onClose();
+      onCloseRef.current();
     };
     const handleNativeBack = (event: Event) => {
       const detail = (event as CustomEvent<NativeBackEventDetail>).detail;
-      if (detail.handled) return;
-      detail.handled = true;
+      if (detail?.handled) return;
+      if (detail) detail.handled = true;
       event.stopImmediatePropagation();
-      onClose();
+      onCloseRef.current();
     };
     window.addEventListener('keydown', handleEscape);
     window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack, true);
     return () => {
       document.body.style.overflow = previousOverflow;
+      for (const { element, inert, ariaHidden } of background) {
+        if (inert === null) element.removeAttribute('inert');
+        else element.setAttribute('inert', inert);
+        if (ariaHidden === null) element.removeAttribute('aria-hidden');
+        else element.setAttribute('aria-hidden', ariaHidden);
+      }
       window.removeEventListener('keydown', handleEscape);
       window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack, true);
       if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
     };
-  }, [onClose, target]);
+  }, [portalHost, isOpen]);
+
+  useEffect(() => {
+    if (!target || !portalHost || !panelRef.current || !scrollRef.current) return;
+    scrollRef.current.scrollTop = 0;
+    headingRef.current?.focus({ preventScroll: true });
+    return bindNatalEvidenceSwipe(panelRef.current, scrollRef.current, () => onCloseRef.current(),
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+  }, [portalHost, target]);
 
   if (!target) return null;
 
@@ -335,8 +425,9 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
     evidenceIds: target.evidenceIds,
   };
 
-  return (
+  const sheet = (
     <div
+      ref={layerRef}
       className="natal-v3-sheet-layer natal-v3-evidence-layer"
       role="presentation"
       onMouseDown={(event) => {
@@ -344,6 +435,7 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
       }}
     >
       <section
+        ref={panelRef}
         className="natal-v3-sheet natal-v3-evidence-sheet"
         role="dialog"
         aria-modal="true"
@@ -372,6 +464,7 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
           </h2>
         </header>
 
+        <div className="natal-v3-evidence-scroll" ref={scrollRef}>
         {target.mode === 'meaning' ? (
           <div className="natal-v3-explanation-body">
             <p className="natal-v3-explanation-lead">
@@ -392,19 +485,9 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
         ) : target.mode === 'accuracy' ? (
           <div className="natal-v3-explanation-body">
             <p className="natal-v3-explanation-lead">{accuracyDescription(quality, language)}</p>
-            <div className="natal-v3-explanation-section">
-              <h3>{language === 'ru' ? 'Что проверяет система' : 'What the system checks'}</h3>
-              <ul>
-                <li>{language === 'ru' ? 'дата, место, координаты и исторический часовой пояс' : 'date, place, coordinates, and historical time zone'}</li>
-                <li>{language === 'ru' ? 'какие положения и связи рассчитаны без ошибки' : 'which placements and links were calculated successfully'}</li>
-                <li>{language === 'ru' ? 'какие детали меняются при погрешности времени' : 'which details change within the birth-time uncertainty'}</li>
-              </ul>
-            </div>
           </div>
         ) : (
           <div className="natal-v3-explanation-body">
-            <p className="natal-v3-explanation-lead">{basisSummary(facts, language)}</p>
-
             {labels.length > 0 ? (
               <div className="natal-v3-explanation-section">
                 <h3>{language === 'ru' ? 'Данные твоей карты' : 'Your chart data'}</h3>
@@ -412,16 +495,17 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
                   {labels.map((label) => <li key={label}>{label}</li>)}
                 </ul>
               </div>
-            ) : null}
+            ) : <p className="natal-v3-explanation-lead">{language === 'ru'
+              ? 'Для этого наблюдения не сохранилась ссылка на данные карты.'
+              : 'The chart references for this observation are unavailable.'}</p>}
 
-            <div className="natal-v3-accuracy-note">
-              <h3>{language === 'ru' ? 'Насколько это зависит от времени рождения' : 'How much this depends on birth time'}</h3>
-              <p>{reliabilityCopy(quality, timeDependent, language)}</p>
-            </div>
+            <p className="natal-v3-accuracy-note">{reliabilityCopy(quality, timeDependent, language)}</p>
 
           </div>
         )}
+        </div>
       </section>
     </div>
   );
+  return portalHost ? createPortal(sheet, portalHost) : sheet;
 };

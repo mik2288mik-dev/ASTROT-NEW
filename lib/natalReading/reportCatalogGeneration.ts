@@ -2,6 +2,11 @@ import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
 import { getAppSystemVoice } from '../appVoice';
 import {
+  copiesNatalNarrativeExampleTitle,
+  getNatalNarrativeSystemPrompt,
+  hasNatalNarrativeVoiceViolation,
+} from './narrativeVoice';
+import {
   callStructuredWithBudgetRetry,
   type StrictJsonSchema,
 } from '../openaiResponses';
@@ -87,8 +92,8 @@ const CHANGING_TIME_COPY = /(?:(?:^|[^\p{L}])(?:сегодня|завтра|ск
 const OFFICE_NARRATIVE_COPY = /(?:трезв[\p{L}]*\s+отбор|(?:^|[^\p{L}])подвижност[\p{L}]*|довод[\p{L}]*\s+начат[\p{L}]*\s+до\s+форм[\p{L}]*|планк[\p{L}]*\s+качеств[\p{L}]*|профессиональн[\p{L}]*\s+позици[\p{L}]*|имеет\s+продолжение\s+в\s+реальном\s+деле|интерес\s+легко\s+опередит\s+результат|^\s*(?:в\s+итоге|таким\s+образом)(?=$|[^\p{L}]))/iu;
 
 // Accept a concise complete reading; word targets must not force padded retries.
-export const NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS = 180;
-export const NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS = 300;
+export const NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS = 140;
+export const NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS = 240;
 export const NATAL_REPORT_CATEGORY_SUMMARY_MIN_WORDS = 220;
 export const NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS = 350;
 const NATAL_REPORT_NARRATIVE_MIN_PARAGRAPHS = 5;
@@ -486,7 +491,7 @@ export function buildNatalReportCategoryPrompt(input: {
   const isMain = input.categoryKey === 'main';
   const task = input.language === 'ru'
     ? `${isMain
-      ? `Напиши короткую законченную бесплатную базу: summary содержит 6–8 самостоятельных наблюдений, ориентир 220–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} слов в text (заголовки в объём не входят). На наблюдение обычно 25–40 слов, 2–3 предложения. Первые три — самые содержательные и разные выводы по этой карте, без вступления. Остальные добавляют другие обоснованные стороны, а не пересказывают первые. Не растягивай ради восьми пунктов или точного числа слов, если шесть говорят больше. Это полноценный полезный разбор, а не тизер Premium. Не назначай заранее темы всем людям: выбери их по фактам именно этой карты.`
+      ? `Напиши короткую законченную бесплатную базу: summary содержит 6–8 самостоятельных наблюдений, всего ${NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS}–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} слов в text (заголовки в объём не входят). Ориентир — 170–220 слов всего, обычно два коротких предложения на пункт. Законченные 6–8 разных наблюдений могут быть короче ориентира; не дописывай пояснения, оговорки или советы ради длины. Первые три — самые содержательные и разные выводы по этой карте, без вступления. Остальные добавляют другие обоснованные стороны, а не пересказывают первые. Не растягивай ради восьми пунктов или точного числа слов, если шесть говорят больше. Это полноценный полезный разбор, а не тизер Premium. Не назначай заранее темы всем людям: выбери их по фактам именно этой карты.`
       : `Напиши самостоятельную главу «${localizeNatalReportText(category.title, 'ru')}»: summary содержит 5–8 коротких наблюдений, ориентир 250–${NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS} слов в text. Продолжи главную линию из MAIN READING ANCHOR применительно к этой теме, с новыми выводами и ситуациями. Не пересказывай вступление и не повторяй готовые фразы. Читатель сразу получает главу. Не дописывай общие фразы ради точного числа слов.`}
 Каждый элемент summary — одно наблюдение с title и text. title — короткий человеческий заголовок, обычно 3–8 слов: сразу понятно, что именно ты описываешь. Он формулирует конкретный вывод этого абзаца, который подтверждают те же evidence_ids; не обещает больше, чем объясняет текст. Не используй вопрос, название служебной категории, номер, «Наблюдение 1», «Твой характер» или общий лозунг. Не бери готовые заголовки для всех людей.
 Первая фраза text — самостоятельное, понятное наблюдение. Она не копирует заголовок дословно, а сразу добавляет, когда или как это заметно. Остальной короткий абзац объясняет эту же мысль через конкретное различие, условие или уместный пример. Читатель должен понимать, что ты утверждаешь и почему из этого следует остальное, без разгадки метафор. Каждый абзац читается отдельно, без обязательной ссылки на предыдущий.
@@ -496,7 +501,7 @@ export function buildNatalReportCategoryPrompt(input: {
 Для summary выбирай только narrative_evidence_ids. Копируй ID буквально из этого списка: не сокращай, не переименовывай и не составляй новые ID из названий фактов. Используй несколько разных фактов, но не пытайся охватить весь список или все вопросы каталога. Если основание одно, не делай из него несколько одинаковых выводов.
 Верни ${isMain ? '2–3' : '2'} follow_ups: понятные вопросы, которые естественно возникают после этих наблюдений и ведут в другие существующие главы. label — вопрос о том, как ты действуешь или что предпочитаешь, а не как тебе себя переделать: «Как ты объясняешь…», а не «Как объяснять, чтобы…». Смысл вопроса выбирается из текста, а не копируется из примера. Тема достаточно широкая: все переходы в одну главу открывают её сохранённый текст. Не обещай отдельный ответ на узкую новую ситуацию. category_key выбирает соответствующую главу из разрешённых, evidence_ids берутся только из уже процитированных в summary фактов. Не повторяй уже данный ответ, не придумывай проблему, не обещай предсказать событие и не пиши общие «Хочешь узнать больше?». Каждый вопрос ведёт в отдельную главу, никогда в main или текущую. Это переход к теме, а не новый чат. previews верни пустым объектом, free_answers — пустым массивом.`
     : `${isMain
-      ? `Write a short complete free reading: summary contains 6–8 independent observations, aiming for 220–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} words of text total, excluding titles. Usually 25–40 words and 2–3 sentences per observation. Put the three most substantial and distinct conclusions first, without an introduction. The remaining observations add other supported sides instead of retelling the first three. Do not stretch to eight or pad an exact word count when six say more. This is a useful complete reading, not a Premium teaser. Select topics from this chart, never preassign the same topics to every reader.`
+      ? `Write a short complete free reading: summary contains 6–8 independent observations, with ${NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS}–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} words of text total, excluding titles. Aim for 170–220 words total, usually two short sentences per item. Six to eight distinct complete observations may be shorter than that target; do not add explanations, qualifications, or advice just to increase length. Put the three most substantial and distinct conclusions first, without an introduction. The remaining observations add other supported sides instead of retelling the first three. Do not stretch to eight or pad an exact word count when six say more. This is a useful complete reading, not a Premium teaser. Select topics from this chart, never preassign the same topics to every reader.`
       : `Write a chapter on ${localizeNatalReportText(category.title, 'en')}: summary contains 5–8 short observations, aiming for 250–${NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS} words of text total. Continue MAIN READING ANCHOR in this area with new conclusions and situations, without repeating its opening or sentences. The reader receives the chapter immediately. Do not add generalities just to reach an exact word count.`}
 Each summary item is one observation with title and text. Give it a short, ordinary title, usually 3–8 words, that immediately says what this paragraph describes. The title states its concrete conclusion, grounded in the same evidence_ids, and promises no more than the paragraph explains. No questions, service categories, numbering, “Observation 1”, “Your character”, or generic slogans. Never reuse a fixed headline set for all readers.
 The first sentence of text is a complete, understandable observation. Do not repeat the title verbatim: add when or how it shows up. The rest of the short paragraph explains that same thought through a concrete distinction, condition, or relevant example. Make the claim and how the explanation follows clear without asking the reader to decipher metaphors. Every paragraph stands alone, with no dependence on the previous one.
@@ -624,6 +629,12 @@ function narrativeValidationIssues(
       issues.push(`SUMMARY_TITLE_REPEATS_TEXT:${index}`);
     }
     appendCopyValidationIssues(issues, `summary[${index}].title`, title, built);
+    if (copiesNatalNarrativeExampleTitle(title)) issues.push(`NARRATIVE_EXAMPLE_TITLE:${index}`);
+    for (const [field, value] of [['title', title], ['text', values[index]]] as const) {
+      if (hasNatalNarrativeVoiceViolation(value)) {
+        issues.push(`NARRATIVE_PLAIN_LANGUAGE_REQUIRED:summary[${index}].${field}`);
+      }
+    }
   });
   if (new Set(titles.map(normalizedCopy)).size !== titles.length) issues.push('SUMMARY_TITLES_REPEATED');
   if (hasRepeatedNarrativeCopy(values)) issues.push('SUMMARY_REPEATED_COPY');
@@ -662,7 +673,7 @@ function parseFollowUps(
     const evidenceIds = parsedEvidenceIds(item?.evidence_ids, citedIds);
     if (!category || category.key === 'main' || category.key === categoryKey
       || label.length < 15 || label.length > 140 || !label.endsWith('?')
-      || !isCopyAllowed(label, built) || !evidenceIds) return null;
+      || !isCopyAllowed(label, built) || hasNatalNarrativeVoiceViolation(label) || !evidenceIds) return null;
     parsed.push({ label, categoryKey: category.key, evidenceIds });
   }
   return new Set(parsed.map((item) => item.categoryKey)).size === parsed.length
@@ -781,7 +792,12 @@ function buildSemanticRepairPrompt(
       ? '\nSUMMARY_TITLE: каждый title — короткий конкретный вывод абзаца, без вопроса, служебного ярлыка, дубля другого заголовка или дословного повтора первой фразы text. FOLLOW_UPS_INVALID: верни вопросы в разные разрешённые главы, кроме текущей и main; только evidence_ids, которые уже процитированы в summary. Для main нужно 2–3 вопроса, для другой главы ровно 2.'
       : '\nSUMMARY_TITLE: each title states the paragraph’s concrete observation, without a question, service label, duplicate title, or verbatim first sentence of text. FOLLOW_UPS_INVALID: return questions leading to distinct allowed chapters other than current and main, citing only evidence_ids already used in summary. Main needs 2–3 questions; other chapters need exactly 2.'
     : '';
-  return prompt + instruction + guide + narratorRepair + observationRepair;
+  const plainLanguageRepair = issues.some((issue) => issue.startsWith('NARRATIVE_'))
+    ? language === 'ru'
+      ? '\nNARRATIVE_PLAIN_LANGUAGE_REQUIRED / NARRATIVE_EXAMPLE_TITLE: перепиши указанный пункт как конкретное действие или предпочтение, обоснованное его evidence_ids. Не заменяй слово синонимом и не переноси заголовок из примера. Если оснований для конкретного действия нет, выбери другое подтверждённое наблюдение. Не выдумывай биографию или мотивы.'
+      : '\nNARRATIVE_PLAIN_LANGUAGE_REQUIRED / NARRATIVE_EXAMPLE_TITLE: rewrite the item as a concrete action or preference supported by its evidence_ids. Do not swap a synonym or copy an example title. If the evidence does not support a specific action, choose another grounded observation. Never invent biography or motives.'
+    : '';
+  return prompt + instruction + guide + narratorRepair + observationRepair + plainLanguageRepair;
 }
 
 export function materializeNatalReportCategoryPack(input: {
@@ -898,7 +914,7 @@ export async function generateNatalReportCategoryPack(input: {
   let validationIssues: string[] = [];
   for (let attempt = 1; attempt <= NATAL_REPORT_SEMANTIC_ATTEMPTS; attempt += 1) {
     const { result } = await callStructuredWithBudgetRetry({
-      instructions: getNatalReportCatalogSystemPrompt(language),
+      instructions: getNatalNarrativeSystemPrompt(language),
       input: attempt === 1
         ? basePrompt
         : buildSemanticRepairPrompt(basePrompt, validationIssues, language),

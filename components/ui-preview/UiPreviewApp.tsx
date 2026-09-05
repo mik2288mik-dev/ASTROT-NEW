@@ -443,7 +443,7 @@ function PaywallScene({
       onContinueFree={onClose}
       onRestore={async () => 'completed'}
       onManageSubscription={() => false}
-      uiPreview={embedded ? undefined : { plans: UI_PREVIEW_PAYWALL_PLANS }}
+      uiPreview={{ plans: UI_PREVIEW_PAYWALL_PLANS }}
     />
   );
 }

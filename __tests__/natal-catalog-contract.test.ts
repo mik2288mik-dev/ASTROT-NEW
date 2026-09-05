@@ -198,15 +198,15 @@ describe('natal report catalog contract', () => {
     expect(ordinary.filter(hasNatalReportCatalogCopyViolation)).toEqual([]);
   });
 
-  it('accepts 180–300 words in six to eight short Main observations without forcing padding', () => {
+  it('accepts 140–240 words in six to eight short Main observations without forcing padding', () => {
     const lengths = (...sizes: number[]) => sizes.map((size) => 'слово '.repeat(size));
 
-    expect(NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS).toBe(180);
-    expect(NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS).toBe(300);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(25, 25, 25, 35, 35, 35))).toBe(true);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(24, 25, 25, 35, 35, 35))).toBe(false);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(35, 40, 45, 55, 60, 65))).toBe(true);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(36, 40, 45, 55, 60, 65))).toBe(false);
+    expect(NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS).toBe(140);
+    expect(NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS).toBe(240);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(20, 20, 25, 25, 25, 25))).toBe(true);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(19, 20, 25, 25, 25, 25))).toBe(false);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(30, 35, 40, 45, 45, 45))).toBe(true);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(31, 35, 40, 45, 45, 45))).toBe(false);
     expect(isNatalReportMainSummaryLengthAllowed(lengths(50, 50, 50, 50, 50))).toBe(false);
     expect(isNatalReportMainSummaryLengthAllowed(lengths(30, 30, 30, 30, 30, 30, 30, 30))).toBe(true);
   });

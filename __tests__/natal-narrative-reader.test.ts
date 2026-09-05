@@ -341,7 +341,7 @@ describe('natal narrative reader', () => {
     expect(formatNatalEvidenceLabel(fact, 'en')).toBe(`Sun in ${sign}, 12.5° · 3 house`);
   });
 
-  it.each([6, 7, 8])('shows all %i titled observations immediately with a Why control for each', (count) => {
+  it.each([6, 7, 8])('shows all %i observations with an accessible evidence icon beside each heading', (count) => {
     const mainPack = pack('main', Array.from({ length: count }, (_, index) =>
       natalEditorialParagraphs[index] || `Дополнительный вывод ${index + 1} остаётся виден полностью. Его продолжение не нужно открывать отдельной кнопкой.`,
     ));
@@ -352,10 +352,13 @@ describe('natal narrative reader', () => {
     expect(body?.match(/<h2>/g)).toHaveLength(count);
     expect(body?.match(/<p>/g)).toHaveLength(count);
     expect(body?.match(/class="natal-reading-why"/g)).toHaveLength(count);
+    expect(body?.match(/class="natal-reading-observation-heading"/g)).toHaveLength(count);
     const sections = [...body!.matchAll(/<section class="natal-reading-observation">([\s\S]*?)<\/section>/g)];
     mainPack.summary.forEach((paragraph, index) => {
-      expect(sections[index][1]).toContain(`<h2>${paragraph.title}</h2><p>${paragraph.text}</p>`);
-      expect(sections[index][1]).toContain(`aria-label="Почему так: ${paragraph.title}"`);
+      expect(sections[index][1]).toContain(`<h2>${paragraph.title}</h2>`);
+      expect(sections[index][1]).toContain(`<p>${paragraph.text}</p>`);
+      expect(sections[index][1]).toContain(`aria-label="На чём основано: ${paragraph.title}"`);
+      expect(sections[index][1]).not.toContain('Почему так?');
     });
     expect(body).not.toContain('<details');
     expect(html.indexOf('</article>')).toBeLessThan(html.indexOf('class="natal-narrative-chapters"'));
@@ -365,11 +368,26 @@ describe('natal narrative reader', () => {
     expect(html).not.toContain('role="dialog"');
   });
 
+  it('keeps reading-time badges and redundant instructions out of the reading and question entry', () => {
+    const mainPack = pack('main');
+    const reader = interactiveReader({ mainPack, isPremium: true, onOpenQuestions: jest.fn() });
+    const html = reader.html();
+    expect(html).not.toContain('natal-reading-meta');
+    expect(html).not.toMatch(/мин чтения|min read/u);
+    const questionEntry = reader.nodes((element) => element.props.className === 'natal-v3-ask-entry')[0];
+    expect(treeElements(questionEntry, (element) => element.type === 'h2')).toHaveLength(1);
+    expect(treeElements(questionEntry, (element) => element.type === 'button')).toHaveLength(1);
+    expect(treeElements(questionEntry, (element) => element.type === 'p')).toHaveLength(0);
+    const followUps = reader.nodes((element) => element.props.className === 'natal-narrative-chapters')[0];
+    expect(treeElements(followUps, (element) => element.type === 'p')).toHaveLength(0);
+  });
+
   it('opens a Premium chapter with every observation, without requiring a question selection', () => {
     const categoryPack = pack('work');
     const html = render({ activeCategoryKey: 'work', categoryPack, isPremium: true });
     for (const item of categoryPack.summary) {
-      expect(html).toContain(`<h2>${item.title}</h2><p>${item.text}</p>`);
+      expect(html).toContain(`<h2>${item.title}</h2>`);
+      expect(html).toContain(`<p>${item.text}</p>`);
     }
     expect(html).toContain('<h1 tabindex="-1">Работа</h1>');
     expect(html).not.toContain('Читать с Premium');
@@ -377,7 +395,7 @@ describe('natal narrative reader', () => {
     expect(html).not.toContain('Как ты начинаешь новое дело');
   });
 
-  it('opens Why with exactly that observation and its saved evidence, including the final point', () => {
+  it('opens each named evidence icon with exactly its observation and saved evidence, including the final point', () => {
     const mainPack = pack('main', Array.from({ length: 8 }, (_, index) =>
       natalEditorialParagraphs[index] || `Текст пункта ${index + 1}. Продолжение относится только к этому выводу.`,
     ));
@@ -387,7 +405,16 @@ describe('natal narrative reader', () => {
     expect(whyButtons()).toHaveLength(8);
     expect(reader.evidence().target).toBeNull();
     mainPack.summary.forEach((observation, index) => {
-      reader.click(whyButtons()[index]);
+      const button = whyButtons()[index];
+      const heading = reader.nodes((element) => element.props.className === 'natal-reading-observation-heading')[index];
+      expect(treeElements(heading, (element) => element.type === 'button')).toEqual([button]);
+      expect(treeElements(heading, (element) => element.type === 'h2')[0].props.children).toBe(observation.title);
+      expect(button.props.type).toBe('button');
+      expect(button.props['aria-label']).toBe(`На чём основано: ${observation.title}`);
+      const iconHtml = renderToStaticMarkup(button);
+      expect(iconHtml).toMatch(/<svg[^>]*aria-hidden="true"/u);
+      expect(iconHtml.replace(/<[^>]+>/gu, '')).toBe('');
+      reader.click(button);
       expect(reader.evidence().target).toEqual({
         mode: 'why', title: observation.title, text: observation.text,
         evidenceIds: observation.evidenceIds,
@@ -477,7 +504,7 @@ describe('natal narrative reader', () => {
     expect(html).toMatch(/<p(?:\s[^>]*)?>Nina<\/p><h1 tabindex="-1">You, in a few words<\/h1>/u);
     expect(html).toContain('This is Nina’s saved reading in English.');
     expect(html).toContain('<h2>Trying makes the idea clearer</h2>');
-    expect(html).toContain('aria-label="Why: Trying makes the idea clearer"');
+    expect(html).toContain('aria-label="Chart evidence: Trying makes the idea clearer"');
     expect(html).toContain('What else about you?');
     for (const followUp of mainPack.followUps) expect(html).toContain(followUp.label);
     expect(html).not.toContain('Анна');
@@ -496,10 +523,11 @@ describe('natal narrative reader', () => {
     expect(html).toContain('Все темы разбора');
     expect(html).not.toContain('undefined');
     const firstWhy = reader.nodes((element) => element.props.className === 'natal-reading-why')[0];
-    expect(firstWhy.props['aria-label']).toBe(`Почему так: ${mainPack.summary[0].text.split('. ')[0]}.`);
+    expect(firstWhy.props['aria-label']).toBe(`На чём основано: ${mainPack.summary[0].text.split('. ')[0]}.`);
+    expect(renderToStaticMarkup(firstWhy).replace(/<[^>]+>/gu, '')).toBe('');
     reader.click(firstWhy);
     expect(reader.evidence().target).toEqual({
-      mode: 'why', title: 'Почему так?', text: mainPack.summary[0].text,
+      mode: 'why', title: 'В твоей карте', text: mainPack.summary[0].text,
       evidenceIds: mainPack.summary[0].evidenceIds,
     });
   });
@@ -514,7 +542,8 @@ describe('natal narrative reader', () => {
     expect(dialog).toContain('Why this conclusion?');
     expect(dialog).toContain('Your chart data');
     expect(dialog).toContain(formatNatalEvidenceLabel(evidenceFacts[0], 'en'));
-    expect(dialog).toContain('How much this depends on birth time');
+    expect(dialog).toContain('Birth time is recorded as exact.');
+    expect(dialog).not.toContain('How much this depends on birth time');
     expect(dialog).not.toMatch(/[А-Яа-яЁё]/u);
   });
 
@@ -527,28 +556,48 @@ describe('natal narrative reader', () => {
 });
 
 describe('natal Why dialog keyboard lifecycle', () => {
-  it('traps Tab, handles Escape and native back, then restores scrolling and focus to the opening button', () => {
+  it('portals above the inert app, traps Tab and restores prior accessibility state, scrolling and focus after closing', () => {
     const descriptors = new Map(['window', 'document', 'HTMLElement'].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
-    const documentState = { activeElement: null as unknown, body: { style: { overflow: 'auto' } } };
+    const documentState = { activeElement: null as unknown, body: { children: [] as FocusTarget[], style: { overflow: 'auto' } } };
     class FocusTarget {
       isConnected = true;
+      tagName = 'DIV';
+      attributes = new Map<string, string>();
+      getAttribute = (name: string) => this.attributes.get(name) ?? null;
+      setAttribute = (name: string, value: string) => this.attributes.set(name, value);
+      removeAttribute = (name: string) => this.attributes.delete(name);
       focus = jest.fn(() => { documentState.activeElement = this; });
     }
     const opener = new FocusTarget();
     const first = new FocusTarget();
     const last = new FocusTarget();
-    const heading = Object.assign(new FocusTarget(), {
-      closest: jest.fn(() => ({ querySelectorAll: () => [first, last] })),
+    const heading = new FocusTarget();
+    const layer = new FocusTarget();
+    const app = new FocusTarget();
+    const alreadyHidden = new FocusTarget();
+    alreadyHidden.setAttribute('inert', '');
+    alreadyHidden.setAttribute('aria-hidden', 'false');
+    const script = Object.assign(new FocusTarget(), { tagName: 'SCRIPT' });
+    documentState.body.children = [app, alreadyHidden, script, layer];
+    const touchListeners = new Map<string, unknown>();
+    const panel = Object.assign(new FocusTarget(), {
+      style: { transform: '', transition: '', willChange: '' },
+      contains: (element: unknown) => [first, last, heading].includes(element as FocusTarget),
+      querySelectorAll: () => [first, last],
+      addEventListener: (name: string, listener: unknown) => touchListeners.set(name, listener),
+      removeEventListener: (name: string) => touchListeners.delete(name),
     });
+    const scroll = { scrollTop: 120 };
     documentState.activeElement = opener;
     const listeners = new Map<string, (event: any) => void>();
     const windowState = {
       addEventListener: jest.fn((name: string, listener: (event: any) => void) => listeners.set(name, listener)),
       removeEventListener: jest.fn((name: string) => listeners.delete(name)),
+      matchMedia: () => ({ matches: true }),
     };
     const effects: Array<() => void | (() => void)> = [];
     const close = jest.fn();
-    let cleanup: (() => void) | undefined;
+    const cleanups: Array<() => void> = [];
     try {
       Object.defineProperty(globalThis, 'window', { configurable: true, value: windowState });
       Object.defineProperty(globalThis, 'document', { configurable: true, value: documentState });
@@ -556,19 +605,35 @@ describe('natal Why dialog keyboard lifecycle', () => {
       const { NatalEvidenceSheet: Sheet } = loadComponent(path.resolve(__dirname, '../components/NatalReading/NatalEvidenceSheet.tsx'), {
         react: {
           ...React,
-          useRef: () => ({ current: heading }),
+          useRef: (() => {
+            const refs: unknown[] = [heading, layer, panel, scroll];
+            return (value: unknown) => ({ current: refs.length ? refs.shift() : value });
+          })(),
+          useState: () => [documentState.body, jest.fn()],
           useMemo: (create: () => unknown) => create(),
           useEffect: (create: () => void | (() => void)) => effects.push(create),
         },
+        'react-dom': { createPortal: (element: React.ReactElement, host: unknown) => {
+          expect(host).toBe(documentState.body);
+          return element;
+        } },
       }) as { NatalEvidenceSheet: (props: React.ComponentProps<typeof NatalEvidenceSheet>) => React.ReactElement };
       Sheet({
         target: { mode: 'why', title: 'Вывод', text: 'Текст вывода.', evidenceIds: [evidenceFacts[0].id] },
         profile, chartData, onClose: close,
       });
-      expect(effects).toHaveLength(1);
-      cleanup = effects[0]() || undefined;
+      expect(effects).toHaveLength(3);
+      for (const effect of effects) {
+        const cleanup = effect();
+        if (cleanup) cleanups.push(cleanup);
+      }
       expect(heading.focus).toHaveBeenCalledWith({ preventScroll: true });
       expect(documentState.body.style.overflow).toBe('hidden');
+      expect(scroll.scrollTop).toBe(0);
+      expect(app.getAttribute('inert')).toBe('');
+      expect(app.getAttribute('aria-hidden')).toBe('true');
+      expect(layer.getAttribute('inert')).toBeNull();
+      expect(script.getAttribute('inert')).toBeNull();
 
       const key = (value: string, shiftKey = false) => {
         const event = { key: value, shiftKey, preventDefault: jest.fn(), stopImmediatePropagation: jest.fn() };
@@ -592,14 +657,18 @@ describe('natal Why dialog keyboard lifecycle', () => {
       expect(event.stopImmediatePropagation).toHaveBeenCalledTimes(1);
       expect(close).toHaveBeenCalledTimes(2);
 
-      cleanup!();
-      cleanup = undefined;
+      while (cleanups.length) cleanups.pop()!();
       expect(documentState.body.style.overflow).toBe('auto');
+      expect(app.getAttribute('inert')).toBeNull();
+      expect(app.getAttribute('aria-hidden')).toBeNull();
+      expect(alreadyHidden.getAttribute('inert')).toBe('');
+      expect(alreadyHidden.getAttribute('aria-hidden')).toBe('false');
       expect(opener.focus).toHaveBeenCalledWith({ preventScroll: true });
       expect(documentState.activeElement).toBe(opener);
       expect(listeners.size).toBe(0);
+      expect(touchListeners.size).toBe(0);
     } finally {
-      cleanup?.();
+      while (cleanups.length) cleanups.pop()!();
       for (const [key, descriptor] of descriptors) {
         if (descriptor) Object.defineProperty(globalThis, key, descriptor);
         else Reflect.deleteProperty(globalThis, key);

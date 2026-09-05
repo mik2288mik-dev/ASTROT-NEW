@@ -56,14 +56,17 @@ describe('natal catalog UI contract', () => {
     const experience = read('components/NatalReading/NatalMeaningExperience.tsx');
     const evidence = read('components/NatalReading/NatalEvidenceSheet.tsx');
 
-    expect(experience).toContain('Почему так?');
+    expect(experience).toContain('<CircleHelp aria-hidden="true" />');
+    expect(experience).toContain("ru ? 'На чём основано' : 'Chart evidence'");
+    expect(experience).not.toContain('Почему так?');
     expect(experience).toContain('<NatalEvidenceSheet');
     expect(evidence).toContain('buildNatalModelContext(profile, chartData)');
     expect(evidence).toContain('getPermanentNatalReliability(chartData)');
     expect(evidence).toContain('Данные твоей карты');
     expect(evidence).toContain('className="natal-v3-evidence-summary-list"');
     expect(evidence).toContain('labels.map((label) => <li key={label}>{label}</li>)');
-    expect(evidence).toContain('Насколько это зависит от времени рождения');
+    expect(evidence).toContain('Время рождения неизвестно. Дома, Асцендент и MC не используются.');
+    expect(evidence).not.toContain('Насколько это зависит от времени рождения');
     expect(evidence).not.toContain('Показать данные карты');
     expect(evidence).not.toContain('natal-v3-technical-disclosure');
   });

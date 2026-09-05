@@ -23,6 +23,12 @@ import {
   materializeNatalReportCategoryPack,
 } from '../lib/natalReading/reportCatalogGeneration';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
+import {
+  NATAL_NARRATIVE_VOICE_VERSION,
+  copiesNatalNarrativeExampleTitle,
+  getNatalNarrativeSystemPrompt,
+  hasNatalNarrativeVoiceViolation,
+} from '../lib/natalReading/narrativeVoice';
 import { natalEditorialCategoryPayload, natalEditorialMainParagraphs, natalEditorialParagraphs } from './fixtures/natalEditorialNarrative';
 
 const profile: UserProfile = {
@@ -52,8 +58,8 @@ describe('natal editorial narrative', () => {
     expect(report!.freeAnswers).toEqual([]);
     expect(report!.summary.every((paragraph) => !('focus' in paragraph))).toBe(true);
     expect(NATAL_REPORT_CATALOG_CONTRACT_VERSION).toBe('natal-report-catalog-v2');
-    expect(NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY).toContain('narrative.v3');
-    expect(NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION).toContain('narrative.v3');
+    expect(NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY).toContain(`narrative.v4.${NATAL_NARRATIVE_VOICE_VERSION}`);
+    expect(NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION).toContain(`narrative.v4.${NATAL_NARRATIVE_VOICE_VERSION}`);
   });
 
   it.each(['character', 'love', 'communication', 'work', 'money'] as const)(
@@ -85,7 +91,7 @@ describe('natal editorial narrative', () => {
     const mainPrompt = buildNatalReportCategoryPrompt({ language: 'ru', built, categoryKey: 'main' });
     expect(mainPrompt).not.toContain('Как тебя видят');
     expect(mainPrompt).not.toContain('Что в тебе не сразу замечают');
-    const voice = getNatalReportCatalogSystemPrompt('ru');
+    const voice = getNatalNarrativeSystemPrompt('ru');
     expect(voice).toContain('Связывай наблюдения');
     expect(voice).toContain('Шутка необязательна');
     expect(voice).toContain('собственные эмоциональные реакции и предпочтения читателя');
@@ -101,8 +107,8 @@ describe('natal editorial narrative', () => {
       'Ты быстро сердишься, если разговор затягивается, а ответа всё ещё нет.',
       'You enjoy a quiet evening with someone who makes you laugh.',
     ]) expect(getNatalReportCopyValidationKinds(value, built)).toEqual([]);
-    expect(getNatalReportCatalogSystemPrompt('ru')).toContain('Не придумывай конкретно пережитое событие');
-    expect(getNatalReportCatalogSystemPrompt('en')).toContain('another real person\'s thoughts or feelings');
+    expect(getNatalNarrativeSystemPrompt('ru')).toContain('Не придумывай конкретно пережитое событие');
+    expect(getNatalNarrativeSystemPrompt('en')).toContain('another real person\'s thoughts or feelings');
     expect(buildNatalReportCategoryPrompt({ language: 'ru', built, categoryKey: 'main' }))
       .toContain('а не как тебе себя переделать');
     expect(buildNatalReportCategoryPrompt({ language: 'en', built, categoryKey: 'main' }))
@@ -153,6 +159,56 @@ describe('natal editorial narrative', () => {
   });
 
   it.each([
+    'Тебя цепляет чужая уверенность.', 'Разговор цепляешь первым.',
+    'Мягкий вход, твёрдый выбор', 'Ты предпочитаешь мягкий вывод.',
+    'Когда спор затягивается, ты отвечаешь жёстко.', 'На просьбу отвечаешь жёсткостью.',
+    'Твой жёсткий ответ прекращает разговор.', 'You reply harshly.',
+  ])('rejects pseudo-personal wording in new narrative: %s', (value) => {
+    expect(hasNatalNarrativeVoiceViolation(value)).toBe(true);
+  });
+
+  it.each([
+    'Тебе нравится мягкое кресло и тишина.',
+    'Ты отказываешься от просьбы, если не хочешь её выполнять.',
+    'Тебе проще разобраться без чужих указаний.',
+    'Для ремонта ты выбираешь твёрдый материал.',
+    'Ты отвечаешь за выбор жёсткого материала.',
+  ])('allows concrete descriptions without banning ordinary adjectives: %s', (value) => {
+    expect(hasNatalNarrativeVoiceViolation(value)).toBe(false);
+  });
+
+  it('rejects example headlines as new personalized output while keeping saved packs readable', () => {
+    const raw = natalEditorialCategoryPayload(built);
+    raw.summary![0].title = 'Доверяешь не сразу';
+    expect(copiesNatalNarrativeExampleTitle(String(raw.summary![0].title))).toBe(true);
+    expect(getNatalReportCategoryValidationIssues({ raw, built, categoryKey: 'main' })).toContain('NARRATIVE_EXAMPLE_TITLE:0');
+    const saved = materialize()!;
+    saved.summary[0].title = 'Мягкий вход, твёрдый выбор';
+    expect(isNatalReportCategoryPack(saved)).toBe(true);
+  });
+
+  it('repairs a pseudo-personal candidate before materialization and uses the separate narrative voice', async () => {
+    const valid = natalEditorialCategoryPayload(built);
+    const invalid = { ...valid, summary: valid.summary!.map((item, index) => index === 0
+      ? { ...item, title: 'Мягкий вход, твёрдый выбор' } : item) };
+    expect(materializeNatalReportCategoryPack({ raw: invalid, built, categoryKey: 'main', language: 'ru' })).toBeNull();
+    const requestStructured = jest.fn()
+      .mockResolvedValueOnce({ content: JSON.stringify(invalid), responseId: 'pseudo-personal' })
+      .mockResolvedValueOnce({ content: JSON.stringify(valid), responseId: 'concrete' });
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const report = await generateNatalReportCategoryPack({ profile, chart, categoryKey: 'main', requestStructured });
+      expect(report.summary[0].title).toBe(valid.summary![0].title);
+      expect(requestStructured).toHaveBeenCalledTimes(2);
+      expect(requestStructured.mock.calls[0][0].instructions).toBe(getNatalNarrativeSystemPrompt('ru'));
+      expect(requestStructured.mock.calls[0][0].input).toContain('140–240');
+      expect(requestStructured.mock.calls[1][0].input).toContain('NARRATIVE_PLAIN_LANGUAGE_REQUIRED:summary[0].title');
+      expect(requestStructured.mock.calls[1][0].input).toContain('Не заменяй слово синонимом');
+      expect(getNatalReportCatalogSystemPrompt('ru')).not.toContain('ДВЕ МИНИРЕДАКТУРЫ');
+    } finally { warn.mockRestore(); }
+  });
+
+  it.each([
     ['main', 'male', 'male'],
     ['work', 'female', 'female'],
     ['main', 'unspecified', 'unspecified'],
@@ -173,6 +229,26 @@ describe('natal editorial narrative', () => {
     expect(reader).toEqual({ name: 'Лина', gender: expected });
     expect(prompt).toContain('не определяй пол по имени');
     expect(prompt).toContain('Пол влияет только на грамматику, не на характер, выводы или примеры');
+  });
+
+  it('accepts six complete concise observations without padding retries', async () => {
+    const valid = natalEditorialCategoryPayload(built);
+    const paragraphs = [
+      'Ты быстрее берёшься за дело, когда можешь попробовать сама. Долгое обсуждение утомляет, особенно если небольшой готовый результат помог бы объяснить идею лучше подробного разговора о ней.',
+      'В разговоре ты легко предлагаешь несколько вариантов и не считаешь каждый обещанием. Тебе проще обсуждать задачу с человеком, который позволяет передумать после новых подробностей без упрёков.',
+      'Перед большой покупкой ты сравниваешь варианты внимательнее, чем при выборе небольшой вещи. Чужая спешка редко убеждает: гораздо интереснее понять, за что именно ты заплатишь лишние деньги.',
+      'Когда человек нравится, ты охотнее предлагаешь встречу, чем пишешь длинное признание. Ответная инициатива радует, а постоянное ожидание своего первого шага со временем начинает заметно надоедать тебе.',
+      'Ты охотнее исправляешь готовую работу, чем обсуждаешь подробное описание будущей. Видимый результат помогает заметить нужную поправку и понять, какая из предложенных идей действительно пригодится в деле.',
+      'Ты можешь выбрать неприметную вещь, если ею приятно пользоваться каждый день. Чужой восторг не заменяет собственного интереса: популярность сама по себе редко становится решающим доводом покупки.',
+    ];
+    const raw = { ...valid, summary: valid.summary!.map((item, index) => ({ ...item, text: paragraphs[index] })) };
+    const words = paragraphs.join(' ').match(/[\p{L}\p{N}]+/gu)!.length;
+    expect(words).toBeGreaterThanOrEqual(140);
+    expect(words).toBeLessThan(180);
+    const requestStructured = jest.fn().mockResolvedValue({ content: JSON.stringify(raw), responseId: 'concise' });
+    const report = await generateNatalReportCategoryPack({ profile, chart, categoryKey: 'main', requestStructured });
+    expect(report.summary.map((item) => item.text)).toEqual(paragraphs);
+    expect(requestStructured).toHaveBeenCalledTimes(1);
   });
 
   it('repairs an underlength candidate instead of returning a teaser', async () => {

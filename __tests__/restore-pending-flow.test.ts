@@ -27,7 +27,7 @@ describe('RuStore restore pending state', () => {
     expect(paywall).toContain("if (result === 'pending') setRestorePending(true)");
     expect(paywall).toContain("|| purchaseState === 'pending'");
     expect(paywall).toContain('|| restorePending;');
-    expect(paywall).toContain(message);
+    expect(paywall).toContain('RuStore ещё подтверждает покупку. Проверь чуть позже — повторно покупать не нужно.');
     expect(paywall).toContain('onRestore: () => Promise<PurchaseRestoreStatus>;');
     expect(settings).toContain("'idle' | 'running' | 'success' | 'pending' | 'error'");
     expect(settings).toContain("result === 'pending' ? 'pending' : 'success'");
@@ -41,7 +41,7 @@ describe('RuStore restore pending state', () => {
 
     expect(paywall).toContain('if (restoring || paying || managingSubscription) return;');
     expect(paywall).toContain('if (planSelectionLocked) return;');
-    expect(paywall).toContain('disabled={planSelectionLocked}');
+    expect(paywall).toContain('disabled={planSelectionLocked || !hasCatalogPrice}');
     expect(paywall).toContain("(purchaseState === 'pending' && !telegramPaymentsEnabled)");
     expect(paywall).toContain('disabled={purchaseActionLocked || catalogLoading || !selectedPlan}');
     expect(paywall).toContain('disabled={restoring || paying || managingSubscription}');

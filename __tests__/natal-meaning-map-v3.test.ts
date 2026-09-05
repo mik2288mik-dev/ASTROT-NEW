@@ -37,7 +37,9 @@ describe('natal meaning map v3', () => {
     expect(experience).toContain('natal-narrative-chapters');
     expect(experience).toContain('natal-v3-premium-section');
     expect(experience).toContain('natal-narrative-copy');
-    expect(experience).toContain('Почему так?');
+    expect(experience).toContain('natal-reading-observation-heading');
+    expect(experience).toContain('<CircleHelp aria-hidden="true" />');
+    expect(experience).toContain("ru ? 'На чём основано' : 'Chart evidence'");
     expect(experience).toContain('<NatalEvidenceSheet');
   });
 
@@ -49,7 +51,8 @@ describe('natal meaning map v3', () => {
     expect(evidence).toContain('Данные твоей карты');
     expect(evidence).toContain('className="natal-v3-evidence-summary-list"');
     expect(evidence).toContain('labels.map((label) => <li key={label}>{label}</li>)');
-    expect(evidence).toContain('Насколько это зависит от времени рождения');
+    expect(evidence).toContain('Время рождения неизвестно. Дома, Асцендент и MC не используются.');
+    expect(evidence).not.toContain('Насколько это зависит от времени рождения');
     expect(evidence).not.toContain('Показать данные карты');
     expect(evidence).not.toContain('natal-v3-technical-disclosure');
     expect(evidence).not.toContain('calculateNatalChart(');

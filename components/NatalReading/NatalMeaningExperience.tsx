@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, LockKeyhole } from 'lucide-react';
+import { ChevronDown, ChevronRight, CircleHelp, LockKeyhole } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
 import { getNatalReportCategory, type NatalReportCategoryKey, type NatalReportCategoryPack } from '../../lib/natalReading/reportCatalog';
 import { getPermanentNatalReliability } from '../../lib/natalReading/permanentReport';
@@ -59,7 +59,6 @@ export const NatalMeaningExperience: React.FC<Props> = ({
     : reliability.quality === 'approximate'
       ? (ru ? 'Время примерное. Что учтено?' : 'Approximate time. What is included?')
       : (ru ? 'Время неизвестно. Что учтено?' : 'Unknown time. What is included?');
-  const readingMinutes = pack ? Math.max(1, Math.round(pack.summary.map((paragraph) => paragraph.text).join(' ').split(/\s+/u).length / 180)) : null;
   const selectChapter = (key: NatalReportCategoryKey) => {
     if (contentsRef.current) contentsRef.current.open = false;
     onSelectCategory(key);
@@ -72,7 +71,7 @@ export const NatalMeaningExperience: React.FC<Props> = ({
   return (
     <div className="natal-v3-experience natal-narrative-experience">
       <details className="natal-reading-contents" ref={contentsRef}>
-        <summary><span>{ru ? 'Разделы разбора' : 'Reading chapters'}</span><span>{title}<ChevronDown aria-hidden="true" /></span></summary>
+        <summary><span>{ru ? 'Темы' : 'Topics'}</span><span>{title}<ChevronDown aria-hidden="true" /></span></summary>
         <nav aria-label={ru ? 'Разделы натального разбора' : 'Natal reading chapters'}>
           {(['main', ...CHAPTERS] as const).map((key) => <button type="button" key={key} aria-current={key === activeCategoryKey ? 'page' : undefined} onClick={() => selectChapter(key)}>
             <span><strong>{key === 'main' ? (ru ? 'Коротко о тебе' : 'You, in a few words') : getNatalReportCategory(key)!.title[language]}</strong><small>{key === 'main' ? (ru ? 'Главное о характере. Бесплатно.' : 'The essentials of your character. Free.') : CHAPTER_COPY[key][language]}</small></span>
@@ -82,7 +81,6 @@ export const NatalMeaningExperience: React.FC<Props> = ({
       </details>
       <header className="natal-v3-page-heading">
         <p className="sr-only">{subjectName}</p><h1 ref={headingRef} tabIndex={-1}>{title}</h1>
-        <div className="natal-reading-meta">{!main ? <span>Premium</span> : null}{readingMinutes && !locked ? <span>{ru ? `${readingMinutes} мин чтения` : `${readingMinutes} min read`}</span> : null}</div>
         {reliability.quality !== 'exact' ? <button type="button" className="natal-v3-accuracy-link" onClick={() => setExplanation({ mode: 'accuracy', title: ru ? 'На чём основан разбор' : 'What the reading is based on' })}>{accuracyLabel}<ChevronRight aria-hidden="true" /></button> : null}
       </header>
       {locked ? (
@@ -94,9 +92,16 @@ export const NatalMeaningExperience: React.FC<Props> = ({
         <>
           <article className="natal-narrative-copy" aria-label={title}>
             {pack.summary.map((paragraph, index) => <section className="natal-reading-observation" key={`${activeCategoryKey}-${index}`}>
-              {paragraph.title ? <h2>{paragraph.title}</h2> : null}
+              <div className="natal-reading-observation-heading">
+                {paragraph.title ? <h2>{paragraph.title}</h2> : null}
+                <button
+                  type="button"
+                  className="natal-reading-why"
+                  aria-label={`${ru ? 'На чём основано' : 'Chart evidence'}: ${paragraph.title || paragraph.text.match(/^.*?[.!?](?:\s|$)/u)?.[0]?.trim() || paragraph.text}`}
+                  onClick={() => setExplanation({ mode: 'why', title: paragraph.title || (ru ? 'В твоей карте' : 'In your chart'), text: paragraph.text, evidenceIds: paragraph.evidenceIds })}
+                ><CircleHelp aria-hidden="true" /></button>
+              </div>
               <p>{paragraph.text}</p>
-              <button type="button" className="natal-reading-why" aria-label={`${ru ? 'Почему так' : 'Why'}: ${paragraph.title || paragraph.text.match(/^.*?[.!?](?:\s|$)/u)?.[0]?.trim() || paragraph.text}`} onClick={() => setExplanation({ mode: 'why', title: paragraph.title || (ru ? 'Почему так?' : 'Why?'), text: paragraph.text, evidenceIds: paragraph.evidenceIds })}>{ru ? 'Почему так?' : 'Why?'}<ChevronRight aria-hidden="true" /></button>
             </section>)}
           </article>
         </>
@@ -106,14 +111,14 @@ export const NatalMeaningExperience: React.FC<Props> = ({
         <section className="natal-v3-reading-error" role="alert"><h2>{ru ? 'Разбор не загрузился' : 'The reading did not load'}</h2><p>{categoryError || (ru ? 'Попробуй открыть его ещё раз.' : 'Try opening it again.')}</p><button type="button" onClick={onRetryCategory}>{ru ? 'Попробовать снова' : 'Try again'}</button></section>
       )}
       <section className="natal-narrative-chapters" aria-labelledby="natal-narrative-chapters-title">
-        <div className="natal-v3-section-heading"><h2 id="natal-narrative-chapters-title">{ru ? 'Что ещё про тебя?' : 'What else about you?'}</h2><p>{isPremium ? (ru ? 'Выбери, о чём хочется узнать больше.' : 'Choose what you want to explore next.') : (ru ? 'Продолжение твоего разбора с Premium.' : 'Continue your reading with Premium.')}</p></div>
+        <div className="natal-v3-section-heading"><h2 id="natal-narrative-chapters-title">{ru ? 'Что ещё про тебя?' : 'What else about you?'}</h2>{!isPremium ? <p>{ru ? 'Продолжение с Premium.' : 'Continue with Premium.'}</p> : null}</div>
         {suggestedChapters.map(({ categoryKey, label }) => {
           const category = getNatalReportCategory(categoryKey)!;
           return <button type="button" key={categoryKey} onClick={() => selectChapter(categoryKey)}><span><small>{category.title[language]}</small><strong>{label}</strong></span>{!isPremium ? <LockKeyhole aria-label="Premium" /> : <ChevronRight aria-hidden="true" />}</button>;
         })}
         <button type="button" className="natal-reading-all-chapters" onClick={() => { if (contentsRef.current) { contentsRef.current.open = true; contentsRef.current.scrollIntoView({ block: 'start', behavior: 'auto' }); contentsRef.current.querySelector('summary')?.focus(); } }}>{ru ? 'Все темы разбора' : 'All reading topics'}<ChevronDown aria-hidden="true" /></button>
       </section>
-      {onOpenQuestions && isPremium ? <section className="natal-v3-ask-entry"><div><h2>{ru ? 'Есть свой вопрос?' : 'Have your own question?'}</h2><p>{ru ? 'Задай его по своей карте в «Спросить о себе».' : 'Ask about your chart in “Ask about yourself”.'}</p></div><button type="button" onClick={() => onOpenQuestions(activeCategoryKey)}>{ru ? 'Спросить о себе' : 'Ask about yourself'}<ChevronRight aria-hidden="true" /></button></section> : null}
+      {onOpenQuestions && isPremium ? <section className="natal-v3-ask-entry"><h2>{ru ? 'Есть свой вопрос?' : 'Have your own question?'}</h2><button type="button" onClick={() => onOpenQuestions(activeCategoryKey)}>{ru ? 'Спросить о себе' : 'Ask about yourself'}<ChevronRight aria-hidden="true" /></button></section> : null}
       <NatalEvidenceSheet target={locked && explanation?.mode === 'why' ? null : explanation} profile={profile} chartData={chartData} onClose={() => setExplanation(null)} />
     </div>
   );

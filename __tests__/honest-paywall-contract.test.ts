@@ -9,22 +9,27 @@ describe('honest contextual paywall', () => {
   const rustoreService = read('services/rustorePayService.ts');
 
   it('names only the real Premium value groups', () => {
-    expect(source).toContain('Твой прогноз — без обрезанной версии.');
     for (const reason of [
-      'Полный Today, личные неделя и месяц',
-      'Глубокая карта, вопросы и совместимость',
-      'До 5 дополнительных сохранённых карт',
+      'Личные прогнозы',
+      'Натальный разбор',
+      'Совместимость',
+      'Мои карты',
     ]) {
       expect(source).toContain(reason);
     }
+    expect(source).toContain('PREMIUM_SAVED_PERSON_LIMIT');
+    expect(source).toContain('Своя + до ${PREMIUM_SAVED_PERSON_LIMIT} карт других людей');
+    expect(source).not.toMatch(/До 5 (?:дополнительных )?сохранённых карт|До 5 сохранённых карт|Up to 5/iu);
+    expect(source).not.toContain('47 ответов');
     expect(source).not.toContain('10 тем');
     expect(source).not.toContain('годовой прогноз');
   });
 
-  it('explains each subscription term without inventing savings or popularity', () => {
-    for (const advantage of ['Короткий срок', 'Реже продлевать', 'На весь год']) {
-      expect(source).toContain(advantage);
-    }
+  it('presents subscription terms with one shared set of benefits and no invented discounts', () => {
+    expect(source).toContain('type="radio"');
+    expect(source).toContain('className="pw2-benefits"');
+    expect(source).not.toContain('pw2-plan-features');
+    expect(source).not.toContain('PLAN_ADVANTAGES');
     expect(source).not.toMatch(/эконом|скидк|выгодн|популярн/i);
   });
 
@@ -43,8 +48,8 @@ describe('honest contextual paywall', () => {
 
   it('shows renewal, cancellation, legal, close, Free, and restore controls', () => {
     for (const copy of [
-      'Подписка продлевается автоматически',
-      'Управлять или отменить подписку можно в RuStore: Профиль → Подписки',
+      'Автопродление:',
+      'Отмена в RuStore: Профиль → Подписки',
       'Остаться на Free',
       'Восстановить покупку',
       'Условия использования',
