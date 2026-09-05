@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { ChevronDown, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
 import {
   buildNatalModelContext,
@@ -38,6 +38,11 @@ const SIGN_RU: Record<string, string> = {
   Capricorn: 'Козерог',
   Aquarius: 'Водолей',
   Pisces: 'Рыбы',
+};
+const SIGN_IN_RU: Record<string, string> = {
+  Aries: 'Овне', Taurus: 'Тельце', Gemini: 'Близнецах', Cancer: 'Раке',
+  Leo: 'Льве', Virgo: 'Деве', Libra: 'Весах', Scorpio: 'Скорпионе',
+  Sagittarius: 'Стрельце', Capricorn: 'Козероге', Aquarius: 'Водолее', Pisces: 'Рыбах',
 };
 
 const OBJECT_LABELS: Record<string, { ru: string; en: string }> = {
@@ -125,7 +130,8 @@ export function formatNatalEvidenceLabel(
 
   if (fact.kind === 'placement' || fact.kind === 'angle') {
     const object = objectLabel(data.key || data.object || fact.object, language);
-    const sign = signLabel(data.sign, language);
+    const signKey = Object.keys(SIGN_IN_RU).find((key) => key.toLowerCase() === String(data.sign || '').toLowerCase());
+    const sign = language === 'ru' && signKey ? SIGN_IN_RU[signKey] : signLabel(data.sign, language);
     const degree = degreeLabel(data.degree);
     const house = positiveInteger(data.house);
     return [
@@ -183,39 +189,12 @@ function isTimeDependentFact(fact: NatalEvidenceFact): boolean {
 }
 
 function basisSummary(facts: readonly NatalEvidenceFact[], language: 'ru' | 'en'): string {
-  const placements = facts.filter((fact) => fact.kind === 'placement').length;
-  const aspects = facts.filter((fact) => fact.kind === 'aspect').length;
-  const timeDependent = facts.some(isTimeDependentFact);
-
-  if (language === 'en') {
-    if (placements && aspects) {
-      return 'This conclusion is not based on one label. NEBO combines several calculated placements with the links between them, then keeps only the facts allowed for this question.';
-    }
-    if (aspects) {
-      return 'The conclusion comes from how several calculated parts of the chart interact, rather than from one isolated placement.';
-    }
-    if (placements) {
-      return 'The conclusion uses several calculated placements that point in the same direction, rather than a generic sign description.';
-    }
-    if (timeDependent) {
-      return 'This conclusion uses a reliable time-dependent part of the chart. Its dependence on birth time is explained below.';
-    }
-    return 'The conclusion is linked to calculated facts stored with this birth chart. Only facts allowed by the chart-quality check are used.';
-  }
-
-  if (placements && aspects) {
-    return 'Этот вывод сделан не по одному признаку. NEBO сопоставляет несколько рассчитанных положений и связи между ними, а затем оставляет только то, что подходит к конкретному вопросу.';
-  }
-  if (aspects) {
-    return 'Здесь важен не один показатель, а то, как несколько частей карты связаны между собой.';
-  }
-  if (placements) {
-    return 'Вывод опирается на несколько рассчитанных положений, которые показывают одну и ту же особенность. Это не общий текст только по знаку зодиака.';
-  }
-  if (timeDependent) {
-    return 'В выводе используется надёжная часть карты, которая зависит от времени рождения. Ниже указано, насколько сильно.';
-  }
-  return 'Вывод связан с рассчитанными данными этой карты. Всё, что не прошло проверку точности, в текст не попало.';
+  if (!facts.length) return language === 'ru'
+    ? 'Для этого старого наблюдения не сохранилась ссылка на данные карты.'
+    : 'The chart references for this older observation are unavailable.';
+  return language === 'ru'
+    ? 'Это астрологическая интерпретация данных ниже. В разборе они прочитаны вместе, с учётом остальной карты.'
+    : 'This is an astrological interpretation of the data below, read together in the context of the rest of your chart.';
 }
 
 function reliabilityCopy(
@@ -239,7 +218,7 @@ function reliabilityCopy(
 
   if (quality === 'exact') {
     return timeDependent
-      ? 'Время рождения отмечено как точное, поэтому здесь можно использовать надёжные дома и углы карты. Именно они сильнее всего меняются при разнице в несколько минут.'
+      ? 'Здесь учтено точное время рождения. При его изменении дома и углы карты тоже могут измениться.'
       : 'Этот вывод в основном опирается на данные, которые не меняются из-за небольшой разницы во времени рождения.';
   }
   if (quality === 'approximate') {
@@ -259,18 +238,18 @@ function accuracyDescription(
       return 'The date, place, and recorded time are used as entered. Planet positions are calculated first; houses and angles are added because an exact time is available. A difference of several minutes affects houses and angles much more than most planet positions.';
     }
     if (quality === 'approximate') {
-      return 'NEBO recalculates the chart across the entered uncertainty range. A fact is used in the reading only when it stays the same throughout that range.';
+      return 'When the chart is saved, NEBO checks which details remain stable across the entered uncertainty range. The reading uses that saved result.';
     }
-    return 'NEBO does not invent a noon birth time. It calculates the time-stable part of the chart and leaves out houses, Ascendant, MC, and other details that require a known time.';
+    return 'With unknown birth time, NEBO uses only reliable saved data and leaves out houses, Ascendant, MC and other details that require a known time.';
   }
 
   if (quality === 'exact') {
     return 'Дата, место и сохранённое время используются как введены. Сначала рассчитываются положения планет, затем дома и углы карты. Разница в несколько минут сильнее влияет именно на дома и углы, а не на большинство положений планет.';
   }
   if (quality === 'approximate') {
-    return 'NEBO пересчитывает карту во всём указанном диапазоне времени. В разбор попадает только то, что остаётся одинаковым во всех проверенных точках.';
+    return 'При сохранении карты NEBO проверяет, какие детали остаются стабильными в указанном диапазоне времени. Разбор использует уже сохранённый результат этой проверки.';
   }
-  return 'NEBO не подставляет выдуманные 12:00. Рассчитывается только часть карты, которая не зависит от точного часа, а дома, Асцендент, MC и другие чувствительные детали исключаются.';
+  return 'При неизвестном времени NEBO использует только надёжные сохранённые данные. Дома, Асцендент, MC и другие детали, которым нужен точный час, в разбор не попадают.';
 }
 
 export const NatalEvidenceSheet: React.FC<Props> = ({
@@ -309,10 +288,22 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
 
   useEffect(() => {
     if (!target) return;
+    const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     headingRef.current?.focus({ preventScroll: true });
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Tab') {
+        const dialog = headingRef.current?.closest('[role="dialog"]');
+        const controls = dialog?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), summary, [tabindex="0"]');
+        const first = controls?.[0];
+        const last = controls?.[controls.length - 1];
+        if (first && last && (document.activeElement === headingRef.current || (event.shiftKey ? document.activeElement === first : document.activeElement === last))) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+        }
+        return;
+      }
       if (event.key !== 'Escape') return;
       event.stopImmediatePropagation();
       onClose();
@@ -330,6 +321,7 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleEscape);
       window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack, true);
+      if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
     };
   }, [onClose, target]);
 
@@ -411,33 +403,13 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
           </div>
         ) : (
           <div className="natal-v3-explanation-body">
-            {target.text ? (
-              <div className="natal-v3-explanation-claim">
-                <p>{language === 'ru' ? 'Вывод' : 'Conclusion'}</p>
-                <blockquote>{target.text}</blockquote>
-              </div>
-            ) : null}
-
-            <div className="natal-v3-explanation-section">
-              <h3>{language === 'ru' ? 'Простыми словами' : 'In plain language'}</h3>
-              <p>{basisSummary(facts, language)}</p>
-            </div>
+            <p className="natal-v3-explanation-lead">{basisSummary(facts, language)}</p>
 
             {labels.length > 0 ? (
               <div className="natal-v3-explanation-section">
-                <h3>{language === 'ru' ? 'Что именно использовано' : 'What was used'}</h3>
+                <h3>{language === 'ru' ? 'Данные твоей карты' : 'Your chart data'}</h3>
                 <ul className="natal-v3-evidence-summary-list">
-                  {facts.slice(0, 4).map((fact) => (
-                    <li key={fact.id}>
-                      {fact.kind === 'aspect'
-                        ? (language === 'ru' ? 'связь между частями карты' : 'a link between chart factors')
-                        : fact.kind === 'house'
-                          ? (language === 'ru' ? 'часть карты, связанная с жизненной областью' : 'a chart area tied to a life domain')
-                          : fact.kind === 'angle'
-                            ? (language === 'ru' ? 'чувствительная к времени точка карты' : 'a time-sensitive chart point')
-                            : (language === 'ru' ? 'рассчитанное положение' : 'a calculated placement')}
-                    </li>
-                  ))}
+                  {labels.map((label) => <li key={label}>{label}</li>)}
                 </ul>
               </div>
             ) : null}
@@ -447,17 +419,6 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
               <p>{reliabilityCopy(quality, timeDependent, language)}</p>
             </div>
 
-            {labels.length > 0 ? (
-              <details className="natal-v3-technical-disclosure">
-                <summary>
-                  <span>{language === 'ru' ? 'Показать данные карты' : 'Show chart data'}</span>
-                  <ChevronDown aria-hidden="true" />
-                </summary>
-                <ul>
-                  {labels.map((label) => <li key={label}>{label}</li>)}
-                </ul>
-              </details>
-            ) : null}
           </div>
         )}
       </section>

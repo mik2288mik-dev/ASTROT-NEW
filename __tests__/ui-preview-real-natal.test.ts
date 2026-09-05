@@ -58,10 +58,10 @@ describe('real natal UI Preview surface', () => {
       isNatalReportCategoryPack(catalog.categoryPacks[category.key])
     ))).toBe(true);
     expect(Object.values(catalog.answers).every(isNatalReportAnswer)).toBe(true);
-    expect(catalog.categoryPacks.main.summary).toHaveLength(6);
+    expect(catalog.categoryPacks.main.summary).toHaveLength(7);
     expect(catalog.categoryPacks.main.observations).toHaveLength(0);
     expect(catalog.categoryPacks.main.freeAnswers).toEqual([]);
-    expect(catalog.categoryPacks.love.summary).toHaveLength(6);
+    expect(catalog.categoryPacks.love.summary).toHaveLength(5);
     expect(catalog.categoryPacks.love.previews).toHaveLength(0);
     expect(catalog.categoryPacks.love.freeAnswers).toEqual([]);
 

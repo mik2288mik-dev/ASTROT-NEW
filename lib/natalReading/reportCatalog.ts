@@ -2,13 +2,13 @@ import { withAppVoiceCacheKey, withAppVoiceVersion } from '../appVoice';
 
 export const NATAL_REPORT_CATALOG_CONTRACT_VERSION = 'natal-report-catalog-v2';
 export const NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.category.narrative.v2`,
+  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.category.narrative.v3`,
 );
 export const NATAL_REPORT_CATALOG_ANSWER_PROMPT_VERSION = withAppVoiceVersion(
   `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.answer.v1`,
 );
 export const NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.report-catalog.category.narrative.v2',
+  'natal.report-catalog.category.narrative.v3',
 );
 export const NATAL_REPORT_CATALOG_ANSWER_CACHE_KEY = withAppVoiceCacheKey(
   'natal.report-catalog.answer.v2',
@@ -106,7 +106,15 @@ export type NatalReportCategoryDefinition = Readonly<{
 }>;
 
 export type NatalReportStatement = {
+  /** Reader-facing observation title; older saved readings and answers can omit it. */
+  title?: string;
   text: string;
+  evidenceIds: string[];
+};
+
+export type NatalReportFollowUp = {
+  label: string;
+  categoryKey: Exclude<NatalReportCategoryKey, 'main'>;
   evidenceIds: string[];
 };
 
@@ -138,8 +146,10 @@ export type NatalReportCategoryPack = {
   contractVersion: typeof NATAL_REPORT_CATALOG_CONTRACT_VERSION;
   categoryKey: NatalReportCategoryKey;
   title: string;
-  /** One connected reading, in order, for both Main and the Premium chapters. */
+  /** Ordered, individually readable observations for Main and the Premium chapters. */
   summary: NatalReportStatement[];
+  /** Grounded links to other existing chapters; older saved readings can omit them. */
+  followUps?: NatalReportFollowUp[];
   /** Retained for existing clients; observations now belong inside the reading. */
   observations: NatalReportStatement[];
   previews: NatalReportPreview[];
@@ -710,6 +720,8 @@ export function isNatalReportCategoryPack(value: unknown): value is NatalReportC
     || pack.observations.length !== 0 || pack.freeAnswers.length !== 0
     || !pack.summary.every((paragraph) => (
       !!paragraph && typeof paragraph === 'object'
+      && (paragraph.title === undefined || (typeof paragraph.title === 'string'
+        && paragraph.title.trim().length >= 3 && paragraph.title.trim().length <= 96))
       && typeof paragraph.text === 'string'
       && paragraph.text.trim().length >= 80 && paragraph.text.trim().length <= 1200
       && Array.isArray(paragraph.evidenceIds) && paragraph.evidenceIds.length > 0
@@ -719,7 +731,27 @@ export function isNatalReportCategoryPack(value: unknown): value is NatalReportC
   const words = pack.summary.reduce((total, paragraph) => (
     total + (paragraph.text.match(/[\p{L}\p{N}]+(?:[-’'][\p{L}\p{N}]+)*/gu)?.length || 0)
   ), 0);
-  if (words < (category.key === 'main' ? 350 : 300) || words > (category.key === 'main' ? 500 : 450)) return false;
+  const hasObservationTitles = pack.summary.every((paragraph) => typeof paragraph.title === 'string');
+  const [minWords, maxWords] = category.key === 'main'
+    ? hasObservationTitles ? [180, 300] : [350, 500]
+    : hasObservationTitles ? [220, 350] : [300, 450];
+  if (words < minWords || words > maxWords) return false;
+  if (hasObservationTitles && category.key === 'main' && pack.summary.length < 6) return false;
+  if (pack.followUps !== undefined) {
+    if (!Array.isArray(pack.followUps) || pack.followUps.length < 2
+      || pack.followUps.length > (category.key === 'main' ? 3 : 2)) return false;
+    const citedIds = new Set(pack.summary.flatMap((paragraph) => paragraph.evidenceIds));
+    if (new Set(pack.followUps.map((followUp) => followUp?.categoryKey)).size !== pack.followUps.length
+      || !pack.followUps.every((followUp) => (
+        !!followUp && typeof followUp === 'object'
+        && isNatalReportCategoryKey(followUp.categoryKey)
+        && String(followUp.categoryKey) !== 'main' && followUp.categoryKey !== category.key
+        && typeof followUp.label === 'string'
+        && followUp.label.trim().length >= 15 && followUp.label.trim().length <= 140
+        && Array.isArray(followUp.evidenceIds) && followUp.evidenceIds.length > 0
+        && followUp.evidenceIds.every((id) => typeof id === 'string' && citedIds.has(id))
+      ))) return false;
+  }
   const maxPreviews = category.key === 'main' ? NATAL_REPORT_MAIN_PREVIEW_KEYS.length : 0;
   return pack.previews.length <= maxPreviews
     && new Set(pack.previews.map((preview) => preview?.answerKey)).size === pack.previews.length

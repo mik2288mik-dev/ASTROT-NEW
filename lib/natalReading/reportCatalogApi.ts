@@ -87,6 +87,8 @@ export function natalReportCategoryCacheOptions(
         requiredEvidenceIds: plan.requiredEvidenceIds,
       })),
       mainAnchor: categoryKey === 'main' ? null : mainAnchorForHash(mainAnchor),
+      entryQuestions: categoryKey === 'main' ? [] : mainAnchor?.followUps
+        ?.filter((item) => item.categoryKey === categoryKey) || [],
     }),
     promptVersion: NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION,
     modelTier: categoryKey === 'main' ? 'base' : 'premium',

@@ -10,6 +10,7 @@ import {
 } from '../lib/natalReading/reportCatalog';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 import { natalEditorialParagraphs } from './fixtures/natalEditorialNarrative';
+import { buildNatalModelContext } from '../lib/natalReading/permanentReport';
 
 // Next preserves JSX; compile these real components for the repository's Node Jest runner.
 // This keeps the rendering test independent of browser and DOM test dependencies.
@@ -38,15 +39,31 @@ const { NatalMeaningExperience } = loadComponent(path.resolve(__dirname, '../com
   NatalMeaningExperience: typeof import('../components/NatalReading/NatalMeaningExperience').NatalMeaningExperience;
 };
 type ReaderProps = React.ComponentProps<typeof NatalMeaningExperience>;
+const { NatalEvidenceSheet, formatNatalEvidenceLabel } = loadComponent(path.resolve(__dirname, '../components/NatalReading/NatalEvidenceSheet.tsx')) as typeof import('../components/NatalReading/NatalEvidenceSheet');
 const profile: UserProfile = {
   id: '42', name: 'Анна', birthDate: '1990-01-01', birthTime: '08:15', birthPlace: 'Москва',
   isSetup: true, language: 'ru', theme: 'light', isPremium: false,
 };
 const chartData = canonicalNatalChart() as unknown as NatalChartData;
+const evidenceFacts = buildNatalModelContext(profile, chartData).context.evidence.filter((fact) => fact.kind === 'placement');
+const observationTitles = [
+  'Начинать проще с небольшой попытки', 'Первый ответ ещё не обещание',
+  'Серьёзный выбор меняет твой темп', 'Внимание заметнее по поступкам',
+  'Готовую работу легче улучшать', 'Разным делам нужен разный темп',
+  'Чужой восторг не заменяет интереса', 'Любопытство помогает найти объяснение',
+];
 const pack = (categoryKey: NatalReportCategoryKey, paragraphs = natalEditorialParagraphs): NatalReportCategoryPack => ({
   schemaVersion: 'natal-report-category-v1', contractVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
   categoryKey, title: getNatalReportCategory(categoryKey)!.title.ru,
-  summary: paragraphs.map((text) => ({ text, evidenceIds: ['sun'] })),
+  summary: paragraphs.map((text, index) => ({
+    title: observationTitles[index], text,
+    evidenceIds: [evidenceFacts[index % evidenceFacts.length].id],
+  })),
+  followUps: [
+    { categoryKey: 'work' as const, label: 'Какая работа оставляет тебе место для пробы?', evidenceIds: [evidenceFacts[1].id] },
+    { categoryKey: 'love' as const, label: 'Как ты показываешь интерес без громких признаний?', evidenceIds: [evidenceFacts[2].id] },
+    { categoryKey: 'communication' as const, label: 'Когда первый ответ принимают за обещание?', evidenceIds: [evidenceFacts[3].id] },
+  ].filter((item) => item.categoryKey !== categoryKey),
   observations: [], previews: [], freeAnswers: [],
 });
 
@@ -144,10 +161,19 @@ describe('natal narrative controller transitions', () => {
     await controller.settle();
     expect(controller.reader().isPremium).toBe(true);
     expect(controller.reader().categoryPack?.categoryKey).toBe('love');
+    const paidPack = controller.reader().categoryPack!;
+    for (const item of paidPack.summary) {
+      expect(controller.html()).toContain(item.title);
+      expect(controller.html()).toContain(item.text);
+    }
+    for (const item of paidPack.followUps!) expect(controller.html()).toContain(item.label);
     jest.advanceTimersByTime(1002);
     await controller.settle();
     expect(controller.reader().isPremium).toBe(false);
     expect(controller.reader().categoryPack).toBeNull();
+    for (const item of paidPack.summary) expect(controller.html()).not.toContain(item.text);
+    for (const item of paidPack.followUps!) expect(controller.html()).not.toContain(item.label);
+    expect(controller.html()).not.toContain('class="natal-reading-why"');
     expect(controller.html()).toContain('Читать с Premium');
   });
 
@@ -250,37 +276,163 @@ describe('natal narrative controller transitions', () => {
   });
 });
 function render(overrides: Partial<ReaderProps> = {}): string {
-  return renderToStaticMarkup(React.createElement(NatalMeaningExperience, {
+  return renderToStaticMarkup(React.createElement(NatalMeaningExperience, readerProps(overrides)));
+}
+
+function readerProps(overrides: Partial<ReaderProps> = {}): ReaderProps {
+  return {
     profile, chartData, subjectName: profile.name, activeCategoryKey: 'main',
     mainPack: pack('main'), categoryPack: null, categoryLoading: false, categoryError: null,
     isPremium: false, canPromotePremium: true,
     onSelectCategory: () => undefined, onRetryCategory: () => undefined, onRequestPremium: () => undefined,
     ...overrides,
-  }));
+  };
+}
+
+type TreeElement = React.ReactElement<Record<string, unknown> & { children?: React.ReactNode }>;
+function treeElements(node: React.ReactNode, match: (element: TreeElement) => boolean): TreeElement[] {
+  if (!React.isValidElement(node)) return [];
+  const element = node as TreeElement;
+  return [
+    ...(match(element) ? [element] : []),
+    ...React.Children.toArray(element.props.children).flatMap((child) => treeElements(child, match)),
+  ];
+}
+
+// Keep the real reader and evidence sheet; drive only the reader's state hooks.
+// Buttons below are the actual rendered handlers, not a test copy of their routing logic.
+function interactiveReader(overrides: Partial<ReaderProps> = {}) {
+  const slots: Array<{ value: unknown }> = [];
+  let cursor = 0;
+  const hooks = {
+    ...React,
+    useState(initial: unknown) {
+      const slot = slots[cursor++] ||= { value: initial };
+      return [slot.value, (value: unknown) => { slot.value = value; }];
+    },
+    useRef(initial: unknown) { return (slots[cursor++] ||= { value: { current: initial } }).value; },
+    useEffect() { /* SSR has no browser commit effects. */ },
+  };
+  const { NatalMeaningExperience: Reader } = loadComponent(path.resolve(__dirname, '../components/NatalReading/NatalMeaningExperience.tsx'), { react: hooks }) as {
+    NatalMeaningExperience: (props: ReaderProps) => React.ReactElement;
+  };
+  const props = readerProps(overrides);
+  let tree: React.ReactElement;
+  const redraw = () => { cursor = 0; tree = Reader(props); };
+  redraw();
+  return {
+    nodes(match: (element: TreeElement) => boolean) { return treeElements(tree, match); },
+    click(element: TreeElement) { (element.props.onClick as () => void)(); redraw(); },
+    evidence() {
+      const sheet = treeElements(tree, (element) => element.type === NatalEvidenceSheet)[0];
+      return sheet.props as unknown as React.ComponentProps<typeof NatalEvidenceSheet>;
+    },
+    html() { return renderToStaticMarkup(tree); },
+  };
 }
 
 describe('natal narrative reader', () => {
-  it('shows every paragraph of the Free main narrative immediately, before any collapsed evidence', () => {
-    const html = render();
+  it.each([['Pisces', 'Рыбах'], ['Scorpio', 'Скорпионе']])('shows %s in natural Russian while preserving the calculated degree and house', (sign, russianSign) => {
+    const fact = {
+      ...evidenceFacts[0],
+      data: { key: 'sun', sign, degree: 12.5, house: 3, retrograde: false },
+    };
+    expect(formatNatalEvidenceLabel(fact, 'ru')).toBe(`Солнце в ${russianSign}, 12.5° · 3 дом`);
+    expect(formatNatalEvidenceLabel(fact, 'en')).toBe(`Sun in ${sign}, 12.5° · 3 house`);
+  });
+
+  it.each([6, 7, 8])('shows all %i titled observations immediately with a Why control for each', (count) => {
+    const mainPack = pack('main', Array.from({ length: count }, (_, index) =>
+      natalEditorialParagraphs[index] || `Дополнительный вывод ${index + 1} остаётся виден полностью. Его продолжение не нужно открывать отдельной кнопкой.`,
+    ));
+    const html = render({ mainPack });
     const body = html.match(/<article class="natal-narrative-copy"[^>]*>([\s\S]*?)<\/article>/)?.[1];
     expect(body).toBeDefined();
-    expect(body?.match(/<p>/g)).toHaveLength(natalEditorialParagraphs.length);
-    for (const paragraph of natalEditorialParagraphs) expect(body).toContain(paragraph);
+    expect(body?.match(/class="natal-reading-observation"/g)).toHaveLength(count);
+    expect(body?.match(/<h2>/g)).toHaveLength(count);
+    expect(body?.match(/<p>/g)).toHaveLength(count);
+    expect(body?.match(/class="natal-reading-why"/g)).toHaveLength(count);
+    const sections = [...body!.matchAll(/<section class="natal-reading-observation">([\s\S]*?)<\/section>/g)];
+    mainPack.summary.forEach((paragraph, index) => {
+      expect(sections[index][1]).toContain(`<h2>${paragraph.title}</h2><p>${paragraph.text}</p>`);
+      expect(sections[index][1]).toContain(`aria-label="Почему так: ${paragraph.title}"`);
+    });
     expect(body).not.toContain('<details');
-    expect(html.indexOf('</article>')).toBeLessThan(html.indexOf('class="natal-narrative-evidence"'));
+    expect(html.indexOf('</article>')).toBeLessThan(html.indexOf('class="natal-narrative-chapters"'));
     expect(html).toContain('aria-label="Разделы натального разбора"');
     expect(html).not.toContain('<textarea');
     expect(html).not.toContain('Читать с Premium');
+    expect(html).not.toContain('role="dialog"');
   });
 
-  it('opens a Premium chapter as a full story without previews, embedded answers, or a question selection', () => {
-    const paidText = 'Сохранённая история о том, как ты выбираешь работу.';
-    const html = render({ activeCategoryKey: 'work', categoryPack: pack('work', [paidText]), isPremium: true });
-    expect(html).toContain(`<p>${paidText}</p>`);
+  it('opens a Premium chapter with every observation, without requiring a question selection', () => {
+    const categoryPack = pack('work');
+    const html = render({ activeCategoryKey: 'work', categoryPack, isPremium: true });
+    for (const item of categoryPack.summary) {
+      expect(html).toContain(`<h2>${item.title}</h2><p>${item.text}</p>`);
+    }
     expect(html).toContain('<h1 tabindex="-1">Работа</h1>');
     expect(html).not.toContain('Читать с Premium');
     expect(html).not.toContain('<textarea');
     expect(html).not.toContain('Как ты начинаешь новое дело');
+  });
+
+  it('opens Why with exactly that observation and its saved evidence, including the final point', () => {
+    const mainPack = pack('main', Array.from({ length: 8 }, (_, index) =>
+      natalEditorialParagraphs[index] || `Текст пункта ${index + 1}. Продолжение относится только к этому выводу.`,
+    ));
+    mainPack.summary[0].evidenceIds = [evidenceFacts[0].id, evidenceFacts[2].id];
+    const reader = interactiveReader({ mainPack });
+    const whyButtons = () => reader.nodes((element) => element.type === 'button' && element.props.className === 'natal-reading-why');
+    expect(whyButtons()).toHaveLength(8);
+    expect(reader.evidence().target).toBeNull();
+    mainPack.summary.forEach((observation, index) => {
+      reader.click(whyButtons()[index]);
+      expect(reader.evidence().target).toEqual({
+        mode: 'why', title: observation.title, text: observation.text,
+        evidenceIds: observation.evidenceIds,
+      });
+      expect(reader.evidence().chartData).toBe(chartData);
+      const html = reader.html();
+      expect(html).toContain('role="dialog"');
+      const dialog = html.match(/<section[^>]*role="dialog"[^>]*>([\s\S]*?)<\/section>/)![1];
+      expect(dialog).toContain('Данные твоей карты');
+      expect(dialog).not.toContain('<details');
+      expect(dialog).not.toContain('Показать данные карты');
+      expect(dialog).not.toContain('рассчитанное положение');
+      for (const fact of evidenceFacts) {
+        const label = renderToStaticMarkup(React.createElement('span', null, formatNatalEvidenceLabel(fact, 'ru'))).slice(6, -7);
+        if (observation.evidenceIds.includes(fact.id)) expect(html).toContain(label);
+        else expect(html).not.toContain(label);
+      }
+    });
+  });
+
+  it('uses each saved follow-up label and opens its category through the real button handler', () => {
+    const mainPack = pack('main');
+    const selected = jest.fn();
+    const questions = jest.fn();
+    const reader = interactiveReader({ mainPack, onSelectCategory: selected, onOpenQuestions: questions });
+    const section = reader.nodes((element) => element.type === 'section' && element.props.className === 'natal-narrative-chapters')[0];
+    const followUpButtons = treeElements(section, (element) => element.type === 'button' && element.props.className !== 'natal-reading-all-chapters');
+    expect(followUpButtons).toHaveLength(mainPack.followUps!.length);
+    mainPack.followUps!.forEach((followUp, index) => {
+      expect(renderToStaticMarkup(followUpButtons[index])).toContain(followUp.label);
+      reader.click(followUpButtons[index]);
+      expect(selected).toHaveBeenNthCalledWith(index + 1, followUp.categoryKey);
+    });
+    expect(questions).not.toHaveBeenCalled();
+  });
+
+  it('omits a follow-up pointing to the chapter that is already open', () => {
+    const categoryPack = pack('work');
+    categoryPack.followUps = [
+      { categoryKey: 'work', label: 'Уже открытый раздел не должен повторяться.', evidenceIds: [evidenceFacts[0].id] },
+      ...categoryPack.followUps!,
+    ];
+    const html = render({ activeCategoryKey: 'work', categoryPack, isPremium: true });
+    expect(html).not.toContain(categoryPack.followUps[0].label);
+    expect(html).toContain(categoryPack.followUps[1].label);
   });
 
   it('hides an already cached paid story and its evidence controls when Premium expires', () => {
@@ -288,7 +440,8 @@ describe('natal narrative reader', () => {
     expect(render({ activeCategoryKey: 'love', categoryPack, isPremium: true })).toContain(categoryPack.summary[0].text);
     const expired = render({ activeCategoryKey: 'love', categoryPack, isPremium: false });
     expect(expired).not.toContain(categoryPack.summary[0].text);
-    expect(expired).not.toContain('natal-narrative-evidence');
+    expect(expired).not.toContain('class="natal-reading-why"');
+    for (const followUp of categoryPack.followUps!) expect(expired).not.toContain(followUp.label);
     expect(expired).toContain('Читать с Premium');
     expect(render({ isPremium: false })).toContain(natalEditorialParagraphs.at(-1));
   });
@@ -311,15 +464,58 @@ describe('natal narrative reader', () => {
   });
 
   it('renders the current saved subject and language without replacing them with account-owner metadata', () => {
+    const mainPack = pack('main', ['This is Nina’s saved reading in English.']);
+    mainPack.summary[0].title = 'Trying makes the idea clearer';
+    mainPack.followUps = [
+      { categoryKey: 'work', label: 'What kind of work lets you try an idea?', evidenceIds: [evidenceFacts[0].id] },
+      { categoryKey: 'love', label: 'How do you show someone you care?', evidenceIds: [evidenceFacts[1].id] },
+    ];
     const html = render({
       profile: { ...profile, language: 'en' }, subjectName: 'Nina',
-      mainPack: pack('main', ['This is Nina’s saved reading in English.']),
+      mainPack,
     });
-    expect(html).toContain('<p>Nina</p><h1 tabindex="-1">About you</h1>');
+    expect(html).toMatch(/<p(?:\s[^>]*)?>Nina<\/p><h1 tabindex="-1">You, in a few words<\/h1>/u);
     expect(html).toContain('This is Nina’s saved reading in English.');
-    expect(html).toContain('Keep reading');
+    expect(html).toContain('<h2>Trying makes the idea clearer</h2>');
+    expect(html).toContain('aria-label="Why: Trying makes the idea clearer"');
+    expect(html).toContain('What else about you?');
+    for (const followUp of mainPack.followUps) expect(html).toContain(followUp.label);
     expect(html).not.toContain('Анна');
-    expect(html).not.toContain('Читать дальше');
+    expect(html).not.toMatch(/[А-Яа-яЁё]/u);
+  });
+
+  it('keeps a saved legacy reading without titles or follow-ups readable and its evidence reachable', () => {
+    const mainPack = pack('main');
+    mainPack.summary = mainPack.summary.map(({ text, evidenceIds }) => ({ text, evidenceIds }));
+    delete mainPack.followUps;
+    const reader = interactiveReader({ mainPack });
+    const html = reader.html();
+    const body = html.match(/<article class="natal-narrative-copy"[^>]*>([\s\S]*?)<\/article>/)![1];
+    expect(body).not.toContain('<h2>');
+    for (const paragraph of mainPack.summary) expect(body).toContain(`<p>${paragraph.text}</p>`);
+    expect(html).toContain('Все темы разбора');
+    expect(html).not.toContain('undefined');
+    const firstWhy = reader.nodes((element) => element.props.className === 'natal-reading-why')[0];
+    expect(firstWhy.props['aria-label']).toBe(`Почему так: ${mainPack.summary[0].text.split('. ')[0]}.`);
+    reader.click(firstWhy);
+    expect(reader.evidence().target).toEqual({
+      mode: 'why', title: 'Почему так?', text: mainPack.summary[0].text,
+      evidenceIds: mainPack.summary[0].evidenceIds,
+    });
+  });
+
+  it('localizes the actual Why dialog and chart labels for the saved English reader', () => {
+    const mainPack = pack('main', ['You can try the idea before describing every detail.']);
+    mainPack.summary[0].title = 'Trying makes the idea clearer';
+    mainPack.followUps = [];
+    const reader = interactiveReader({ profile: { ...profile, language: 'en' }, subjectName: 'Nina', mainPack });
+    reader.click(reader.nodes((element) => element.props.className === 'natal-reading-why')[0]);
+    const dialog = reader.html().match(/<section[^>]*role="dialog"[^>]*>([\s\S]*?)<\/section>/)![1];
+    expect(dialog).toContain('Why this conclusion?');
+    expect(dialog).toContain('Your chart data');
+    expect(dialog).toContain(formatNatalEvidenceLabel(evidenceFacts[0], 'en'));
+    expect(dialog).toContain('How much this depends on birth time');
+    expect(dialog).not.toMatch(/[А-Яа-яЁё]/u);
   });
 
   it('keeps a locked chapter inaccessible when Premium promotion is unavailable', () => {
@@ -327,5 +523,87 @@ describe('natal narrative reader', () => {
     expect(html).toContain('Подробный разбор доступен с Premium.');
     expect(html).not.toContain(natalEditorialParagraphs[0]);
     expect(html).not.toContain('Читать с Premium');
+  });
+});
+
+describe('natal Why dialog keyboard lifecycle', () => {
+  it('traps Tab, handles Escape and native back, then restores scrolling and focus to the opening button', () => {
+    const descriptors = new Map(['window', 'document', 'HTMLElement'].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+    const documentState = { activeElement: null as unknown, body: { style: { overflow: 'auto' } } };
+    class FocusTarget {
+      isConnected = true;
+      focus = jest.fn(() => { documentState.activeElement = this; });
+    }
+    const opener = new FocusTarget();
+    const first = new FocusTarget();
+    const last = new FocusTarget();
+    const heading = Object.assign(new FocusTarget(), {
+      closest: jest.fn(() => ({ querySelectorAll: () => [first, last] })),
+    });
+    documentState.activeElement = opener;
+    const listeners = new Map<string, (event: any) => void>();
+    const windowState = {
+      addEventListener: jest.fn((name: string, listener: (event: any) => void) => listeners.set(name, listener)),
+      removeEventListener: jest.fn((name: string) => listeners.delete(name)),
+    };
+    const effects: Array<() => void | (() => void)> = [];
+    const close = jest.fn();
+    let cleanup: (() => void) | undefined;
+    try {
+      Object.defineProperty(globalThis, 'window', { configurable: true, value: windowState });
+      Object.defineProperty(globalThis, 'document', { configurable: true, value: documentState });
+      Object.defineProperty(globalThis, 'HTMLElement', { configurable: true, value: FocusTarget });
+      const { NatalEvidenceSheet: Sheet } = loadComponent(path.resolve(__dirname, '../components/NatalReading/NatalEvidenceSheet.tsx'), {
+        react: {
+          ...React,
+          useRef: () => ({ current: heading }),
+          useMemo: (create: () => unknown) => create(),
+          useEffect: (create: () => void | (() => void)) => effects.push(create),
+        },
+      }) as { NatalEvidenceSheet: (props: React.ComponentProps<typeof NatalEvidenceSheet>) => React.ReactElement };
+      Sheet({
+        target: { mode: 'why', title: 'Вывод', text: 'Текст вывода.', evidenceIds: [evidenceFacts[0].id] },
+        profile, chartData, onClose: close,
+      });
+      expect(effects).toHaveLength(1);
+      cleanup = effects[0]() || undefined;
+      expect(heading.focus).toHaveBeenCalledWith({ preventScroll: true });
+      expect(documentState.body.style.overflow).toBe('hidden');
+
+      const key = (value: string, shiftKey = false) => {
+        const event = { key: value, shiftKey, preventDefault: jest.fn(), stopImmediatePropagation: jest.fn() };
+        listeners.get('keydown')!(event);
+        return event;
+      };
+      expect(key('Tab').preventDefault).toHaveBeenCalled();
+      expect(documentState.activeElement).toBe(first);
+      expect(key('Tab', true).preventDefault).toHaveBeenCalled();
+      expect(documentState.activeElement).toBe(last);
+      expect(key('Tab').preventDefault).toHaveBeenCalled();
+      expect(documentState.activeElement).toBe(first);
+      expect(key('Escape').stopImmediatePropagation).toHaveBeenCalled();
+      expect(close).toHaveBeenCalledTimes(1);
+
+      const back = [...listeners.entries()].find(([name]) => name !== 'keydown')![1];
+      const event = { detail: { handled: false }, stopImmediatePropagation: jest.fn() };
+      back(event);
+      back(event);
+      expect(event.detail.handled).toBe(true);
+      expect(event.stopImmediatePropagation).toHaveBeenCalledTimes(1);
+      expect(close).toHaveBeenCalledTimes(2);
+
+      cleanup!();
+      cleanup = undefined;
+      expect(documentState.body.style.overflow).toBe('auto');
+      expect(opener.focus).toHaveBeenCalledWith({ preventScroll: true });
+      expect(documentState.activeElement).toBe(opener);
+      expect(listeners.size).toBe(0);
+    } finally {
+      cleanup?.();
+      for (const [key, descriptor] of descriptors) {
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+        else Reflect.deleteProperty(globalThis, key);
+      }
+    }
   });
 });

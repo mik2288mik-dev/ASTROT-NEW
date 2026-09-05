@@ -477,6 +477,8 @@
 .natal-narrative-experience h1 {
   scroll-margin-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 18px) + 134px);
 }
+.natal-narrative-experience { padding-top: 18px; }
+.natal-narrative-experience .natal-v3-page-heading > h1 { margin-top: 0; }
 
 .natal-reading-contents { position: sticky; top: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 18px) + 54px); z-index: 3; margin: -10px 0 28px; border-block: 1px solid var(--natal-v3-line); background: var(--natal-v3-paper); }
 .natal-reading-contents > summary { display: flex; min-height: 52px; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; font-size: 13px; }
@@ -487,14 +489,14 @@
 .natal-reading-contents nav { display: grid; max-height: min(50dvh, 28rem); overflow-y: auto; overscroll-behavior: contain; padding-bottom: 14px; }
 .natal-reading-contents nav button { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 12px; border: 0; border-radius: 12px; background: transparent; color: var(--natal-v3-ink); text-align: left; cursor: pointer; }
 .natal-reading-contents nav button[aria-current], .natal-reading-contents nav button:hover { background: var(--natal-v3-soft); }
-.natal-reading-contents nav button > span:nth-child(2) { display: grid; flex: 1; min-width: 0; gap: 5px; }
+.natal-reading-contents nav button > span { display: grid; flex: 1; min-width: 0; gap: 5px; }
 .natal-reading-contents strong { font-size: 15px; font-weight: 600; }
 .natal-reading-contents small { color: var(--natal-v3-muted); font-size: 13px; line-height: 1.45; }
-.natal-reading-chapter-number { align-self: flex-start; padding-top: 3px; color: var(--natal-v3-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.natal-reading-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; color: var(--natal-v3-muted); font-size: 13px; }
+.natal-reading-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; color: var(--natal-v3-muted); font-size: 13px; }
 .natal-reading-meta > span + span::before { margin-inline-end: 12px; content: '·'; }
 .natal-narrative-experience .natal-v3-accuracy-link { margin-top: 6px; }
-.natal-narrative-experience .natal-narrative-copy { margin-top: 18px; }
+.natal-narrative-experience .natal-narrative-copy { margin-top: 24px; }
+.natal-narrative-experience .natal-reading-reliability { margin-top: 4px; color: var(--natal-v3-muted); font-size: 12px; }
 .natal-narrative-chapters .natal-v3-section-heading > p { margin-top: 10px; line-height: 1.5; font-size: 14px; font-weight: 400; }
 .natal-reading-contents summary:focus-visible { outline: 2px solid var(--natal-v3-ink); outline-offset: 3px; }
 @media (min-width: 600px) { .natal-reading-contents nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; } }
@@ -502,34 +504,47 @@
 .natal-narrative-copy {
   margin: 30px 0 24px;
   color: var(--natal-v3-ink);
-  font-size: 17px;
-  line-height: 1.7;
+  font-size: 16px;
+  line-height: 1.55;
   overflow-wrap: break-word;
 }
 
 .natal-narrative-copy p {
-  margin: 0 0 1.15em;
+  margin: 10px 0 0;
 }
-
-.natal-narrative-evidence {
-  margin-top: 24px;
-  color: var(--natal-v3-muted);
-  font-size: 14px;
-  line-height: 1.55;
+.natal-reading-observation {
+  padding: 22px 0 14px;
+  border-top: 1px solid var(--natal-v3-line);
 }
-
-.natal-narrative-evidence > summary {
-  padding: 12px 0;
+.natal-reading-observation h2 {
+  margin: 0;
   color: var(--natal-v3-ink);
+  font-size: clamp(19px, 5vw, 23px);
+  font-weight: 620;
+  letter-spacing: -0.025em;
+  line-height: 1.22;
+  text-wrap: balance;
+}
+.natal-reading-why {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--natal-v3-muted);
+  font-size: 12px;
   cursor: pointer;
 }
+.natal-reading-why svg { width: 14px; height: 14px; }
 
 .natal-narrative-chapters {
   margin-top: 42px;
 }
 
-.natal-narrative-chapters > button,
-.natal-narrative-evidence > button {
+.natal-narrative-chapters > button {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -557,15 +572,17 @@
   line-height: 1.55;
 }
 
-.natal-narrative-chapters svg,
-.natal-narrative-evidence svg {
+.natal-narrative-chapters strong { font-size: 17px; font-weight: 570; line-height: 1.4; }
+.natal-narrative-experience .natal-v3-premium-section > p { font-size: 16px; font-weight: 400; line-height: 1.55; letter-spacing: 0; }
+.natal-narrative-chapters > .natal-reading-all-chapters { min-height: 52px; padding-block: 12px; font-size: 13px; color: var(--natal-v3-muted); }
+.natal-reading-contents { scroll-margin-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 18px) + 54px); }
+.natal-narrative-chapters svg {
   flex: 0 0 17px;
   width: 17px;
   height: 17px;
 }
 
-.natal-narrative-experience button:focus-visible,
-.natal-narrative-evidence > summary:focus-visible {
+.natal-narrative-experience button:focus-visible {
   outline: 2px solid var(--natal-v3-ink);
   outline-offset: 4px;
 }
@@ -1403,6 +1420,8 @@
   font-weight: 540;
   letter-spacing: -0.018em;
 }
+.natal-v3-evidence-sheet .natal-v3-explanation-lead { font-size: 15px; font-weight: 400; line-height: 1.55; letter-spacing: 0; }
+.natal-v3-evidence-summary-list li { font-size: 15px; }
 
 .natal-v3-answer-actions {
   display: flex;

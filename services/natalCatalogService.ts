@@ -3,6 +3,7 @@ import {
   isNatalReportAnswer,
   isNatalReportCategoryPack,
   NATAL_REPORT_CATALOG_CONTRACT_VERSION,
+  NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION,
   type NatalReportAnswer,
   type NatalReportAnswerKey,
   type NatalReportCategoryKey,
@@ -66,6 +67,7 @@ function scopeKey(input: {
     fingerprint,
     reportVersion,
     NATAL_REPORT_CATALOG_CONTRACT_VERSION,
+    ...(input.kind === 'category' ? [NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION] : []),
     input.kind,
     input.itemKey,
   ].join(':');

@@ -22,6 +22,7 @@ jest.mock('../lib/contentGenerationLock', () => ({
 
 import {
   isNatalReportCategoryPack, NATAL_REPORT_CATALOG_CONTRACT_VERSION, NATAL_REPORT_CATEGORIES,
+  NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION, type NatalReportPreview,
   type NatalReportCategoryKey, type NatalReportCategoryPack,
 } from '../lib/natalReading/reportCatalog';
 import { buildNatalReportCatalogContext } from '../lib/natalReading/reportCatalogEvidence';
@@ -48,6 +49,11 @@ function materialize(categoryKey: NatalReportCategoryKey, withoutPreviews = fals
   return report;
 }
 const reports = Object.fromEntries(NATAL_REPORT_CATEGORIES.map(({ key }) => [key, materialize(key)])) as Record<NatalReportCategoryKey, NatalReportCategoryPack>;
+const legacyPreview: NatalReportPreview = {
+  answerKey: 'main_how_people_see_you', title: 'Как тебя видят', access: 'free',
+  preview: 'Тебе проще показать маленький готовый результат, чем долго объяснять всю задумку заранее.',
+  evidenceIds: reports.main.summary[0].evidenceIds, related: [], fullAnswerIncludes: ['a', 'b', 'c', 'd'],
+};
 const identity = { chartFingerprint: 'roundtrip-canonical-chart', reportVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION };
 const optionKey = (options: { cacheKey?: string; inputHash?: string }) => `${options.cacheKey}:${options.inputHash}`;
 
@@ -73,6 +79,8 @@ describe('materialized natal narratives survive shared validation and saved-cont
     });
     const received = await ensureNatalCatalogCategory(`roundtrip-${categoryKey}`, categoryKey, 7, 'ru', identity, true);
     expect(received).toEqual(reports[categoryKey]);
+    expect(received.summary.every((item) => typeof item.title === 'string')).toBe(true);
+    expect(received.followUps).toEqual(reports[categoryKey].followUps);
     expect(await ensureNatalCatalogCategory(`roundtrip-${categoryKey}`, categoryKey, 7, 'ru', identity, true)).toBe(received);
     expect(mockApiFetch).toHaveBeenCalledTimes(1);
     expect(mockProvider).not.toHaveBeenCalled();
@@ -106,7 +114,10 @@ describe('materialized natal narratives survive shared validation and saved-cont
     ['non-string evidence', { summary: reports.main.summary.map((item) => ({ ...item, evidenceIds: [42] })) }],
     ['blank evidence', { summary: reports.main.summary.map((item) => ({ ...item, evidenceIds: [' '] })) }],
     ['null preview', { previews: [null] }],
-    ['duplicate preview', { previews: [reports.main.previews[0], reports.main.previews[0]] }],
+    ['duplicate preview', { previews: [legacyPreview, legacyPreview] }],
+    ['non-string observation title', { summary: reports.main.summary.map((item) => ({ ...item, title: 42 })) }],
+    ['unknown follow-up category', { followUps: [{ ...reports.main.followUps![0], categoryKey: 'invented' }, reports.main.followUps![1]] }],
+    ['ungrounded follow-up question', { followUps: [{ ...reports.main.followUps![0], evidenceIds: ['invented'] }, reports.main.followUps![1]] }],
     ['stale contract', { contractVersion: 'natal-report-catalog-v1' }],
   ])('rejects %s at both the shared validator and API cache boundary', async (_name, change) => {
     const malformed = { ...reports.main, ...change };
@@ -116,7 +127,7 @@ describe('materialized natal narratives survive shared validation and saved-cont
   });
 
   it('rejects question previews on paid chapters and too-short narratives on the client boundary', async () => {
-    expect(isNatalReportCategoryPack({ ...reports.work, previews: reports.main.previews.slice(0, 1) })).toBe(false);
+    expect(isNatalReportCategoryPack({ ...reports.work, previews: [legacyPreview] })).toBe(false);
     const malformed = { ...reports.work, summary: reports.work.summary.map((item) => ({ ...item, text: 'Слово '.repeat(20) })) };
     mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ interpretation: { content: malformed } }) });
     await expect(ensureNatalCatalogCategory('roundtrip-invalid', 'work', 7, 'ru', identity, true)).rejects.toMatchObject({ code: 'NATAL_CATALOG_RESPONSE_INCOMPLETE' });
@@ -138,6 +149,8 @@ describe('materialized natal narratives survive shared validation and saved-cont
       mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ interpretation: { content: reports.work } }) });
       await ensureNatalCatalogCategory('roundtrip-reload', 'work', 7, 'ru', identity, true);
       expect(values.size).toBe(1);
+      const entry = JSON.parse([...values.values()][0]);
+      expect(entry.scopeKey).toContain(NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION);
       mockApiFetch.mockClear();
       let reloaded!: typeof import('../services/natalCatalogService');
       jest.isolateModules(() => { reloaded = require('../services/natalCatalogService'); });
@@ -145,6 +158,34 @@ describe('materialized natal narratives survive shared validation and saved-cont
       expect(await reloaded.ensureNatalCatalogCategory('roundtrip-reload', 'work', 7, 'ru', identity, true)).toEqual(reports.work);
       expect(mockApiFetch).not.toHaveBeenCalled();
       expect(reloaded.getNatalCatalogCategoryCached('roundtrip-reload', 'work', 7, 'ru', identity, false)).toBeNull();
+    } finally {
+      if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
+      else Reflect.deleteProperty(globalThis, 'window');
+    }
+  });
+
+  it('skips a locally persisted category from the previous writer version and requests the titled reading', async () => {
+    const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    const oldScope = ['roundtrip-old-writer', '7', 'ru', identity.chartFingerprint, identity.reportVersion,
+      NATAL_REPORT_CATALOG_CONTRACT_VERSION, 'category', 'main'].join(':');
+    const values = new Map([[`nebo:natal-report-catalog:v1:${encodeURIComponent(oldScope)}`, JSON.stringify({
+      schemaVersion: 1, scopeKey: oldScope, kind: 'category', content: reports.main, updatedAt: new Date().toISOString(),
+    })]]);
+    const localStorage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key), key: (index: number) => [...values.keys()][index] ?? null,
+      get length() { return values.size; },
+    };
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: { localStorage } });
+    try {
+      let client!: typeof import('../services/natalCatalogService');
+      jest.isolateModules(() => { client = require('../services/natalCatalogService'); });
+      expect(client.getNatalCatalogCategoryCached('roundtrip-old-writer', 'main', 7, 'ru', identity, false)).toBeNull();
+      mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ interpretation: { content: reports.main } }) });
+      expect(await client.ensureNatalCatalogCategory('roundtrip-old-writer', 'main', 7, 'ru', identity, false)).toEqual(reports.main);
+      expect(mockApiFetch).toHaveBeenCalledTimes(1);
+      expect(values.has(`nebo:natal-report-catalog:v1:${encodeURIComponent(oldScope)}`)).toBe(true);
     } finally {
       if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
       else Reflect.deleteProperty(globalThis, 'window');

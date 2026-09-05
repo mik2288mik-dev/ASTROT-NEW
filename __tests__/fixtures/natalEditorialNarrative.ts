@@ -1,10 +1,9 @@
 import type { BuiltNatalModelContext } from '../../lib/natalReading/permanentReport';
 import {
-  NATAL_REPORT_MAIN_PREVIEW_KEYS,
+  NATAL_REPORT_CATEGORY_KEYS,
   type NatalReportCategoryKey,
 } from '../../lib/natalReading/reportCatalog';
 import {
-  resolveNatalReportCategoryEvidence,
   resolveNatalReportNarrativeEvidence,
 } from '../../lib/natalReading/reportCatalogEvidence';
 import { NATAL_REPORT_NARRATIVE_FOCI, type RawNatalReportCategoryPayload } from '../../lib/natalReading/reportCatalogGeneration';
@@ -19,24 +18,42 @@ export const natalEditorialParagraphs = [
   'Так складывается вполне конкретное сочетание: готовность начинать и привычка возвращаться к деталям. Оно помогает не оставлять интересную задумку только в разговоре и одновременно не соглашаться на первый приемлемый вариант. Трудность возникает, когда от одного этапа ждут поведения другого: при старте требуют окончательного ответа, а при доработке ждут прежней скорости. В таких обстоятельствах твой темп выглядит противоречивым, хотя каждое действие решает свою задачу.',
 ];
 
+export const natalEditorialMainParagraphs = [
+  'Ты охотнее берёшься за новое дело, когда можно сразу сделать небольшую попытку. Готовая вещь помогает понять замысел лучше долгого объяснения, но первый удачный результат ещё не закрывает вопрос: интерес к доработке остаётся и после быстрого старта, когда другие уже готовы остановиться.',
+  'В разговоре ты можешь предложить несколько вариантов, не обещая выполнить каждый из них. Там, где первую реплику сразу считают окончательным решением, объясняться труднее; зато свободное обсуждение помогает найти точные слова и заметить вариант, который сначала вообще не приходил в голову.',
+  'Выбор, который трудно отменить, заставляет тебя внимательнее сравнивать детали. Чужая спешка тут мало помогает: нужен собственный понятный довод, и лишний вечер на размышление не означает потери интереса — просто цена ошибки отличается от цены небольшой пробной попытки в новом деле.',
+  'В близком общении тебе понятнее внимание, которое видно в обычных поступках: предложенной встрече или продолженном разговоре. Большое признание без следующего шага оставляет больше вопросов, а знакомый жест радует сильнее, когда отвечает на происходящее сейчас, а не повторяется по привычке.',
+  'Ты быстрее замечаешь полезную поправку в готовой вещи, чем в длинном описании будущей работы. Неясное поручение может затянуть доработку: если никто не определил, что считается завершением, почти любое изменение кажется допустимым, даже когда результат уже можно спокойно показать другому.',
+  'Небольшое удовольствие тебе проще выбрать, когда понятно, что именно в нём нравится, без необходимости объяснять пользу каждой покупки или встречи. При этом чужой восторг не заменяет собственного интереса: популярная вещь может оставить равнодушной, а неприметная неожиданно оказаться гораздо приятнее.',
+];
+
+const mainTitles = [
+  'Сначала пробуешь, потом обсуждаешь', 'Первый ответ ещё не обещание',
+  'Серьёзный выбор меняет темп', 'Внимание видно по поступкам',
+  'Работу легче улучшать на ходу', 'Удовольствие выбираешь на свой вкус',
+];
+const chapterTitles = [...mainTitles.slice(0, 5), 'Старт и доработка требуют разного'];
+
 export function natalEditorialCategoryPayload(
   built: BuiltNatalModelContext,
   categoryKey: NatalReportCategoryKey = 'main',
 ): RawNatalReportCategoryPayload {
   const narrative = resolveNatalReportNarrativeEvidence(built, categoryKey);
-  const plans = resolveNatalReportCategoryEvidence(built, categoryKey);
-  const planByKey = new Map(plans.map((plan) => [plan.answerKey, plan]));
+  const paragraphs = categoryKey === 'main' ? natalEditorialMainParagraphs
+    : natalEditorialParagraphs.map((paragraph) => paragraph.split(/(?<=[.!?])\s/u).slice(0, 3).join(' '));
+  const titles = categoryKey === 'main' ? mainTitles : chapterTitles;
+  const followUpCategories = NATAL_REPORT_CATEGORY_KEYS.filter((key) => key !== 'main' && key !== categoryKey).slice(0, 2);
   return {
-    summary: natalEditorialParagraphs.map((text, index) => ({
-      text, evidence_ids: [narrative[index % narrative.length].id],
+    summary: paragraphs.map((text, index) => ({
+      title: titles[index], text, evidence_ids: [narrative[index % narrative.length].id],
       focus: NATAL_REPORT_NARRATIVE_FOCI[categoryKey][index],
     })),
+    follow_ups: followUpCategories.map((key, index) => ({
+      label: index === 0 ? 'Что меняется в твоём выборе, когда нельзя попробовать заранее?' : 'Как ты показываешь интерес к человеку без громких признаний?',
+      category_key: key, evidence_ids: [narrative[index % narrative.length].id],
+    })),
     observations: [],
-    previews: categoryKey === 'main' ? NATAL_REPORT_MAIN_PREVIEW_KEYS.map((answerKey, index) => ({
-      answer_key: answerKey,
-      preview: `В разговоре тебе легче обсуждать конкретный выбор, чем соглашаться с общим описанием, вариант ${index}.`,
-      evidence_ids: [planByKey.get(answerKey)!.evidenceIds[0]],
-    })) : [],
+    previews: {},
     free_answers: [],
   };
 }

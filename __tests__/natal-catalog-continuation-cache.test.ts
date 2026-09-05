@@ -92,6 +92,22 @@ describe('Premium narratives continue the persisted Free introduction', () => {
     expect(natalReportCategoryCacheOptions(forName('Оля'), 'main').inputHash).not.toBe(original.inputHash);
   });
 
+  it('invalidates only the destination chapter when its Main entry question changes', () => {
+    const main = pack('main');
+    main.followUps = [
+      { label: 'Какие задачи тебе интереснее делать самостоятельно?', categoryKey: 'work', evidenceIds: ['sun'] },
+      { label: 'Как ты выбираешь покупки для себя?', categoryKey: 'money', evidenceIds: ['sun'] },
+    ];
+    const changed = { ...main, followUps: main.followUps.map((item) => item.categoryKey === 'work'
+      ? { ...item, label: 'Какие задачи тебе интереснее делать вместе с людьми?' } : item) };
+    expect(natalReportCategoryCacheOptions(context, 'work', main).inputHash)
+      .not.toBe(natalReportCategoryCacheOptions(context, 'work', changed).inputHash);
+    expect(natalReportCategoryCacheOptions(context, 'money', main).inputHash)
+      .toBe(natalReportCategoryCacheOptions(context, 'money', changed).inputHash);
+    expect(natalReportCategoryCacheOptions(context, 'main', main).inputHash)
+      .toBe(natalReportCategoryCacheOptions(context, 'main', changed).inputHash);
+  });
+
   it('isolates story caches by current natal snapshot and accepted main narrative', () => {
     const main = pack('main');
     const changedMain = { ...main, summary: [{ text: 'Updated accepted main story', evidenceIds: ['sun'] }] };

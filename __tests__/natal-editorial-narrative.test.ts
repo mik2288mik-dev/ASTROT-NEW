@@ -1,7 +1,9 @@
 import type { UserProfile } from '../types';
 import {
   NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY,
+  NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION,
   NATAL_REPORT_CATALOG_CONTRACT_VERSION,
+  isNatalReportCategoryPack,
   type NatalReportCategoryKey,
 } from '../lib/natalReading/reportCatalog';
 import {
@@ -13,6 +15,7 @@ import {
   buildNatalReportCategorySchema,
   generateNatalReportCategoryPack,
   getNatalReportCategoryValidationIssues,
+  getNatalReportCopyValidationKinds,
   getNatalReportCatalogSystemPrompt,
   hasNatalNarrativeDirectAddress,
   hasNatalReportCatalogCopyViolation,
@@ -20,7 +23,7 @@ import {
   materializeNatalReportCategoryPack,
 } from '../lib/natalReading/reportCatalogGeneration';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
-import { natalEditorialCategoryPayload, natalEditorialParagraphs } from './fixtures/natalEditorialNarrative';
+import { natalEditorialCategoryPayload, natalEditorialMainParagraphs, natalEditorialParagraphs } from './fixtures/natalEditorialNarrative';
 
 const profile: UserProfile = {
   id: 'editorial-test-user', name: 'Лина', birthDate: '1990-01-01', birthTime: '08:15',
@@ -39,15 +42,18 @@ describe('natal editorial narrative', () => {
   it('returns a complete Main reading with varied paragraphs and paragraph-level evidence', () => {
     const report = materialize();
     expect(report).not.toBeNull();
-    expect(isNatalReportMainSummaryLengthAllowed(natalEditorialParagraphs)).toBe(true);
+    expect(isNatalReportMainSummaryLengthAllowed(natalEditorialMainParagraphs)).toBe(true);
     expect(new Set(report!.summary.map((item) => item.text.length)).size).toBeGreaterThan(3);
     expect(new Set(report!.summary.flatMap((item) => item.evidenceIds)).size).toBeGreaterThanOrEqual(3);
     expect(report!.observations).toEqual([]);
-    expect(report!.previews).toHaveLength(6);
+    expect(report!.previews).toEqual([]);
+    expect(report!.followUps).toHaveLength(2);
+    expect(report!.summary.map((item) => item.title)).toEqual(natalEditorialCategoryPayload(built).summary!.map((item) => item.title));
     expect(report!.freeAnswers).toEqual([]);
     expect(report!.summary.every((paragraph) => !('focus' in paragraph))).toBe(true);
     expect(NATAL_REPORT_CATALOG_CONTRACT_VERSION).toBe('natal-report-catalog-v2');
-    expect(NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY).toContain('narrative.v2');
+    expect(NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY).toContain('narrative.v3');
+    expect(NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION).toContain('narrative.v3');
   });
 
   it.each(['character', 'love', 'communication', 'work', 'money'] as const)(
@@ -68,7 +74,7 @@ describe('natal editorial narrative', () => {
 
   it('continues the complete free anchor and lets evidence select the chapter, not the question catalog', () => {
     const prompt = buildNatalReportCategoryPrompt({ language: 'ru', built, categoryKey: 'work', mainAnchor: materialize() });
-    expect(prompt).toContain(natalEditorialParagraphs[5]);
+    expect(prompt).toContain(natalEditorialMainParagraphs[5]);
     expect(prompt).toContain('Продолжи главную линию');
     expect(prompt).toContain('не пытайся охватить весь список');
     expect(prompt).toContain('narrative_evidence_ids');
@@ -82,10 +88,25 @@ describe('natal editorial narrative', () => {
     const voice = getNatalReportCatalogSystemPrompt('ru');
     expect(voice).toContain('Связывай наблюдения');
     expect(voice).toContain('Шутка необязательна');
-    expect(voice).toContain('Не приписывай человеку чувства');
+    expect(voice).toContain('собственные эмоциональные реакции и предпочтения читателя');
+    expect(voice).not.toContain('Не приписывай человеку чувства');
     expect(voice).toContain('ТОЛЬКО ясность языка, а не факты о читателе');
     expect(voice).toContain('максимум одна точная шутка');
     expect(voice).toContain('Последний абзац заканчивает последнюю мысль');
+  });
+
+  it('allows grounded emotional preferences without treating them as biography or coaching', () => {
+    for (const value of [
+      'Тебе спокойнее рядом с человеком, который говорит прямо, без обидных намёков.',
+      'Ты быстро сердишься, если разговор затягивается, а ответа всё ещё нет.',
+      'You enjoy a quiet evening with someone who makes you laugh.',
+    ]) expect(getNatalReportCopyValidationKinds(value, built)).toEqual([]);
+    expect(getNatalReportCatalogSystemPrompt('ru')).toContain('Не придумывай конкретно пережитое событие');
+    expect(getNatalReportCatalogSystemPrompt('en')).toContain('another real person\'s thoughts or feelings');
+    expect(buildNatalReportCategoryPrompt({ language: 'ru', built, categoryKey: 'main' }))
+      .toContain('а не как тебе себя переделать');
+    expect(buildNatalReportCategoryPrompt({ language: 'en', built, categoryKey: 'main' }))
+      .toContain('never how to change yourself');
   });
 
   it.each(['ru', 'en'] as const)('separates unused chapter evidence from accepted main evidence in %s without inventing facts', (language) => {
@@ -101,10 +122,26 @@ describe('natal editorial narrative', () => {
     expect(planning.previously_cited_evidence_ids).toEqual(available.filter((id) => alreadyCited.has(id)));
     expect(JSON.stringify(planning)).not.toContain('invented:old-anchor-id');
     expect(prompt).toContain(mainAnchor.summary[0].text);
-    expect(prompt).toContain('2–3');
+    expect(prompt).toContain('5–8');
     expect(prompt).toContain('"gender": "female"');
     expect(prompt).not.toContain('full_answer_covers');
     expect(buildNatalReportCategoryPrompt({ language, built, categoryKey: 'main' })).not.toContain('CONTINUATION EVIDENCE:');
+  });
+
+  it('passes only the chosen chapter entry question from Main to the chapter writer', () => {
+    const mainAnchor = materialize()!;
+    mainAnchor.followUps = [
+      { label: 'Какие задачи тебе интереснее делать самой, а какие вместе с людьми?', categoryKey: 'work', evidenceIds: mainAnchor.summary[0].evidenceIds },
+      { label: 'Что тебе приятнее покупать для себя?', categoryKey: 'money', evidenceIds: mainAnchor.summary[1].evidenceIds },
+    ];
+    const prompt = buildNatalReportCategoryPrompt({ language: 'ru', built, categoryKey: 'work', mainAnchor });
+    const anchorJson = prompt.match(/MAIN READING ANCHOR — KEEP THE SAME PERSON, DO NOT COPY IT:\n([\s\S]+?)\n\nНОВОЕ/u)?.[1];
+    expect(anchorJson).toBeDefined();
+    expect(JSON.parse(anchorJson!).entry_questions).toEqual([mainAnchor.followUps[0]]);
+    expect(prompt).toContain('Дай на него прямой содержательный ответ');
+    expect(prompt).not.toContain(mainAnchor.followUps[1].label);
+    expect(prompt).toContain('Не делай из неё шесть наблюдений');
+    expect(prompt).toContain('Не добавляй к каждому обязательное');
   });
 
   it('blocks the office phrases observed in live output while allowing plain descriptions', () => {
@@ -201,10 +238,11 @@ describe('natal editorial narrative', () => {
     expect(materializeNatalReportCategoryPack({ raw: sameArea, built, categoryKey: 'main', language: 'ru' })).toBeNull();
   });
 
-  it('enforces fixed preview keys at generation and drops bad auxiliary links without losing the article', () => {
+  it('replaces hidden preview cards with grounded chapter questions and ignores bad legacy previews', () => {
     const schema = buildNatalReportCategorySchema('main') as any;
     expect(schema.properties.previews.type).toBe('object');
-    expect(schema.properties.previews.required).toHaveLength(6);
+    expect(schema.properties.previews.required).toEqual([]);
+    expect(schema.properties.follow_ups).toMatchObject({ minItems: 2, maxItems: 3 });
     const raw = natalEditorialCategoryPayload(built);
     raw.previews = {
       main_how_people_see_you: { preview: 'Венера в Овне.', evidence_ids: ['natal.position.sun'] },
@@ -215,6 +253,65 @@ describe('natal editorial narrative', () => {
     expect(report?.previews).toEqual([]);
     raw.summary![0].evidence_ids = ['invented'];
     expect(materializeNatalReportCategoryPack({ raw, built, categoryKey: 'main', language: 'ru' })).toBeNull();
+  });
+
+  it('keeps untitled saved readings readable while requiring titles in every new observation', () => {
+    const titled = materialize()!;
+    const legacy = {
+      ...titled, followUps: undefined,
+      summary: natalEditorialParagraphs.map((text, index) => ({ text, evidenceIds: titled.summary[index].evidenceIds })),
+    };
+    expect(isNatalReportCategoryPack(legacy)).toBe(true);
+    expect(isNatalReportCategoryPack(titled)).toBe(true);
+    const raw = natalEditorialCategoryPayload(built);
+    delete raw.summary![0].title;
+    expect(materializeNatalReportCategoryPack({ raw, built, categoryKey: 'main', language: 'ru' })).toBeNull();
+    expect(getNatalReportCategoryValidationIssues({ raw, built, categoryKey: 'main' })).toContain('SUMMARY_TITLE_INVALID:0');
+  });
+
+  it.each([
+    ['placeholder', 'Наблюдение 1', 'SUMMARY_TITLE_INVALID:0'],
+    ['question', 'Как ты начинаешь новое дело?', 'SUMMARY_TITLE_INVALID:0'],
+    ['copied opening', natalEditorialMainParagraphs[0].split('. ')[0] + '.', 'SUMMARY_TITLE_REPEATS_TEXT:0'],
+    ['visible astrology', 'Солнце в первом доме', 'COPY_VIOLATION:summary[0].title:PERSONALITY_COPY'],
+  ])('rejects a %s title before persisting it', (_name, title, issue) => {
+    const raw = natalEditorialCategoryPayload(built);
+    raw.summary![0].title = title;
+    expect(getNatalReportCategoryValidationIssues({ raw, built, categoryKey: 'main' })).toContain(issue);
+    expect(materializeNatalReportCategoryPack({ raw, built, categoryKey: 'main', language: 'ru' })).toBeNull();
+  });
+
+  it('repairs a missing observation title through the existing bounded generation loop', async () => {
+    const valid = natalEditorialCategoryPayload(built);
+    const invalid = { ...valid, summary: valid.summary!.map((item) => ({ ...item, title: undefined })) };
+    const requestStructured = jest.fn().mockResolvedValueOnce({ content: JSON.stringify(invalid), responseId: 'missing-titles' })
+      .mockResolvedValueOnce({ content: JSON.stringify(valid), responseId: 'titled' });
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const report = await generateNatalReportCategoryPack({ profile, chart, categoryKey: 'main', requestStructured });
+      expect(requestStructured).toHaveBeenCalledTimes(2);
+      expect(requestStructured.mock.calls[1][0].input).toContain('SUMMARY_TITLE_INVALID:0');
+      expect(report.summary.every((item) => typeof item.title === 'string')).toBe(true);
+      const schema = requestStructured.mock.calls[0][0].schema;
+      expect(schema.properties.summary.items.required).toContain('title');
+      expect(schema.properties.summary).toMatchObject({ minItems: 6, maxItems: 8 });
+    } finally { warn.mockRestore(); }
+  });
+
+  it.each(['main', 'work'] as const)('grounds %s follow-up questions in the active reading and different chapters', (categoryKey) => {
+    const raw = natalEditorialCategoryPayload(built, categoryKey);
+    const report = materializeNatalReportCategoryPack({ raw, built, categoryKey, language: 'ru' })!;
+    expect(report.followUps).toHaveLength(2);
+    const cited = new Set(report.summary.flatMap((item) => item.evidenceIds));
+    expect(report.followUps!.every((item) => item.categoryKey !== categoryKey && item.evidenceIds.every((id) => cited.has(id)))).toBe(true);
+    for (const change of [
+      { category_key: 'main' }, { category_key: categoryKey },
+      { category_key: 'invented' }, { evidence_ids: ['invented'] },
+      { category_key: raw.follow_ups![1].category_key },
+    ]) {
+      const invalid = { ...raw, follow_ups: [{ ...raw.follow_ups![0], ...change }, raw.follow_ups![1]] };
+      expect(materializeNatalReportCategoryPack({ raw: invalid, built, categoryKey, language: 'ru' })).toBeNull();
+    }
   });
 
   it('excludes unknown-time structures from both the writer and accepted explanations', () => {

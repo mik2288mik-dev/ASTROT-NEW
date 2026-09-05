@@ -38,7 +38,7 @@ describe('natal catalog UI contract', () => {
     expect(experience).not.toContain('mainExpanded');
     expect(experience).not.toContain('natal-v3-answer-sheet');
     expect(experience).not.toContain('natal-v3-meaning-map');
-    expect(experience).toContain('Читать дальше');
+    expect(experience).toContain('Что ещё про тебя?');
   });
 
   it('returns from Premium directly to the selected chapter', () => {
@@ -60,8 +60,11 @@ describe('natal catalog UI contract', () => {
     expect(experience).toContain('<NatalEvidenceSheet');
     expect(evidence).toContain('buildNatalModelContext(profile, chartData)');
     expect(evidence).toContain('getPermanentNatalReliability(chartData)');
-    expect(evidence).toContain('Что именно использовано');
+    expect(evidence).toContain('Данные твоей карты');
+    expect(evidence).toContain('className="natal-v3-evidence-summary-list"');
+    expect(evidence).toContain('labels.map((label) => <li key={label}>{label}</li>)');
     expect(evidence).toContain('Насколько это зависит от времени рождения');
-    expect(evidence).toContain('Показать данные карты');
+    expect(evidence).not.toContain('Показать данные карты');
+    expect(evidence).not.toContain('natal-v3-technical-disclosure');
   });
 });

@@ -46,9 +46,12 @@ describe('natal meaning map v3', () => {
 
     expect(evidence).toContain('buildNatalModelContext(profile, chartData)');
     expect(evidence).toContain('getPermanentNatalReliability(chartData)');
-    expect(evidence).toContain('Что именно использовано');
+    expect(evidence).toContain('Данные твоей карты');
+    expect(evidence).toContain('className="natal-v3-evidence-summary-list"');
+    expect(evidence).toContain('labels.map((label) => <li key={label}>{label}</li>)');
     expect(evidence).toContain('Насколько это зависит от времени рождения');
-    expect(evidence).toContain('Показать данные карты');
+    expect(evidence).not.toContain('Показать данные карты');
+    expect(evidence).not.toContain('natal-v3-technical-disclosure');
     expect(evidence).not.toContain('calculateNatalChart(');
   });
 

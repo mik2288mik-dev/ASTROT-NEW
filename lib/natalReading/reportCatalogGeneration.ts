@@ -13,14 +13,17 @@ import {
 import {
   getNatalReportAnswer,
   getNatalReportCategory,
+  isNatalReportCategoryKey,
   localizeNatalReportList,
   localizeNatalReportText,
   NATAL_REPORT_CATALOG_CONTRACT_VERSION,
+  NATAL_REPORT_CATEGORY_KEYS,
   NATAL_REPORT_MAIN_PREVIEW_KEYS,
   type NatalReportAnswer,
   type NatalReportAnswerKey,
   type NatalReportCategoryKey,
   type NatalReportCategoryPack,
+  type NatalReportFollowUp,
   type NatalReportStatement,
 } from './reportCatalog';
 import {
@@ -37,7 +40,9 @@ type RawStatement = {
   evidence_ids?: unknown;
 };
 
-type RawNarrativeStatement = RawStatement & { focus?: unknown };
+type RawNarrativeStatement = RawStatement & { title?: unknown; focus?: unknown };
+
+type RawFollowUp = { label?: unknown; category_key?: unknown; evidence_ids?: unknown };
 
 export const NATAL_REPORT_NARRATIVE_FOCI: Record<NatalReportCategoryKey, readonly string[]> = {
   main: ['initiative', 'decisions', 'communication', 'closeness', 'work', 'money', 'pleasure', 'disagreement', 'first_impression'],
@@ -61,6 +66,7 @@ type RawAnswer = {
 
 export type RawNatalReportCategoryPayload = {
   summary?: RawNarrativeStatement[];
+  follow_ups?: RawFollowUp[];
   observations?: RawStatement[];
   previews?: RawPreview[] | Partial<Record<NatalReportAnswerKey, Omit<RawPreview, 'answer_key'>>>;
   free_answers?: RawAnswer[];
@@ -80,12 +86,14 @@ const FORBIDDEN_CATALOG_COPY = /(?:(?:^|[^\p{L}])(?:психолог[\p{L}]*|п�
 const CHANGING_TIME_COPY = /(?:(?:^|[^\p{L}])(?:сегодня|завтра|скоро|на этой неделе|в этом месяце|в этом году|тебя жд[её]т|обязательно произойд[её]т|today|tomorrow|soon|this week|this month|this year|you will definitely|awaits you)(?:$|[^\p{L}])|(?:^|[^\p{N}])20\d{2}(?:$|[^\p{N}]))/iu;
 const OFFICE_NARRATIVE_COPY = /(?:трезв[\p{L}]*\s+отбор|(?:^|[^\p{L}])подвижност[\p{L}]*|довод[\p{L}]*\s+начат[\p{L}]*\s+до\s+форм[\p{L}]*|планк[\p{L}]*\s+качеств[\p{L}]*|профессиональн[\p{L}]*\s+позици[\p{L}]*|имеет\s+продолжение\s+в\s+реальном\s+деле|интерес\s+легко\s+опередит\s+результат|^\s*(?:в\s+итоге|таким\s+образом)(?=$|[^\p{L}]))/iu;
 
-export const NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS = 350;
-export const NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS = 500;
-export const NATAL_REPORT_CATEGORY_SUMMARY_MIN_WORDS = 300;
-export const NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS = 450;
+// Accept a concise complete reading; word targets must not force padded retries.
+export const NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS = 180;
+export const NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS = 300;
+export const NATAL_REPORT_CATEGORY_SUMMARY_MIN_WORDS = 220;
+export const NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS = 350;
 const NATAL_REPORT_NARRATIVE_MIN_PARAGRAPHS = 5;
 const NATAL_REPORT_NARRATIVE_MAX_PARAGRAPHS = 8;
+const NATAL_REPORT_MAIN_MIN_PARAGRAPHS = 6;
 const NATAL_REPORT_NARRATIVE_PARAGRAPH_MIN_CHARS = 80;
 const NATAL_REPORT_NARRATIVE_PARAGRAPH_MAX_CHARS = 1200;
 const NATAL_REPORT_SEMANTIC_ATTEMPTS = 3;
@@ -158,6 +166,7 @@ export function isNatalReportNarrativeLengthAllowed(
   const words = wordCount(values);
   return values.length >= NATAL_REPORT_NARRATIVE_MIN_PARAGRAPHS
     && values.length <= NATAL_REPORT_NARRATIVE_MAX_PARAGRAPHS
+    && (categoryKey !== 'main' || values.length >= NATAL_REPORT_MAIN_MIN_PARAGRAPHS)
     && words >= min && words <= max;
 }
 
@@ -312,8 +321,12 @@ function narrativeStatementSchema(categoryKey: NatalReportCategoryKey) {
   );
   return {
     ...statement,
-    properties: { ...statement.properties, focus: { type: 'string', enum: NATAL_REPORT_NARRATIVE_FOCI[categoryKey] } },
-    required: [...statement.required, 'focus'],
+    properties: {
+      ...statement.properties,
+      title: { type: 'string', minLength: 3, maxLength: 96 },
+      focus: { type: 'string', enum: NATAL_REPORT_NARRATIVE_FOCI[categoryKey] },
+    },
+    required: [...statement.required, 'title', 'focus'],
   };
 }
 
@@ -322,15 +335,13 @@ export function buildNatalReportCategorySchema(
 ): StrictJsonSchema {
   const category = getNatalReportCategory(categoryKey);
   if (!category) throw new Error('NATAL_REPORT_CATEGORY_NOT_FOUND');
-  const previewKeys: readonly NatalReportAnswerKey[] = categoryKey === 'main'
-    ? NATAL_REPORT_MAIN_PREVIEW_KEYS
-    : [];
+  const previewKeys: readonly NatalReportAnswerKey[] = [];
   return {
     type: 'object',
     properties: {
       summary: {
         type: 'array',
-        minItems: NATAL_REPORT_NARRATIVE_MIN_PARAGRAPHS,
+        minItems: categoryKey === 'main' ? NATAL_REPORT_MAIN_MIN_PARAGRAPHS : NATAL_REPORT_NARRATIVE_MIN_PARAGRAPHS,
         maxItems: NATAL_REPORT_NARRATIVE_MAX_PARAGRAPHS,
         items: narrativeStatementSchema(categoryKey),
       },
@@ -339,6 +350,18 @@ export function buildNatalReportCategorySchema(
         minItems: 0,
         maxItems: 0,
         items: statementSchema(35, 150),
+      },
+      follow_ups: {
+        type: 'array', minItems: 2, maxItems: categoryKey === 'main' ? 3 : 2,
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string', minLength: 15, maxLength: 140 },
+            category_key: { type: 'string', enum: NATAL_REPORT_CATEGORY_KEYS.filter((key) => key !== 'main' && key !== categoryKey) },
+            evidence_ids: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 10 },
+          },
+          required: ['label', 'category_key', 'evidence_ids'], additionalProperties: false,
+        },
       },
       previews: {
         type: 'object',
@@ -366,7 +389,7 @@ export function buildNatalReportCategorySchema(
         items: answerSchema(category.answerKeys),
       },
     },
-    required: ['summary', 'observations', 'previews', 'free_answers'],
+    required: ['summary', 'observations', 'previews', 'free_answers', 'follow_ups'],
     additionalProperties: false,
   };
 }
@@ -396,11 +419,13 @@ export function getNatalReportCatalogSystemPrompt(language: 'ru' | 'en'): string
 - Пиши о человеке прямо, живо и обычными словами. Обращайся на «ты».
 - Пиши так, как объясняешь человеку вживую. Выбирай простые глаголы и видимые предметы: что сделать, что купить, какой разговор закончить, какую работу сдать. Большинство предложений короткие или средней длины; длинное нужно только для мысли, которой тесно в коротком. Не заменяй конкретное действие красивым названием качества.
 - Никакого офисного и книжного пересказа: «трезвый отбор», «подвижность», «доводить начатое до формы», «планка качества», «профессиональная позиция», «продолжение в реальном деле». Не маскируй отсутствие конкретики словами «напор», «точка приложения», «держать направление», «зрелость проявляется». У фразы должен быть понятный предмет: кто что делает, чего ждёт, на что соглашается. Если её трудно произнести в обычном разговоре, перепиши.
-- Минипары редактуры показывают ТОЛЬКО ясность языка, а не факты о читателе: «туманная обещанность» → «непонятно, что обещали»; «требование к форме» → «что считается готовой работой». Это образцы замены абстрактных слов обычными, не готовые наблюдения, ситуации или реплики для разбора.
+- Минипары редактуры показывают ТОЛЬКО ясность языка, а не факты о читателе: «Разговор держится на движении» → «Долгие объяснения тебе быстро надоедают»; «Смотришь на конкретику» → «Красивыми обещаниями тебя не купишь»; «Нужен свой участок ответственности» → «Тебе проще работать без надзора». Это примеры того, как обычный собеседник называет конкретное действие или предпочтение вместо рабочего документа. Не копируй эти выводы: они подходят только там, где их действительно подтверждает карта. Неподтверждённую мысль нужно заменить, а не просто оживить её формулировку.
 - Начни с одного узнаваемого вывода, который отличает именно эту карту. Дальше развивай мысль: как один способ действовать помогает в одной ситуации и усложняет другую. Связывай наблюдения, не составляй перечень качеств.
 - Вместо «в тебе есть», «тебе свойственно», «для тебя важно», «твоя речь устроена интересно» сразу назови действие и условие: что человек начинает, выбирает, отказывается делать или доводит до конца и когда. Не объясняй одно и то же качество новыми словами в соседних абзацах.
-- Пиши цельный рассказ с разным ритмом абзацев и предложений. Не повторяй в каждом абзаце схему «вывод, пример, оговорка». Уверенность, удовольствие, лёгкость и удачные решения столь же важны, как трудности; выбирай их по данным, без обязательного конфликта.
-- Возможный бытовой пример — иллюстрация вывода, а не случившийся эпизод. Не приписывай человеку чувства, мысли других людей, пережитые события, профессию, отношения, детство или скрытые причины поведения. При ограниченных данных сужай вывод.
+- Пиши связанные, но самостоятельно понятные наблюдения с разным ритмом предложений. Не начинай абзац с «это сочетание», «так складывается» или другой ссылки, смысл которой приходится искать в предыдущем тексте. Не повторяй в каждом абзаце схему «вывод, пример, оговорка». Уверенность, удовольствие, лёгкость и удачные решения столь же важны, как трудности; выбирай их по данным, без обязательного конфликта.
+- Обычные слова «надо», «хочется», «неохота», «скучно» уместны, когда описывают ситуацию или выбор, а не учат жить. Вместо «ясный предмет для действия», «удерживает внимание», «роль главной», «рамки» назови саму задачу, человека, действие или договорённость. Не делай простой разговор похожим на отчёт об эффективности сотрудника.
+- Можно осторожно интерпретировать собственные эмоциональные реакции и предпочтения читателя, если их подтверждают разрешённые данные карты: что радует, раздражает, успокаивает, как хочется сближаться с людьми. Это возможные стороны человека, не обязательный список и не утверждение о его нынешнем состоянии. Говори об этом простыми словами; не своди весь разбор к тому, как человек выполняет задачи.
+- Возможный бытовой пример — иллюстрация вывода, а не случившийся эпизод. Не придумывай конкретно пережитое событие, мысли или чувства другого реального человека, диагноз, скрытую травму, профессию, существующие отношения, детство или тайную причину поведения. При ограниченных данных сужай вывод. Предпочтение или возможная реакция не доказывают, что с человеком что-то уже происходило.
 - Допустима максимум одна точная шутка во всём рассказе, если она вырастает из наблюдения. Шутка необязательна; без насмешки над человеком и без готовых острот для любой карты.
 - Последний абзац заканчивает последнюю мысль, а не повторяет весь разбор. Без «В итоге», «Таким образом», списка качеств и торжественного вывода о личности. Нужный объём даёт новая мысль, а не ещё одно объяснение уже сказанного.
 - Не оценивай зрелость человека и не подводи его к правильному образу жизни. Описывай различие в поведении при разных условиях, без финального «твоя сила в том, чтобы» и без лозунга. Простая законченная мысль сильнее красивого итога.
@@ -419,11 +444,13 @@ export function getNatalReportCatalogSystemPrompt(language: 'ru' | 'en'): string
 - Write directly, vividly, and in ordinary words. Address the reader as “you”.
 - Write as if explaining this to someone in person: simple verbs, recognizable things, mostly short and medium sentences. Name the action, purchase, conversation, or finished piece of work, rather than giving a quality an impressive label.
 - Avoid office prose and abstract summaries such as professional positioning, dynamic adaptability, quality thresholds, directing drive toward an objective, or translating intention into tangible outcomes. Name who does what, waits for what, or agrees to what. If a sentence sounds unnatural spoken aloud, simplify it.
-- These editing pairs demonstrate clarity ONLY, never facts about the reader: “ambiguous assurances” → “it is unclear what was promised”; “requirements concerning form” → “what counts as finished work”. They illustrate replacing abstract words, not observations, situations, or lines to reuse in the reading.
+- These editing pairs demonstrate clarity ONLY, never facts about the reader: “Conversation relies on movement” → “Long explanations quickly bore you”; “You focus on specifics” → “Pretty promises do not win you over”; “You need your own area of responsibility” → “You find it easier to work without supervision”. An ordinary conversational partner names the action or preference instead of sounding like a workplace document. Never copy these conclusions: use one only if this chart actually supports it. Replace an unsupported thought instead of merely making its wording livelier.
 - Open with one recognizable conclusion specific to this chart. Develop how the same way of acting helps in one situation and complicates another. Connect observations instead of listing traits.
 - Replace “you have”, “you are someone who”, or “what matters to you” introductions with an action and its circumstances: what the person starts, chooses, declines, or completes, and when. Do not restate the same trait in neighbouring paragraphs.
-- Write a continuous reading with varied paragraph and sentence lengths. Do not repeat a conclusion/example/qualification template. Include ease, enjoyment, confidence, and successful choices when supported; conflict is not obligatory.
-- Everyday examples illustrate possibilities, not events that happened. Do not invent feelings, other people's thoughts, biography, relationships, occupation, childhood, or hidden causes. Narrow claims when the evidence is limited.
+- Write connected observations that also make sense individually, with varied sentence lengths. Never open with “this combination”, “so it follows”, or another reference the reader must look up in the previous text. Do not repeat a conclusion/example/qualification template. Include ease, enjoyment, confidence, and successful choices when supported; conflict is not obligatory.
+- Ordinary phrases such as “need to”, “want to”, “cannot be bothered”, and “boring” are welcome when describing a situation or choice, never teaching the reader how to live. Replace “a clear object for action”, “sustaining attention”, “the leadership role”, and “frameworks” with the actual task, person, action, or agreement. This is a conversation, not an employee performance report.
+- You may cautiously interpret the reader's own emotional responses and preferences when the allowed chart evidence supports them: what brings enjoyment, irritation, comfort, or a wish to get closer. These are possible sides of the person, never a mandatory list or a claim about their current state. Use ordinary words; do not reduce the entire reading to how someone performs tasks.
+- Everyday examples illustrate possibilities, not events that happened. Never invent a specific lived event, another real person's thoughts or feelings, a diagnosis, hidden trauma, occupation, an existing relationship, childhood, or a secret cause of behaviour. Narrow claims when the evidence is limited. A preference or possible response does not prove that something has already happened to the reader.
 - At most one precise, affectionate joke may grow from an observation in the whole reading. Humour is optional; no ridicule or recycled jokes for every chart.
 - Let the last paragraph finish its own thought instead of recapping the entire reading. No “in conclusion”, list of traits, or grand statement about the person. Reach the requested length with distinct ideas, not restatements.
 - Do not judge the reader's maturity or steer them toward the right way to live. Describe different behaviour under different conditions, without a closing “your strength lies in” or a slogan. A finished concrete thought is enough.
@@ -449,10 +476,6 @@ export function buildNatalReportCategoryPrompt(input: {
 }): string {
   const category = getNatalReportCategory(input.categoryKey);
   if (!category) throw new Error('NATAL_REPORT_CATEGORY_NOT_FOUND');
-  const previewKeys: readonly NatalReportAnswerKey[] = input.categoryKey === 'main'
-    ? NATAL_REPORT_MAIN_PREVIEW_KEYS
-    : [];
-  const plans = resolveNatalReportCategoryEvidence(input.built, input.categoryKey);
   const narrativeEvidence = resolveNatalReportNarrativeEvidence(input.built, input.categoryKey);
   const reader = {
     name: typeof input.reader?.name === 'string' ? input.reader.name.trim() : '',
@@ -463,22 +486,29 @@ export function buildNatalReportCategoryPrompt(input: {
   const isMain = input.categoryKey === 'main';
   const task = input.language === 'ru'
     ? `${isMain
-      ? `Напиши законченный бесплатный разбор на 2–3 минуты чтения: summary содержит 5–8 связанных абзацев, всего ${NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS}–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} слов. Найди главную линию этой карты и раскрой её через несколько разных, обоснованных наблюдений. Это полноценный рассказ, а не тизер Premium.`
-      : `Напиши самостоятельную подробную главу «${localizeNatalReportText(category.title, 'ru')}»: summary содержит 5–8 связанных абзацев, всего ${NATAL_REPORT_CATEGORY_SUMMARY_MIN_WORDS}–${NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS} слов. Продолжи главную линию из MAIN READING ANCHOR применительно к этой теме, с новыми выводами и ситуациями. Не пересказывай вступление и не повторяй готовые фразы. Читатель сразу получает главу, без выбора вопроса.`}
-Длину абзаца выбирай по мысли, не выравнивай абзацы. Наблюдения входят в рассказ: observations верни пустым массивом. Заверши мысль без списка качеств, морали и совета.
+      ? `Напиши короткую законченную бесплатную базу: summary содержит 6–8 самостоятельных наблюдений, ориентир 220–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} слов в text (заголовки в объём не входят). На наблюдение обычно 25–40 слов, 2–3 предложения. Первые три — самые содержательные и разные выводы по этой карте, без вступления. Остальные добавляют другие обоснованные стороны, а не пересказывают первые. Не растягивай ради восьми пунктов или точного числа слов, если шесть говорят больше. Это полноценный полезный разбор, а не тизер Premium. Не назначай заранее темы всем людям: выбери их по фактам именно этой карты.`
+      : `Напиши самостоятельную главу «${localizeNatalReportText(category.title, 'ru')}»: summary содержит 5–8 коротких наблюдений, ориентир 250–${NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS} слов в text. Продолжи главную линию из MAIN READING ANCHOR применительно к этой теме, с новыми выводами и ситуациями. Не пересказывай вступление и не повторяй готовые фразы. Читатель сразу получает главу. Не дописывай общие фразы ради точного числа слов.`}
+Каждый элемент summary — одно наблюдение с title и text. title — короткий человеческий заголовок, обычно 3–8 слов: сразу понятно, что именно ты описываешь. Он формулирует конкретный вывод этого абзаца, который подтверждают те же evidence_ids; не обещает больше, чем объясняет текст. Не используй вопрос, название служебной категории, номер, «Наблюдение 1», «Твой характер» или общий лозунг. Не бери готовые заголовки для всех людей.
+Первая фраза text — самостоятельное, понятное наблюдение. Она не копирует заголовок дословно, а сразу добавляет, когда или как это заметно. Остальной короткий абзац объясняет эту же мысль через конкретное различие, условие или уместный пример. Читатель должен понимать, что ты утверждаешь и почему из этого следует остальное, без разгадки метафор. Каждый абзац читается отдельно, без обязательной ссылки на предыдущий.
+Длину абзаца выбирай по мысли, не выравнивай абзацы. observations верни пустым массивом: все наблюдения уже в summary. Заверши мысль без списка качеств, морали и совета.
 Каждый абзац получает служебный focus из разрешённого набора; читатель его не увидит. Выбери минимум четыре действительно разные области по основаниям этой карты, не более двух абзацев на один focus. Не нужно охватывать весь набор или сводить весь портрет к общительности, скорости ответа и первому впечатлению. Следующий абзац добавляет новое наблюдение, а не новый синоним прежнего.
+До написания текста сравни выбранные наблюдения по поведенческому смыслу: что ты делаешь, в каком случае и чем это отличается от остальных пунктов. Разные focus и заголовки сами по себе не дают разных мыслей. Если два пункта сводятся к одной фразе — например, один и тот же способ разговаривать пересказан как симпатия, интерес и первое впечатление, — объедини их и выбери другое подтверждённое поведение. Это пример ошибки отбора, не заданная тема карты. В конце перечитай только заголовки и первые фразы: каждый должен добавлять смысл, которого ещё нет. План не выводи.
 Для summary выбирай только narrative_evidence_ids. Копируй ID буквально из этого списка: не сокращай, не переименовывай и не составляй новые ID из названий фактов. Используй несколько разных фактов, но не пытайся охватить весь список или все вопросы каталога. Если основание одно, не делай из него несколько одинаковых выводов.
-${isMain ? 'Дополнительно верни объект previews с указанными ключами для перехода к подробным главам. Каждый preview — законченный персональный вывод без рекламной интриги; не копируй предложение из рассказа. free_answers верни пустым массивом: отдельные ответы сейчас не нужны.' : 'previews верни пустым объектом, free_answers — пустым массивом: сейчас пишется одна глава, а не ответы на все вопросы.'}`
+Верни ${isMain ? '2–3' : '2'} follow_ups: понятные вопросы, которые естественно возникают после этих наблюдений и ведут в другие существующие главы. label — вопрос о том, как ты действуешь или что предпочитаешь, а не как тебе себя переделать: «Как ты объясняешь…», а не «Как объяснять, чтобы…». Смысл вопроса выбирается из текста, а не копируется из примера. Тема достаточно широкая: все переходы в одну главу открывают её сохранённый текст. Не обещай отдельный ответ на узкую новую ситуацию. category_key выбирает соответствующую главу из разрешённых, evidence_ids берутся только из уже процитированных в summary фактов. Не повторяй уже данный ответ, не придумывай проблему, не обещай предсказать событие и не пиши общие «Хочешь узнать больше?». Каждый вопрос ведёт в отдельную главу, никогда в main или текущую. Это переход к теме, а не новый чат. previews верни пустым объектом, free_answers — пустым массивом.`
     : `${isMain
-      ? `Write a complete free reading taking 2–3 minutes: summary contains 5–8 connected paragraphs, ${NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS}–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} words total. Develop the chart's central thread through several distinct supported observations. This is a satisfying reading, not a Premium teaser.`
-      : `Write a full chapter on ${localizeNatalReportText(category.title, 'en')}: summary contains 5–8 connected paragraphs, ${NATAL_REPORT_CATEGORY_SUMMARY_MIN_WORDS}–${NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS} words total. Continue MAIN READING ANCHOR in this area with new conclusions and situations, without repeating its opening or sentences. The reader receives the chapter immediately, without choosing a question.`}
-Let each thought determine paragraph length. Weave observations into the reading and return observations as an empty array. Close the thought without a trait list, moral, or advice.
+      ? `Write a short complete free reading: summary contains 6–8 independent observations, aiming for 220–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} words of text total, excluding titles. Usually 25–40 words and 2–3 sentences per observation. Put the three most substantial and distinct conclusions first, without an introduction. The remaining observations add other supported sides instead of retelling the first three. Do not stretch to eight or pad an exact word count when six say more. This is a useful complete reading, not a Premium teaser. Select topics from this chart, never preassign the same topics to every reader.`
+      : `Write a chapter on ${localizeNatalReportText(category.title, 'en')}: summary contains 5–8 short observations, aiming for 250–${NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS} words of text total. Continue MAIN READING ANCHOR in this area with new conclusions and situations, without repeating its opening or sentences. The reader receives the chapter immediately. Do not add generalities just to reach an exact word count.`}
+Each summary item is one observation with title and text. Give it a short, ordinary title, usually 3–8 words, that immediately says what this paragraph describes. The title states its concrete conclusion, grounded in the same evidence_ids, and promises no more than the paragraph explains. No questions, service categories, numbering, “Observation 1”, “Your character”, or generic slogans. Never reuse a fixed headline set for all readers.
+The first sentence of text is a complete, understandable observation. Do not repeat the title verbatim: add when or how it shows up. The rest of the short paragraph explains that same thought through a concrete distinction, condition, or relevant example. Make the claim and how the explanation follows clear without asking the reader to decipher metaphors. Every paragraph stands alone, with no dependence on the previous one.
+Let each thought determine paragraph length. Return observations as an empty array: every observation is already in summary. Close the thought without a trait list, moral, or advice.
 Give each paragraph an internal focus from the allowed set; it is never shown to the reader. Choose at least four genuinely different areas supported by this chart, at most two paragraphs per focus. Do not cover the entire set or reduce the whole reading to sociability, response speed, and first impressions. Each next paragraph adds a new observation, not a synonym for the previous one.
+Before drafting, compare the observations by behaviour: what the reader does, when, and how that differs from every other item. Different focus labels and titles alone do not produce different ideas. If two items reduce to the same claim, such as one conversational habit relabelled as attraction, interest, and first impression, combine them and select another supported behaviour. This illustrates a selection error, not a preset chart topic. Before returning, read only the titles and first sentences: every item must add a meaning absent from the others. Do not output the plan.
 Use only narrative_evidence_ids for summary. Copy IDs verbatim from that list; never abbreviate, rename, or construct new IDs from fact names. Draw on several different facts, without trying to cover every fact or catalog question. Do not turn one fact into several repeated conclusions.
-${isMain ? 'Also return a previews object with the listed keys for links to full chapters. Each preview gives a complete personal conclusion without a cliffhanger; do not copy a sentence from the reading. Return free_answers as an empty array: individual answers are not needed now.' : 'Return previews as an empty object and free_answers as an empty array: write one chapter, not answers to every question.'}`;
+Return ${isMain ? '2–3' : '2'} follow_ups: clear questions that naturally follow these observations and lead to other existing chapters. Each label asks how you act or what you prefer, never how to change yourself: “How do you explain…”, not “How can you explain things better?”. Select the meaning from this reading instead of copying the example. Cover a reasonably broad chapter topic: all links to one chapter open the same saved text, so never promise a separate answer to a narrow new situation. category_key selects the relevant allowed chapter, and evidence_ids must already have been cited in summary. Do not repeat an answer just given, invent a problem, promise a prediction, or ask “Want to know more?”. Use distinct destination chapters, never main or the current chapter. These are topic links, not a new chat. Return previews as an empty object and free_answers as an empty array.`;
   const anchor = input.mainAnchor && input.categoryKey !== 'main'
     ? {
         summary: input.mainAnchor.summary.map((item) => item.text),
+        entry_questions: input.mainAnchor.followUps?.filter((item) => item.categoryKey === input.categoryKey) || [],
       }
     : null;
   const anchorEvidenceIds = new Set(input.mainAnchor?.summary.flatMap((item) => item.evidenceIds) || []);
@@ -490,16 +520,20 @@ ${isMain ? 'Also return a previews object with the listed keys for links to full
   };
   const continuationInstructions = isMain ? '' : input.language === 'ru'
     ? `НОВОЕ В ЭТОЙ ГЛАВЕ
-MAIN READING ANCHOR — уже прочитанный текст. Он сохраняет того же человека, но его выводы не являются планом новой главы. Выбери по данным 2–3 новых наблюдения именно о выбранной теме. Открой главу самым содержательным из них. Не бери по очереди абзацы вступления и не добавляй к ним слова «на работе», «в отношениях» или другое название темы.
+MAIN READING ANCHOR — уже прочитанный текст. Он сохраняет того же человека, но его выводы не являются планом новой главы. Выбери по данным 5–8 самостоятельных наблюдений именно о выбранной теме; каждый пункт добавляет новое действие или существенное различие условий. Открой главу самым содержательным из них. Не бери по очереди абзацы вступления и не добавляй к ним слова «на работе», «в отношениях» или другое название темы.
+Если в MAIN READING ANCHOR.entry_questions есть вопрос, читатель пришёл в эту главу через него. Дай на него прямой содержательный ответ в одном из первых наблюдений и развивай ответ дальше. Не повторяй вопрос как заголовок и не ограничивайся общей характеристикой темы. Если entry_questions пуст, глава всё равно раскрывает свою тему самостоятельно.
 Сначала рассмотри not_previously_cited_evidence_ids. Это факты, которые вступление ещё не использовало; их содержание находится в CALCULATED EVIDENCE. Не нужно цитировать их все. Уже использованный факт тоже допустим, если сочетание с другим разрешённым фактом даёт новый конкретный вывод, которого во вступлении не было. Новый evidence_id сам по себе не делает старую мысль новой.
 Покажи, при каких условиях поведение различается и к чему приводит этот выбор: что даётся легко в одном случае и почему иначе выходит в другом. Нужен новый смысл, а не ещё один пример того же качества. Возможные ситуации обозначай как иллюстрации, не как биографию. Не выдумывай привычку или событие ради новизны; если данных мало, сузь наблюдение.
-${input.categoryKey === 'work' ? 'В главе о работе не ограничивайся темпом старта, ясными условиями, готовым результатом и прямотой речи, если они уже разобраны. По данным можно рассмотреть: как ты передаёшь часть дела другому, принимаешь полезную правку, относишься к чужому способу работы или повторяющейся задаче. Это возможные ракурсы, не утверждения о читателе и не обязательный список. Выбери только обоснованные различия; не назначай человеку профессию, должность, коллег или карьерные события.' : 'Разрешённые narrative_focus_options помогают различить ракурсы выбранной темы, но не задают факты о человеке. Выбирай по карте, а не заполняй весь список.'}
+${input.categoryKey === 'work' ? 'В работе различай реально разные действия и виды задач. По данным могут оказаться интересны: придумать новое или исправить готовое; объяснять людям или разбираться одной; быстро переключаться или долго возиться с одной вещью; предложить своё или взять ответственность за общее; выбрать интересную задачу или понятную оплату. Это возможные ракурсы, не утверждения о читателе и не обязательный список. Условный пример вида работы допустим: «там, где надо придумать…», «если надо долго одной…». Опиши, что в такой задаче может нравиться и что быстро надоест, а не назначай профессию или биографию. Ясные требования, порядок, этапы, договорённости и проверяемый итог часто выражают ОДНУ мысль. Не делай из неё шесть наблюдений; если основная база её уже объяснила, ищи другие обоснованные способы работать. В команде и в одиночку показывай различие именно в действиях, а не повторяй потребность в ясности. Не приписывай должность, коллег или карьерные события.' : 'Разрешённые narrative_focus_options помогают различить ракурсы выбранной темы, но не задают факты о человеке. Выбирай по карте, а не заполняй весь список.'}
+У наблюдений может быть разный ритм. Не добавляй к каждому обязательное «но», «зато» или предупреждение: иногда законченное положительное наблюдение достаточно. Не меняй слова «ясность», «порядок», «рамки» по кругу, если поведение остаётся одним и тем же.
 Переход из вступления допустим в одной короткой фразе. Остальной объём посвящён новым наблюдениям: разверни их через разные условия, сопоставь, закончи последнюю мысль. Не подводи повторный итог главной линии и не превращай главу в ответы на вопросы каталога.`
     : `WHAT THIS CHAPTER ADDS
-MAIN READING ANCHOR has already been read. It preserves the same person but is not an outline for this chapter. Select 2–3 new evidence-supported observations about this category and open with the most substantial one. Do not reword each anchor paragraph by adding “at work”, “in relationships”, or another category label.
+MAIN READING ANCHOR has already been read. It preserves the same person but is not an outline for this chapter. Select 5–8 independent evidence-supported observations about this category; every item adds a new action or a substantial distinction in circumstances. Open with the most substantial one. Do not reword each anchor paragraph by adding “at work”, “in relationships”, or another category label.
+If MAIN READING ANCHOR.entry_questions contains a question, the reader entered this chapter through it. Answer it directly and substantially in one of the first observations, then develop that answer. Do not use the question itself as a heading or offer only a generic description of the category. An empty entry_questions array still requires a self-contained chapter.
 Consider not_previously_cited_evidence_ids first; their facts appear in CALCULATED EVIDENCE. Do not cite them all. A previously cited fact is also usable when combined with another allowed fact to support a concrete conclusion absent from the anchor. A different evidence_id alone does not make an old claim new.
 Show the conditions under which behaviour differs and what that choice changes: what comes easily in one situation and works differently in another. Add meaning, not another example of the same trait. Mark possible situations as illustrations, never biography. Do not invent a habit or event for novelty; narrow the observation when evidence is limited.
-${input.categoryKey === 'work' ? 'For work, move beyond starting speed, clear terms, finished results, and direct speech when already covered. Evidence may distinguish handing work over, accepting a useful revision, another person’s method, or repetitive tasks. These are possible lenses, not facts about the reader or a mandatory list. Select only supported distinctions; invent no occupation, role, coworkers, or career events.' : 'The allowed narrative_focus_options distinguish lenses for this category, not facts about the reader. Select from evidence instead of filling the list.'}
+${input.categoryKey === 'work' ? 'For work, distinguish different actions and kinds of tasks. Evidence may point to inventing something or fixing an existing thing; explaining to people or figuring things out alone; switching quickly or staying with one thing; proposing an idea or taking responsibility for shared work; choosing an interesting task or clear pay. These are optional lenses, never facts assigned to the reader or a mandatory checklist. Conditional examples of kinds of work are welcome: “in a task where you need to invent…”, “if you need to work alone for a long time…”. Describe what may be enjoyable or tedious in such work without assigning an occupation or biography. Clear requirements, order, stages, agreements, and a checkable result often express ONE idea. Do not stretch it into six observations; when Main already explains it, select other supported ways of working. Distinguish teamwork and solo work by actual actions rather than repeating a need for clarity. Invent no role, coworkers, or career events.' : 'The allowed narrative_focus_options distinguish lenses for this category, not facts about the reader. Select from evidence instead of filling the list.'}
+Vary the rhythm. Do not attach “but”, “yet”, or a warning to every observation: a complete positive observation can stand alone. Cycling through clarity, order, and frameworks does not add a new behaviour.
 At most one brief phrase may bridge from the anchor. Spend the rest on new observations, their differing conditions, and how they connect. Finish the last thought without restating the main reading or answering the question catalog.`;
   return `${task}
 
@@ -515,16 +549,13 @@ ${JSON.stringify({
     category_key: category.key,
     title: localizeNatalReportText(category.title, input.language),
     narrative_focus_options: NATAL_REPORT_NARRATIVE_FOCI[input.categoryKey],
+    follow_up_categories: NATAL_REPORT_CATEGORY_KEYS
+      .filter((key) => key !== 'main' && key !== input.categoryKey)
+      .map((key) => ({ category_key: key, title: localizeNatalReportText(getNatalReportCategory(key)!.title, input.language) })),
   }, null, 2)}
 
 ${anchor ? `MAIN READING ANCHOR — KEEP THE SAME PERSON, DO NOT COPY IT:\n${JSON.stringify(anchor, null, 2)}\n\n` : ''}${continuationEvidence ? `${continuationInstructions}\n\nCONTINUATION EVIDENCE:\n${JSON.stringify(continuationEvidence, null, 2)}\n\n` : ''}CALCULATED EVIDENCE:
 ${JSON.stringify(buildNatalReportEvidencePromptContext(input.built, [], narrativeEvidence), null, 2)}
-
-${isMain ? `OPTIONAL CONTINUATION LINKS — NOT THE READING PLAN:\n${JSON.stringify(previewKeys.map((key) => ({
-    key,
-    category: getNatalReportAnswer(key)?.categoryKey === 'main' ? 'character' : getNatalReportAnswer(key)?.categoryKey,
-    allowed_evidence_ids: plans.find((plan) => plan.answerKey === key)?.evidenceIds || [],
-  })), null, 2)}` : ''}
 
 ${input.language === 'ru'
     ? 'ПОСЛЕДНЯЯ РЕДАКТУРА: весь рассказ обращён к читателю на «ты». Имя — только обращение, не персонаж рассказа. Не переходи к «[имя] делает», «она выбирает», «ей подходит» или аналогичному рассказу о читателе в третьем лице. Открой конкретным наблюдением, без «[имя] раскрывается». Проверь, что каждый следующий абзац добавляет смысл, а не объясняет прежний вывод другими словами.'
@@ -577,10 +608,24 @@ function narrativeValidationIssues(
   if (words > maxWords) issues.push('SUMMARY_WORDS_TOO_LONG:' + words);
   if (
     summary.length < NATAL_REPORT_NARRATIVE_MIN_PARAGRAPHS
+    || (categoryKey === 'main' && summary.length < NATAL_REPORT_MAIN_MIN_PARAGRAPHS)
     || summary.length > NATAL_REPORT_NARRATIVE_MAX_PARAGRAPHS
     || values.some((value) => value.length < NATAL_REPORT_NARRATIVE_PARAGRAPH_MIN_CHARS
       || value.length > NATAL_REPORT_NARRATIVE_PARAGRAPH_MAX_CHARS)
   ) issues.push('SUMMARY_SHAPE_INVALID');
+  const titles = summary.map((statement) => text(statement?.title));
+  titles.forEach((title, index) => {
+    if (typeof summary[index]?.title !== 'string' || title.length < 3 || title.length > 96
+      || /[?\n\r]/u.test(title)
+      || /^(?:(?:наблюдение|пункт|тема|observation|point|topic)\s*\d*|твой характер|твоя личность|your character|your personality)$/iu.test(title)) {
+      issues.push(`SUMMARY_TITLE_INVALID:${index}`);
+    }
+    if (normalizedCopy(title) === normalizedCopy(values[index].split(/(?<=[.!?])\s/u)[0] || '')) {
+      issues.push(`SUMMARY_TITLE_REPEATS_TEXT:${index}`);
+    }
+    appendCopyValidationIssues(issues, `summary[${index}].title`, title, built);
+  });
+  if (new Set(titles.map(normalizedCopy)).size !== titles.length) issues.push('SUMMARY_TITLES_REPEATED');
   if (hasRepeatedNarrativeCopy(values)) issues.push('SUMMARY_REPEATED_COPY');
   const focusCounts = new Map<string, number>();
   for (const statement of summary) {
@@ -599,6 +644,32 @@ function narrativeValidationIssues(
   return issues;
 }
 
+function parseFollowUps(
+  raw: RawNatalReportCategoryPayload,
+  built: BuiltNatalModelContext,
+  categoryKey: NatalReportCategoryKey,
+): NatalReportFollowUp[] | null {
+  if (!Array.isArray(raw.follow_ups) || raw.follow_ups.length < 2
+    || raw.follow_ups.length > (categoryKey === 'main' ? 3 : 2)) return null;
+  const citedIds = new Set((Array.isArray(raw.summary) ? raw.summary : []).flatMap((statement) => (
+    Array.isArray(statement?.evidence_ids) ? statement.evidence_ids.map(text) : []
+  )));
+  const parsed: NatalReportFollowUp[] = [];
+  for (const item of raw.follow_ups) {
+    const label = text(item?.label);
+    const targetKey = item?.category_key;
+    const category = isNatalReportCategoryKey(targetKey) ? getNatalReportCategory(targetKey) : null;
+    const evidenceIds = parsedEvidenceIds(item?.evidence_ids, citedIds);
+    if (!category || category.key === 'main' || category.key === categoryKey
+      || label.length < 15 || label.length > 140 || !label.endsWith('?')
+      || !isCopyAllowed(label, built) || !evidenceIds) return null;
+    parsed.push({ label, categoryKey: category.key, evidenceIds });
+  }
+  return new Set(parsed.map((item) => item.categoryKey)).size === parsed.length
+    && new Set(parsed.map((item) => normalizedCopy(item.label))).size === parsed.length
+    ? parsed : null;
+}
+
 export function getNatalReportCategoryValidationIssues(input: {
   raw: RawNatalReportCategoryPayload;
   built: BuiltNatalModelContext;
@@ -607,18 +678,16 @@ export function getNatalReportCategoryValidationIssues(input: {
   const issues: string[] = [];
   const category = getNatalReportCategory(input.categoryKey);
   if (!category) return ['CATEGORY_UNKNOWN'];
-  const isMain = input.categoryKey === 'main';
   const summary = Array.isArray(input.raw.summary) ? input.raw.summary : [];
   const observations = Array.isArray(input.raw.observations) ? input.raw.observations : [];
   const previews = categoryPreviews(input.raw);
   issues.push(...narrativeValidationIssues(summary, input.built, input.categoryKey));
+  if (!parseFollowUps(input.raw, input.built, input.categoryKey)) issues.push('FOLLOW_UPS_INVALID');
   if (observations.length !== 0) {
     issues.push('OBSERVATION_COUNT_INVALID');
   }
 
-  const expectedPreviewKeys: readonly NatalReportAnswerKey[] = isMain
-    ? NATAL_REPORT_MAIN_PREVIEW_KEYS
-    : [];
+  const expectedPreviewKeys: readonly NatalReportAnswerKey[] = [];
   const actualPreviewKeys = previews.map((preview) => text(preview?.answer_key));
   if (
     actualPreviewKeys.length !== expectedPreviewKeys.length
@@ -629,6 +698,9 @@ export function getNatalReportCategoryValidationIssues(input: {
   }
 
   const copyFields: Array<{ path: string; value: string }> = [
+    ...(Array.isArray(input.raw.follow_ups) ? input.raw.follow_ups : []).map((item, index) => ({
+      path: `follow_ups[${index}].label`, value: text(item?.label),
+    })),
     ...summary.map((statement, index) => ({
       path: `summary[${index}]`,
       value: text(statement?.text),
@@ -704,7 +776,12 @@ function buildSemanticRepairPrompt(
       ? '\nNARRATOR_DIRECT_ADDRESS_REQUIRED: перепиши весь рассказ как обращение к читателю на «ты», в роде из READER. Имя допустимо как обращение, но не рассказывай о читателе в третьем лице. Сохрани обоснованные наблюдения и разрешённые evidence_ids.'
       : '\nNARRATOR_DIRECT_ADDRESS_REQUIRED: rewrite the whole reading as a direct address to the reader using you and the grammar specified by READER. A name may be a direct address, never a third-person character. Keep the grounded observations and allowed evidence_ids.'
     : '';
-  return prompt + instruction + guide + narratorRepair;
+  const observationRepair = issues.some((issue) => issue.startsWith('SUMMARY_TITLE') || issue === 'FOLLOW_UPS_INVALID')
+    ? language === 'ru'
+      ? '\nSUMMARY_TITLE: каждый title — короткий конкретный вывод абзаца, без вопроса, служебного ярлыка, дубля другого заголовка или дословного повтора первой фразы text. FOLLOW_UPS_INVALID: верни вопросы в разные разрешённые главы, кроме текущей и main; только evidence_ids, которые уже процитированы в summary. Для main нужно 2–3 вопроса, для другой главы ровно 2.'
+      : '\nSUMMARY_TITLE: each title states the paragraph’s concrete observation, without a question, service label, duplicate title, or verbatim first sentence of text. FOLLOW_UPS_INVALID: return questions leading to distinct allowed chapters other than current and main, citing only evidence_ids already used in summary. Main needs 2–3 questions; other chapters need exactly 2.'
+    : '';
+  return prompt + instruction + guide + narratorRepair + observationRepair;
 }
 
 export function materializeNatalReportCategoryPack(input: {
@@ -727,16 +804,18 @@ export function materializeNatalReportCategoryPack(input: {
     narrativeValidationIssues(input.raw.summary, input.built, input.categoryKey).length > 0
     || input.raw.observations.length !== 0
   ) return null;
-  const summary = input.raw.summary.map((statement) => (
-    parseStatement(statement, allowedAll, input.built, {
+  const summary = input.raw.summary.map((statement) => {
+    const parsed = parseStatement(statement, allowedAll, input.built, {
       min: NATAL_REPORT_NARRATIVE_PARAGRAPH_MIN_CHARS,
       max: NATAL_REPORT_NARRATIVE_PARAGRAPH_MAX_CHARS,
-    })
-  ));
+    });
+    return parsed ? { ...parsed, title: text(statement.title) } : null;
+  });
+  const followUps = parseFollowUps(input.raw, input.built, input.categoryKey);
   const observations = input.raw.observations.map((statement) => (
     parseStatement(statement, allowedAll, input.built, { min: 35, max: 150, maxSentences: 1 })
   ));
-  if (summary.some((item) => item == null) || observations.some((item) => item == null)) return null;
+  if (!followUps || summary.some((item) => item == null) || observations.some((item) => item == null)) return null;
   const rawPreviewByKey = new Map(
     categoryPreviews(input.raw).map((preview) => [text(preview.answer_key), preview]),
   );
@@ -778,6 +857,7 @@ export function materializeNatalReportCategoryPack(input: {
     categoryKey: category.key,
     title: localizeNatalReportText(category.title, input.language),
     summary: summary as NatalReportStatement[],
+    followUps,
     observations: observations as NatalReportStatement[],
     previews: parsedPreviews,
     freeAnswers: [],
