@@ -92,6 +92,8 @@ import handler from '../pages/api/content/synastry/extended';
 import { ChartAccessPolicyError } from '../lib/chartAccessPolicy';
 import { getPremiumEntitlementState } from '../lib/contentArchitecture';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
+import { compatibilityStory } from './fixtures/compatibilityStory';
+import { COMPATIBILITY_NARRATIVE_VERSION } from '../lib/synastry/compatibilityNarrative';
 
 function chart(id?: number, birthTimeQuality: 'exact' | 'approximate' | 'unknown' = 'exact') {
   const value = canonicalNatalChart({
@@ -144,6 +146,7 @@ describe('extended synastry delivery resilience', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCreateLunaStructuredResponse.mockReset();
+    mockCreateLunaStructuredResponse.mockImplementation(async (request) => ({ content: JSON.stringify(compatibilityStory(JSON.parse(request.input).evidence)) }));
     mockCreateOrReuseCanonicalChart.mockReset();
     mockGetById.mockReset();
     mockSynastryGet.mockResolvedValue(null);
@@ -164,7 +167,7 @@ describe('extended synastry delivery resilience', () => {
     }));
   });
 
-  it('returns a data-grounded reading for two manually entered people when the model is unavailable', async () => {
+  it('preserves both newly saved people but returns a retryable error when the writer is unavailable', async () => {
     mockCreateLunaStructuredResponse.mockRejectedValueOnce(new Error('model unavailable'));
 
     const result = await post({
@@ -180,21 +183,10 @@ describe('extended synastry delivery resilience', () => {
       language: 'ru',
     });
 
-    expect(result.status).toBe(200);
-    expect(result.payload).toMatchObject({
-      fromCache: false,
-      result: {
-        summary: expect.any(String),
-        fullAnalysis: {
-          attraction: expect.any(String),
-          difficulties: expect.any(String),
-          recommendations: expect.any(Array),
-          potential: expect.any(String),
-        },
-      },
-    });
-    expect(result.payload.result.summary).toContain('Анна');
-    expect(result.payload.result.summary).toContain('Максим');
+    expect(result.status).toBe(503);
+    expect(result.payload).toMatchObject({ code: 'SYNASTRY_READING_UNAVAILABLE', retryable: true });
+    expect(result.payload.result).toBeUndefined();
+    expect(mockSynastrySet).not.toHaveBeenCalled();
     expect(mockCreateOrReuseCanonicalChart).toHaveBeenCalledTimes(2);
     expect(mockCreateOrReuseCanonicalChart).toHaveBeenCalledWith(expect.objectContaining({ userId: '42', name: 'Анна', birthDate: '1992-03-14', birthTime: '09:30', birthPlace: 'Москва', birthTimeMode: 'exact' }));
     expect(mockCalculateNatalChart).not.toHaveBeenCalled();
@@ -206,18 +198,6 @@ describe('extended synastry delivery resilience', () => {
     mockGetById
       .mockResolvedValueOnce(chart(1))
       .mockResolvedValueOnce(chart(2));
-    mockCreateLunaStructuredResponse.mockResolvedValueOnce({
-      content: JSON.stringify({
-        summary: 'Анна и Максим быстро находят общий ритм, когда решают один конкретный вопрос. Но под давлением один ускоряется, а второму нужна пауза; связь удерживает ясная договорённость о следующем шаге.',
-        sections: [{ id: 'between_you', text: 'Один быстрее задаёт направление, второй проверяет, не потерялись ли важные детали. Такой обмен помогает двигаться без суеты, пока решение не выдают за уже согласованное.' }],
-        closing: {
-          strength: 'Они соединяют инициативу одного и внимательность другого к важным деталям.',
-          risk: 'Разный темп решения превращает уточнение в торможение, а инициативу — в давление.',
-          action: 'Называть момент, когда обсуждение действительно стало общим решением.',
-        },
-        compatibilityScore: 1,
-      }),
-    });
     mockSynastrySet.mockRejectedValueOnce(new Error('cache table unavailable'));
 
     const result = await post({
@@ -228,10 +208,47 @@ describe('extended synastry delivery resilience', () => {
     });
 
     expect(result.status).toBe(200);
-    expect(result.payload.result.summary).toContain('Анна и Максим');
-    expect(result.payload.result.closing.action).toContain('общим решением');
+    expect(result.payload.result.summary).toContain('Тебе и Максиму');
+    expect(result.payload.result.summary.split('\n\n')).toHaveLength(8);
+    expect(result.payload.result.closing).toBeUndefined();
     expect(result.payload.result.schemaVersion).toBe('compatibility-v2');
     expect(result.payload.result.overallScore).not.toBe(1);
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('retries malformed prose once using the same saved chart evidence', async () => {
+    mockGetById.mockImplementation(async (id) => chart(id));
+    mockCreateLunaStructuredResponse.mockResolvedValueOnce({ content: JSON.stringify({ summary: 'Short canned text' }) });
+    const result = await post({ subjectChartId: 1, partnerChartId: 2 });
+    expect(result.status).toBe(200);
+    expect(mockCreateLunaStructuredResponse).toHaveBeenCalledTimes(2);
+    expect(mockCreateLunaStructuredResponse.mock.calls[1][0].instructions).toContain('paragraphs_missing');
+    expect(mockCreateLunaStructuredResponse.mock.calls[0][0].input).toBe(mockCreateLunaStructuredResponse.mock.calls[1][0].input);
+    expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('does not cache malformed prose after the bounded retry is exhausted', async () => {
+    mockGetById.mockImplementation(async (id) => chart(id));
+    mockCreateLunaStructuredResponse.mockResolvedValue({ content: JSON.stringify({ summary: 'Short canned text' }) });
+    const result = await post({ subjectChartId: 1, partnerChartId: 2 });
+    expect(result.status).toBe(503);
+    expect(result.payload.code).toBe('SYNASTRY_READING_UNAVAILABLE');
+    expect(mockCreateLunaStructuredResponse).toHaveBeenCalledTimes(2);
+    expect(mockSynastrySet).not.toHaveBeenCalled();
+    expect(mockUpsertByChart).not.toHaveBeenCalled();
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('replaces an obsolete narrative cache with the current story without recalculating charts', async () => {
+    mockGetById.mockImplementation(async (id) => chart(id));
+    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1', summary: 'An old canned reading' });
+    const result = await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'ex' });
+    expect(result.status).toBe(200);
+    expect(result.payload.result.narrativeVersion).toBe(COMPATIBILITY_NARRATIVE_VERSION);
+    expect(result.payload.result.relationshipContext).toBe('ex');
+    expect(result.payload.fromCache).toBe(false);
+    expect(mockCreateLunaStructuredResponse).toHaveBeenCalledTimes(1);
     expect(mockCalculateNatalChart).not.toHaveBeenCalled();
   });
 
@@ -255,7 +272,7 @@ describe('extended synastry delivery resilience', () => {
   });
 
   it('keeps unknown birth time reduced in the ordinary saved chart path', async () => {
-    mockCreateLunaStructuredResponse.mockRejectedValueOnce(new Error('model unavailable'));
+
 
     const result = await post({
       subjectSource: 'birth',
@@ -283,7 +300,7 @@ describe('extended synastry delivery resilience', () => {
   });
 
   it('uses a 30-minute uncertainty for an approximate manually entered time', async () => {
-    mockCreateLunaStructuredResponse.mockRejectedValueOnce(new Error('model unavailable'));
+
 
     const result = await post({
       subjectSource: 'birth',
@@ -347,7 +364,7 @@ describe('extended synastry delivery resilience', () => {
 
   it('reuses the saved-pair cache without creating charts or invoking Swiss or AI', async () => {
     mockGetById.mockImplementation(async (id) => chart(id));
-    const cached = { schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1', summary: 'Saved result' };
+    const cached = { schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION, summary: 'Saved result' };
     mockSynastryGet.mockResolvedValue(cached);
 
     const first = await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'romance' });
@@ -365,7 +382,7 @@ describe('extended synastry delivery resilience', () => {
     let subjectHash = 'subject-v1';
     let partnerHash = 'partner-v1';
     mockGetById.mockImplementation(async (id) => ({ ...chart(id), input_hash: id === 1 ? subjectHash : partnerHash }));
-    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1' });
+    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION });
     await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'romance' });
     subjectHash = 'subject-v2';
     await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'romance' });
@@ -398,7 +415,7 @@ describe('extended synastry delivery resilience', () => {
       const record = chart(id) as any;
       return { ...record, chart_data: { ...record.chart_data, calculationMetadata: { ...record.chart_data.calculationMetadata, calculatedAt: id === 1 ? calculatedAt : '2026-09-01T00:00:00.000Z' } } };
     });
-    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1' });
+    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION });
     await post({ subjectChartId: 1, partnerChartId: 2 });
     calculatedAt = '2026-09-04T00:00:00.000Z';
     await post({ subjectChartId: 1, partnerChartId: 2 });

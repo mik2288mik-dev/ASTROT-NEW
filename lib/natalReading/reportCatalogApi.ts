@@ -24,6 +24,7 @@ import {
   isNatalReportAnswer,
   isNatalReportAnswerFree,
   isNatalReportCategoryPack,
+  localizeNatalReportText,
   NATAL_REPORT_CATALOG_ANSWER_CACHE_KEY,
   NATAL_REPORT_CATALOG_ANSWER_PROMPT_VERSION,
   NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY,
@@ -64,7 +65,7 @@ export function natalReportCategoryCacheOptions(
   const built = buildNatalReportCatalogContext(ctx.profile, ctx.chartData!);
   const evidence = resolveNatalReportCategoryEvidence(built, categoryKey);
   return {
-    accessTier: 'free',
+    accessTier: categoryKey === 'main' ? 'free' : 'premium',
     contentVariant: 'brief',
     cacheKey: `${NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY}.${categoryKey}.${language}`,
     inputHash: stableHash({
@@ -82,6 +83,7 @@ export function natalReportCategoryCacheOptions(
       mainAnchor: categoryKey === 'main' ? null : mainAnchorForHash(mainAnchor),
     }),
     promptVersion: NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION,
+    modelTier: categoryKey === 'main' ? 'base' : 'premium',
     isPersistent: true,
   };
 }
@@ -98,9 +100,9 @@ export function natalReportAnswerCacheOptions(
   const built = buildNatalReportCatalogContext(ctx.profile, ctx.chartData!);
   const evidence = resolveNatalReportAnswerEvidence(built, answerKey);
   const preview = categoryPack.previews.find((item) => item.answerKey === answerKey);
-  if (!preview) throw new Error('NATAL_REPORT_ANSWER_PREVIEW_NOT_FOUND');
+  const accessTier = definition.categoryKey === 'main' ? definition.access : 'premium';
   return {
-    accessTier: definition.access,
+    accessTier,
     contentVariant: 'full',
     cacheKey: `${NATAL_REPORT_CATALOG_ANSWER_CACHE_KEY}.${answerKey}.${language}`,
     inputHash: stableHash({
@@ -115,13 +117,14 @@ export function natalReportAnswerCacheOptions(
         requiredEvidenceIds: evidence.requiredEvidenceIds,
       },
       preview: {
-        text: preview.preview,
-        evidenceIds: preview.evidenceIds,
+        text: preview?.preview || localizeNatalReportText(definition.title, language),
+        evidenceIds: preview?.evidenceIds || evidence.evidenceIds,
       },
+      categoryNarrative: categoryPack.summary,
       mainAnchor: mainAnchorForHash(mainAnchor),
     }),
     promptVersion: NATAL_REPORT_CATALOG_ANSWER_PROMPT_VERSION,
-    modelTier: definition.access === 'premium' ? 'premium' : 'base',
+    modelTier: accessTier === 'premium' ? 'premium' : 'base',
     isPersistent: true,
   };
 }
@@ -198,7 +201,7 @@ export async function generateNatalReportCategoryWithLock(input: {
     lockKey: buildContentGenerationLockKey({
       userId: input.userId,
       chartId: input.ctx.chartId,
-      accessTier: 'free',
+      accessTier: cacheOptions.accessTier,
       contentSurface: 'natal',
       contentVariant: 'brief',
       cacheKey: cacheOptions.cacheKey,
@@ -296,7 +299,6 @@ export async function generateNatalReportAnswerWithLock(input: {
         categoryKey: definition.categoryKey,
       });
   const preview = categoryPack.previews.find((item) => item.answerKey === input.answerKey);
-  if (!preview) throw new Error('NATAL_REPORT_ANSWER_PREVIEW_NOT_FOUND');
   const cacheOptions = natalReportAnswerCacheOptions(
     input.ctx,
     input.answerKey,
@@ -307,7 +309,7 @@ export async function generateNatalReportAnswerWithLock(input: {
     lockKey: buildContentGenerationLockKey({
       userId: input.userId,
       chartId: input.ctx.chartId,
-      accessTier: definition.access,
+      accessTier: cacheOptions.accessTier,
       contentSurface: 'natal',
       contentVariant: 'full',
       cacheKey: cacheOptions.cacheKey,
@@ -328,7 +330,7 @@ export async function generateNatalReportAnswerWithLock(input: {
         profile: input.ctx.profile,
         chart: input.ctx.chartData!,
         answerKey: input.answerKey,
-        preview: preview.preview,
+        preview: preview?.preview || localizeNatalReportText(definition.title, languageOf(input.ctx)),
         mainAnchor,
       });
       return saveReading(input.ctx, cacheOptions, report);

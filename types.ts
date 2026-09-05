@@ -245,10 +245,12 @@ export interface SynastryResult {
 
   /** Calculated compatibility contract. AI may write prose but cannot change these fields. */
   schemaVersion?: 'compatibility-v2';
+  narrativeVersion?: string;
+  narrativeEvidenceIds?: string[];
   engineVersion?: string;
   overallScore?: number;
   verdict?: string;
-  relationshipContext?: 'romance' | 'relationship' | 'friendship' | 'family' | 'work';
+  relationshipContext?: 'romance' | 'relationship' | 'ex' | 'friendship' | 'family' | 'work';
   calculationLevel?: 'full' | 'reduced' | 'date_only' | 'hybrid_sign' | 'sign_only';
   dimensions?: CompatibilityDimensionResult[];
   strongestDimensions?: CompatibilityDimensionResult[];

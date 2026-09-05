@@ -474,6 +474,81 @@
   margin-top: 42px;
 }
 
+.natal-narrative-experience h1 {
+  scroll-margin-top: 100px;
+}
+
+.natal-narrative-copy {
+  margin: 30px 0 24px;
+  color: var(--natal-v3-ink);
+  font-size: 17px;
+  line-height: 1.7;
+  overflow-wrap: break-word;
+}
+
+.natal-narrative-copy p {
+  margin: 0 0 1.15em;
+}
+
+.natal-narrative-evidence {
+  margin-top: 24px;
+  color: var(--natal-v3-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.natal-narrative-evidence > summary {
+  padding: 12px 0;
+  color: var(--natal-v3-ink);
+  cursor: pointer;
+}
+
+.natal-narrative-chapters {
+  margin-top: 42px;
+}
+
+.natal-narrative-chapters > button,
+.natal-narrative-evidence > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 48px;
+  padding: 19px 0;
+  border: 0;
+  border-bottom: 1px solid var(--natal-v3-line);
+  background: transparent;
+  color: var(--natal-v3-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.natal-narrative-chapters > button > span {
+  display: grid;
+  gap: 7px;
+}
+
+.natal-narrative-chapters small {
+  color: var(--natal-v3-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.natal-narrative-chapters svg,
+.natal-narrative-evidence svg {
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+}
+
+.natal-narrative-experience button:focus-visible,
+.natal-narrative-evidence > summary:focus-visible {
+  outline: 2px solid var(--natal-v3-ink);
+  outline-offset: 4px;
+}
+
 .natal-v3-statement {
   padding: 24px 0;
   border-bottom: 1px solid var(--natal-v3-line);

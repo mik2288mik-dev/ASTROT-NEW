@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
+import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import {
   ensureValidContext,
 } from '../../../../lib/natalReading/apiHelper';
@@ -40,6 +41,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!ready) return;
   const { userId, ctx } = ready;
   const language = ctx.profile.language === 'en' ? 'en' : 'ru';
+  const accessTier = categoryKey === 'main' ? 'free' : 'premium';
+  if (accessTier === 'premium') {
+    const entitlement = await getPremiumEntitlementState(userId);
+    if (!entitlement.isPremium) {
+      return res.status(403).json({ error: 'Premium required', code: 'PREMIUM_REQUIRED', premiumRequired: true });
+    }
+  }
   const cached = await getCachedNatalReportCategory(ctx, categoryKey);
 
   if (req.method === 'GET') {
@@ -52,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'natal_report_catalog_v1',
-      accessTier: 'free',
+      accessTier,
     });
   }
 
@@ -60,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'natal_report_catalog_v1',
-      accessTier: 'free',
+      accessTier,
     });
   }
 
@@ -78,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       source: lockResult.fromCache
         ? (lockResult.source || 'natal_report_catalog_v1')
         : 'generated',
-      accessTier: 'free',
+      accessTier,
     });
   } catch (error) {
     console.error(

@@ -82,7 +82,11 @@ const DIMENSION_LABELS: Record<CompatibilityDimensionKey, { ru: string; en: stri
   pressure_response: { ru: 'Работа под давлением', en: 'Working under pressure' },
 };
 
-const CONTEXT_DIMENSIONS: Record<RelationshipContext, DimensionDefinition[]> = {
+type CalculationContext = Exclude<RelationshipContext, 'ex'>;
+
+const calculationContext = (context: RelationshipContext): CalculationContext => context === 'ex' ? 'relationship' : context;
+
+const CONTEXT_DIMENSIONS: Record<CalculationContext, DimensionDefinition[]> = {
   romance: [
     { id: 'emotional_closeness', weight: 1.2 },
     { id: 'attraction', weight: 1.15 },
@@ -125,7 +129,7 @@ const CONTEXT_DIMENSIONS: Record<RelationshipContext, DimensionDefinition[]> = {
   ],
 };
 
-const SECTION_DEFINITIONS: Record<RelationshipContext, Array<Omit<CompatibilitySectionPlanItem, 'evidenceIds'> & { titleEn: string }>> = {
+const SECTION_DEFINITIONS: Record<CalculationContext, Array<Omit<CompatibilitySectionPlanItem, 'evidenceIds'> & { titleEn: string }>> = {
   romance: [
     { id: 'between_you', title: 'Что между вами', titleEn: 'What happens between you', dimensionIds: ['emotional_closeness', 'attraction'] },
     { id: 'brings_closer', title: 'Что вас сближает', titleEn: 'What brings you closer', dimensionIds: ['emotional_closeness', 'stability'] },
@@ -528,7 +532,7 @@ function buildLimitedSignEvidence(input: CompatibilityEngineInput): Compatibilit
   const signResult = getCompatScore(subject, partner, language);
   const normalized = (signResult.overall - 50) / 50;
   const romantic = input.relationshipContext === 'romance';
-  const established = input.relationshipContext === 'relationship';
+  const established = calculationContext(input.relationshipContext) === 'relationship';
   const dimensionEffects: DimensionEffect = input.relationshipContext === 'work'
     ? { work_rhythm: normalized, decision_making: normalized * 0.7, communication: normalized * 0.55 }
     : input.relationshipContext === 'friendship'
@@ -738,7 +742,7 @@ function buildSectionPlan(
   evidence: CompatibilityEvidence[],
   language: Language,
 ): CompatibilitySectionPlanItem[] {
-  return SECTION_DEFINITIONS[context].map((definition) => {
+  return SECTION_DEFINITIONS[calculationContext(context)].map((definition) => {
     const evidenceIds = evidence
       .map((item) => ({
         id: item.id,
@@ -766,7 +770,7 @@ export function calculateCompatibility(input: CompatibilityEngineInput): Calcula
     ...(input.subjectChart && input.partnerChart ? buildHouseEvidence(input.subjectChart, input.partnerChart, language) : []),
     ...buildLimitedSignEvidence(input),
   ];
-  const definitions = CONTEXT_DIMENSIONS[input.relationshipContext];
+  const definitions = CONTEXT_DIMENSIONS[calculationContext(input.relationshipContext)];
   const dimensions = calculatedDimensions(definitions, evidence, language);
   const totalWeight = definitions.reduce((sum, item) => sum + item.weight, 0);
   const overallScore = clamp(Math.round(definitions.reduce((sum, item) => {

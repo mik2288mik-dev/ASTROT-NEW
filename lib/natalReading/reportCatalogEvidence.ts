@@ -176,18 +176,44 @@ export function resolveNatalReportCategoryEvidence(
   ));
 }
 
+/** A chapter draws from a compact shared set, without covering every question. */
+export function resolveNatalReportNarrativeEvidence(
+  built: BuiltNatalModelContext,
+  categoryKey: NatalReportCategoryKey,
+): NatalEvidenceFact[] {
+  const safeIds = getNatalNarrativeEvidenceIds(built);
+  const plans = resolveNatalReportCategoryEvidence(built, categoryKey);
+  const selected = new Set(plans.flatMap((plan) => plan.evidenceIds));
+  const angles = categoryKey === 'work' ? ['mc']
+    : categoryKey === 'love' ? ['descendant']
+    : categoryKey === 'main' ? ['ascendant', 'mc']
+    : categoryKey === 'character' ? ['ascendant'] : [];
+  const houses: Record<NatalReportCategoryKey, number[]> = {
+    main: [1, 7, 10], character: [1], love: [5, 7],
+    communication: [3, 9], work: [6, 10], money: [2, 8],
+  };
+  for (const angle of angles) selected.add(`natal.angle.${angle}`);
+  for (const house of houses[categoryKey]) selected.add(`natal.house.${house}`);
+  return built.context.evidence.filter((fact) => safeIds.has(fact.id) && selected.has(fact.id));
+}
+
 export function buildNatalReportEvidencePromptContext(
   built: BuiltNatalModelContext,
   plans: readonly NatalReportAnswerEvidencePlan[],
+  narrativeEvidence: readonly NatalEvidenceFact[] = [],
 ) {
   const evidenceById = new Map(built.context.evidence.map((fact) => [fact.id, fact]));
-  const evidenceIds = unique(plans.flatMap((plan) => plan.evidenceIds));
+  const evidenceIds = unique([
+    ...plans.flatMap((plan) => plan.evidenceIds),
+    ...narrativeEvidence.map((fact) => fact.id),
+  ]);
   return {
     birthTimeQuality: built.birthTimeQuality,
     reliability: {
       anglesIncluded: built.anglesIncluded,
       housesIncluded: built.housesIncluded,
     },
+    narrative_evidence_ids: narrativeEvidence.map((fact) => fact.id),
     answers: plans.map((plan) => ({
       answer_key: plan.answerKey,
       allowed_evidence_ids: plan.evidenceIds,

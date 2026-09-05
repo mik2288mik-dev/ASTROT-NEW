@@ -49,8 +49,11 @@ describe('compatibility editorial layout', () => {
     expect(resultCalculation).toBeLessThan(resultSummary);
     expect(resultSummary).toBeLessThan(resultMeta);
     expect(room).toContain('Большие кольца показывают общий индекс');
-    expect(room).toContain('среднее с учётом важности всех сфер ниже');
-    expect(room).toContain('className="compat-final-payoff"');
+    expect(room).toContain("const resultPercent = !isPerson");
+    expect(room).toContain('<EditorialProse text={deep.summary} />');
+    expect(room).not.toContain('className="compat-final-payoff"');
+    expect(room).not.toContain('deepSections.map');
+    expect(room).toContain('deep.narrativeEvidenceIds?.includes(item.id)');
     expect(room).toContain('<ContentActivityBar');
     expect(room).toContain('surface="compatibility"');
     expect(room).toContain('showCounts={false}');
@@ -115,7 +118,7 @@ describe('compatibility editorial layout', () => {
     expect(addFlow).toContain('Где можно не совпасть');
     expect(addFlow).toContain('Как лучше договориться');
     expect(addFlow).not.toContain('<EditorialCurve');
-    for (const label of ['Любовь', 'Отношения', 'Дружба', 'Семья', 'Работа / бизнес']) {
+    for (const label of ['Нравится человек', 'Отношения', 'Бывшие', 'Дружба', 'Семья', 'Работа / бизнес']) {
       expect(room).toContain(label);
     }
     expect(room).toContain("value: 'love', context: 'romance'");

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, CalendarDays, ChevronDown, Clock3, MapPin, Orbit } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { PreloadedNatalReport } from '../../components/NatalReading/HumanReport';
@@ -15,19 +15,11 @@ import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { NatalChartWheel } from '../../components/NatalReading/NatalChartWheel';
 import { MatrixRoom } from './MatrixRoom';
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
-import {
-  NATAL_REPORT_CATALOG_CONTRACT_VERSION,
-  type NatalReportCategoryKey,
-} from '../../lib/natalReading/reportCatalog';
-import {
-  ensureNatalCatalogCategory,
-  getNatalCatalogCategoryCached,
-} from '../../services/natalCatalogService';
+import type { NatalReportCategoryKey } from '../../lib/natalReading/reportCatalog';
 import {
   readNatalReadingVariant,
   resolveNatalReadingRenderer,
   subscribeNatalReadingVariant,
-  type NatalReadingRenderer,
   type NatalReadingVariant,
 } from '../../lib/natalReading/readingVariant';
 import type { ChartListItem } from '../../services/storageService';
@@ -119,29 +111,12 @@ export function NatalMagazine({
     && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
       ? uiPreview
       : undefined;
-  const catalogCacheIdentity = useMemo(() => data ? ({
-    chartFingerprint: buildNatalChartFingerprint(data),
-    reportVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
-  }) : null, [data]);
   const [readingVariant, setReadingVariant] = useState<NatalReadingVariant>(() => (
     readNatalReadingVariant(profile.id, profile.isAdmin === true)
   ));
-  const [readingRenderer, setReadingRenderer] = useState<NatalReadingRenderer>(() => {
-    if (previewConfig?.catalog) return 'catalog';
-    if (!data || !catalogCacheIdentity) return 'classic';
-    const userId = String(profile.id || '').trim();
-    const cached = userId ? getNatalCatalogCategoryCached(
-      userId,
-      'main',
-      chartId,
-      language,
-      catalogCacheIdentity,
-    ) : null;
-    return resolveNatalReadingRenderer(
-      readNatalReadingVariant(profile.id, profile.isAdmin === true),
-      Boolean(cached),
-    );
-  });
+  const readingRenderer = previewConfig?.catalog
+    ? 'catalog'
+    : resolveNatalReadingRenderer(profile.isAdmin === true ? readingVariant : 'auto', false);
   const [activeTab, setActiveTab] = useState<NatalScreenTab>(() => normalizeNatalScreenTab(
     previewTabToScreen(previewConfig?.initialTab, Boolean(previewConfig?.openQuestion)),
     isSavedPerson,
@@ -173,50 +148,6 @@ export function NatalMagazine({
       setReadingVariant(next);
     });
   }, [profile.id, profile.isAdmin]);
-
-  useEffect(() => {
-    if (normalizedActiveTab !== 'foundation' && normalizedActiveTab !== 'explore') return;
-    if (previewConfig?.catalog) {
-      setReadingRenderer('catalog');
-      return;
-    }
-    if (!data || !catalogCacheIdentity) {
-      setReadingRenderer('classic');
-      return;
-    }
-    const userId = String(profile.id || '').trim();
-    const cached = userId ? getNatalCatalogCategoryCached(
-      userId,
-      'main',
-      chartId,
-      language,
-      catalogCacheIdentity,
-    ) : null;
-    setReadingRenderer(resolveNatalReadingRenderer(readingVariant, Boolean(cached)));
-    if (readingVariant === 'auto' && !cached && userId) {
-      void ensureNatalCatalogCategory(
-        userId,
-        'main',
-        chartId,
-        language,
-        catalogCacheIdentity,
-      ).catch((error: unknown) => {
-        console.warn(
-          '[NatalMagazine] Natal catalog background warm-up failed:',
-          error instanceof Error ? error.message : error,
-        );
-      });
-    }
-  }, [
-    catalogCacheIdentity,
-    chartId,
-    data,
-    language,
-    normalizedActiveTab,
-    previewConfig?.catalog,
-    profile.id,
-    readingVariant,
-  ]);
 
   useEffect(() => {
     if (

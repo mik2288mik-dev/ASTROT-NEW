@@ -31,10 +31,17 @@ describe('admin natal reading variant', () => {
     expect(readNatalReadingVariant('admin-3', true, storage)).toBe('auto');
   });
 
-  it('uses classic as the auto fallback and catalog only when it is ready', () => {
-    expect(resolveNatalReadingRenderer('auto', false)).toBe('classic');
+  it('opens the narrative catalog on a first visit and preserves only explicit classic selection', () => {
+    expect(resolveNatalReadingRenderer('auto', false)).toBe('catalog');
     expect(resolveNatalReadingRenderer('auto', true)).toBe('catalog');
     expect(resolveNatalReadingRenderer('catalog', false)).toBe('catalog');
     expect(resolveNatalReadingRenderer('classic', true)).toBe('classic');
+    expect(resolveNatalReadingRenderer('classic', false)).toBe('classic');
+  });
+
+  it('ignores a stored classic choice after admin access is removed', () => {
+    const storage = memoryStorage();
+    writeNatalReadingVariant('user-1', true, 'classic', storage);
+    expect(resolveNatalReadingRenderer(readNatalReadingVariant('user-1', false, storage), false)).toBe('catalog');
   });
 });

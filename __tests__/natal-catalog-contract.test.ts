@@ -16,14 +16,15 @@ import {
   generateNatalReportCategoryPack,
   hasNatalReportCatalogCopyViolation,
   isNatalReportMainSummaryLengthAllowed,
-  NATAL_REPORT_MAIN_SUMMARY_MAX_CHARS,
-  NATAL_REPORT_MAIN_SUMMARY_MIN_CHARS,
+  NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS,
+  NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS,
 } from '../lib/natalReading/reportCatalogGeneration';
 import {
   buildNatalReportCatalogContext,
   resolveNatalReportAnswerEvidence,
   resolveNatalReportCategoryEvidence,
 } from '../lib/natalReading/reportCatalogEvidence';
+import { natalEditorialCategoryPayload } from './fixtures/natalEditorialNarrative';
 
 const profile: UserProfile = {
   id: 'catalog-contract-user',
@@ -58,7 +59,7 @@ const chart: NatalChartData = {
 
 describe('natal report catalog contract', () => {
   it('defines 47 unique owned answers in the six requested categories', () => {
-    expect(NATAL_REPORT_CATALOG_CONTRACT_VERSION).toBe('natal-report-catalog-v1');
+    expect(NATAL_REPORT_CATALOG_CONTRACT_VERSION).toBe('natal-report-catalog-v2');
     expect(NATAL_REPORT_ANSWER_COUNT).toBe(47);
     expect(NATAL_REPORT_ANSWER_KEYS).toHaveLength(47);
     expect(new Set(NATAL_REPORT_ANSWER_KEYS).size).toBe(47);
@@ -121,51 +122,24 @@ describe('natal report catalog contract', () => {
     ]);
     expect(new Set(NATAL_REPORT_MAIN_PREVIEW_KEYS).size).toBe(6);
     const schema = buildNatalReportCategorySchema('main') as any;
-    expect(schema.properties.previews.minItems).toBe(6);
-    expect(schema.properties.previews.maxItems).toBe(6);
-    expect(schema.properties.free_answers.minItems).toBe(2);
-    expect(schema.properties.free_answers.maxItems).toBe(2);
-    expect(schema.properties.previews.items.properties.preview.maxLength).toBe(150);
+    expect(schema.properties.previews.required).toHaveLength(6);
+    expect(schema.properties.free_answers.minItems).toBe(0);
+    expect(schema.properties.free_answers.maxItems).toBe(0);
+    expect(schema.properties.previews.properties.main_how_people_see_you.properties.preview.maxLength).toBe(150);
     expect(schema.properties.observations.items.properties.text.maxLength).toBe(150);
-    expect(schema.properties.summary.items.properties.text.minLength).toBe(200);
-    expect(schema.properties.summary.items.properties.text.maxLength).toBe(210);
+    expect(schema.properties.observations.maxItems).toBe(0);
+    expect(schema.properties.summary.items.properties.text.minLength).toBe(80);
+    expect(schema.properties.summary.items.properties.text.maxLength).toBe(1200);
   });
 
   it('repairs a schema-shaped Main candidate that is too short before returning it', async () => {
     const built = buildNatalReportCatalogContext(profile, chart);
-    const plans = resolveNatalReportCategoryEvidence(built, 'main');
-    const planByKey = new Map(plans.map((plan) => [plan.answerKey, plan]));
-    const freeKeys = getNatalReportCategory('main')!.answerKeys.filter(isNatalReportAnswerFree);
-    const valid = {
-      summary: ['а', 'б', 'в'].map((letter) => ({
-        text: letter.repeat(200),
-        evidence_ids: [plans[0].evidenceIds[0]],
-      })),
-      observations: ['г', 'д', 'е', 'ж', 'з'].map((letter) => ({
-        text: letter.repeat(40),
-        evidence_ids: [plans[0].evidenceIds[0]],
-      })),
-      previews: NATAL_REPORT_MAIN_PREVIEW_KEYS.map((answerKey, index) => ({
-        answer_key: answerKey,
-        preview: 'Обычный личный вывод без лишних слов и обещаний, вариант номер ' + index + '.',
-        evidence_ids: [planByKey.get(answerKey)!.evidenceIds[0]],
-      })),
-      free_answers: freeKeys.map((answerKey) => {
-        const plan = planByKey.get(answerKey)!;
-        return {
-          answer_key: answerKey,
-          paragraphs: ['и', 'к', 'л'].map((letter, index) => ({
-            text: letter.repeat(45) + String(index),
-            evidence_ids: index === 0 ? plan.requiredEvidenceIds : [plan.evidenceIds[0]],
-          })),
-        };
-      }),
-    };
+    const valid = natalEditorialCategoryPayload(built);
     const tooShort = {
       ...valid,
-      summary: valid.summary.map((statement) => ({
+      summary: valid.summary!.map((statement) => ({
         ...statement,
-        text: statement.text.slice(0, 100),
+        text: String(statement.text).slice(0, 100),
       })),
     };
     const prompts: string[] = [];
@@ -189,8 +163,8 @@ describe('natal report catalog contract', () => {
 
     expect(requestStructured).toHaveBeenCalledTimes(2);
     expect(prompts[1]).toContain('REPAIR REQUIRED');
-    expect(prompts[1]).toContain('SUMMARY_TOTAL_TOO_SHORT:300');
-    expect(report.summary.reduce((sum, item) => sum + item.text.length, 0)).toBe(600);
+    expect(prompts[1]).toContain('SUMMARY_WORDS_TOO_SHORT:');
+    expect(isNatalReportMainSummaryLengthAllowed(report.summary.map((item) => item.text))).toBe(true);
   });
 
   it('blocks report jargon in Russian and English without matching ordinary words by substring', () => {
@@ -223,17 +197,17 @@ describe('natal report catalog contract', () => {
     expect(ordinary.filter(hasNatalReportCatalogCopyViolation)).toEqual([]);
   });
 
-  it('keeps the Main reading between 600 and 1050 characters in three to five paragraphs', () => {
-    const lengths = (...sizes: number[]) => sizes.map((size) => 'а'.repeat(size));
+  it('keeps Main at 350–500 words in five to eight paragraphs without equal character widths', () => {
+    const lengths = (...sizes: number[]) => sizes.map((size) => 'слово '.repeat(size));
 
-    expect(NATAL_REPORT_MAIN_SUMMARY_MIN_CHARS).toBe(600);
-    expect(NATAL_REPORT_MAIN_SUMMARY_MAX_CHARS).toBe(1050);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(200, 200, 200))).toBe(true);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(199, 200, 200))).toBe(false);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(210, 210, 210, 210, 210))).toBe(true);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(211, 210, 210, 210, 210))).toBe(false);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(300, 300))).toBe(false);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(175, 175, 175, 175, 175, 175))).toBe(false);
+    expect(NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS).toBe(350);
+    expect(NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS).toBe(500);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(70, 70, 70, 70, 70))).toBe(true);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(69, 70, 70, 70, 70))).toBe(false);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(50, 75, 100, 125, 150))).toBe(true);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(51, 75, 100, 125, 150))).toBe(false);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(100, 100, 100, 100))).toBe(false);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(50, 50, 50, 50, 50, 50, 50, 50))).toBe(true);
   });
 
   it('builds deterministic evidence for all answers without requiring angles or houses', () => {

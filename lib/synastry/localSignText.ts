@@ -168,7 +168,7 @@ export function buildLocalPersonSnapshot(
   if (!profile) return null;
   const ru = language !== 'en';
   const label = genderedSign(getZodiacSign(language, key), asGender(gender), ru);
-  const copy = CONTEXT_COPY[ru ? 'ru' : 'en'][context];
+  const copy = CONTEXT_COPY[ru ? 'ru' : 'en'][context === 'ex' ? 'relationship' : context];
   return ru
     ? {
         headline: `${label}: сначала о человеке`,
@@ -211,7 +211,7 @@ export function buildLocalSignCompatibility(
   const gB = asGender(genderSecond);
   const labelA = genderedSign(nameA, gA, ru);
   const labelB = genderedSign(nameB, gB, ru);
-  const contextCopy = CONTEXT_COPY[ru ? 'ru' : 'en'][context];
+  const contextCopy = CONTEXT_COPY[ru ? 'ru' : 'en'][context === 'ex' ? 'relationship' : context];
 
   let attraction: string;
   let difficulty: string;

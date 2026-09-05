@@ -1,6 +1,6 @@
 import type { Language } from '../../types';
 
-export type RelationshipContext = 'romance' | 'relationship' | 'friendship' | 'work' | 'family';
+export type RelationshipContext = 'romance' | 'relationship' | 'ex' | 'friendship' | 'work' | 'family';
 
 export type RelationshipContextOption = {
   value: RelationshipContext;
@@ -12,7 +12,7 @@ export type RelationshipContextOption = {
 export const RELATIONSHIP_CONTEXT_OPTIONS: readonly RelationshipContextOption[] = [
   {
     value: 'romance',
-    label: { ru: 'Любовь', en: 'Love' },
+    label: { ru: 'Нравится человек', en: 'A crush' },
     hint: { ru: 'Симпатия, влечение, начало отношений', en: 'Attraction, a crush, or a new relationship' },
     backendValue: 'любовь и романтические отношения',
   },
@@ -21,6 +21,12 @@ export const RELATIONSHIP_CONTEXT_OPTIONS: readonly RelationshipContextOption[] 
     label: { ru: 'Отношения', en: 'Relationship' },
     hint: { ru: 'Существующая пара и совместная жизнь', en: 'An established couple and shared life' },
     backendValue: 'существующие отношения в паре',
+  },
+  {
+    value: 'ex',
+    label: { ru: 'Бывшие', en: 'Former partners' },
+    hint: { ru: 'Контакт после отношений', en: 'Contact after a relationship' },
+    backendValue: 'бывшие партнёры',
   },
   {
     value: 'friendship',

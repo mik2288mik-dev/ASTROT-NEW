@@ -17,13 +17,12 @@ describe('natal reading variant UI contract', () => {
     expect(component).toContain("value: 'classic'");
   });
 
-  it('renders classic, forced catalog and cache-aware auto without a mid-reading swap', () => {
+  it('uses the narrative on the first render and leaves classic only as an admin override', () => {
     const magazine = source('views/v2/NatalMagazine.tsx');
-    expect(magazine).toContain("resolveNatalReadingRenderer(readingVariant, Boolean(cached))");
-    expect(magazine).toContain("readingVariant === 'auto' && !cached && userId");
-    expect(magazine).toContain('void ensureNatalCatalogCategory(');
+    expect(magazine).toContain("resolveNatalReadingRenderer(profile.isAdmin === true ? readingVariant : 'auto', false)");
+    expect(magazine).not.toContain('setReadingRenderer');
+    expect(magazine).not.toContain('ensureNatalCatalogCategory(');
     expect(magazine).toContain("readingRenderer === 'catalog'");
     expect(magazine).toContain('surface="reading"');
-    expect(magazine).not.toContain('.then(() => setReadingRenderer');
   });
 });

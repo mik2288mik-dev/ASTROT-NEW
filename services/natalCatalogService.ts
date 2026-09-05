@@ -288,7 +288,9 @@ export function getNatalCatalogCategoryCached(
   chartId?: number,
   language?: 'ru' | 'en',
   cacheIdentity?: NatalCatalogCacheIdentity,
+  isPremium = false,
 ): NatalReportCategoryPack | null {
+  if (categoryKey !== 'main' && !isPremium) return null;
   const key = categoryScope(userId, categoryKey, chartId, language, cacheIdentity);
   const memory = categoryCache.get(key);
   if (memory) return memory;
@@ -304,7 +306,15 @@ export async function ensureNatalCatalogCategory(
   chartId?: number,
   language?: 'ru' | 'en',
   cacheIdentity?: NatalCatalogCacheIdentity,
+  isPremium = false,
 ): Promise<NatalReportCategoryPack> {
+  if (categoryKey !== 'main' && !isPremium) {
+    const error = new Error('Premium required') as NatalCatalogError;
+    error.status = 403;
+    error.code = 'PREMIUM_REQUIRED';
+    error.premiumAvailable = true;
+    throw error;
+  }
   const key = categoryScope(userId, categoryKey, chartId, language, cacheIdentity);
   const local = getNatalCatalogCategoryCached(
     userId,
@@ -312,6 +322,7 @@ export async function ensureNatalCatalogCategory(
     chartId,
     language,
     cacheIdentity,
+    isPremium,
   );
   if (local) return local;
   const existing = categoryInFlight.get(key);
@@ -350,7 +361,7 @@ export function getNatalCatalogAnswerCached(
   cacheIdentity?: NatalCatalogCacheIdentity,
 ): NatalReportAnswer | null {
   const definition = getNatalReportAnswer(answerKey);
-  if (!definition || (definition.access === 'premium' && !isPremium)) return null;
+  if (!definition || ((definition.categoryKey !== 'main' || definition.access === 'premium') && !isPremium)) return null;
   const key = answerScope(userId, answerKey, chartId, language, cacheIdentity);
   const memory = answerCache.get(key);
   if (memory) return memory;
@@ -377,7 +388,7 @@ export async function ensureNatalCatalogAnswer(
   }
   // The explicit entitlement flag gates memory and localStorage as well as the
   // request. A previously cached paid answer is never read after access expires.
-  if (definition.access === 'premium' && !isPremium) {
+  if ((definition.categoryKey !== 'main' || definition.access === 'premium') && !isPremium) {
     const error = new Error('Premium required') as NatalCatalogError;
     error.status = 403;
     error.code = 'PREMIUM_REQUIRED';

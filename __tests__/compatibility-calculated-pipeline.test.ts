@@ -1,10 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { buildSynastryPrompt } from '../lib/contentPromptBuilders';
+import { buildCompatibilityStoryPrompt, COMPATIBILITY_STORY_SCHEMA } from '../lib/synastry/compatibilityVoice';
+import { compatibilityStory } from './fixtures/compatibilityStory';
 import { calculateCompatibility } from '../lib/synastry/compatibilityEngine';
 import {
   buildCompatibilityResult,
-  buildDeterministicCompatibilityNarrative,
+  selectCompatibilityWriterEvidence,
 } from '../lib/synastry/compatibilityNarrative';
 import { getCompatibilityRingGeometry } from '../lib/synastry/compatibilityPresentation';
 import {
@@ -91,18 +92,18 @@ describe('calculated compatibility pipeline', () => {
   it('keeps AI out of score calculation and excludes score from the writer schema', () => {
     const calculated = calculateCompatibility({
       subjectChart: chart(0),
-      partnerChart: chart(21),
+      partnerChart: chart(0),
       calculationLevel: 'full',
       relationshipContext: 'relationship',
       language: 'ru',
     });
     const result = buildCompatibilityResult(
       calculated,
-      { summary: 'Текст модели.', sections: [], compatibilityScore: 1 },
+      { ...compatibilityStory(selectCompatibilityWriterEvidence(calculated)), compatibilityScore: 1 },
       { subjectName: 'Анна', partnerName: 'Максим', language: 'ru' },
     );
     const api = read('pages/api/content/synastry/extended.ts');
-    const prompt = buildSynastryPrompt().user;
+    const prompt = buildCompatibilityStoryPrompt({ calculated, language: 'ru', subject: { name: 'Анна', gender: 'female', birthTimeQuality: 'exact' }, partner: { name: 'Максим', gender: 'male', birthTimeQuality: 'exact' } });
 
     expect(result.overallScore).toBe(calculated.overallScore);
     expect(result.compatibilityScore).toBe(calculated.overallScore);
@@ -111,38 +112,25 @@ describe('calculated compatibility pipeline', () => {
     expect(api).toContain('calculateCompatibility({');
     expect(api).toContain('calculated.aspects.map');
     expect(api).not.toContain("compatibilityScore: { type: 'number' }");
-    expect(api).toContain("required: ['summary', 'sections', 'closing']");
-    expect(prompt).toContain('Ты — только writer layer');
-    expect(prompt).toContain('Не возвращай compatibilityScore');
-    expect(prompt).toContain('не начинай два раздела одинаково');
-    expect(prompt).toContain('Избегай машинных связок');
-    expect(result.closing?.strength).toBeTruthy();
+    expect(COMPATIBILITY_STORY_SCHEMA.required).toEqual(['paragraphs']);
+    const context = JSON.parse(prompt.user);
+    expect(context).not.toHaveProperty('overallScore');
+    expect(context).not.toHaveProperty('sectionPlan');
+    expect(JSON.stringify(context)).not.toContain('"score"');
+    expect(result.sections).toEqual([]);
+    expect(result.closing).toBeUndefined();
+    expect(result.summary.split('\n\n')).toHaveLength(8);
+    expect(result.narrativeEvidenceIds?.length).toBeGreaterThanOrEqual(3);
   });
 
-  it('rejects short machine-like writer copy and keeps a data-grounded payoff', () => {
-    const calculated = calculateCompatibility({
-      subjectChart: chart(0),
-      partnerChart: chart(21),
-      calculationLevel: 'full',
-      relationshipContext: 'romance',
-      language: 'ru',
-    });
-    const result = buildCompatibilityResult(
-      calculated,
-      {
-        summary: 'Между вами присутствует динамика.',
-        sections: [{ id: 'between_you', text: 'Эмоциональный контакт считывается.' }],
-        closing: { strength: 'Связь.', risk: 'Риск.', action: 'Говорите.' },
-      },
-      { subjectName: 'Анна', partnerName: 'Максим', language: 'ru' },
-    );
-
-    expect(result.summary).toContain('Анна и Максим');
-    expect(result.sections?.[0].text).not.toContain('считывается');
-    expect(result.closing?.strength.length).toBeGreaterThan(40);
-    expect(result.closing?.action).toMatch(/[.!?]$/);
+  it('rejects missing or short writer copy without manufacturing a personalized fallback', () => {
+    const calculated = calculateCompatibility({ subjectChart: chart(0), partnerChart: chart(21), calculationLevel: 'full', relationshipContext: 'romance', language: 'ru' });
+    expect(() => buildCompatibilityResult(calculated, null)).toThrow('SYNASTRY_NARRATIVE_INVALID:shape');
+    expect(() => buildCompatibilityResult(calculated, { summary: 'Между вами присутствует динамика.' })).toThrow('paragraphs_missing');
+    const short = compatibilityStory(selectCompatibilityWriterEvidence(calculated));
+    short.paragraphs[0].text = 'Очень короткий ответ.';
+    expect(() => buildCompatibilityResult(calculated, short)).toThrow('prose_content');
   });
-
   it('excludes angles and houses when birth time is unknown', () => {
     const result = calculateCompatibility({
       subjectChart: chart(0, false),
@@ -200,104 +188,15 @@ describe('calculated compatibility pipeline', () => {
     expect(work.dimensions.some((dimension) => dimension.id === 'attraction')).toBe(false);
   });
 
-  it('builds meaningfully different fallback readings for different pairs and contexts', () => {
-    const loveCalculation = calculateCompatibility({ subjectChart: chart(0), partnerChart: chart(13), calculationLevel: 'full', relationshipContext: 'romance', language: 'ru' });
-    const workCalculation = calculateCompatibility({ subjectChart: chart(0), partnerChart: chart(60), calculationLevel: 'full', relationshipContext: 'work', language: 'ru' });
-    const love = buildCompatibilityResult(loveCalculation, null, { subjectName: 'Анна', partnerName: 'Максим', language: 'ru' });
-    const work = buildCompatibilityResult(workCalculation, null, { subjectName: 'Ирина', partnerName: 'Олег', language: 'ru' });
-
-    expect(love.summary).not.toBe(work.summary);
-    expect(love.closing).not.toEqual(work.closing);
-    expect(love.sections?.map((section) => section.id)).not.toEqual(work.sections?.map((section) => section.id));
-    expect(work.sections?.some((section) => section.id === 'under_pressure')).toBe(true);
-    expect(work.sections?.some((section) => section.id === 'attraction')).toBe(false);
+  it('keeps ex as a separate story context while reusing established-pair calculation weights', () => {
+    const base = { subjectChart: chart(0), partnerChart: chart(13), calculationLevel: 'full' as const, language: 'ru' as const };
+    const established = calculateCompatibility({ ...base, relationshipContext: 'relationship' });
+    const former = calculateCompatibility({ ...base, relationshipContext: 'ex' });
+    expect(former.relationshipContext).toBe('ex');
+    expect(former.dimensions).toEqual(established.dimensions);
+    expect(former.aspects).toEqual(established.aspects);
+    expect(former.overallScore).toBe(established.overallScore);
   });
-
-  it('grounds fallback copy in evidence even when the dimension profile is unchanged', () => {
-    const dimensions = [
-      {
-        id: 'communication',
-        label: 'Общение',
-        score: 72,
-        confidence: 0.8,
-        supportiveEvidenceIds: ['support'],
-        challengingEvidenceIds: [],
-      },
-      {
-        id: 'conflict_ease',
-        label: 'Прохождение конфликтов',
-        score: 38,
-        confidence: 0.8,
-        supportiveEvidenceIds: [],
-        challengingEvidenceIds: ['challenge'],
-      },
-    ];
-    const calculated = (supportTechnical: Record<string, unknown>, challengeTechnical: Record<string, unknown>) => ({
-      engineVersion: 'compatibility-engine.v1',
-      overallScore: 61,
-      verdict: 'Живая, смешанная связь',
-      relationshipContext: 'relationship',
-      calculationLevel: 'full',
-      dimensions,
-      strongestDimensions: [dimensions[0]],
-      challengingDimensions: [dimensions[1]],
-      evidence: [
-        {
-          id: 'support',
-          type: 'aspect',
-          direction: 'mutual',
-          label: 'support',
-          weight: 0.8,
-          reliability: 'exact',
-          dimensionEffects: { communication: 0.7 },
-          technical: supportTechnical,
-        },
-        {
-          id: 'challenge',
-          type: 'aspect',
-          direction: 'mutual',
-          label: 'challenge',
-          weight: 0.7,
-          reliability: 'exact',
-          dimensionEffects: { conflict_ease: -0.6 },
-          technical: challengeTechnical,
-        },
-      ],
-      directionalPatterns: [],
-      sectionPlan: [{
-        id: 'dialogue',
-        title: 'Как вы разговариваете',
-        titleEn: 'How you talk',
-        dimensionIds: ['communication', 'conflict_ease'],
-        evidenceIds: ['support', 'challenge'],
-      }],
-      limitations: [],
-      aspects: [],
-    }) as any;
-
-    const first = buildDeterministicCompatibilityNarrative(
-      calculated(
-        { subjectKey: 'mercury', partnerKey: 'moon', aspect: 'trine', orb: 1.2 },
-        { subjectKey: 'mars', partnerKey: 'saturn', aspect: 'square', orb: 2.1 },
-      ),
-      { subjectName: 'Анна', partnerName: 'Максим', language: 'ru' },
-    );
-    const second = buildDeterministicCompatibilityNarrative(
-      calculated(
-        { subjectKey: 'venus', partnerKey: 'jupiter', aspect: 'sextile', orb: 0.8 },
-        { subjectKey: 'sun', partnerKey: 'uranus', aspect: 'opposition', orb: 1.7 },
-      ),
-      { subjectName: 'Анна', partnerName: 'Максим', language: 'ru' },
-    );
-
-    expect(first.summary).toContain('«Меркурий» (Анна)');
-    expect(first.summary).toContain('«Марс» (Анна)');
-    expect(second.summary).toContain('«Венера» (Анна)');
-    expect(second.summary).toContain('«Солнце» (Анна)');
-    expect(first.summary).not.toBe(second.summary);
-    expect(first.sections[0].text).not.toBe(second.sections[0].text);
-  });
-
   it('builds versioned compatibility reaction keys without names or birth data', () => {
     const signKey = buildSignCompatibilityReactionKey({
       subjectSign: 'aries',

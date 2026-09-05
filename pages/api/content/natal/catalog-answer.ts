@@ -43,10 +43,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!ready) return;
   const { userId, ctx } = ready;
   const language = ctx.profile.language === 'en' ? 'en' : 'ru';
+  const accessTier = definition.categoryKey === 'main' ? definition.access : 'premium';
 
   // Premium is checked before the first server cache lookup. A stale client flag
   // can never expose a paid answer from the durable cache.
-  if (definition.access === 'premium') {
+  if (accessTier === 'premium') {
     const entitlement = await getPremiumEntitlementState(userId);
     if (!entitlement.isPremium) {
       return res.status(403).json({
@@ -68,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'natal_report_catalog_answer_v1',
-      accessTier: definition.access,
+      accessTier,
     });
   }
 
@@ -76,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       interpretation: cached,
       source: 'natal_report_catalog_answer_v1',
-      accessTier: definition.access,
+      accessTier,
     });
   }
 
@@ -90,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       source: lockResult.fromCache
         ? (lockResult.source || 'natal_report_catalog_answer_v1')
         : 'generated',
-      accessTier: definition.access,
+      accessTier,
     });
   } catch (error) {
     console.error(

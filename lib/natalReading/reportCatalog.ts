@@ -1,17 +1,17 @@
 import { withAppVoiceCacheKey, withAppVoiceVersion } from '../appVoice';
 
-export const NATAL_REPORT_CATALOG_CONTRACT_VERSION = 'natal-report-catalog-v1';
+export const NATAL_REPORT_CATALOG_CONTRACT_VERSION = 'natal-report-catalog-v2';
 export const NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.category.v1`,
+  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.category.narrative.v2`,
 );
 export const NATAL_REPORT_CATALOG_ANSWER_PROMPT_VERSION = withAppVoiceVersion(
   `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.answer.v1`,
 );
 export const NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.report-catalog.category.v1',
+  'natal.report-catalog.category.narrative.v2',
 );
 export const NATAL_REPORT_CATALOG_ANSWER_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.report-catalog.answer.v1',
+  'natal.report-catalog.answer.v2',
 );
 
 export const NATAL_REPORT_CATEGORY_KEYS = [
@@ -138,7 +138,9 @@ export type NatalReportCategoryPack = {
   contractVersion: typeof NATAL_REPORT_CATALOG_CONTRACT_VERSION;
   categoryKey: NatalReportCategoryKey;
   title: string;
+  /** One connected reading, in order, for both Main and the Premium chapters. */
   summary: NatalReportStatement[];
+  /** Retained for existing clients; observations now belong inside the reading. */
   observations: NatalReportStatement[];
   previews: NatalReportPreview[];
   freeAnswers: NatalReportAnswer[];
@@ -697,41 +699,49 @@ export function isNatalReportCategoryPack(value: unknown): value is NatalReportC
     || pack.contractVersion !== NATAL_REPORT_CATALOG_CONTRACT_VERSION
     || !category
     || typeof pack.title !== 'string'
+    || pack.title.trim().length === 0
     || !Array.isArray(pack.summary)
     || !Array.isArray(pack.observations)
     || !Array.isArray(pack.previews)
     || !Array.isArray(pack.freeAnswers)
   ) return false;
-  const expectedPreviewKeys: readonly NatalReportAnswerKey[] = category.key === 'main'
-    ? NATAL_REPORT_MAIN_PREVIEW_KEYS
-    : category.answerKeys;
-  const expectedFree = category.answerKeys.filter(isNatalReportAnswerFree);
-  return pack.previews.length === expectedPreviewKeys.length
-    && new Set(pack.previews.map((preview) => preview.answerKey)).size === expectedPreviewKeys.length
-    && expectedPreviewKeys.every((key) => pack.previews?.some((preview) => preview.answerKey === key))
+  if (
+    pack.summary.length < 5 || pack.summary.length > 8
+    || pack.observations.length !== 0 || pack.freeAnswers.length !== 0
+    || !pack.summary.every((paragraph) => (
+      !!paragraph && typeof paragraph === 'object'
+      && typeof paragraph.text === 'string'
+      && paragraph.text.trim().length >= 80 && paragraph.text.trim().length <= 1200
+      && Array.isArray(paragraph.evidenceIds) && paragraph.evidenceIds.length > 0
+      && paragraph.evidenceIds.every((id) => typeof id === 'string' && id.trim().length > 0)
+    ))
+  ) return false;
+  const words = pack.summary.reduce((total, paragraph) => (
+    total + (paragraph.text.match(/[\p{L}\p{N}]+(?:[-’'][\p{L}\p{N}]+)*/gu)?.length || 0)
+  ), 0);
+  if (words < (category.key === 'main' ? 350 : 300) || words > (category.key === 'main' ? 500 : 450)) return false;
+  const maxPreviews = category.key === 'main' ? NATAL_REPORT_MAIN_PREVIEW_KEYS.length : 0;
+  return pack.previews.length <= maxPreviews
+    && new Set(pack.previews.map((preview) => preview?.answerKey)).size === pack.previews.length
     && pack.previews.every((preview) => {
+      if (!preview || typeof preview !== 'object') return false;
       const definition = isNatalReportAnswerKey(preview.answerKey)
         ? getNatalReportAnswer(preview.answerKey)
         : null;
       return !!definition
-        && (category.key === 'main'
-          ? MAIN_PREVIEW_KEY_SET.has(definition.key)
-          : definition.categoryKey === category.key)
+        && MAIN_PREVIEW_KEY_SET.has(definition.key)
         && preview.access === definition.access
         && typeof preview.title === 'string'
+        && preview.title.trim().length > 0
         && typeof preview.preview === 'string'
-        && preview.preview.trim().length > 0
+        && preview.preview.trim().length >= 55 && preview.preview.trim().length <= 150
         && Array.isArray(preview.evidenceIds)
         && preview.evidenceIds.length > 0
+        && preview.evidenceIds.every((id) => typeof id === 'string' && id.trim().length > 0)
         && Array.isArray(preview.related)
         && preview.related.every(isNatalReportAnswerKey)
         && Array.isArray(preview.fullAnswerIncludes)
-        && preview.fullAnswerIncludes.length >= 4;
-    })
-    && pack.freeAnswers.length === expectedFree.length
-    && expectedFree.every((key) => pack.freeAnswers?.some((answer) => answer.answerKey === key))
-    && pack.freeAnswers.every(isNatalReportAnswer)
-    && (category.key === 'main'
-      ? pack.summary.length >= 3 && pack.summary.length <= 5 && pack.observations.length === 5
-      : pack.summary.length === 0 && pack.observations.length === 0);
+        && preview.fullAnswerIncludes.length >= 4
+        && preview.fullAnswerIncludes.every((item) => typeof item === 'string' && item.trim().length > 0);
+    });
 }

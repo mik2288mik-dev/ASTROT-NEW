@@ -13,7 +13,8 @@ describe('natal catalog semantic repair diagnostics', () => {
     expect(source).toContain("'CATALOG_COPY'");
     expect(source).toContain("'RELIABILITY'");
     expect(source).toContain('COPY_VIOLATION:${path}:${kind}');
-    expect(source).toContain('free_answers[${answerIndex}].paragraphs[${paragraphIndex}]');
+    expect(source).toContain('summary[${index}]');
+    expect(source).toContain('paragraphs[${index}]');
   });
 
   it('logs only identifiers and issue codes and explains every repair class', () => {

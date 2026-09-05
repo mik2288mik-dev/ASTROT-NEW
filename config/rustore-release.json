@@ -25,8 +25,8 @@
       "payMode": "sandbox"
     },
     "release": {
-      "versionName": "1.0.2",
-      "versionCode": 5,
+      "versionName": "1.0.3",
+      "versionCode": 6,
       "payMode": "production"
     }
   }

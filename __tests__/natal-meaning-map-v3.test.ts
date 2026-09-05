@@ -25,7 +25,7 @@ describe('natal meaning map v3', () => {
     expect(catalog).not.toContain('natal-catalog-tabs');
   });
 
-  it('keeps foundation, five directions, focused answers, and one premium block per direction', () => {
+  it('keeps the complete foundation and five narrative continuations', () => {
     const experience = source('components/NatalReading/NatalMeaningExperience.tsx');
 
     expect(experience).toContain("'character'");
@@ -33,9 +33,9 @@ describe('natal meaning map v3', () => {
     expect(experience).toContain("'communication'");
     expect(experience).toContain("'work'");
     expect(experience).toContain("'money'");
-    expect(experience).toContain('natal-v3-meaning-map');
+    expect(experience).toContain('natal-narrative-chapters');
     expect(experience).toContain('natal-v3-premium-section');
-    expect(experience).toContain('natal-v3-answer-sheet');
+    expect(experience).toContain('natal-narrative-copy');
     expect(experience).toContain('Почему так?');
     expect(experience).toContain('<NatalEvidenceSheet');
   });

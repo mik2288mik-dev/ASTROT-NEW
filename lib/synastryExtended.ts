@@ -1,8 +1,9 @@
 import { createHash } from 'crypto';
 import { getContentPolicy } from './contentMatrix';
 import { COMPATIBILITY_ENGINE_VERSION } from './synastry/compatibilityEngine';
+import { COMPATIBILITY_NARRATIVE_VERSION } from './synastry/compatibilityNarrative';
 
-export const SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v9';
+export const SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v10';
 
 export function buildSynastryExtendedCacheKey(
   userId: string,
@@ -38,6 +39,7 @@ export function buildSynastryExtendedCacheKey(
     getContentPolicy('deep_report').promptVersion,
     COMPATIBILITY_ENGINE_VERSION,
     SYNASTRY_CONTEXT_PROMPT_VERSION,
+    COMPATIBILITY_NARRATIVE_VERSION,
   ].join('|');
   return createHash('sha256').update(raw).digest('hex');
 }

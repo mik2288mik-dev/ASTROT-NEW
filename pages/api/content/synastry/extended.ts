@@ -21,7 +21,6 @@ import {
 } from '../../../../lib/synastryExtended';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
-import { buildSynastryPrompt, parseModelJson } from '../../../../lib/contentPromptBuilders';
 import {
   classifyCompatibilityPerson,
   normalizeCompatibilityPersonSource,
@@ -38,9 +37,10 @@ import {
 } from '../../../../lib/synastry/compatibilityEngine';
 import {
   buildCompatibilityResult,
-  buildDeterministicCompatibilityNarrative,
-  type CompatibilityWriterResponse,
+  CompatibilityNarrativeError,
+  COMPATIBILITY_NARRATIVE_VERSION,
 } from '../../../../lib/synastry/compatibilityNarrative';
+import { buildCompatibilityStoryPrompt, COMPATIBILITY_STORY_SCHEMA } from '../../../../lib/synastry/compatibilityVoice';
 import {
   normalizeRelationshipContext,
   type RelationshipContext,
@@ -54,41 +54,9 @@ import { persistSavedSynastryHistory } from '../../../../lib/astrologyHistoryPer
 import {
   createLunaStructuredResponse,
   getOpenAIResponsesClient,
-  type StrictJsonSchema,
 } from '../../../../lib/openaiResponses';
 
 const SCOPE = 'synastry-extended';
-
-const SYNASTRY_RESPONSE_SCHEMA: StrictJsonSchema = {
-  type: 'object',
-  properties: {
-    summary: { type: 'string' },
-    sections: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          text: { type: 'string' },
-        },
-        required: ['id', 'text'],
-        additionalProperties: false,
-      },
-    },
-    closing: {
-      type: 'object',
-      properties: {
-        strength: { type: 'string' },
-        risk: { type: 'string' },
-        action: { type: 'string' },
-      },
-      required: ['strength', 'risk', 'action'],
-      additionalProperties: false,
-    },
-  },
-  required: ['summary', 'sections', 'closing'],
-  additionalProperties: false,
-};
 
 type SynastryChartData = NatalChartData | NatalChartDataV2;
 
@@ -159,7 +127,7 @@ async function loadCachedSynastry(
     );
     if (cached) {
       const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
-      if (parsed?.schemaVersion === 'compatibility-v2' && parsed?.engineVersion === COMPATIBILITY_ENGINE_VERSION) {
+      if (parsed?.schemaVersion === 'compatibility-v2' && parsed?.engineVersion === COMPATIBILITY_ENGINE_VERSION && parsed?.narrativeVersion === COMPATIBILITY_NARRATIVE_VERSION) {
         return parsed as SynastryResult;
       }
     }
@@ -175,7 +143,7 @@ async function loadCachedSynastry(
   });
   if (layer.interpretation?.content && typeof layer.interpretation.content === 'object') {
     const payload = layer.interpretation.content as SynastryResult;
-    if (payload.schemaVersion === 'compatibility-v2' && payload.engineVersion === COMPATIBILITY_ENGINE_VERSION) {
+    if (payload.schemaVersion === 'compatibility-v2' && payload.engineVersion === COMPATIBILITY_ENGINE_VERSION && payload.narrativeVersion === COMPATIBILITY_NARRATIVE_VERSION) {
       return payload;
     }
   }
@@ -192,6 +160,7 @@ function normalizeBirthTimeQuality(value: unknown, time: string): 'exact' | 'app
 function resolveRelationshipContext(value: unknown, legacyLabel: string): RelationshipContext {
   if (value != null) return normalizeRelationshipContext(value);
   const normalized = legacyLabel.toLowerCase();
+  if (normalized.includes('бывш') || normalized.includes('former') || normalized === 'ex') return 'ex';
   if (normalized.includes('друж') || normalized.includes('friend')) return 'friendship';
   if (normalized.includes('работ') || normalized.includes('делов') || normalized.includes('work') || normalized.includes('business')) return 'work';
   if (normalized.includes('сем') || normalized.includes('family')) return 'family';
@@ -682,30 +651,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     partnerSign: resolvedPartnerSign,
     language: currentLanguage,
   });
-  const writerEvidenceIds = new Set([
-    ...calculated.sectionPlan.flatMap((section) => section.evidenceIds),
-    ...calculated.directionalPatterns.flatMap((pattern) => pattern.evidenceIds),
-  ]);
-  const writerEvidence = calculated.evidence
-    .filter((item) => writerEvidenceIds.has(item.id))
-    .sort((first, second) => second.weight - first.weight)
-    .slice(0, 36);
-
   const accessTier = 'premium' as const;
-  let resultPayload: SynastryResult;
+  let resultPayload!: SynastryResult;
   let modelTier: ContentModelTier = 'premium';
-  let provider: 'openai' | 'deterministic' = 'deterministic';
-  let modelId = 'deterministic-compatibility-writer-fallback-v2';
-  let usedFallback = false;
+  const provider = 'openai' as const;
+  let modelId = '';
+  let generationAttempts: 0 | 1 | 2 = 0;
   let persistenceSucceeded = true;
-  const narrativeInput = {
-    subjectName: subjectProfile.name,
-    partnerName: resolvedPartnerName,
-    language: currentLanguage,
-  } as const;
-  const fallbackWriter = buildDeterministicCompatibilityNarrative(calculated, narrativeInput);
-  const fallbackPayload = () => buildCompatibilityResult(calculated, fallbackWriter, narrativeInput);
-
   logContentApi(
     {
       scope: SCOPE,
@@ -725,87 +677,52 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       contentVariant: 'full',
     });
     modelTier = modelAssignment.modelTier;
-    const aiClient = getOpenAIResponsesClient();
-    if (!aiClient) {
-      usedFallback = true;
-      resultPayload = fallbackPayload();
-    } else {
-      const prompt = buildSynastryPrompt({
+    modelId = modelAssignment.model;
+    if (!getOpenAIResponsesClient()) throw new Error('SYNASTRY_WRITER_UNAVAILABLE');
+    let revisionReason: string | undefined;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const prompt = buildCompatibilityStoryPrompt({
         language: currentLanguage,
-        context: {
-          people: {
-            subject: people.subject,
-            partner: people.partner,
-          },
-          relationship: {
-            context: relationshipContext,
-            label: rel,
-          },
-          calculationLevel,
-          calculated: {
-            engineVersion: calculated.engineVersion,
-            overallScore: calculated.overallScore,
-            verdict: calculated.verdict,
-            dimensions: calculated.dimensions,
-            strongestDimensions: calculated.strongestDimensions,
-            challengingDimensions: calculated.challengingDimensions,
-            evidence: writerEvidence,
-            directionalPatterns: calculated.directionalPatterns,
-            limitations: calculated.limitations,
-            sectionPlan: calculated.sectionPlan,
-          },
-          dataAvailability: {
-            subject: {
-              source: normalizedSubjectSource,
-              level: subjectClassification.level,
-              sign: resolvedSubjectSign,
-              gender: normalizedSubjectGender,
-            },
-            partner: {
-              source: normalizedPartnerSource,
-              level: partnerClassification.level,
-              sign: resolvedPartnerSign,
-              gender: normalizedPartnerGender,
-            },
-          },
-        },
+        calculated,
+        subject: people.subject,
+        partner: people.partner,
+        revisionReason,
       });
+      generationAttempts = attempt === 0 ? 1 : 2;
       const response = await createLunaStructuredResponse({
         instructions: prompt.system,
         input: prompt.user,
-        maxOutputTokens: 3200,
-        schemaName: 'calculated_compatibility_writer',
-        schema: SYNASTRY_RESPONSE_SCHEMA,
+        maxOutputTokens: 5200,
+        schemaName: 'calculated_compatibility_story',
+        schema: COMPATIBILITY_STORY_SCHEMA,
       });
-      const parsed = parseModelJson<CompatibilityWriterResponse>(
-        response.content,
-        fallbackWriter,
-      );
-      resultPayload = buildCompatibilityResult(calculated, parsed, narrativeInput);
-      provider = 'openai';
-      modelId = modelAssignment.model;
+      try {
+        resultPayload = buildCompatibilityResult(calculated, JSON.parse(response.content));
+        break;
+      } catch (error) {
+        if (attempt === 1 || !(error instanceof CompatibilityNarrativeError || error instanceof SyntaxError)) throw error;
+        revisionReason = error instanceof CompatibilityNarrativeError ? error.reason : 'invalid_json';
+      }
     }
   } catch (err: any) {
-    usedFallback = true;
-    resultPayload = fallbackPayload();
     warnContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: primaryChartId,
-        surface: 'synastry',
-        variant: 'full',
-      },
-      'generation_failed_fallback',
+      { scope: SCOPE, userId, chartId: primaryChartId, surface: 'synastry', variant: 'full' },
+      'generation_failed',
       {
         accessTier,
-        errorCode: 'SYNASTRY_MODEL_FALLBACK',
+        errorCode: 'SYNASTRY_READING_UNAVAILABLE',
         durationMs: Date.now() - startedAt,
-        metadata: { message: String(err?.message || 'unknown') },
+        metadata: { message: String(err?.message || 'unknown'), generationAttempts },
       }
     );
+    return res.status(503).json({
+      error: currentLanguage === 'ru' ? 'Не удалось подготовить разбор. Попробуй ещё раз.' : 'The reading could not be prepared. Please try again.',
+      code: 'SYNASTRY_READING_UNAVAILABLE',
+      retryable: true,
+      subjectChartId: primaryChartId,
+      partnerChartId: partnerChartRecord.id,
+    });
   }
-
   try {
     if (primaryChartId && partnerChartRecord?.id && userChartData && partnerChartData) {
       await db.synastry.set(
@@ -862,7 +779,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           provider,
           modelId,
           promptVersion: SYNASTRY_CONTEXT_PROMPT_VERSION,
-          generationAttempts: provider === 'openai' ? 1 : 0,
+          generationAttempts,
         });
       } catch (historyError) {
         console.error(
@@ -904,7 +821,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       accessTier,
       status: 'ready',
       durationMs: Date.now() - startedAt,
-      metadata: { fromCache: false, usedFallback, persistenceSucceeded, calculationLevel },
+      metadata: { fromCache: false, generationAttempts, persistenceSucceeded, calculationLevel },
     }
   );
 
