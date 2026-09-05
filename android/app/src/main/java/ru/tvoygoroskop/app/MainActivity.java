@@ -9,6 +9,7 @@ import com.getcapacitor.Plugin;
 import ru.tvoygoroskop.app.auth.NativeIdentityAuthPlugin;
 import ru.tvoygoroskop.app.diagnostics.NativeDiagnosticsPlugin;
 import ru.tvoygoroskop.app.analytics.MyTrackerPlugin;
+import ru.tvoygoroskop.app.notifications.NativeNotificationsPlugin;
 
 /** Android entry point for the public RuStore application identity. */
 public class MainActivity extends BridgeActivity {
@@ -19,6 +20,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NativeDiagnosticsPlugin.class);
         registerPlugin(NativeIdentityAuthPlugin.class);
         registerPlugin(MyTrackerPlugin.class);
+        registerPlugin(NativeNotificationsPlugin.class);
         if (isRuStorePaymentsEnabled()) {
             registerRuStorePlugin();
         }
@@ -29,6 +31,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onStart() {
+        NativeNotificationsPlugin.setForeground(true);
         super.onStart();
         NativeDiagnosticsPlugin.mark(this, "activity_onStart");
     }
@@ -47,6 +50,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onStop() {
+        NativeNotificationsPlugin.setForeground(false);
         NativeDiagnosticsPlugin.mark(this, "activity_onStop");
         super.onStop();
     }

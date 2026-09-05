@@ -3,6 +3,11 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
+import {
+    clearNativeNotifications, consumeNativeNotificationTap, listenNativeNotificationTap,
+    markNativeTodayRead, nativeNotificationsAvailable, notifyNativeResultReady,
+    setNativeNotificationContext, setNativeNotificationForeground,
+} from './services/nativeNotifications';
 import { UserProfile, NatalChartData, ViewState } from './types';
 import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
 import { ServiceScreen, type ServiceTab } from './views/v2/ServiceScreen';
@@ -372,6 +377,9 @@ function loadStartupPersonalForecasts(
 const App: React.FC = () => {
     useDisableAppZoom();
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [nativeActive, setNativeActive] = useState(true);
+    const [nativeTapVersion, setNativeTapVersion] = useState(0);
+    const [nativeReadyDay, setNativeReadyDay] = useState<{ accountId: string; periodKey: string } | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
     const [chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
     const [preloadedHumanReport, setPreloadedHumanReport] = useState<PreloadedNatalReport | null>(null);
@@ -1117,6 +1125,7 @@ const App: React.FC = () => {
                 startupVisible = true;
                 if (isProfileBlockedError(error)) {
                     clearQueuedUserAppEvents();
+                    void clearNativeNotifications();
                     await Promise.all([
                         clearAppSessionAndLocalData().catch(() => undefined),
                         clearNativeProviderCredentialState().catch(() => undefined),
@@ -1296,6 +1305,7 @@ const App: React.FC = () => {
             setChartLoadState('ready');
             setChartData(generatedChart);
             writeLocalNatalChart(canonicalFullProfile, generatedChart);
+            notifyNativeResultReady(String(canonicalFullProfile.id), 'natal', primaryKey, true);
             setLoadingMessage(
                 canonicalFullProfile.language === 'en'
                     ? 'Preparing your horoscope'
@@ -1386,6 +1396,7 @@ const App: React.FC = () => {
         const nextAccountKey = String(nextProfile.id || '');
         if (profile && String(profile.id) !== String(nextProfile.id)) {
             clearQueuedUserAppEvents();
+            void clearNativeNotifications();
             clearLocalNatalChart(profile);
             clearLocalHumanBaseReport(profile);
             clearHumanReadingSessionCache(String(profile.id));
@@ -1413,6 +1424,7 @@ const App: React.FC = () => {
         message: string,
     ) => {
         clearQueuedUserAppEvents();
+        void clearNativeNotifications();
         if (profile) {
             clearLocalNatalChart(profile);
             clearLocalHumanBaseReport(profile);
@@ -1477,6 +1489,7 @@ const App: React.FC = () => {
     ) => {
         if (profile && String(profile.id) !== String(nextProfile.id)) {
             clearQueuedUserAppEvents();
+            void clearNativeNotifications();
             clearLocalNatalChart(profile);
             clearLocalHumanBaseReport(profile);
             clearHumanReadingSessionCache(String(profile.id));
@@ -2325,6 +2338,9 @@ const App: React.FC = () => {
         });
 
         void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+            setNativeNotificationForeground(isActive);
+            setNativeActive(isActive);
+            if (isActive) setNativeTapVersion((value) => value + 1);
             if (!isActive) return;
             const nextDateKey = getPersonalForecastPeriodKey(
                 'day',
@@ -2447,6 +2463,65 @@ const App: React.FC = () => {
         setProfile((current) => current ? { ...current, legalAcknowledgements } : current);
     }, []);
 
+    useEffect(() => {
+        if (!nativeNotificationsAvailable() || loading) return;
+        if (!profile || requiresExplicitAuthentication(authSessionMode)) {
+            void clearNativeNotifications();
+            return;
+        }
+        void setNativeNotificationContext({
+            accountId: String(profile.id), language: profile.language === 'en' ? 'en' : 'ru', isSetup: !!profile.isSetup,
+        });
+    }, [loading, profile?.id, profile?.language, profile?.isSetup, authSessionMode]);
+
+    useEffect(() => {
+        if (!nativeNotificationsAvailable()) return;
+        let disposed = false;
+        let remove: (() => Promise<void>) | undefined;
+        void listenNativeNotificationTap(() => setNativeTapVersion((value) => value + 1))?.then((handle) => {
+            if (disposed) void handle.remove();
+            else remove = () => handle.remove();
+        }).catch(() => undefined);
+        const onVisibility = () => {
+            if (document.visibilityState === 'hidden') {
+                setNativeNotificationForeground(false);
+                setNativeActive(false);
+            } else {
+                // Consult Android: a WebView visibility event alone does not prove the activity resumed.
+                void CapacitorApp.getState().then(({ isActive }) => {
+                    if (disposed) return;
+                    setNativeNotificationForeground(isActive);
+                    setNativeActive(isActive);
+                    if (isActive) setNativeTapVersion((value) => value + 1);
+                }).catch(() => undefined);
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+        onVisibility();
+        return () => { disposed = true; document.removeEventListener('visibilitychange', onVisibility); void remove?.(); };
+    }, []);
+
+    useEffect(() => {
+        if (loading || !profile || !nativeActive || requiresExplicitAuthentication(authSessionMode)
+            || !legalAcknowledgementGateContract.hasAcceptedEveryDocument(profile.legalAcknowledgements || null)) return;
+        void consumeNativeNotificationTap(String(profile.id)).then((route) => {
+            if (!route) return;
+            setNavigationSheet(null);
+            setPaywallContext(null);
+            if (route === 'today') openBottomToday(); else openBottomNatal();
+        });
+    }, [loading, profile?.id, profile?.legalAcknowledgements, authSessionMode, nativeActive, nativeTapVersion, openBottomToday, openBottomNatal, setPaywallContext]);
+
+    useEffect(() => {
+        if (!loading && profile && nativeActive && view === 'dashboard' && dashboardPeriod === 'day'
+            && !requiresExplicitAuthentication(authSessionMode)
+            && legalAcknowledgementGateContract.hasAcceptedEveryDocument(profile.legalAcknowledgements || null)
+            && !paywallContext && !navigationSheet && document.visibilityState === 'visible'
+            && nativeReadyDay?.accountId === String(profile.id) && nativeReadyDay.periodKey === currentDateKey) {
+            markNativeTodayRead(String(profile.id));
+        }
+    }, [loading, profile?.id, profile?.legalAcknowledgements, authSessionMode, nativeActive, view, dashboardPeriod, paywallContext, navigationSheet, nativeReadyDay, currentDateKey]);
+
     if (!loading && requiresExplicitAuthentication(authSessionMode)) {
         return (
             <AuthGate
@@ -2559,7 +2634,18 @@ const App: React.FC = () => {
                 | 'premium_promo_dismissed',
             eventPayload: Record<string, unknown>,
         ) => {
-            if (eventType === 'first_value_viewed') markFirstValueReached();
+            if (eventType === 'first_value_viewed') {
+                markFirstValueReached();
+                if (typeof eventPayload.periodKey === 'string') {
+                    const accountId = String(profile.id);
+                    const periodKey = eventPayload.periodKey;
+                    setNativeReadyDay((current) => current?.accountId === accountId && current.periodKey === periodKey
+                        ? current : { accountId, periodKey });
+                    notifyNativeResultReady(accountId, 'today', periodKey,
+                        eventPayload.generatedDuringRequest === true
+                        && viewRef.current === 'dashboard' && periodKey === currentDateKey);
+                }
+            }
             void recordUserAppEvent({
                 eventType,
                 section: 'personal_forecast',

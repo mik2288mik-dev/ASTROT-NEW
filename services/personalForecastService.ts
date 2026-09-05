@@ -42,6 +42,8 @@ export type PersonalForecastClientResult = {
   lockedSectionIds: string[];
   periodLocked: boolean;
   source: 'local' | 'cache' | 'stale' | 'generated';
+  /** Runtime completion marker; never written into the forecast cache. */
+  generatedDuringRequest?: boolean;
 };
 
 export type PersonalForecastClientError = Error & {
@@ -497,7 +499,7 @@ export async function loadPersonalForecast(input: {
       period: input.period,
       source: generated.source,
     });
-    return generated;
+    return { ...generated, generatedDuringRequest: true };
   })().catch((error) => {
     logForecastDiagnostic('ERROR', traceId, {
       stage: 'finished',

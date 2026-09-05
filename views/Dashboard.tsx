@@ -377,8 +377,9 @@ export const Dashboard = memo<DashboardProps>(({
       featureKey: 'personal_daily',
       periodKey: forecast.periodKey,
       contentMode: 'personal-forecast',
+      generatedDuringRequest: periodStates.day.result?.generatedDuringRequest === true,
     });
-  }, [activePeriod, forecast, onPremiumAnalytics, profile.id]);
+  }, [activePeriod, forecast, onPremiumAnalytics, periodStates.day.result, profile.id]);
 
   useEffect(() => {
     if (!forecast || activePeriod === 'day' || !lockedSectionIds.size || !canPromotePremium) return;

@@ -54,6 +54,11 @@ import {
 import { hasTelegramMiniAppContext } from '../services/authSessionIntent';
 import { meetsMinimumPasswordLength } from '../lib/auth/passwordPolicy';
 import { NatalReadingVariantSettings } from '../components/NatalReading/NatalReadingVariantSettings';
+import { isNativeAndroidRuntime } from '../services/nativeRuntime';
+import {
+    getNativeNotificationSettings, openNativeNotificationSettings, saveNativeNotificationSettings,
+} from '../services/nativeNotifications';
+import type { NativeNotificationSettings } from '../lib/nativeNotificationPolicy';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
 function notificationFlagsFor(frequency: NotificationFrequency) {
@@ -276,6 +281,7 @@ export const Settings: React.FC<SettingsProps> = ({
     embedded = false,
 }) => {
     const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
+    const nativeNotifications = !previewFixture && isNativeAndroidRuntime();
     const rustorePurchaseControlsAvailable = Boolean(previewFixture)
         || canUseRuStorePay(resolveDistributionChannel());
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
@@ -292,9 +298,13 @@ export const Settings: React.FC<SettingsProps> = ({
     const [editsUsed, setEditsUsed] = useState(() =>
         previewFixture ? 0 : hasActivePremium(profile) ? profileEditsThisMonth(profile.id) : readProfileEdits(profile.id).length
     );
-    const [notifEnabled, setNotifEnabled] = useState(previewFixture?.notificationEnabled ?? true);
+    const [notifEnabled, setNotifEnabled] = useState(previewFixture?.notificationEnabled ?? !nativeNotifications);
+    const [notificationMode, setNotificationMode] = useState<'important' | 'daily'>('important');
+    const [notificationBusy, setNotificationBusy] = useState(false);
+    const [notificationError, setNotificationError] = useState('');
+    const [notificationPermission, setNotificationPermission] = useState('prompt');
     const [quietStart, setQuietStart] = useState(previewFixture?.quietStart || '22:00');
-    const [quietEnd, setQuietEnd] = useState(previewFixture?.quietEnd || '08:00');
+    const [quietEnd, setQuietEnd] = useState(previewFixture?.quietEnd || (nativeNotifications ? '09:00' : '08:00'));
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [deletionError, setDeletionError] = useState('');
     const [loggingOut, setLoggingOut] = useState(false);
@@ -406,6 +416,19 @@ export const Settings: React.FC<SettingsProps> = ({
     useEffect(() => {
         if (previewFixture) return;
         let alive = true;
+        if (nativeNotifications) {
+            const refresh = () => void getNativeNotificationSettings(String(profile.id)).then((settings) => {
+                if (!alive) return;
+                setNotifEnabled(settings.enabled && settings.permission === 'granted');
+                setNotificationMode(settings.mode);
+                setQuietStart(settings.quietStart);
+                setQuietEnd(settings.quietEnd);
+                setNotificationPermission(settings.permission);
+            });
+            refresh();
+            document.addEventListener('visibilitychange', refresh);
+            return () => { alive = false; document.removeEventListener('visibilitychange', refresh); };
+        }
         void getUserNotificationSettings().then((s) => {
             if (!alive || !s) return;
             setNotifEnabled(s.enabled !== false);
@@ -413,7 +436,7 @@ export const Settings: React.FC<SettingsProps> = ({
             if (s.quiet_hours_end) setQuietEnd(s.quiet_hours_end);
         });
         return () => { alive = false; };
-    }, [previewFixture]);
+    }, [previewFixture, nativeNotifications, profile.id]);
 
     useEffect(() => {
         if (previewFixture) return;
@@ -542,6 +565,26 @@ export const Settings: React.FC<SettingsProps> = ({
             .finally(() => setIdentityBusy(false));
     };
 
+    const saveNativeNotif = async (patch: Partial<NativeNotificationSettings>, requestPermission = false) => {
+        if (notificationBusy) return;
+        setNotificationBusy(true);
+        setNotificationError('');
+        try {
+            await saveNativeNotificationSettings(String(profile.id), patch, requestPermission);
+            const settings = await getNativeNotificationSettings(String(profile.id));
+            setNotifEnabled(settings.enabled && settings.permission === 'granted');
+            setNotificationMode(settings.mode);
+            setQuietStart(settings.quietStart);
+            setQuietEnd(settings.quietEnd);
+            setNotificationPermission(settings.permission);
+        } catch (error) {
+            const permissionRequired = error instanceof Error && error.message === 'permission_required';
+            if (permissionRequired) setNotificationPermission('denied');
+            setNotificationError(profile.language === 'en'
+                ? permissionRequired ? 'Allow NEBO notifications in Android settings, then turn this on.' : 'Could not save notifications. Please try again.'
+                : permissionRequired ? 'Разреши уведомления NEBO в настройках Android, затем включи их здесь.' : 'Не удалось сохранить настройки. Попробуй ещё раз.');
+        } finally { setNotificationBusy(false); }
+    };
     const saveNotif = (patch: { enabled?: boolean; quietHoursStart?: string; quietHoursEnd?: string }) => {
         if (previewFixture) return;
         void updateUserNotificationSettings({
@@ -554,10 +597,15 @@ export const Settings: React.FC<SettingsProps> = ({
     };
     const toggleNotif = () => {
         const next = !notifEnabled;
+        if (nativeNotifications) { void saveNativeNotif({ enabled: next }, next); return; }
         setNotifEnabled(next);
         saveNotif({ enabled: next });
     };
     const changeQuiet = (which: 'start' | 'end', value: string) => {
+        if (nativeNotifications) {
+            void saveNativeNotif(which === 'start' ? { quietStart: value } : { quietEnd: value });
+            return;
+        }
         if (which === 'start') setQuietStart(value); else setQuietEnd(value);
         saveNotif(which === 'start' ? { quietHoursStart: value } : { quietHoursEnd: value });
     };
@@ -789,11 +837,11 @@ export const Settings: React.FC<SettingsProps> = ({
     }, [previewFixture]);
 
     useEffect(() => {
-        if (previewFixture) return;
+        if (previewFixture || nativeNotifications) return;
         const freq = readStoredNotificationFrequency(profile.id) || profile.notificationFrequency || 'important';
         // Регистрируем пользователя в движке уведомлений (таймзона + флаги) — иначе планировщики его не видят
         void updateUserNotificationSettings({ ...notificationFlagsFor(freq), timezone: localTimezone() });
-    }, [profile.id, profile.notificationFrequency, previewFixture]);
+    }, [profile.id, profile.notificationFrequency, previewFixture, nativeNotifications]);
 
     const hasLinkedTelegram = identities.some((identity) => identity.provider === 'telegram');
     const profileDisplayName = (() => {
@@ -1147,8 +1195,13 @@ export const Settings: React.FC<SettingsProps> = ({
             case 'notifications':
                 return (
                     <section className="settings-detail-panel" aria-label={settingsTitle.notifications}>
+                        {nativeNotifications ? <p className="settings-helper-text">
+                            {profile.language === 'en'
+                                ? 'Useful news, then quiet. At most one notification a day, only while NEBO is closed.'
+                                : 'Сообщим по делу — и отстанем. Не больше одного уведомления в день, только пока NEBO свёрнуто.'}
+                        </p> : null}
                         <div className="settings-toggle-row">
-                            <label htmlFor="settings-notifications-toggle">{profile.language === 'en' ? 'Notifications' : 'Уведомления'}</label>
+                            <label htmlFor="settings-notifications-toggle">{profile.language === 'en' ? 'Notifications' : nativeNotifications ? 'Уведомлять по делу' : 'Уведомления'}</label>
                             <button
                                 id="settings-notifications-toggle"
                                 type="button"
@@ -1156,10 +1209,42 @@ export const Settings: React.FC<SettingsProps> = ({
                                 aria-checked={notifEnabled}
                                 className={'settings-switch' + (notifEnabled ? ' settings-switch--on' : '')}
                                 onClick={toggleNotif}
+                                disabled={notificationBusy}
+                                aria-busy={notificationBusy}
                             >
                                 <span aria-hidden />
                             </button>
                         </div>
+                        {notificationError ? <p className="settings-helper-text" role="alert">{notificationError}</p> : null}
+                        {nativeNotifications && notificationPermission === 'denied' ? <button type="button" className="settings-selection-row"
+                            onClick={() => void openNativeNotificationSettings().catch(() => setNotificationError(profile.language === 'en'
+                                ? 'Open Android settings → Apps → NEBO → Notifications.' : 'Открой настройки Android → Приложения → NEBO → Уведомления.'))}>
+                            {profile.language === 'en' ? 'Open Android settings' : 'Открыть настройки Android'}
+                        </button> : null}
+                        {nativeNotifications && notifEnabled ? <div className="settings-detail-section settings-detail-section--separated">
+                            <h2>{profile.language === 'en' ? 'What to send' : 'Что присылать'}</h2>
+                            <div className="settings-selection-list">
+                                {(['important', 'daily'] as const).map((mode) => <button key={mode} type="button"
+                                    className="settings-selection-row" aria-pressed={notificationMode === mode} disabled={notificationBusy}
+                                    onClick={() => void saveNativeNotif({ mode })}>
+                                    <span>{profile.language === 'en'
+                                        ? mode === 'important' ? 'Only a finished result' : 'Also a daily forecast reminder'
+                                        : mode === 'important' ? 'Только готовый результат' : 'Ещё прогноз раз в день'}</span>
+                                    {notificationMode === mode ? <Check aria-hidden size={16} /> : null}
+                                </button>)}
+                            </div>
+                            <p className="settings-helper-text">{profile.language === 'en'
+                                ? 'If a calculation finishes after you leave NEBO, we can tell you. Tap to open the result.'
+                                : 'Если расчёт закончится, пока NEBO свёрнуто, сообщим. Нажмёшь — откроется результат.'}</p>
+                            {notificationMode === 'daily' ? <p className="settings-helper-text">{profile.language === 'en'
+                                ? 'A reminder after 9 am, outside quiet hours, in your phone’s time zone. Already read today’s forecast? We skip it.'
+                                : 'Напомним после 09:00, вне тихих часов, по времени телефона. Уже прочитал прогноз за сегодня? Тогда молчим.'}</p> : null}
+                            <div className="settings-detail-section settings-detail-section--separated">
+                                <p className="settings-helper-text">{profile.language === 'en' ? 'For example' : 'Например'}</p>
+                                <strong>{profile.language === 'en' ? 'Your personal forecast is ready' : 'Личный прогноз готов'}</strong>
+                                <p>{profile.language === 'en' ? 'Open Today. The text is there; the wait is over.' : 'Открой «Сегодня». Текст на месте — ожидание закончилось.'}</p>
+                            </div>
+                        </div> : null}
                         {notifEnabled ? (
                             <div className="settings-detail-section settings-detail-section--separated">
                                 <h2>{profile.language === 'en' ? 'Quiet hours' : 'Тихие часы'}</h2>
@@ -1171,6 +1256,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                         name="quietStart"
                                         type="time"
                                         value={quietStart}
+                                        disabled={notificationBusy}
                                         onChange={(event) => changeQuiet('start', event.target.value)}
                                         className="fresh-input"
                                     />
@@ -1179,12 +1265,15 @@ export const Settings: React.FC<SettingsProps> = ({
                                         name="quietEnd"
                                         type="time"
                                         value={quietEnd}
+                                        disabled={notificationBusy}
                                         onChange={(event) => changeQuiet('end', event.target.value)}
                                         className="fresh-input"
                                     />
                                 </div>
                                 <p className="settings-helper-text">
-                                    {profile.language === 'en'
+                                    {nativeNotifications && quietStart === quietEnd
+                                        ? profile.language === 'en' ? 'Matching times mean a full day of quiet.' : 'Одинаковое время — тишина на весь день.'
+                                        : profile.language === 'en'
                                         ? 'We do not send notifications during this interval.'
                                         : 'В этот промежуток уведомления не приходят.'}
                                 </p>
