@@ -36,16 +36,18 @@ const profile: UserProfile = {
 };
 const context = { userId: profile.id!, profile, accessTier: 'premium' as const, period: 'day' as const, periodKey: '2026-09-05' };
 const brief = {
-  tone: 'favorable',
-  situation: 'При выборе бытовой вещи цена окажется выше ожидаемой',
-  turn: 'После короткого разговора продавец предложит более дешёвый вариант',
-  outcome: 'При сравнении похожих моделей покупка может обойтись дешевле',
-  observable_detail: 'На ценнике рядом появится другая сумма',
+  tone: 'mixed',
+  observations: [
+    'Небольшие повседневные задачи могут даваться легче, когда результат виден сразу и не нужно долго ждать.',
+    'В разговорах вероятна чувствительность к резким словам, но дружелюбная шутка помогает быстрее понять друг друга.',
+    'Интерес к незнакомому может приносить удовольствие без обязательной большой покупки, поездки или другого события.',
+    'Сложные решения могут требовать больше времени, чем обычно, даже при достаточном количестве нужной информации.',
+  ],
 };
 const reading = {
-  title: 'Ценник, ты серьёзно?',
-  forecast: 'Сегодня при выборе бытовой вещи цена может оказаться выше, чем ты ожидаешь. В разговоре с продавцом может найтись похожая модель с меньшей ценой. Если разница тебе подходит, покупка обойдётся дешевле, чем кажется сначала.',
-  closing: 'Сравни цену и саму модель.',
+  title: 'Становится понятнее',
+  forecast: 'Сегодня, похоже, будет проще заметить разницу между похожими вариантами и спокойно выбрать подходящий. В разговоре короткое объяснение может помочь больше долгого спора. Вместе с этим чужая торопливость способна раздражать, особенно когда тебе ещё хочется подумать.',
+  closing: 'Не всякая разница требует немедленного решения.',
 };
 
 describe('personal forecast real generation, persistence and client boundary', () => {
@@ -74,9 +76,10 @@ describe('personal forecast real generation, persistence and client boundary', (
     expect(isPersonalForecastPackage(first.value)).toBe(true);
     expect(first.value.overview.title).toBe(reading.title);
     expect(first.value.overview.contentBlocks).toEqual([expect.objectContaining({ role: 'detail', text: reading.forecast })]);
-    expect(first.value.sections).toEqual([expect.objectContaining({
+    expect(first.value.sections).toHaveLength(1);
+    expect(first.value.sections.at(-1)).toEqual(expect.objectContaining({
       title: undefined, contentBlocks: [expect.objectContaining({ role: 'action', text: reading.closing })],
-    })]);
+    }));
     expect(upsertByUser).toHaveBeenCalledTimes(1);
 
     const cached = await ensurePersonalForecast(context);
@@ -106,9 +109,30 @@ describe('personal forecast real generation, persistence and client boundary', (
     expect(request).toHaveBeenCalledTimes(2);
   });
 
+  it('materializes and caches a brief with only two observations', async () => {
+    request.mockImplementation(async ({ schemaName }: { schemaName: string }) => ({
+      attempts: 1,
+      result: {
+        content: JSON.stringify(schemaName === 'personal_forecast_astrologer_brief'
+          ? { ...brief, observations: brief.observations.slice(0, 2) } : reading),
+        responseId: 'two-observations', inputTokens: 100, outputTokens: 100, reasoningTokens: 0,
+      },
+    }));
+    const generated = await ensurePersonalForecast(context);
+    expect(generated.status).toBe('ready');
+    if (generated.status !== 'ready') throw new Error('Expected a ready forecast');
+    expect(generated.value.meta.astrologerBrief.observations).toHaveLength(2);
+    expect(generated.value.meta.semanticSignature.outcome).not.toBe('');
+    expect(isPersonalForecastPackage(generated.value)).toBe(true);
+    expect(await getCachedPersonalForecast(context)).toEqual(expect.objectContaining({ forecast: generated.value }));
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
     ['missing metadata', (value: any) => { delete value.content.meta; }],
     ['old prompt', (value: any) => { value.content.meta.promptVersion = 'previous-writer'; }],
+    ['previous single-plot brief', (value: any) => { value.content.meta.astrologerBrief = { tone: 'mixed', situation: 'old', turn: 'old', outcome: 'old', observableDetail: 'old', briefSignature: 'old' }; }],
+    ['former split narrative shape', (value: any) => { value.content.sections.unshift(structuredClone(value.content.sections[0])); }],
     ['old voice', (value: any) => { value.content.meta.voiceVersion = 'previous-voice'; }],
     ['old fragments', (value: any) => { value.content.sections.push(structuredClone(value.content.sections[0])); }],
     ['wrong period window', (value: any) => {

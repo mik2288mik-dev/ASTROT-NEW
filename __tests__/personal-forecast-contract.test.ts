@@ -24,7 +24,7 @@ import {
 import { personalForecastFixture } from './personal-forecast-fixture';
 
 function forecastForPeriod(period: PersonalForecastPeriod): PersonalForecastPackage {
-  const base = personalForecastFixture();
+  const base = personalForecastFixture(period);
   const key = period === 'day'
     ? '2026-07-26'
     : period === 'week'
@@ -211,9 +211,9 @@ describe('personal forecast direct-reading contract', () => {
   test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {
     const base = personalForecastFixture();
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toMatch(/^personal-forecast-luna-raw-profile-brief-v\d+$/);
-    expect(PERSONAL_FORECAST_CACHE_VERSION).toMatch(/^personal-forecast-cache-v\d+-three-part-human$/);
-    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toMatch(/^personal-forecast-feed-v\d+-three-part-human$/);
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('three-part-human');
+    expect(PERSONAL_FORECAST_CACHE_VERSION).toMatch(/^personal-forecast-cache-v\d+-period-horoscope$/);
+    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toMatch(/^personal-forecast-feed-v\d+-period-horoscope$/);
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('period-horoscope');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(
       `forecast-voice.${PERSONAL_FORECAST_VOICE_VERSION}`,
     );

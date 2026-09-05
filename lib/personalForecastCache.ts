@@ -125,19 +125,79 @@ function reading(value: unknown): PersonalForecastRecentReading | null {
   } : null;
 }
 
-/** Exactly this user, all three periods, newest first; never provider input from another user. */
+function historyObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function historyText(value: unknown, limit: number): string {
+  return typeof value === 'string' ? value.trim().slice(0, limit) : '';
+}
+
+/** Only extracts visible copy from the persisted user-profile package family.
+ * Historical text can prevent repetition without becoming a valid current response.
+ */
+function historicalReading(value: unknown): PersonalForecastRecentReading | null {
+  const forecast = historyObject(value);
+  const meta = historyObject(forecast?.meta);
+  const version = historyText(meta?.contractVersion, 100).match(/^personal-forecast-feed-v(\d+)-[a-z0-9-]+$/u);
+  const currentVersion = Number(PERSONAL_FORECAST_CONTRACT_VERSION.match(/-v(\d+)-/u)?.[1]);
+  if (!forecast || !version || Number(version[1]) < 14 || Number(version[1]) > currentVersion) return null;
+  const period = forecast.period;
+  const periodKey = historyText(forecast.periodKey, 32);
+  if (period !== 'day' && period !== 'week' && period !== 'month') return null;
+  try { resolvePersonalForecastWindow(period, periodKey, 'UTC'); } catch { return null; }
+  const overview = historyObject(forecast.overview);
+  if (!overview || !Array.isArray(forecast.sections)) return null;
+  const sections = forecast.sections.slice(0, 12).map(historyObject);
+  if (sections.some((section) => !section)) return null;
+  const title = historyText(overview.title, 120);
+  const last = sections.at(-1);
+  const lastBlocks = Array.isArray(last?.contentBlocks) ? last.contentBlocks : [];
+  const lastBlock = lastBlocks.length === 1 ? historyObject(lastBlocks[0]) : null;
+  const oldSignature = historyObject(meta?.semanticSignature);
+  // Generated section IDs contain a content hash. Recognize the saved closing
+  // contract as well as older explicit IDs; do not classify every legacy action as a closing.
+  const hasClosing = last?.id === 'semantic:closing' || lastBlock?.atomId === 'closing'
+    || (lastBlock?.role === 'action' && Boolean(historyText(oldSignature?.closing, 220)));
+  const closing = hasClosing ? historyText(last?.text, 220) : '';
+  const body = [overview, ...(hasClosing ? sections.slice(0, -1) : sections)]
+    .map((section) => historyText(section?.text, 3_000)).filter(Boolean).join('\n\n').slice(0, 3_000);
+  if (!body) return null;
+  const fragments: PersonalForecastRecentReading['fragments'] = [
+    ...(title ? [{ kind: 'title' as const, text: title, semanticFingerprint: null }] : []),
+    { kind: 'forecast', text: body, semanticFingerprint: null },
+    ...(closing ? [{ kind: 'closing' as const, text: closing, semanticFingerprint: null }] : []),
+  ];
+  const situation = historyText(oldSignature?.situation, 500);
+  const turn = historyText(oldSignature?.turn, 500);
+  const outcome = historyText(oldSignature?.outcome, 500);
+  const briefSignature = historyText(historyObject(meta?.astrologerBrief)?.briefSignature, 256);
+  return {
+    period, periodKey, fragments,
+    ...(situation && turn && outcome ? {
+      semanticSignature: { situation, turn, outcome, title, forecast: body, closing },
+    } : {}),
+    ...(briefSignature ? { briefSignature } : {}),
+  };
+}
+
+/** Exactly this user across prior versions and subscriptions; never another person's reading. */
 export async function getRecentPersonalForecastHistory(input: PersonalForecastCacheContext): Promise<PersonalForecastRecentReading[]> {
+  if (!String(input.userId || '').trim()) throw new Error('PERSONAL_FORECAST_PROFILE_REQUIRED');
   const result = await getPool().query(
-    `SELECT content FROM content_interpretations
-     WHERE user_id = $1 AND access_tier = $2 AND content_surface = 'forecast'
-       AND content->'meta'->>'contractVersion' = $3
-     ORDER BY updated_at DESC LIMIT $4`, [input.userId, input.accessTier, PERSONAL_FORECAST_CONTRACT_VERSION, HISTORY_LIMIT + 1],
+    `SELECT user_id, content FROM content_interpretations
+     WHERE user_id = $1 AND chart_id IS NULL AND content_surface = 'forecast'
+       AND content_variant IN ('daily', 'weekly', 'monthly')
+       AND content->'meta'->>'contractVersion' LIKE 'personal-forecast-feed-v%'
+       AND NOT (content->>'period' = $2 AND content->>'periodKey' = $3)
+     ORDER BY updated_at DESC, id DESC LIMIT $4`, [input.userId, input.period, input.periodKey, HISTORY_LIMIT * 4],
   );
   const seen = new Set<string>();
-  return (result.rows as Array<{content: unknown}>).flatMap((row) => {
-    const item = reading(row.content);
-    if (!item || item.periodKey === input.periodKey) return [];
-    const key = `${item.periodKey}:${item.fragments.map((part) => part.text).join('\n')}`;
+  return (result.rows as Array<{ user_id: unknown; content: unknown }>).flatMap((row) => {
+    if (String(row.user_id) !== input.userId) return [];
+    const item = historicalReading(row.content);
+    if (!item || (item.period === input.period && item.periodKey === input.periodKey)) return [];
+    const key = `${item.period}:${item.periodKey}:${item.fragments.map((part) => part.text).join('\n')}`;
     if (seen.has(key)) return [];
     seen.add(key); return [item];
   }).slice(0, HISTORY_LIMIT);
@@ -213,7 +273,7 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
     },
     generate: async () => {
       const [recentForecasts, crossUserRepeatFragments, crossUserSemanticSignatures] = await Promise.all([
-        getRecentPersonalForecastHistory(input).catch(() => []),
+        getRecentPersonalForecastHistory(input),
         getCrossUserRepeatFragments(input, resolved).catch(() => []),
         getCrossUserSemanticSignatures(input, resolved).catch(() => []),
       ]);

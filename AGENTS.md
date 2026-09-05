@@ -69,15 +69,15 @@
 
 - The application is an ally: it supports the user without blindly agreeing.
 - A heading or notification may sometimes be sharp, ironic, or playful.
-- The main forecast remains serious and concrete. Preserve the current Today, Week, and Month structure and volume unless the user directly requests a forecast rewrite.
+- The personal forecast uses plain, direct, conversational Russian. A precise joke or a sharp phrase is welcome when it fits; artificial slang, coaching, mysticism, and filler are not.
 - Do not use artificial youth slang.
 - Do not make anxiety, conflict, or problems the default subject.
 - Positive possibilities, calm, confidence, and support must be considered alongside risks.
 - Личный прогноз на сегодня, неделю и месяц полностью пишет ИИ. Цепочка: исходные данные рождения и выбранный период → скрытый brief → writer. Writer получает имя, язык, грамматический род, период, принятый brief и до 15 собственных прошлых прогнозов; рассчитанная натальная карта и Swiss Ephemeris output ему не передаются.
-- Today — непрерывная персональная лента из 4–6 последовательных текстовых фрагментов. `overview` хранит первый/главный фрагмент, `sections` — следующие в порядке чтения. Не возвращать Today к одной короткой истории.
-- Week и Month — по одной цельной персональной истории. Не дробить их на календарные этапы или фиксированные жизненные рубрики.
+- Сегодня, Неделя и Месяц — каждый один короткий связный прогноз: название, основной текст, короткое завершение. Общий объём вместе с названием и финалом: день 40–60 слов, неделя 60–80, месяц 80–100. Не добивать объём водой.
+- `overview` хранит весь основной текст, `sections` — только завершение. Не делить прогноз на обязательные 4–6 фрагментов, жизненные рубрики или календарные этапы. Обычные абзацы допустимы по смыслу, их число не фиксируется. Прогноз описывает период, а не один выдуманный случай про поездку, покупку или ремонт.
 - В Today нет видимых категорий Love/Work/Mood, заголовков фрагментов, опросов, feedback, «попал/мимо», игр, чата, утро/день/вечер или почасовой структуры. Служебные типы допустимы только внутри генерации и никогда не показываются пользователю.
-- Новый сюжет writer строит только из принятого brief; эталоны задают голос, а собственная история предотвращает повторы. Cross-user semantic signatures могут использоваться на этапе brief и серверной валидации, но не передаются writer. Не добавлять заранее выбранные темы, психологические паттерны или выдуманную биографию.
+- Writer строит прогноз только из принятого brief. Few-shot эталоны показывают пару input brief → output text и задают голос, а собственная история предотвращает повторы, в том числе после обновления генератора или смены Free/Premium. Cross-user semantic signatures могут использоваться на этапе brief и серверной валидации, но не передаются writer. Не добавлять заранее выбранные темы, психологические паттерны или выдуманную биографию.
 - Нельзя приписывать ИИ несуществующие транзиты, аспекты, даты событий или иные периодные расчёты. Натальная карта остаётся детерминированно рассчитанной и сохраняется отдельно.
 - `lib/appVoice.ts` is the runtime source of generated-content voice. Общий app voice остаётся спокойным; характер, редкая ирония и неожиданное сравнение личного прогноза задаются только forecast-specific layer с отдельной version identity.
 

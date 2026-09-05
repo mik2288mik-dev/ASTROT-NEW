@@ -146,12 +146,12 @@ describe('Today editorial layout system', () => {
     })).toBe('');
   });
 
-  it('keeps the Week and Month forecast as one whole paragraph', () => {
+  it('keeps natural paragraphs within one whole reading instead of generating a calendar breakdown', () => {
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
 
     expect(sectionBlock).not.toContain('resolveLongForecastParagraphs');
     expect(sectionBlock).toContain(".join(' ')");
-    expect(sectionBlock).toContain('{text}');
+    expect(sectionBlock).toContain('{paragraph}');
   });
 
   it('keeps fallback paper stable while template-backed note text stays live', () => {

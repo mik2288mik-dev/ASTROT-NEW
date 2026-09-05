@@ -7,10 +7,10 @@ import { PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU } from '../lib/personalForecast
 
 describe('personal forecast UI Preview examples', () => {
   it.each([
-    ['day', UI_PREVIEW_TODAY_SECTIONS, 30, 65],
-    ['week', UI_PREVIEW_WEEK_SECTIONS, 42, 85],
-    ['month', UI_PREVIEW_MONTH_SECTIONS, 55, 105],
-  ] as const)('uses a complete current %s example with one forecast paragraph and one untitled closing', (period, sections, minimum, maximum) => {
+    ['day', UI_PREVIEW_TODAY_SECTIONS, 40, 60],
+    ['week', UI_PREVIEW_WEEK_SECTIONS, 60, 80],
+    ['month', UI_PREVIEW_MONTH_SECTIONS, 80, 100],
+  ] as const)('uses the complete current %s reading and one untitled closing', (period, sections, minimum, maximum) => {
     const reference = PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.find((item) => item.period === period)!;
     expect(sections).toHaveLength(2);
     const [overview, closing] = sections;

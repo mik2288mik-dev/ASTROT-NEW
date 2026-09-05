@@ -274,6 +274,7 @@ function buildUrl(input: {
   const params = new URLSearchParams({
     period: input.period,
     periodKey: input.periodKey,
+    contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
   });
   return `/api/content/forecast/personal?${params.toString()}`;
 }
@@ -359,7 +360,7 @@ async function generate(input: {
   logForecastDiagnostic('INFO', input.traceId, {
     stage: 'generation_request', status: 'start', period: input.period,
   });
-  const response = await apiFetch('/api/content/forecast/personal', {
+  const response = await apiFetch(buildUrl(input), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -120,7 +120,8 @@ describe('Today visual presets', () => {
     expect(clock).toContain('type="button"');
     expect(clock).toContain('<time');
     expect(clock).toContain('onClick={advanceBroadcast}');
-    expect(clock).toContain('нажми, чтобы сменить');
+    expect(clock).toContain('Сменить картинку на телевизоре');
+    expect(clock).not.toContain('Общий совет дня');
     expect(clock).toContain('role="status"');
     expect(clock).toContain('aria-live="polite"');
     expect(clock).toContain('resolveTodayBroadcasts(periodKey)');

@@ -88,6 +88,26 @@ describe('personal forecast three-part reader', () => {
       expect(html).toContain('today-calendar-clock');
       expect(html).toContain('<time');
       expect(html).not.toMatch(/<video\b|<iframe\b/gu);
+      expect(html).not.toContain('Общий совет дня');
+      expect(html).not.toContain('today-calendar-clock-caption');
     }
+  });
+
+  it.each(['day', 'week', 'month'] as const)('keeps natural paragraphs inside one %s reading without creating extra sections', (period) => {
+    const forecast = personalForecastFixture(period);
+    const first = 'Сегодня тебе проще сказать то, что обычно долго подбираешь словами.';
+    const second = 'При этом разговор не обязан превращаться в спор.';
+    const section = {
+      ...forecast.overview,
+      contentBlocks: [{ ...forecast.overview.contentBlocks[0], text: `${first}\n\n${second}` }],
+    };
+    const html = renderToStaticMarkup(React.createElement(ForecastSectionBlock, {
+      section, period, language: 'ru', locked: false, onRequestPremium: () => {},
+    }));
+    expect(html.match(/data-forecast-section=/gu)).toHaveLength(1);
+    expect(html.match(/data-story-paragraph=/gu)).toHaveLength(2);
+    expect(html).toContain(`>${first}</p>`);
+    expect(html).toContain(`>${second}</p>`);
+    expect(html).not.toMatch(/<h[2-6]\b|Love|Mood|Money|Work/gu);
   });
 });

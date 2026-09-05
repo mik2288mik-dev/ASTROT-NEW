@@ -1151,7 +1151,7 @@
   font-size: clamp(1rem, 4.05vw, 1.06rem) !important;
   font-weight: 400 !important;
   letter-spacing: -0.018em !important;
-  line-height: 1.66 !important;
+  line-height: 1.55 !important;
   text-align: left !important;
   -webkit-hyphens: none;
   hyphens: none;
@@ -1288,7 +1288,7 @@
   font-size: clamp(1rem, 4.05vw, 1.06rem) !important;
   font-weight: 400;
   letter-spacing: -0.018em;
-  line-height: 1.66 !important;
+  line-height: 1.55 !important;
   text-align: left !important;
   text-wrap: wrap !important;
   -webkit-hyphens: none;
@@ -1307,6 +1307,12 @@
 .today-minimal-feed:lang(en) .forecast-feed-section-text,
 .forecast-period-editorial-feed:lang(en) .forecast-feed-section-text {
   text-indent: 0;
+}
+
+/* Paragraphs belong to one reading, without separate fragment spacing. */
+#__next .today-minimal-reading .forecast-feed-section-copy > p + p,
+#__next .forecast-period-editorial-feed .forecast-feed-section-copy > p + p {
+  margin-top: 0.7em;
 }
 
 .today-minimal-feed:lang(en)

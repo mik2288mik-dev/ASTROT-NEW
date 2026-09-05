@@ -159,10 +159,7 @@ export type CrossPeriodLink = {
 
 export type PersonalForecastAstrologerBrief = {
   tone: 'favorable' | 'mixed' | 'demanding';
-  situation: string;
-  turn: string;
-  outcome: string;
-  observableDetail: string;
+  observations: string[];
   briefSignature: string;
 };
 
@@ -248,12 +245,12 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v46-three-part-human',
+  'personal-forecast-feed.v47-period-horoscope',
 );
-export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v18-three-part-human';
+export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v19-period-horoscope';
 /** Input/cache identity, not an astrological calculation version. */
-export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v11';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v28-three-part-human';
+export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v12';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v29-period-horoscope';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -981,10 +978,14 @@ function personalForecastAstrologerBriefValid(value: unknown): value is Personal
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const basis = value as PersonalForecastAstrologerBrief;
   return (basis.tone === 'favorable' || basis.tone === 'mixed' || basis.tone === 'demanding')
-    && typeof basis.situation === 'string' && Boolean(basis.situation.trim())
-    && typeof basis.turn === 'string' && Boolean(basis.turn.trim())
-    && typeof basis.outcome === 'string' && Boolean(basis.outcome.trim())
-    && typeof basis.observableDetail === 'string' && Boolean(basis.observableDetail.trim())
+    && Array.isArray(basis.observations)
+    && basis.observations.length >= 2 && basis.observations.length <= 4
+    && basis.observations.every((observation) => {
+      if (typeof observation !== 'string') return false;
+      const words = observation.trim().split(/\s+/u).filter(Boolean).length;
+      return words >= 8 && words <= 45;
+    })
+    && new Set(basis.observations.map((observation) => observation.trim().toLowerCase())).size === basis.observations.length
     && typeof basis.briefSignature === 'string' && Boolean(basis.briefSignature.trim());
 }
 
@@ -1131,7 +1132,7 @@ export function getPersonalForecastPackageValidationError(
       return `PACKAGE_SECTION_INVALID:${sectionDiagnosticId}`;
     }
   }
-  const [closingSection] = forecast.sections;
+  const closingSection = forecast.sections.at(-1);
   if (!closingSection) {
     return 'PACKAGE_CLOSING_MISSING';
   }
@@ -1340,10 +1341,7 @@ export function createUnavailablePersonalForecast(
       diagnosticCode,
       astrologerBrief: {
         tone: 'mixed',
-        situation: 'unavailable',
-        turn: 'unavailable',
-        outcome: 'unavailable',
-        observableDetail: 'unavailable',
+        observations: [],
         briefSignature: 'unavailable',
       },
       semanticSignature: {

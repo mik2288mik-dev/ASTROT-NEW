@@ -1,14 +1,17 @@
 import type { NatalChartData } from '../types';
 import { PERSONAL_FORECAST_VOICE_VERSION } from '../lib/appVoice';
+import { PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU } from '../lib/personalForecastExamples';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
   buildForecastLockedPreview,
+  resolvePersonalForecastWindow,
   type ForecastContentBlockRole,
   type ForecastEvidenceView,
   type ForecastSection,
   type PersonalForecastPackage,
+  type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
 
 export const chartFixture = {
@@ -95,12 +98,16 @@ function sectionFixture(input: {
   };
 }
 
-export function personalForecastFixture(): PersonalForecastPackage {
+export function personalForecastFixture(period: PersonalForecastPeriod = 'day'): PersonalForecastPackage {
+  const reference = PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.find((item) => item.period === period)!;
+  const periodKey = period === 'day' ? '2026-07-26' : period === 'week' ? '2026-W30' : '2026-07';
+  const window = resolvePersonalForecastWindow(period, periodKey, 'Europe/Moscow');
+  const observations = reference.input.astrologer_brief.observations;
   return {
-    period: 'day',
-    periodKey: '2026-07-26',
-    periodStart: '2026-07-26',
-    periodEnd: '2026-07-26',
+    period,
+    periodKey,
+    periodStart: window.periodStart,
+    periodEnd: window.periodEnd,
     dateLabel: 'SUNDAY\n26 JULY',
     timezone: 'Europe/Moscow',
     overview: sectionFixture({
@@ -114,7 +121,7 @@ export function personalForecastFixture(): PersonalForecastPackage {
         {
           role: 'detail',
           atomId: 'forecast_body',
-          text: 'A familiar task reveals the detail that needs a precise answer. The conversation quickly becomes concrete, and the next decision is easier to make.',
+          text: reference.output.forecast,
         },
       ],
     }),
@@ -125,7 +132,7 @@ export function personalForecastFixture(): PersonalForecastPackage {
         fingerprint: 'semantic:closing',
         factId: 'fact:communication',
         blocks: [
-          { role: 'action', atomId: 'closing', text: 'Check the details, then answer without extra explanations.' },
+          { role: 'action', atomId: 'closing', text: reference.output.closing },
         ],
       }),
     ],
@@ -146,30 +153,27 @@ export function personalForecastFixture(): PersonalForecastPackage {
       diagnosticCode: null,
       astrologerBrief: {
         tone: 'mixed',
-        situation: 'знакомое дело получает ответ',
-        turn: 'короткий разговор меняет решение',
-        outcome: 'следующий шаг становится понятен',
-        observableDetail: 'короткий ответ вместо долгого спора',
+        observations: [...observations],
         briefSignature: 'fixture-brief',
       },
       semanticSignature: {
-        situation: 'знакомое дело получает ответ',
-        turn: 'короткий разговор меняет решение',
-        outcome: 'следующий шаг становится понятен',
+        situation: observations[0],
+        turn: observations[1],
+        outcome: observations.slice(2).join(' ') || observations[1],
         title: 'A precise turn',
-        forecast: 'A familiar task reveals the detail that needs a precise answer. The conversation quickly becomes concrete, and the next decision is easier to make.',
-        closing: 'Check the details, then answer without extra explanations.',
+        forecast: reference.output.forecast,
+        closing: reference.output.closing,
       },
-      freeSelection: {
+      freeSelection: period === 'day' ? {
         strongestSectionId: 'semantic:closing',
         rotatedSectionId: null,
         sectionIds: ['semantic:closing'],
-      },
+      } : { strongestSectionId: null, rotatedSectionId: null, sectionIds: [] },
     },
   };
 }
 
-/** Question-product fixture retained separately from the canonical three-part forecast package. */
+/** Legacy question-product fixture, separate from the current period horoscope. */
 export function personalForecastQuestionFixture(): PersonalForecastPackage {
   const forecast = personalForecastFixture();
   const sections = [

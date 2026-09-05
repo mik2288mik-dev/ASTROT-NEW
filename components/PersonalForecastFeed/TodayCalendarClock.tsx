@@ -295,16 +295,13 @@ export function TodayCalendarClock({
     : 0;
   const broadcastInteracted = broadcastStateIsCurrent && broadcastState.interacted;
   const activeBroadcast = todayBroadcasts[broadcastIndex] ?? todayBroadcasts[0];
-  const activeBroadcastLabel = language === 'ru'
-    ? activeBroadcast.labelRu
-    : activeBroadcast.labelEn;
   const broadcastActionLabel = language === 'ru'
-    ? `Сменить общий совет дня. Сейчас «${activeBroadcastLabel}», ${broadcastIndex + 1} из ${todayBroadcasts.length}. Дата и время: ${parts.semanticLabel}.`
-    : `Change today's suggestion. Current suggestion is “${activeBroadcastLabel},” ${broadcastIndex + 1} of ${todayBroadcasts.length}. Date and time: ${parts.semanticLabel}.`;
+    ? `Сменить картинку на телевизоре. ${broadcastIndex + 1} из ${todayBroadcasts.length}. Дата и время: ${parts.semanticLabel}.`
+    : `Change the TV picture. ${broadcastIndex + 1} of ${todayBroadcasts.length}. Date and time: ${parts.semanticLabel}.`;
   const broadcastStatus = broadcastInteracted
     ? (language === 'ru'
-        ? `Общий совет дня сменён: «${activeBroadcastLabel}», ${broadcastIndex + 1} из ${todayBroadcasts.length}.`
-        : `Today's suggestion changed to “${activeBroadcastLabel},” ${broadcastIndex + 1} of ${todayBroadcasts.length}.`)
+        ? `Картинка ${broadcastIndex + 1} из ${todayBroadcasts.length}.`
+        : `Picture ${broadcastIndex + 1} of ${todayBroadcasts.length}.`)
     : '';
 
   const advanceBroadcast = () => {
@@ -398,11 +395,6 @@ export function TodayCalendarClock({
       </button>
       <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {broadcastStatus}
-      </span>
-      <span className="today-calendar-clock-caption" aria-hidden="true">
-        {language === 'ru'
-          ? `Общий совет дня: ${activeBroadcastLabel} · нажми, чтобы сменить`
-          : `Today's suggestion: ${activeBroadcastLabel} · tap to change`}
       </span>
     </span>
   );

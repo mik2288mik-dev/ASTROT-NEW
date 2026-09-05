@@ -17,6 +17,10 @@ import {
 } from '../../../../lib/personalForecastContract';
 import { getPersonalForecastGenerationDiagnosticCode } from '../../../../lib/personalForecastGeneration';
 import {
+  projectPersonalForecastForWire,
+  resolvePersonalForecastWireVersion,
+} from '../../../../lib/personalForecastWireCompatibility';
+import {
   buildPersonalForecastPrewarmProfile,
   queuePersonalForecastPrewarm,
 } from '../../../../lib/personalForecastPrewarm';
@@ -56,15 +60,16 @@ function responsePayload(
   forecast: Parameters<typeof slicePersonalForecastForAccess>[0],
   isPremium: boolean,
   source: PersonalForecastAccessPayload['source'],
-): PersonalForecastAccessPayload {
+  wireVersion: string,
+) {
   const sliced = slicePersonalForecastForAccess(forecast, isPremium);
-  return {
+  return projectPersonalForecastForWire({
     forecast: sliced.forecast,
     accessTier: isPremium ? 'premium' : 'free',
     lockedSectionIds: sliced.lockedSectionIds,
     periodLocked: sliced.periodLocked,
     source,
-  };
+  }, wireVersion);
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -75,6 +80,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   try {
   const auth = await requireAppUser(req, { allowGuest: true });
+  const wireVersion = resolvePersonalForecastWireVersion(req.query.contractVersion);
+  if (!wireVersion) {
+    diagnostic.log('validation', 'error', { httpStatus: 400, errorCode: 'PERSONAL_FORECAST_CONTRACT_UNSUPPORTED' });
+    return res.status(400).json({
+      error: 'Unsupported personal forecast format. Update the application.',
+      message: 'Обнови приложение, чтобы открыть личный прогноз.',
+      code: 'PERSONAL_FORECAST_CONTRACT_UNSUPPORTED',
+    });
+  }
   const userId = String(auth.userId);
   const [user, birthSettings] = await Promise.all([
     db.users.get(userId, { hydratePrimaryChart: false }),
@@ -144,7 +158,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           queueRollingPrewarm();
           diagnostic.log('cache_read', 'cache_hit', { period, source: 'cache', httpStatus: 200 });
           return res.status(200).json(
-            responsePayload(cached.forecast, entitlement.isPremium, 'cache'),
+            responsePayload(cached.forecast, entitlement.isPremium, 'cache', wireVersion),
           );
         }
       }
@@ -164,6 +178,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           stale.forecast,
           entitlement.isPremium,
           'stale',
+          wireVersion,
         ));
       }
     }
@@ -205,6 +220,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       generated.value,
       entitlement.isPremium,
       generated.fromCache ? 'cache' : 'generated',
+      wireVersion,
     ));
   } catch (error) {
     const diagnosticCode = getPersonalForecastGenerationDiagnosticCode(error);

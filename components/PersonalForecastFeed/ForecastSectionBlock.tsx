@@ -24,23 +24,25 @@ function renderContentBlocks(
     .map((block) => block.text.trim())
     .filter(Boolean)
     .join(' ');
+  const paragraphs = text.split(/\n\s*\n/u).map((paragraph) => paragraph.trim()).filter(Boolean);
 
   return (
     <div className={[
       'forecast-feed-section-copy',
       period !== 'day' ? 'forecast-period-editorial-copy' : '',
     ].filter(Boolean).join(' ')}>
-      <p
+      {paragraphs.map((paragraph, index) => <p
+        key={index}
         className={[
           'forecast-feed-section-text',
           'is-body',
           period !== 'day' ? 'is-story-opening' : '',
-          period !== 'day' && section.kind === 'overview' ? 'is-opening-paragraph' : '',
+          period !== 'day' && section.kind === 'overview' && index === 0 ? 'is-opening-paragraph' : '',
         ].filter(Boolean).join(' ')}
-        data-story-paragraph={period !== 'day' ? 1 : undefined}
+        data-story-paragraph={index + 1}
       >
-        {text}
-      </p>
+        {paragraph}
+      </p>)}
     </div>
   );
 }

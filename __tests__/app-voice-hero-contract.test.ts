@@ -26,12 +26,12 @@ describe('app and personal forecast voice contracts', () => {
 
     expect(forecastVoice).not.toContain(appVoice);
     expect(forecastVoice).not.toContain('ГОЛОС ЛИЧНОГО ПРОГНОЗА');
-    expect(forecastVoice).toContain('title — 1–5 слов: громкая живая реплика');
+    expect(forecastVoice).toContain('title — точная живая реплика из 1–5 слов');
     expect(forecastVoice).toContain('title, forecast, closing');
-    expect(forecastVoice).toContain('forecast — один цельный абзац');
-    expect(forecastVoice).toContain('обязательную проблему перед хорошей новостью');
-    expect(forecastVoice).toContain('достаточно короткого вывода без команды');
-    expect(forecastVoice).toContain('Каждое следующее предложение добавляет');
+    expect(forecastVoice).toContain('forecast — один связный абзац');
+    expect(forecastVoice).toContain('обязательного конфликта нет');
+    expect(forecastVoice).toContain('не обязана давать совет');
+    expect(forecastVoice).toContain('две связанные мысли');
   });
 
   it('puts ordinary-life meaning before astrology and keeps headings purposeful', () => {
@@ -41,8 +41,8 @@ describe('app and personal forecast voice contracts', () => {
     expect(appVoice).toContain('переводи контекст в обычный язык жизни');
     expect(appVoice).toContain('Астрологические термины допустимы только');
     expect(appVoice).toContain('Заголовок нужен только когда он действительно помогает читать');
-    expect(forecastVoice).toContain('видимой астрологии');
-    expect(forecastVoice).toContain('для одного человека');
+    expect(forecastVoice).toContain('Не называй планеты, аспекты, транзиты');
+    expect(forecastVoice).toContain('персональный гороскоп');
   });
 
   it('explicitly rejects coaching, mysticism, and empty machine wording', () => {
@@ -51,12 +51,18 @@ describe('app and personal forecast voice contracts', () => {
 
     expect(appVoice).toContain('коучинговой жвачки');
     expect(appVoice).toContain('Не придумывай события, биографию, мотивы');
-    expect(forecastVoice).toContain('Никакой психологии, коучинга, эзотерики');
+    expect(forecastVoice).toContain('Никакой терапии, коучинга, диагнозов');
     expect(hasAppVoiceViolation('Вселенная подсказывает тебе правильный путь.')).toBe(true);
     expect(hasPersonalForecastVoiceViolation('Твоя карта показывает готовое решение.')).toBe(true);
     expect(hasPersonalForecastVoiceViolation('Это читается через внутренний рисунок.')).toBe(true);
     expect(hasPersonalForecastVoiceViolation('Твоя сила — в спокойном присутствии.')).toBe(true);
     expect(hasPersonalForecastVoiceViolation('Рабочая стратегия требует жёстких границ.')).toBe(true);
+  });
+
+  it('allows ordinary feelings and actions without turning them into coaching', () => {
+    expect(hasPersonalForecastVoiceViolation('Чужая уверенность иногда вызывает раздражение.')).toBe(false);
+    expect(hasPersonalForecastVoiceViolation('Труднее остановиться после хорошего результата.')).toBe(false);
+    expect(hasPersonalForecastVoiceViolation('Пора остановиться.')).toBe(true);
   });
 
   it('allows ordinary spoken qualifiers without rejecting the whole forecast', () => {

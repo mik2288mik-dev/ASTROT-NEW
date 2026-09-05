@@ -109,11 +109,5 @@ export function formatPersonalForecastAttribution({
   const target = formatForecastTarget(window, language);
   if (!name || !birthDate || !target) return null;
 
-  const formattedBirthDate = formatFullDate(birthDate, language);
-  if (language === 'ru') {
-    const targetLead = window.period === 'week' ? `на период ${target}` : `на ${target}`;
-    return `Прогноз подготовлен ${targetLead} для профиля «${name}» — по дате рождения ${formattedBirthDate}.`;
-  }
-
-  return `Forecast prepared for ${target} for the “${name}” profile — based on the birth date ${formattedBirthDate}.`;
+  return `${name} · ${target}`;
 }
