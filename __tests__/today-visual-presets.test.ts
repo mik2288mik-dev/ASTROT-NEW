@@ -133,7 +133,7 @@ describe('Today visual presets', () => {
     expect(clock).not.toContain('Math.random');
     expect(clock).not.toContain('<video');
     expect(clock).not.toContain('.gif');
-    expect(styles).toContain('width: min(calc(100% - 2rem), 19rem);');
+    expect(styles).toContain('width: min(100%, 22rem);');
     expect(styles).toContain('min-width: 44px;');
     expect(styles).toContain('min-height: 44px;');
     expect(styles).toContain('.today-calendar-clock:focus-visible');

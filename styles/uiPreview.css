@@ -9,6 +9,11 @@ body.ui-preview-document-scroll {
   touch-action: pan-y;
 }
 
+/* Keep the document as the only scroll owner so sticky reading navigation works. */
+body.ui-preview-document-scroll {
+  overflow: visible;
+}
+
 #__next.ui-preview-document-scroll {
   display: block;
   width: 100%;

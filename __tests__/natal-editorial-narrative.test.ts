@@ -14,6 +14,7 @@ import {
   generateNatalReportCategoryPack,
   getNatalReportCategoryValidationIssues,
   getNatalReportCatalogSystemPrompt,
+  hasNatalNarrativeDirectAddress,
   hasNatalReportCatalogCopyViolation,
   isNatalReportMainSummaryLengthAllowed,
   materializeNatalReportCategoryPack,
@@ -87,12 +88,54 @@ describe('natal editorial narrative', () => {
     expect(voice).toContain('Последний абзац заканчивает последнюю мысль');
   });
 
+  it.each(['ru', 'en'] as const)('separates unused chapter evidence from accepted main evidence in %s without inventing facts', (language) => {
+    const mainAnchor = materialize()!;
+    mainAnchor.summary[0].evidenceIds.push('invented:old-anchor-id');
+    const prompt = buildNatalReportCategoryPrompt({ language, built, categoryKey: 'work', mainAnchor, reader: { name: 'Лина', gender: 'female' } });
+    const planningJson = prompt.match(/CONTINUATION EVIDENCE:\n([\s\S]+?)\n\nCALCULATED EVIDENCE:/u)?.[1];
+    expect(planningJson).toBeDefined();
+    const planning = JSON.parse(planningJson!);
+    const available = resolveNatalReportNarrativeEvidence(built, 'work').map((fact) => fact.id);
+    const alreadyCited = new Set(mainAnchor.summary.flatMap((item) => item.evidenceIds));
+    expect(planning.not_previously_cited_evidence_ids).toEqual(available.filter((id) => !alreadyCited.has(id)));
+    expect(planning.previously_cited_evidence_ids).toEqual(available.filter((id) => alreadyCited.has(id)));
+    expect(JSON.stringify(planning)).not.toContain('invented:old-anchor-id');
+    expect(prompt).toContain(mainAnchor.summary[0].text);
+    expect(prompt).toContain('2–3');
+    expect(prompt).toContain('"gender": "female"');
+    expect(prompt).not.toContain('full_answer_covers');
+    expect(buildNatalReportCategoryPrompt({ language, built, categoryKey: 'main' })).not.toContain('CONTINUATION EVIDENCE:');
+  });
+
   it('blocks the office phrases observed in live output while allowing plain descriptions', () => {
     expect(hasNatalReportCatalogCopyViolation('Окончательная профессиональная позиция строится на последовательности.')).toBe(true);
     expect(hasNatalReportCatalogCopyViolation('Трезвый отбор помогает держать планку качества.')).toBe(true);
     expect(hasNatalReportCatalogCopyViolation('В итоге ты умеешь действовать быстро и точно.')).toBe(true);
     expect(hasNatalReportCatalogCopyViolation('Начать легче, чем закончить, если задача всё время меняется.')).toBe(false);
     expect(hasNatalReportCatalogCopyViolation('Ты можешь показать готовую работу раньше, чем обещал.')).toBe(false);
+  });
+
+  it.each([
+    ['main', 'male', 'male'],
+    ['work', 'female', 'female'],
+    ['main', 'unspecified', 'unspecified'],
+    ['work', undefined, 'unspecified'],
+    ['main', 'invalid', 'unspecified'],
+  ] as const)('passes the reader name and normalized gender to the %s writer (%s)', async (categoryKey, gender, expected) => {
+    const requestStructured = jest.fn().mockResolvedValue({
+      content: JSON.stringify(natalEditorialCategoryPayload(built, categoryKey)), responseId: 'reader-test',
+    });
+    const result = await generateNatalReportCategoryPack({
+      profile: { ...profile, name: '  Лина  ', gender: gender as UserProfile['gender'] },
+      chart, categoryKey, mainAnchor: categoryKey === 'main' ? null : materialize(), requestStructured,
+    });
+    expect(result.summary).toHaveLength(6);
+    expect(requestStructured).toHaveBeenCalledTimes(1);
+    const prompt = requestStructured.mock.calls[0][0].input as string;
+    const reader = JSON.parse(prompt.match(/READER:\n(\{[\s\S]*?\})\n\nCATEGORY:/)![1]);
+    expect(reader).toEqual({ name: 'Лина', gender: expected });
+    expect(prompt).toContain('не определяй пол по имени');
+    expect(prompt).toContain('Пол влияет только на грамматику, не на характер, выводы или примеры');
   });
 
   it('repairs an underlength candidate instead of returning a teaser', async () => {
@@ -107,6 +150,40 @@ describe('natal editorial narrative', () => {
       expect(requestStructured).toHaveBeenCalledTimes(2);
       expect(requestStructured.mock.calls[1][0].input).toContain('SUMMARY_WORDS_TOO_SHORT');
       expect(requestStructured.mock.calls[0][0].maxOutputTokens).toBe(6000);
+    } finally { warn.mockRestore(); }
+  });
+
+  it.each([
+    ['ru', 'Лина, ты быстро находишь понятное объяснение.', true],
+    ['ru', 'В твоём объяснении есть точный пример.', true],
+    ['ru', 'Лина творчески подходит к объяснениям. Ей легко привести пример.', false],
+    ['en', 'Lina, your explanation gives the listener a concrete example.', true],
+    ['en', 'Lina explains things clearly. Her example helps the listener.', false],
+  ] as const)('checks direct address in %s without guessing from a name', (language, text, expected) => {
+    expect(hasNatalNarrativeDirectAddress([{ text }], language)).toBe(expected);
+  });
+
+  it('repairs an otherwise valid third-person chapter before returning it', async () => {
+    const valid = natalEditorialCategoryPayload(built, 'work');
+    const thirdPerson = {
+      ...valid,
+      summary: valid.summary!.map((paragraph) => ({
+        ...paragraph,
+        text: String(paragraph.text).replace(/(?<![\p{L}])(?:ты|тебе|тебя|твой|твоя|твоё|твое|твои|твою)(?![\p{L}])/giu, 'Лина'),
+      })),
+    };
+    // This fixture isolates narration from existing length, evidence and copy validators.
+    expect(materializeNatalReportCategoryPack({ raw: thirdPerson, built, categoryKey: 'work', language: 'ru' })).not.toBeNull();
+    const requestStructured = jest.fn()
+      .mockResolvedValueOnce({ content: JSON.stringify(thirdPerson), responseId: 'third-person' })
+      .mockResolvedValueOnce({ content: JSON.stringify(valid), responseId: 'direct-address' });
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const report = await generateNatalReportCategoryPack({ profile, chart, categoryKey: 'work', mainAnchor: materialize(), requestStructured });
+      expect(report.summary[0].text).toBe(valid.summary![0].text);
+      expect(requestStructured).toHaveBeenCalledTimes(2);
+      expect(requestStructured.mock.calls[1][0].input).toContain('NARRATOR_DIRECT_ADDRESS_REQUIRED');
+      expect(requestStructured.mock.calls[1][0].input).toContain('перепиши весь рассказ как обращение');
     } finally { warn.mockRestore(); }
   });
 

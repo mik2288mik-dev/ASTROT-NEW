@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ChevronRight, LockKeyhole } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronRight, LockKeyhole } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
 import { getNatalReportCategory, type NatalReportCategoryKey, type NatalReportCategoryPack } from '../../lib/natalReading/reportCatalog';
 import { getPermanentNatalReliability } from '../../lib/natalReading/permanentReport';
@@ -38,6 +38,7 @@ export const NatalMeaningExperience: React.FC<Props> = ({
   const reliability = getPermanentNatalReliability(chartData);
   const [explanation, setExplanation] = useState<NatalExplanationTarget | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const contentsRef = useRef<HTMLDetailsElement>(null);
   const previousCategory = useRef(activeCategoryKey);
   useEffect(() => { setExplanation(null); }, [activeCategoryKey, chartData, isPremium, language]);
   useEffect(() => {
@@ -51,11 +52,28 @@ export const NatalMeaningExperience: React.FC<Props> = ({
     : reliability.quality === 'approximate'
       ? (ru ? 'Учтена погрешность времени' : 'Birth-time uncertainty included')
       : (ru ? 'Без неизвестных домов и асцендента' : 'Without unknown houses or Ascendant');
+  const readingMinutes = pack ? Math.max(1, Math.round(pack.summary.map((paragraph) => paragraph.text).join(' ').split(/\s+/u).length / 180)) : null;
+  const selectChapter = (key: NatalReportCategoryKey) => {
+    if (contentsRef.current) contentsRef.current.open = false;
+    onSelectCategory(key);
+    if (key === activeCategoryKey) headingRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+  };
   return (
     <div className="natal-v3-experience natal-narrative-experience">
+      <details className="natal-reading-contents" ref={contentsRef}>
+        <summary><span>{ru ? 'Разделы разбора' : 'Reading chapters'}</span><span>{title}<ChevronDown aria-hidden="true" /></span></summary>
+        <nav aria-label={ru ? 'Разделы натального разбора' : 'Natal reading chapters'}>
+          {(['main', ...CHAPTERS] as const).map((key, index) => <button type="button" key={key} aria-current={key === activeCategoryKey ? 'page' : undefined} onClick={() => selectChapter(key)}>
+            <span className="natal-reading-chapter-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+            <span><strong>{key === 'main' ? (ru ? 'О тебе' : 'About you') : getNatalReportCategory(key)!.title[language]}</strong><small>{key === 'main' ? (ru ? 'Цельный портрет. Доступен бесплатно.' : 'Your complete portrait. Free to read.') : CHAPTER_COPY[key][language]}</small></span>
+            {key !== 'main' && !isPremium ? <LockKeyhole aria-label="Premium" /> : <ChevronRight aria-hidden="true" />}
+          </button>)}
+        </nav>
+      </details>
       {!main ? <button type="button" className="natal-v3-back-action" onClick={() => onSelectCategory('main')}><ArrowLeft aria-hidden="true" />{ru ? 'К первому разбору' : 'Back to your first reading'}</button> : null}
       <header className="natal-v3-page-heading">
         <p>{subjectName}</p><h1 ref={headingRef} tabIndex={-1}>{title}</h1>
+        <div className="natal-reading-meta"><span>{main ? (ru ? 'Личный портрет' : 'Personal portrait') : 'Premium'}</span>{readingMinutes && !locked ? <span>{ru ? `${readingMinutes} мин чтения` : `${readingMinutes} min read`}</span> : null}</div>
         <button type="button" className="natal-v3-accuracy-link" onClick={() => setExplanation({ mode: 'accuracy', title: ru ? 'Точность разбора' : 'Reading accuracy' })}>{accuracyLabel}<ChevronRight aria-hidden="true" /></button>
       </header>
       {locked ? (
@@ -80,7 +98,7 @@ export const NatalMeaningExperience: React.FC<Props> = ({
         <section className="natal-v3-reading-error" role="alert"><h2>{ru ? 'Разбор не загрузился' : 'The reading did not load'}</h2><p>{categoryError || (ru ? 'Попробуй открыть его ещё раз.' : 'Try opening it again.')}</p><button type="button" onClick={onRetryCategory}>{ru ? 'Попробовать снова' : 'Try again'}</button></section>
       )}
       <section className="natal-narrative-chapters" aria-labelledby="natal-narrative-chapters-title">
-        <div className="natal-v3-section-heading"><h2 id="natal-narrative-chapters-title">{ru ? 'Читать дальше' : 'Keep reading'}</h2></div>
+        <div className="natal-v3-section-heading"><h2 id="natal-narrative-chapters-title">{ru ? 'Читать дальше' : 'Keep reading'}</h2><p>{ru ? 'Каждая глава — ещё одна сторона этой карты.' : 'Each chapter explores another side of this chart.'}</p></div>
         {CHAPTERS.filter((key) => key !== activeCategoryKey).map((key) => {
           const category = getNatalReportCategory(key)!;
           const preview = mainPack?.previews.find((item) => category.answerKeys.includes(item.answerKey));

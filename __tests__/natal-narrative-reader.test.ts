@@ -267,7 +267,8 @@ describe('natal narrative reader', () => {
     expect(body?.match(/<p>/g)).toHaveLength(natalEditorialParagraphs.length);
     for (const paragraph of natalEditorialParagraphs) expect(body).toContain(paragraph);
     expect(body).not.toContain('<details');
-    expect(html.indexOf('</article>')).toBeLessThan(html.indexOf('<details'));
+    expect(html.indexOf('</article>')).toBeLessThan(html.indexOf('class="natal-narrative-evidence"'));
+    expect(html).toContain('aria-label="Разделы натального разбора"');
     expect(html).not.toContain('<textarea');
     expect(html).not.toContain('Читать с Premium');
   });

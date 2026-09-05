@@ -1,8 +1,25 @@
 import fs from 'fs';
 import path from 'path';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import ts from 'typescript';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
+
+function renderPersonSourcePicker(value: 'saved' | 'birth', onChange: (value: 'saved' | 'birth') => void) {
+  const filename = 'views/v2/UnionRoom.tsx';
+  const source = ts.createSourceFile(filename, read(filename), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const picker = source.statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === 'PersonSourcePicker');
+  if (!picker) throw new Error('PersonSourcePicker is missing');
+  const output = ts.transpileModule(`${picker.getText(source)}\nexport { PersonSourcePicker };`, {
+    fileName: filename,
+    compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const exports: { PersonSourcePicker?: (props: { value: 'saved' | 'birth'; ru: boolean; onChange: typeof onChange }) => React.ReactElement } = {};
+  new Function('require', 'exports', 'lumiaSelectionHaptic', output)(require, exports, () => {});
+  return exports.PersonSourcePicker!({ value, ru: true, onChange });
+}
 
 describe('compatibility editorial layout', () => {
   it('scopes the light flow to every UnionRoom state and preserves its gates', () => {
@@ -13,7 +30,7 @@ describe('compatibility editorial layout', () => {
     const resultHeading = room.indexOf('className="compat-result-heading"');
     const resultScore = room.indexOf('className="compat-result-score"', resultHeading);
     const resultCalculation = room.indexOf('compat-technical-data--near-score', resultScore);
-    const resultSummary = room.indexOf('className="compat-result-summary"', resultCalculation);
+    const resultSummary = room.indexOf('className="compat-result-summary compat-result-summary--sign"', resultCalculation);
     const resultMeta = room.indexOf('className="compat-result-meta"', resultSummary);
 
     expect(room.match(/compat-editorial-page compat-editorial-page--/g)).toHaveLength(2);
@@ -35,7 +52,6 @@ describe('compatibility editorial layout', () => {
     expect(styles).toContain('.compat-editorial-page--result .compat-person-snapshot');
     expect(styles).toContain('.compat-editorial-page--result .compat-read-block');
     expect(styles).toContain('.compat-editorial-page--result .compat-result-summary');
-    expect(room).toContain('<MeouLogo className="compat-result-brand" />');
     expect(room).toContain('className="compat-result-ring-people"');
     expect(room).toContain('className="compat-result-person-zodiac"');
     expect(room).toContain('getZodiacSign(lang, leftSun)');
@@ -50,7 +66,9 @@ describe('compatibility editorial layout', () => {
     expect(resultSummary).toBeLessThan(resultMeta);
     expect(room).toContain('Большие кольца показывают общий индекс');
     expect(room).toContain("const resultPercent = !isPerson");
-    expect(room).toContain('<EditorialProse text={deep.summary} />');
+    expect(room).toContain('<CompatibilityStoryReader result={deep}');
+    expect(room).toContain('isPerson && premium && deep');
+    expect(room).toContain('Две сохранённые карты. Один разбор о вас.');
     expect(room).not.toContain('className="compat-final-payoff"');
     expect(room).not.toContain('deepSections.map');
     expect(room).toContain('deep.narrativeEvidenceIds?.includes(item.id)');
@@ -80,18 +98,21 @@ describe('compatibility editorial layout', () => {
     );
     expect(app).toContain("import '../styles/compatibilityEditorial.css'");
     expect(app).toContain("import '../styles/editorialStudio.css'");
+    // This unchanged branding assertion already differs from 8d9c0396; keep it separate from the new reading checks.
+    expect(room).toContain('<MeouLogo className="compat-result-brand" />');
   });
 
   it('matches the compact monochrome form contract from the approved render', () => {
     const room = read('views/v2/UnionRoom.tsx');
     const styles = read('styles/editorialStudio.css');
+    const compatibilityStyles = read('styles/compatibilityEditorial.css');
     const addStart = room.indexOf("if (screen === 'add')");
     const addEnd = room.indexOf('/* ── РЕЗУЛЬТАТ ── */', addStart);
     const addFlow = room.slice(addStart, addEnd);
 
     expect(room).toContain("title={ru ? 'Совместимость' : 'Compatibility'}");
     expect(room).toContain('<EditorialTabs');
-    expect(room).toContain("label: ru ? 'По карте' : 'By birth data'");
+    expect(room).toContain("label: ru ? 'По картам' : 'By charts'");
     expect(room).toContain("label: ru ? 'По знакам' : 'By zodiac signs'");
     expect(addFlow).toContain("ru ? 'Первый человек' : 'First person'");
     expect(addFlow).toContain("ru ? 'Второй человек' : 'Second person'");
@@ -136,9 +157,11 @@ describe('compatibility editorial layout', () => {
     );
     expect(styles).toContain('.compat-editorial-page--add .compat-time-precision-options');
     expect(styles).toContain('.compat-editorial-page--add .compat-context-options');
-    expect(styles).toMatch(
-      /\.compat-editorial-page--add \.compat-context-option,[\s\S]*?min-height:\s*2rem;[\s\S]*?border-radius:\s*0\s*!important;/,
-    );
+    expect(compatibilityStyles).toMatch(/\.compat-editorial-page\.compat-editorial-page--add \.compat-person-source\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+    expect(compatibilityStyles).toMatch(/\.compat-editorial-page\.compat-editorial-page--add \.compat-context-options\s*\{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)[^}]*overflow:\s*visible/);
+    for (const choice of ['compat-person-source-option', 'compat-context-option']) {
+      expect(compatibilityStyles).toMatch(new RegExp(`\\.compat-editorial-page\\.compat-editorial-page--add \\.${choice}\\s*\\{[^}]*min-height:\\s*44px`));
+    }
     expect(styles).toMatch(
       /\.compat-editorial-page--add \.compat-context-option\.is-active\s*\{[^}]*background:\s*transparent\s*!important;/,
     );
@@ -159,13 +182,20 @@ describe('compatibility editorial layout', () => {
     expect(room).toContain("const [subjectSource, setSubjectSource] = useState<CompatibilityPersonSource>");
     expect(room).toContain("const [partnerSource, setPartnerSource] = useState<CompatibilityPersonSource>");
     expect(addFlow.match(/<PersonSourcePicker/g)).toHaveLength(2);
-    expect(room).toContain("value: 'saved'");
-    expect(room).toContain("value: 'birth'");
-    expect(room).toContain("value: 'sign'");
-    expect(room).toContain('aria-pressed={active}');
-    expect(room).toContain("ru ? 'Дата' : 'Date'");
-    expect(room).toContain("ru ? 'Карта' : 'Chart'");
-    expect(room).toContain("ru ? 'Знак' : 'Sign'");
+    const onChange = jest.fn();
+    const picker = renderPersonSourcePicker('saved', onChange);
+    const pickerHtml = renderToStaticMarkup(picker);
+    expect(pickerHtml.match(/<button\b/gu)).toHaveLength(2);
+    expect(pickerHtml).toContain('aria-pressed="true" aria-label="Выбрать сохранённую карту">Мои карты</button>');
+    expect(pickerHtml).toContain('aria-pressed="false" aria-label="Ввести данные нового человека">Новый</button>');
+    expect(pickerHtml).not.toContain('Знак');
+    const buttons = React.Children.toArray((picker.props as { children: React.ReactNode }).children) as React.ReactElement<{ onClick: () => void }>[];
+    buttons[1].props.onClick();
+    expect(onChange).toHaveBeenCalledWith('birth');
+    buttons[0].props.onClick();
+    expect(onChange).toHaveBeenLastCalledWith('saved');
+    expect(room).toContain("ru ? 'Дата рождения' : 'Birth date'");
+    expect(room).toContain("label: ru ? 'По знакам' : 'By zodiac signs'");
     expect(room).toContain("ru ? 'Выбрать карту' : 'Choose a chart'");
     expect(addFlow).not.toContain('className="compat-chart-select-label"');
     expect(addFlow).not.toContain('firstChart?.name ? <small>');

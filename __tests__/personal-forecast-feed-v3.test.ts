@@ -30,6 +30,10 @@ describe('personal forecast raw-profile runtime', () => {
       expect(rendered.match(/<forecast_example_output>/g)).toHaveLength(periodExamples.length);
       expect(rendered).toContain('"reference_scope": "voice_and_structure_only"');
       expect(rendered).toContain('"grammatical_gender": "male"');
+      expect(rendered).toContain('"title"');
+      expect(rendered).toContain('"forecast"');
+      expect(rendered).toContain('"closing"');
+      expect(rendered).not.toContain('"punchline"');
       for (const forbidden of [
         '"name"', '"current_date"', '"period_start"', '"period_end"',
         '"timezone"', '"astrologer_brief"', '"personal_profile"',

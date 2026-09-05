@@ -371,7 +371,7 @@
   width: min(calc(100% - 2rem), 32rem);
   margin: 0.2rem auto 0;
   padding: 0 clamp(0.5rem, 3vw, 1rem);
-  color: rgba(41, 39, 36, 0.28);
+  color: #706c66;
   font-family: var(--forecast-editorial-font);
   font-size: clamp(0.74rem, 3.1vw, 0.82rem);
   font-weight: 400;
@@ -548,30 +548,15 @@
   display: grid;
   width: min(100%, 32rem);
   justify-items: center;
-  gap: clamp(0.8rem, 3.5vw, 1.15rem);
+  gap: clamp(1rem, 4vw, 1.4rem);
   margin: 0 auto;
   transform: none;
 }
 
 .today-minimal-composition .today-calendar-clock-shell {
   display: block;
-  width: min(calc(100% - 2rem), 19rem);
+  width: min(100%, 22rem);
   margin-block: clamp(0.3rem, 1.4vw, 0.45rem) clamp(0.12rem, 0.8vw, 0.25rem);
-}
-
-.today-minimal-punchline {
-  width: min(87vw, 27.25rem);
-  max-width: 100%;
-  margin: 0;
-  color: var(--today-ink);
-  font-family: var(--forecast-editorial-font);
-  font-size: clamp(1.22rem, 5.3vw, 1.55rem);
-  font-weight: 400;
-  letter-spacing: -0.035em;
-  line-height: 1.22;
-  overflow-wrap: anywhere;
-  text-align: center;
-  text-wrap: balance;
 }
 
 .today-minimal-forecast-bridge {
@@ -1136,10 +1121,10 @@
   margin: 0 auto clamp(1rem, 4vw, 1.3rem) !important;
   color: var(--today-ink);
   font-family: var(--forecast-editorial-font) !important;
-  font-size: clamp(1.4rem, 5.8vw, 1.7rem) !important;
+  font-size: clamp(1.65rem, 6.6vw, 2.05rem) !important;
   font-weight: 600 !important;
-  letter-spacing: -0.04em !important;
-  line-height: 1.16 !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.2 !important;
   text-align: center;
   text-wrap: balance;
 }
@@ -1167,8 +1152,7 @@
   font-weight: 400 !important;
   letter-spacing: -0.018em !important;
   line-height: 1.66 !important;
-  text-align: justify !important;
-  text-align-last: start;
+  text-align: left !important;
   -webkit-hyphens: none;
   hyphens: none;
   overflow-wrap: normal;
@@ -1184,12 +1168,6 @@
   margin: -0.25rem -1rem clamp(0.55rem, 2.5vw, 0.8rem);
 }
 
-.forecast-period-punchline-thread {
-  width: calc(100% + 2rem);
-  height: clamp(1.8rem, 7vw, 2.2rem);
-  margin: clamp(0.25rem, 1.4vw, 0.4rem) -1rem clamp(0.55rem, 2.5vw, 0.8rem);
-}
-
 .today-minimal-reading-main {
   padding-left: 0;
 }
@@ -1199,25 +1177,11 @@
   margin: 0;
   color: var(--today-ink);
   font-family: var(--forecast-editorial-font);
-  font-size: clamp(1.4rem, 5.8vw, 1.7rem);
+  font-size: clamp(1.65rem, 6.6vw, 2.05rem);
   font-weight: 600;
-  letter-spacing: -0.04em;
-  line-height: 1.16;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
   text-align: center;
-  text-wrap: balance;
-}
-
-.forecast-period-editorial-punchline {
-  width: min(87vw, 27.25rem) !important;
-  max-width: 100% !important;
-  margin: 0 auto !important;
-  color: var(--today-ink) !important;
-  font-family: var(--forecast-editorial-font) !important;
-  font-size: clamp(1.22rem, 5.3vw, 1.55rem) !important;
-  font-weight: 400 !important;
-  letter-spacing: -0.035em !important;
-  line-height: 1.22 !important;
-  text-align: center !important;
   text-wrap: balance;
 }
 
@@ -1228,18 +1192,7 @@
 #__next
   .forecast-period-editorial-feed
   .forecast-feed-story-fragment.is-advice {
-  margin-top: clamp(1.8rem, 7vw, 2.4rem);
-}
-
-.forecast-period-advice-label {
-  margin: 0 0 0.78rem;
-  color: var(--today-ink);
-  font-family: var(--forecast-editorial-font);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.35;
-  text-align: center;
+  margin-top: clamp(1.15rem, 5vw, 1.5rem);
 }
 
 #__next
@@ -1247,12 +1200,12 @@
   .forecast-feed-story-fragment.is-advice
   .forecast-feed-section-text {
   color: var(--today-ink) !important;
-  font-size: clamp(1.1rem, 4.6vw, 1.2rem) !important;
+  font-size: clamp(1rem, 4.05vw, 1.06rem) !important;
   font-weight: 600 !important;
-  letter-spacing: -0.026em !important;
+  letter-spacing: -0.012em !important;
   line-height: 1.58 !important;
-  text-align: center !important;
-  text-wrap: balance;
+  text-align: left !important;
+  text-wrap: pretty;
 }
 
 .today-minimal-reading-block::before {
@@ -1318,15 +1271,10 @@
 }
 
 #__next .today-minimal-reading .forecast-feed-section-text,
-#__next .today-minimal-reading .forecast-feed-section-text.is-lead,
 #__next
   .today-minimal-reading
   .forecast-feed-story-fragment.is-overview
   .forecast-feed-section-text,
-#__next
-  .today-minimal-reading
-  .forecast-feed-story-fragment.is-overview
-  .forecast-feed-section-text.is-lead,
 #__next
   .today-minimal-reading
   .forecast-feed-story-fragment.is-brief
@@ -1341,8 +1289,7 @@
   font-weight: 400;
   letter-spacing: -0.018em;
   line-height: 1.66 !important;
-  text-align: justify !important;
-  text-align-last: start;
+  text-align: left !important;
   text-wrap: wrap !important;
   -webkit-hyphens: none;
   hyphens: none;
@@ -1354,7 +1301,7 @@
   .forecast-feed-section-text,
 .forecast-period-editorial-feed:lang(ru)
   .forecast-feed-section-text.is-story-continuation {
-  text-indent: 1.2em;
+  text-indent: 0;
 }
 
 .today-minimal-feed:lang(en) .forecast-feed-section-text,
@@ -1378,13 +1325,8 @@
     .forecast-feed-section-text.is-story-opening,
   .forecast-period-editorial-feed:lang(ru)
     .forecast-feed-section-text.is-story-continuation {
-    text-align: justify !important;
-    text-align-last: start;
+    text-align: left !important;
   }
-}
-
-#__next .today-minimal-reading .forecast-feed-section-text.is-lead::before {
-  display: none;
 }
 
 .today-minimal-reading-block {
@@ -1641,7 +1583,7 @@
 .today-minimal-closing {
   position: relative;
   width: 100%;
-  margin-top: 1rem;
+  margin-top: clamp(1.15rem, 5vw, 1.5rem);
   padding-top: 0;
   border-top: 0;
   container-name: today-closing;
@@ -1673,10 +1615,8 @@
 
 .today-minimal-closing.has-end-visual .today-minimal-closing-content {
   display: grid;
-  grid-template-areas:
-    'label sticker'
-    'copy sticker';
-  grid-template-columns: minmax(0, 1fr) clamp(5.9rem, 24vw, 8rem);
+  grid-template-areas: 'copy sticker';
+  grid-template-columns: minmax(0, 1fr) clamp(4.5rem, 20vw, 6rem);
   align-items: center;
   column-gap: clamp(0.45rem, 2.4vw, 0.8rem);
   row-gap: 0.35rem;
@@ -1686,38 +1626,19 @@
   grid-area: copy;
 }
 
-.today-minimal-closing-label {
-  margin: 0 0 0.78rem;
-  color: var(--today-ink);
-  font-family: var(--forecast-editorial-font);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.35;
-  text-align: center;
-}
-
-.today-minimal-closing.has-end-visual .today-minimal-closing-label {
-  grid-area: label;
-  margin: 0;
-  text-align: start;
-}
-
-#__next .today-minimal-closing .forecast-feed-section-text,
-#__next .today-minimal-closing .forecast-feed-section-text.is-lead {
+#__next .today-minimal-closing .forecast-feed-section-text {
   width: 100%;
   max-width: none !important;
   color: var(--today-ink);
-  font-size: clamp(1.1rem, 4.6vw, 1.2rem) !important;
+  font-size: clamp(1rem, 4.05vw, 1.06rem) !important;
   font-weight: 600 !important;
-  letter-spacing: -0.026em;
+  letter-spacing: -0.012em;
   line-height: 1.58 !important;
-  text-align: center !important;
-  text-wrap: balance !important;
+  text-align: left !important;
+  text-wrap: pretty !important;
 }
 
-#__next .today-minimal-closing.has-end-visual .forecast-feed-section-text,
-#__next .today-minimal-closing.has-end-visual .forecast-feed-section-text.is-lead {
+#__next .today-minimal-closing.has-end-visual .forecast-feed-section-text {
   text-align: start !important;
   text-wrap: pretty !important;
 }
@@ -1738,7 +1659,7 @@
 
 .today-minimal-closing-visual img {
   display: block;
-  width: clamp(5.6rem, 22vw, 7.5rem);
+  width: clamp(4.3rem, 19vw, 5.6rem);
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 0.36rem 0.42rem rgba(45, 42, 38, 0.14));
@@ -1769,16 +1690,13 @@
 @container today-closing (max-width: 17rem) {
   .today-minimal-closing.has-end-visual .today-minimal-closing-content {
     grid-template-areas:
-      'label'
       'copy'
       'sticker';
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .today-minimal-closing.has-end-visual .today-minimal-closing-label,
-  #__next .today-minimal-closing.has-end-visual .forecast-feed-section-text,
-  #__next .today-minimal-closing.has-end-visual .forecast-feed-section-text.is-lead {
-    text-align: center !important;
+  #__next .today-minimal-closing.has-end-visual .forecast-feed-section-text {
+    text-align: left !important;
   }
 
   .today-minimal-closing-visual {
@@ -1830,27 +1748,15 @@
 [data-forecast-period='week']
   .forecast-feed-story-fragment.is-advice.has-end-visual
   .forecast-feed-section-content {
-  grid-template-areas:
-    'label sticker'
-    'copy sticker';
-  grid-template-columns: minmax(0, 1fr) clamp(6.25rem, 26vw, 8.5rem);
+  grid-template-areas: 'copy sticker';
+  grid-template-columns: minmax(0, 1fr) clamp(4.5rem, 20vw, 6rem);
 }
 
 [data-forecast-period='month']
   .forecast-feed-story-fragment.is-advice.has-end-visual
   .forecast-feed-section-content {
-  grid-template-areas:
-    'sticker label'
-    'sticker copy';
-  grid-template-columns: clamp(6.25rem, 26vw, 8.5rem) minmax(0, 1fr);
-}
-
-.forecast-period-editorial-feed
-  .forecast-feed-story-fragment.is-advice.has-end-visual
-  .forecast-period-advice-label {
-  grid-area: label;
-  margin: 0;
-  text-align: start;
+  grid-template-areas: 'copy sticker';
+  grid-template-columns: minmax(0, 1fr) clamp(4.5rem, 20vw, 6rem);
 }
 
 .forecast-period-editorial-feed
@@ -1882,7 +1788,7 @@
 .forecast-period-editorial-feed
   .forecast-feed-story-fragment.is-advice.has-end-visual
   .forecast-period-end-visual img {
-  width: clamp(5.9rem, 24vw, 8rem);
+  width: clamp(4.3rem, 19vw, 5.6rem);
 }
 
 @container period-editorial-feed (max-width: 17rem) {
@@ -1890,7 +1796,6 @@
     .forecast-feed-story-fragment.is-advice.has-end-visual
     .forecast-feed-section-content {
     grid-template-areas:
-      'label'
       'copy'
       'sticker';
     grid-template-columns: minmax(0, 1fr);

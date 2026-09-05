@@ -8,7 +8,8 @@ describe('UI Preview mobile scrolling', () => {
     const css = read('styles/uiPreview.css');
     const preview = read('components/ui-preview/UiPreviewApp.tsx');
 
-    expect(css).toMatch(/body\.ui-preview-document-scroll\s*\{[\s\S]*?overflow-y:\s*auto;/);
+    expect(css).toMatch(/html\.ui-preview-document-scroll,[\s\S]*?overflow-y:\s*auto;/);
+    expect(css).toMatch(/body\.ui-preview-document-scroll\s*\{\s*overflow:\s*visible;/);
     expect(css).toMatch(/\.ui-preview-app \.lumia-main-scroll\s*\{[\s\S]*?overflow:\s*visible;/);
     expect(css).toMatch(/\.today-bottom-navigation\.lumia-bottom-tab-shell\s*\{[\s\S]*?position:\s*fixed;/);
     expect(preview).toContain("const className = 'ui-preview-document-scroll';");

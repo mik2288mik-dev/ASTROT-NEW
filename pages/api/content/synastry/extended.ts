@@ -59,6 +59,23 @@ import {
 const SCOPE = 'synastry-extended';
 
 type SynastryChartData = NatalChartData | NatalChartDataV2;
+type WriterGender = 'male' | 'female' | 'unspecified';
+
+function normalizeWriterGender(
+  value: unknown,
+  chart: { user_id?: string | number; subject_type?: string | null; is_primary?: boolean | null } | null,
+  userId: string,
+  profileGender: UserProfile['gender'],
+): WriterGender {
+  if (value === 'male' || value === 'female' || value === 'unspecified') return value;
+  if (value != null) return 'unspecified';
+  const isOwnSelf = chart != null
+    && String(chart.user_id) === userId
+    && (chart.subject_type === 'self' || (chart.subject_type == null && chart.is_primary === true));
+  return isOwnSelf && (profileGender === 'male' || profileGender === 'female')
+    ? profileGender
+    : 'unspecified';
+}
 
 function savedSunSign(chart: SynastryChartData | null): string {
   return String((chart as NatalChartDataV2 | null)?.positions?.sun?.sign || chart?.sun?.sign || '').trim();
@@ -101,7 +118,7 @@ function validateFlexiblePerson(input: FlexiblePersonInput, fieldPrefix: 'subjec
 
 function buildWriterPersonContext(
   input: FlexiblePersonInput,
-  gender: 'male' | 'female',
+  gender: WriterGender,
 ) {
   return {
     source: input.source,
@@ -434,8 +451,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const resolvedPartnerDate = String(partnerChartRecord?.birth_date || partnerDate || '').trim();
   const resolvedPartnerTime = String(partnerChartRecord?.birth_time ?? partnerTime ?? '').trim();
   const resolvedPartnerPlace = String(partnerChartRecord?.birth_place || partnerPlace || '').trim();
-  const normalizedSubjectGender = subjectGender === 'female' ? 'female' : 'male';
-  const normalizedPartnerGender = partnerGender === 'male' ? 'male' : 'female';
+  const normalizedSubjectGender = normalizeWriterGender(subjectGender, primaryChartRecord, userId, profile.gender);
+  const normalizedPartnerGender = normalizeWriterGender(partnerGender, partnerChartRecord, userId, profile.gender);
   const subjectInput: FlexiblePersonInput = {
     source: normalizedSubjectSource,
     name: subjectProfile.name,
@@ -697,7 +714,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         schema: COMPATIBILITY_STORY_SCHEMA,
       });
       try {
-        resultPayload = buildCompatibilityResult(calculated, JSON.parse(response.content));
+        resultPayload = buildCompatibilityResult(calculated, JSON.parse(response.content), {
+          subjectName: people.subject.name,
+          partnerName: people.partner.name,
+          subjectGender: people.subject.gender,
+          partnerGender: people.partner.gender,
+          language: currentLanguage,
+        });
         break;
       } catch (error) {
         if (attempt === 1 || !(error instanceof CompatibilityNarrativeError || error instanceof SyntaxError)) throw error;

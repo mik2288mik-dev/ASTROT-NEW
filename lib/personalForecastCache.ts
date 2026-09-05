@@ -66,14 +66,16 @@ async function identity(input: PersonalForecastCacheContext) {
 
 function valid(interpretation: ContentInterpretation<PersonalForecastPackage> | null, resolved: Awaited<ReturnType<typeof identity>>) {
   const forecast = interpretation?.content;
-  return Boolean(interpretation && forecast
+  return Boolean(interpretation && isPersonalForecastPackage(forecast)
     && interpretation.inputHash === resolved.inputHash
     && interpretation.promptVersion === PERSONAL_FORECAST_PROMPT_VERSION
     && interpretation.calculationVersion === PERSONAL_FORECAST_CALCULATION_VERSION
     && forecast.meta.contractVersion === PERSONAL_FORECAST_CONTRACT_VERSION
     && forecast.meta.voiceVersion === PERSONAL_FORECAST_VOICE_VERSION
     && forecast.meta.model === resolved.model
-    && isPersonalForecastPackage(forecast));
+    && forecast.period === resolved.common.period
+    && forecast.periodKey === resolved.common.periodKey
+    && forecast.timezone === resolved.window.timezone);
 }
 
 export async function getCachedPersonalForecast(input: PersonalForecastCacheContext, options: { allowExpired?: boolean } = {}) {
@@ -102,11 +104,9 @@ function reading(value: unknown): PersonalForecastRecentReading | null {
     ...all.flatMap((section) => {
       if (section.contentBlocks.length) {
         return section.contentBlocks.map((block) => ({
-          kind: section.kind === 'overview' && block.role === 'lead'
-            ? 'punchline' as const
-            : block.role === 'action'
-              ? 'closing' as const
-              : 'forecast' as const,
+          kind: block.role === 'action'
+            ? 'closing' as const
+            : 'forecast' as const,
           text: block.text,
           semanticFingerprint: section.semanticFingerprint || null,
         }));

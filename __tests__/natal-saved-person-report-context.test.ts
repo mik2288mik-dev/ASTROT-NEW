@@ -54,7 +54,7 @@ describe('saved-person natal report context', () => {
     ]);
     mockUserGet.mockResolvedValue({
       id: 'owner-1', name: 'Owner', birth_date: '1990-01-01', birth_time: '12:00',
-      birth_place: 'Moscow', language: 'ru', is_setup: true, is_premium: true,
+      birth_place: 'Moscow', gender: 'female', language: 'ru', is_setup: true, is_premium: true,
     });
     mockPrimaryGet.mockResolvedValue({
       id: 1, user_id: 'owner-1', is_primary: true, subject_type: 'self',
@@ -84,12 +84,54 @@ describe('saved-person natal report context', () => {
       profile: {
         id: 'owner-1',
         name: 'Лена',
+        gender: 'unspecified',
         birthDate: '1994-02-03',
         birthTime: '',
         birthPlace: 'Казань',
       },
     });
     expect(context?.chartData).not.toBe(primaryChartData);
+  });
+
+  it.each(['male', 'female', 'unspecified', undefined, null, 'invalid'])(
+    'uses only the stored gender %s for an identified own chart',
+    async (gender) => {
+      mockUserGet.mockResolvedValue({ id: 'owner-1', name: 'Owner', gender });
+      const expected = gender === 'male' || gender === 'female' ? gender : 'unspecified';
+      const primary = await resolveReadingContext('owner-1', null, { gender: 'male' });
+      expect(primary?.profile.gender).toBe(expected);
+      mockChartGetById.mockResolvedValue({
+        id: 1, user_id: 'owner-1', subject_type: 'self', is_primary: true,
+        chart_data: savedChartData, input_hash: 'birth-hash',
+      });
+      const byId = await resolveReadingContext('owner-1', 1, { gender: 'male' });
+      expect(byId?.profile.gender).toBe(expected);
+    },
+  );
+
+  it.each([
+    [{ subject_type: 'saved_person', is_primary: false }, 'unspecified'],
+    [{ subject_type: 'saved_person', is_primary: true }, 'unspecified'],
+    [{ subject_type: 'self', is_primary: false }, 'female'],
+    [{ subject_type: undefined, is_primary: true }, 'female'],
+    [{ subject_type: undefined, is_primary: undefined }, 'unspecified'],
+    [{ subject_type: 'self', user_id: 'another-user' }, 'unspecified'],
+    [{ subject_type: 'self', archived_at: '2026-09-05' }, 'unspecified'],
+  ] as const)('requires positive ownership and self identity for owner gender: %j', async (identity, expected) => {
+    mockChartGetById.mockResolvedValue({
+      id: 77, user_id: 'owner-1', name: 'Лена', gender: 'male',
+      chart_data: savedChartData, input_hash: 'birth-hash', ...identity,
+    });
+    const context = await resolveReadingContext('owner-1', 77, { gender: 'male' });
+    expect(context?.profile.gender).toBe(expected);
+    expect(mockRepairCanonicalChartForUser).not.toHaveBeenCalled();
+    expect(mockRepairCanonicalChartRecord).not.toHaveBeenCalled();
+  });
+
+  it('keeps a missing chart neutral even when owner and fallback genders are set', async () => {
+    mockPrimaryGet.mockResolvedValueOnce(null);
+    const context = await resolveReadingContext('owner-1', null, { gender: 'male' });
+    expect(context?.profile.gender).toBe('unspecified');
   });
 
   it('can read an existing primary snapshot without repairing or invoking calculation', async () => {

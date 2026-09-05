@@ -475,8 +475,29 @@
 }
 
 .natal-narrative-experience h1 {
-  scroll-margin-top: 100px;
+  scroll-margin-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 18px) + 134px);
 }
+
+.natal-reading-contents { position: sticky; top: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 18px) + 54px); z-index: 3; margin: -10px 0 28px; border-block: 1px solid var(--natal-v3-line); background: var(--natal-v3-paper); }
+.natal-reading-contents > summary { display: flex; min-height: 52px; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; font-size: 13px; }
+.natal-reading-contents > summary::-webkit-details-marker { display: none; }
+.natal-reading-contents > summary > span:last-child { display: flex; align-items: center; gap: 8px; color: var(--natal-v3-muted); }
+.natal-reading-contents svg { width: 16px; height: 16px; flex: 0 0 16px; }
+.natal-reading-contents[open] > summary > span > svg { transform: rotate(180deg); }
+.natal-reading-contents nav { display: grid; max-height: min(50dvh, 28rem); overflow-y: auto; overscroll-behavior: contain; padding-bottom: 14px; }
+.natal-reading-contents nav button { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 12px; border: 0; border-radius: 12px; background: transparent; color: var(--natal-v3-ink); text-align: left; cursor: pointer; }
+.natal-reading-contents nav button[aria-current], .natal-reading-contents nav button:hover { background: var(--natal-v3-soft); }
+.natal-reading-contents nav button > span:nth-child(2) { display: grid; flex: 1; min-width: 0; gap: 5px; }
+.natal-reading-contents strong { font-size: 15px; font-weight: 600; }
+.natal-reading-contents small { color: var(--natal-v3-muted); font-size: 13px; line-height: 1.45; }
+.natal-reading-chapter-number { align-self: flex-start; padding-top: 3px; color: var(--natal-v3-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.natal-reading-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; color: var(--natal-v3-muted); font-size: 13px; }
+.natal-reading-meta > span + span::before { margin-inline-end: 12px; content: '·'; }
+.natal-narrative-experience .natal-v3-accuracy-link { margin-top: 6px; }
+.natal-narrative-experience .natal-narrative-copy { margin-top: 18px; }
+.natal-narrative-chapters .natal-v3-section-heading > p { margin-top: 10px; line-height: 1.5; font-size: 14px; font-weight: 400; }
+.natal-reading-contents summary:focus-visible { outline: 2px solid var(--natal-v3-ink); outline-offset: 3px; }
+@media (min-width: 600px) { .natal-reading-contents nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; } }
 
 .natal-narrative-copy {
   margin: 30px 0 24px;

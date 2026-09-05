@@ -42,6 +42,7 @@ import {
   UI_PREVIEW_WEEK_SECTIONS,
   createUiPreviewChart,
   createUiPreviewCharts,
+  createUiPreviewCompatibilityStory,
   createUiPreviewNatalCatalog,
   createUiPreviewNatalReport,
   createUiPreviewNatalPremiumReport,
@@ -296,6 +297,8 @@ function CompatibilityScene({
     },
     deepResult: {
       ...compatibilityFixture.deepResult,
+      storyParagraphs: createUiPreviewCompatibilityStory(compatibilityFixture.deepResult),
+      summary: createUiPreviewCompatibilityStory(compatibilityFixture.deepResult).map((item) => item.text).join('\n\n'),
       overallScore: previewScore,
       compatibilityScore: previewScore,
       verdict: previewCompatibilityVerdict(previewScore),

@@ -7,6 +7,7 @@ const mockSynastrySet = jest.fn();
 const mockUpsertByChart = jest.fn();
 const mockCalculateNatalChart = jest.fn();
 const mockCreateOrReuseCanonicalChart = jest.fn();
+let mockProfileGender: 'male' | 'female' | 'unspecified' | undefined;
 
 jest.mock('../lib/rateLimit', () => ({
   RATE_LIMIT_CONFIGS: { AI_FREE: {} },
@@ -26,6 +27,7 @@ jest.mock('../lib/auth/profile', () => ({
     birthPlace: 'Москва',
     language: 'ru',
     isPremium: true,
+    gender: mockProfileGender,
   }),
 }));
 
@@ -145,6 +147,7 @@ async function post(body: Record<string, unknown>) {
 describe('extended synastry delivery resilience', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockProfileGender = undefined;
     mockCreateLunaStructuredResponse.mockReset();
     mockCreateLunaStructuredResponse.mockImplementation(async (request) => ({ content: JSON.stringify(compatibilityStory(JSON.parse(request.input).evidence)) }));
     mockCreateOrReuseCanonicalChart.mockReset();
@@ -238,6 +241,39 @@ describe('extended synastry delivery resilience', () => {
     expect(mockSynastrySet).not.toHaveBeenCalled();
     expect(mockUpsertByChart).not.toHaveBeenCalled();
     expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('repairs inferred gender once using trusted saved names and genders before caching', async () => {
+    mockGetById.mockImplementation(async (id) => ({ ...chart(id), name: id === 2 ? 'Саша' : 'Анна' }));
+    mockCreateLunaStructuredResponse.mockImplementationOnce(async (request) => {
+      const writer = compatibilityStory(JSON.parse(request.input).evidence);
+      writer.paragraphs[0].text += ' Саша тоже способен ответить сразу.';
+      return { content: JSON.stringify(writer) };
+    });
+    const result = await post({ subjectChartId: 1, partnerChartId: 2, partnerName: 'Имя из запроса', subjectGender: 'female', partnerGender: 'unspecified' });
+    expect(result.status).toBe(200);
+    expect(mockCreateLunaStructuredResponse).toHaveBeenCalledTimes(2);
+    expect(mockCreateLunaStructuredResponse.mock.calls[1][0].instructions).toContain('unspecified_gender_inferred');
+    expect(JSON.parse(mockCreateLunaStructuredResponse.mock.calls[1][0].input).people.partner).toMatchObject({ name: 'Саша', gender: 'unspecified' });
+    expect(result.payload.result.summary).not.toContain('Саша тоже способен');
+    expect(mockSynastrySet).toHaveBeenCalledTimes(1);
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('never saves a gender-invalid answer after the existing two-attempt repair budget', async () => {
+    mockGetById.mockImplementation(async (id) => ({ ...chart(id), name: id === 2 ? 'Саша' : 'Анна' }));
+    mockCreateLunaStructuredResponse.mockImplementation(async (request) => {
+      const writer = compatibilityStory(JSON.parse(request.input).evidence);
+      writer.paragraphs[0].text += ' Саша готова поддержать разговор.';
+      return { content: JSON.stringify(writer) };
+    });
+    const result = await post({ subjectChartId: 1, partnerChartId: 2, partnerGender: 'unspecified' });
+    expect(result.status).toBe(503);
+    expect(result.payload.code).toBe('SYNASTRY_READING_UNAVAILABLE');
+    expect(mockCreateLunaStructuredResponse).toHaveBeenCalledTimes(2);
+    expect(mockSynastrySet).not.toHaveBeenCalled();
+    expect(mockUpsertByChart).not.toHaveBeenCalled();
+    expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
   });
 
   it('replaces an obsolete narrative cache with the current story without recalculating charts', async () => {
@@ -466,5 +502,90 @@ describe('extended synastry delivery resilience', () => {
     expect(result.payload.code).toBe('PREMIUM_REQUIRED');
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
     expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it('keeps both saved people neutral when gender is absent instead of inheriting the account or inferring from names', async () => {
+    mockProfileGender = 'female';
+    mockGetById.mockImplementation(async (id) => ({ ...chart(id), subject_type: 'saved_person', is_primary: false }));
+
+    const result = await post({ subjectChartId: 1, partnerChartId: 2 });
+
+    expect(result.status).toBe(200);
+    const { people } = JSON.parse(mockCreateLunaStructuredResponse.mock.calls[0][0].input);
+    expect(people.subject).toMatchObject({ name: 'Анна', gender: 'unspecified' });
+    expect(people.partner).toMatchObject({ name: 'Максим', gender: 'unspecified' });
+    expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+  });
+
+  it.each([1, 2])('uses the account gender only for its identified self chart in position %i', async (selfId) => {
+    mockProfileGender = 'female';
+    mockGetById.mockImplementation(async (id) => ({
+      ...chart(id), subject_type: id === selfId ? 'self' : 'saved_person',
+      // The explicit saved_person identity must win over an old primary flag.
+      is_primary: true,
+    }));
+
+    const result = await post({ subjectChartId: 1, partnerChartId: 2 });
+
+    expect(result.status).toBe(200);
+    const { people } = JSON.parse(mockCreateLunaStructuredResponse.mock.calls[0][0].input);
+    expect(people.subject.gender).toBe(selfId === 1 ? 'female' : 'unspecified');
+    expect(people.partner.gender).toBe(selfId === 2 ? 'female' : 'unspecified');
+  });
+
+  it('does not infer self identity from missing flags and supports a positively marked legacy primary', async () => {
+    mockProfileGender = 'male';
+    mockGetById.mockImplementation(async (id) => ({ ...chart(id), ...(id === 2 ? { is_primary: true } : {}) }));
+
+    const result = await post({ subjectChartId: 1, partnerChartId: 2 });
+
+    expect(result.status).toBe(200);
+    const { people } = JSON.parse(mockCreateLunaStructuredResponse.mock.calls[0][0].input);
+    expect(people.subject.gender).toBe('unspecified');
+    expect(people.partner.gender).toBe('male');
+  });
+
+  it.each(['unspecified', 'invalid', '', { gender: 'male' }])('preserves neutral selection or malformed input on self instead of overriding it with profile gender: %p', async (subjectGender) => {
+    mockProfileGender = 'female';
+    mockGetById.mockImplementation(async (id) => ({ ...chart(id), subject_type: id === 1 ? 'self' : 'saved_person', is_primary: id === 1 }));
+
+    const result = await post({ subjectChartId: 1, partnerChartId: 2, subjectGender, partnerGender: 'female' });
+
+    expect(result.status).toBe(200);
+    const { people } = JSON.parse(mockCreateLunaStructuredResponse.mock.calls[0][0].input);
+    expect(people.subject.gender).toBe('unspecified');
+    expect(people.partner.gender).toBe('female');
+  });
+
+  it('does not assign the owner gender to newly entered people', async () => {
+    mockProfileGender = 'female';
+    const result = await post({
+      subjectSource: 'birth', subjectName: 'Анна', subjectDate: '1992-03-14', subjectPlace: 'Москва',
+      partnerSource: 'birth', partnerName: 'Максим', partnerDate: '1990-08-22', partnerPlace: 'Казань',
+    });
+
+    expect(result.status).toBe(200);
+    const { people } = JSON.parse(mockCreateLunaStructuredResponse.mock.calls[0][0].input);
+    expect([people.subject.gender, people.partner.gender]).toEqual(['unspecified', 'unspecified']);
+  });
+
+  it('shares a neutral cache across omitted/invalid gender and separates explicit genders without chart recalculation', async () => {
+    mockGetById.mockImplementation(async (id) => ({ ...chart(id), subject_type: 'saved_person', is_primary: false }));
+    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION });
+    for (const subjectGender of [undefined, 'invalid', 'unspecified', 'female', 'male']) {
+      const result = await post({ subjectChartId: 1, partnerChartId: 2, subjectGender, partnerGender: 'unspecified' });
+      expect(result.status).toBe(200);
+      expect(result.payload.fromCache).toBe(true);
+    }
+    await post({ subjectChartId: 1, partnerChartId: 2, subjectGender: 'unspecified', partnerGender: 'female' });
+    const keys = mockSynastryGet.mock.calls.map((call) => call[3]);
+    expect(keys[0]).toBe(keys[1]);
+    expect(keys[1]).toBe(keys[2]);
+    expect(new Set([keys[0], keys[3], keys[4]]).size).toBe(3);
+    expect(new Set([keys[0], keys[3], keys[5]]).size).toBe(3);
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
+    expect(mockCreateLunaStructuredResponse).not.toHaveBeenCalled();
   });
 });

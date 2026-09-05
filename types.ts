@@ -247,6 +247,12 @@ export interface SynastryResult {
   schemaVersion?: 'compatibility-v2';
   narrativeVersion?: string;
   narrativeEvidenceIds?: string[];
+  storyParagraphs?: Array<{
+    topic: 'connection' | 'closeness' | 'conversation' | 'friction' | 'everyday';
+    text: string;
+    evidenceIds: string[];
+    direction: CompatibilityEvidence['direction'];
+  }>;
   engineVersion?: string;
   overallScore?: number;
   verdict?: string;

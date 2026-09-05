@@ -127,9 +127,7 @@ export function NatalMagazine({
   const handledExternalQuestionRequestRef = useRef(0);
   const normalizedActiveTab = normalizeNatalScreenTab(activeTab, isSavedPerson);
   const showPrimaryNavigation = true;
-  const primaryNavItemCount = readingRenderer === 'catalog'
-    ? (isSavedPerson ? 3 : 4)
-    : (isSavedPerson ? 2 : 3);
+  const primaryNavItemCount = isSavedPerson ? 3 : 4;
 
   useEffect(() => {
     if (normalizedActiveTab !== activeTab) setActiveTab(normalizedActiveTab);
@@ -262,7 +260,7 @@ export function NatalMagazine({
           )}
         </div>
       ) : null}
-      {data && normalizedActiveTab !== 'map' && showPrimaryNavigation ? (
+      {data && showPrimaryNavigation ? (
         <nav
           className="natal-v3-primary-nav"
           data-items={primaryNavItemCount}
@@ -270,24 +268,22 @@ export function NatalMagazine({
         >
           <button
             type="button"
-            className={normalizedActiveTab === 'foundation' ? 'is-active' : undefined}
-            aria-current={normalizedActiveTab === 'foundation' ? 'page' : undefined}
-            onClick={() => selectTab('foundation')}
+            className={normalizedActiveTab === 'map' ? 'is-active' : undefined}
+            aria-current={normalizedActiveTab === 'map' ? 'page' : undefined}
+            onClick={() => selectTab('map')}
           >
-            {readingRenderer === 'catalog'
-              ? (language === 'ru' ? 'Основа' : 'Foundation')
-              : (language === 'ru' ? 'Разбор' : 'Reading')}
+            {language === 'ru' ? 'Карта' : 'Chart'}
           </button>
-          {readingRenderer === 'catalog' ? (
+          <>
             <button
               type="button"
-              className={normalizedActiveTab === 'explore' ? 'is-active' : undefined}
-              aria-current={normalizedActiveTab === 'explore' ? 'page' : undefined}
-              onClick={() => selectTab('explore')}
+              className={normalizedActiveTab === 'foundation' || normalizedActiveTab === 'explore' ? 'is-active' : undefined}
+              aria-current={normalizedActiveTab === 'foundation' || normalizedActiveTab === 'explore' ? 'page' : undefined}
+              onClick={() => selectTab('foundation')}
             >
-              {language === 'ru' ? 'Разобрать' : 'Explore'}
+              {language === 'ru' ? 'Разбор' : 'Reading'}
             </button>
-          ) : null}
+          </>
           {!isSavedPerson ? (
             <button
               type="button"
@@ -295,7 +291,7 @@ export function NatalMagazine({
               aria-current={normalizedActiveTab === 'ask' ? 'page' : undefined}
               onClick={() => selectTab('ask')}
             >
-              {language === 'ru' ? 'Спросить' : 'Ask'}
+              {language === 'ru' ? 'Спросить о себе' : 'Ask about yourself'}
             </button>
           ) : null}
           <button

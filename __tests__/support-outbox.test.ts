@@ -52,7 +52,9 @@ function makePool(options: {
     }
     if (normalized.startsWith('SELECT id, ticket_id, channel, attempts')) {
       if (options.failClaim) throw new Error('claim failed');
-      return { rows, rowCount: rows.length };
+      const due = rows.filter((row) => (params?.[2] == null || row.ticket_id === params[2])
+        && (params?.[3] == null || row.channel === params[3]));
+      return { rows: due, rowCount: due.length };
     }
     if (normalized.includes("SET status = 'processing'")) {
       const id = Number(params?.[0]);
@@ -67,9 +69,12 @@ function makePool(options: {
   const release = jest.fn();
   const poolQuery = jest.fn(async (sql: string, _params?: unknown[]) => {
     const normalized = sql.trim();
-    if (normalized.startsWith('SELECT t.tags, first_message.body')) {
+    if (normalized.startsWith('SELECT t.tags,') && normalized.includes('FROM support_tickets t')
+      && normalized.includes('first_message.body')) {
       return {
         rows: [{
+          user_id: '9000000003445',
+          created_at: '2026-09-05T17:30:00.000Z',
           tags: options.tags || JSON.stringify({
             category: 'problem',
             replyEmail: 'person@example.test',
@@ -138,12 +143,20 @@ describe('support delivery outbox', () => {
     expect(claimSql).toContain("status IN ('pending', 'failed')");
     expect(claimSql).toContain('$3::BIGINT');
     const claimParams = state.clientQuery.mock.calls.find(([sql]) => String(sql).includes('FOR UPDATE SKIP LOCKED'))?.[1];
-    expect(claimParams).toEqual([10, 20, 42]);
+    expect(claimParams).toEqual([10, 20, 42, null]);
+    const canonicalQuery = state.poolQuery.mock.calls.find(([sql]) => String(sql).includes('FROM support_tickets t'));
+    expect(canonicalQuery?.[0]).toContain("t.created_at AT TIME ZONE 'UTC' AS created_at");
+    expect(canonicalQuery?.[0]).toContain('t.user_id');
+    expect(canonicalQuery?.[0]).toContain("m.author_type = 'user'");
+    expect(canonicalQuery?.[0]).toContain('m.internal = FALSE');
+    expect(canonicalQuery?.[1]).toEqual([42]);
     expect(mockDeliverSupportTicketChannel).toHaveBeenCalledWith(
       expect.objectContaining({
         ticketId: 42,
         message: 'Кнопка зависла после оплаты, account 12345.',
         replyEmail: 'person@example.test',
+        userId: '9000000003445',
+        createdAt: '2026-09-05T17:30:00.000Z',
       }),
       'email',
     );
@@ -156,10 +169,10 @@ describe('support delivery outbox', () => {
     expect(logs).not.toContain('account 12345');
   });
 
-  it('persists a bounded exponential retry after a provider failure', async () => {
-    const state = makePool({ rows: [{ id: 10, ticket_id: 43, channel: 'telegram', attempts: 0 }] });
+  it('persists a bounded exponential retry after an email provider failure', async () => {
+    const state = makePool({ rows: [{ id: 10, ticket_id: 43, channel: 'email', attempts: 0 }] });
     mockGetPool.mockReturnValue(state.pool);
-    mockDeliverSupportTicketChannel.mockResolvedValue({ channel: 'telegram', result: 'failed' });
+    mockDeliverSupportTicketChannel.mockResolvedValue({ channel: 'email', result: 'failed' });
 
     await expect(processSupportDeliveryOutbox(1)).resolves.toEqual({
       claimed: 1,
@@ -170,6 +183,58 @@ describe('support delivery outbox', () => {
     });
     const retry = state.poolQuery.mock.calls.find(([sql]) => String(sql).includes("SET status = 'failed'"));
     expect(retry?.[1]).toEqual([10, 30, 'SUPPORT_PROVIDER_FAILED']);
+    expect(mockDeliverSupportTicketChannel).toHaveBeenCalledWith(expect.objectContaining({ ticketId: 43 }), 'email');
+  });
+
+  it.each([0, 9])('finishes suppressed owner Telegram without delivery retries at prior attempt %i', async (attempts) => {
+    const state = makePool({ rows: [{ id: 12, ticket_id: 45, channel: 'telegram', attempts }] });
+    mockGetPool.mockReturnValue(state.pool);
+    mockDeliverSupportTicketChannel.mockResolvedValue({ channel: 'telegram', result: 'suppressed' });
+
+    await expect(processSupportDeliveryOutbox(1)).resolves.toEqual({
+      claimed: 1, sent: 0, retried: 0, dead: 1, staleRecovered: 0,
+    });
+    const terminalUpdate = state.poolQuery.mock.calls.find(([sql]) => String(sql).includes("SET status = 'dead'"));
+    expect(terminalUpdate?.[0]).toContain("last_error_code = 'OWNER_SCOPE_FILTERED'");
+    expect(terminalUpdate?.[0]).toContain('attempts = $2');
+    expect(terminalUpdate?.[1]).toEqual([12, attempts + 1]);
+    expect(state.poolQuery.mock.calls.some(([sql]) => String(sql).includes("SET status = 'failed'"))).toBe(false);
+    expect(mockLoggerWarn).not.toHaveBeenCalled();
+    expect(mockLoggerInfo).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: { id: 12, ticketId: 45, channel: 'telegram', status: 'suppressed', attempt: attempts + 1 },
+    }));
+  });
+
+  it('limits a channel-specific run to that channel', async () => {
+    const state = makePool({ rows: [
+      { id: 13, ticket_id: 46, channel: 'email', attempts: 0 },
+      { id: 14, ticket_id: 46, channel: 'telegram', attempts: 0 },
+    ] });
+    mockGetPool.mockReturnValue(state.pool);
+    mockDeliverSupportTicketChannel.mockResolvedValue({ channel: 'email', result: 'sent' });
+
+    await expect(processSupportDeliveryOutbox(20, 46, 'email')).resolves.toEqual({
+      claimed: 1, sent: 1, retried: 0, dead: 0, staleRecovered: 0,
+    });
+    const claim = state.clientQuery.mock.calls.find(([sql]) => String(sql).includes('FOR UPDATE SKIP LOCKED'));
+    expect(claim?.[0]).toContain('($4::TEXT IS NULL OR channel = $4::TEXT)');
+    expect(claim?.[1]).toEqual([10, 20, 46, 'email']);
+    expect(mockDeliverSupportTicketChannel).toHaveBeenCalledTimes(1);
+    expect(mockDeliverSupportTicketChannel).toHaveBeenCalledWith(expect.objectContaining({ ticketId: 46 }), 'email');
+  });
+
+  it('retains canonical-data failures as retryable errors without attempting delivery', async () => {
+    const state = makePool({
+      rows: [{ id: 15, ticket_id: 47, channel: 'email', attempts: 0 }], tags: '{}',
+    });
+    mockGetPool.mockReturnValue(state.pool);
+
+    await expect(processSupportDeliveryOutbox(1)).resolves.toEqual({
+      claimed: 1, sent: 0, retried: 1, dead: 0, staleRecovered: 0,
+    });
+    expect(mockDeliverSupportTicketChannel).not.toHaveBeenCalled();
+    const retry = state.poolQuery.mock.calls.find(([sql]) => String(sql).includes("SET status = 'failed'"));
+    expect(retry?.[1]).toEqual([15, 30, 'SUPPORT_CANONICAL_OR_DELIVERY_FAILED']);
   });
 
   it('dead-letters the tenth failed attempt', async () => {

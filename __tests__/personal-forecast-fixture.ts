@@ -112,36 +112,13 @@ export function personalForecastFixture(): PersonalForecastPackage {
       overview: true,
       blocks: [
         {
-          role: 'lead',
-          atomId: 'communication_and_decisions_are_temporarily_active',
-          text: 'Stop inflating the doubt; the useful answer can handle a direct conversation.',
-        },
-        {
           role: 'detail',
           atomId: 'forecast_body',
-          text: 'A familiar task reveals the detail that needs a precise answer. A short pause keeps the conversation clear and leaves room for your own decision.',
+          text: 'A familiar task reveals the detail that needs a precise answer. The conversation quickly becomes concrete, and the next decision is easier to make.',
         },
       ],
     }),
     sections: [
-      sectionFixture({
-        id: 'semantic:communication',
-        importance: 92,
-        fingerprint: 'semantic:communication',
-        factId: 'fact:communication',
-        blocks: [
-          { role: 'detail', atomId: 'forecast_continuation_one', text: 'The useful request stays clear when you drop the extra justification. One direct sentence is enough to show where you stand.' },
-        ],
-      }),
-      sectionFixture({
-        id: 'semantic:continuation',
-        importance: 91,
-        fingerprint: 'semantic:continuation',
-        factId: 'fact:communication',
-        blocks: [
-          { role: 'detail', atomId: 'forecast_continuation_two', text: 'That precision leaves the next decision in your hands.' },
-        ],
-      }),
       sectionFixture({
         id: 'semantic:closing',
         importance: 90,
@@ -169,32 +146,30 @@ export function personalForecastFixture(): PersonalForecastPackage {
       diagnosticCode: null,
       astrologerBrief: {
         tone: 'mixed',
-        coreForecast: 'практичный результат',
-        secondaryForecast: 'доведение начатого',
-        distinctiveDetail: 'fixture detail',
+        situation: 'знакомое дело получает ответ',
+        turn: 'короткий разговор меняет решение',
+        outcome: 'следующий шаг становится понятен',
+        observableDetail: 'короткий ответ вместо долгого спора',
         briefSignature: 'fixture-brief',
-        opportunity: 'увидеть отдачу от знакомого дела',
-        friction: 'не усложнять рабочее',
-        likelyResult: 'fixture result',
       },
       semanticSignature: {
-        coreForecast: 'практичный результат',
-        secondaryForecast: 'доведение начатого',
+        situation: 'знакомое дело получает ответ',
+        turn: 'короткий разговор меняет решение',
+        outcome: 'следующий шаг становится понятен',
         title: 'A precise turn',
-        punchline: 'Stop inflating the doubt; the useful answer can handle a direct conversation.',
-        forecast: 'fixture forecast',
+        forecast: 'A familiar task reveals the detail that needs a precise answer. The conversation quickly becomes concrete, and the next decision is easier to make.',
         closing: 'Check the details, then answer without extra explanations.',
       },
       freeSelection: {
-        strongestSectionId: 'semantic:communication',
-        rotatedSectionId: 'semantic:closing',
-        sectionIds: ['semantic:communication', 'semantic:closing'],
+        strongestSectionId: 'semantic:closing',
+        rotatedSectionId: null,
+        sectionIds: ['semantic:closing'],
       },
     },
   };
 }
 
-/** Question-product fixture retained separately from the canonical four-part forecast package. */
+/** Question-product fixture retained separately from the canonical three-part forecast package. */
 export function personalForecastQuestionFixture(): PersonalForecastPackage {
   const forecast = personalForecastFixture();
   const sections = [

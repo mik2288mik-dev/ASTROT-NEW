@@ -49,6 +49,7 @@ import {
 } from '../../components/editorial/EditorialScreenChrome';
 import { getCompatibilityRingGeometry } from '../../lib/synastry/compatibilityPresentation';
 import { buildSignCompatibilityReactionKey } from '../../lib/synastry/compatibilityReaction';
+import { CompatibilityStoryReader } from '../../components/CompatibilityStoryReader';
 
 type CompatibilityPersonSource = 'birth' | 'saved' | 'sign';
 
@@ -175,6 +176,9 @@ function GenderToggle({ value, onChange, ru, compact = false, labelledBy }: { va
       <button type="button" className={`compat-choice-tab compat-gender-btn ${value === 'female' ? 'is-on is-active' : ''}`} aria-pressed={value === 'female'} onClick={() => { lumiaSelectionHaptic(); onChange('female'); }}>
         {compact ? (ru ? 'Ж' : 'F') : (ru ? 'Женщина' : 'Female')}
       </button>
+      <button type="button" className={`compat-choice-tab compat-gender-btn ${value === 'unspecified' ? 'is-on is-active' : ''}`} aria-pressed={value === 'unspecified'} onClick={() => onChange('unspecified')}>
+        {ru ? 'Не указан' : 'Not set'}
+      </button>
     </div>
   );
 }
@@ -191,18 +195,13 @@ function PersonSourcePicker({
   const options: Array<{ value: CompatibilityPersonSource; label: string; description: string }> = [
     {
       value: 'saved',
-      label: ru ? 'Карта' : 'Chart',
-      description: ru ? 'Сравнение по карте рождения' : 'Compare by birth chart',
+      label: ru ? 'Мои карты' : 'My charts',
+      description: ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart',
     },
     {
       value: 'birth',
-      label: ru ? 'Дата' : 'Date',
-      description: ru ? 'Сравнение по дате рождения' : 'Compare by birth date',
-    },
-    {
-      value: 'sign',
-      label: ru ? 'Знак' : 'Sign',
-      description: ru ? 'Сравнение по знакам зодиака' : 'Compare by zodiac signs',
+      label: ru ? 'Новый' : 'New person',
+      description: ru ? 'Ввести данные нового человека' : 'Add a new person’s birth details',
     },
   ];
 
@@ -473,6 +472,7 @@ function PersonSignFields({
 }
 
 function genderWord(g: CompatGender, ru: boolean): string {
+  if (g === 'unspecified') return ru ? 'Пол не указан' : 'Gender not set';
   return ru ? (g === 'male' ? 'Мужчина' : 'Женщина') : (g === 'male' ? 'Male' : 'Female');
 }
 
@@ -695,9 +695,8 @@ export function UnionRoom(props: UnionRoomProps) {
     [chartData, profile.selectedZodiacSign, profile.birthDate],
   );
 
-  // Пол по умолчанию: «ты» — из профиля (иначе М), партнёр — противоположный (как в трендовых приложениях).
-  const initialYouGender: CompatGender = profile.gender === 'female' ? 'female' : 'male';
-  const initialThemGender: CompatGender = initialYouGender === 'male' ? 'female' : 'male';
+  const initialYouGender: CompatGender = profile.gender === 'female' || profile.gender === 'male' ? profile.gender : 'unspecified';
+  const initialThemGender: CompatGender = 'unspecified';
 
   const previewEnabled = Boolean(previewFixture);
   const previewResultState = previewFixture?.resultState;
@@ -717,7 +716,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const [pickSign, setPickSign] = useState<string>(() => ZODIAC_KEYS.find((s) => s.toLowerCase() !== yourSun) || ZODIAC_KEYS[0]);
   // «Твой» знак теперь можно менять (не жёстко из карты). По умолчанию — солнечный знак из карты.
   const [youSign, setYouSign] = useState<string>(yourSun);
-  const [youGender, setYouGender] = useState<CompatGender>(initialYouGender);
+  const [youGender, setYouGender] = useState<CompatGender>(initialPrefill ? initialYouGender : 'unspecified');
   const [themGender] = useState<CompatGender>(initialThemGender);
   const [relationshipContext, setRelationshipContext] = useState<RelationshipContext>('romance');
   const [relationshipFocus, setRelationshipFocus] = useState<CompatibilityFocus>('love');
@@ -1013,8 +1012,8 @@ export function UnionRoom(props: UnionRoomProps) {
   };
 
   const openFromHistory = (e: CompatHistoryEntry) => {
-    const yg: CompatGender = e.yourGender === 'female' ? 'female' : 'male';
-    const tg: CompatGender = e.theirGender === 'male' ? 'male' : 'female';
+    const yg: CompatGender = e.yourGender === 'female' || e.yourGender === 'male' ? e.yourGender : 'unspecified';
+    const tg: CompatGender = e.theirGender === 'male' || e.theirGender === 'female' ? e.theirGender : 'unspecified';
     const context = normalizeRelationshipContext(e.relationshipContext);
     setRelationshipContext(context);
     setRelationshipFocus(compatibilityFocusForContext(context));
@@ -1088,11 +1087,11 @@ export function UnionRoom(props: UnionRoomProps) {
 
   const submitAdd = () => {
     if (subjectSource === 'birth' && !sDate) {
-      setError(ru ? 'Укажи дату рождения первого человека или выбери знак.' : 'Add the first person\'s birth date or choose a sign.');
+      setError(ru ? 'Укажи дату рождения первого человека или выбери сохранённую карту.' : 'Add the first person\'s birth date or choose a saved chart.');
       return;
     }
     if (partnerSource === 'birth' && !fDate) {
-      setError(ru ? 'Укажи дату рождения второго человека или выбери знак.' : 'Add the second person\'s birth date or choose a sign.');
+      setError(ru ? 'Укажи дату рождения второго человека или выбери сохранённую карту.' : 'Add the second person\'s birth date or choose a saved chart.');
       return;
     }
     if (subjectSource === 'birth' && sTimePrecision !== 'unknown' && !sTime) {
@@ -1352,7 +1351,7 @@ export function UnionRoom(props: UnionRoomProps) {
   }, [screen, selected, premium, peopleLoaded, previewResultState, runDeep]);
 
   const compatibilityTabs = useMemo(() => [
-    { id: 'birth' as const, label: ru ? 'По карте' : 'By birth data' },
+    { id: 'birth' as const, label: ru ? 'По картам' : 'By charts' },
     { id: 'sign' as const, label: ru ? 'По знакам' : 'By zodiac signs' },
   ], [ru]);
   const activeCompatibilityTab: CompatibilityTab = screen === 'result'
@@ -1479,7 +1478,7 @@ export function UnionRoom(props: UnionRoomProps) {
                   </div>
                   <PersonSourcePicker
                     value={subjectSource}
-                    onChange={setSubjectSource}
+                    onChange={(source) => { setSubjectSource(source); setYouGender('unspecified'); }}
                     ru={ru}
                   />
                 </header>
@@ -1491,6 +1490,7 @@ export function UnionRoom(props: UnionRoomProps) {
                       lumiaSelectionHaptic();
                       setSubjectSource('saved');
                       setFirstChartId(ownSavedChart.id);
+                      setYouGender(initialYouGender);
                     }}
                   >
                     <span>{ru ? 'Использовать мою карту' : 'Use my chart'}</span>
@@ -1507,7 +1507,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     place={sPlace}
                     gender={youGender}
                     timePrecision={sTimePrecision}
-                    onNameChange={setSName}
+                    onNameChange={(name) => { setSName(name); if (name !== sName) setYouGender('unspecified'); }}
                     onDateChange={(value) => {
                       setSDate(value);
                       const resolved = sunSignFromDate(value);
@@ -1526,7 +1526,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     value={firstChartId}
                     disabledChartId={partnerSource === 'saved' ? secondChartId : null}
                     gender={youGender}
-                    onChange={setFirstChartId}
+                    onChange={(id) => { setFirstChartId(id); setYouGender(id === ownSavedChart?.id ? initialYouGender : 'unspecified'); }}
                     onGenderChange={setYouGender}
                     onOpenCharts={onOpenCharts}
                   />
@@ -1552,7 +1552,7 @@ export function UnionRoom(props: UnionRoomProps) {
                   </div>
                   <PersonSourcePicker
                     value={partnerSource}
-                    onChange={setPartnerSource}
+                    onChange={(source) => { setPartnerSource(source); setFGender('unspecified'); }}
                     ru={ru}
                   />
                 </header>
@@ -1566,7 +1566,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     place={fPlace}
                     gender={fGender}
                     timePrecision={fTimePrecision}
-                    onNameChange={setFName}
+                    onNameChange={(name) => { setFName(name); if (name !== fName) setFGender('unspecified'); }}
                     onDateChange={(value) => {
                       setFDate(value);
                       const resolved = sunSignFromDate(value);
@@ -1585,7 +1585,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     value={secondChartId}
                     disabledChartId={subjectSource === 'saved' ? firstChartId : null}
                     gender={fGender}
-                    onChange={setSecondChartId}
+                    onChange={(id) => { setSecondChartId(id); setFGender(id === ownSavedChart?.id ? initialYouGender : 'unspecified'); }}
                     onGenderChange={setFGender}
                     onOpenCharts={onOpenCharts}
                   />
@@ -1602,6 +1602,9 @@ export function UnionRoom(props: UnionRoomProps) {
                 )}
               </section>
 
+              {subjectSource === 'birth' || partnerSource === 'birth' ? (
+                <p className="compat-new-chart-note">{ru ? 'Новый человек сохранится в «Моих картах». Его карту можно будет открыть отдельно.' : 'A new person is saved in My charts. You can open their chart separately.'}</p>
+              ) : null}
               {error ? <p className="compat-entry-error" role="alert">{error}</p> : null}
 
               <button type="submit" className="fresh-btn-primary compat-entry-submit">
@@ -1834,17 +1837,17 @@ export function UnionRoom(props: UnionRoomProps) {
       ) : null}
 
       {resultPercent == null ? (
-        <div className="compat-result-waiting-pair">
-          <strong>{leftName} + {rightName}</strong>
-          <span>{leftDetail} · {rightDetail}</span>
-        </div>
+        <header className="compat-story-cover">
+          <p>{resultContextLabel} · Premium</p>
+          <h1><span>{leftName}</span><span className="compat-story-plus" aria-hidden="true">&</span><span>{rightName}</span></h1>
+          <div><span>{leftDetail}</span><span>{rightDetail}</span></div>
+          <small>{ru ? 'Две сохранённые карты. Один разбор о вас.' : 'Two saved charts. One reading about you.'}</small>
+          <button type="button" className="compat-result-change" onClick={() => { setError(null); setEntryMode('birth'); setScreen('add'); scrollCompatibilityToTop(); }}>{ru ? 'Изменить людей или тип отношений' : 'Change people or relationship type'}</button>
+        </header>
       ) : null}
 
       {isPerson && premium && deep ? (
-        <section className="compat-result-summary">
-          <span>{resultContextLabel}</span>
-          <EditorialProse text={deep.summary} />
-        </section>
+        <CompatibilityStoryReader result={deep} language={lang} subjectName={leftName} partnerName={rightName} />
       ) : !isPerson && score ? (
         <section className="compat-result-summary compat-result-summary--sign">
           <span>{ru ? 'Общий результат' : 'Overall result'}</span>
@@ -1853,7 +1856,7 @@ export function UnionRoom(props: UnionRoomProps) {
         </section>
       ) : null}
 
-      <div className="compat-result-meta">
+      {!isPerson ? <div className="compat-result-meta">
         <span>{ru ? 'Смотрим' : 'Context'} · <strong>{resultContextLabel}</strong></span>
         <button
           type="button"
@@ -1870,9 +1873,9 @@ export function UnionRoom(props: UnionRoomProps) {
             ? (ru ? 'Изменить знаки' : 'Change signs')
             : (ru ? 'Изменить людей' : 'Change people')}
         </button>
-      </div>
+      </div> : null}
 
-      {isPerson && premium && deep ? (
+      {isPerson && premium && deep && !deep.storyParagraphs?.length ? (
         <div className="compat-reading-intro">
           <strong>{readingIntroTitle}</strong>
           {deep?.limitations?.[0] ? <span>{deep.limitations[0]}</span> : null}
@@ -1908,7 +1911,7 @@ export function UnionRoom(props: UnionRoomProps) {
         </div>
       ) : null}
 
-      {premium && deep ? (
+      {premium && deep && !deep.storyParagraphs?.length ? (
         <details className="compat-technical-data compat-technical-data--deep">
           <summary>{ru ? 'Почему так?' : 'Why?'}</summary>
           <p>{ru ? 'Данные двух сохранённых карт, на которых основан рассказ.' : 'The saved chart data behind this reading.'}</p>
@@ -1916,7 +1919,7 @@ export function UnionRoom(props: UnionRoomProps) {
             {(deep.evidence || []).filter((item) => deep.narrativeEvidenceIds?.includes(item.id)).map((item) => <li key={item.id}>{item.label}</li>)}
           </ul>
         </details>
-      ) : isPerson && !deepLoading && !error && (premium || canPromotePremium) ? (
+      ) : isPerson && !deep && !deepLoading && !error && (premium || canPromotePremium) ? (
         <button type="button" className="horo-premium" style={{ marginTop: 16 }} disabled={deepLoading} onClick={() => void runDeep()}>
           <div className="horo-premium-text">
             <div className="horo-premium-kicker">{ru ? 'Подробная совместимость' : 'Detailed compatibility'}</div>

@@ -1,4 +1,5 @@
-import type { ForecastSection } from '../../lib/personalForecastContract';
+import type { ForecastSection, PersonalForecastPeriod } from '../../lib/personalForecastContract';
+import { PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU } from '../../lib/personalForecastExamples';
 import type { PreloadedNatalReport } from '../NatalReading/HumanReport';
 import {
   NATAL_REPORT_CATALOG_CONTRACT_VERSION,
@@ -343,6 +344,15 @@ const UI_PREVIEW_NATAL_MIDDLE: Record<NatalReportCategoryKey, readonly [string, 
 
 export function createUiPreviewNatalCatalog(): UiPreviewNatalCatalog {
   const evidenceIds = ['natal.sun', 'natal.moon'];
+  // Synthetic full-length copy for the real narrative layout; not a live personal reading.
+  const paragraphs = [
+    "Ты охотнее включаешься в дело, когда можешь сначала попробовать, а уже потом подробно объяснять замысел. Небольшой готовый результат убеждает тебя сильнее длинного обсуждения. При этом первая удачная попытка ещё не означает, что вопрос закрыт: тебе интересно улучшать то, что уже получилось. Поэтому в новой задаче рядом могут оказаться быстрый старт и довольно придирчивая доработка. Со стороны такую смену темпа легко принять за потерю интереса, хотя работа просто стала точнее.",
+    "В разговоре похожая разница заметна между первой репликой и окончательным ответом. Ты можешь сразу предложить несколько вариантов, не собираясь защищать каждый до конца. Если собеседник принимает первую версию за обещание, обсуждение становится тяжелее. Зато там, где можно свободно менять формулировки, у тебя получается находить понятные объяснения для сложных вещей. Интересный вопрос удерживает разговор дольше, чем необходимость непременно прийти к согласию.",
+    "Решение о действии у тебя может созреть раньше, чем объяснение всех его причин. Но чужое предложение ускориться само по себе ничего не решает: тебе нужен собственный понятный довод. Это особенно заметно в выборе, который трудно отменить. Там быстрый ответ уступает внимательному сравнению деталей, и лишний вечер на размышление бывает вполне сознательным решением. Способность начать без долгой подготовки при этом никуда не исчезает.",
+    "В близком общении тебе скорее подходит интерес, который можно показать поступком: предложить встречу, придумать совместное дело, вернуться к важному разговору. Большое признание без продолжения в обычной жизни даёт меньше ясности. При этом постоянно подтверждать расположение одним и тем же способом может быть скучно. Здесь важна сама разница между повторением знакомого жеста и вниманием к тому, что происходит между двумя людьми сейчас.",
+    "В работе этот способ действовать особенно полезен там, где можно увидеть промежуточный результат и поправить его, пока задача ещё открыта. Ты быстрее замечаешь, что следует изменить в готовой вещи, чем в длинном описании будущей вещи. Сложнее бывает с поручением, где никто не объяснил, что считается завершением: любая доработка выглядит допустимой, и остановиться труднее. Ясный результат оставляет больше места для самостоятельного выбора способа работы.",
+    "Так складывается вполне конкретное сочетание: готовность начинать и привычка возвращаться к деталям. Оно помогает не оставлять интересную задумку только в разговоре и одновременно не соглашаться на первый приемлемый вариант. Трудность возникает, когда от одного этапа ждут поведения другого: при старте требуют окончательного ответа, а при доработке ждут прежней скорости. В таких обстоятельствах твой темп выглядит противоречивым, хотя каждое действие решает свою задачу."
+  ];
   const answers = {} as Record<NatalReportAnswerKey, NatalReportAnswer>;
 
   for (const category of NATAL_REPORT_CATEGORIES) {
@@ -372,24 +382,14 @@ export function createUiPreviewNatalCatalog(): UiPreviewNatalCatalog {
   for (const category of NATAL_REPORT_CATEGORIES) {
     const previewKeys = category.key === 'main'
       ? NATAL_REPORT_MAIN_PREVIEW_KEYS
-      : category.answerKeys;
+      : [];
     categoryPacks[category.key] = {
       schemaVersion: 'natal-report-category-v1',
       contractVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
       categoryKey: category.key,
       title: category.title.ru,
-      summary: category.key === 'main' ? [
-        'Ты быстро понимаешь, нравится тебе человек или нет, но настоящее отношение показываешь намного позже. Со стороны можешь казаться спокойнее и проще, чем есть, потому что сначала смотришь, что человек будет делать дальше, и только потом показываешь собственную реакцию.',
-        'В важных решениях тебя трудно сдвинуть, если ты уже проверила детали и всё для себя решила. Давление здесь работает наоборот: ты только сильнее упираешься и ещё раз проходишь по каждому спорному месту, прежде чем дать окончательный ответ.',
-        'В работе тебе нужен понятный результат, а в людях — совпадение слов с поступками. Если этого нет, интерес и доверие заканчиваются быстрее, чем окружающие ожидают, даже когда в начале дело или знакомство выглядело многообещающе.',
-      ].map((text) => ({ text, evidenceIds })) : [],
-      observations: category.key === 'main' ? [
-        'Быстро находишь общий язык, но доверяешь не сразу.',
-        'Сложные задачи интересуют сильнее однообразных.',
-        'Чужое давление только замедляет твоё решение.',
-        'Можешь долго молчать, а затем резко поставить точку.',
-        'Близкие знают тебя совсем не такой, какой видят новые люди.',
-      ].map((text) => ({ text, evidenceIds })) : [],
+      summary: paragraphs.map((text) => ({ text, evidenceIds })),
+      observations: [],
       previews: previewKeys.map((answerKey) => {
         const answer = answers[answerKey];
         return {
@@ -402,9 +402,7 @@ export function createUiPreviewNatalCatalog(): UiPreviewNatalCatalog {
           fullAnswerIncludes: answer.fullAnswerIncludes,
         };
       }),
-      freeAnswers: category.answerKeys
-        .filter(isNatalReportAnswerFree)
-        .map((answerKey) => answers[answerKey]),
+      freeAnswers: [],
     };
   }
 
@@ -755,6 +753,20 @@ export const UI_PREVIEW_COMPATIBILITY_STEADY: typeof UI_PREVIEW_COMPATIBILITY = 
   },
 };
 
+export function createUiPreviewCompatibilityStory(result: SynastryResult): NonNullable<SynastryResult['storyParagraphs']> {
+  const topics = [
+    ['connection', ['between_you']], ['closeness', ['attraction', 'emotional_closeness']],
+    ['conversation', ['communication']], ['friction', ['tension', 'conflicts']],
+    ['everyday', ['everyday_life', 'stability']],
+  ] as const;
+  return topics.flatMap(([topic, ids]) => {
+    const section = ids.map((id) => result.sections?.find((item) => item.id === id)).find(Boolean);
+    return section ? section.text.split(/\n\s*\n/u).filter(Boolean).map((text) => ({
+      topic, text, evidenceIds: section.evidenceIds, direction: 'mutual' as const,
+    })) : [];
+  });
+}
+
 export const UI_PREVIEW_SETTINGS: {
   notificationEnabled: boolean;
   quietStart: string;
@@ -834,42 +846,39 @@ function forecastSection(
   };
 }
 
+function forecastExample(period: PersonalForecastPeriod) {
+  const reference = PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.find((item) => item.period === period);
+  if (!reference) throw new Error(`Missing personal forecast preview example: ${period}`);
+  return reference.output;
+}
+
+const todayExample = forecastExample('day');
+const weekExample = forecastExample('week');
+const monthExample = forecastExample('month');
+
 export const UI_PREVIEW_TODAY_SECTIONS: ForecastSection[] = [
   {
-    ...forecastSection('today-overview', 'overview', 'Туман отменяется', [
-      'Сегодня твоя терпимость к мутным формулировкам официально в отпуске.',
-      'Ты быстро заметишь, где разговор наконец становится ясным. Не торопи собеседника: одна спокойная пауза даст больше, чем ещё один аргумент.',
-    ], ['lead', 'detail']),
+    ...forecastSection('today-overview', 'overview', todayExample.title, [
+      todayExample.forecast,
+    ], ['detail']),
     visualTag: 'decisions',
     visualCue: 'decisions',
   },
-  forecastSection('today-second', 'dynamic', '', [
-    'Важная деталь проявится сама, если не пытаться заранее назначить ей удобный смысл. Держись фактов — они помогут принять решение без лишней суеты.',
-  ], ['detail']),
-  forecastSection('today-third', 'dynamic', '', [
-    'Задача, которую хотелось отложить, окажется проще после первого конкретного шага. Начни с того, что можно закончить за один подход.',
-  ], ['detail']),
-  forecastSection('today-fourth', 'dynamic', '', [
-    'В общении будет полезна прямота без нажима. Скажи, что тебе действительно нужно, и оставь другому человеку место для честного ответа.',
-  ], ['detail']),
   forecastSection('today-advice', 'dynamic', '', [
-    'Задай один прямой вопрос и не заполняй паузу догадками.',
+    todayExample.closing,
   ], ['action']),
 ];
 
 export const UI_PREVIEW_WEEK_SECTION: ForecastSection = {
-  ...forecastSection('week-story', 'overview', 'Неделя ясных решений', [
-    'Попытка успеть всё снова просится в начальники — не повышай её.',
-    'На этой неделе лишние задачи будут лезть без очереди, будто им кто-то выдал VIP-пропуск. Не хватайся за каждую: один точный выбор даст больше, чем показательная занятость на десять фронтов.',
-    'Разговор, который ходил по кругу, получится перевести в конкретику без театра и длинных предисловий. Спроси прямо, что каждый готов сделать, и не заполняй паузу удобными догадками.',
-    'Несколько выполненных обещаний вернут тебе нормальное ощущение контроля. Идеальный план для этого не нужен — нужен человек, который перестал сам себе мешать.',
-  ], ['lead', 'detail', 'detail', 'detail']),
-  visualTag: 'decisions',
-  visualCue: 'decisions',
+  ...forecastSection('week-story', 'overview', weekExample.title, [
+    weekExample.forecast,
+  ], ['detail']),
+  visualTag: 'friends',
+  visualCue: 'friends',
 };
 
 export const UI_PREVIEW_WEEK_ADVICE_SECTION = forecastSection('week-advice', 'dynamic', '', [
-  'Выбери одно главное дело и освободи для него два конкретных окна в расписании.',
+  weekExample.closing,
 ], ['action']);
 
 export const UI_PREVIEW_WEEK_SECTIONS: ForecastSection[] = [
@@ -878,18 +887,15 @@ export const UI_PREVIEW_WEEK_SECTIONS: ForecastSection[] = [
 ];
 
 export const UI_PREVIEW_MONTH_SECTION: ForecastSection = {
-  ...forecastSection('month-story', 'overview', 'Месяц собирает фокус', [
-    'Срочное снова надело корону, хотя важным от этого не стало.',
-    'Этот месяц заставит отделить важное от шума, который просто громче всех требует внимания. Первые решения покажутся небольшими, но именно они определят, останешься ты хозяином расписания или снова будешь обслуживать чужую суету.',
-    'В делах сработает простая система: меньше параллельных задач, больше законченных циклов и никаких почётных складов из недоделок. В разговорах понадобятся ясные формулировки вместо попыток угадать чужую реакцию и потом обидеться на собственную фантазию.',
-    'Освободившееся внимание даст место для нового шага без очередного героического надрыва. Весь маршрут знать не обязательно — достаточно перестать сворачивать к каждой яркой вывеске.',
-  ], ['lead', 'detail', 'detail', 'detail']),
+  ...forecastSection('month-story', 'overview', monthExample.title, [
+    monthExample.forecast,
+  ], ['detail']),
   visualTag: 'work_money',
   visualCue: 'work_money',
 };
 
 export const UI_PREVIEW_MONTH_ADVICE_SECTION = forecastSection('month-advice', 'dynamic', '', [
-  'Закрой один затянувшийся цикл до того, как открывать следующий.',
+  monthExample.closing,
 ], ['action']);
 
 export const UI_PREVIEW_MONTH_SECTIONS: ForecastSection[] = [

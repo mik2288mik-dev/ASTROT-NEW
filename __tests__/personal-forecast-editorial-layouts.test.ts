@@ -5,7 +5,6 @@ import {
   isRenderableTodaySection,
   resolveEditorialPaperTreatment,
   resolveForecastEditorialLayout,
-  resolveLongForecastParagraphs,
   resolveTodayEditorialLayoutFromVisualPlan,
   resolveTodayEditorialVisualSize,
   resolveTodayVisualAnchorId,
@@ -71,14 +70,16 @@ describe('Today editorial layout system', () => {
     expect(feed).toContain('isRenderableTodaySection(section, lockedSectionIds)');
     expect(feed).toContain("section.kind === 'overview'");
     expect(feed).toContain('<TodayCalendarClock');
-    expect(feed).toContain('<TodayLineField');
+    expect(feed).not.toContain('<TodayLineField');
     expect(feed).toContain('data-today-layout="calendar-editorial"');
     expect(feed).toContain('const title = resolveTitle(overview)');
-    expect(feed).toContain('const punchline = resolvePunchline(overview)');
     expect(feed).toContain('className="today-minimal-story-title"');
-    expect(feed).toContain('className="today-minimal-punchline"');
-    expect(feed).toContain("block.role === 'lead'");
-    expect(feed).toContain("language === 'ru' ? 'Совет дня'");
+    expect(feed).toContain('visibleSections.map((section)');
+    expect(feed).not.toContain('resolvePunchline');
+    expect(feed).not.toContain('today-minimal-punchline');
+    expect(feed).not.toContain("block.role === 'lead'");
+    expect(feed).not.toContain('today-minimal-closing-label');
+    expect(feed).not.toContain('Совет дня');
     expect(feed).not.toContain('emphasizeOpening');
     expect(feed).not.toContain('today-minimal-opening-phrase');
     expect(feed).not.toContain('EditorialForecastVisual');
@@ -120,12 +121,14 @@ describe('Today editorial layout system', () => {
     expect(clampDiaryVisualSize('hero', 'hero')).toBe('hero');
   });
 
-  it('hides internal Today titles without hiding the generated period title', () => {
-    expect(resolveVisibleForecastTitle({
-      period: 'day',
-      kind: 'dynamic',
-      title: 'Любовь',
-    })).toBe('');
+  it('hides internal section titles for every period without hiding the generated title', () => {
+    (['day', 'week', 'month'] as const).forEach((period) => {
+      expect(resolveVisibleForecastTitle({
+        period,
+        kind: 'dynamic',
+        title: 'Внутренний финал',
+      })).toBe('');
+    });
     expect(resolveVisibleForecastTitle({
       period: 'day',
       kind: 'overview',
@@ -143,20 +146,12 @@ describe('Today editorial layout system', () => {
     })).toBe('');
   });
 
-  it('turns a long Week or Month story into balanced visual paragraphs without changing its words', () => {
-    const story = [
-      'The week begins with a useful pause before the next important decision arrives.',
-      'You can hear what matters when the surrounding noise is allowed to settle.',
-      'A practical conversation then becomes easier because your position is already clear.',
-      'Keep the promise small enough to complete it with care and without haste.',
-      'That steady rhythm leaves room for warmth instead of another round of explanations.',
-      'By staying with one direction, you finish the story with more confidence.',
-    ].join(' ');
-    const paragraphs = resolveLongForecastParagraphs([story]);
+  it('keeps the Week and Month forecast as one whole paragraph', () => {
+    const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
 
-    expect(paragraphs).toHaveLength(3);
-    expect(paragraphs.join(' ')).toBe(story);
-    expect(paragraphs.every((paragraph) => paragraph.trim().length > 0)).toBe(true);
+    expect(sectionBlock).not.toContain('resolveLongForecastParagraphs');
+    expect(sectionBlock).toContain(".join(' ')");
+    expect(sectionBlock).toContain('{text}');
   });
 
   it('keeps fallback paper stable while template-backed note text stays live', () => {

@@ -70,6 +70,28 @@ describe('Premium narratives continue the persisted Free introduction', () => {
     expect(mockSave).toHaveBeenCalledTimes(2);
   });
 
+  it('invalidates both the main anchor and paid narrative when reader gender changes', async () => {
+    const forGender = (gender: unknown): ReadingContext => ({
+      ...context, profile: { ...context.profile, name: 'Лина', gender: gender as ReadingContext['profile']['gender'] },
+    });
+    for (const [gender, total] of [['female', 2], ['female', 2], ['male', 4], ['unspecified', 6], [undefined, 6], ['invalid', 6]] as const) {
+      await generateNatalReportCategoryWithLock({ userId: '42', ctx: forGender(gender), categoryKey: 'work' });
+      expect(mockGenerateCategory).toHaveBeenCalledTimes(total);
+      expect(mockSave).toHaveBeenCalledTimes(total);
+    }
+    expect(mockGenerateCategory.mock.calls.map(([args]) => [args.categoryKey, args.profile.gender])).toEqual([
+      ['main', 'female'], ['work', 'female'], ['main', 'male'], ['work', 'male'],
+      ['main', 'unspecified'], ['work', 'unspecified'],
+    ]);
+  });
+
+  it('keys reader names by the same trimmed value passed to the writer', () => {
+    const forName = (name: string) => ({ ...context, profile: { ...context.profile, name } });
+    const original = natalReportCategoryCacheOptions(forName('Лина'), 'main');
+    expect(natalReportCategoryCacheOptions(forName('  Лина  '), 'main').inputHash).toBe(original.inputHash);
+    expect(natalReportCategoryCacheOptions(forName('Оля'), 'main').inputHash).not.toBe(original.inputHash);
+  });
+
   it('isolates story caches by current natal snapshot and accepted main narrative', () => {
     const main = pack('main');
     const changedMain = { ...main, summary: [{ text: 'Updated accepted main story', evidenceIds: ['sun'] }] };

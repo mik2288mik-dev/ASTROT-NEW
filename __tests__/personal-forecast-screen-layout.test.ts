@@ -38,29 +38,6 @@ describe('personal forecast screen layout', () => {
     expect(forecastStyles).toContain('background: transparent;');
   });
 
-  it('justifies personal forecast prose without splitting words', () => {
-    const styles = read('styles/todayHome.css');
-    const readRule = (marker: string) => {
-      const start = styles.indexOf(marker);
-      expect(start).toBeGreaterThanOrEqual(0);
-      const end = styles.indexOf('}', start);
-      expect(end).toBeGreaterThan(start);
-      return styles.slice(start, end);
-    };
-    const rules = [
-      readRule('.forecast-feed-section-text.is-story-opening,'),
-      readRule('#__next .today-minimal-reading .forecast-feed-section-text,'),
-    ];
-
-    rules.forEach((rule) => {
-      expect(rule).toContain('text-align: justify !important;');
-      expect(rule).toContain('-webkit-hyphens: none;');
-      expect(rule).toContain('hyphens: none;');
-      expect(rule).toContain('overflow-wrap: normal;');
-      expect(rule).not.toContain('overflow-wrap: break-word;');
-    });
-  });
-
   it('requires only the raw birth profile before loading personal forecast content', () => {
     const dashboard = read('views/Dashboard.tsx');
     const service = read('services/personalForecastService.ts');
@@ -95,7 +72,7 @@ describe('personal forecast screen layout', () => {
     expect(forecastStyles).toContain('padding: 0;');
   });
 
-  it('renders the four-part forecast without exposing internal categories', () => {
+  it('renders the three-part forecast without a punchline or internal categories', () => {
     const dashboard = read('views/Dashboard.tsx');
     const today = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
@@ -105,12 +82,17 @@ describe('personal forecast screen layout', () => {
     expect(sectionBlock).not.toContain('{section.kind}');
     expect(sectionBlock).not.toContain('{section.sourceTopicKey}');
     expect(today).toContain('className="today-minimal-story-title"');
-    expect(today).toContain('className="today-minimal-punchline"');
-    expect(today).toContain("language === 'ru' ? 'Совет дня'");
-    expect(sectionBlock).toContain('forecast-period-editorial-punchline');
-    expect(sectionBlock).toContain("'Совет на неделю'");
-    expect(sectionBlock).toContain("'Совет на месяц'");
+    expect(today).toContain('className="today-minimal-closing-content"');
+    expect(today).not.toContain('today-minimal-closing-label');
+    expect(sectionBlock).not.toContain('forecast-period-advice-label');
+    expect(today).not.toContain('Совет дня');
+    expect(sectionBlock).not.toContain('Совет на неделю');
+    expect(sectionBlock).not.toContain('Совет на месяц');
     expect(sectionBlock).toContain("isAdvice ? 'is-advice' : ''");
+    expect(today).not.toContain('today-minimal-punchline');
+    expect(today).not.toContain("block.role === 'lead'");
+    expect(sectionBlock).not.toContain('forecast-period-editorial-punchline');
+    expect(sectionBlock).not.toContain("block.role === 'lead'");
     expect(sectionBlock).not.toContain('emphasizeOpening');
     expect(sectionBlock).not.toContain('splitOpeningPhrase');
     expect(today).not.toContain('Вывод и совет');
@@ -119,16 +101,18 @@ describe('personal forecast screen layout', () => {
 
   it('ends Today with one decorative semantic personal cutout', () => {
     const today = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
+    const endVisual = read('components/PersonalForecastFeed/ForecastEndEditorialVisual.tsx');
     const visuals = read('lib/personalForecastVisuals.ts');
     const styles = read('styles/todayHome.css');
 
-    expect(today).toContain('selectTodayEndEditorialAsset');
-    expect(today).toContain('className="today-minimal-end-visual"');
-    expect(today).toContain('alt=""');
-    expect(today.match(/className="today-minimal-end-visual"/g)).toHaveLength(1);
+    expect(today).toContain('selectForecastEndEditorialAsset');
+    expect(today).toContain('<ForecastEndEditorialVisual');
+    expect(today).toContain('className="today-minimal-closing-visual"');
+    expect(today.match(/className="today-minimal-closing-visual"/g)).toHaveLength(1);
+    expect(endVisual).toContain('alt=""');
     expect(visuals).toContain('selectPersonalEditorialAsset({');
     expect(visuals).toContain('forceVisible: true');
-    expect(styles).toContain('width: clamp(5.75rem, 29vw, 8.125rem);');
+    expect(styles).toContain('width: clamp(4.3rem, 19vw, 5.6rem);');
     expect(styles).toContain('background: transparent;');
     expect(styles).toContain('box-shadow: none;');
   });

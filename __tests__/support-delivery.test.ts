@@ -23,6 +23,7 @@ import {
   parseSupportMetadata,
   parseSupportTicketPayload,
   sendSupportEmailReply,
+  sendSupportTelegramReply,
   serializeSupportMetadata,
   SupportPayloadError,
 } from '../lib/supportDelivery';
@@ -122,7 +123,7 @@ describe('support ticket validation and delivery', () => {
     }
   });
 
-  it('emails the full ticket while Telegram receives metadata only', async () => {
+  it('emails the full ticket while suppressing owner Telegram even when configured', async () => {
     process.env.RESEND_API_KEY = 're_server_secret_123';
     process.env.SUPPORT_EMAIL_TO = 'owner@example.test';
     process.env.SUPPORT_EMAIL_FROM = 'NEBO <support@example.test>';
@@ -148,8 +149,9 @@ describe('support ticket validation and delivery', () => {
 
     expect(results).toEqual([
       { channel: 'email', result: 'sent' },
-      { channel: 'telegram', result: 'sent' },
+      { channel: 'telegram', result: 'suppressed' },
     ]);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
     const resendRequest = (global.fetch as jest.Mock).mock.calls[0][1];
     const resendBody = JSON.parse(resendRequest.body);
     expect(resendRequest.headers['Idempotency-Key']).toBe('support-ticket-42-email-v1');
@@ -157,17 +159,12 @@ describe('support ticket validation and delivery', () => {
     expect(resendBody.text).toContain('Email для ответа: person@example.test');
     expect(resendBody.reply_to).toBe('person@example.test');
 
-    expect(mockSendTelegramTextMessage).toHaveBeenCalledWith(
-      '777',
-      'Новое обращение NEBO #42\nКатегория: Ошибка\nВерсия: 1.0.1 (4)\nКанал: rustore',
-      { replyMarkup: { inline_keyboard: [[{ text: 'Открыть админку', url: 'https://admin.example.test/support' }]] } },
-    );
-    const telegramPayload = JSON.stringify(mockSendTelegramTextMessage.mock.calls);
-    expect(telegramPayload).not.toContain(sensitiveMessage);
-    expect(telegramPayload).not.toContain('person@example.test');
-    expect(telegramPayload).not.toContain('18.08.1990');
-    expect(telegramPayload).not.toContain('12345');
-    expect(telegramPayload).not.toContain('private log');
+    expect(mockSendTelegramTextMessage).not.toHaveBeenCalled();
+    expect(mockLoggerInfo).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'suppressed',
+      metadata: { ticketId: 42, channel: 'telegram', result: 'suppressed' },
+    }));
+    expect(mockLoggerWarn).not.toHaveBeenCalled();
 
     const logs = JSON.stringify([...mockLoggerInfo.mock.calls, ...mockLoggerWarn.mock.calls]);
     expect(logs).toContain('ticketId');
@@ -178,7 +175,7 @@ describe('support ticket validation and delivery', () => {
     expect(logs).not.toContain('re_server_secret_123');
   });
 
-  it('delivers exactly the requested outbox channel', async () => {
+  it('delivers only the requested email channel and suppresses the Telegram outbox channel', async () => {
     process.env.RESEND_API_KEY = 're_server_secret_123';
     process.env.SUPPORT_EMAIL_TO = 'owner@example.test';
     process.env.SUPPORT_EMAIL_FROM = 'NEBO <support@example.test>';
@@ -201,10 +198,45 @@ describe('support ticket validation and delivery', () => {
 
     (global.fetch as jest.Mock).mockClear();
     await expect(deliverSupportTicketChannel(input, 'telegram')).resolves.toEqual({
-      channel: 'telegram', result: 'sent',
+      channel: 'telegram', result: 'suppressed',
     });
     expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockSendTelegramTextMessage).not.toHaveBeenCalled();
+  });
+
+  it('still sends an explicit Telegram reply to the customer, without forwarding it to the owner', async () => {
+    process.env.SUPPORT_TELEGRAM_CHAT_ID = '777';
+    process.env.OWNER_ID = '777';
+    mockSendTelegramTextMessage.mockResolvedValue({ ok: true, messageId: 57 });
+    const sensitiveReply = 'Ответ для person@example.test по обращению.';
+
+    await expect(sendSupportTelegramReply({
+      ticketId: 47, chatId: '888', message: sensitiveReply,
+    })).resolves.toEqual({ channel: 'telegram', result: 'sent' });
+
     expect(mockSendTelegramTextMessage).toHaveBeenCalledTimes(1);
+    expect(mockSendTelegramTextMessage).toHaveBeenCalledWith('888', `Поддержка NEBO:\n\n${sensitiveReply}`);
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockLoggerInfo).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: { ticketId: 47, channel: 'telegram', result: 'sent' },
+    }));
+    expect(JSON.stringify([...mockLoggerInfo.mock.calls, ...mockLoggerWarn.mock.calls])).not.toContain(sensitiveReply);
+  });
+
+  it.each(['rejected', 'exception'])('reports a customer Telegram reply failure as failed, not suppressed: %s', async (failure) => {
+    if (failure === 'rejected') mockSendTelegramTextMessage.mockResolvedValue({ ok: false, error: 'blocked' });
+    else mockSendTelegramTextMessage.mockRejectedValue(new Error('private provider details'));
+
+    await expect(sendSupportTelegramReply({
+      ticketId: 48, chatId: '888', message: 'Ответ по обращению пользователя.',
+    })).resolves.toEqual({ channel: 'telegram', result: 'failed' });
+
+    expect(mockSendTelegramTextMessage).toHaveBeenCalledTimes(1);
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockLoggerWarn).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: { ticketId: 48, channel: 'telegram', result: 'failed' },
+    }));
+    expect(JSON.stringify(mockLoggerWarn.mock.calls)).not.toContain('private provider details');
   });
 
   it('sends admin email replies with message-level idempotency and metadata-only logs', async () => {
@@ -233,7 +265,7 @@ describe('support ticket validation and delivery', () => {
     expect(logs).not.toContain(sensitiveReply);
   });
 
-  it('uses documented fallbacks, omits an invalid admin URL and contains provider failures', async () => {
+  it('uses email fallbacks and contains email provider failures while Telegram stays suppressed', async () => {
     process.env.RESEND_API_KEY = 're_server_secret_123';
     process.env.NEXT_PUBLIC_SUPPORT_EMAIL = 'owner@example.test';
     process.env.AUTH_EMAIL_FROM = 'NEBO <support@example.test>';
@@ -250,16 +282,18 @@ describe('support ticket validation and delivery', () => {
       diagnostics: null,
     })).resolves.toEqual([
       { channel: 'email', result: 'failed' },
-      { channel: 'telegram', result: 'failed' },
+      { channel: 'telegram', result: 'suppressed' },
     ]);
-    expect(mockSendTelegramTextMessage).toHaveBeenCalledWith(
-      '777',
-      'Новое обращение NEBO #43\nКатегория: Другое\nВерсия: не указана\nКанал: не указан',
-      undefined,
-    );
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const emailBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(emailBody).toEqual(expect.objectContaining({
+      to: ['owner@example.test'], from: 'NEBO <support@example.test>',
+    }));
+    expect(mockSendTelegramTextMessage).not.toHaveBeenCalled();
+    expect(JSON.stringify([...mockLoggerInfo.mock.calls, ...mockLoggerWarn.mock.calls])).not.toContain('provider response with secret body');
   });
 
-  it('reports unconfigured channels without attempting external requests', async () => {
+  it('reports unconfigured email and suppressed Telegram without external requests', async () => {
     await expect(deliverSupportTicket({
       ticketId: 44,
       category: 'idea',
@@ -268,15 +302,15 @@ describe('support ticket validation and delivery', () => {
       diagnostics: null,
     })).resolves.toEqual([
       { channel: 'email', result: 'unconfigured' },
-      { channel: 'telegram', result: 'unconfigured' },
+      { channel: 'telegram', result: 'suppressed' },
     ]);
     expect(global.fetch).not.toHaveBeenCalled();
     expect(mockSendTelegramTextMessage).not.toHaveBeenCalled();
   });
 
-  it('documents support delivery without exposing Telegram routing as public build variables', () => {
+  it('documents active support email settings without exposing Telegram routing as public build variables', () => {
     const envExample = fs.readFileSync('.env.example', 'utf8');
-    for (const name of ['SUPPORT_EMAIL_TO', 'SUPPORT_EMAIL_FROM', 'SUPPORT_TELEGRAM_CHAT_ID', 'SUPPORT_ADMIN_URL']) {
+    for (const name of ['SUPPORT_EMAIL_TO', 'SUPPORT_EMAIL_FROM']) {
       expect(envExample).toContain(`${name}=`);
     }
     expect(envExample).not.toContain('NEXT_PUBLIC_SUPPORT_TELEGRAM_CHAT_ID');

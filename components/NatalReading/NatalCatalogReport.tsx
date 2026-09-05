@@ -60,10 +60,13 @@ export const NatalCatalogReport: React.FC<Props> = ({
   const [premiumDeniedFor, setPremiumDeniedFor] = useState<string | null>(null);
   const canReadPremium = isPremium && premiumDeniedFor !== entitlementIdentity;
   const preview = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_UI_PREVIEW === '1' ? uiPreview : undefined;
+  const readingGender = chartSubject?.subject_type === 'saved_person' || chartSubject?.is_primary === false
+    ? 'unspecified' : profile.gender === 'female' || profile.gender === 'male' ? profile.gender : 'unspecified';
+  const readingName = (chartSubject?.name || profile.name || '').trim();
   const cacheIdentity = useMemo(() => ({
-    chartFingerprint: buildNatalChartFingerprint(chartData),
+    chartFingerprint: JSON.stringify([buildNatalChartFingerprint(chartData), readingGender, readingName]),
     reportVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
-  }), [chartData]);
+  }), [chartData, readingGender, readingName]);
   const identity = `${userId}:${chartId ?? 'primary'}:${language}:${cacheIdentity.chartFingerprint}:${cacheIdentity.reportVersion}`;
   const [chosenCategory, setChosenCategory] = useState<NatalReportCategoryKey>(preview?.initialCategory || 'love');
   const activeCategory = view === 'foundation' ? 'main' : chosenCategory === 'main' ? 'love' : chosenCategory;

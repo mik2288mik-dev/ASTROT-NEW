@@ -6,7 +6,7 @@ function read(relativePath: string): string {
 }
 
 describe('natal catalog UI contract', () => {
-  it('starts with a clear foundation and keeps wheel, exploration and questions separate', () => {
+  it('keeps chart, reading, questions and matrix in the four natal tabs', () => {
     const magazine = read('views/v2/NatalMagazine.tsx');
     const styles = read('styles/natalMeaningMap.css');
 
@@ -14,10 +14,9 @@ describe('natal catalog UI contract', () => {
     expect(magazine).toContain("return 'foundation'");
     expect(magazine).toContain("selectTab('map')");
     expect(magazine).toContain("selectTab('foundation')");
-    expect(magazine).toContain("selectTab('explore')");
+    expect(magazine).not.toContain("selectTab('explore')");
     expect(magazine).toContain("selectTab('ask')");
     expect(magazine).toContain("'Круг карты'");
-    expect(magazine).toContain('onClick={onOpenCharts}');
     expect(magazine).not.toContain('<EditorialTabs');
     expect(magazine).toContain('<MatrixRoom');
     expect(magazine).toContain("selectTab('matrix')");
@@ -26,6 +25,7 @@ describe('natal catalog UI contract', () => {
     expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));');
     expect(styles).toContain(".natal-v3-primary-nav[data-items='4']");
     expect(styles).toContain('grid-template-columns: repeat(4, minmax(0, 1fr));');
+    expect(magazine).toContain('onClick={onOpenCharts}');
   });
 
   it('opens the complete story before offering chapter continuations', () => {

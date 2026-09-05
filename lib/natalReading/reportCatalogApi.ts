@@ -72,6 +72,12 @@ export function natalReportCategoryCacheOptions(
       kind: 'category',
       categoryKey,
       language,
+      reader: {
+        name: typeof ctx.profile.name === 'string' ? ctx.profile.name.trim() : '',
+        gender: ctx.profile.gender === 'male' || ctx.profile.gender === 'female'
+          ? ctx.profile.gender
+          : 'unspecified',
+      },
       chartFingerprint: buildPermanentNatalChartFingerprint(ctx.profile, ctx.chartData!),
       contractVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
       promptVersion: NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION,

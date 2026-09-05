@@ -980,13 +980,13 @@ export const calculateExtendedSynastry = async (
     place?: string;
     source?: 'birth' | 'saved' | 'sign';
     sign?: string;
-    gender?: 'male' | 'female';
+    gender?: 'male' | 'female' | 'unspecified';
     birthTimeQuality?: BirthTimeQuality;
   },
   partner?: {
     source?: 'birth' | 'saved' | 'sign';
     sign?: string;
-    gender?: 'male' | 'female';
+    gender?: 'male' | 'female' | 'unspecified';
     birthTimeQuality?: BirthTimeQuality;
   },
   relationshipContext?: RelationshipContext,

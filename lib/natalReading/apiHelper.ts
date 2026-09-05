@@ -33,11 +33,14 @@ export type ReadingContext = {
   relationLabel?: string | null;
 };
 
-function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
+function toProfile(user: any, fallback?: Partial<UserProfile>, isOwnSelf = false): UserProfile {
   const birthDate = toDateInputValue(fallback?.birthDate || user.birth_date);
   return {
     id: user.id,
     name: fallback?.name || user.name || '',
+    gender: isOwnSelf && (user.gender === 'male' || user.gender === 'female')
+      ? user.gender
+      : 'unspecified',
     birthDate,
     birthTime: fallback?.birthTime ?? user.birth_time ?? '',
     birthPlace: fallback?.birthPlace || user.birth_place || '',
@@ -92,6 +95,10 @@ export async function resolveReadingContext(
       ? chart
       : null;
   const resolvedChart = ownedChart;
+  const isOwnSelf = resolvedChart != null && (
+    resolvedChart.subject_type === 'self' ||
+    (resolvedChart.subject_type == null && resolvedChart.is_primary === true)
+  );
   const chartProfile = resolvedChart ? {
     ...profileFallback,
     name: resolvedChart.name || profileFallback?.name,
@@ -101,7 +108,7 @@ export async function resolveReadingContext(
   } : profileFallback;
   return {
     user,
-    profile: toProfile(user, chartProfile),
+    profile: toProfile(user, chartProfile, isOwnSelf),
     chartId: resolvedChart?.id ?? null,
     chartData: (resolvedChart?.chart_data || null) as NatalChartData | null,
     chartInputHash: resolvedChart?.input_hash || null,

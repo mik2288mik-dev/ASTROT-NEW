@@ -159,20 +159,18 @@ export type CrossPeriodLink = {
 
 export type PersonalForecastAstrologerBrief = {
   tone: 'favorable' | 'mixed' | 'demanding';
-  coreForecast: string;
-  secondaryForecast: string | null;
-  distinctiveDetail: string;
-  opportunity: string | null;
-  friction: string | null;
-  likelyResult: string;
+  situation: string;
+  turn: string;
+  outcome: string;
+  observableDetail: string;
   briefSignature: string;
 };
 
 export type PersonalForecastSemanticSignature = {
-  coreForecast: string;
-  secondaryForecast: string | null;
+  situation: string;
+  turn: string;
+  outcome: string;
   title: string;
-  punchline: string;
   forecast: string;
   closing: string;
 };
@@ -198,7 +196,7 @@ export type PersonalForecastPackage = {
     calculationVersion: string | null;
     semanticVersion: string;
     contractVersion: string;
-    generationAttempts: 0 | 1 | 2;
+    generationAttempts: 0 | 1 | 2 | 3 | 4 | 5 | 6;
     validationStatus: 'valid' | 'deterministic_fallback';
     generatedAt: string;
     status: 'ready' | 'generating' | 'unavailable';
@@ -250,12 +248,12 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v42-reference-four-part',
+  'personal-forecast-feed.v46-three-part-human',
 );
-export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v14-reference-four-part';
+export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v18-three-part-human';
 /** Input/cache identity, not an astrological calculation version. */
-export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v7';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v25-reference-four-part';
+export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v11';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v28-three-part-human';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -983,12 +981,11 @@ function personalForecastAstrologerBriefValid(value: unknown): value is Personal
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const basis = value as PersonalForecastAstrologerBrief;
   return (basis.tone === 'favorable' || basis.tone === 'mixed' || basis.tone === 'demanding')
-    && typeof basis.coreForecast === 'string' && Boolean(basis.coreForecast.trim())
-    && (basis.secondaryForecast === null || typeof basis.secondaryForecast === 'string')
-    && typeof basis.distinctiveDetail === 'string' && Boolean(basis.distinctiveDetail.trim())
-    && (basis.opportunity === null || typeof basis.opportunity === 'string')
-    && (basis.friction === null || typeof basis.friction === 'string')
-    && typeof basis.likelyResult === 'string' && Boolean(basis.likelyResult.trim());
+    && typeof basis.situation === 'string' && Boolean(basis.situation.trim())
+    && typeof basis.turn === 'string' && Boolean(basis.turn.trim())
+    && typeof basis.outcome === 'string' && Boolean(basis.outcome.trim())
+    && typeof basis.observableDetail === 'string' && Boolean(basis.observableDetail.trim())
+    && typeof basis.briefSignature === 'string' && Boolean(basis.briefSignature.trim());
 }
 
 function personalForecastSemanticSignatureValid(
@@ -996,10 +993,10 @@ function personalForecastSemanticSignatureValid(
 ): value is PersonalForecastSemanticSignature {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const signature = value as PersonalForecastSemanticSignature;
-  return typeof signature.coreForecast === 'string' && Boolean(signature.coreForecast)
-    && (signature.secondaryForecast === null || typeof signature.secondaryForecast === 'string')
+  return typeof signature.situation === 'string' && Boolean(signature.situation)
+    && typeof signature.turn === 'string' && Boolean(signature.turn)
+    && typeof signature.outcome === 'string' && Boolean(signature.outcome)
     && typeof signature.title === 'string' && Boolean(signature.title)
-    && typeof signature.punchline === 'string' && Boolean(signature.punchline)
     && typeof signature.forecast === 'string' && Boolean(signature.forecast)
     && typeof signature.closing === 'string' && Boolean(signature.closing);
 }
@@ -1042,7 +1039,7 @@ export function getPersonalForecastPackageValidationError(
     || forecast.meta?.contractVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
     || !personalForecastAstrologerBriefValid(forecast.meta?.astrologerBrief)
     || !personalForecastSemanticSignatureValid(forecast.meta?.semanticSignature)
-    || !([0, 1, 2] as const).includes(forecast.meta?.generationAttempts)
+    || !([0, 1, 2, 3, 4, 5, 6] as const).includes(forecast.meta?.generationAttempts)
     || !(['valid', 'deterministic_fallback'] as const).includes(
       forecast.meta?.validationStatus,
     )
@@ -1069,9 +1066,7 @@ export function getPersonalForecastPackageValidationError(
   ) {
     return 'PACKAGE_COLLECTIONS_INVALID';
   }
-  const expectedSectionCount = forecast.period === 'day'
-    ? forecast.sections.length >= 3 && forecast.sections.length <= 4
-    : forecast.sections.length === 1;
+  const expectedSectionCount = forecast.sections.length === 1;
   if (!expectedSectionCount) {
     return 'PACKAGE_PERIOD_STRUCTURE_INVALID';
   }
@@ -1113,6 +1108,14 @@ export function getPersonalForecastPackageValidationError(
   ) {
     return 'PACKAGE_OVERVIEW_IDENTITY_INVALID';
   }
+  if (!redactedSectionIds.has('overview') && (
+    typeof forecast.overview.title !== 'string'
+    || !forecast.overview.title.trim()
+    || forecast.overview.contentBlocks.length !== 1
+    || forecast.overview.contentBlocks[0]?.role !== 'detail'
+  )) {
+    return 'PACKAGE_OVERVIEW_READING_INVALID';
+  }
   for (const section of forecast.sections) {
     const sectionDiagnosticId = section && typeof section === 'object'
       ? String(section.id || 'unknown')
@@ -1127,6 +1130,17 @@ export function getPersonalForecastPackageValidationError(
     )) {
       return `PACKAGE_SECTION_INVALID:${sectionDiagnosticId}`;
     }
+  }
+  const [closingSection] = forecast.sections;
+  if (!closingSection) {
+    return 'PACKAGE_CLOSING_MISSING';
+  }
+  if (!redactedSectionIds.has(closingSection.id) && (
+    closingSection.title !== undefined
+    || closingSection.contentBlocks.length !== 1
+    || closingSection.contentBlocks[0]?.role !== 'action'
+  )) {
+    return 'PACKAGE_CLOSING_INVALID';
   }
   const ids = new Set<string>(['overview']);
   for (const section of forecast.sections) {
@@ -1326,19 +1340,17 @@ export function createUnavailablePersonalForecast(
       diagnosticCode,
       astrologerBrief: {
         tone: 'mixed',
-        coreForecast: 'unavailable',
-        secondaryForecast: null,
-        distinctiveDetail: 'unavailable',
-        opportunity: null,
-        friction: null,
-        likelyResult: 'unavailable',
+        situation: 'unavailable',
+        turn: 'unavailable',
+        outcome: 'unavailable',
+        observableDetail: 'unavailable',
         briefSignature: 'unavailable',
       },
       semanticSignature: {
-        coreForecast: 'unavailable',
-        secondaryForecast: null,
+        situation: 'unavailable',
+        turn: 'unavailable',
+        outcome: 'unavailable',
         title: 'unavailable',
-        punchline: 'unavailable',
         forecast: 'unavailable',
         closing: 'unavailable',
       },

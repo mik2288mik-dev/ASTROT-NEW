@@ -24,7 +24,7 @@ describe('Today minimal navigation shell', () => {
     expect(navigation).toContain("'charts'");
     expect(navigation).toContain("aria-current={natalIsCurrent ? 'page' : undefined}");
     expect(navigation).toContain("aria-current={servicesAreCurrent ? 'page' : undefined}");
-    ['Сегодня', 'Знаки', 'Карта', 'Сравнить', 'Меню']
+    ['Сегодня', 'Зодиак', 'Натальная карта', 'Сравнить', 'Меню']
       .forEach((label) => expect(navigation).toContain(`>${label}</span>`));
   });
 
@@ -85,9 +85,14 @@ describe('Today minimal navigation shell', () => {
     const natal = read('views/v2/NatalMagazine.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
 
-    expect(natal).toContain("{ id: 'matrix'");
-    expect(natal).toContain("if (tab === 'matrix') setMatrixMounted(true)");
-    expect(natal).toContain('hidden={activeTab !== \'matrix\'}');
+    const primaryNav = natal.slice(natal.indexOf('className="natal-v3-primary-nav"'), natal.indexOf('</nav>'));
+    const labels = ["'Карта'", "'Разбор'", "'Спросить о себе'", "'Матрица судьбы'"];
+    labels.forEach((label) => expect(primaryNav).toContain(label));
+    const positions = labels.map((label) => primaryNav.indexOf(label));
+    expect(positions).toEqual([...positions].sort((left, right) => left - right));
+    expect(primaryNav).toContain("onClick={() => selectTab('matrix')}");
+    expect(natal).toMatch(/if \(normalized === 'matrix'\)\s*\{\s*setMatrixMounted\(true\);[\s\S]*?setActiveTab\('matrix'\)/);
+    expect(natal).toContain('hidden={normalizedActiveTab !== \'matrix\'}');
     expect(natal).toContain('<MatrixRoom');
     expect(natal).toContain('embedded');
     expect(natal).not.toContain('onOpenMatrix');
@@ -112,6 +117,6 @@ describe('Today minimal navigation shell', () => {
     expect(styles).not.toContain('text-align: justify');
     expect(styles).toContain('width: min(calc(100% - 2rem), 40rem) !important');
     expect(styles).toContain('margin-inline: auto');
-    expect(read('components/PersonalForecastFeed/TodayEditorialFeed.tsx')).toContain("'На сегодня'");
+    expect(read('components/PersonalForecastFeed/TodayEditorialFeed.tsx')).not.toContain('today-minimal-closing-label');
   });
 });

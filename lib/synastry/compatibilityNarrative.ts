@@ -1,10 +1,12 @@
 import type { CompatibilityEvidence, SynastryResult } from '../../types';
 import type { CalculatedCompatibility } from './compatibilityEngine';
+import { COMPATIBILITY_STORY_TOPICS, type CompatibilityStoryTopic } from './storyTopics';
 
-export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-story.v1';
+export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-story.v2';
 
 export type CompatibilityWriterResponse = {
   paragraphs: Array<{
+    topic: CompatibilityStoryTopic;
     text: string;
     evidenceIds: string[];
     direction: CompatibilityEvidence['direction'];
@@ -14,6 +16,8 @@ export type CompatibilityWriterResponse = {
 export type CompatibilityNarrativeInput = {
   subjectName: string;
   partnerName: string;
+  subjectGender?: 'male' | 'female' | 'unspecified';
+  partnerGender?: 'male' | 'female' | 'unspecified';
   language: 'ru' | 'en';
 };
 
@@ -53,7 +57,70 @@ function fail(reason: string): never {
   throw new CompatibilityNarrativeError(reason);
 }
 
-export function validateCompatibilityNarrative(value: unknown, calculated: CalculatedCompatibility): CompatibilityWriterResponse {
+const RUSSIAN_PERSON_FORMS = [
+  ['способен', 'способна'], ['готов', 'готова'], ['уверен', 'уверена'], ['склонен', 'склонна'],
+  ['согласен', 'согласна'], ['обязан', 'обязана'], ['внимателен', 'внимательна'], ['сам', 'сама'],
+  ['первый', 'первая'], ['первым', 'первой'],
+  ['сделал', 'сделала'], ['сказал', 'сказала'], ['ответил', 'ответила'], ['предложил', 'предложила'],
+  ['решил', 'решила'], ['заметил', 'заметила'], ['понял', 'поняла'], ['начал', 'начала'],
+  ['выбрал', 'выбрала'], ['согласился', 'согласилась'], ['отказался', 'отказалась'],
+  ['заинтересовался', 'заинтересовалась'], ['привык', 'привыкла'], ['устал', 'устала'],
+  ['был', 'была'], ['хотел', 'хотела'], ['почувствовал', 'почувствовала'],
+  ['пришёл', 'пришла'], ['пришел', 'пришла'], ['мог', 'могла'], ['взял', 'взяла'],
+] as const;
+const RUSSIAN_PREDICATE_MODIFIERS = '(?:(?:тоже|также|уже|ещё|еще|обычно|иногда|часто|вполне|всегда|не|может|быть|сразу|пока|очень|скорее|в этом случае|в этом сценарии)\\s+){0,5}';
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function firstName(value: string): string {
+  const name = value.trim();
+  if (/^(?:(?:первый|второй) человек|(?:first|second) person)$/iu.test(name)) return '';
+  return name.split(/\s+/u)[0] || '';
+}
+
+function readerNameForms(name: string, language: 'ru' | 'en'): string[] {
+  const forms = [name];
+  if (language === 'ru' && name.length > 2 && /[ая]$/iu.test(name)) {
+    const stem = name.slice(0, -1);
+    forms.push(...(/а$/iu.test(name) ? ['е', 'у', 'ы', 'и', 'ой'] : ['е', 'ю', 'и', 'ей']).map((ending) => stem + ending));
+  }
+  return forms;
+}
+
+/** Target explicit person predicates, not arbitrary Russian word endings or third parties. */
+function validateReaderVoice(paragraphs: CompatibilityWriterResponse['paragraphs'], input: CompatibilityNarrativeInput): void {
+  const text = paragraphs.map((paragraph) => paragraph.text).join(' ');
+  const directAddress = input.language === 'ru'
+    ? /(?:^|[^\p{L}])(?:ты|тебя|тебе|тобой|тобою|твой|твоя|твоё|твое|твои|твоего|твоей|твоих|твоему|твоим|твою|твоими)(?=$|[^\p{L}])/iu
+    : /\b(?:you|your|yours|yourself)\b/iu;
+  if (!directAddress.test(text)) fail('reader_address_missing');
+  const subject = firstName(input.subjectName);
+  const partner = firstName(input.partnerName);
+  const namesDistinct = subject.toLocaleLowerCase() !== partner.toLocaleLowerCase();
+  if (subject && namesDistinct) {
+    const forms = readerNameForms(subject, input.language).map(escapeRegex).join('|');
+    // A single greeting ("Лина, ты…") or quoted mention is fine; a story about Lina is not.
+    const mentions = text.match(new RegExp(`(?:^|[^\\p{L}])(?:${forms})(?=$|[^\\p{L}])(?!\\s*,)`, 'giu')) || [];
+    if (mentions.length >= 3) fail('reader_third_person');
+  }
+  for (const person of [
+    { name: subject, gender: input.subjectGender, subject: true },
+    { name: partner, gender: input.partnerGender, subject: false },
+  ]) {
+    if (!person.gender) continue; // Older callers without person metadata retain their existing contract.
+    const names = person.name && namesDistinct ? [escapeRegex(person.name)] : [];
+    if (person.subject && input.language === 'ru') names.push('ты');
+    if (!names.length) continue;
+    if (input.language === 'ru') {
+      const forbidden = RUSSIAN_PERSON_FORMS.flatMap(([male, female]) => person.gender === 'male' ? [female] : person.gender === 'female' ? [male] : [male, female]);
+      const predicate = new RegExp(`(?:^|[^\\p{L}])(?:${names.join('|')})\\s+${RUSSIAN_PREDICATE_MODIFIERS}(?:${forbidden.join('|')})(?=$|[^\\p{L}])`, 'iu');
+      if (predicate.test(text)) fail(person.gender === 'unspecified' ? 'unspecified_gender_inferred' : 'reader_gender_mismatch');
+    } else if (person.gender === 'unspecified') {
+      const apposition = new RegExp(`\\b(?:${names.join('|')})\\s*[,—-]\\s*(?:he|she|his|her|him)\\b`, 'iu');
+      if (apposition.test(text)) fail('unspecified_gender_inferred');
+    }
+  }
+}
+
+export function validateCompatibilityNarrative(value: unknown, calculated: CalculatedCompatibility, input?: CompatibilityNarrativeInput): CompatibilityWriterResponse {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('shape');
   const source = value as Partial<CompatibilityWriterResponse>;
   if (!Array.isArray(source.paragraphs)) fail('paragraphs_missing');
@@ -64,8 +131,14 @@ export function validateCompatibilityNarrative(value: unknown, calculated: Calcu
   if (source.paragraphs.length < (sparse ? 4 : 7) || source.paragraphs.length > 10) fail('paragraph_count');
   const signatures = new Set<string>();
   const usedIds = new Set<string>();
+  const usedTopics = new Set<CompatibilityStoryTopic>();
+  let previousTopic: CompatibilityStoryTopic | null = null;
   const paragraphs = source.paragraphs.map((paragraph) => {
     if (!paragraph || typeof paragraph !== 'object' || typeof paragraph.text !== 'string') fail('paragraph_shape');
+    if (!COMPATIBILITY_STORY_TOPICS.includes(paragraph.topic)) fail('topic_missing');
+    if (paragraph.topic !== previousTopic && usedTopics.has(paragraph.topic)) fail('topic_repeated');
+    usedTopics.add(paragraph.topic);
+    previousTopic = paragraph.topic;
     const raw = paragraph.text.trim();
     if (/\n|^\s*(?:#{1,6}\s|[-*•]\s|\d+[.)]\s)|\*\*|\?/u.test(raw)) fail('prose_format');
     const text = raw.replace(/\s+/gu, ' ');
@@ -87,21 +160,24 @@ export function validateCompatibilityNarrative(value: unknown, calculated: Calcu
       fail('unsupported_mutual_direction');
     }
     ids.forEach((id) => usedIds.add(id));
-    return { text, evidenceIds: [...new Set(ids)], direction: paragraph.direction };
+    return { topic: paragraph.topic, text, evidenceIds: [...new Set(ids)], direction: paragraph.direction };
   });
   const words = paragraphs.map((paragraph) => paragraph.text).join(' ').match(/[\p{L}\p{N}]+(?:[-’'][\p{L}\p{N}]+)*/gu)?.length || 0;
   if (words < (sparse ? 220 : 360) || words > 800) fail('story_length');
   if (paragraphs.filter((paragraph) => RELATIONSHIP_CAVEAT.test(paragraph.text)).length > 2) fail('repeated_relationship_caveat');
   if (usedIds.size < Math.min(3, evidence.length)) fail('insufficient_evidence_variety');
+  if (usedTopics.size < (sparse ? 3 : 4)) fail('topics_too_narrow');
+  if (input) validateReaderVoice(paragraphs, input);
   return { paragraphs };
 }
 
-export function buildCompatibilityResult(calculated: CalculatedCompatibility, writerValue: unknown, _input?: CompatibilityNarrativeInput): SynastryResult {
-  const writer = validateCompatibilityNarrative(writerValue, calculated);
+export function buildCompatibilityResult(calculated: CalculatedCompatibility, writerValue: unknown, input?: CompatibilityNarrativeInput): SynastryResult {
+  const writer = validateCompatibilityNarrative(writerValue, calculated, input);
   return {
     schemaVersion: 'compatibility-v2',
     narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION,
     narrativeEvidenceIds: [...new Set(writer.paragraphs.flatMap((paragraph) => paragraph.evidenceIds))],
+    storyParagraphs: writer.paragraphs,
     engineVersion: calculated.engineVersion,
     // Retained for stored API compatibility; the story UI does not display scores.
     overallScore: calculated.overallScore,

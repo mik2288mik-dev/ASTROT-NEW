@@ -14,7 +14,8 @@ describe('personal forecast header and shared navigation', () => {
     const preview = read('components/ui-preview/UiPreviewApp.tsx');
 
     expect(topBar).toContain("title === 'NEBO'");
-    expect(topBar).toContain('<NeboLogo size="header" priority />');
+    expect(topBar).toContain('<NeboLogo');
+    expect(topBar).toContain('fullCloud');
     expect(topBar).toContain('app-top-bar-title--personal-forecast');
     expect(topBar).toContain('app-top-bar-context--period');
     expect(dashboard).toContain('title="NEBO"');

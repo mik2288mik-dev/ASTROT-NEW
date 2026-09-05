@@ -25,7 +25,7 @@ describe('natal mobile interaction contract', () => {
     expect(read('components/NatalReading/NatalEvidenceSheet.tsx')).toContain('role="dialog"');
     expect(read('components/NatalReading/NatalEvidenceSheet.tsx')).toContain('aria-modal="true"');
     expect(styles).toContain('.natal-v3-primary-nav {');
-    expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));');
+    expect(styles).toMatch(/\.natal-v3-primary-nav\[data-items='4'\]\s*\{\s*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\);/);
     expect(styles).toContain('.natal-v3-sheet-layer {');
     expect(styles).toContain('position: fixed;');
     expect(styles).toContain('max-height: min(91dvh, 880px);');

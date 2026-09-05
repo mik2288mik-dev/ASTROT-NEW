@@ -99,20 +99,20 @@ function errorMessage(
 ): string {
   if (language === 'en') {
     if (code === 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED') {
-      return 'The structured answer was incomplete. Retry this period only.';
+      return 'We could not finish the forecast. Please try again.';
     }
     if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
-      return 'The forecast was incomplete. Retry this period only.';
+      return 'We could not finish the forecast. Please try again.';
     }
-    return 'The forecast did not load. Other application sections still work.';
+    return 'Please try loading it again.';
   }
   if (code === 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED') {
-    return 'Структурированный ответ получился неполным. Повторим только этот период.';
+    return 'Не удалось закончить прогноз. Попробуй ещё раз.';
   }
   if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
-    return 'Текст получился неполным. Повторим только этот период.';
+    return 'Не удалось закончить прогноз. Попробуй ещё раз.';
   }
-  return 'Прогноз не загрузился. Остальные разделы приложения работают.';
+  return 'Попробуй загрузить его ещё раз.';
 }
 
 export const Dashboard = memo<DashboardProps>(({

@@ -78,7 +78,7 @@ const DYNAMIC: Record<'same' | 'harmonious' | 'challenging', { attract: string; 
 
 function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
 
-export type CompatGender = 'male' | 'female';
+export type CompatGender = 'male' | 'female' | 'unspecified';
 
 function asGender(value?: string | null): CompatGender | null {
   return value === 'male' || value === 'female' ? value : null;

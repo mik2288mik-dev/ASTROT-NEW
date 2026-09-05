@@ -32,8 +32,8 @@ export type CompatHistoryEntry = {
   yourSun: string;
   theirSun: string;
   /** Пол сторон (для гендерного текста). Необязательны — старые записи без них валидны. */
-  yourGender?: 'male' | 'female' | null;
-  theirGender?: 'male' | 'female' | null;
+  yourGender?: 'male' | 'female' | 'unspecified' | null;
+  theirGender?: 'male' | 'female' | 'unspecified' | null;
   relationshipContext?: RelationshipContext;
   overall: number;
   ts: number;

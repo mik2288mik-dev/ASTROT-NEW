@@ -46,17 +46,20 @@ describe('mixed compatibility input', () => {
     expect(aspects.some((aspect) => aspect.a === 'Солнце')).toBe(true);
   });
 
-  it('gives each person an independent source and keeps sign-sign on the free route', () => {
+  it('offers saved or new people for full compatibility and keeps signs on the free route', () => {
     const room = read('views/v2/UnionRoom.tsx');
     const service = read('services/astrologyService.ts');
 
     expect(room).toContain("type CompatibilityPersonSource = 'birth' | 'saved' | 'sign'");
     expect(room.match(/<PersonSourcePicker/g)).toHaveLength(2);
-    expect(room).toContain("value: 'sign'");
+    const picker = room.split('function PersonSourcePicker')[1].split('function PersonBirthFields')[0];
+    expect(picker).toContain("value: 'saved'");
+    expect(picker).toContain("value: 'birth'");
+    expect(picker).not.toContain("value: 'sign'");
     expect(room).toContain('compat-person-source-option');
     expect(room).toContain('aria-pressed={active}');
-    expect(room).toContain("ru ? 'Знак' : 'Sign'");
-    expect(room).toContain("ru ? 'Дата' : 'Date'");
+    expect(picker).toContain("ru ? 'Мои карты' : 'My charts'");
+    expect(picker).toContain("ru ? 'Новый' : 'New person'");
     expect(room).toContain("subjectResolvedSource === 'sign' && partnerResolvedSource === 'sign'");
     expect(room).toContain("calculationLevel: 'sign_only'");
     expect(room).toContain('getSignCompatibility(');
