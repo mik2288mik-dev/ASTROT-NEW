@@ -3900,6 +3900,50 @@ async function mvp054NeboOpsOutbox(pool: Pool): Promise<void> {
   }
 }
 
+async function mvp055MyTrackerAttribution(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_055_mytracker_attribution';
+  if (await isMigrationApplied(pool, migrationName)) return;
+  await pool.query('BEGIN');
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS mytracker_users (
+        user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        analytics_user_id UUID NOT NULL UNIQUE,
+        app_id TEXT NOT NULL,
+        profile_id TEXT,
+        traffic_source TEXT,
+        traffic_type TEXT,
+        campaign_id TEXT,
+        campaign_title TEXT,
+        tracking_link_id TEXT,
+        tracking_link_title TEXT,
+        attribution_type TEXT,
+        attribution_at TIMESTAMPTZ,
+        event_at TIMESTAMPTZ,
+        payload_hash TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT mytracker_app_id_valid CHECK (app_id ~ '^[1-9][0-9]{0,15}$'),
+        CONSTRAINT mytracker_profile_bounded CHECK (profile_id IS NULL OR length(profile_id) <= 128),
+        CONSTRAINT mytracker_source_bounded CHECK (traffic_source IS NULL OR length(traffic_source) <= 100),
+        CONSTRAINT mytracker_traffic_bounded CHECK (traffic_type IS NULL OR length(traffic_type) <= 100),
+        CONSTRAINT mytracker_campaign_id_bounded CHECK (campaign_id IS NULL OR length(campaign_id) <= 128),
+        CONSTRAINT mytracker_campaign_title_bounded CHECK (campaign_title IS NULL OR length(campaign_title) <= 160),
+        CONSTRAINT mytracker_link_id_bounded CHECK (tracking_link_id IS NULL OR length(tracking_link_id) <= 128),
+        CONSTRAINT mytracker_link_title_bounded CHECK (tracking_link_title IS NULL OR length(tracking_link_title) <= 160),
+        CONSTRAINT mytracker_attribution_type_bounded CHECK (attribution_type IS NULL OR length(attribution_type) <= 100),
+        CONSTRAINT mytracker_payload_hash_valid CHECK (payload_hash IS NULL OR payload_hash ~ '^[a-f0-9]{64}$')
+      )
+    `);
+    await markMigrationApplied(pool, migrationName);
+    await pool.query('COMMIT');
+    log.info(`Migration ${migrationName} applied`);
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    throw error;
+  }
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -3987,6 +4031,7 @@ export async function runMigrations(): Promise<void> {
     await mvp052UserAppEventIdempotency(migrationDb);
     await mvp053NatalChartRevisions(migrationDb);
     await mvp054NeboOpsOutbox(migrationDb);
+    await mvp055MyTrackerAttribution(migrationDb);
     await mvp044PremiumEntitlementLifecycle(migrationDb);
     await mvp045RuStoreCallbackOrdering(migrationDb);
     await mvp046RuStoreProviderOverlay(migrationDb);

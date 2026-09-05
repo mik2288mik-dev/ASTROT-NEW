@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import type { PoolClient } from 'pg';
 import { getPool } from './db';
 import type { TelegramReplyMarkup } from './telegramBot';
@@ -29,6 +30,10 @@ type UserSummary = {
   created_at?: Date | string | null;
   premium_until?: Date | string | null;
   has_premium?: boolean;
+  mytracker_id?: string | null;
+  attribution_source?: string | null;
+  attribution_campaign?: string | null;
+  attribution_at?: Date | string | null;
 };
 type SendResult = {
   ok: boolean;
@@ -42,15 +47,15 @@ const MAX_ATTEMPTS = 12;
 const MAX_BATCH = 10;
 const REQUEST_TIMEOUT_MS = 8_000;
 const HOUR_MS = 60 * 60 * 1_000;
-const HOURLY_STAT_KEYS = [
-  'newUsers', 'totalUsers', 'logins', 'activeUsers', 'actions', 'screens',
+const SUMMARY_STAT_KEYS = [
+  'newUsers', 'totalUsers', 'logins', 'activeUsers', 'actions', 'screens', 'paymentOpens',
   'starsPurchases', 'starsGross', 'rustoreConfirmations', 'rustoreTestConfirmations',
   'supportTickets', 'clientPaymentErrors', 'aiErrors',
 ] as const;
 const EVENT_TYPES = new Set([
   'login', 'activity', 'payment_confirmed', 'trial_started',
   'subscription_grace', 'subscription_cancelled', 'subscription_expired', 'subscription_resumed',
-  'payment_refunded', 'support_ticket', 'diagnostic', 'hourly_summary', 'ai_error',
+  'payment_refunded', 'support_ticket', 'diagnostic', 'hourly_summary', 'daily_summary', 'ai_error', 'attribution_received',
 ]);
 const PROVIDERS: Record<string, string> = {
   telegram: 'Telegram', telegram_stars: 'Telegram Stars',
@@ -75,7 +80,7 @@ const ACTIONS: Record<string, string> = {
   future_open: '🔭 Открыл прогноз', question_sent: '💬 Задал вопрос о себе',
   locked_feature_tapped: '🔒 Нажал закрытую функцию', premium_promo_impression: '💎 Увидел предложение Premium',
   premium_promo_clicked: '💎 Открыл предложение Premium', premium_promo_dismissed: '💎 Закрыл предложение Premium',
-  paywall_view: '💎 Открыл Premium', plan_selected: '🛒 Выбрал тариф',
+  paywall_view: '💳 Открыл экран оплаты', plan_selected: '🛒 Выбрал тариф',
   checkout_start: '🛒 Начал оплату', purchase_success: '📲 Приложение сообщило об оплате',
   purchase_cancelled: '↩️ Отменил оплату', purchase_failed: '⚠️ Ошибка оплаты в приложении',
   restore_started: '🔄 Начал восстановление покупок', restore_success: '✅ Восстановил доступ',
@@ -96,6 +101,7 @@ const TITLES: Record<string, string> = {
   subscription_resumed: '✅ Подписка восстановлена',
   support_ticket: '✉️ Новое обращение', diagnostic: '🛠 Проверка уведомлений',
   ai_error: '⚠️ Ошибка генерации ИИ',
+  attribution_received: '🎯 MyTracker · Источник определён',
 };
 
 function text(value: unknown, limit = 100): string {
@@ -138,14 +144,24 @@ export function getNeboOpsConfig(env: NodeJS.ProcessEnv = process.env): NeboOpsC
 /** Copy only operational fields. Never copy questions, birth data, receipts or raw errors. */
 export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
   const result: Payload = {};
-  for (const key of ['hourStart', 'hourEnd']) {
+  for (const key of ['attributionSource', 'attributionCampaign']) {
+    const value = text(input[key], 120);
+    if (value && !/[{}]/.test(value)) result[key] = value;
+  }
+  for (const key of ['attributionTrafficType', 'attributionCampaignId', 'attributionMethod']) {
+    const value = code(input[key]);
+    if (value) result[key] = value;
+  }
+  const attributionAt = validDate(input.attributionAt);
+  if (attributionAt) result.attributionAt = attributionAt.toISOString();
+  for (const key of ['periodStart', 'periodEnd']) {
     const date = validDate(input[key]);
     if (date) result[key] = date.toISOString();
   }
   if (input.stats && typeof input.stats === 'object' && !Array.isArray(input.stats)) {
     const source = input.stats as Payload;
     const stats: Payload = {};
-    for (const key of HOURLY_STAT_KEYS) {
+    for (const key of SUMMARY_STAT_KEYS) {
       const value = positiveNumber(source[key]);
       if (value !== undefined && Number.isSafeInteger(value)) stats[key] = value;
     }
@@ -211,6 +227,11 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
   return result;
 }
 
+export function shouldDeliverNeboOpsEvent(eventType: string, payload: Payload = {}): boolean {
+  return eventType === 'login' || eventType === 'daily_summary'
+    || (eventType === 'activity' && payload?.eventType === 'paywall_view');
+}
+
 export async function enqueueNeboOpsEvent(db: Queryable, input: NeboOpsEvent): Promise<void> {
   if (!isNeboOpsEnabled()) return;
   if (!EVENT_TYPES.has(input.eventType) || !/^[a-zA-Z0-9_.:-]{1,180}$/.test(input.eventKey)) {
@@ -221,12 +242,15 @@ export async function enqueueNeboOpsEvent(db: Queryable, input: NeboOpsEvent): P
   // a missing/outage-affected outbox cannot deny authentication or a paid entitlement.
   await db.query('SAVEPOINT nebo_ops_enqueue');
   try {
+    const payload = sanitizeNeboOpsPayload(input.payload);
+    const deliver = shouldDeliverNeboOpsEvent(input.eventType, payload);
     await db.query(
-      `INSERT INTO nebo_ops_outbox (event_key, event_type, user_id, payload_json, occurred_at)
-       VALUES ($1, $2, $3, $4::jsonb, $5)
+      `INSERT INTO nebo_ops_outbox (event_key, event_type, user_id, payload_json, occurred_at, status, last_error_code)
+       VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7)
        ON CONFLICT (event_key) DO NOTHING`,
       [input.eventKey, input.eventType, input.userId || null,
-        JSON.stringify(sanitizeNeboOpsPayload(input.payload)), input.occurredAt || new Date()],
+        JSON.stringify(payload), input.occurredAt || new Date(),
+        deliver ? 'pending' : 'dead', deliver ? null : 'OWNER_SCOPE_FILTERED'],
     );
   } catch {
     await db.query('ROLLBACK TO SAVEPOINT nebo_ops_enqueue');
@@ -236,12 +260,20 @@ export async function enqueueNeboOpsEvent(db: Queryable, input: NeboOpsEvent): P
   }
 }
 
-/** Only the most recently completed UTC hour is collected; startup never floods historical hours. */
-export async function enqueueNeboOpsHourlySummary(now = new Date()): Promise<boolean> {
-  if (!getNeboOpsConfig() || !Number.isFinite(now.getTime())) return false;
-  const end = new Date(Math.floor(now.getTime() / HOUR_MS) * HOUR_MS);
-  const start = new Date(end.getTime() - HOUR_MS);
-  const eventKey = `summary:hour:${Math.floor(start.getTime() / 1_000)}`;
+export function getNeboOpsDailySummaryWindow(now = new Date()): { dateKey: string; start: Date; end: Date } | null {
+  if (!Number.isFinite(now.getTime()) || formatInTimeZone(now, 'Europe/Moscow', 'HH') !== '23') return null;
+  const dateKey = formatInTimeZone(now, 'Europe/Moscow', 'yyyy-MM-dd');
+  const end = fromZonedTime(`${dateKey}T23:00:00`, 'Europe/Moscow');
+  return { dateKey, start: new Date(end.getTime() - 24 * HOUR_MS), end };
+}
+
+/** Enqueue once during 23:00–23:59 Moscow; never replay yesterday's report on a daytime restart. */
+export async function enqueueNeboOpsDailySummary(now = new Date()): Promise<boolean> {
+  if (!getNeboOpsConfig()) return false;
+  const window = getNeboOpsDailySummaryWindow(now);
+  if (!window) return false;
+  const { start, end, dateKey } = window;
+  const eventKey = `daily:${dateKey}`;
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
@@ -297,6 +329,7 @@ export async function enqueueNeboOpsHourlySummary(now = new Date()): Promise<boo
          (SELECT COUNT(*) FROM active_users) AS "activeUsers",
          (SELECT COUNT(*) FROM hour_events) AS "actions",
          (SELECT COUNT(*) FROM hour_events WHERE event_type = 'screen_view') AS "screens",
+         (SELECT COUNT(*) FROM hour_events WHERE event_type = 'paywall_view') AS "paymentOpens",
          (SELECT COUNT(*) FROM hour_stars) AS "starsPurchases",
          (SELECT COALESCE(SUM(stars_amount), 0) FROM hour_stars) AS "starsGross",
          (SELECT COUNT(*) FROM hour_ops WHERE event_type = 'payment_confirmed'
@@ -315,17 +348,17 @@ export async function enqueueNeboOpsHourlySummary(now = new Date()): Promise<boo
       [start.toISOString(), end.toISOString()],
     );
     const row = collected.rows[0];
-    if (!row) throw new Error('NEBO_OPS_HOURLY_STATS_MISSING');
-    const stats = Object.fromEntries(HOURLY_STAT_KEYS.map((key) => [key, Number(row[key])]));
+    if (!row) throw new Error('NEBO_OPS_DAILY_STATS_MISSING');
+    const stats = Object.fromEntries(SUMMARY_STAT_KEYS.map((key) => [key, Number(row[key])]));
     if (Object.values(stats).some((value) => !Number.isSafeInteger(value) || value < 0)) {
-      throw new Error('NEBO_OPS_HOURLY_STATS_INVALID');
+      throw new Error('NEBO_OPS_DAILY_STATS_INVALID');
     }
     const payload = sanitizeNeboOpsPayload({
-      hourStart: start.toISOString(), hourEnd: end.toISOString(), stats, topScreens: row.topScreens,
+      periodStart: start.toISOString(), periodEnd: end.toISOString(), stats, topScreens: row.topScreens,
     });
     const inserted = await client.query(
       `INSERT INTO nebo_ops_outbox (event_key, event_type, payload_json, occurred_at)
-       VALUES ($1, 'hourly_summary', $2::jsonb, $3)
+       VALUES ($1, 'daily_summary', $2::jsonb, $3)
        ON CONFLICT (event_key) DO NOTHING RETURNING id`,
       [eventKey, JSON.stringify(payload), end.toISOString()],
     );
@@ -339,18 +372,19 @@ export async function enqueueNeboOpsHourlySummary(now = new Date()): Promise<boo
   }
 }
 
-function renderHourlySummary(payload: Payload): string {
-  const start = validDate(payload.hourStart);
-  const end = validDate(payload.hourEnd);
+function renderDailySummary(payload: Payload): string {
+  const start = validDate(payload.periodStart);
+  const end = validDate(payload.periodEnd);
   const stats = (payload.stats || {}) as Payload;
   const count = (key: string) => typeof stats[key] === 'number' ? String(stats[key]) : 'нет данных';
   const lines = [
-    '📊 NEBO · Итоги часа',
+    '📊 NEBO · Итоги дня · 23:00 МСК',
     start && end ? `🕒 ${moscowDateTime(start)} — ${moscowDateTime(end)} МСК` : '🕒 Период не указан',
     '',
     `👤 Новых аккаунтов: ${count('newUsers')}`,
     `👥 Всего аккаунтов сейчас: ${count('totalUsers')}`,
     `👋 Новые сессии: ${count('logins')}`,
+    `💳 Открыли экран оплаты: ${count('paymentOpens')}`,
     `🙋 Активных по событиям и сессиям: ${count('activeUsers')}`,
     `📍 Действий: ${count('actions')} · открытий экранов: ${count('screens')}`,
   ];
@@ -375,7 +409,7 @@ function renderHourlySummary(payload: Payload): string {
 
 export function renderNeboOpsMessage(row: Pick<OpsRow, 'event_type' | 'user_id' | 'payload_json' | 'occurred_at'>, user: UserSummary = {}): string {
   const p = sanitizeNeboOpsPayload(row.payload_json);
-  if (row.event_type === 'hourly_summary') return renderHourlySummary(p);
+  if (row.event_type === 'daily_summary') return renderDailySummary(p);
   const detail = (p.eventPayload || {}) as Payload;
   const title = row.event_type === 'login'
     ? (p.isFirstLogin ? '👤 Первый вход' : '👋 Вход в приложение')
@@ -413,8 +447,23 @@ export function renderNeboOpsMessage(row: Pick<OpsRow, 'event_type' | 'user_id' 
   if (provider) lines.push(`🔐 ${row.event_type === 'login' ? 'Вход' : 'Провайдер'}: ${provider}`);
   if (p.runtime) lines.push(`📱 Платформа: ${p.runtime === 'native' ? 'Приложение' : p.runtime === 'telegram' ? 'Telegram Mini App' : 'Браузер'}`);
   if (row.event_type === 'login') {
-    lines.push('🎯 Источник установки: не определён');
+    const source = text(user.attribution_source, 120);
+    lines.push(source
+      ? `🎯 Источник аккаунта (MyTracker): ${source}`
+      : user.mytracker_id ? '🎯 Источник установки: ожидаем MyTracker' : '🎯 Источник установки: не определён');
+    const campaign = text(user.attribution_campaign, 120);
+    if (source && campaign) lines.push(`📣 Кампания: ${campaign}`);
+    const attributedAt = validDate(user.attribution_at);
+    if (source && attributedAt) lines.push(`📌 Атрибуция: ${moscowDateTime(attributedAt)} МСК`);
     lines.push(`🌐 Язык: ${user.language === 'en' ? 'en' : user.language === 'ru' ? 'ru' : 'не указан'}`);
+  }
+  if (row.event_type === 'attribution_received') {
+    lines.push(`📍 Источник: ${p.attributionSource || 'не определён'}`);
+    if (p.attributionCampaign) lines.push(`📣 Кампания: ${p.attributionCampaign}`);
+    if (p.attributionCampaignId) lines.push(`🆔 Кампания: ${p.attributionCampaignId}`);
+    if (p.attributionMethod) lines.push(`🔎 Метод MyTracker: ${p.attributionMethod}`);
+    const attributedAt = validDate(p.attributionAt);
+    if (attributedAt) lines.push(`📌 Атрибуция: ${moscowDateTime(attributedAt)} МСК`);
   }
   if (p.section) lines.push(`📍 Экран: ${SCREENS[String(p.section)]}`);
   if (detail.section_key) lines.push(`📖 Раздел: ${detail.section_key}`);
@@ -440,13 +489,13 @@ export function renderNeboOpsMessage(row: Pick<OpsRow, 'event_type' | 'user_id' 
 type WorkerState = {
   started: boolean; running: boolean; requested: boolean; connecting: boolean;
   listener: PoolClient | null; timer: ReturnType<typeof setInterval> | null;
-  lastCleanupAt: number; lastHourlyCheckAt: number; configurationWarning: boolean;
+  lastCleanupAt: number; lastDailyCheckAt: number; configurationWarning: boolean;
 };
 const processState = globalThis as typeof globalThis & { __neboOpsWorkerV1?: WorkerState };
 function worker(): WorkerState {
   return processState.__neboOpsWorkerV1 ??= {
     started: false, running: false, requested: false, connecting: false,
-    listener: null, timer: null, lastCleanupAt: 0, lastHourlyCheckAt: 0, configurationWarning: false,
+    listener: null, timer: null, lastCleanupAt: 0, lastDailyCheckAt: 0, configurationWarning: false,
   };
 }
 
@@ -517,6 +566,17 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
        last_error_code = 'LEASE_EXPIRED'
      WHERE status = 'processing' AND locked_at < NOW() - INTERVAL '90 seconds'`, [MAX_ATTEMPTS],
   );
+  // Preserve historical facts for the daily aggregate while retiring messages
+  // that were queued under the broader, previous notification preferences.
+  await pool.query(
+    `UPDATE nebo_ops_outbox SET status = 'dead', locked_at = NULL, lease_token = NULL,
+       last_error_code = 'OWNER_SCOPE_FILTERED', updated_at = NOW()
+     WHERE status IN ('pending', 'failed')
+       AND NOT (
+         event_type IN ('login', 'daily_summary')
+         OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') = 'paywall_view')
+       )`,
+  );
   const count = Number.isFinite(limit) ? Math.min(MAX_BATCH, Math.max(1, Math.trunc(limit))) : MAX_BATCH;
   for (let index = 0; index < count; index++) {
     const lease = randomUUID();
@@ -526,6 +586,10 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
        WHERE id = (
          SELECT id FROM nebo_ops_outbox
          WHERE status IN ('pending', 'failed') AND next_attempt_at <= NOW() AND attempts < $1
+           AND (
+             event_type IN ('login', 'daily_summary')
+             OR (event_type = 'activity' AND payload_json->>'eventType' = 'paywall_view')
+           )
          ORDER BY CASE WHEN event_type = 'activity' THEN 1 ELSE 0 END, next_attempt_at, id
          FOR UPDATE SKIP LOCKED LIMIT 1
        ) RETURNING id, event_type, user_id, payload_json, occurred_at, attempts, lease_token`,
@@ -534,12 +598,26 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
     const row = claim.rows[0];
     if (!row) break;
     result.claimed++;
+    if (!shouldDeliverNeboOpsEvent(row.event_type, row.payload_json)) {
+      await pool.query(
+        `UPDATE nebo_ops_outbox SET status = 'dead', attempts = GREATEST(0, attempts - 1),
+           locked_at = NULL, lease_token = NULL, last_error_code = 'OWNER_SCOPE_FILTERED', updated_at = NOW()
+         WHERE id = $1 AND lease_token = $2::uuid AND status = 'processing'`,
+        [row.id, lease],
+      );
+      continue;
+    }
+    const includeMyTracker = process.env.MYTRACKER_ENABLED === '1';
     const user = row.user_id ? (await pool.query<UserSummary>(
       `SELECT u.name, u.language, u.auth_provider,
               u.created_at,
+              ${includeMyTracker ? `mt.analytics_user_id::text AS mytracker_id,
+              mt.traffic_source AS attribution_source, mt.campaign_title AS attribution_campaign,
+              mt.attribution_at,` : ''}
               GREATEST(u.premium_until, p.active_until AT TIME ZONE 'UTC') AS premium_until,
               COALESCE(GREATEST(u.premium_until, p.active_until AT TIME ZONE 'UTC') > NOW(), FALSE) AS has_premium
        FROM users u
+       ${includeMyTracker ? 'LEFT JOIN mytracker_users mt ON mt.user_id = u.id' : ''}
        LEFT JOIN LATERAL (
          SELECT MAX(ends_at) AS active_until FROM premium_entitlements
          WHERE user_id = u.id AND status = 'active' AND ends_at > (NOW() AT TIME ZONE 'UTC')
@@ -615,22 +693,14 @@ export function wakeNeboOpsDelivery(): void {
     try {
       do {
         state.requested = false;
-        try {
-          // Keep support retries on the same fast owner gateway cadence;
-          // dynamic loading avoids a synchronous support delivery import cycle.
-          const { processSupportDeliveryOutbox } = await import('./supportOutbox');
-          await processSupportDeliveryOutbox(2, undefined, 'telegram');
-        } catch {
-          console.warn('[nebo-ops] support delivery deferred; owner events continue');
-        }
         const result = await processNeboOpsOutbox();
         if (result.claimed === MAX_BATCH) state.requested = true;
-        if (Date.now() - (state.lastHourlyCheckAt || 0) >= 60_000) {
-          state.lastHourlyCheckAt = Date.now();
+        if (Date.now() - (state.lastDailyCheckAt || 0) >= 60_000) {
+          state.lastDailyCheckAt = Date.now();
           try {
-            if (await enqueueNeboOpsHourlySummary(new Date(state.lastHourlyCheckAt))) state.requested = true;
+            if (await enqueueNeboOpsDailySummary(new Date(state.lastDailyCheckAt))) state.requested = true;
           } catch {
-            console.warn('[nebo-ops] hourly summary deferred; delivery continues');
+            console.warn('[nebo-ops] daily summary deferred; delivery continues');
           }
         }
       } while (state.requested && getNeboOpsConfig());

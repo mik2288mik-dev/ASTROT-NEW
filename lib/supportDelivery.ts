@@ -1,6 +1,5 @@
 import { logger } from './logger';
 import { sendTelegramTextMessage } from './telegramBot';
-import { isNeboOpsEnabled, sendNeboOpsText } from './neboOps';
 
 export const SUPPORT_CATEGORIES = ['problem', 'idea', 'payment', 'question', 'other'] as const;
 export type SupportCategory = typeof SUPPORT_CATEGORIES[number];
@@ -28,7 +27,7 @@ export type SupportDeliveryInput = SupportTicketPayload & {
 
 export type SupportDeliveryResult = {
   channel: 'email' | 'telegram';
-  result: 'sent' | 'failed' | 'unconfigured';
+  result: 'sent' | 'failed' | 'unconfigured' | 'suppressed';
   deferred?: boolean;
   retryAfterSeconds?: number;
 };
@@ -243,24 +242,6 @@ function diagnosticsText(diagnostics: SupportDiagnostics | null): string {
     .join('\n');
 }
 
-function versionText(diagnostics: SupportDiagnostics | null): string {
-  const version = diagnostics?.appVersion;
-  const code = diagnostics?.versionCode;
-  if (version && code) return `${version} (${code})`;
-  return version || code || 'не указана';
-}
-
-function supportAdminUrl(): string {
-  const configured = validConfiguredValue(process.env.SUPPORT_ADMIN_URL);
-  if (!configured) return '';
-  try {
-    const url = new URL(configured);
-    return url.protocol === 'https:' ? url.toString() : '';
-  } catch {
-    return '';
-  }
-}
-
 function logDelivery(ticketId: number, channel: SupportDeliveryResult['channel'], result: SupportDeliveryResult['result']): void {
   const payload = {
     scope: 'support',
@@ -268,7 +249,7 @@ function logDelivery(ticketId: number, channel: SupportDeliveryResult['channel']
     status: result,
     metadata: { ticketId, channel, result },
   };
-  if (result === 'sent') logger.info(payload);
+  if (result === 'sent' || result === 'suppressed') logger.info(payload);
   else logger.warn(payload);
 }
 
@@ -311,42 +292,11 @@ async function sendSupportEmail(input: SupportDeliveryInput): Promise<SupportDel
   }
 }
 
-async function sendSupportTelegram(input: SupportDeliveryInput): Promise<SupportDeliveryResult> {
-  const chatId = firstConfiguredValue(process.env.SUPPORT_TELEGRAM_CHAT_ID, process.env.OWNER_ID);
-  if (!chatId) return { channel: 'telegram', result: 'unconfigured' };
-  try {
-    const adminUrl = supportAdminUrl();
-    const message = [
-      `✉️ Новое обращение NEBO #${input.ticketId}`,
-      ...(input.userId && /^-?\d+$/.test(input.userId) ? [`🙋 Пользователь: ID ${input.userId}`] : []),
-      `📂 Категория: ${CATEGORY_LABELS[input.category]}`,
-      `📱 Версия: ${versionText(input.diagnostics)}`,
-      `🏪 Канал: ${input.diagnostics?.distributionChannel || 'не указан'}`,
-      ...(input.createdAt && Number.isFinite(new Date(input.createdAt).getTime()) ? [
-        `🕒 ${new Intl.DateTimeFormat('ru-RU', {
-          timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'medium',
-        }).format(new Date(input.createdAt))} МСК`,
-      ] : []),
-    ].join('\n');
-    const options = adminUrl
-      ? { replyMarkup: { inline_keyboard: [[{ text: 'Открыть обращение', url: adminUrl }]] } }
-      : undefined;
-    if (isNeboOpsEnabled()) {
-      const result = await sendNeboOpsText(message, options);
-      return {
-        channel: 'telegram',
-        result: result.ok ? 'sent' : 'failed',
-        ...(result.deferred ? { deferred: true } : {}),
-        ...(result.retryAfterSeconds !== undefined ? { retryAfterSeconds: result.retryAfterSeconds } : {}),
-      };
-    }
-    const result = await sendTelegramTextMessage(chatId, message, options);
-    return { channel: 'telegram', result: result.ok ? 'sent' : 'failed' };
-  } catch {
-    return { channel: 'telegram', result: 'failed' };
-  }
+async function sendSupportTelegram(_input: SupportDeliveryInput): Promise<SupportDeliveryResult> {
+  // Owner requested only login/paywall alerts. Tickets remain in the admin inbox
+  // and daily report; email delivery and explicit replies to customers are separate.
+  return { channel: 'telegram', result: 'suppressed' };
 }
-
 export async function deliverSupportTicketChannel(
   input: SupportDeliveryInput,
   channel: SupportDeliveryChannel,

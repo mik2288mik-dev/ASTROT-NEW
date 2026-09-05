@@ -264,6 +264,18 @@ export async function processSupportDeliveryOutbox(
         outboxLog('info', { id, ticketId: canonicalTicketId, channel, status: 'sent', attempt });
         continue;
       }
+      if (delivery.result === 'suppressed') {
+        await getPool().query(
+          `UPDATE support_delivery_outbox
+           SET status = 'dead', processing_started_at = NULL,
+               last_error_code = 'OWNER_SCOPE_FILTERED', updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1 AND status = 'processing' AND attempts = $2`,
+          [id, attempt],
+        );
+        summary.dead += 1;
+        outboxLog('info', { id, ticketId: canonicalTicketId, channel, status: 'suppressed', attempt });
+        continue;
+      }
       if (delivery.deferred) {
         await markDeferred(id, attempt, delivery.retryAfterSeconds);
         summary.retried += 1;

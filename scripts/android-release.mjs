@@ -19,6 +19,7 @@ const sharedAndroidAuthEnvNames = [
   'VK_ANDROID_CLIENT_ID',
   'VK_ID_ANDROID_CLIENT_SECRET',
 ];
+const rustoreAnalyticsEnvNames = ['MYTRACKER_SDK_KEY'];
 const rustoreTasks = {
   'rustore-alpha-apk': {
     profile: 'alpha',
@@ -259,7 +260,7 @@ function writeArtifactMetadata({ artifact, config, profileName, profile, sourceS
 }
 
 function printInspection(config) {
-  loadEnvFiles(sharedAndroidAuthEnvNames);
+  loadEnvFiles([...sharedAndroidAuthEnvNames, ...rustoreAnalyticsEnvNames]);
   loadSigningProperties();
   console.log('RuStore release configuration');
   console.log(`- App: ${config.app.displayName}`);
@@ -273,6 +274,7 @@ function printInspection(config) {
   for (const name of sharedAndroidAuthEnvNames) {
     console.log(`- ${name}: ${String(process.env[name] || '').trim() ? 'configured' : 'missing'}`);
   }
+  console.log(`- MyTracker Android: ${String(process.env.MYTRACKER_SDK_KEY || '').trim() ? 'configured' : 'disabled (no SDK key)'}`);
 }
 
 const target = process.argv[2];
@@ -304,7 +306,7 @@ if (!task) {
 }
 
 const config = loadRustoreConfig();
-loadEnvFiles(sharedAndroidAuthEnvNames);
+loadEnvFiles([...sharedAndroidAuthEnvNames, ...rustoreAnalyticsEnvNames]);
 loadSigningProperties();
 const profile = applyRustoreProfile(config, task.profile);
 const sourceState = getSourceState();

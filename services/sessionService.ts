@@ -23,6 +23,12 @@ import {
   diagnosticLog,
   showRuntimeDiagnosticsForFailure,
 } from '../lib/runtimeDiagnostics';
+import {
+  identifyNativeAnalytics,
+  isNativeMyTrackerEnabled,
+  nativeAnalyticsGeneration,
+  resetNativeAnalytics,
+} from './nativeAnalytics';
 
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 const SESSION_STORAGE_KEY = 'lumia_app_session_id';
@@ -96,6 +102,9 @@ export async function recordUserSession(telegramPlatform?: string | null): Promi
   const initData = getActiveTelegramInitData();
   const sessionId = getOrCreateAppSessionId();
   if (!sessionId) return;
+  const analyticsGeneration = nativeAnalyticsGeneration();
+  const useMyTracker = await isNativeMyTrackerEnabled();
+  if (analyticsGeneration !== nativeAnalyticsGeneration()) return;
   // Пишем вход и для веб-гостей (авторизация по signed cookie), поэтому credentials:'include',
   // а initData — опционально. Раньше без initData выходили → входы веб-гостей терялись.
 
@@ -109,12 +118,17 @@ export async function recordUserSession(telegramPlatform?: string | null): Promi
     body: JSON.stringify({
       sessionId,
       telegramPlatform: telegramPlatform || null,
+      ...(useMyTracker ? { analyticsProvider: 'mytracker' } : {}),
     }),
   });
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
     throw new Error(payload.message || payload.error || `Session tracking failed: ${response.status}`);
+  }
+  if (useMyTracker && analyticsGeneration === nativeAnalyticsGeneration()) {
+    const payload = await response.json().catch(() => ({}));
+    void identifyNativeAnalytics(payload.analyticsUserId, analyticsGeneration);
   }
 }
 
@@ -187,6 +201,7 @@ function writeUserAppEventQueue(storage: Storage, events: SanitizedUserAppEvent[
 
 export function clearQueuedUserAppEvents(): void {
   userAppEventQueueGeneration += 1;
+  void resetNativeAnalytics();
   const activeControllers = Array.from(activeUserAppEventControllers);
   activeUserAppEventControllers.clear();
   activeControllers.forEach((controller) => controller.abort());

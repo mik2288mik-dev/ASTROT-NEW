@@ -1,8 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import { db } from '../../../lib/db';
+import { getOrCreateMyTrackerUserId } from '../../../lib/myTracker';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'private, no-store');
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' });
   }
@@ -31,8 +33,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userAgent,
     });
 
+    const analyticsUserId = req.body?.analyticsProvider === 'mytracker' && appUser.provider === 'native'
+      ? await getOrCreateMyTrackerUserId(appUser.userId).catch(() => null)
+      : null;
+
     return res.status(200).json({
       success: true,
+      ...(analyticsUserId ? { analyticsUserId } : {}),
       session: {
         sessionId: session?.session_id,
         deviceLabel: session?.device_label ?? null,

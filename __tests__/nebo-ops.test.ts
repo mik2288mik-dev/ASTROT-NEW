@@ -2,12 +2,19 @@ import { getPool } from '../lib/db';
 import * as appAuth from '../lib/auth/appAuth';
 import * as neboOps from '../lib/neboOps';
 import userEventsHandler from '../pages/api/users/events';
+import myTrackerHandler from '../pages/api/integrations/mytracker';
+import {
+  getMyTrackerConfig, isMyTrackerPostbackAuthorized, parseMyTrackerAttribution,
+  getOrCreateMyTrackerUserId, recordMyTrackerAttribution,
+} from '../lib/myTracker';
 import { processSupportDeliveryOutbox } from '../lib/supportOutbox';
 import { logger } from '../lib/logger';
 import { startServerOperationalDiagnostic } from '../lib/serverOperationalDiagnostics';
 import {
   enqueueNeboOpsEvent,
-  enqueueNeboOpsHourlySummary,
+  enqueueNeboOpsDailySummary,
+  getNeboOpsDailySummaryWindow,
+  shouldDeliverNeboOpsEvent,
   getNeboOpsConfig,
   processNeboOpsOutbox,
   renderNeboOpsMessage,
@@ -167,9 +174,75 @@ describe('operational data and message formatting', () => {
     expect(client.split('\n')[0]).toBe('📲 Приложение сообщило об оплате');
     expect(client).not.toContain('подтверждена сервером');
   });
+
+  it('waits for MyTracker only for an associated SDK account and labels a known account source', () => {
+    const row = {
+      event_type: 'login', user_id: '-9001', occurred_at: '2026-09-04T20:00:00Z',
+      payload_json: { runtime: 'native' },
+    };
+    expect(renderNeboOpsMessage(row)).toContain('Источник установки: не определён');
+    expect(renderNeboOpsMessage(row, { mytracker_id: 'known-sdk-account' })).toContain('ожидаем MyTracker');
+    const known = renderNeboOpsMessage(row, {
+      mytracker_id: 'known-sdk-account', attribution_source: 'VK Ads',
+      attribution_campaign: 'NEBO · Сентябрь', attribution_at: '2026-09-04T18:00:00Z',
+    });
+    expect(known).toContain('Источник аккаунта (MyTracker): VK Ads');
+    expect(known).toContain('📣 Кампания: NEBO · Сентябрь');
+    expect(known).toContain('04.09.2026, 21:00 МСК');
+    expect(known).not.toContain('ожидаем');
+  });
+
+  it('renders late attribution separately without exposing raw callbacks or unresolved macros', () => {
+    const message = renderNeboOpsMessage({
+      event_type: 'attribution_received', user_id: '-9001', occurred_at: '2026-09-04T20:00:00Z',
+      payload_json: {
+        attributionSource: 'VK Ads', attributionCampaign: 'NEBO\nСентябрь',
+        attributionCampaignId: '1234', attributionAt: '2026-09-04T18:00:00Z',
+        token: 'PRIVATE_SECRET', deeplink: 'PRIVATE_LINK', profileId: 'PRIVATE_DEVICE',
+      },
+    });
+    expect(message).toContain('🎯 MyTracker · Источник определён');
+    expect(message).toContain('📍 Источник: VK Ads');
+    expect(message).toContain('📣 Кампания: NEBO Сентябрь');
+    expect(message).not.toContain('PRIVATE_');
+    expect(sanitizeNeboOpsPayload({
+      attributionSource: '{mt_traffic_source}', attributionCampaignId: '{mt_campaign_id}',
+    })).toEqual({});
+  });
 });
 
 describe('durable owner notification queue', () => {
+  it('notifies only about logins, opening payment and the daily report', async () => {
+    expect(shouldDeliverNeboOpsEvent('login')).toBe(true);
+    expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'paywall_view' })).toBe(true);
+    expect(shouldDeliverNeboOpsEvent('daily_summary')).toBe(true);
+    for (const eventType of ['hourly_summary', 'support_ticket', 'ai_error', 'payment_confirmed', 'attribution_received']) {
+      expect(shouldDeliverNeboOpsEvent(eventType)).toBe(false);
+    }
+    for (const eventType of ['screen_view', 'checkout_start', 'question_sent', 'purchase_success']) {
+      expect(shouldDeliverNeboOpsEvent('activity', { eventType })).toBe(false);
+    }
+    await enqueueNeboOpsEvent({ query } as any, {
+      eventKey: 'activity:quiet', eventType: 'activity', userId: '-9001', payload: { eventType: 'screen_view' },
+    });
+    const insert = query.mock.calls.find(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))!;
+    expect(insert[1].slice(5)).toEqual(['dead', 'OWNER_SCOPE_FILTERED']);
+  });
+
+  it('retires old noisy queue entries without sending them to Telegram', async () => {
+    query.mockImplementation(async (sql: string, values?: unknown[]) => {
+      if (sql.includes('RETURNING id, event_type, user_id')) return { rows: [{
+        id: '41', event_type: 'activity', user_id: '-9001', payload_json: { eventType: 'screen_view' },
+        occurred_at: '2026-09-04T20:00:07Z', attempts: 1, lease_token: values?.[1],
+      }] };
+      return { rows: [], rowCount: 1 };
+    });
+    await expect(processNeboOpsOutbox(1)).resolves.toEqual({ claimed: 1, sent: 0, failed: 0 });
+    expect(query).toHaveBeenCalledWith(expect.stringContaining("WHERE status IN ('pending', 'failed')"));
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('WHERE id = $1 AND lease_token = $2::uuid'), ['41', expect.any(String)]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('uses the event key for database deduplication and stores only sanitized data', async () => {
     const occurredAt = new Date('2026-09-04T16:03:09Z');
     const event = {
@@ -184,6 +257,7 @@ describe('durable owner notification queue', () => {
       expect(sql).toContain('ON CONFLICT (event_key) DO NOTHING');
       expect(values).toEqual([
         'login:session-42', 'login', '-9001', JSON.stringify({ isFirstLogin: true, provider: 'telegram' }), occurredAt,
+        'pending', null,
       ]);
     }
   });
@@ -493,8 +567,8 @@ describe('notification integration with committed user actions', () => {
   });
 });
 
-describe('support delivery through the shared Telegram sender', () => {
-  it('keeps a deferred tenth attempt retryable and preserves the provider cooldown', async () => {
+describe('owner support notification preference', () => {
+  it('suppresses queued support alerts without sending or retrying them', async () => {
     const supportQuery = jest.fn(async (sql: string) => {
       if (sql.includes('SELECT id, ticket_id, channel, attempts')) {
         return { rows: [{ id: 71, ticket_id: 301, channel: 'telegram', attempts: 9 }], rowCount: 1 };
@@ -522,38 +596,34 @@ describe('support delivery through the shared Telegram sender', () => {
     });
 
     await expect(processSupportDeliveryOutbox(1, undefined, 'telegram')).resolves.toEqual({
-      claimed: 1, sent: 0, retried: 1, dead: 0, staleRecovered: 0,
+      claimed: 1, sent: 0, retried: 0, dead: 1, staleRecovered: 0,
     });
     expect(supportQuery).toHaveBeenCalledWith(
       expect.stringContaining('AND ($4::TEXT IS NULL OR channel = $4::TEXT)'), [10, 1, null, 'telegram'],
     );
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][0]).toContain('ID -9001');
-    expect(send.mock.calls[0][0]).toContain('23:00:07 МСК');
-    const deferred = query.mock.calls.find(([sql]) => sql.includes('SUPPORT_DELIVERY_DEFERRED'))!;
-    expect(deferred[0]).toContain("SET status = 'pending'");
-    expect(deferred[0]).toContain('attempts = GREATEST(0, attempts - 1)');
-    expect(deferred[0]).toContain("WHERE id = $1 AND status = 'processing' AND attempts = $3");
-    expect(deferred[1]).toEqual([71, 300, 10]);
-    expect(query.mock.calls.some(([sql]) => sql.includes("SET status = 'dead'"))).toBe(false);
+    expect(send).not.toHaveBeenCalled();
+    const suppressed = query.mock.calls.find(([sql]) => sql.includes('OWNER_SCOPE_FILTERED'))!;
+    expect(suppressed[0]).toContain("SET status = 'dead'");
+    expect(suppressed[0]).toContain("WHERE id = $1 AND status = 'processing' AND attempts = $2");
+    expect(suppressed[1]).toEqual([71, 10]);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
-describe('hourly owner summaries', () => {
+describe('daily owner summaries', () => {
   const stats = {
-    newUsers: 2, totalUsers: 100, logins: 6, activeUsers: 4, actions: 21, screens: 13,
+    newUsers: 2, totalUsers: 100, logins: 6, activeUsers: 4, actions: 21, screens: 13, paymentOpens: 3,
     starsPurchases: 1, starsGross: 200, rustoreConfirmations: 3, rustoreTestConfirmations: 2,
     supportTickets: 1, clientPaymentErrors: 2, aiErrors: 1,
   };
-  const hourlyQuery = jest.fn();
+  const dailyQuery = jest.fn();
   let persistedKeys: Set<string>;
   let lockAvailable: boolean;
 
   beforeEach(() => {
     persistedKeys = new Set();
     lockAvailable = true;
-    hourlyQuery.mockReset().mockImplementation(async (sql: string, values?: unknown[]) => {
+    dailyQuery.mockReset().mockImplementation(async (sql: string, values?: unknown[]) => {
       if (sql.includes('pg_try_advisory_xact_lock')) return { rows: [{ acquired: lockAvailable }], rowCount: 1 };
       if (sql.startsWith('SELECT 1 FROM nebo_ops_outbox WHERE event_key')) {
         return { rows: [], rowCount: persistedKeys.has(String(values?.[0])) ? 1 : 0 };
@@ -573,69 +643,78 @@ describe('hourly owner summaries', () => {
       }
       return { rows: [], rowCount: 0 };
     });
-    connect.mockResolvedValue({ query: hourlyQuery, release });
+    connect.mockResolvedValue({ query: dailyQuery, release });
   });
 
-  it.each(['2026-09-05T00:00:00Z', '2026-09-05T00:37:41Z'])(
-    'collects only the previous completed UTC hour at %s', async (now) => {
-      await expect(enqueueNeboOpsHourlySummary(new Date(now))).resolves.toBe(true);
-      const scan = hourlyQuery.mock.calls.find(([sql]) => sql.includes('WITH bounds AS'))!;
-      expect(scan[1]).toEqual(['2026-09-04T23:00:00.000Z', '2026-09-05T00:00:00.000Z']);
+  it.each(['2026-09-05T19:59:59Z', '2026-09-05T21:00:00Z', '2026-09-05T00:00:00Z'])(
+    'does not issue an hourly or catch-up report outside 23 Moscow: %s', async (date) => {
+      expect(getNeboOpsDailySummaryWindow(new Date(date))).toBeNull();
+      await expect(enqueueNeboOpsDailySummary(new Date(date))).resolves.toBe(false);
+      expect(connect).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['2026-09-05T20:00:00Z', '2026-09-05T20:37:41Z'])(
+    'collects only the previous 24 hours at 23 Moscow at %s', async (now) => {
+      await expect(enqueueNeboOpsDailySummary(new Date(now))).resolves.toBe(true);
+      const scan = dailyQuery.mock.calls.find(([sql]) => sql.includes('WITH bounds AS'))!;
+      expect(scan[1]).toEqual(['2026-09-04T20:00:00.000Z', '2026-09-05T20:00:00.000Z']);
       expect(scan[0]).toContain('e.occurred_at >= b.start_utc AND e.occurred_at < b.end_utc');
-      const insert = hourlyQuery.mock.calls.find(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))!;
+      const insert = dailyQuery.mock.calls.find(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))!;
       expect(insert[0]).toContain('ON CONFLICT (event_key) DO NOTHING RETURNING id');
-      expect(insert[1][0]).toBe(`summary:hour:${Date.parse('2026-09-04T23:00:00Z') / 1000}`);
-      expect(insert[1][2]).toBe('2026-09-05T00:00:00.000Z');
+      expect(insert[1][0]).toBe('daily:2026-09-05');
+      expect(insert[1][2]).toBe('2026-09-05T20:00:00.000Z');
       const payload = JSON.parse(insert[1][1]);
       expect(payload.stats).toEqual(stats);
       expect(payload.topScreens).toEqual([{ section: 'natal_reading', count: 8 }, { section: 'unknown', count: 5 }]);
       expect(insert[1][1]).not.toContain('PRIVATE_');
-      expect(hourlyQuery).toHaveBeenCalledWith('COMMIT');
+      expect(dailyQuery).toHaveBeenCalledWith('COMMIT');
       expect(release).toHaveBeenCalledTimes(1);
       expect(fetchMock).not.toHaveBeenCalled();
     },
   );
 
-  it('deduplicates the completed hour across worker restarts without scanning activity again', async () => {
-    await expect(enqueueNeboOpsHourlySummary(new Date('2026-09-05T00:01:00Z'))).resolves.toBe(true);
+  it('deduplicates the daily report across worker restarts without scanning activity again', async () => {
+    await expect(enqueueNeboOpsDailySummary(new Date('2026-09-05T20:01:00Z'))).resolves.toBe(true);
     delete processState.__neboOpsWorkerV1;
-    await expect(enqueueNeboOpsHourlySummary(new Date('2026-09-05T00:59:00Z'))).resolves.toBe(false);
-    expect(hourlyQuery.mock.calls.filter(([sql]) => sql.includes('WITH bounds AS'))).toHaveLength(1);
-    expect(hourlyQuery.mock.calls.filter(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))).toHaveLength(1);
+    await expect(enqueueNeboOpsDailySummary(new Date('2026-09-05T20:59:00Z'))).resolves.toBe(false);
+    expect(dailyQuery.mock.calls.filter(([sql]) => sql.includes('WITH bounds AS'))).toHaveLength(1);
+    expect(dailyQuery.mock.calls.filter(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))).toHaveLength(1);
     expect(persistedKeys.size).toBe(1);
   });
 
-  it('does not scan or enqueue when another collector holds the hourly lock', async () => {
+  it('does not scan or enqueue when another collector holds the daily lock', async () => {
     lockAvailable = false;
-    await expect(enqueueNeboOpsHourlySummary(new Date('2026-09-05T00:01:00Z'))).resolves.toBe(false);
-    expect(hourlyQuery.mock.calls.some(([sql]) => sql.includes('WITH bounds AS'))).toBe(false);
-    expect(hourlyQuery.mock.calls.some(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))).toBe(false);
-    expect(hourlyQuery).toHaveBeenCalledWith('COMMIT');
+    await expect(enqueueNeboOpsDailySummary(new Date('2026-09-05T20:01:00Z'))).resolves.toBe(false);
+    expect(dailyQuery.mock.calls.some(([sql]) => sql.includes('WITH bounds AS'))).toBe(false);
+    expect(dailyQuery.mock.calls.some(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))).toBe(false);
+    expect(dailyQuery).toHaveBeenCalledWith('COMMIT');
     expect(release).toHaveBeenCalledTimes(1);
   });
 
   it('does nothing for an invalid date or disabled owner notifications', async () => {
-    await expect(enqueueNeboOpsHourlySummary(new Date(NaN))).resolves.toBe(false);
+    await expect(enqueueNeboOpsDailySummary(new Date(NaN))).resolves.toBe(false);
     process.env.NEBO_OPS_TELEGRAM_ENABLED = '0';
-    await expect(enqueueNeboOpsHourlySummary(new Date('2026-09-05T00:01:00Z'))).resolves.toBe(false);
+    await expect(enqueueNeboOpsDailySummary(new Date('2026-09-05T20:01:00Z'))).resolves.toBe(false);
     expect(connect).not.toHaveBeenCalled();
   });
 
   it('renders useful counts and known screens without identities or raw payload', () => {
     const message = renderNeboOpsMessage({
-      event_type: 'hourly_summary', user_id: null, occurred_at: '2026-09-05T00:00:00Z',
+      event_type: 'daily_summary', user_id: null, occurred_at: '2026-09-05T20:00:00Z',
       payload_json: {
-        hourStart: '2026-09-04T23:00:00Z', hourEnd: '2026-09-05T00:00:00Z',
+        periodStart: '2026-09-04T20:00:00Z', periodEnd: '2026-09-05T20:00:00Z',
         stats: { ...stats, users: ['PRIVATE_NAME'], question: 'PRIVATE_QUESTION' },
         topScreens: [{ section: 'natal_reading', count: 8 }, { section: 'PRIVATE_SCREEN', count: 5 }],
         userName: 'PRIVATE_NAME', receipt: 'PRIVATE_RECEIPT',
       },
     });
-    expect(message).toContain('📊 NEBO · Итоги часа');
-    expect(message).toContain('02:00');
-    expect(message).toContain('03:00 МСК');
+    expect(message).toContain('📊 NEBO · Итоги дня · 23:00 МСК');
+    expect(message).toContain('04.09.2026');
+    expect(message).toContain('23:00 МСК');
     expect(message).toContain('👤 Новых аккаунтов: 2');
     expect(message).toContain('👥 Всего аккаунтов сейчас: 100');
+    expect(message).toContain('💳 Открыли экран оплаты: 3');
     expect(message).toContain('Натальная карта · Разбор: 8');
     expect(message).toContain('Экран не определён: 5');
     expect(message).toContain('валовая сумма: 200 Stars');
@@ -674,6 +753,120 @@ describe('AI generation error notifications', () => {
     expect(message).toContain('версия abc1234');
     expect(message).toContain('trace_42');
     expect(message).not.toContain('PRIVATE_');
+  });
+});
+
+describe('MyTracker attribution delivery', () => {
+  const now = new Date('2026-09-05T01:00:00Z');
+  const analyticsUserId = '5844f96d-3901-49d2-a481-d4b01592e8e4';
+  const secret = 'test_mytracker_0123456789abcdefghijklmnop';
+  const callback = {
+    app_id: '12345', user_id: analyticsUserId, traffic_source: 'VK Ads', traffic_type: 'paid',
+    campaign_id: '42', campaign_title: 'Сентябрь', attribution_ts: '1788566400', event_ts: '1788566430',
+  };
+  const attributionQuery = jest.fn();
+
+  beforeEach(() => {
+    process.env.MYTRACKER_ENABLED = '1';
+    process.env.MYTRACKER_APP_ID = callback.app_id;
+    process.env.MYTRACKER_POSTBACK_SECRET = secret;
+    attributionQuery.mockReset().mockImplementation(async (sql: string) => {
+      if (sql.includes('SELECT user_id, attribution_at')) return { rows: [{ user_id: '-9001' }] };
+      if (sql.includes('SELECT 1 FROM nebo_ops_outbox')) return { rows: [{ '?column?': 1 }], rowCount: 1 };
+      return { rows: [], rowCount: 1 };
+    });
+    connect.mockResolvedValue({ query: attributionQuery, release });
+  });
+
+  function response() {
+    return { setHeader: jest.fn(), status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() };
+  }
+
+  it('requires a dedicated configured application and secret and rejects multi-value credentials', () => {
+    expect(getMyTrackerConfig()).toEqual({ appId: '12345', postbackSecret: secret });
+    expect(isMyTrackerPostbackAuthorized(secret)).toBe(true);
+    expect(isMyTrackerPostbackAuthorized(`${secret}x`)).toBe(false);
+    expect(isMyTrackerPostbackAuthorized([secret])).toBe(false);
+    expect(getMyTrackerConfig({ ...process.env, MYTRACKER_ENABLED: '0' })).toBeNull();
+    expect(getMyTrackerConfig({ ...process.env, MYTRACKER_POSTBACK_SECRET: 'short' })).toBeNull();
+    expect(getMyTrackerConfig({ ...process.env, MYTRACKER_APP_ID: 'wrong-app' })).toBeNull();
+  });
+
+  it('never accepts an account number, a foreign application, unresolved source or future timestamp', () => {
+    expect(parseMyTrackerAttribution(callback, '12345', now)).toMatchObject({
+      analyticsUserId, trafficSource: 'VK Ads', attributionAt: '2026-09-05T00:00:00.000Z',
+    });
+    for (const input of [
+      { ...callback, user_id: '-9001' },
+      { ...callback, app_id: '99999' },
+      { ...callback, traffic_source: '{mt_traffic_source}', traffic_type: '{mt_traffic_type}' },
+      { ...callback, attribution_ts: String(now.getTime() / 1000 + 60) },
+    ]) expect(() => parseMyTrackerAttribution(input, '12345', now)).toThrow();
+    const safe = parseMyTrackerAttribution({ ...callback, email: 'PRIVATE_EMAIL', token: 'PRIVATE_TOKEN' }, '12345', now);
+    expect(JSON.stringify(safe)).not.toContain('PRIVATE_');
+  });
+
+  it('rejects an unauthenticated callback before touching storage and keeps responses uncached', async () => {
+    const res = response();
+    await myTrackerHandler({ method: 'GET', query: callback, headers: {} } as any, res as any);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
+    expect(connect).not.toHaveBeenCalled();
+  });
+
+  it('preserves the same opaque account ID and generates no identity when disabled', async () => {
+    attributionQuery.mockImplementation(async (sql: string) => ({
+      rows: sql.startsWith('SELECT analytics_user_id') ? [{ analytics_user_id: analyticsUserId }] : [], rowCount: 1,
+    }));
+    await expect(getOrCreateMyTrackerUserId('-9001')).resolves.toBe(analyticsUserId);
+    const insert = attributionQuery.mock.calls.find(([sql]) => sql.includes('INSERT INTO mytracker_users'))!;
+    expect(insert[0]).toContain('ON CONFLICT (user_id) DO NOTHING');
+    expect(insert[1][1]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(insert[1][1]).not.toBe('-9001');
+    process.env.MYTRACKER_ENABLED = '0';
+    connect.mockClear();
+    await expect(getOrCreateMyTrackerUserId('-9001')).resolves.toBeNull();
+    expect(connect).not.toHaveBeenCalled();
+  });
+
+  it('commits the source and one owner notification together and ignores later repeats', async () => {
+    await expect(recordMyTrackerAttribution(callback, now)).resolves.toBe('accepted');
+    const update = attributionQuery.mock.calls.find(([sql]) => sql.includes('UPDATE mytracker_users'))!;
+    const enqueue = attributionQuery.mock.calls.find(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))!;
+    expect(enqueue[1][1]).toBe('attribution_received');
+    expect(enqueue[1][2]).toBe('-9001');
+    expect(JSON.parse(enqueue[1][3])).toMatchObject({ attributionSource: 'VK Ads', attributionCampaign: 'Сентябрь' });
+    expect(attributionQuery).toHaveBeenCalledWith('COMMIT');
+    const hash = update[1][11];
+    attributionQuery.mockClear().mockImplementation(async (sql: string) => ({
+      rows: sql.includes('SELECT user_id, attribution_at') ? [{ user_id: '-9001', payload_hash: hash }] : [], rowCount: 1,
+    }));
+    await expect(recordMyTrackerAttribution({ ...callback, event_ts: '1788566490' }, now)).resolves.toBe('duplicate');
+    expect(attributionQuery.mock.calls.some(([sql]) => sql.includes('UPDATE mytracker_users'))).toBe(false);
+    expect(attributionQuery.mock.calls.some(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))).toBe(false);
+  });
+
+  it('does not overwrite a newer attribution or accept an unknown SDK identity', async () => {
+    attributionQuery.mockImplementation(async (sql: string) => ({
+      rows: sql.includes('SELECT user_id, attribution_at')
+        ? [{ user_id: '-9001', attribution_at: '2026-09-05T00:05:00Z' }] : [], rowCount: 1,
+    }));
+    await expect(recordMyTrackerAttribution(callback, now)).resolves.toBe('stale');
+    expect(attributionQuery.mock.calls.some(([sql]) => sql.includes('UPDATE mytracker_users'))).toBe(false);
+    attributionQuery.mockResolvedValue({ rows: [], rowCount: 0 });
+    await expect(recordMyTrackerAttribution(callback, now)).resolves.toBe('unknown_user');
+  });
+
+  it('rolls back attribution when notification persistence fails so a callback retry can deliver it', async () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    attributionQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('SELECT user_id, attribution_at')) return { rows: [{ user_id: '-9001' }] };
+      if (sql.includes('INSERT INTO nebo_ops_outbox')) throw new Error('PRIVATE_DATABASE_ERROR');
+      return { rows: [], rowCount: 0 };
+    });
+    await expect(recordMyTrackerAttribution(callback, now)).rejects.toThrow('MYTRACKER_NOTIFICATION_NOT_QUEUED');
+    expect(attributionQuery).toHaveBeenCalledWith('ROLLBACK');
+    expect(attributionQuery).not.toHaveBeenCalledWith('COMMIT');
   });
 });
 
