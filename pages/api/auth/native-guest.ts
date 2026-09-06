@@ -8,6 +8,7 @@ import { toPublicAppProfile } from '../../../lib/auth/profile';
 import { db } from '../../../lib/db';
 import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
 import { startServerOperationalDiagnostic } from '../../../lib/serverOperationalDiagnostics';
+import { readClientRuntimeMetadata } from '../../../lib/clientRuntimeMetadata';
 
 function bearerToken(req: NextApiRequest): string {
   const value = req.headers.authorization;
@@ -33,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         throw new AdminAuthError(403, 'NATIVE_SESSION_REQUIRED', 'A native session is required');
       }
     } else {
-      const created = await createNativeGuestAppUser(req.body?.sessionVersion);
+      const created = await createNativeGuestAppUser(req.body?.sessionVersion, readClientRuntimeMetadata(req.headers, 'native'));
       auth = created.auth;
       sessionResponse = appSessionResponse(created.session, true);
     }

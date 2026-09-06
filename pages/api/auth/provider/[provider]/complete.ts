@@ -8,6 +8,7 @@ import {
   requireAppUser,
 } from '../../../../../lib/auth/appAuth';
 import { consumeAuthRateLimit, getAuthClientKey } from '../../../../../lib/auth/authRateLimit';
+import { readClientRuntimeMetadata } from '../../../../../lib/clientRuntimeMetadata';
 import {
   completeNativeProviderAuth,
   NATIVE_AUTH_PROVIDERS,
@@ -72,6 +73,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const session = await createAppUserSession({
       userId: result.userId,
       kind: 'native',
+      notificationContext: readClientRuntimeMetadata(req.headers, 'native'),
+      loginProvider: provider,
       deviceId: typeof req.body?.appDeviceId === 'string' ? req.body.appDeviceId : null,
       sessionVersion: req.body?.sessionVersion === 2 ? 2 : 1,
     });

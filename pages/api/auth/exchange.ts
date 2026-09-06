@@ -12,6 +12,7 @@ import {
   requireOAuthBrowserBinding,
 } from '../../../lib/auth/oauthBrowserBinding';
 import { toPublicAppProfile } from '../../../lib/auth/profile';
+import { readClientRuntimeMetadata } from '../../../lib/clientRuntimeMetadata';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Cache-Control', 'no-store');
@@ -22,6 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const session = await createAppUserSession({
       userId: exchange.userId,
       kind: 'web',
+      notificationContext: readClientRuntimeMetadata(req.headers, 'web'),
       deviceId: typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
       sessionVersion: req.body?.sessionVersion === 2 ? 2 : 1,
     });

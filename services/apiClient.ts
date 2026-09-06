@@ -9,6 +9,8 @@ import {
 import { nativeSessionStore, type NativeSessionBundle, type StoredNativeSession } from './nativeSessionStore';
 import { assertNativeNetworkAvailable } from './nativeNetwork';
 import { isNativeAndroidRuntime, isNativeAppRuntime as hasNativeAppRuntime } from './nativeRuntime';
+import { CLIENT_RUNTIME_HEADER } from '../lib/clientRuntimeMetadata';
+import { getClientRuntimeHeader } from './clientRuntimeMetadata';
 import {
   getAuthSessionMode,
   requiresExplicitAuthentication,
@@ -543,6 +545,18 @@ async function fetchOnce(
 
   try {
     const headers = new Headers(init.headers || {});
+    // Keep device metadata on these relative API routes, never on arbitrary URLs.
+    const metadataPath = path.split(/[?#]/, 1)[0];
+    if (isNativeAppRuntime() && (
+      /^\/api\/auth\/[A-Za-z0-9/_-]+$/.test(metadataPath)
+      || metadataPath === '/api/users/session'
+      || metadataPath === '/api/users/events'
+    )) {
+      if (controller.signal.aborted) throw requestWasAborted();
+      const runtimeHeader = await getClientRuntimeHeader().catch(() => null);
+      if (controller.signal.aborted) throw requestWasAborted();
+      if (runtimeHeader) headers.set(CLIENT_RUNTIME_HEADER, runtimeHeader);
+    }
     if (includeSessionAuth) {
       const authHeaders = await getAppAuthHeaders(controller.signal);
       Object.entries(authHeaders).forEach(([name, value]) => {

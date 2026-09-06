@@ -9,6 +9,7 @@ import {
 import { resolveTelegramIdentityForLogin } from '../../../../lib/auth/accountIdentity';
 import { toPublicAppProfile } from '../../../../lib/auth/profile';
 import { db } from '../../../../lib/db';
+import { readClientRuntimeMetadata, type ClientRuntimeMetadata } from '../../../../lib/clientRuntimeMetadata';
 import {
   CURRENT_LEGAL_DOCUMENT_VERSIONS,
   getLegalDocumentStatusesForUser,
@@ -19,6 +20,8 @@ async function createTelegramAppSession(input: {
   kind: 'web' | 'native';
   deviceId: string | null;
   sessionVersion: 1 | 2;
+  notificationContext: ClientRuntimeMetadata;
+  loginProvider: 'telegram';
 }) {
   try {
     return await createAppUserSession(input);
@@ -55,6 +58,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const session = await createTelegramAppSession({
       userId: identity.userId,
       kind,
+      notificationContext: readClientRuntimeMetadata(req.headers, kind === 'native' ? 'native' : 'telegram'),
+      loginProvider: 'telegram',
       deviceId: typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
       sessionVersion: req.body?.sessionVersion === 2 ? 2 : 1,
     });

@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import { getPool } from '../../../lib/db';
 import { enqueueNeboOpsEvent, wakeNeboOpsDelivery } from '../../../lib/neboOps';
+import { readClientRuntimeMetadata } from '../../../lib/clientRuntimeMetadata';
 import {
   isUserAppEventBodyTooLarge,
   sanitizeUserAppEvent,
@@ -60,6 +61,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           eventType: 'activity',
           userId: appUser.userId,
           payload: {
+            ...readClientRuntimeMetadata(req.headers, appUser.provider === 'native' ? 'native'
+              : appUser.provider === 'telegram' ? 'telegram' : 'web'),
             eventType: event.eventType,
             section: event.section,
             source: event.source,

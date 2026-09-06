@@ -4,6 +4,11 @@ import type { PoolClient } from 'pg';
 import { AdminAuthError, getVerifiedTelegramUser } from '../adminAuth';
 import { db, getPool } from '../db';
 import { enqueueNeboOpsEvent, wakeNeboOpsDelivery } from '../neboOps';
+import {
+  readClientRuntimeMetadata,
+  sanitizeClientRuntimeMetadata,
+  type ClientRuntimeMetadata,
+} from '../clientRuntimeMetadata';
 import { isGuestUserId } from '../userId';
 import {
   assertAppSessionActive,
@@ -284,9 +289,22 @@ async function loginNotificationContext(client: PoolClient, userId: string) {
     : null;
 }
 
+function loginNotificationPayload(
+  notification: { provider: string; isFirstLogin: boolean },
+  input: { kind: 'web' | 'native'; notificationContext?: ClientRuntimeMetadata; loginProvider?: string },
+) {
+  const context = sanitizeClientRuntimeMetadata(input.notificationContext);
+  // Session kinds describe token transport. Verified Telegram launch proof may
+  // identify the web transport more precisely without changing the token itself.
+  const runtime = input.kind === 'native' ? 'native'
+    : input.loginProvider === 'telegram' && context.runtime === 'telegram' ? 'telegram' : 'web';
+  return { ...notification, ...context, runtime, provider: input.loginProvider || notification.provider };
+}
+
 export async function createGuestAppUser(
   res: NextApiResponse,
   sessionVersion?: unknown,
+  notificationContext?: ClientRuntimeMetadata,
 ): Promise<AppUserContext> {
   const identity = createGuestIdentity();
   await db.users.set(identity.userId, {
@@ -303,12 +321,14 @@ export async function createGuestAppUser(
     userId: identity.userId,
     kind: 'web',
     sessionVersion: supportsSessionRefresh(sessionVersion) ? 2 : 1,
+    notificationContext,
+    loginProvider: 'guest',
   });
   setAppSessionCookie(res, session.token, session.refreshToken);
   return { userId: identity.userId, provider: 'web_guest', isGuest: true, sessionId: session.sessionId };
 }
 
-export async function createNativeGuestAppUser(sessionVersion?: unknown): Promise<{
+export async function createNativeGuestAppUser(sessionVersion?: unknown, notificationContext?: ClientRuntimeMetadata): Promise<{
   auth: AppUserContext;
   session: AppUserSession;
 }> {
@@ -327,6 +347,8 @@ export async function createNativeGuestAppUser(sessionVersion?: unknown): Promis
     userId: identity.userId,
     kind: 'native',
     sessionVersion: supportsSessionRefresh(sessionVersion) ? 2 : 1,
+    notificationContext,
+    loginProvider: 'guest',
   });
   return {
     session,
@@ -344,6 +366,8 @@ export async function createAppUserSession(input: {
   kind: 'web' | 'native';
   deviceId?: string | null;
   sessionVersion?: 1 | 2;
+  notificationContext?: ClientRuntimeMetadata;
+  loginProvider?: string;
 }): Promise<AppUserSession> {
   const sessionId = crypto.randomUUID();
   const provider = input.kind === 'native' ? 'native' : 'web_guest';
@@ -388,7 +412,7 @@ export async function createAppUserSession(input: {
           eventKey: `auth:${sessionId}`,
           eventType: 'login',
           userId: input.userId,
-          payload: { ...notification, runtime: input.kind },
+          payload: loginNotificationPayload(notification, input),
         });
       }
       await client.query('COMMIT');
@@ -415,6 +439,8 @@ export async function createPasswordAppUserSession(input: {
   kind: 'web' | 'native';
   deviceId?: string | null;
   sessionVersion?: 1 | 2;
+  notificationContext?: ClientRuntimeMetadata;
+  loginProvider?: string;
 }): Promise<AppUserSession> {
   const sessionId = crypto.randomUUID();
   const provider = input.kind === 'native' ? 'native' : 'web_guest';
@@ -454,7 +480,7 @@ export async function createPasswordAppUserSession(input: {
         eventKey: `auth:${sessionId}`,
         eventType: 'login',
         userId: input.userId,
-        payload: { ...notification, runtime: input.kind },
+        payload: loginNotificationPayload(notification, input),
       });
     }
     await client.query('COMMIT');
@@ -504,7 +530,12 @@ async function resolveTelegramUser(req: NextApiRequest): Promise<AppUserContext>
             eventKey: `auth:${sessionId}`,
             eventType: 'login',
             userId: identity.userId,
-            payload: { ...notification, runtime: 'telegram' },
+            payload: {
+              ...notification,
+              ...readClientRuntimeMetadata(req.headers, 'telegram'),
+              runtime: 'telegram',
+              provider: 'telegram',
+            },
           });
         }
         await client.query('COMMIT');

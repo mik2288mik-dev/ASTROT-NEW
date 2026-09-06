@@ -10,6 +10,7 @@ import {
 import { resolveVerifiedIdentity } from '../../../../lib/auth/accountIdentity';
 import { toPublicAppProfile } from '../../../../lib/auth/profile';
 import { db } from '../../../../lib/db';
+import { readClientRuntimeMetadata } from '../../../../lib/clientRuntimeMetadata';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
@@ -51,6 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const session = await createAppUserSession({
         userId: auth.userId,
         kind,
+        notificationContext: readClientRuntimeMetadata(req.headers, kind === 'native' ? 'native' : 'telegram'),
+        loginProvider: 'telegram',
         sessionVersion: req.body?.sessionVersion === 2 ? 2 : 1,
       });
       if (kind === 'web') {

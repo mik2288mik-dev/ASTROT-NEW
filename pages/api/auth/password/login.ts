@@ -7,6 +7,7 @@ import {
   setAppSessionCookie,
 } from '../../../../lib/auth/appAuth';
 import { getAuthClientKey } from '../../../../lib/auth/authRateLimit';
+import { readClientRuntimeMetadata } from '../../../../lib/clientRuntimeMetadata';
 import {
   authenticateEmailPassword,
   sanitizeEmailPasswordError,
@@ -32,6 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userId: result.userId,
       passwordVersion: result.passwordVersion,
       kind,
+      notificationContext: readClientRuntimeMetadata(req.headers, kind),
+      loginProvider: 'password',
       deviceId: typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
       sessionVersion: req.body?.sessionVersion === 2 ? 2 : 1,
     });
