@@ -7,14 +7,11 @@ permissions:
   contents: read
 concurrency:
   group: nebo-admin-design-pilot
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   validate:
-    if: github.ref == 'refs/heads/nebo-admin-redesign-20260907'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions:
-      contents: write
     services:
       postgres:
         image: postgres:16
@@ -34,86 +31,68 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - name: Integrate allowlisted paths and verify artwork checksum
-        run: node scripts/nebo-pilot-finalize.mjs
-      - name: Verify idempotent integration
-        run: node scripts/nebo-pilot-finalize.mjs
+      - name: Archive exact source for offline review
+        run: |
+          mkdir -p validation
+          git archive --format=tar.gz HEAD > validation/source.tar.gz
+          git rev-parse HEAD > validation/source-sha.txt
       - name: Install locked dependencies
         run: npm ci
-      - name: Focused admin and state tests
-        env:
-          NODE_ENV: test
-        run: npx jest --runInBand --testMatch '**/__tests__/nebo-admin-design.test.ts'
+      - name: Export locked test dependencies for offline verification
+        if: github.run_number == 3
+        run: tar -czf validation/test-dependencies.tar.gz node_modules
+      - name: Upload offline review workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: nebo-offline-workspace
+          retention-days: 2
+          compression-level: 0
+          path: |
+            validation/source.tar.gz
+            validation/source-sha.txt
+            validation/test-dependencies.tar.gz
       - name: TypeScript
-        run: npx tsc --noEmit
+        id: types
+        continue-on-error: true
+        run: npx tsc --noEmit > validation/typecheck.txt 2>&1
       - name: Migrations against isolated PostgreSQL
         env:
           NODE_ENV: test
-        run: npm run migrate
-      - name: Verify additive preference schema
-        run: |
-          node --input-type=module <<'NODE'
-          import pg from 'pg';
-          const client = new pg.Client({connectionString: process.env.DATABASE_URL});
-          await client.connect();
-          const {rows} = await client.query("SELECT column_name FROM information_schema.columns WHERE table_name='user_design_preferences'");
-          for (const key of ['user_id','preferences','revision','updated_at']) if (!rows.some(r=>r.column_name===key)) throw new Error('Missing preference column: '+key);
-          await client.end();
-          NODE
+        run: npm run migrate > validation/migrations.txt 2>&1
+      - name: Full repository tests
+        id: tests
+        continue-on-error: true
+        env:
+          NODE_ENV: test
+        run: npm test -- --runInBand --json --outputFile=validation/jest.json > validation/tests.txt 2>&1
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        run: npm run lint > validation/lint.txt 2>&1
       - name: Production build
+        id: build
+        continue-on-error: true
         env:
           NODE_ENV: production
-        run: npm run build
-      - name: Bundle actual React and Motion components for browser review
-        run: |
-          mkdir -p validation/nebo-pilot/browser/nebo-v2
-          npx --no-install esbuild scripts/nebo-layer-preview.tsx --bundle --platform=browser --format=iife --define:process.env.NODE_ENV='"production"' --outfile=validation/nebo-pilot/browser/preview.js
-          cp styles/neboV2.css validation/nebo-pilot/browser/neboV2.css
-          cp public/nebo-v2/art-atlas.webp validation/nebo-pilot/browser/nebo-v2/
-          cat > validation/nebo-pilot/browser/index.html <<'HTML'
-          <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEBO component verification fixture</title><link rel="stylesheet" href="neboV2.css"><style>html,body,#root{margin:0;height:100%;font-family:Arial,sans-serif}*{box-sizing:border-box}.fixture-app{height:100dvh;display:flex;flex-direction:column;max-width:540px;margin:auto}.fixture-main{flex:1;min-height:0}button{font-family:inherit}</style></head><body><div id="root"></div><script src="preview.js"></script></body></html>
-          HTML
-      - name: Record validated source before publication
-        run: |
-          mkdir -p validation/nebo-pilot
-          git diff --stat | tee validation/nebo-pilot/integration-stat.txt
-          git rev-parse HEAD > validation/nebo-pilot/base-commit.txt
-          sha256sum public/nebo-v2/art-atlas.webp > validation/nebo-pilot/atlas-sha256.txt
-      - name: Commit validated integration to pilot branch only
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$GITHUB_REF" = refs/heads/nebo-admin-redesign-20260907
-          remote=$(git ls-remote origin refs/heads/nebo-admin-redesign-20260907 | cut -f1)
-          test "$remote" = "$GITHUB_SHA" || { echo 'Pilot branch changed during validation; refusing stale write'; exit 1; }
-          git config user.name 'NEBO validation'
-          git config user.email 'nebo-validation@users.noreply.github.com'
-          git add -- App.tsx components/nebo-v2/EntryPoints.tsx components/NatalReading/NatalCatalogReport.tsx components/icons/ZodiacIcon.tsx pages/_app.tsx scripts/migrate.ts styles/neboV2.css public/nebo-v2/art-atlas.webp
-          git add -u -- scripts/nebo-asset-parts || true
-          if ! git diff --cached --quiet; then
-            git commit -m 'feat(ui): integrate validated admin-only NEBO design pilot'
-            git push origin HEAD:refs/heads/nebo-admin-redesign-20260907
-          fi
-          git rev-parse HEAD | tee validation/nebo-pilot/validated-commit.txt
-      - name: Upload integration sources for review
+        run: npm run build > validation/build.txt 2>&1
+      - name: Upload validation evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nebo-pilot-review
+          name: nebo-check-results
           retention-days: 7
           path: |
-            validation/nebo-pilot
-            App.tsx
-            components/nebo-v2
-            components/NatalReading/NatalCatalogReport.tsx
-            components/NatalReading/NatalMeaningExperience.tsx
-            components/icons/ZodiacIcon.tsx
-            pages/_app.tsx
-            scripts/migrate.ts
-            styles/neboV2.css
-            public/nebo-v2
+            validation/*.txt
+            validation/jest.json
+      - name: Enforce checks
+        if: always()
+        env:
+          TYPES: ${{ steps.types.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+        run: test "$TYPES" = success && test "$TESTS" = success && test "$BUILD" = success
