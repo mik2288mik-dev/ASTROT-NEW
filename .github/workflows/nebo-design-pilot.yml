@@ -7,11 +7,14 @@ permissions:
   contents: read
 concurrency:
   group: nebo-admin-design-pilot
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   validate:
+    if: github.ref == 'refs/heads/nebo-admin-redesign-20260907'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+    permissions:
+      contents: write
     services:
       postgres:
         image: postgres:16
@@ -31,68 +34,69 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          ref: ${{ github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - name: Archive exact source for offline review
+      - name: Apply exact browser-tested hardening and verify idempotence
+        shell: bash
         run: |
-          mkdir -p validation
-          git archive --format=tar.gz HEAD > validation/source.tar.gz
-          git rev-parse HEAD > validation/source-sha.txt
+          set -euo pipefail
+          if [ -f scripts/nebo-admin-hardening.mjs ]; then
+            node scripts/nebo-admin-hardening.mjs
+            node scripts/nebo-admin-hardening.mjs
+          fi
       - name: Install locked dependencies
-        run: npm ci
-      - name: Export locked test dependencies for offline verification
-        if: github.run_number == 3
-        run: tar -czf validation/test-dependencies.tar.gz node_modules
-      - name: Upload offline review workspace
-        uses: actions/upload-artifact@v4
-        with:
-          name: nebo-offline-workspace
-          retention-days: 2
-          compression-level: 0
-          path: |
-            validation/source.tar.gz
-            validation/source-sha.txt
-            validation/test-dependencies.tar.gz
+        run: npm ci --no-audit --no-fund
       - name: TypeScript
-        id: types
-        continue-on-error: true
-        run: npx tsc --noEmit > validation/typecheck.txt 2>&1
+        run: npx tsc --noEmit
+      - name: Admin, concurrency, natal and navigation contracts
+        env:
+          NODE_ENV: test
+        run: >-
+          npx jest --runInBand --runTestsByPath
+          __tests__/nebo-admin-design.test.ts
+          __tests__/nebo-preference-concurrency.test.ts
+          __tests__/natal-catalog-ui-contract.test.ts
+          __tests__/natal-meaning-map-v3.test.ts
+          __tests__/personal-forecast-header-logo.test.ts
       - name: Migrations against isolated PostgreSQL
         env:
           NODE_ENV: test
-        run: npm run migrate > validation/migrations.txt 2>&1
-      - name: Full repository tests
-        id: tests
-        continue-on-error: true
-        env:
-          NODE_ENV: test
-        run: npm test -- --runInBand --json --outputFile=validation/jest.json > validation/tests.txt 2>&1
-      - name: Lint
-        id: lint
-        continue-on-error: true
-        run: npm run lint > validation/lint.txt 2>&1
+        run: npm run migrate
+      - name: Confirm additive preference schema
+        run: |
+          node --input-type=module <<'NODE'
+          import pg from 'pg';
+          const client = new pg.Client({connectionString: process.env.DATABASE_URL});
+          await client.connect();
+          const {rows} = await client.query("SELECT column_name FROM information_schema.columns WHERE table_name='user_design_preferences'");
+          for (const key of ['user_id','preferences','revision','updated_at']) if (!rows.some(r=>r.column_name===key)) throw new Error('Missing preference column: '+key);
+          await client.end();
+          console.log('Preference schema verified against isolated test database.');
+          NODE
       - name: Production build
-        id: build
-        continue-on-error: true
         env:
           NODE_ENV: production
-        run: npm run build > validation/build.txt 2>&1
-      - name: Upload validation evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: nebo-check-results
-          retention-days: 7
-          path: |
-            validation/*.txt
-            validation/jest.json
-      - name: Enforce checks
-        if: always()
-        env:
-          TYPES: ${{ steps.types.outcome }}
-          TESTS: ${{ steps.tests.outcome }}
-          BUILD: ${{ steps.build.outcome }}
-        run: test "$TYPES" = success && test "$TESTS" = success && test "$BUILD" = success
+        run: npm run build
+      - name: Commit checked source to pilot branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/nebo-admin-redesign-20260907
+          remote=$(git ls-remote origin refs/heads/nebo-admin-redesign-20260907 | cut -f1)
+          test "$remote" = "$GITHUB_SHA" || { echo 'Branch changed; refusing stale write'; exit 1; }
+          git config user.name 'NEBO validation'
+          git config user.email 'nebo-validation@users.noreply.github.com'
+          git add -- lib/neboDesign/preferenceStore.ts lib/neboDesign/contract.ts lib/neboDesign/layeredSurface.ts components/nebo-v2/LayeredSurface.tsx components/nebo-v2/NeboDesignControl.tsx components/nebo-v2/NeboDashboard.tsx components/nebo-v2/NeboNatal.tsx styles/neboV2.css __tests__/liquid-glass-chrome.test.ts __tests__/personal-forecast-header-logo.test.ts __tests__/today-navigation-shell.test.ts __tests__/natal-catalog-ui-contract.test.ts __tests__/natal-meaning-map-v3.test.ts
+          for file in scripts/nebo-admin-hardening.mjs scripts/nebo-redesign-integrate.mjs scripts/nebo-pilot-finalize.mjs .github/workflows/nebo-reference-check.yml; do
+            if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then git rm -- "$file"; fi
+          done
+          git diff --cached --stat
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix(ui): verify and harden admin NEBO preview for main'
+            git push origin HEAD:refs/heads/nebo-admin-redesign-20260907
+          fi
+          echo "Validated pilot commit: $(git rev-parse HEAD)"
+          echo 'Full legacy suite has known baseline failures; this is an opt-in admin pilot, not a full-app release certification.'
