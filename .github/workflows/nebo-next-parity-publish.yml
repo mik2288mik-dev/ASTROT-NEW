@@ -51,6 +51,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('styles/neboV2.css')
+          path.write_text(path.read_text().rstrip() + '\n')
+          PY
           allowed='^(AGENTS.md|lib/personalForecastGeneration.ts|lib/personalForecastContract.ts|services/personalForecastService.ts|styles/neboV2.css|__tests__/personal-forecast-generation.test.ts)$'
           bad=$(git diff --name-only | grep -Ev "$allowed" || true)
           test -z "$bad" || { echo "Unexpected changed files:"; echo "$bad"; exit 1; }
