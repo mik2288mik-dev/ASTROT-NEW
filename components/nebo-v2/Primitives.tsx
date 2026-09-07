@@ -10,7 +10,7 @@ export function Art({name,className='',size,alt=''}: {name:ArtName;className?:st
   const style: React.CSSProperties = {backgroundImage:'url(/nebo-v2/art-atlas.webp)',backgroundSize:'600% 600%',backgroundPosition:`${(index%6)*20}% ${Math.floor(index/6)*20}%`,...(size?{width:size,height:size}:{})};
   return <span className={`nebo-art ${className}`} style={style} role={alt?'img':undefined} aria-label={alt||undefined} aria-hidden={alt?undefined:true}/>;
 }
-type GlyphName='next'|'back'|'close'|'bookmark'|'chart'|'people'|'book'|'settings'|'sun'|'search'|'moon'|'menu'|'plus'|'bell';
+export type GlyphName='next'|'back'|'close'|'bookmark'|'chart'|'people'|'book'|'settings'|'sun'|'search'|'moon'|'menu'|'plus'|'bell';
 const paths: Record<GlyphName,React.ReactNode> = {
   next:<path d="m9 5 7 7-7 7"/>,back:<path d="m15 5-7 7 7 7"/>,close:<path d="m6 6 12 12M18 6 6 18"/>,
   bookmark:<path d="M6 4h12v17l-6-4-6 4z"/>,chart:<><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3v6m0 6v6M3 12h6m6 0h6"/></>,
@@ -22,16 +22,19 @@ const paths: Record<GlyphName,React.ReactNode> = {
   bell:<><path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5zM10 21h4"/></>,
 };
 export function Glyph({name='book',size=22}: {name?:GlyphName;size?:number}) {return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;}
-export function Header({name='',title,onBack,onProfile,onEscape}: {name?:string;title?:string;onBack?:()=>void;onProfile?:()=>void;onEscape?:()=>void}) {return <header className="nebo-header">
-  {onBack?<button type="button" className="nebo-icon-button" onClick={onBack} aria-label="Назад"><Glyph name="back"/></button>:<span className="nebo-wordmark">NEBO</span>}
-  {title?<span className="nebo-header-title">{title}</span>:<span className="nebo-header-spacer"/>}
-  {onEscape?<button type="button" className="nebo-preview-exit" onClick={onEscape}>Старый дизайн</button>:null}
-  {onProfile?<button type="button" className="nebo-avatar" onClick={onProfile} aria-label="Открыть профиль">{name.trim().slice(0,1).toUpperCase()||<Glyph name="people"/>}</button>:null}
-</header>;}
+export function Header({name='',title,onBack,onProfile,onNotifications,onEscape}: {name?:string;title?:string;onBack?:()=>void;onProfile?:()=>void;onNotifications?:()=>void;onEscape?:()=>void}) {
+  void onEscape;
+  return <header className="nebo-header">
+    {onBack?<button type="button" className="nebo-icon-button" onClick={onBack} aria-label="Назад"><Glyph name="back"/></button>:<span className="nebo-wordmark">NEBO</span>}
+    {title?<span className="nebo-header-title">{title}</span>:<span className="nebo-header-spacer"/>}
+    {onNotifications?<button type="button" className="nebo-header-bell" onClick={onNotifications} aria-label="Уведомления"><Glyph name="bell" size={23}/></button>:<span className="nebo-header-bell" aria-hidden="true"><Glyph name="bell" size={23}/></span>}
+    {onProfile?<button type="button" className="nebo-avatar" onClick={onProfile} aria-label="Открыть профиль">{name.trim().slice(0,1).toUpperCase()||<Glyph name="people"/>}</button>:null}
+  </header>;
+}
 export function birthLine(p:{birthDate?:string;birthTime?:string;birthPlace?:string}):string {
   const date=p.birthDate?new Date(`${p.birthDate.slice(0,10)}T12:00:00Z`):null;
   const text=date&&!Number.isNaN(date.getTime())?new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(date).replace(' г.',''):p.birthDate||'';
-  return [text,p.birthTime,p.birthPlace].filter(Boolean).join(' · ');
+  return [text,p.birthTime,p.birthPlace].filter(Boolean).join(', ');
 }
 export function ProductCard({title,subtitle,art,tone='lilac',label,onClick}: {title:string;subtitle?:string;art:ArtName;tone?:string;label?:string;onClick:()=>void}) {return <button type="button" className={`nebo-product nebo-tone-${tone}`} onClick={onClick}><span className="nebo-product-title">{title}</span>{subtitle?<span className="nebo-product-caption">{subtitle}</span>:null}<Art name={art}/>{label?<span className="nebo-product-badge">{label}</span>:null}</button>;}
 export function ActionRow({title,subtitle,onClick,icon='book'}:{title:string;subtitle?:string|null;onClick:()=>void;icon?:GlyphName}) {return <button type="button" className="nebo-action-row" onClick={onClick}><Glyph name={icon}/><span><strong>{title}</strong>{subtitle?<small>{subtitle}</small>:null}</span><Glyph name="next" size={18}/></button>;}

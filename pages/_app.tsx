@@ -26,6 +26,7 @@ import '../styles/sharedShellFinal.css';
 import '../styles/natalMeaningMap.css';
 import '../styles/publicSiteDocument.css';
 import '../styles/neboV2.css';
+import '../styles/neboV2Parity.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 import { PublicAnalytics } from '../components/public-site/PublicAnalytics';
 import { installRuntimeDiagnostics } from '../lib/runtimeDiagnostics';
