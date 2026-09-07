@@ -1,0 +1,110 @@
+name: NEBO admin design pilot validation
+on:
+  push:
+    branches: [nebo-admin-redesign-20260907]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nebo-admin-design-pilot
+  cancel-in-progress: false
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/nebo-admin-redesign-20260907'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: horoscope
+          POSTGRES_PASSWORD: horoscope
+          POSTGRES_DB: horoscope_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U horoscope -d horoscope_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+      APP_SESSION_SECRET: ci-session-secret-not-for-production
+      NEXT_TELEMETRY_DISABLED: '1'
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Integrate only allowlisted paths and verify artwork checksum
+        run: node scripts/nebo-redesign-integrate.mjs
+      - name: Verify idempotent integration
+        run: node scripts/nebo-redesign-integrate.mjs
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Focused admin and state tests
+        env:
+          NODE_ENV: test
+        run: npx jest --runInBand --testMatch '**/__tests__/nebo-admin-design.test.ts'
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Migrations against isolated PostgreSQL
+        env:
+          NODE_ENV: test
+        run: npm run migrate
+      - name: Verify additive preference schema
+        run: |
+          node --input-type=module <<'NODE'
+          import pg from 'pg';
+          const client = new pg.Client({connectionString: process.env.DATABASE_URL});
+          await client.connect();
+          const {rows} = await client.query("SELECT column_name FROM information_schema.columns WHERE table_name='user_design_preferences'");
+          for (const key of ['user_id','preferences','revision','updated_at']) if (!rows.some(r=>r.column_name===key)) throw new Error('Missing preference column: '+key);
+          await client.end();
+          NODE
+      - name: Production build
+        env:
+          NODE_ENV: production
+        run: npm run build
+      - name: Record validated source before publication
+        run: |
+          mkdir -p validation/nebo-pilot
+          git diff --stat | tee validation/nebo-pilot/integration-stat.txt
+          git rev-parse HEAD > validation/nebo-pilot/base-commit.txt
+          sha256sum public/nebo-v2/art-atlas.webp > validation/nebo-pilot/atlas-sha256.txt
+      - name: Commit validated integration to pilot branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/nebo-admin-redesign-20260907
+          remote=$(git ls-remote origin refs/heads/nebo-admin-redesign-20260907 | cut -f1)
+          test "$remote" = "$GITHUB_SHA" || { echo 'Pilot branch changed during validation; refusing stale write'; exit 1; }
+          git config user.name 'NEBO validation'
+          git config user.email 'nebo-validation@users.noreply.github.com'
+          git add -- App.tsx components/NatalReading/NatalCatalogReport.tsx components/icons/ZodiacIcon.tsx pages/_app.tsx scripts/migrate.ts public/nebo-v2/art-atlas.webp
+          git add -u -- scripts/nebo-asset-parts || true
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat(ui): integrate validated admin-only NEBO design pilot'
+            git push origin HEAD:refs/heads/nebo-admin-redesign-20260907
+          fi
+          git rev-parse HEAD | tee validation/nebo-pilot/validated-commit.txt
+      - name: Upload integration sources for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nebo-pilot-review
+          retention-days: 7
+          path: |
+            validation/nebo-pilot
+            App.tsx
+            components/nebo-v2
+            components/NatalReading/NatalCatalogReport.tsx
+            components/NatalReading/NatalMeaningExperience.tsx
+            components/icons/ZodiacIcon.tsx
+            pages/_app.tsx
+            scripts/migrate.ts
+            styles/neboV2.css
+            public/nebo-v2
