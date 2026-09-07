@@ -22,7 +22,8 @@ describe('natal meaning map v3', () => {
     expect(magazine).toContain("readingRenderer === 'catalog'");
     expect(magazine).toContain("tab === 'explore' && readingRenderer === 'classic'");
     expect(magazine).toContain("data-items={primaryNavItemCount}");
-    expect(catalog).toContain('<NatalMeaningExperience');
+    expect(catalog).toContain('experienceComponent: Experience = NatalMeaningExperience');
+    expect(catalog).toContain('<Experience');
     expect(catalog).not.toContain('natal-catalog-tabs');
   });
 

@@ -37,6 +37,7 @@ export class DesignPreferenceStore {
       if (this.disposed || generation !== this.generation) return;
       this.accept(response);
     }).catch(() => { this.publish({ ready: true, eligible: false, error: 'Не удалось проверить доступ к новому дизайну.' }); }).finally(() => { this.hydration = null; });
+    this.queue = this.hydration.then(() => {});
     return this.hydration;
   };
   update = (mutation: DesignMutation): Promise<boolean> => {

@@ -31,7 +31,8 @@ describe('natal catalog UI contract', () => {
   it('opens the complete story before offering chapter continuations', () => {
     const report = read('components/NatalReading/NatalCatalogReport.tsx');
     const experience = read('components/NatalReading/NatalMeaningExperience.tsx');
-    expect(report).toContain('<NatalMeaningExperience');
+    expect(report).toContain('experienceComponent: Experience = NatalMeaningExperience');
+    expect(report).toContain('<Experience');
     expect(report).not.toContain('NATAL_REPORT_ANSWER_COUNT');
     expect(experience).toContain('natal-narrative-copy');
     expect(experience).toContain('pack.summary.map');

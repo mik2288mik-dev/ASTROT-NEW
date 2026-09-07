@@ -10,7 +10,10 @@ describe('Today minimal navigation shell', () => {
     const navigation = read('components/lumia-ui/LumiaBottomTabBar.tsx');
 
     expect(app).not.toContain('LumiaSideDrawer');
-    expect(app.match(/<LumiaBottomTabBar/g)).toHaveLength(1);
+    expect(app.match(/<NeboBottomTabBar/g)).toHaveLength(1);
+    const adapter = read('components/nebo-v2/NeboBottomTabBar.tsx');
+    expect(adapter).toContain('if (!design.active) return <ClassicBar {...props}/>;');
+    expect(adapter).toContain('useNeboDesign(props.profile)');
     expect(app).toContain('shouldShowLumiaBottomNavigation(view)');
     expect(navigation).toContain('data-nav-id="personal"');
     expect(navigation).toContain('data-nav-id="zodiac"');
@@ -99,7 +102,11 @@ describe('Today minimal navigation shell', () => {
     expect(natal).not.toContain("navigateTo('matrix')");
     expect(matrix).toContain('embedded?: boolean');
     expect(matrix).toContain('{!embedded ? (');
-    expect(app).not.toContain('onOpenMatrix={() => navigateTo(\'matrix\')}');
+    // The classic natal tab remains intact; the approved admin UI may open its product route.
+    expect(app).toContain('onOpenMatrix={() => navigateTo(\'matrix\')}');
+    const entries = read('components/nebo-v2/EntryPoints.tsx');
+    expect(entries).toContain('design.active?');
+    expect(entries).toContain(':<ClassicNatal {...props}/>');
   });
 
   it('keeps Today period tabs and reduced-motion guards unchanged', () => {

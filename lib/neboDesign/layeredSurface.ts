@@ -1,15 +1,15 @@
 import type { SurfacePosition, SurfaceState } from './contract';
 export type SurfaceStops = Record<SurfacePosition, number>;
-export function surfaceStops(height: number): SurfaceStops {
+export function surfaceStops(height: number, collapsedPeek = 48): SurfaceStops {
   const h = Number.isFinite(height) ? Math.max(96, height) : 640;
-  return { expanded: 0, middle: Math.round(h * .34), collapsed: Math.max(48, h - 48) };
+  return { expanded: 0, middle: Math.round(h * .34), collapsed: Math.max(48, h - Math.min(Math.max(48, collapsedPeek), h * .45)) };
 }
 export function nearestSurfaceStop(y: number, velocity: number, stops: SurfaceStops): SurfacePosition {
   const projected = Math.max(stops.expanded, Math.min(stops.collapsed, y + Math.max(-1800, Math.min(1800, velocity)) * .16));
   return (['expanded', 'middle', 'collapsed'] as const).reduce((best, p) => Math.abs(stops[p] - projected) < Math.abs(stops[best] - projected) ? p : best, 'expanded' as SurfacePosition);
 }
 export type AnimateSurface = (from: number, to: number, update: (n: number) => void, complete: () => void) => () => void;
-export type LayeredSurfaceOptions = { root: HTMLElement; back: HTMLElement; front: HTMLElement; scroll: HTMLElement; handle: HTMLButtonElement; initial: SurfaceState; animate?: AnimateSurface; onChange?: (state: SurfaceState) => void };
+export type LayeredSurfaceOptions = { root: HTMLElement; back: HTMLElement; front: HTMLElement; scroll: HTMLElement; handle: HTMLButtonElement; initial: SurfaceState; collapsedPeek?: number; animate?: AnimateSurface; onChange?: (state: SurfaceState) => void };
 export function browserSurfaceSpring(from: number, to: number, update: (n: number) => void, complete: () => void): () => void {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || Math.abs(to - from) < .3) { update(to); complete(); return () => {}; }
   let x = from, v = 0, previous = performance.now(), raf = 0, cancelled = false, elapsed = 0;
@@ -36,7 +36,7 @@ export class LayeredSurfaceController {
   private originalBackInert: boolean;
   private observer: ResizeObserver;
   constructor(private o: LayeredSurfaceOptions) {
-    this.state = { ...o.initial }; this.stops = surfaceStops(o.root.clientHeight);
+    this.state = { ...o.initial }; this.stops = surfaceStops(o.root.clientHeight, o.collapsedPeek);
     this.originalBackInert = o.back.inert; this.y = this.stops[this.state.position];
     this.paint(this.y); o.scroll.scrollTop = this.state.scrollTop; this.applyState();
     o.handle.addEventListener('pointerdown', this.pointerDown); o.handle.addEventListener('pointermove', this.pointerMove);
@@ -78,7 +78,7 @@ export class LayeredSurfaceController {
   private resize = () => {
     if (this.destroyed) return;
     this.cancelAnimation?.(); this.pointer = null; this.touch = null;
-    this.stops = surfaceStops(this.o.root.clientHeight); this.paint(this.stops[this.state.position]); this.applyState();
+    this.stops = surfaceStops(this.o.root.clientHeight, this.o.collapsedPeek); this.paint(this.stops[this.state.position]); this.applyState();
   };
   private pointerDown = (e: PointerEvent) => {
     if (!e.isPrimary || e.button !== 0) return;
@@ -135,7 +135,12 @@ export class LayeredSurfaceController {
   };
   destroy() {
     if (this.destroyed) return;
-    this.destroyed = true; this.cancelAnimation?.(); this.observer.disconnect(); if (this.scrollTimer) clearTimeout(this.scrollTimer);
+    if (this.scrollTimer) {
+      clearTimeout(this.scrollTimer);
+      this.state.scrollTop = Math.round(this.o.scroll.scrollTop);
+      this.o.onChange?.(this.snapshot);
+    }
+    this.destroyed = true; this.cancelAnimation?.(); this.observer.disconnect();
     const { handle, scroll, back } = this.o;
     handle.removeEventListener('pointerdown', this.pointerDown); handle.removeEventListener('pointermove', this.pointerMove);
     handle.removeEventListener('pointerup', this.pointerUp); handle.removeEventListener('pointercancel', this.pointerCancel);

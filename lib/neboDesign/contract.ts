@@ -15,7 +15,7 @@ export type ReadingPosition = { entityKey: string; category: ReadingCategory; co
 export type DesignPreference = { schemaVersion: 1; design: DesignVariant; theme: DesignTheme; surfaces: Record<SurfaceId, SurfaceState>; readings: ReadingPosition[]; revision: number };
 export type DesignPatch = { expectedRevision: number; design?: DesignVariant; theme?: DesignTheme; surface?: { id: SurfaceId } & SurfaceState; reading?: ReadingPosition };
 export function defaultDesignPreference(): DesignPreference {
-  return { schemaVersion: 1, design: 'classic', theme: 'system', surfaces: { dashboard: { position: 'collapsed', scrollTop: 0 }, chart: { position: 'middle', scrollTop: 0 } }, readings: [], revision: 0 };
+  return { schemaVersion: 1, design: 'classic', theme: 'system', surfaces: { dashboard: { position: 'collapsed', scrollTop: 0 }, chart: { position: 'collapsed', scrollTop: 0 } }, readings: [], revision: 0 };
 }
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const member = <T extends string>(v: unknown, list: readonly T[]): v is T => typeof v === 'string' && list.includes(v as T);

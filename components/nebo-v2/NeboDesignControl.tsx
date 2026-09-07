@@ -3,8 +3,10 @@ import type { UserProfile } from '../../types';
 import { useNeboDesign } from './useNeboDesign';
 export function NeboDesignControl({ profile }: { profile: UserProfile }) {
   const design = useNeboDesign(profile);
-  if (!design.ready || !design.eligible) return null;
   const ru = profile.language !== 'en';
+  if (profile.isAdmin !== true) return null;
+  if (design.ready && !design.eligible && design.error) return <section className="nebo-design-control" role="status"><strong>{ru ? 'Новый дизайн NEBO' : 'New NEBO design'}</strong><p>{design.error}</p><button type="button" className="nebo-control-retry" onClick={() => { void design.store.hydrate(); }}>{ru ? 'Проверить ещё раз' : 'Check again'}</button></section>;
+  if (!design.ready || !design.eligible) return null;
   return <section className="nebo-design-control" aria-label={ru ? 'Тест нового дизайна' : 'New design preview'}>
     <div><strong>{ru ? 'Новый дизайн NEBO' : 'New NEBO design'}</strong><small>{ru ? 'Только для администратора' : 'Administrator only'}</small></div>
     <div className="nebo-control-options" role="group" aria-label={ru ? 'Дизайн' : 'Design'}>

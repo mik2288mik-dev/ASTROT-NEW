@@ -66,3 +66,21 @@
 .nebo-design-control{font-family:inherit;margin:12px;padding:16px;border:1px solid #c6cae0;border-radius:20px;background:#f1efff;color:#111a3d}.nebo-design-control small{display:block;margin-top:5px}.nebo-control-options{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.nebo-control-options button{border:1px solid #c5c8dd;padding:10px 14px;border-radius:12px;background:#fff;color:#19213a;min-height:44px;cursor:pointer}.nebo-control-options button[aria-pressed=true]{background:#19213a;color:#fff}.nebo-control-options button:disabled{opacity:.55}.nebo-control-options button:focus-visible{outline:3px solid #7d61ff;outline-offset:2px}.nebo-v2[data-nebo-theme=dark] .nebo-design-control{background:var(--nebo-panel);color:var(--nebo-ink);border-color:var(--nebo-line)}
 @media(max-width:355px){.nebo-v2 .nebo-product{min-height:190px;padding:14px 12px}.nebo-v2 .nebo-product .nebo-art{width:116px;height:116px}.nebo-v2 .nebo-product-title{font-size:15px}.nebo-v2 .nebo-personal>h1{font-size:24px}.nebo-v2 .nebo-forecast h2{max-width:60%;font-size:18px}.nebo-v2 .nebo-forecast>.nebo-art{width:106px;height:106px}}
 @media(prefers-reduced-motion:reduce){.nebo-v2 *{scroll-behavior:auto!important}.nebo-v2 .nebo-screen *,.nebo-v2 .nebo-tabs *{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Preview polish: explicit layout avoids browser button centering and artwork overlap. */
+.nebo-v2 .nebo-screen .nebo-product{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start}
+.nebo-v2 .nebo-screen .nebo-product-title{flex:0 0 auto;max-width:100%}
+.nebo-v2 .nebo-screen .nebo-product .nebo-art{width:140px;height:140px;mix-blend-mode:multiply;mask-image:radial-gradient(ellipse at 57% 62%,#000 54%,transparent 90%);-webkit-mask-image:radial-gradient(ellipse at 57% 62%,#000 54%,transparent 90%)}
+.nebo-v2 .nebo-screen .nebo-forecast>.nebo-art,.nebo-v2 .nebo-screen .nebo-natal-intro>.nebo-art{mix-blend-mode:multiply;mask-image:radial-gradient(ellipse,#000 55%,transparent 88%);-webkit-mask-image:radial-gradient(ellipse,#000 55%,transparent 88%)}
+.nebo-v2[data-nebo-theme=dark] .nebo-screen .nebo-natal-intro>.nebo-art{mix-blend-mode:normal}
+.nebo-control-retry{border:1px solid #c5c8dd;padding:10px 14px;border-radius:12px;min-height:44px;background:#fff;color:#19213a;cursor:pointer}
+.nebo-v2 .nebo-screen .nebo-layer-front{backface-visibility:hidden}
+.nebo-v2 .nebo-screen .nebo-layer-scroll{overflow-anchor:none}
+.nebo-v2 .nebo-tabs-host{padding-bottom:max(var(--tg-safe-area-inset-bottom,0px),env(safe-area-inset-bottom,0px));background:var(--nebo-bg)}
+.nebo-v2 .nebo-tabs-host .nebo-tabs{padding-bottom:6px}
+/* Legacy white-canvas rules use !important; override only the opted-in shell. */
+.nebo-v2.lumia-app-shell,.nebo-v2.lumia-app-shell>main{background:var(--nebo-bg)!important}
+.nebo-v2.lumia-app-shell{--app-bottom-navigation-reserve:calc(72px + max(var(--tg-safe-area-inset-bottom,0px),env(safe-area-inset-bottom,0px)));--lumia-bottom-tab-clearance:var(--app-bottom-navigation-reserve)}
+.nebo-v2[data-nebo-view=chart] .lumia-main-scroll{background:var(--nebo-bg)!important}
+.nebo-v2[data-nebo-view=chart]>main>.lumia-main-scroll.lumia-bottom-tab-scroll{padding-bottom:0}
+body:has(.nebo-v2[data-nebo-theme=dark]) .natal-v3-evidence-sheet{background:#1e2734;color:#f5f7fc;border-color:#374052}
