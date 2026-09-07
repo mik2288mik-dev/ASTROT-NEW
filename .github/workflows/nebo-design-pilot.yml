@@ -39,10 +39,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Integrate only allowlisted paths and verify artwork checksum
-        run: node scripts/nebo-redesign-integrate.mjs
+      - name: Integrate allowlisted paths and verify artwork checksum
+        run: node scripts/nebo-pilot-finalize.mjs
       - name: Verify idempotent integration
-        run: node scripts/nebo-redesign-integrate.mjs
+        run: node scripts/nebo-pilot-finalize.mjs
       - name: Install locked dependencies
         run: npm ci
       - name: Focused admin and state tests
@@ -69,6 +69,15 @@ jobs:
         env:
           NODE_ENV: production
         run: npm run build
+      - name: Bundle actual React and Motion components for browser review
+        run: |
+          mkdir -p validation/nebo-pilot/browser/nebo-v2
+          npx --no-install esbuild scripts/nebo-layer-preview.tsx --bundle --platform=browser --format=iife --define:process.env.NODE_ENV='"production"' --outfile=validation/nebo-pilot/browser/preview.js
+          cp styles/neboV2.css validation/nebo-pilot/browser/neboV2.css
+          cp public/nebo-v2/art-atlas.webp validation/nebo-pilot/browser/nebo-v2/
+          cat > validation/nebo-pilot/browser/index.html <<'HTML'
+          <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEBO component verification fixture</title><link rel="stylesheet" href="neboV2.css"><style>html,body,#root{margin:0;height:100%;font-family:Arial,sans-serif}*{box-sizing:border-box}.fixture-app{height:100dvh;display:flex;flex-direction:column;max-width:540px;margin:auto}.fixture-main{flex:1;min-height:0}button{font-family:inherit}</style></head><body><div id="root"></div><script src="preview.js"></script></body></html>
+          HTML
       - name: Record validated source before publication
         run: |
           mkdir -p validation/nebo-pilot
@@ -84,7 +93,7 @@ jobs:
           test "$remote" = "$GITHUB_SHA" || { echo 'Pilot branch changed during validation; refusing stale write'; exit 1; }
           git config user.name 'NEBO validation'
           git config user.email 'nebo-validation@users.noreply.github.com'
-          git add -- App.tsx components/NatalReading/NatalCatalogReport.tsx components/icons/ZodiacIcon.tsx pages/_app.tsx scripts/migrate.ts public/nebo-v2/art-atlas.webp
+          git add -- App.tsx components/nebo-v2/EntryPoints.tsx components/NatalReading/NatalCatalogReport.tsx components/icons/ZodiacIcon.tsx pages/_app.tsx scripts/migrate.ts styles/neboV2.css public/nebo-v2/art-atlas.webp
           git add -u -- scripts/nebo-asset-parts || true
           if ! git diff --cached --quiet; then
             git commit -m 'feat(ui): integrate validated admin-only NEBO design pilot'
