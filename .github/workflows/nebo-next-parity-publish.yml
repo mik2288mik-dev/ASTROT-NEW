@@ -1,0 +1,72 @@
+name: Validate and publish NEBO render parity pass
+on:
+  push:
+    branches: [nebo-render-parity-20260907]
+    paths:
+      - scripts/nebo-next-parity.mjs
+      - .github/workflows/nebo-next-parity-publish.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nebo-next-parity-publish
+  cancel-in-progress: false
+jobs:
+  validate-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NODE_OPTIONS: --max-old-space-size=6144
+      EXPECTED_MAIN: f68061955c2fe61990140ac96b2e9044f81d64ed
+    steps:
+      - name: Checkout patch branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Preserve patch and switch to exact main
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp scripts/nebo-next-parity.mjs /tmp/nebo-next-parity.mjs
+          git fetch origin main
+          remote_main=$(git rev-parse origin/main)
+          test "$remote_main" = "$EXPECTED_MAIN" || { echo "main changed: $remote_main"; exit 1; }
+          git switch --detach "$remote_main"
+          node /tmp/nebo-next-parity.mjs
+          git status --short
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Lint changed runtime and test files
+        run: npx eslint lib/personalForecastGeneration.ts lib/personalForecastContract.ts services/personalForecastService.ts __tests__/personal-forecast-generation.test.ts --max-warnings=0
+      - name: Focused forecast and design tests
+        env:
+          NODE_ENV: test
+        run: npm test -- --runInBand __tests__/personal-forecast-generation.test.ts __tests__/personal-forecast-service.test.ts __tests__/nebo-admin-design.test.ts
+      - name: Production build
+        env:
+          NODE_ENV: production
+        run: npm run build
+      - name: Verify scoped diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          allowed='^(AGENTS.md|lib/personalForecastGeneration.ts|lib/personalForecastContract.ts|services/personalForecastService.ts|styles/neboV2.css|__tests__/personal-forecast-generation.test.ts)$'
+          bad=$(git diff --name-only | grep -Ev "$allowed" || true)
+          test -z "$bad" || { echo "Unexpected changed files:"; echo "$bad"; exit 1; }
+          git diff --check
+          git diff --stat
+      - name: Commit and push to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$EXPECTED_MAIN" || { echo 'main moved during validation; refusing stale publish'; exit 1; }
+          git config user.name 'NEBO release validation'
+          git config user.email 'nebo-release@users.noreply.github.com'
+          git add AGENTS.md lib/personalForecastGeneration.ts lib/personalForecastContract.ts services/personalForecastService.ts styles/neboV2.css __tests__/personal-forecast-generation.test.ts
+          git commit -m 'feat(ui): advance NEBO render parity and rewrite personal forecast voice'
+          git push origin HEAD:refs/heads/main
+          echo "PUBLISHED_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Summary
+        run: echo "Published $PUBLISHED_SHA to main after lint, focused tests and production build."
