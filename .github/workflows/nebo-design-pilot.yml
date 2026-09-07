@@ -13,8 +13,6 @@ jobs:
     if: github.ref == 'refs/heads/nebo-admin-redesign-20260907'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    permissions:
-      contents: write
     services:
       postgres:
         image: postgres:16
@@ -34,19 +32,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - name: Apply exact browser-tested hardening and verify idempotence
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -f scripts/nebo-admin-hardening.mjs ]; then
-            node scripts/nebo-admin-hardening.mjs
-            node scripts/nebo-admin-hardening.mjs
-          fi
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
       - name: TypeScript
@@ -61,10 +51,20 @@ jobs:
           __tests__/natal-catalog-ui-contract.test.ts
           __tests__/natal-meaning-map-v3.test.ts
           __tests__/personal-forecast-header-logo.test.ts
-      - name: Migrations against isolated PostgreSQL
+      - name: Migrate using production source layout without UI files
         env:
           NODE_ENV: test
-        run: npm run migrate
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime=$(mktemp -d)
+          trap 'rm -rf "$runtime"' EXIT
+          cp -R scripts lib "$runtime/"
+          cp package.json "$runtime/"
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$runtime/node_modules"
+          test ! -f "$runtime/types.ts"
+          cd "$runtime"
+          npm run migrate
       - name: Confirm additive preference schema
         run: |
           node --input-type=module <<'NODE'
@@ -74,29 +74,9 @@ jobs:
           const {rows} = await client.query("SELECT column_name FROM information_schema.columns WHERE table_name='user_design_preferences'");
           for (const key of ['user_id','preferences','revision','updated_at']) if (!rows.some(r=>r.column_name===key)) throw new Error('Missing preference column: '+key);
           await client.end();
-          console.log('Preference schema verified against isolated test database.');
+          console.log('Preference schema verified from production source layout.');
           NODE
       - name: Production build
         env:
           NODE_ENV: production
         run: npm run build
-      - name: Commit checked source to pilot branch only
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$GITHUB_REF" = refs/heads/nebo-admin-redesign-20260907
-          remote=$(git ls-remote origin refs/heads/nebo-admin-redesign-20260907 | cut -f1)
-          test "$remote" = "$GITHUB_SHA" || { echo 'Branch changed; refusing stale write'; exit 1; }
-          git config user.name 'NEBO validation'
-          git config user.email 'nebo-validation@users.noreply.github.com'
-          git add -- lib/neboDesign/preferenceStore.ts lib/neboDesign/contract.ts lib/neboDesign/layeredSurface.ts components/nebo-v2/LayeredSurface.tsx components/nebo-v2/NeboDesignControl.tsx components/nebo-v2/NeboDashboard.tsx components/nebo-v2/NeboNatal.tsx styles/neboV2.css __tests__/liquid-glass-chrome.test.ts __tests__/personal-forecast-header-logo.test.ts __tests__/today-navigation-shell.test.ts __tests__/natal-catalog-ui-contract.test.ts __tests__/natal-meaning-map-v3.test.ts
-          for file in scripts/nebo-admin-hardening.mjs scripts/nebo-redesign-integrate.mjs scripts/nebo-pilot-finalize.mjs .github/workflows/nebo-reference-check.yml; do
-            if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then git rm -- "$file"; fi
-          done
-          git diff --cached --stat
-          if ! git diff --cached --quiet; then
-            git commit -m 'fix(ui): verify and harden admin NEBO preview for main'
-            git push origin HEAD:refs/heads/nebo-admin-redesign-20260907
-          fi
-          echo "Validated pilot commit: $(git rev-parse HEAD)"
-          echo 'Full legacy suite has known baseline failures; this is an opt-in admin pilot, not a full-app release certification.'

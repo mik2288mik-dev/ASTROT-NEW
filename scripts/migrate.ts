@@ -66,9 +66,22 @@ async function main() {
   try {
     const { runMigrations } = await import('../lib/migrations');
     await runMigrations();
-    const { getPool } = await import('../lib/db');
+    // Keep standalone pre-deploy independent of application runtime modules.
+    // The production image includes scripts/lib, but not root UI/type sources.
+    const { Pool } = await import('pg');
     const { migrateNeboAdminDesign } = await import('../lib/neboDesign/migration');
-    await migrateNeboAdminDesign(getPool());
+    const designPool = new Pool({
+      connectionString: dbUrl,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 10000,
+      max: 1,
+    });
+    try {
+      await migrateNeboAdminDesign(designPool);
+    } finally {
+      await designPool.end();
+    }
     console.log('[migrate] Migrations completed successfully');
     process.exit(0);
   } catch (error: unknown) {
