@@ -56,7 +56,7 @@ type PersonalForecastPeriodResultState = {
   result: PersonalForecastClientResult | null;
 };
 
-const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v21-three-part-human';
+const LOCAL_CACHE_PREFIX = 'nebo:personal-forecast:v22-human-voice';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
 

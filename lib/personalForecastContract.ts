@@ -245,12 +245,12 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v47-period-horoscope',
+  'personal-forecast-feed.v48-nebo-human-voice',
 );
-export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v19-period-horoscope';
+export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v20-nebo-human-voice';
 /** Input/cache identity, not an astrological calculation version. */
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v12';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v29-period-horoscope';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v30-nebo-human-voice';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<
