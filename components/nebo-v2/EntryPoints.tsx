@@ -16,7 +16,7 @@ const ClassicOnboarding=dynamic(()=>import('../../views/Onboarding').then(m=>m.O
 const ClassicPaywall=dynamic(()=>import('../../views/Paywall').then(m=>m.Paywall),{ssr:false});
 const ClassicEncyclopedia=dynamic(()=>import('../../views/v2/AstrologyEncyclopedia').then(m=>m.AstrologyEncyclopedia),{ssr:false});
 function Boundary({profile,children}:{profile:UserProfile;children:React.ReactNode}){const design=useNeboDesign(profile);return <NeboScreenBoundary key={`${profile.id}:${design.active}`} onEscape={design.store.escapeToClassic}>{children}</NeboScreenBoundary>;}
-type DashboardProps=React.ComponentProps<typeof ClassicDashboard>&{active?:boolean;onOpenMatrix:()=>void;onOpenSettings:()=>void};
+type DashboardProps=React.ComponentProps<typeof ClassicDashboard>&{active?:boolean;onOpenSynastry:()=>void;onOpenMatrix:()=>void;onOpenSettings:()=>void};
 export function Dashboard(props:DashboardProps){
   const design=useNeboDesign(props.profile);
   if(!design.active)return <ClassicDashboard {...props}/>;

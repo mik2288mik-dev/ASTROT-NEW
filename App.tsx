@@ -10,8 +10,11 @@ import {
 } from './services/nativeNotifications';
 import { UserProfile, NatalChartData, ViewState } from './types';
 import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
-import { ServiceScreen, type ServiceTab } from './views/v2/ServiceScreen';
-import { Settings } from './views/Settings';
+import { ServiceScreen } from './components/nebo-v2/EntryPoints';
+import type { ServiceTab } from './views/v2/ServiceScreen';
+import { Settings } from './components/nebo-v2/EntryPoints';
+import { NeboBottomTabBar } from './components/nebo-v2/NeboBottomTabBar';
+import { useNeboDesign, useNeboHostGestures } from './components/nebo-v2/useNeboDesign';
 import { MyCharts } from './views/MyCharts';
 import {
     LegalAcknowledgementGate,
@@ -44,7 +47,7 @@ import {
     writeLocalHumanBaseReport,
 } from './lib/localHumanBaseReportCache';
 import { resolveStartParamRoute } from './lib/notificationDeepLink';
-import { Dashboard } from './views/Dashboard';
+import { Dashboard } from './components/nebo-v2/EntryPoints';
 import { PromoBanner } from './components/PromoBanner';
 import { AppTopBar } from './components/lumia-ui/AppTopBar';
 import { NeboLogo } from './components/brand/NeboLogo';
@@ -143,14 +146,14 @@ import {
     getPaywallFocusableElements,
     trapPaywallTabKey,
 } from './lib/paywallDialogFocus';
-const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
+const Onboarding = dynamic(() => import('./components/nebo-v2/EntryPoints').then((module) => module.Onboarding), {
     ssr: false,
 });
-const NatalMagazine = dynamic(() => import('./views/v2/NatalMagazine').then((module) => module.NatalMagazine), { ssr: false });
+const NatalMagazine = dynamic(() => import('./components/nebo-v2/EntryPoints').then((module) => module.NatalMagazine), { ssr: false });
 const PersonalityReport = dynamic(() => import('./views/PersonalityReport').then((module) => module.PersonalityReport), { ssr: false });
 const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then((module) => module.HoroscopeReader), { ssr: false });
 const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) => module.AdminApp), { ssr: false });
-const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.Paywall), { ssr: false });
+const Paywall = dynamic(() => import('./components/nebo-v2/EntryPoints').then((module) => module.Paywall), { ssr: false });
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
 const AstrologyEncyclopedia = dynamic(
@@ -377,6 +380,8 @@ function loadStartupPersonalForecasts(
 const App: React.FC = () => {
     useDisableAppZoom();
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const neboDesign = useNeboDesign(profile);
+    useNeboHostGestures(neboDesign.active);
     const [nativeActive, setNativeActive] = useState(true);
     const [nativeTapVersion, setNativeTapVersion] = useState(0);
     const [nativeReadyDay, setNativeReadyDay] = useState<{ accountId: string; periodKey: string } | null>(null);
@@ -2594,6 +2599,7 @@ const App: React.FC = () => {
             <div className="relative isolate fixed inset-0 h-[100dvh] overflow-hidden">
                 <div className="relative z-10 h-full">
                     <Onboarding
+                        designProfile={profile}
                         onComplete={handleOnboardingComplete}
                         initialStep={hasPendingOnboardingDraft ? 'birth' : onboardingInitialStep}
                         initialProfile={hasPendingOnboardingDraft ? profile : undefined}
@@ -2695,7 +2701,9 @@ const App: React.FC = () => {
 
     return (
         <div
-            className={`lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
+            data-nebo-theme={neboDesign.active ? neboDesign.resolvedTheme : undefined}
+            data-nebo-view={neboDesign.active ? view : undefined}
+            className={`${neboDesign.active ? 'nebo-v2' : ''} lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
                 showsBottomNavigation ? 'has-today-bottom-navigation' : ''
             } ${
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
@@ -2710,7 +2718,7 @@ const App: React.FC = () => {
                     className={view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'}
                     aria-hidden={view !== 'dashboard'}
                 >
-                    <Dashboard {...dashboardProps} scrollRef={dashboardScrollRef} />
+                    <Dashboard {...dashboardProps} scrollRef={dashboardScrollRef} active={view === 'dashboard'} onOpenMatrix={() => navigateTo('matrix')} onOpenSettings={() => navigateTo('settings')} />
                 </div>
                 {view === 'admin' ? (
                     <AdminApp onClose={() => { void handleBack(); }} />
@@ -2823,6 +2831,8 @@ const App: React.FC = () => {
                             preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}
                             onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}
                             onOpenPersonalityReport={openPersonalityReport}
+                            onOpenMatrix={() => navigateTo('matrix')}
+                            onOpenSettings={() => navigateTo('settings')}
                             premiumContinuation={premiumContinuation}
                             onPremiumContinuationHandled={completePremiumContinuation}
                             canPromotePremium={premiumPromotionAllowed}
@@ -2843,6 +2853,8 @@ const App: React.FC = () => {
                 ) : view === 'services' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <ServiceScreen
+                            onOpenMatrix={() => navigateTo('matrix')}
+                            onOpenEncyclopedia={() => navigateTo('encyclopedia')}
                             profile={profile}
                             activeTab={serviceTab}
                             onTabChange={setServiceTab}
@@ -2974,7 +2986,7 @@ const App: React.FC = () => {
 
             {showsBottomNavigation ? (
                 <>
-                    <LumiaBottomTabBar
+                    <NeboBottomTabBar
                         profile={profile}
                         view={view}
                         onOpenToday={openBottomToday}

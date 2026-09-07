@@ -2,7 +2,7 @@
 .nebo-v2{--nebo-bg:#f5f8ff;--nebo-panel:#f0edff;--nebo-surface:#fff;--nebo-ink:#0c1235;--nebo-muted:#667194;--nebo-line:#e0e5f4;--nebo-accent:#7d61ff;--nebo-handle:#beb5e7;--nebo-primary:#111a3d;--nebo-primary-ink:#fff;--nebo-soft:#e8eaff;--nebo-lime:#dbf9bb;--nebo-peach:#ffd5cc;--nebo-lilac:#ddceff;--nebo-pink:#ffe0ed;--nebo-blue:#c9eaff;--nebo-card-ink:#101631;background:var(--nebo-bg);color:var(--nebo-ink);font-family:Manrope,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;color-scheme:light}
 .nebo-v2[data-nebo-theme=dark]{--nebo-bg:#111820;--nebo-panel:#1e2734;--nebo-surface:#26303d;--nebo-ink:#f5f7fc;--nebo-muted:#bcc7dd;--nebo-line:#374052;--nebo-accent:#b39cff;--nebo-handle:#60718f;--nebo-primary:#c9b9ff;--nebo-primary-ink:#141b31;--nebo-soft:#323c53;--nebo-lime:#bcf48e;--nebo-peach:#ffb5b0;--nebo-lilac:#ceb6ff;--nebo-pink:#ffc5e1;--nebo-blue:#8bd5ff;color-scheme:dark}
 .nebo-v2 .nebo-screen,.nebo-v2 .nebo-screen *{box-sizing:border-box}
-.nebo-v2 .nebo-screen{height:100%;min-height:0;display:flex;flex-direction:column;position:relative;overflow:hidden;background:var(--nebo-bg);color:var(--nebo-ink)}
+.nebo-v2 .nebo-screen{width:100%;height:100%;min-height:0;display:flex;flex-direction:column;position:relative;overflow:hidden;background:var(--nebo-bg);color:var(--nebo-ink)}
 .nebo-v2 .nebo-screen button,.nebo-v2 .nebo-tabs button{font:inherit;-webkit-tap-highlight-color:transparent;cursor:pointer}
 .nebo-v2 .nebo-screen button{border:0}
 .nebo-v2 .nebo-screen button:focus-visible,.nebo-v2 .nebo-tabs button:focus-visible{outline:3px solid var(--nebo-accent);outline-offset:3px}

@@ -66,6 +66,9 @@ async function main() {
   try {
     const { runMigrations } = await import('../lib/migrations');
     await runMigrations();
+    const { getPool } = await import('../lib/db');
+    const { migrateNeboAdminDesign } = await import('../lib/neboDesign/migration');
+    await migrateNeboAdminDesign(getPool());
     console.log('[migrate] Migrations completed successfully');
     process.exit(0);
   } catch (error: unknown) {

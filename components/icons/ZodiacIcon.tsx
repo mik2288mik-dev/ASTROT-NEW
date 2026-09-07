@@ -1,4 +1,6 @@
 import React from 'react';
+import { Art } from '../nebo-v2/Primitives';
+import { useNeboVisualMode } from '../nebo-v2/useNeboDesign';
 
 /**
  * Monochrome SVG icons for the 12 zodiac signs.
@@ -115,10 +117,13 @@ export const ZodiacIcon: React.FC<Props> = ({
   strokeWidth = 1.4,
   className = '',
 }) => {
+  const newDesign = useNeboVisualMode();
   const key =
     typeof sign === 'string'
       ? resolveZodiacKey(sign) || (sign in PATHS ? (sign as ZodiacSignKey) : null)
       : sign ?? null;
+
+  if (newDesign && key && size >= 28 && stroke === 'currentColor') return <Art name={key} size={size} className={className}/>;
 
   if (!key || !(key in PATHS)) {
     return (

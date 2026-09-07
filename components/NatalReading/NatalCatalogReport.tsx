@@ -27,6 +27,7 @@ type Props = {
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
   onOpenQuestions?: (categoryKey: NatalReportCategoryKey) => void;
+  experienceComponent?: React.ComponentType<React.ComponentProps<typeof NatalMeaningExperience>>;
   hideIntro?: boolean; uiPreview?: NatalCatalogReportUiPreview;
 };
 type ReadingState = {
@@ -49,7 +50,7 @@ function readingError(error: unknown, ru: boolean): string {
 export const NatalCatalogReport: React.FC<Props> = ({
   profile, chartData, chartId, chartSubject, view, onViewChange, requestPremium,
   premiumContinuation, onPremiumContinuationHandled, canPromotePremium = true,
-  onOpenQuestions, uiPreview,
+  onOpenQuestions, uiPreview, experienceComponent: Experience = NatalMeaningExperience,
 }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const userId = profile.id ? String(profile.id) : '';
@@ -222,7 +223,7 @@ export const NatalCatalogReport: React.FC<Props> = ({
   }
   return (
     <article className="natal-catalog-report natal-catalog-report--v3">
-      <NatalMeaningExperience
+      <Experience
         profile={profile} chartData={chartData} subjectName={chartSubject?.name || profile.name}
         activeCategoryKey={activeCategory} mainPack={packs.main || null} categoryPack={packs[activeCategory] || null}
         categoryLoading={!matchingRequest || state.loading} categoryError={matchingRequest ? state.error : null}
