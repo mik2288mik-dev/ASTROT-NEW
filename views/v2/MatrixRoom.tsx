@@ -15,6 +15,8 @@ import {
   EditorialSectionHeading,
   EditorialSummary,
 } from '../../components/EditorialReading';
+import { useNeboVisualMode } from '../../components/nebo-v2/useNeboDesign';
+import { NeboMatrixRoom } from '../../components/nebo-v2/NeboMatrixRoom';
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
@@ -25,7 +27,13 @@ type Props = {
   embedded?: boolean;
 };
 
-export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false }: Props) {
+export function MatrixRoom(props: Props) {
+  const newDesign = useNeboVisualMode();
+  if (newDesign) return <NeboMatrixRoom {...props} />;
+  return <ClassicMatrixRoom {...props} />;
+}
+
+function ClassicMatrixRoom({ profile, onBack, onOpenProfile, embedded = false }: Props) {
   void onBack;
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
