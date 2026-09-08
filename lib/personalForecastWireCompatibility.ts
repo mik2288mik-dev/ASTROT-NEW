@@ -9,10 +9,42 @@ import {
 /** Bundled in the released RuStore 1.0.0/vc2 and 1.0.2/vc5 clients. */
 export const LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v25-reference-four-part';
 
+/** Bundled in the released RuStore 1.0.3/vc6 and 1.0.4/vc7 clients. */
+export const RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v29-period-horoscope';
+
+// These readers share the current prose structure, but validate every identity
+// field exactly. Keep their wire identities independent of the generator cache.
+const RELEASED_READING_PROMPTS: Readonly<Record<string, string>> = {
+  [RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION]: 'personal-forecast-feed.v47-period-horoscope+forecast-voice.16',
+  'personal-forecast-feed-v30-nebo-human-voice': 'personal-forecast-feed.v48-nebo-human-voice+forecast-voice.16',
+};
+
 export function resolvePersonalForecastWireVersion(value: unknown): string | null {
   if (value === undefined) return LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION;
   return value === PERSONAL_FORECAST_CONTRACT_VERSION
-    || value === LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION ? value : null;
+    || value === LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION
+    || (typeof value === 'string' && Object.hasOwn(RELEASED_READING_PROMPTS, value)) ? value : null;
+}
+
+type CurrentGenerationIdentity = Pick<PersonalForecastPackage['meta'],
+  'contractVersion' | 'semanticVersion' | 'promptVersion' | 'voiceVersion'
+  | 'calculationVersion' | 'generationAttempts'>;
+
+type ReleasedReadingAccessPayload = Omit<PersonalForecastAccessPayload, 'forecast'> & {
+  forecast: Omit<PersonalForecastPackage, 'meta'> & {
+    meta: PersonalForecastPackage['meta'] & { currentGeneration: CurrentGenerationIdentity };
+  };
+};
+
+function generationIdentity(forecast: PersonalForecastPackage): CurrentGenerationIdentity {
+  return {
+    contractVersion: forecast.meta.contractVersion,
+    semanticVersion: forecast.meta.semanticVersion,
+    promptVersion: forecast.meta.promptVersion,
+    voiceVersion: forecast.meta.voiceVersion,
+    calculationVersion: forecast.meta.calculationVersion,
+    generationAttempts: forecast.meta.generationAttempts,
+  };
 }
 
 type LegacyForecastPackage = Omit<PersonalForecastPackage, 'meta'> & {
@@ -35,9 +67,7 @@ type LegacyForecastPackage = Omit<PersonalForecastPackage, 'meta'> & {
       forecast: string;
       closing: string;
     };
-    currentGeneration: Pick<PersonalForecastPackage['meta'],
-      'contractVersion' | 'semanticVersion' | 'promptVersion' | 'voiceVersion'
-      | 'calculationVersion' | 'generationAttempts'>;
+    currentGeneration: CurrentGenerationIdentity;
   };
 };
 
@@ -86,11 +116,28 @@ function closedLegacySlot(source: ForecastSection, id: string): ForecastSection 
 export function projectPersonalForecastForWire(
   payload: PersonalForecastAccessPayload,
   wireVersion: string,
-): PersonalForecastAccessPayload | LegacyForecastAccessPayload {
+): PersonalForecastAccessPayload | LegacyForecastAccessPayload | ReleasedReadingAccessPayload {
   if (payload.periodLocked || (payload.accessTier === 'free' && payload.forecast.period !== 'day')) {
     throw new Error('PERSONAL_FORECAST_PREMIUM_REQUIRED');
   }
   if (wireVersion === PERSONAL_FORECAST_CONTRACT_VERSION) return payload;
+  if (Object.hasOwn(RELEASED_READING_PROMPTS, wireVersion)) {
+    return {
+      ...payload,
+      forecast: {
+        ...payload.forecast,
+        meta: {
+          ...payload.forecast.meta,
+          contractVersion: wireVersion,
+          semanticVersion: wireVersion,
+          promptVersion: RELEASED_READING_PROMPTS[wireVersion],
+          voiceVersion: '16',
+          calculationVersion: 'personal-forecast-luna-raw-profile-brief-v12',
+          currentGeneration: generationIdentity(payload.forecast),
+        },
+      },
+    };
+  }
   if (wireVersion !== LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION) {
     throw new Error('PERSONAL_FORECAST_CONTRACT_UNSUPPORTED');
   }
@@ -151,14 +198,7 @@ export function projectPersonalForecastForWire(
         voiceVersion: '9',
         calculationVersion: 'personal-forecast-luna-raw-profile-brief-v7',
         generationAttempts: Math.min(2, original.meta.generationAttempts) as 0 | 1 | 2,
-        currentGeneration: {
-          contractVersion: original.meta.contractVersion,
-          semanticVersion: original.meta.semanticVersion,
-          promptVersion: original.meta.promptVersion,
-          voiceVersion: original.meta.voiceVersion,
-          calculationVersion: original.meta.calculationVersion,
-          generationAttempts: original.meta.generationAttempts,
-        },
+        currentGeneration: generationIdentity(original),
         astrologerBrief: {
           tone: brief.tone,
           coreForecast: brief.observations[0],

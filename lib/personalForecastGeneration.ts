@@ -1177,7 +1177,7 @@ export function validateFreeGeneratedForecastFeed(
   if (errors.length || !titleText || !forecastText || !closingText) return { sections: [], errors: errors.length ? errors : ['payload is incomplete'], editorialWarnings };
   const evidenceIds = [PERSONAL_FORECAST_PROFILE_EVIDENCE_ID];
   const directSection = (blocks: Array<{ text: string; role: ForecastContentBlock['role'] }>, title: string | null = null): FreeGeneratedSection => ({ title, evidenceIds, blocks: blocks.map((block) => ({ ...block, evidenceIds })), mainIdeaKey: `server:${Math.abs(stableHash(normalizePersonalForecastText(blocks.map((block) => block.text).join('\n')))).toString(36)}`, lifePlotKey: '', adviceKey: '', comparisonKey: '' });
-  return { errors: [], editorialWarnings, sections: [directSection([{ text: forecastText, role: 'detail' }], titleText), directSection([{ text: closingText, role: 'lead' }])] };
+  return { errors: [], editorialWarnings, sections: [directSection([{ text: forecastText, role: 'detail' }], titleText), directSection([{ text: closingText, role: 'action' }])] };
 }
 
 export function parseGeneratedFeedPayload(content: string): GeneratedFeedPayload | null {

@@ -3488,7 +3488,11 @@ export const db = {
   },
 
   user_sessions: {
-    async upsert(userId: string, sessionId: string, options?: { telegramPlatform?: string | null; userAgent?: string | null }) {
+    async upsert(userId: string, sessionId: string, options?: {
+      telegramPlatform?: string | null;
+      userAgent?: string | null;
+      queryClient?: Pick<Pool, 'query'>;
+    }) {
       const id = toUserId(userId);
       const safeSessionId = trimText(sessionId, 128);
       if (!safeSessionId) {
@@ -3501,7 +3505,7 @@ export const db = {
       const deviceLabel = detectDeviceLabel(telegramPlatform, userAgent);
 
       try {
-        const dbPool = getPool();
+        const dbPool = options?.queryClient || getPool();
         const result = await dbPool.query(
           `INSERT INTO user_sessions (session_id, user_id, telegram_platform, device_label, user_agent)
            VALUES ($1, $2, $3, $4, $5)

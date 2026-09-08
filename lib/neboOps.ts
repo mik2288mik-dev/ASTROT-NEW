@@ -74,6 +74,7 @@ const SCREENS: Record<string, string> = {
   charts: 'Сохранённые карты', personality: 'Разбор карты', natal_story: 'Разбор карты',
 };
 const ACTIONS: Record<string, string> = {
+  app_open: '👋 Открыл приложение',
   screen_view: '🧭 Открыл экран', first_result_ready: '✨ Получил первый результат',
   first_value_viewed: '✨ Посмотрел первый результат', natal_section_open: '📖 Открыл раздел разбора',
   compatibility_ready: '🤝 Получил совместимость', person_added: '👥 Добавил человека',
@@ -229,7 +230,7 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
 
 export function shouldDeliverNeboOpsEvent(eventType: string, payload: Payload = {}): boolean {
   return eventType === 'login' || eventType === 'daily_summary'
-    || (eventType === 'activity' && payload?.eventType === 'paywall_view');
+    || (eventType === 'activity' && (payload?.eventType === 'paywall_view' || payload?.eventType === 'app_open'));
 }
 
 export async function enqueueNeboOpsEvent(db: Queryable, input: NeboOpsEvent): Promise<void> {
@@ -574,7 +575,7 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
      WHERE status IN ('pending', 'failed')
        AND NOT (
          event_type IN ('login', 'daily_summary')
-         OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') = 'paywall_view')
+         OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') IN ('paywall_view', 'app_open'))
        )`,
   );
   const count = Number.isFinite(limit) ? Math.min(MAX_BATCH, Math.max(1, Math.trunc(limit))) : MAX_BATCH;
@@ -588,7 +589,7 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
          WHERE status IN ('pending', 'failed') AND next_attempt_at <= NOW() AND attempts < $1
            AND (
              event_type IN ('login', 'daily_summary')
-             OR (event_type = 'activity' AND payload_json->>'eventType' = 'paywall_view')
+             OR (event_type = 'activity' AND payload_json->>'eventType' IN ('paywall_view', 'app_open'))
            )
          ORDER BY CASE WHEN event_type = 'activity' THEN 1 ELSE 0 END, next_attempt_at, id
          FOR UPDATE SKIP LOCKED LIMIT 1

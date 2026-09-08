@@ -198,13 +198,13 @@ describe('natal report catalog contract', () => {
     expect(ordinary.filter(hasNatalReportCatalogCopyViolation)).toEqual([]);
   });
 
-  it('accepts 140–240 words in six to eight short Main observations without forcing padding', () => {
+  it('keeps generated Main readings within the installed APK 180-word minimum', () => {
     const lengths = (...sizes: number[]) => sizes.map((size) => 'слово '.repeat(size));
 
-    expect(NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS).toBe(140);
+    expect(NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS).toBe(180);
     expect(NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS).toBe(240);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(20, 20, 25, 25, 25, 25))).toBe(true);
-    expect(isNatalReportMainSummaryLengthAllowed(lengths(19, 20, 25, 25, 25, 25))).toBe(false);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(30, 30, 30, 30, 30, 30))).toBe(true);
+    expect(isNatalReportMainSummaryLengthAllowed(lengths(29, 30, 30, 30, 30, 30))).toBe(false);
     expect(isNatalReportMainSummaryLengthAllowed(lengths(30, 35, 40, 45, 45, 45))).toBe(true);
     expect(isNatalReportMainSummaryLengthAllowed(lengths(31, 35, 40, 45, 45, 45))).toBe(false);
     expect(isNatalReportMainSummaryLengthAllowed(lengths(50, 50, 50, 50, 50))).toBe(false);

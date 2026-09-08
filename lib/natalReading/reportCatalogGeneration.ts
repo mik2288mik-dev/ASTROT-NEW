@@ -19,6 +19,7 @@ import {
   getNatalReportAnswer,
   getNatalReportCategory,
   isNatalReportCategoryKey,
+  isNatalReportCategoryPack,
   localizeNatalReportList,
   localizeNatalReportText,
   NATAL_REPORT_CATALOG_CONTRACT_VERSION,
@@ -91,8 +92,9 @@ const FORBIDDEN_CATALOG_COPY = /(?:(?:^|[^\p{L}])(?:психолог[\p{L}]*|п�
 const CHANGING_TIME_COPY = /(?:(?:^|[^\p{L}])(?:сегодня|завтра|скоро|на этой неделе|в этом месяце|в этом году|тебя жд[её]т|обязательно произойд[её]т|today|tomorrow|soon|this week|this month|this year|you will definitely|awaits you)(?:$|[^\p{L}])|(?:^|[^\p{N}])20\d{2}(?:$|[^\p{N}]))/iu;
 const OFFICE_NARRATIVE_COPY = /(?:трезв[\p{L}]*\s+отбор|(?:^|[^\p{L}])подвижност[\p{L}]*|довод[\p{L}]*\s+начат[\p{L}]*\s+до\s+форм[\p{L}]*|планк[\p{L}]*\s+качеств[\p{L}]*|профессиональн[\p{L}]*\s+позици[\p{L}]*|имеет\s+продолжение\s+в\s+реальном\s+деле|интерес\s+легко\s+опередит\s+результат|^\s*(?:в\s+итоге|таким\s+образом)(?=$|[^\p{L}]))/iu;
 
-// Accept a concise complete reading; word targets must not force padded retries.
-export const NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS = 140;
+// Installed clients validate titled Main readings at 180+ words. Keep generation
+// inside that wire contract until those clients can negotiate a new shape.
+export const NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS = 180;
 export const NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS = 240;
 export const NATAL_REPORT_CATEGORY_SUMMARY_MIN_WORDS = 220;
 export const NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS = 350;
@@ -867,7 +869,7 @@ export function materializeNatalReportCategoryPack(input: {
     seenPreviews.add(normalized);
     return true;
   });
-  return {
+  const report: NatalReportCategoryPack = {
     schemaVersion: 'natal-report-category-v1',
     contractVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
     categoryKey: category.key,
@@ -878,6 +880,9 @@ export function materializeNatalReportCategoryPack(input: {
     previews: parsedPreviews,
     freeAnswers: [],
   };
+  // Never persist or send a generated pack that the cache and installed reader
+  // would reject. Raw model validation and wire validation must both pass.
+  return isNatalReportCategoryPack(report) ? report : null;
 }
 
 export function materializeNatalReportAnswer(input: {

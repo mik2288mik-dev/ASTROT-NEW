@@ -99,6 +99,24 @@ describe('materialized natal narratives survive shared validation and saved-cont
     expect(mockApiFetch.mock.calls.map(([, options]) => options.method)).toEqual(['GET', 'POST']);
   });
 
+  it('roundtrips the shortest generated Main reading through cache and installed client validation', async () => {
+    const raw = natalEditorialCategoryPayload(built, 'main');
+    raw.summary = raw.summary!.map((item) => {
+      const text = String(item.text);
+      const words = [...text.matchAll(/[\p{L}\p{N}]+(?:[-’'][\p{L}\p{N}]+)*/gu)];
+      const last = words[29];
+      return { ...item, text: text.slice(0, last.index! + last[0].length) };
+    });
+    const shortest = materializeNatalReportCategoryPack({ raw, built, categoryKey: 'main', language: 'ru' });
+    expect(shortest).not.toBeNull();
+    expect(isNatalReportCategoryPack(shortest)).toBe(true);
+    mockRead.mockResolvedValue({ content: shortest });
+    expect((await getCachedNatalReportCategory(context, 'main'))?.content).toEqual(shortest);
+    mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ interpretation: { content: shortest } }) });
+    expect(await ensureNatalCatalogCategory('roundtrip-minimum-apk', 'main', 7, 'ru', identity)).toEqual(shortest);
+    expect(mockProvider).not.toHaveBeenCalled();
+  });
+
   it('accepts a valid subset of optional Main links without requiring removed question-card content', () => {
     expect(isNatalReportCategoryPack({ ...reports.main, previews: reports.main.previews.slice(0, 2) })).toBe(true);
     expect(isNatalReportCategoryPack({ ...reports.main, freeAnswers: [{}] })).toBe(false);

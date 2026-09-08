@@ -201,7 +201,7 @@ describe('natal editorial narrative', () => {
       expect(report.summary[0].title).toBe(valid.summary![0].title);
       expect(requestStructured).toHaveBeenCalledTimes(2);
       expect(requestStructured.mock.calls[0][0].instructions).toBe(getNatalNarrativeSystemPrompt('ru'));
-      expect(requestStructured.mock.calls[0][0].input).toContain('140–240');
+      expect(requestStructured.mock.calls[0][0].input).toContain('180–240');
       expect(requestStructured.mock.calls[1][0].input).toContain('NARRATIVE_PLAIN_LANGUAGE_REQUIRED:summary[0].title');
       expect(requestStructured.mock.calls[1][0].input).toContain('Не заменяй слово синонимом');
       expect(getNatalReportCatalogSystemPrompt('ru')).not.toContain('ДВЕ МИНИРЕДАКТУРЫ');
@@ -231,7 +231,7 @@ describe('natal editorial narrative', () => {
     expect(prompt).toContain('Пол влияет только на грамматику, не на характер, выводы или примеры');
   });
 
-  it('accepts six complete concise observations without padding retries', async () => {
+  it('repairs six observations below the installed APK wire minimum before returning them', async () => {
     const valid = natalEditorialCategoryPayload(built);
     const paragraphs = [
       'Ты быстрее берёшься за дело, когда можешь попробовать сама. Долгое обсуждение утомляет, особенно если небольшой готовый результат помог бы объяснить идею лучше подробного разговора о ней.',
@@ -245,10 +245,18 @@ describe('natal editorial narrative', () => {
     const words = paragraphs.join(' ').match(/[\p{L}\p{N}]+/gu)!.length;
     expect(words).toBeGreaterThanOrEqual(140);
     expect(words).toBeLessThan(180);
-    const requestStructured = jest.fn().mockResolvedValue({ content: JSON.stringify(raw), responseId: 'concise' });
-    const report = await generateNatalReportCategoryPack({ profile, chart, categoryKey: 'main', requestStructured });
-    expect(report.summary.map((item) => item.text)).toEqual(paragraphs);
-    expect(requestStructured).toHaveBeenCalledTimes(1);
+    expect(materializeNatalReportCategoryPack({ raw, built, categoryKey: 'main', language: 'ru' })).toBeNull();
+    const requestStructured = jest.fn()
+      .mockResolvedValueOnce({ content: JSON.stringify(raw), responseId: 'below-apk-minimum' })
+      .mockResolvedValueOnce({ content: JSON.stringify(valid), responseId: 'readable-by-apk' });
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const report = await generateNatalReportCategoryPack({ profile, chart, categoryKey: 'main', requestStructured });
+      expect(isNatalReportCategoryPack(report)).toBe(true);
+      expect(report.summary.map((item) => item.text)).toEqual(valid.summary!.map((item) => item.text));
+      expect(requestStructured).toHaveBeenCalledTimes(2);
+      expect(requestStructured.mock.calls[1][0].input).toContain('SUMMARY_WORDS_TOO_SHORT');
+    } finally { warn.mockRestore(); }
   });
 
   it('repairs an underlength candidate instead of returning a teaser', async () => {

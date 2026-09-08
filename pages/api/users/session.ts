@@ -1,7 +1,75 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { requireAppUser } from '../../../lib/auth/appAuth';
-import { db } from '../../../lib/db';
+import { randomUUID } from 'crypto';
+import { requireAppUser, type AppUserContext } from '../../../lib/auth/appAuth';
+import { db, getPool } from '../../../lib/db';
 import { getOrCreateMyTrackerUserId } from '../../../lib/myTracker';
+import { readClientRuntimeMetadata } from '../../../lib/clientRuntimeMetadata';
+import { enqueueNeboOpsEvent, isNeboOpsEnabled, wakeNeboOpsDelivery } from '../../../lib/neboOps';
+
+async function recordAppVisit(
+  appUser: AppUserContext,
+  sessionId: string,
+  options: { telegramPlatform: string; userAgent: string },
+  headers: NextApiRequest['headers'],
+) {
+  if (!isNeboOpsEnabled()) return db.user_sessions.upsert(appUser.userId, sessionId, options);
+
+  const client = await getPool().connect();
+  let notify = false;
+  try {
+    await client.query('BEGIN');
+    // Lock before checking: two first requests must not both announce the same visit.
+    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+      `nebo-visit:${appUser.userId}:${sessionId}`,
+    ]);
+    const previous = await client.query(
+      `SELECT last_seen_at,
+              last_seen_at <= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') - INTERVAL '30 minutes' AS visit_expired
+       FROM user_sessions WHERE user_id = $1 AND session_id = $2 FOR UPDATE`,
+      [appUser.userId, sessionId],
+    );
+    const newVisit = !previous.rows[0] || previous.rows[0].visit_expired === true;
+    const session = await db.user_sessions.upsert(appUser.userId, sessionId, { ...options, queryClient: client });
+
+    if (newVisit) {
+      // Notification storage must never stop session tracking if the outbox is unavailable.
+      await client.query('SAVEPOINT nebo_visit_notification');
+      try {
+        const recentAuth = appUser.sessionId ? await client.query(
+          `SELECT 1 FROM nebo_ops_outbox
+           WHERE event_key = $1 AND user_id = $2 AND event_type = 'login'
+             AND occurred_at >= NOW() - INTERVAL '5 minutes'
+             AND status <> 'dead' LIMIT 1`,
+          [`auth:${appUser.sessionId}`, appUser.userId],
+        ) : null;
+        if (!recentAuth?.rows.length) {
+          const runtime = readClientRuntimeMetadata(headers,
+            appUser.provider === 'native' ? 'native' : appUser.provider === 'telegram' ? 'telegram' : 'web');
+          await enqueueNeboOpsEvent(client, {
+            eventKey: `visit:${randomUUID()}`,
+            eventType: 'activity',
+            userId: appUser.userId,
+            payload: { eventType: 'app_open', runtime: runtime.runtime },
+          });
+          notify = true;
+        }
+      } catch {
+        await client.query('ROLLBACK TO SAVEPOINT nebo_visit_notification');
+        console.warn('[nebo-ops] app visit notification could not be queued; session tracking preserved');
+      } finally {
+        await client.query('RELEASE SAVEPOINT nebo_visit_notification');
+      }
+    }
+    await client.query('COMMIT');
+    if (notify) wakeNeboOpsDelivery();
+    return session;
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Cache-Control', 'private, no-store');
@@ -13,7 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Считаем вход КАЖДОГО пользователя: Telegram (по initData) И веб-гостя (по signed cookie).
     // Раньше эндпоинт был Telegram-only → входы веб-гостей нигде не фиксировались.
     const appUser = await requireAppUser(req, { allowGuest: true });
-    const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId.trim() : '';
+    const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId.trim().slice(0, 128) : '';
     const telegramPlatform = typeof req.body?.telegramPlatform === 'string' ? req.body.telegramPlatform.trim() : '';
     const userAgent = Array.isArray(req.headers['user-agent'])
       ? req.headers['user-agent'][0] || ''
@@ -28,10 +96,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Фиксируем сам вход (last_login + login_streak) и трекаем устройство/сессию.
     await db.users.recordLogin(appUser.userId).catch(() => undefined);
-    const session = await db.user_sessions.upsert(appUser.userId, sessionId, {
+    const session = await recordAppVisit(appUser, sessionId, {
       telegramPlatform: telegramPlatform || (appUser.provider === 'telegram' ? 'telegram' : appUser.provider),
       userAgent,
-    });
+    }, req.headers);
 
     const analyticsUserId = req.body?.analyticsProvider === 'mytracker' && appUser.provider === 'native'
       ? await getOrCreateMyTrackerUserId(appUser.userId).catch(() => null)

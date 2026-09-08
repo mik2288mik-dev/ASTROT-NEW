@@ -212,8 +212,9 @@ describe('operational data and message formatting', () => {
 });
 
 describe('durable owner notification queue', () => {
-  it('notifies only about logins, opening payment and the daily report', async () => {
+  it('notifies only about logins, app visits, opening payment and the daily report', async () => {
     expect(shouldDeliverNeboOpsEvent('login')).toBe(true);
+    expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'app_open' })).toBe(true);
     expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'paywall_view' })).toBe(true);
     expect(shouldDeliverNeboOpsEvent('daily_summary')).toBe(true);
     for (const eventType of ['hourly_summary', 'support_ticket', 'ai_error', 'payment_confirmed', 'attribution_received']) {
@@ -227,6 +228,40 @@ describe('durable owner notification queue', () => {
     });
     const insert = query.mock.calls.find(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))!;
     expect(insert[1].slice(5)).toEqual(['dead', 'OWNER_SCOPE_FILTERED']);
+  });
+
+  it('queues an app visit as a visit, without claiming a new authentication or leaking session ids', async () => {
+    await enqueueNeboOpsEvent({ query } as any, {
+      eventKey: 'visit:once', eventType: 'activity', userId: '-9001',
+      payload: { eventType: 'app_open', runtime: 'native', sessionId: 'PRIVATE_SESSION' },
+    });
+    const insert = query.mock.calls.find(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))!;
+    expect(insert[1].slice(5)).toEqual(['pending', null]);
+    expect(insert[1][3]).not.toContain('PRIVATE_SESSION');
+    const rendered = renderNeboOpsMessage({ event_type: 'activity', user_id: '-9001',
+      payload_json: JSON.parse(insert[1][3]), occurred_at: new Date() });
+    expect(rendered.split('\n')[0]).toBe('👋 Открыл приложение');
+    expect(rendered).not.toContain('Первый вход');
+    expect(rendered).not.toContain('Вход:');
+  });
+
+  it('delivers app visits to the configured owner instead of retiring them as ordinary activity', async () => {
+    query.mockImplementation(async (sql: string, values?: unknown[]) => {
+      if (sql.includes('RETURNING id, event_type, user_id')) return { rows: [{
+        id: '42', event_type: 'activity', user_id: '-9001', payload_json: { eventType: 'app_open', runtime: 'native' },
+        occurred_at: '2026-09-09T09:00:00Z', attempts: 1, lease_token: values?.[1],
+      }] };
+      if (sql.includes('SELECT u.name, u.language, u.auth_provider')) return { rows: [{ name: 'Алина' }] };
+      return { rows: [], rowCount: 1 };
+    });
+    await expect(processNeboOpsOutbox(1)).resolves.toEqual({ claimed: 1, sent: 1, failed: 0 });
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(body.chat_id).toBe(OWNER_ID);
+    expect(body.text.split('\n')[0]).toBe('👋 Открыл приложение');
+    const filtered = query.mock.calls.find(([sql]) => sql.includes("last_error_code = 'OWNER_SCOPE_FILTERED'"))!;
+    const claim = query.mock.calls.find(([sql]) => sql.includes('RETURNING id, event_type, user_id'))!;
+    expect(filtered[0]).toContain("IN ('paywall_view', 'app_open')");
+    expect(claim[0]).toContain("IN ('paywall_view', 'app_open')");
   });
 
   it('retires old noisy queue entries without sending them to Telegram', async () => {
