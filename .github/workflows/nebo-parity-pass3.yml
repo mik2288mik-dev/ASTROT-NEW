@@ -29,10 +29,18 @@ jobs:
         run: npx eslint components/nebo-v2/NeboMatrixRoom.tsx components/nebo-v2/EntryPoints.tsx views/v2/MatrixRoom.tsx pages/_app.tsx --max-warnings=0
       - name: TypeScript
         run: npx tsc --noEmit
-      - name: Matrix and design tests
+      - name: NEBO design tests
         env:
           NODE_ENV: test
-        run: npm test -- --runInBand __tests__/nebo-admin-design.test.ts __tests__/matrix-of-destiny.test.ts __tests__/today-navigation-shell.test.ts
+        run: npm test -- --runInBand __tests__/nebo-admin-design.test.ts
+      - name: Matrix calculation tests
+        env:
+          NODE_ENV: test
+        run: npm test -- --runInBand __tests__/matrix-of-destiny.test.ts
+      - name: Navigation shell tests
+        env:
+          NODE_ENV: test
+        run: npm test -- --runInBand __tests__/today-navigation-shell.test.ts
       - name: Production build
         env:
           NODE_ENV: production
