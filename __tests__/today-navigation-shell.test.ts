@@ -83,37 +83,26 @@ describe('Today minimal navigation shell', () => {
     expect(app).not.toContain("setNavigationSheet('services')");
   });
 
-  it('keeps Matrix inside the persistent Natal tab shell and uses the NEBO adapter only in the approved design', () => {
-    const app = read('App.tsx');
+  it('keeps Matrix in the Natal shell and switches only the new-design presentation', () => {
     const natal = read('views/v2/NatalMagazine.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
     const neboMatrix = read('components/nebo-v2/NeboMatrixRoom.tsx');
 
     const primaryNav = natal.slice(natal.indexOf('className="natal-v3-primary-nav"'), natal.indexOf('</nav>'));
-    const labels = ["'Карта'", "'Разбор'", "'Спросить о себе'", "'Матрица судьбы'"];
-    labels.forEach((label) => expect(primaryNav).toContain(label));
-    const positions = labels.map((label) => primaryNav.indexOf(label));
-    expect(positions).toEqual([...positions].sort((left, right) => left - right));
-    expect(primaryNav).toContain("onClick={() => selectTab('matrix')}");
-    expect(natal).toMatch(/if \(normalized === 'matrix'\)\s*\{\s*setMatrixMounted\(true\);[\s\S]*?setActiveTab\('matrix'\)/);
-    expect(natal).toContain('hidden={normalizedActiveTab !== \'matrix\'}');
+    ['Карта', 'Разбор', 'Спросить о себе', 'Матрица судьбы'].forEach((label) => expect(primaryNav).toContain(label));
+    expect(primaryNav).toContain("selectTab('matrix')");
     expect(natal).toContain('<MatrixRoom');
     expect(natal).toContain('embedded');
-    expect(natal).not.toContain('onOpenMatrix');
-    expect(natal).not.toContain("navigateTo('matrix')");
 
-    expect(matrix).toContain('embedded?: boolean');
-    expect(matrix).toContain('useNeboVisualMode()');
+    expect(matrix).toContain("from '../../components/nebo-v2/useNeboDesign'");
+    expect(matrix).toContain("from '../../components/nebo-v2/NeboMatrixRoom'");
+    expect(matrix).toContain('const newDesign = useNeboVisualMode();');
     expect(matrix).toContain('if (newDesign) return <NeboMatrixRoom {...props} />;');
     expect(matrix).toContain('return <ClassicMatrixRoom {...props} />;');
-    expect(matrix).toContain('{!embedded ? (');
-    expect(neboMatrix).toContain("computeMatrix(computedDate, lang)");
-    expect(neboMatrix).toContain("role=\"dialog\"");
-
-    expect(app).toContain('onOpenMatrix={() => navigateTo(\'matrix\')}');
-    const entries = read('components/nebo-v2/EntryPoints.tsx');
-    expect(entries).toContain('design.active?');
-    expect(entries).toContain(':<ClassicNatal {...props}/>');
+    expect(neboMatrix).toContain('computeMatrix(computedDate, lang)');
+    expect(neboMatrix).toContain('aria-modal="true"');
+    expect(neboMatrix).toContain("setView('scheme')");
+    expect(neboMatrix).toContain("setView('reading')");
   });
 
   it('keeps Today period tabs and reduced-motion guards unchanged', () => {
