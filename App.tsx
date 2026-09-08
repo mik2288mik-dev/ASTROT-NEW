@@ -15,7 +15,7 @@ import type { ServiceTab } from './views/v2/ServiceScreen';
 import { Settings } from './components/nebo-v2/EntryPoints';
 import { NeboBottomTabBar } from './components/nebo-v2/NeboBottomTabBar';
 import { useNeboDesign, useNeboHostGestures } from './components/nebo-v2/useNeboDesign';
-import { MyCharts } from './views/MyCharts';
+import { MyCharts } from './components/nebo-v2/EntryPoints';
 import {
     LegalAcknowledgementGate,
     legalAcknowledgementGateContract,
@@ -52,7 +52,6 @@ import { PromoBanner } from './components/PromoBanner';
 import { AppTopBar } from './components/lumia-ui/AppTopBar';
 import { NeboLogo } from './components/brand/NeboLogo';
 import {
-    LumiaBottomTabBar,
     LumiaNavigationSheet,
     shouldShowLumiaBottomNavigation,
     type LumiaNavigationSheetId,
@@ -154,7 +153,7 @@ const PersonalityReport = dynamic(() => import('./views/PersonalityReport').then
 const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then((module) => module.HoroscopeReader), { ssr: false });
 const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) => module.AdminApp), { ssr: false });
 const Paywall = dynamic(() => import('./components/nebo-v2/EntryPoints').then((module) => module.Paywall), { ssr: false });
-const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
+const UnionRoom = dynamic(() => import('./components/nebo-v2/EntryPoints').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
 const AstrologyEncyclopedia = dynamic(
     () => import('./views/v2/AstrologyEncyclopedia').then((module) => module.AstrologyEncyclopedia),

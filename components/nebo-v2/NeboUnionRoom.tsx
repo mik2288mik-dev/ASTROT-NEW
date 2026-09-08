@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { NatalChartData, SynastryResult, UserProfile } from '../../types';
 import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibility';
 import type { PaywallContext } from '../../lib/paywallContext';
