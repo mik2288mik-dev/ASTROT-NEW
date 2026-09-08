@@ -54,7 +54,6 @@ export function NeboDashboard(props: Props) {
       if (!disposed) setState({ identity, result, error: false });
     }).catch(() => { if (!disposed) setState(current => ({ ...current, identity, error: true })); });
     return () => { disposed = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [identity, lockedPeriod, profile.isSetup, retry, props.active]);
 
   useEffect(() => {
