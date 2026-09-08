@@ -133,12 +133,12 @@ export function NeboUnionRoom({
   const premium = hasActivePremium(profile);
   const ownSign = normalizeZodiacKey(String(chartData?.sun?.sign || ''))
     || normalizeZodiacKey(String(sunSignFromDate(profile.birthDate) || ''))
-    || 'aries';
+    || 'Aries';
   const [screen, setScreen] = useState<Screen>(initialPrefill ? 'create' : 'home');
   const [mode, setMode] = useState<Mode>(initialPrefill ? 'birth' : 'sign');
   const [relation, setRelation] = useState<RelationshipContext>('relationship');
-  const [signA, setSignA] = useState<ZodiacKey>(ownSign as ZodiacKey);
-  const [signB, setSignB] = useState<ZodiacKey>('taurus');
+  const [signA, setSignA] = useState<ZodiacKey>(ownSign);
+  const [signB, setSignB] = useState<ZodiacKey>('Taurus');
   const [partnerName, setPartnerName] = useState(initialPrefill?.partnerName || '');
   const [partnerDate, setPartnerDate] = useState(toDateInputValue(initialPrefill?.partnerDate || ''));
   const [partnerTime, setPartnerTime] = useState(initialPrefill?.partnerTime || '');
@@ -158,7 +158,7 @@ export function NeboUnionRoom({
     setHistory(loadCompatHistory(profile.id).filter((entry) => entry.kind === 'person'));
     if (!profile.id) return;
     let alive = true;
-    void getCharts(String(profile.id)).then((response) => {
+    void getCharts(profile.id).then((response) => {
       if (!alive) return;
       setCharts((response.charts || []).filter((chart) => !chart.archived_at && chart.subject_type === 'saved_person'));
     }).catch(() => { if (alive) setCharts([]); });
@@ -177,7 +177,6 @@ export function NeboUnionRoom({
   }, [initialPrefill]);
 
   const relationOption = getRelationshipContextOption(relation);
-  const selectedSaved = useMemo(() => charts.find((chart) => chart.id === partnerChartId) || null, [charts, partnerChartId]);
 
   const chooseSaved = (chart: ChartListItem) => {
     setPartnerChartId(chart.id);
@@ -242,14 +241,14 @@ export function NeboUnionRoom({
         },
         {
           source: partnerChartId ? 'saved' : 'birth',
-          sign: sunSignFromDate(partnerDate) || undefined,
+          sign: normalizeZodiacKey(String(sunSignFromDate(partnerDate) || '')) || undefined,
           gender: 'unspecified',
           birthTimeQuality: unknownTime ? 'unknown' : 'exact',
         },
         relation,
       );
       setDeepResult(result.result);
-      const partnerSun = sunSignFromDate(partnerDate) || 'libra';
+      const partnerSun = normalizeZodiacKey(String(sunSignFromDate(partnerDate) || '')) || 'Libra';
       const overall = Number(result.result.overallScore ?? result.result.compatibilityScore ?? 0);
       setHistory(addCompatHistory({
         id: buildCompatHistoryId('person', undefined, partnerName, partnerDate, relation, chartId ?? undefined, partnerChartId),
