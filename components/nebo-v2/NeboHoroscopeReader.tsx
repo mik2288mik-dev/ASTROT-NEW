@@ -20,7 +20,7 @@ import {
   ensureWeeklySignHoroscope,
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
-import { Art, Glyph, Header, type ArtName } from './Primitives';
+import { Art, Header, type ArtName } from './Primitives';
 
 type Period = 'today' | 'week' | 'month';
 
@@ -53,7 +53,7 @@ function zodiacRange(sign: ZodiacKey, language: 'ru' | 'en') {
   const boundary = (month: number, day: number) => fmt.format(new Date(Date.UTC(2024, month - 1, day)));
   const start = boundary(range.startMonth, range.startDay);
   const end = boundary(range.endMonth, range.endDay);
-  return language === 'ru' ? `${start} — ${end}` : `${start} — ${end}`;
+  return `${start} — ${end}`;
 }
 
 function signArt(sign: ZodiacKey): ArtName {
