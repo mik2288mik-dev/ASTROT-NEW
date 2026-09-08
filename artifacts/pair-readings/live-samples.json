@@ -1,0 +1,99 @@
+{
+  "generatedAt": "2026-09-08T16:56:12.785Z",
+  "model": "gpt-5.6-luna",
+  "source": "Actual production writer and provider; fictitious pairs; no database writes",
+  "ephemeris": "Real Swiss Ephemeris through a local-only Python bridge, not the native Node runtime",
+  "premiumGuard": "passed: 403 before database/provider access",
+  "results": [
+    {
+      "id": "friends-question",
+      "input": {
+        "kind": "question",
+        "mode": "sign",
+        "signA": "Pisces",
+        "signB": "Taurus",
+        "relation": "friendship",
+        "language": "ru",
+        "topic": "communication",
+        "date": "2026-09-08",
+        "period": "day"
+      },
+      "context": {
+        "signA": "Pisces",
+        "signB": "Taurus",
+        "basis": "signs",
+        "first": null,
+        "second": null
+      },
+      "status": "passed",
+      "answer": {
+        "status": "ready",
+        "basis": "signs",
+        "headline": "Как договориться проще",
+        "text": "Вам будет легче договориться, если обсуждать один конкретный вопрос за раз и сразу называть, что именно нужно решить. Полезно предложить несколько понятных вариантов, обозначить удобный срок и выбрать тот, который подходит вам обоим."
+      }
+    },
+    {
+      "id": "family-child-question",
+      "input": {
+        "kind": "question",
+        "mode": "birth",
+        "signA": "Pisces",
+        "signB": "Taurus",
+        "relation": "family",
+        "language": "ru",
+        "topic": "support",
+        "date": "2026-09-08",
+        "period": "day"
+      },
+      "context": {
+        "signA": "Pisces",
+        "signB": "Taurus",
+        "basis": "birth-dates",
+        "first": {
+          "date": "1989-03-14",
+          "natal": null
+        },
+        "second": {
+          "date": "2017-05-05",
+          "natal": null
+        }
+      },
+      "status": "passed",
+      "answer": {
+        "status": "ready",
+        "basis": "birth-dates",
+        "headline": "Поддержка через простые действия",
+        "text": "Взрослому проще поддержать ребёнка, если заранее объяснять, что будет происходить, помогать с конкретным делом и спокойно отвечать на вопросы. Ребёнок может рассказать о своём дне, показать рисунок или попросить о помощи — ему не нужно отвечать за настроение взрослого. Если вам подходит, совместное чтение или короткая прогулка поможет побыть рядом без лишних разговоров."
+      }
+    },
+    {
+      "id": "colleagues-future",
+      "input": {
+        "kind": "future",
+        "mode": "sign",
+        "signA": "Pisces",
+        "signB": "Taurus",
+        "relation": "work",
+        "language": "ru",
+        "topic": "agreements",
+        "date": "2026-09-09",
+        "period": "day"
+      },
+      "context": {
+        "signA": "Pisces",
+        "signB": "Taurus",
+        "basis": "signs",
+        "first": null,
+        "second": null
+      },
+      "status": "passed",
+      "answer": {
+        "status": "ready",
+        "basis": "signs",
+        "headline": "Договорённости без спешки",
+        "text": "Вам может быть проще прийти к понятному плану, если разговор касается конкретных задач, сроков и ожидаемого результата. Сложнее, вероятно, окажутся расплывчатые обещания и разный темп: один из вас может захотеть быстрее двигаться дальше, а другому понадобится время, чтобы всё взвесить."
+      }
+    }
+  ]
+}

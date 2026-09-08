@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
@@ -20,7 +20,13 @@ import {
   ensureWeeklySignHoroscope,
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
-import { Art, Header, type ArtName } from './Primitives';
+import { Art, Glyph, Header, type ArtName } from './Primitives';
+import { LayeredSurface } from './LayeredSurface';
+import type { LayeredSurfaceController } from '../../lib/neboDesign/layeredSurface';
+import { ZODIAC_ART_READY, zodiacHeroArtwork } from './zodiacArtwork';
+import styles from './NeboZodiac.module.css';
+import { NeboZodiacFuture } from './NeboZodiacFuture';
+import { NeboZodiacExplore } from './NeboZodiacExplore';
 
 type Period = 'today' | 'week' | 'month';
 
@@ -33,6 +39,8 @@ type Props = {
   onOpenPersonalForecast?: () => void;
   onOpenCharts?: () => void;
   onRequestPremium?: (period: Exclude<Period, 'today'>) => void;
+  onOpenProfile?: () => void;
+  uiPreview?: { readings: Record<Period, SignHoroscopeReadingV2>; phase?: 'ready' | 'loading' | 'error'; initialPeriod?: Period };
 };
 
 const PERIOD_LABELS: Record<Period, { ru: string; en: string }> = {
@@ -60,7 +68,8 @@ function signArt(sign: ZodiacKey): ArtName {
   return sign.toLowerCase() as ArtName;
 }
 
-export function NeboHoroscopeReader({ profile, chartData, onOpenCharts, onRequestPremium }: Props) {
+export function NeboHoroscopeReader({ profile, chartData, onOpenCharts, onOpenProfile, onRequestPremium, uiPreview }: Props) {
+  const preview = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_UI_PREVIEW === '1' ? uiPreview : undefined;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const ru = language === 'ru';
   const [today, setToday] = useState(() => getMoscowTodayKey());
@@ -71,7 +80,7 @@ export function NeboHoroscopeReader({ profile, chartData, onOpenCharts, onReques
       || ZODIAC_KEYS[0];
   }, [chartData?.sun?.sign, profile.birthDate, profile.selectedZodiacSign]);
   const [sign, setSign] = useState<ZodiacKey>(detectedSign as ZodiacKey);
-  const [period, setPeriod] = useState<Period>('today');
+  const period: Period = preview?.initialPeriod || 'today';
   const [readings, setReadings] = useState<Record<string, SignHoroscopeReadingV2 | null | undefined>>({});
   const [retryRevision, setRetryRevision] = useState(0);
 
@@ -89,14 +98,14 @@ export function NeboHoroscopeReader({ profile, chartData, onOpenCharts, onReques
   const key = period === 'week' ? weekKey : period === 'month' ? monthKey : today;
   const readingKey = `${sign}|${period}|${key}|${language}`;
   const premiumLocked = period !== 'today' && !canAccessFeature('weekly_sign_horoscope', profile, chartData).allowed;
-  const local = useMemo(() => readLocalSignHoroscope(period, sign, key, language), [period, sign, key, language]);
+  const local = useMemo(() => preview ? preview.phase && preview.phase !== 'ready' ? null : { ...preview.readings[period], sign: sign.toLowerCase(), periodKey: key } : readLocalSignHoroscope(period, sign, key, language), [period, sign, key, language, preview]);
   const stored = readings[readingKey];
   const reading = stored === undefined ? local : stored;
-  const failed = stored === null && !local;
+  const failed = preview?.phase === 'error' || stored === null && !local;
   const loading = !premiumLocked && !failed && !reading;
 
   useEffect(() => {
-    if (premiumLocked || local) return;
+    if (premiumLocked || local || preview) return;
     let active = true;
     const load = async () => {
       try {
@@ -112,54 +121,57 @@ export function NeboHoroscopeReader({ profile, chartData, onOpenCharts, onReques
     };
     void load();
     return () => { active = false; };
-  }, [key, language, local, period, premiumLocked, readingKey, retryRevision, sign]);
+  }, [key, language, local, period, premiumLocked, readingKey, retryRevision, sign, preview]);
 
   const chooseSign = (next: ZodiacKey) => {
     lumiaSelectionHaptic();
     setSign(next);
-  };
-  const choosePeriod = (next: Period) => {
-    lumiaSelectionHaptic();
-    setPeriod(next);
   };
   const retry = () => {
     setReadings(current => { const next = { ...current }; delete next[readingKey]; return next; });
     setRetryRevision(value => value + 1);
   };
   const label = getZodiacSign(language, sign);
+  const surface = useRef<LayeredSurfaceController | null>(null);
+  const strip = useRef<HTMLDivElement>(null);
+  useEffect(() => { strip.current?.querySelector<HTMLButtonElement>('[aria-pressed=true]')?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'instant' }); }, [sign]);
 
-  return <div className="nebo-screen nebo-zodiac-screen">
-    <Header name={profile.name || ''} onProfile={onOpenCharts}/>
-    <div className="nebo-reader-scroll nebo-zodiac-scroll">
-      <h1>{ru ? 'Гороскоп по знакам' : 'Sign horoscope'}</h1>
-      <p className="nebo-zodiac-subtitle">{ru ? 'Выбери знак и период — прогноз откроется здесь.' : 'Choose a sign and period to read its forecast.'}</p>
-
-      <section className="nebo-zodiac-hero">
-        <div><strong>{label}</strong><span>{zodiacRange(sign, language)}</span>{reading ? <p>{reading.headline}</p> : null}</div>
-        <Art name={signArt(sign)} alt={label}/>
-      </section>
-
-      <div className="nebo-zodiac-strip" role="list" aria-label={ru ? 'Знаки зодиака' : 'Zodiac signs'}>
-        {ZODIAC_KEYS.map(item => {
-          const itemLabel = getZodiacSign(language, item as ZodiacKey);
-          return <button type="button" role="listitem" key={item} aria-pressed={item === sign} onClick={() => chooseSign(item as ZodiacKey)}>
-            <Art name={signArt(item as ZodiacKey)} alt=""/><small>{itemLabel}</small>
-          </button>;
-        })}
-      </div>
-
-      <div className="nebo-periods nebo-zodiac-periods" role="tablist" aria-label={ru ? 'Период' : 'Period'}>
-        {(Object.keys(PERIOD_LABELS) as Period[]).map(item => <button type="button" role="tab" aria-selected={period === item} aria-pressed={period === item} key={item} onClick={() => choosePeriod(item)}>{PERIOD_LABELS[item][language]}</button>)}
-      </div>
-
-      {premiumLocked ? <section className="nebo-zodiac-reading nebo-tone-peach">
-        <Art name="premium"/><div><h2>{ru ? `Прогноз на ${period === 'week' ? 'неделю' : 'месяц'}` : `${PERIOD_LABELS[period].en} forecast`}</h2><p>{ru ? 'Открой Premium, чтобы читать этот период.' : 'Open Premium to read this period.'}</p><button type="button" className="nebo-primary" onClick={() => onRequestPremium?.(period as Exclude<Period,'today'>)}>{ru ? 'Открыть Premium' : 'Open Premium'}</button></div>
-      </section> : failed ? <section className="nebo-zodiac-reading" role="alert"><h2>{ru ? 'Прогноз не загрузился' : 'Forecast unavailable'}</h2><button type="button" className="nebo-primary" onClick={retry}>{ru ? 'Повторить' : 'Try again'}</button></section> : loading ? <section className="nebo-zodiac-reading" aria-busy="true"><div className="nebo-zodiac-skeleton"/><div className="nebo-zodiac-skeleton nebo-zodiac-skeleton--wide"/></section> : reading ? <section className="nebo-zodiac-reading">
-        <div className="nebo-zodiac-reading-head"><Art name="today"/><span><strong>{period === 'today' ? (ru ? `Сегодня для ${label}` : `Today for ${label}`) : reading.headline}</strong><small>{periodDate(period, reading.periodKey || key, language)}</small></span></div>
-        <h2>{reading.headline}</h2><p>{reading.text}</p>
-      </section> : null}
-
-      <div className="nebo-zodiac-hints"><div className="nebo-tone-lime"><strong>{ru ? 'Смотреть проще' : 'Keep it simple'}</strong><small>{ru ? 'Прогноз — ориентир, а не команда.' : 'A forecast is context, not an order.'}</small></div><div className="nebo-tone-pink"><strong>{ru ? 'Без лишней мистики' : 'No extra mysticism'}</strong><small>{ru ? 'Читай как обычный прогноз на период.' : 'Read it as a simple period forecast.'}</small></div></div>
+  const statusContent = premiumLocked ? <><h3>{ru ? 'Больше с NEBO+' : 'More with NEBO+'}</h3><p>{ru ? 'Прогнозы на неделю и месяц доступны с подпиской.' : 'Weekly and monthly forecasts are available with a subscription.'}</p><button className={styles.action} type="button" onClick={() => onRequestPremium?.(period === 'month' ? 'month' : 'week')}>{ru ? 'Открыть NEBO+' : 'Open NEBO+'}</button></>
+    : failed ? <div role="alert"><h3>{ru ? 'Прогноз не загрузился' : 'Forecast unavailable'}</h3><button className={styles.action} type="button" onClick={retry}>{ru ? 'Повторить' : 'Try again'}</button></div>
+    : loading ? <div className={styles.loading} aria-busy="true" aria-label={ru ? 'Загружаем прогноз' : 'Loading forecast'}><span/><span/><span/></div> : null;
+  const back = <div className={styles.back}>
+    <div className={styles.intro}><h1 className="sr-only">{ru ? 'Гороскоп по знакам зодиака' : 'Zodiac sign horoscope'}</h1>
+    <p className={styles.subtitle}>{ru ? 'Выбери знак и прочитай прогноз' : 'Choose a sign and read your forecast'}</p>
     </div>
+    <section className={styles.hero} aria-label={`${label} · ${PERIOD_LABELS[period][language]}`}>
+      {ZODIAC_ART_READY.has(sign.toLowerCase()) ? <img key={sign} className={styles.heroImage} src={zodiacHeroArtwork(sign)} alt=""/> : <div className={styles.fallbackArt}><Art name={signArt(sign)} alt=""/></div>}
+      <div className={styles.heroContent}>
+        <div className={styles.heroIdentity}>
+        <h2 className={styles.signTitle}>{label}</h2>
+        <span className={styles.signRange}>{zodiacRange(sign, language)}</span>
+        <time className={styles.readingDate}>{periodDate(period, reading?.periodKey || key, language)}</time>
+        </div>
+        <div className={styles.heroReading}>
+        {statusContent || (reading ? <><h3 className={styles.readingHeadline}>{reading.headline}</h3><p className={styles.readingText}>{reading.text}</p></> : null)}
+        </div>
+      </div>
+    </section>
+    <div className={styles.signPicker}>
+      <button className={styles.arrow} type="button" aria-label={ru ? 'Предыдущий знак' : 'Previous sign'} onClick={() => chooseSign(ZODIAC_KEYS[(ZODIAC_KEYS.indexOf(sign) + 11) % 12])}><Glyph name="back" size={18}/></button>
+      <div className={styles.signStrip} ref={strip} role="group" aria-label={ru ? 'Знаки зодиака' : 'Zodiac signs'}>
+        {ZODIAC_KEYS.map(item => <button className={styles.signChip} type="button" key={item} aria-pressed={item === sign} onClick={() => chooseSign(item)}><img className={styles.pickerArt} src={`/zodiac/sign_symbol_${item.toLowerCase()}.png`} width={42} height={42} alt=""/><small>{getZodiacSign(language, item)}</small></button>)}
+      </div>
+      <button className={styles.arrow} type="button" aria-label={ru ? 'Следующий знак' : 'Next sign'} onClick={() => chooseSign(ZODIAC_KEYS[(ZODIAC_KEYS.indexOf(sign) + 1) % 12])}><Glyph name="next" size={18}/></button>
+    </div>
+    <button className={styles.futureEntry} type="button" onClick={() => surface.current?.setPosition('expanded')}><span><strong>{ru ? 'А что дальше?' : 'What comes next?'}</strong><small>{ru ? 'Неделя, месяц и будущие даты' : 'Weeks, months and future dates'}</small></span><Glyph name="next" size={19}/></button>
+    <NeboZodiacExplore sign={sign} language={language}/>
+  </div>;
+  return <div className={`nebo-screen ${styles.root}`}>
+    <Header title={ru ? 'Зодиак' : 'Zodiac'} name={profile.name || ''} onPeople={onOpenCharts} onProfile={onOpenProfile || onOpenCharts}/>
+    <LayeredSurface initial={{ position: 'collapsed', scrollTop: 0 }} collapsedPeek={48} controlRef={surface} back={back}>
+      <h2 className={styles.sheetTitle}>{ru ? 'Будущее' : 'Future'} · {label}</h2>
+      <p className={styles.sheetSubtitle}>{ru ? 'Прогнозы для твоего знака' : 'Forecasts for your sign'}</p>
+      <NeboZodiacFuture profile={profile} sign={sign} preview={Boolean(preview)} onPremium={() => onRequestPremium?.('week')}/>
+    </LayeredSurface>
   </div>;
 }

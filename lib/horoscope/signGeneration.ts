@@ -1,5 +1,5 @@
 import type { Language, SignHoroscopePeriod, SignHoroscopeReadingV2 } from '../../types';
-import { getAppSystemVoice } from '../appVoice';
+import { getSignForecastVoice } from './signContract';
 import { getDeepSeekClient } from '../deepseekClient';
 import { buildDeepSeekChatParams } from '../deepseekChat';
 import { normalizeZodiacKey, type ZodiacKey } from '../zodiacKeys';
@@ -50,11 +50,11 @@ export type SignHoroscopeBatchGenerationResult = {
 
 const PERIOD_INSTRUCTIONS: Record<SignHoroscopePeriod, { ru: string; en: string }> = {
   day: {
-    ru: 'Опиши один ясный вектор этого дня. Не делай глобальных выводов из короткого периода.',
+    ru: 'Опиши одно понятное наблюдение об этом дне. Не делай выводов обо всей жизни.',
     en: 'Describe one clear vector for this day. Do not draw global conclusions from a short period.',
   },
   week: {
-    ru: 'Собери главный вектор недели в один рассказ, без семи отдельных дневных заметок.',
+    ru: 'Расскажи о неделе целиком, без семи отдельных дневных заметок.',
     en: 'Turn the main vector of the week into one story, not seven separate daily notes.',
   },
   month: {
@@ -77,7 +77,7 @@ Be direct, confident, specific, calm, and useful. Stop when the thought is compl
 Для каждого элемента headline и text вместе — не больше ${MAX_SIGN_HOROSCOPE_WORDS} слов.
 Каждый text — один цельный человеческий рассказ без рубрик, списков, обязательных жизненных сфер, Markdown, фатализма, гарантий и выдуманных конкретных событий.
 Пиши прямо, уверенно, конкретно, спокойно и полезно. Остановись, когда мысль закончена.`;
-  return `${getAppSystemVoice(language === 'en' ? 'en' : 'ru')}\n\n${task}`;
+  return `${getSignForecastVoice(language === 'en' ? 'en' : 'ru')}\n\n${task}`;
 }
 
 function uniqueSigns(signs: readonly ZodiacKey[]): ZodiacKey[] {

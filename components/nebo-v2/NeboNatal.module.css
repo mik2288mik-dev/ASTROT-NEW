@@ -1,0 +1,19 @@
+.scroll { overscroll-behavior-y: contain; }
+.tabs { grid-template-columns: repeat(3, 1fr) !important; }
+.observationTitle { display: flex; align-items: center; gap: .65rem; }
+.observationTitle .observationArt { width: 2.5rem; height: 2.7rem; object-fit: contain; flex-shrink: 0; }
+.foundation { max-width: 44rem; margin-inline: auto; padding-block: 1.25rem 2.5rem; }
+.foundation .eyebrow { margin: 0 0 .6rem; color: var(--nebo-muted); font-size: .875rem; }
+.foundation .intro { margin: 1rem 0 1.5rem; font-size: 1rem; line-height: 1.6; color: var(--nebo-muted); text-wrap: pretty; }
+.chapters { margin-block: 1rem; border-block: 1px solid color-mix(in srgb, var(--nebo-ink) 12%, transparent); }
+.chapters summary { min-height: 3rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding-block: .75rem; font-size: 1rem; cursor: pointer; list-style: none; }
+.chapters summary::-webkit-details-marker { display: none; }
+.chapters[open] summary svg { transform: rotate(90deg); }
+.chapters summary:focus-visible { outline: 2px solid var(--nebo-ink); outline-offset: 3px; border-radius: .3rem; }
+.chapters nav { padding-bottom: .75rem; }
+@media (min-width: 768px) { .foundation { padding-block: 2rem 3rem; } }
+
+.foundation .observationTitle .observationArt { width: 2.5rem; height: 2.7rem; flex: 0 0 2.5rem; }
+.foundation .observationTitle .observationArt img { width: 100%; height: 100%; object-fit: contain; }
+
+.scroll { height: 100%; min-height: 0; }

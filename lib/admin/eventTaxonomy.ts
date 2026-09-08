@@ -11,6 +11,7 @@
 
 export const CANONICAL_EVENTS = [
   'app_opened',
+  'screen_view', 'activity_heartbeat', 'forecast_period_selected',
   'signup_started', 'signup_completed',
   'onboarding_started', 'onboarding_completed',
   'birth_data_started', 'birth_data_completed',
@@ -49,6 +50,8 @@ export function canonicalizeEvent(eventType: string): string {
 export const EVENT_LABELS: Record<string, string> = {
   app_opened: 'Открытие приложения',
   screen_view: 'Просмотр экрана',
+  activity_heartbeat: 'Время в приложении',
+  forecast_period_selected: 'Выбор периода прогноза',
   signup_started: 'Начало регистрации',
   signup_completed: 'Регистрация завершена',
   onboarding_started: 'Начало онбординга',

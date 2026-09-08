@@ -98,6 +98,7 @@ function signLabel(value: unknown, language: 'ru' | 'en'): string {
 }
 
 function degreeLabel(value: unknown): string {
+  if (typeof value !== 'number' && (typeof value !== 'string' || !value.trim())) return '';
   const number = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(number) ? `${Number(number.toFixed(2))}°` : '';
 }

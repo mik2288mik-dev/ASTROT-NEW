@@ -1,6 +1,6 @@
 import type { NatalChartData } from '../types';
 import { PERSONAL_FORECAST_VOICE_VERSION } from '../lib/appVoice';
-import { PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU } from '../lib/personalForecastExamples';
+import samples from '../components/ui-preview/readingSamples.json';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
@@ -99,78 +99,10 @@ function sectionFixture(input: {
 }
 
 export function personalForecastFixture(period: PersonalForecastPeriod = 'day'): PersonalForecastPackage {
-  const reference = PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.find((item) => item.period === period)!;
-  const periodKey = period === 'day' ? '2026-07-26' : period === 'week' ? '2026-W30' : '2026-07';
-  const window = resolvePersonalForecastWindow(period, periodKey, 'Europe/Moscow');
-  const observations = reference.input.astrologer_brief.observations;
-  return {
-    period,
-    periodKey,
-    periodStart: window.periodStart,
-    periodEnd: window.periodEnd,
-    dateLabel: 'SUNDAY\n26 JULY',
-    timezone: 'Europe/Moscow',
-    overview: sectionFixture({
-      id: 'overview',
-      title: 'A precise turn',
-      importance: 100,
-      fingerprint: 'overview:fixture',
-      factId: 'fact:overview',
-      overview: true,
-      blocks: [
-        {
-          role: 'detail',
-          atomId: 'forecast_body',
-          text: reference.output.forecast,
-        },
-      ],
-    }),
-    sections: [
-      sectionFixture({
-        id: 'semantic:closing',
-        importance: 90,
-        fingerprint: 'semantic:closing',
-        factId: 'fact:communication',
-        blocks: [
-          { role: 'action', atomId: 'closing', text: reference.output.closing },
-        ],
-      }),
-    ],
-    suggestedCrossPeriodLinks: [],
-    evidence: { e1: evidenceView },
-    visual: { sectionAssetIds: {} },
-    meta: {
-      model: 'gpt-4.1',
-      promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
-      voiceVersion: PERSONAL_FORECAST_VOICE_VERSION,
-      calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
-      semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
-      contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
-      generationAttempts: 1,
-      validationStatus: 'valid',
-      generatedAt: '2026-07-26T10:00:00.000Z',
-      status: 'ready',
-      diagnosticCode: null,
-      astrologerBrief: {
-        tone: 'mixed',
-        observations: [...observations],
-        briefSignature: 'fixture-brief',
-      },
-      semanticSignature: {
-        situation: observations[0],
-        turn: observations[1],
-        outcome: observations.slice(2).join(' ') || observations[1],
-        title: 'A precise turn',
-        forecast: reference.output.forecast,
-        closing: reference.output.closing,
-      },
-      freeSelection: period === 'day' ? {
-        strongestSectionId: 'semantic:closing',
-        rotatedSectionId: null,
-        sectionIds: ['semantic:closing'],
-      } : { strongestSectionId: null, rotatedSectionId: null, sectionIds: [] },
-    },
-  };
+  const result = structuredClone(samples.people[0].forecasts[period]) as unknown as PersonalForecastPackage;
+  const key = period === 'day' ? '2026-07-26' : period === 'week' ? '2026-W30' : '2026-07';
+  const window = resolvePersonalForecastWindow(period, key, 'Europe/Moscow');
+  return { ...result, periodKey: key, periodStart: window.periodStart, periodEnd: window.periodEnd };
 }
 
 /** Legacy question-product fixture, separate from the current period horoscope. */

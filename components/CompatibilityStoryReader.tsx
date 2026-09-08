@@ -25,7 +25,7 @@ export function CompatibilityStoryReader({ result, language, subjectName, partne
   return <article className="compat-story-reader" aria-label={ru ? 'Разбор вашей пары' : 'Your pair reading'}>
     <div className="compat-story-reading-note">
       <span>{ru ? `${minutes} мин чтения` : `${minutes} min read`}</span>
-      <span>{ru ? `«Ты» в тексте — ${subjectName}. ${partnerName} — по имени.` : `“You” means ${subjectName}. ${partnerName} is named.`}</span>
+      <span>{subjectName} + {partnerName}</span>
     </div>
     {chapters.length ? <nav className="compat-story-contents" aria-label={ru ? 'Разделы совместимости' : 'Compatibility chapters'}>
       <p id="compat-story-contents-title" tabIndex={-1}>{ru ? 'Что хочется узнать?' : 'What would you like to know?'}</p>

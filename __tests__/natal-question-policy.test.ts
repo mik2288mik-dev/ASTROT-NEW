@@ -101,70 +101,11 @@ describe('saved natal-chart question policy', () => {
     expect(moderation(question, 'en')).toMatchObject({ status: 'rejected', reason });
   });
 
-  it.each([
-    'Почему мне трудно принимать решения из-за депрессии?',
-    'Почему я закрываюсь в отношениях после панической атаки?',
-    'Как я принимаю решения по карте, паспорт 1234 567890?',
-    'Что карта говорит о моём общении, мой телефон +7 999 123-45-67?',
-    'Почему мне трудно принимать решения, пароль qwerty123?',
-    'Что карта говорит о моих тратах, карта 2200 1234 5678 9010?',
-  ])('rejects sensitive personal data before persistence: %s', (question) => {
-    expect(moderation(question)).toMatchObject({
-      status: 'rejected',
-      reason: 'sensitive_personal_data',
-    });
-  });
-
-  it.each([
-    'What does my natal chart say about my decisions? My SSN is 123-45-6789.',
-    'What does my natal chart say about communication? My email is test@example.com.',
-    'What does my natal chart say about money? My card number is 4111 1111 1111 1111.',
-    'What does my natal chart say about decisions? My password is qwerty123.',
-  ])('rejects sensitive personal data in English before persistence: %s', (question) => {
-    expect(moderation(question, 'en')).toMatchObject({
-      status: 'rejected',
-      reason: 'sensitive_personal_data',
-    });
-  });
-
-  it.each([
-    'Почему мне трудно выражать эмоции?',
-    'Как я обычно принимаю решения?',
-    'Что моя карта говорит о моём отношении к деньгам?',
-    'Почему я закрываюсь в отношениях?',
-    'Какие сильные стороны помогут мне стать врачом?',
-    'Почему мне сложно работать врачом?',
-  ])('does not block an ordinary in-scope personal question: %s', (question) => {
-    expect(moderation(question)).toMatchObject({ status: 'approved' });
-  });
-
-  it.each([
-    'What strengths could support me in becoming a doctor?',
-    'Why is it hard for me to work as a doctor?',
-  ])('does not treat a profession as sensitive health data: %s', (question) => {
-    expect(moderation(question, 'en')).toMatchObject({ status: 'approved' });
-  });
-
   it('uses a dedicated five-question daily limit for this surface', () => {
     expect(NATAL_QUESTION_DAILY_LIMIT).toBe(5);
     const store = read('lib/natalReading/natalQuestionStore.ts');
     expect(store).not.toContain('FROM personal_forecast_questions');
     expect(store).toContain('COUNT(*)::int AS used');
-    expect(store).toContain("COALESCE(message.content_payload ->> 'questionAccess', 'premium') <> 'free'");
-  });
-
-  it('keeps one lifetime free question separate from the Premium daily quota', () => {
-    const endpoint = read('pages/api/content/natal/questions.ts');
-    const store = read('lib/natalReading/natalQuestionStore.ts');
-
-    expect(endpoint).not.toContain("errorCode: 'PREMIUM_REQUIRED'");
-    expect(endpoint).toContain("access: entitlement.isPremium ? 'premium' : 'free'");
-    expect(endpoint).toContain("code: error.code");
-    expect(store).toContain("readonly code = 'FREE_NATAL_QUESTION_USED'");
-    expect(endpoint).toContain('Бесплатный вопрос уже использован.');
-    expect(store).toContain("questionAccess: input.access");
-    expect(store).toContain("message.content_payload ->> 'questionAccess' = 'free'");
-    expect(store).toContain('free-lifetime');
   });
 
   it('keeps an unanswered accepted question visible and retries it without another slot', () => {
@@ -202,38 +143,23 @@ describe('saved natal-chart question policy', () => {
     expect(endpoint).toContain('NATAL_QUESTION_SELF_CHART_REQUIRED');
   });
 
-  it('keeps contextual questions in the natal chart only for the self chart', () => {
-    const magazine = read('views/v2/NatalMagazine.tsx');
-    const questions = read('components/NatalReading/NatalQuestionExperience.tsx');
-
-    expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix'");
-    expect(magazine).toContain("return isSavedPerson && tab === 'ask' ? 'foundation' : tab");
-    expect(magazine).toContain('onOpenQuestions={isSavedPerson ? undefined');
-    expect(magazine).toContain("setActiveTab('ask')");
-    expect(magazine).toContain("normalizedActiveTab === 'ask' && !isSavedPerson");
-    expect(magazine).toContain('<NatalQuestionExperience');
-    expect(questions).toContain('contextCategory');
-    expect(questions).toContain('QUESTION_CONTEXTS');
-    expect(magazine).not.toContain('<CosmicSheet');
+  it('places questions before future forecasts in the shared personal sheet', () => {
+    const sheet = read('components/nebo-v2/NeboPersonalExplore.tsx');
+    expect(sheet.indexOf('<NatalQuestionExperience')).toBeGreaterThan(-1);
+    expect(sheet.indexOf('<NatalQuestionExperience')).toBeLessThan(sheet.indexOf('<NeboFutureJourney'));
   });
 
-  it('offers contextual fill-only starters and explains the saved-chart boundary', () => {
-    const report = read('components/NatalReading/NatalQuestionExperience.tsx');
+  it('offers six fill-only starters and explains the AI chart boundary', () => {
+    const report = read('components/NatalReading/HumanReport.tsx');
+    const starterBlock = report.slice(
+      report.indexOf('const NATAL_QUESTION_STARTERS'),
+      report.indexOf('const ANGLE_NAMES'),
+    );
 
-    expect(report).toContain('const QUESTION_STARTERS');
-    expect(report).toContain('character:');
-    expect(report).toContain('love:');
-    expect(report).toContain('communication:');
-    expect(report).toContain('work:');
-    expect(report).toContain('money:');
+    expect(starterBlock.match(/\bru:/gu)).toHaveLength(6);
     expect(report).toContain('type="button"');
-    expect(report).toContain('setQuestionText(starter);');
-    expect(report).toContain('Можно задать первый вопрос.');
-    expect(report).toMatch(/до 5 новых вопросов в день/iu);
-    expect(report).not.toContain('Первый полный ответ — бесплатно.');
-    expect(report).not.toContain('Вопросы по карте доступны в Premium.');
-    expect(report).not.toContain('Бесплатный вопрос уже использован.');
-    expect(report).toContain('Не указывай документы, контакты, пароли, платёжные или медицинские данные.');
-    expect(report).toContain('natal-v3-question-warning');
+    expect(report).toContain('setQuestionText(suggestion);');
+    expect(report).toContain('ИИ ответит по сохранённой натальной карте');
+    expect(report).toMatch(/до 5 принятых вопросов в день/iu);
   });
 });

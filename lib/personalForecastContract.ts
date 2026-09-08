@@ -245,12 +245,12 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v48-nebo-human-voice',
+  'personal-forecast-feed.v54-dated-natal-horoscope',
 );
-export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v20-nebo-human-voice';
+export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v26-dated-natal-horoscope';
 /** Input/cache identity, not an astrological calculation version. */
-export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v12';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v30-nebo-human-voice';
+export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-swiss-dated-natal-v17';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v32-direct-prose';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -400,6 +400,40 @@ export function isCurrentPersonalForecastPeriodKey(
   now = new Date(),
 ): boolean {
   return periodKey === getPersonalForecastPeriodKey(period, now, timezone);
+}
+
+export const PERSONAL_FORECAST_ROLLING_DAY_COUNT = 4;
+export const MAX_FUTURE_FORECAST_DAYS = 30;
+
+/** Calendar dates, independent of DST and the device's own timezone. */
+export function getPersonalForecastDayHorizon(timezone?: string | null, now = new Date()): string[] {
+  const keys = [getPersonalForecastPeriodKey('day', now, normalizeForecastTimezone(timezone))];
+  while (keys.length < PERSONAL_FORECAST_ROLLING_DAY_COUNT) {
+    keys.push(getNextPersonalForecastPeriodKey('day', keys[keys.length - 1], timezone));
+  }
+  return keys;
+}
+
+export function getPersonalForecastPeriodAccess(input: {
+  accessTier: PersonalForecastGenerationTier;
+  period: PersonalForecastPeriod;
+  periodKey: string;
+  timezone?: string | null;
+  now?: Date;
+}): 'allowed' | 'premium_required' | 'outside_horizon' {
+  const now = input.now || new Date();
+  const timezone = normalizeForecastTimezone(input.timezone);
+  if (input.period !== 'day') {
+    if (!isCurrentPersonalForecastPeriodKey(input.period, input.periodKey, timezone, now)) return 'outside_horizon';
+    return input.accessTier === 'premium' ? 'allowed' : 'premium_required';
+  }
+  let selected: PersonalForecastWindow;
+  try { selected = resolvePersonalForecastWindow('day', input.periodKey, timezone); } catch { return 'outside_horizon'; }
+  if (selected.periodStart !== input.periodKey) return 'outside_horizon';
+  const today = getPersonalForecastPeriodKey('day', now, timezone);
+  const offset = (Date.parse(`${input.periodKey}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / 86_400_000;
+  if (!Number.isInteger(offset) || offset < 0 || offset > MAX_FUTURE_FORECAST_DAYS) return 'outside_horizon';
+  return offset === 0 || input.accessTier === 'premium' ? 'allowed' : 'premium_required';
 }
 
 function parsePeriodKey(period: PersonalForecastPeriod, periodKey: string) {
@@ -977,6 +1011,7 @@ function presentationValid(
 function personalForecastAstrologerBriefValid(value: unknown): value is PersonalForecastAstrologerBrief {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const basis = value as PersonalForecastAstrologerBrief;
+  if (basis.briefSignature === 'direct-v1') return basis.tone === 'mixed' && Array.isArray(basis.observations) && basis.observations.length === 0;
   return (basis.tone === 'favorable' || basis.tone === 'mixed' || basis.tone === 'demanding')
     && Array.isArray(basis.observations)
     && basis.observations.length >= 2 && basis.observations.length <= 4
@@ -1067,7 +1102,7 @@ export function getPersonalForecastPackageValidationError(
   ) {
     return 'PACKAGE_COLLECTIONS_INVALID';
   }
-  const expectedSectionCount = forecast.sections.length === 1;
+  const expectedSectionCount = forecast.sections.length === 0;
   if (!expectedSectionCount) {
     return 'PACKAGE_PERIOD_STRUCTURE_INVALID';
   }
@@ -1131,17 +1166,6 @@ export function getPersonalForecastPackageValidationError(
     )) {
       return `PACKAGE_SECTION_INVALID:${sectionDiagnosticId}`;
     }
-  }
-  const closingSection = forecast.sections.at(-1);
-  if (!closingSection) {
-    return 'PACKAGE_CLOSING_MISSING';
-  }
-  if (!redactedSectionIds.has(closingSection.id) && (
-    closingSection.title !== undefined
-    || closingSection.contentBlocks.length !== 1
-    || closingSection.contentBlocks[0]?.role !== 'action'
-  )) {
-    return 'PACKAGE_CLOSING_INVALID';
   }
   const ids = new Set<string>(['overview']);
   for (const section of forecast.sections) {

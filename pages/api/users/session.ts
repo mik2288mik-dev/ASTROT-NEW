@@ -49,7 +49,7 @@ async function recordAppVisit(
             eventKey: `visit:${randomUUID()}`,
             eventType: 'activity',
             userId: appUser.userId,
-            payload: { eventType: 'app_open', runtime: runtime.runtime },
+            payload: { ...runtime, eventType: 'app_open' },
           });
           notify = true;
         }

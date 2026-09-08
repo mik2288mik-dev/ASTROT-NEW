@@ -63,6 +63,12 @@ const PROVIDERS: Record<string, string> = {
   vk: 'VK ID', vk_id: 'VK ID', yandex: 'Яндекс ID', google: 'Google',
   email: 'Email', password: 'Email и пароль', rustore: 'RuStore', rustore_pay: 'RuStore',
 };
+const DISTRIBUTION_CHANNELS: Record<string, string> = {
+  rustore: 'RuStore',
+  google_play: 'Google Play',
+  telegram: 'Telegram',
+  development: 'Development',
+};
 const SCREENS: Record<string, string> = {
   dashboard: 'Сегодня', today: 'Сегодня', personal_forecast: 'Личный прогноз',
   horoscope: 'Зодиак', zodiac: 'Зодиак', chart: 'Натальная карта',
@@ -75,6 +81,7 @@ const SCREENS: Record<string, string> = {
 };
 const ACTIONS: Record<string, string> = {
   app_open: '👋 Открыл приложение',
+  app_opened: '👋 Открыл приложение',
   screen_view: '🧭 Открыл экран', first_result_ready: '✨ Получил первый результат',
   first_value_viewed: '✨ Посмотрел первый результат', natal_section_open: '📖 Открыл раздел разбора',
   compatibility_ready: '🤝 Получил совместимость', person_added: '👥 Добавил человека',
@@ -191,11 +198,19 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
   if (typeof input.isFirstLogin === 'boolean') result.isFirstLogin = input.isFirstLogin;
   const provider = code(input.provider);
   if (Object.prototype.hasOwnProperty.call(PROVIDERS, provider)) result.provider = provider;
+  const distributionChannel = code(input.distributionChannel);
+  if (Object.prototype.hasOwnProperty.call(DISTRIBUTION_CHANNELS, distributionChannel)) result.distributionChannel = distributionChannel;
   if (['native', 'web', 'telegram'].includes(String(input.runtime))) result.runtime = input.runtime;
   if (typeof input.sandbox === 'boolean') result.sandbox = input.sandbox;
   if (typeof input.autoRenewing === 'boolean') result.autoRenewing = input.autoRenewing;
   if (typeof input.expiresAt === 'string' && Number.isFinite(Date.parse(input.expiresAt))) {
     result.expiresAt = new Date(input.expiresAt).toISOString();
+  }
+  if (typeof input.appVersion === 'string' && /^[0-9][0-9A-Za-z.+-]{0,63}$/.test(input.appVersion)) {
+    result.appVersion = input.appVersion;
+  }
+  if (typeof input.versionCode === 'number' && Number.isSafeInteger(input.versionCode) && input.versionCode >= 0) {
+    result.versionCode = input.versionCode;
   }
   const eventType = code(input.eventType);
   if (Object.prototype.hasOwnProperty.call(ACTIONS, eventType)) result.eventType = eventType;
@@ -230,7 +245,8 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
 
 export function shouldDeliverNeboOpsEvent(eventType: string, payload: Payload = {}): boolean {
   return eventType === 'login' || eventType === 'daily_summary'
-    || (eventType === 'activity' && (payload?.eventType === 'paywall_view' || payload?.eventType === 'app_open'));
+    || (eventType === 'activity' && (payload?.eventType === 'paywall_view'
+      || payload?.eventType === 'app_open' || payload?.eventType === 'app_opened'));
 }
 
 export async function enqueueNeboOpsEvent(db: Queryable, input: NeboOpsEvent): Promise<void> {
@@ -446,6 +462,11 @@ export function renderNeboOpsMessage(row: Pick<OpsRow, 'event_type' | 'user_id' 
   }
   const provider = PROVIDERS[String(p.provider || user.auth_provider || '')];
   if (provider) lines.push(`🔐 ${row.event_type === 'login' ? 'Вход' : 'Провайдер'}: ${provider}`);
+  const installChannel = DISTRIBUTION_CHANNELS[String(p.distributionChannel || '')];
+  if (installChannel) lines.push(`📥 Канал установки: ${installChannel}`);
+  if (!installChannel && row.event_type === 'activity') {
+    lines.push('📥 Канал установки: не определён');
+  }
   if (p.runtime) lines.push(`📱 Платформа: ${p.runtime === 'native' ? 'Приложение' : p.runtime === 'telegram' ? 'Telegram Mini App' : 'Браузер'}`);
   if (row.event_type === 'login') {
     const source = text(user.attribution_source, 120);
@@ -575,7 +596,7 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
      WHERE status IN ('pending', 'failed')
        AND NOT (
          event_type IN ('login', 'daily_summary')
-         OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') IN ('paywall_view', 'app_open'))
+         OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') IN ('paywall_view', 'app_open', 'app_opened'))
        )`,
   );
   const count = Number.isFinite(limit) ? Math.min(MAX_BATCH, Math.max(1, Math.trunc(limit))) : MAX_BATCH;
@@ -589,7 +610,7 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
          WHERE status IN ('pending', 'failed') AND next_attempt_at <= NOW() AND attempts < $1
            AND (
              event_type IN ('login', 'daily_summary')
-             OR (event_type = 'activity' AND payload_json->>'eventType' IN ('paywall_view', 'app_open'))
+             OR (event_type = 'activity' AND payload_json->>'eventType' IN ('paywall_view', 'app_open', 'app_opened'))
            )
          ORDER BY CASE WHEN event_type = 'activity' THEN 1 ELSE 0 END, next_attempt_at, id
          FOR UPDATE SKIP LOCKED LIMIT 1

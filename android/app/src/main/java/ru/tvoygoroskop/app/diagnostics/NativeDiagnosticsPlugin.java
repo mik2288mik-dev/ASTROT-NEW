@@ -11,6 +11,8 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import ru.tvoygoroskop.app.BuildConfig;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
@@ -116,6 +118,21 @@ public class NativeDiagnosticsPlugin extends Plugin {
     public void load() {
         installCrashHandler(getContext());
         mark(getContext(), "capacitor_plugin_loaded");
+    }
+
+    @PluginMethod
+    public void getRuntimeInfo(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("runtime", "native");
+        result.put("osName", "Android");
+        result.put("deviceManufacturer", Build.MANUFACTURER);
+        result.put("deviceModel", Build.MODEL);
+        result.put("osVersion", Build.VERSION.RELEASE);
+        result.put("sdk", Build.VERSION.SDK_INT);
+        result.put("appVersion", BuildConfig.VERSION_NAME);
+        result.put("versionCode", BuildConfig.VERSION_CODE);
+        result.put("distributionChannel", BuildConfig.DISTRIBUTION_CHANNEL);
+        call.resolve(result);
     }
 
     @PluginMethod

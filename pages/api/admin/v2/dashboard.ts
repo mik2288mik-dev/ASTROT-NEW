@@ -3,6 +3,7 @@ import { handleAdminError } from '../../../../lib/adminAuth';
 import { requireAdminPermission } from '../../../../lib/admin/rbac';
 import { db, getPool } from '../../../../lib/db';
 import { canonicalizeEvent, eventLabel } from '../../../../lib/admin/eventTaxonomy';
+import { INTERACTIVE_EVENT_TYPES } from '../../../../lib/admin/activityAnalytics';
 
 /** Ключевые метрики дашборда (реальные числа из БД). Право analytics.view. */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -23,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           COUNT(DISTINCT user_id) FILTER (WHERE occurred_at >= NOW() - INTERVAL '1 day')::int AS dau,
           COUNT(DISTINCT user_id) FILTER (WHERE occurred_at >= NOW() - INTERVAL '7 days')::int AS wau,
           COUNT(DISTINCT user_id) FILTER (WHERE occurred_at >= NOW() - INTERVAL '30 days')::int AS mau
-        FROM user_app_events`),
+        FROM user_app_events WHERE event_type = ANY($1::text[])`, [INTERACTIVE_EVENT_TYPES]),
       pool.query(`SELECT
           COALESCE(SUM(stars_amount), 0)::bigint AS total_stars,
           COUNT(*)::int AS total_payments,
@@ -57,16 +58,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         FROM (
           SELECT
             EXTRACT(DAY FROM NOW() - u.created_at) AS age,
-            EXISTS(SELECT 1 FROM user_app_events e WHERE e.user_id = u.id AND e.occurred_at >= u.created_at + INTERVAL '1 day' AND e.occurred_at < u.created_at + INTERVAL '2 day') AS r1,
-            EXISTS(SELECT 1 FROM user_app_events e WHERE e.user_id = u.id AND e.occurred_at >= u.created_at + INTERVAL '7 day' AND e.occurred_at < u.created_at + INTERVAL '8 day') AS r7,
-            EXISTS(SELECT 1 FROM user_app_events e WHERE e.user_id = u.id AND e.occurred_at >= u.created_at + INTERVAL '30 day' AND e.occurred_at < u.created_at + INTERVAL '31 day') AS r30
+            EXISTS(SELECT 1 FROM user_app_events e WHERE e.user_id = u.id AND e.event_type = ANY($1::text[]) AND e.occurred_at >= u.created_at + INTERVAL '1 day' AND e.occurred_at < u.created_at + INTERVAL '2 day') AS r1,
+            EXISTS(SELECT 1 FROM user_app_events e WHERE e.user_id = u.id AND e.event_type = ANY($1::text[]) AND e.occurred_at >= u.created_at + INTERVAL '7 day' AND e.occurred_at < u.created_at + INTERVAL '8 day') AS r7,
+            EXISTS(SELECT 1 FROM user_app_events e WHERE e.user_id = u.id AND e.event_type = ANY($1::text[]) AND e.occurred_at >= u.created_at + INTERVAL '30 day' AND e.occurred_at < u.created_at + INTERVAL '31 day') AS r30
           FROM users u
           WHERE u.created_at >= NOW() - INTERVAL '90 day' AND u.created_at <= NOW() - INTERVAL '1 day'
-        ) t`).catch(() => ({ rows: [{ d1: null, d7: null, d30: null }] })),
+        ) t`, [INTERACTIVE_EVENT_TYPES]).catch(() => ({ rows: [{ d1: null, d7: null, d30: null }] })),
       pool.query(`
         SELECT event_type, COUNT(*)::int AS count
           FROM user_app_events
-          WHERE occurred_at >= NOW() - INTERVAL '30 days'
+          WHERE occurred_at >= NOW() - INTERVAL '30 days' AND event_type <> 'activity_heartbeat'
           GROUP BY event_type ORDER BY count DESC LIMIT 64`).catch(() => ({ rows: [] })),
       pool.query(`
         WITH attributed AS (

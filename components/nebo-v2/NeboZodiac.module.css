@@ -1,0 +1,146 @@
+.root { min-height: 0; }
+.back { padding: 12px 16px 72px; }
+.root .heading { margin: 0; font-size: clamp(17px, 5.25vw, 21px); line-height: 1.25; letter-spacing: -.65px; font-weight: 750; white-space: nowrap; }
+.root .subtitle { margin: 5px 0 17px; font-size: clamp(11px, 3.4vw, 13px); line-height: 1.3; color: var(--nebo-muted, #657294); white-space: nowrap; letter-spacing: -.15px; }
+.hero { position: relative; isolation: isolate; min-height: 405px; overflow: hidden; padding: 23px 21px 24px; border-radius: 23px; color: #f9fbff; background: #182d4d; }
+.heroImage { position: absolute; z-index: -2; inset: 0; width: 100%; height: auto; min-height: 100%; object-fit: cover; object-position: right top; pointer-events: none; }
+.hero::after { content: ''; position: absolute; z-index: -1; inset: 0; background: linear-gradient(90deg, rgb(9 22 47 / .18), transparent 75%), linear-gradient(transparent 45%, rgb(10 25 47 / .3)); pointer-events: none; }
+.artSpace { float: right; width: 43%; height: 185px; shape-outside: polygon(20% 0, 100% 0, 100% 100%, 0 100%); }
+.fallbackArt { position: absolute; top: 27px; right: 5px; width: 42%; height: 155px; pointer-events: none; }
+.fallbackArt img { width: 100%; height: 100%; object-fit: contain; }
+.root .signTitle { margin: 0 0 4px; font-size: 28px; line-height: 1.15; font-weight: 750; letter-spacing: -.7px; color: #fff; }
+.signRange { display: block; color: #dce8fa; font-size: 12px; line-height: 1.45; }
+.readingDate { display: block; margin: 18px 0 10px; color: #dce8fa; font-size: 12px; line-height: 1.4; }
+.root .readingHeadline { margin: 0 0 11px; color: #fff; font-size: 19px; line-height: 1.25; font-weight: 700; letter-spacing: -.25px; }
+.root .readingText { margin: 0; color: #f3f6fc; font-size: 15px; line-height: 1.6; white-space: pre-line; text-wrap: pretty; }
+.hero::before { content: ''; display: table; }
+.heroContent::after { content: ''; display: block; clear: both; }
+.signPicker { display: grid; grid-template-columns: 28px minmax(0, 1fr) 28px; align-items: center; gap: 2px; margin: 13px -8px 0; }
+.signStrip { display: flex; min-width: 0; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; gap: 6px; padding: 2px; }
+.signStrip::-webkit-scrollbar { display: none; }
+.root .signChip { flex: 0 0 61px; min-width: 0; min-height: 74px; padding: 8px 3px 7px; border: 1px solid transparent; border-radius: 15px; background: rgb(255 255 255 / .7); color: var(--nebo-muted, #657294); scroll-snap-align: center; cursor: pointer; }
+.signChip[aria-pressed='true'] { background: #e4e0ff; border-color: #c9c1f5; color: #172448; }
+.signSymbol { display: block; height: 31px; font-family: Georgia, 'Segoe UI Symbol', serif; font-size: 28px; line-height: 1; color: #6d82ba; }
+.signChip[aria-pressed='true'] .signSymbol { color: #7861c2; }
+.signChip small { display: block; margin-top: 7px; font-size: 10px; line-height: 1.15; }
+.root .arrow { display: grid; place-items: center; min-height: 44px; width: 28px; border: 0; padding: 0; border-radius: 12px; color: var(--nebo-ink, #172448); background: transparent; cursor: pointer; }
+.root .futureEntry { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin-top: 17px; padding: 15px 16px; border: 1px solid rgb(255 255 255 / .7); border-radius: 18px; background: linear-gradient(120deg, #e4eaff, #eeebfc); color: #263653; text-align: left; cursor: pointer; }
+.futureEntry strong { display: block; font-size: 16px; line-height: 1.25; }
+.futureEntry small { display: block; margin-top: 4px; color: #677598; font-size: 12px; line-height: 1.3; }
+.root .sheetTitle { margin: 4px 0 6px; font-size: 24px; line-height: 1.2; letter-spacing: -.5px; }
+.sheetSubtitle { margin: 0 0 16px; color: var(--nebo-muted, #657294); font-size: 13px; line-height: 1.4; }
+.periods { display: flex; gap: 4px; padding: 4px; margin: 14px 0; border-radius: 15px; background: #e6e9f6; }
+.root .periods button { flex: 1; min-height: 39px; padding: 8px 5px; border: 0; border-radius: 12px; background: transparent; color: #626e91; font-size: 13px; cursor: pointer; }
+.root .periods button[aria-pressed='true'] { background: #192341; color: #fff; }
+.currentReading { margin: 14px 0 22px; padding: 18px; border-radius: 19px; background: rgb(255 255 255 / .76); }
+.currentReading h3 { margin: 0 0 9px; font-size: 17px; line-height: 1.3; }
+.currentReading p { margin: 0; font-size: 14px; line-height: 1.55; white-space: pre-line; }
+.currentReading time { display: block; margin-bottom: 10px; font-size: 11px; color: #64708d; }
+.root .action { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 44px; margin-top: 14px; padding: 11px 15px; border: 0; border-radius: 14px; background: #1c2948; color: #fff; font-size: 14px; line-height: 1.3; cursor: pointer; }
+.root .action:disabled { opacity: .6; cursor: default; }
+.loading { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.loading span { display: block; height: 12px; border-radius: 6px; background: rgb(231 237 255 / .25); }
+.loading span:last-child { width: 68%; }
+.root button:focus-visible, .root input:focus-visible { outline: 3px solid #9a87e6; outline-offset: 3px; }
+.future { margin: 24px 0 20px; padding: 18px 13px 16px; border-radius: 23px; background: linear-gradient(135deg, #e2eaff, #e9e1f7); }
+.futureTitle { margin: 0 0 6px; color: #273452; font-size: 22px; line-height: 1.2; letter-spacing: -.5px; }
+.dateRow { display: grid; grid-template-columns: 28px minmax(0, 1fr) 28px; gap: 8px; align-items: center; max-width: 306px; margin: 3px auto 17px; }
+.dateDisplay { display: grid; grid-template-columns: 1.1fr .75fr 1.2fr; gap: 5px; padding: 8px; border: 1px solid #394658; border-radius: 10px; background: #222d3d; box-shadow: inset 0 1px 0 rgb(255 255 255 / .1); }
+.dateDisplay span { min-width: 0; }
+.dateDisplay small { display: block; margin-bottom: 4px; color: #c3ccdc; font-size: 7px; line-height: 1; letter-spacing: .06em; }
+.dateDisplay b { display: block; padding: 3px; border-radius: 4px; background: #151e28; color: #edb9a5; font-family: Consolas, monospace; font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums; }
+.dateDisplay .rangeDigits { font-size: 19px; letter-spacing: -.08em; }
+.dateDisplay span:nth-child(2) b { color: #ecd69c; }
+.dateDisplay span:nth-child(3) b { color: #b9dac6; }
+.topics { display: flex; flex-wrap: wrap; gap: 6px; }
+.root .topics button { flex: 1 0 calc(25% - 6px); min-width: 0; min-height: 37px; padding: 6px 3px; border: 1px solid transparent; border-radius: 11px; color: #52607f; background: rgb(255 255 255 / .56); font-size: 11px; line-height: 1.25; cursor: pointer; }
+.root .topics button[aria-pressed='true'] { border-color: #c2b8e7; background: #fff; color: #243251; }
+.accessNote { margin: 12px 1px 0; color: #63708e; font-size: 12px; line-height: 1.45; }
+.root .dateRow .arrow:disabled { opacity: .35; cursor: default; }
+@media (prefers-reduced-motion: no-preference) { .signChip, .action, .futureEntry { transition: background-color 150ms ease, transform 150ms ease; } .action:active:not(:disabled), .futureEntry:active { transform: scale(.98); } }
+
+/* Zodiac refresh: artwork, readable spacing and useful discoveries. */
+.intro { padding: 0 0 22px; }
+.root .intro .subtitle { margin: 7px 0 0; }
+.hero { min-height: 380px; padding: 24px 21px 27px; }
+.heroIdentity { min-height: 134px; width: 58%; }
+.heroReading { display: flex; flex-direction: column; justify-content: center; min-height: 185px; padding-top: 8px; }
+.root .signTitle { font-size: 27px; }
+.root .heroReading .readingHeadline { margin: 0 0 12px; }
+.root .heroReading .readingText { margin: 0; }
+.root .signChip { display: flex; flex-direction: column; align-items: center; min-height: 76px; padding: 5px 3px 8px; }
+.signChip small { margin-top: 4px; }
+.root .futureEntry { background: linear-gradient(110deg, #ffddb9, #f8c9d8 64%, #e4cdff); border-color: #fff8; color: #492e55; padding: 17px; }
+.futureEntry strong { font-size: 18px; }
+.futureEntry small { color: #745171; }
+.explore { margin-top: 10px; }
+.exploreGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.root .exploreGrid button { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; position: relative; overflow: hidden; min-height: 143px; padding: 12px; border: 1px solid #fff9; border-radius: 19px; color: #263653; text-align: left; cursor: pointer; }
+.pairEntry { background: linear-gradient(135deg, #f6d4e4, #e4d6ff); }
+.birthdayEntry { background: linear-gradient(135deg, #d6f0dd, #e9f4bc); }
+.exploreGrid strong { font-size: 15px; line-height: 1.25; margin-top: 7px; }
+.exploreGrid small { font-size: 11px; line-height: 1.3; margin-top: 4px; color: #576680; }
+.root .exploreGrid button[aria-expanded='true'] { box-shadow: inset 0 0 0 2px #b7a4d7; }
+.explorePanel { margin-top: 10px; padding: 16px; background: #ffffffd9; border-radius: 19px; }
+.panelHeading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.root .panelHeading h3 { margin: 0; font-size: 18px; }
+.pairChoice { display: grid; grid-template-columns: 1fr 20px 1fr; align-items: center; gap: 8px; margin-top: 12px; }
+.pairChoice > span:first-child { display: flex; align-items: center; gap: 5px; font-size: 13px; }
+.pairChoice label, .birthdayLabel { display: flex; flex-direction: column; gap: 7px; font-size: 12px; color: #62718b; }
+.pairChoice select, .birthdayLabel input { min-width: 0; width: 100%; border: 1px solid #d9dfee; background: #f5f7fc; color: #263653; border-radius: 10px; min-height: 42px; padding: 8px; font: inherit; font-size: 14px; }
+.root .pairResult h4 { margin: 18px 0 6px; font-size: 15px; }
+.root .pairResult p, .root .birthdayResult p { margin: 0; font-size: 14px; line-height: 1.55; }
+.pairResult small { display: block; margin-top: 16px; color: #64708d; font-size: 12px; }
+.birthdayResult { display: grid; justify-items: center; gap: 10px; }
+.birthdayResult strong { font-size: 22px; }
+.birthdayLabel { margin: 10px 0 16px; }
+.root .future { margin: 18px 0 20px; padding: 0 12px 16px; background: linear-gradient(150deg, #e0f0e7, #e5eafa 50%, #eee2f6); }
+.watchStage { position: relative; isolation: isolate; min-height: 216px; margin: 0 -12px 10px; border-radius: 23px; overflow: hidden; background: radial-gradient(ellipse at 78% 30%, #fff7ce 0, transparent 52%), linear-gradient(125deg, #dcf0ec, #e4e8fa 57%, #ddcef1); }
+.watchStage::before { content: ''; position: absolute; z-index: -1; width: 235px; height: 235px; right: -53px; top: -20px; border: 1px solid #ffffffb3; border-radius: 50%; box-shadow: 0 0 0 20px #fff2, 0 0 0 42px #fff2; }
+.watchIntro { position: relative; min-height: 216px; }
+.watchCopy { position: relative; z-index: 1; width: 55%; padding: 24px 0 22px 18px; }
+.watchCopy > span { display: block; font-size: 12px; color: #536c71; margin-bottom: 12px; }
+.root .watchCopy h3 { margin: 0; font-size: 25px; line-height: 1.08; letter-spacing: -.7px; color: #263d50; }
+.root .watchCopy p { margin: 11px 0 0; max-width: 145px; font-size: 12px; line-height: 1.45; color: #5c6d80; }
+.watchArt { position: absolute; width: 45%; height: 171px; object-fit: contain; right: 9px; top: 26px; filter: drop-shadow(0 12px 10px #33443826); transform-origin: center; }
+.watchReading { position: relative; padding: 23px 19px; min-height: 216px; }
+.root .watchReading h3 { margin: 12px 0 10px; font-size: 20px; line-height: 1.2; color: #263d50; }
+.root .watchReading p { margin: 0; font-size: 14px; line-height: 1.6; color: #34475e; white-space: pre-line; }
+.watchReading time { font-size: 11px; color: #5c6d80; }
+.watchLoading { position: absolute; inset: 0; display: grid; place-items: center; font-size: 14px; color: #526777; animation: waitReveal 650ms both; }
+.timelineShortcuts { display: flex; justify-content: center; gap: 6px; padding: 0 16px; margin: 0 0 5px; }
+.root .timelineShortcuts button { flex: 1; border: 0; border-radius: 8px; min-height: 29px; padding: 5px 10px; background: transparent; color: #62718b; font-size: 11px; cursor: pointer; }
+.root .timelineShortcuts button[aria-pressed='true'] { background: #ffffffb8; color: #2e5460; }
+.timelineShortcuts button:disabled { opacity: .4; cursor: default; }
+.root .future .action { background: linear-gradient(110deg, #365f71, #66518b); }
+.root .topics button:nth-child(2) { background-color: #f1edcc; }
+.root .topics button:nth-child(3) { background-color: #dce9f8; }
+.root .topics button:nth-child(4) { background-color: #f4dce7; }
+.root .topics button:nth-child(5) { background-color: #dbeddd; }
+.root .topics button:nth-child(6) { background-color: #f3e4d6; }
+.root .topics button:nth-child(7) { background-color: #e6ddf7; }
+.root .topics button[aria-pressed='true'] { border-color: #9c85bd; box-shadow: inset 0 0 0 1px #9c85bd; color: #293c55; }
+@keyframes watchDepart { to { transform: translate(-20%, 6%) scale(2.4) rotate(-12deg); opacity: 0; filter: blur(7px); } }
+@keyframes copyDepart { to { opacity: 0; transform: translateX(-30px); } }
+@keyframes sceneEnter { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+@keyframes waitReveal { 0%, 85% { opacity: 0; } 100% { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) {
+  .watchIntro { animation: sceneEnter 350ms ease-out both; }
+  .watchReading { animation: sceneEnter 320ms ease-out both; }
+  .watchStage[data-scene='departing'] .watchArt { animation: watchDepart 650ms cubic-bezier(.45,0,.7,1) both; }
+  .watchStage[data-scene='departing'] .watchCopy { animation: copyDepart 300ms ease-in both; }
+}
+@media (prefers-reduced-motion: reduce) { .watchStage[data-scene='departing'] .watchIntro { opacity: 0; } .watchLoading { animation: none; } }
+.pickerArt { width: 42px; height: 42px; object-fit: contain; }
+.watchArt { inset: auto; left: -69%; top: -34%; width: 190%; max-width: none; height: auto; min-height: 100%; object-fit: cover; filter: none; transform-origin: 76% 43%; }
+.watchCopy { width: 49%; }
+.root .watchCopy h3 { font-size: 24px; }
+@keyframes watchDepart { to { transform: scale(2.5); opacity: 0; filter: blur(6px); } }
+.heroIdentity { padding-top: 35px; min-height: 134px; }
+.root .heroIdentity .readingDate { font-size: 14px; margin: 15px 0 12px; }
+.root .heroIdentity .signRange { font-size: 13px; }
+.pairChoice > span:last-child { display: flex; align-items: center; gap: 5px; font-size: 13px; }
+.root .pairPickerLabel { margin: 16px 0 8px; font-size: 12px; color: #62718b; }
+.pairSignStrip { padding: 3px 2px 8px; touch-action: pan-x; overscroll-behavior-x: contain; }
+.root .pairSignStrip .signChip { background: #f1f3fb; }
+.root .pairSignStrip .signChip[aria-pressed='true'] { background: #e6dcfa; border-color: #b9a3dc; }

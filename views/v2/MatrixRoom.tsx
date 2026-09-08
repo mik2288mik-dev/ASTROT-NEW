@@ -24,6 +24,7 @@ type Props = {
   profile: UserProfile;
   onBack: () => void;
   onOpenProfile?: () => void;
+  onOpenCharts?: () => void;
   embedded?: boolean;
 };
 

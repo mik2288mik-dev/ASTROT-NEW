@@ -39,6 +39,10 @@ const NATIVE_GUEST_TIMEOUT_MS = 15_000;
 let userAppEventDeliveryChain: Promise<void> = Promise.resolve();
 let userAppEventOnlineListenerInstalled = false;
 let userAppEventQueueGeneration = 0;
+let productActivitySessionId: string | null = null;
+export function setProductActivitySessionId(sessionId: string | null): void {
+  productActivitySessionId = sessionId;
+}
 const activeUserAppEventControllers = new Set<AbortController>();
 
 /** Poll until Telegram WebApp exposes signed initData (required for API auth). */
@@ -80,6 +84,7 @@ export function getExplicitTelegramInitDataHeaders(): Record<string, string> {
 
 export function getOrCreateAppSessionId(): string | null {
   if (typeof window === 'undefined') return null;
+  if (productActivitySessionId) return productActivitySessionId;
 
   try {
     const existing = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
@@ -201,6 +206,7 @@ function writeUserAppEventQueue(storage: Storage, events: SanitizedUserAppEvent[
 
 export function clearQueuedUserAppEvents(): void {
   userAppEventQueueGeneration += 1;
+  productActivitySessionId = null;
   void resetNativeAnalytics();
   const activeControllers = Array.from(activeUserAppEventControllers);
   activeUserAppEventControllers.clear();
@@ -315,6 +321,7 @@ export async function recordUserAppEvent(payload: {
   if (typeof window === 'undefined' || !payload.eventType) return;
   const sanitizedEvent = sanitizeUserAppEvent({
     ...payload,
+    ...(productActivitySessionId ? { sessionId: productActivitySessionId } : {}),
     eventId: createUserAppEventId(),
   });
   if (!sanitizedEvent) return;

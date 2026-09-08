@@ -14,6 +14,8 @@ import {
 import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTime';
 import { validateDate, validateName } from '../lib/validation';
 import { onboardingCalculationStatus } from '../lib/onboardingCalculationStatus';
+import { Art } from '../components/nebo-v2/Primitives';
+import { ArrowLeft, ArrowRight, Check, Info, LoaderCircle } from 'lucide-react';
 
 type OnboardingStart = 'stories' | 'birth';
 type OnboardingScreen = 'day' | 'self' | 'people' | 'choice' | 'birth' | 'calculating';
@@ -26,6 +28,7 @@ interface OnboardingProps {
   initialProfile?: UserProfile;
   onSkip: () => void;
   onSignIn: () => void;
+  presentation?: 'classic' | 'nebo';
 }
 
 const introScreens: OnboardingScreen[] = ['day', 'self', 'people'];
@@ -68,7 +71,9 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   initialProfile,
   onSkip,
   onSignIn,
+  presentation = 'classic',
 }) => {
+  const refined = presentation === 'nebo';
   const [screen, setScreen] = useState<OnboardingScreen>(initialStep === 'birth' ? 'birth' : 'day');
   const [name, setName] = useState(initialProfile?.name || '');
   const [gender, setGender] = useState<'male' | 'female' | 'unspecified'>(initialProfile?.gender || 'unspecified');
@@ -332,26 +337,37 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   return (
     <main
       ref={pageRef}
-      className="meou-onboarding antialiased"
+      className={`meou-onboarding antialiased${refined ? ' nebo-v2-shell nebo-onboarding' : ''}`}
       data-onboarding-phase={isWelcome ? 'welcome' : 'setup'}
       data-onboarding-screen={screen}
     >
       <div
         className="meou-onboarding-shell"
-        onClick={isIntro
+        onClick={refined ? undefined : isIntro
           ? (event) => handleWelcomeTap(event)
           : screen === 'choice'
             ? (event) => handleWelcomeTap(event, false)
             : undefined}
       >
         <header className="meou-onboarding-header">
+          {refined && screen === 'birth' ? <button className="nebo-onboarding-back" type="button" aria-label="Назад" onClick={() => setScreen('day')}><ArrowLeft size={22} strokeWidth={1.8} /></button> : null}
           <MeouLogo className="meou-onboarding-logo" fullCloud />
-          {isWelcome ? <OnboardingProgress current={welcomeIndex} count={welcomeScreenCount} labelled={false} /> : null}
+          {isWelcome && !refined ? <OnboardingProgress current={welcomeIndex} count={welcomeScreenCount} labelled={false} /> : null}
           {screen === 'birth' ? <OnboardingProgress current={1} count={2} /> : null}
           {screen === 'calculating' ? <OnboardingProgress current={2} count={2} /> : null}
         </header>
 
-        {isIntro ? (
+        {refined && isWelcome ? <section className="nebo-welcome">
+          <div className="nebo-welcome-intro"><h1>Твоя карта.<br />Твои ответы.</h1><p>Личный прогноз и разбор по твоим данным рождения.</p></div>
+          <Art name="welcome" className="nebo-welcome-art" />
+          <div className="nebo-welcome-actions">
+            <button type="button" className="meou-button meou-button--primary" onClick={() => setScreen('birth')}>Начать<ArrowRight size={21} aria-hidden="true" /></button>
+            <button type="button" className="meou-button meou-button--secondary" onClick={onSignIn}>У меня уже есть аккаунт</button>
+            <button type="button" className="meou-sign-in" onClick={onSkip}>Продолжить без данных</button>
+          </div>
+        </section> : null}
+
+        {!refined && isIntro ? (
           <section
             className={`meou-story meou-story--${screen}`}
             role="button"
@@ -409,7 +425,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
           </section>
         ) : null}
 
-        {screen === 'choice' ? (
+        {!refined && screen === 'choice' ? (
           <section className="meou-choice">
             <ChoiceOrbitArtwork />
             <h1>Как начнём?</h1>
@@ -431,15 +447,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({
         {screen === 'birth' ? (
           <section className="meou-birth">
             <div className="meou-birth-heading">
-              <h1>Немного данных —<br />и карта готова<span>.</span></h1>
-              <p>Нам нужны ваши дата, время<br />и место рождения. Без точного времени<br />тоже можно — мы всё учтём.</p>
-              <BirthOrbitArtwork />
+              {refined ? <><h1>Твои данные рождения</h1><p>Они нужны, чтобы построить карту и подготовить личный разбор. Если время неизвестно, укажи это ниже.</p></> : <><h1>Немного данных —<br />и карта готова<span>.</span></h1><p>Нам нужны ваши дата, время<br />и место рождения. Без точного времени<br />тоже можно — мы всё учтём.</p><BirthOrbitArtwork /></>}
             </div>
 
             <form className="meou-birth-form" noValidate onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
               <label className="meou-field" htmlFor="onboarding-name">
                 <span>Имя</span>
-                <input id="onboarding-name" ref={nameRef} name="name" type="text" minLength={2} maxLength={100} value={name} placeholder="Ваше имя" onChange={(event) => { setName(event.target.value); clearError(); }} aria-invalid={errorField === 'name' || undefined} aria-describedby={errorField === 'name' ? 'onboarding-error' : undefined} />
+                <input id="onboarding-name" ref={nameRef} name="name" type="text" autoComplete="given-name" minLength={2} maxLength={100} value={name} placeholder={refined ? 'Как к тебе обращаться?' : 'Ваше имя'} onChange={(event) => { setName(event.target.value); clearError(); }} aria-invalid={errorField === 'name' || undefined} aria-describedby={errorField === 'name' ? 'onboarding-error' : undefined} />
               </label>
               <fieldset className="meou-gender-mode">
                 <legend>Пол <span>(необязательно)</span></legend>
@@ -452,7 +466,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
                       aria-pressed={gender === value}
                       onClick={() => setGender((current) => current === value ? 'unspecified' : value)}
                     >
-                      <span aria-hidden="true">{gender === value ? '✓' : ''}</span>
+                      <span aria-hidden="true">{gender === value ? refined ? <Check size={16} /> : '✓' : ''}</span>
                       {label}
                     </button>
                   ))}
@@ -465,10 +479,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({
               <label className={`meou-field meou-time-field${time ? '' : ' is-empty'}`} htmlFor="onboarding-birth-time">
                 <span>Время рождения</span>
                 <input id="onboarding-birth-time" ref={timeRef} name="birth-time" type="time" step={60} value={time} disabled={timeMode === 'unknown'} onChange={(event) => { setTime(event.target.value); clearError(); }} aria-invalid={errorField === 'time' || undefined} aria-describedby={errorField === 'time' ? 'onboarding-error' : undefined} />
-                <span className="meou-time-placeholder" aria-hidden="true">чч:мм</span>
+                <span className="meou-time-placeholder" aria-hidden="true">{refined && timeMode === 'unknown' ? 'Не указано' : 'чч:мм'}</span>
               </label>
               <fieldset className="meou-time-mode">
-                <legend>Насколько точно вы знаете время?</legend>
+                <legend>{refined ? 'Насколько точно знаешь время?' : 'Насколько точно вы знаете время?'}</legend>
                 <div>
                   {([
                     ['exact', 'Знаю'],
@@ -479,16 +493,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({
                   ))}
                 </div>
               </fieldset>
+              {refined && timeMode === 'unknown' ? <p className="nebo-birth-note"><Info size={19} aria-hidden="true" /><span>Точное время можно не указывать. В разборе учтём, что оно неизвестно.</span></p> : null}
               <div className="meou-field meou-city-field">
                 <label htmlFor="onboarding-birth-place">Место рождения</label>
                 <CityAutocomplete id="onboarding-birth-place" value={place} inputRef={placeRef} placeholder="Город, страна" ariaInvalid={errorField === 'place'} ariaDescribedBy={errorField === 'place' ? 'onboarding-error' : undefined} onChange={(value, coords) => { setPlace(value); setPlaceCoords(coords ?? null); clearError(); }} />
               </div>
               {error ? <p id="onboarding-error" className="meou-form-error" role="alert">{error}</p> : null}
               <div className="meou-birth-submit">
-                <button type="submit" className="meou-button meou-button--primary meou-calculate-button" disabled={isSubmitting}>Рассчитать вашу карту</button>
+                <button type="submit" className="meou-button meou-button--primary meou-calculate-button" disabled={isSubmitting} aria-busy={isSubmitting}>{refined ? 'Построить карту' : 'Рассчитать вашу карту'}{refined ? <ArrowRight size={21} aria-hidden="true" /> : null}</button>
                 <p className="meou-privacy">
                   <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="8.5" width="11" height="8" rx="1.5" /><path d="M7 8.5V6.5a3 3 0 0 1 6 0v2" /></svg>
-                  Ваши данные защищены
+                  {refined ? 'Данные сохранятся в твоём профиле' : 'Ваши данные защищены'}
                 </p>
               </div>
             </form>
@@ -498,12 +513,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({
         {screen === 'calculating' ? (
           <section className="meou-calculating" aria-live="polite">
             <div>
-              <h1>Считаем вашу<br />натальную карту<span>.</span></h1>
-              <p>Определяем положение Солнца, Луны<br />и планет на момент вашего рождения.</p>
+              {refined ? <><h1>Строим твою карту</h1><p>Это займёт немного времени. Затем откроется твой разбор.</p></> : <><h1>Считаем вашу<br />натальную карту<span>.</span></h1><p>Определяем положение Солнца, Луны<br />и планет на момент вашего рождения.</p></>}
             </div>
-            <NatalWheelArtwork compact />
+            {refined ? <Art name="natal-chart" className="nebo-calculating-art" /> : <NatalWheelArtwork compact />}
             <div className="meou-calculating-footer">
-              <MeouSpark />
+              {refined ? <LoaderCircle size={22} className="nebo-shell-spinner" aria-hidden="true" /> : <MeouSpark />}
               <p>{onboardingCalculationStatus(calculationElapsedSeconds, timeMode)}</p>
             </div>
           </section>

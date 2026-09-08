@@ -3,6 +3,7 @@ import { AdminAuthError, handleAdminError } from '../../../../../lib/adminAuth';
 import { requireAdminPermission } from '../../../../../lib/admin/rbac';
 import { recordAdminAction } from '../../../../../lib/admin/audit';
 import { getPool } from '../../../../../lib/db';
+import { HomeCardValidationError, parseHomeCard } from '../../../../../lib/homeCards';
 
 /** CMS-контент: список (content.view) и создание черновика (content.edit). */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -29,10 +30,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const ctx = await requireAdminPermission(req, 'content.edit');
       const type = String(req.body?.type || '').trim();
       const locale = req.body?.locale === 'en' ? 'en' : 'ru';
-      const title = String(req.body?.title || '').trim() || null;
-      const body = String(req.body?.body || '').trim();
+      let title = String(req.body?.title || '').trim() || null;
+      let body = String(req.body?.body || '').trim();
       if (!/^[a-z0-9_]{2,40}$/.test(type)) throw new AdminAuthError(400, 'BAD_TYPE', 'type must be 2–40 chars a-z 0-9 _');
       if (!body) throw new AdminAuthError(400, 'BAD_BODY', 'body is required');
+      if (type === 'home_card') {
+        const card = parseHomeCard(body);
+        body = JSON.stringify(card);
+        title = card.title;
+      }
       const ins = await getPool().query(
         `INSERT INTO cms_content (type, locale, status, title, body, version, author_id)
          VALUES ($1, $2, 'draft', $3, $4, 1, $5) RETURNING id`,
@@ -43,6 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   } catch (error) {
+    if (error instanceof HomeCardValidationError) return handleAdminError(res, new AdminAuthError(400, 'BAD_HOME_CARD', error.message));
     return handleAdminError(res, error);
   }
 }

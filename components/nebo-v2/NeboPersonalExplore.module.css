@@ -1,0 +1,35 @@
+.explore { min-width: 0; }
+.questionHero { position: relative; min-height: 164px; overflow: hidden; border-radius: 24px; isolation: isolate; background: linear-gradient(120deg,#ece9fb,#f8f3eb); color: var(--nebo-ink); }
+.questionHero > div { position: relative; z-index: 1; width: 57%; padding: 21px 0 22px 18px; }
+.questionHero p { font-size: 10px; letter-spacing: .12em; margin: 0 0 11px; color: #756781; }
+.questionHero h2 { font-size: 24px; line-height: 1.1; letter-spacing: -.6px; margin: 0 0 10px; }
+.questionHero span { display: block; font-size: 12px; line-height: 1.4; max-width: 150px; color: #6c687d; }
+.explore .questionHero .heroArt { position: absolute; right: -35px; top: -8px; height: calc(100% + 25px); width: 68%; object-fit: cover; object-position: right center; z-index: 0; mask-image: linear-gradient(to right,transparent,#000 22%); }
+.questions { margin-top: 12px; min-width: 0; }
+.questions :global(.natal-v3-question-experience) { width: 100%; padding: 0; background: transparent; color: var(--nebo-ink); }
+.questions :global([hidden]) { display: none !important; }
+.questions :global(.natal-v3-question-composer) { margin: 0; padding: 0; }
+.questions :global(.natal-v3-question-composer > .natal-v3-section-heading) { display: none; }
+.questions :global(.natal-v3-question-starters), .starterStrip { display: flex; gap: 7px; overflow-x: auto; margin: 0; padding: 0 0 9px; list-style: none; scrollbar-width: thin; }
+.questions :global(.natal-v3-question-starters li) { flex: 0 0 auto; max-width: 205px; margin: 0; border: 0; }
+.questions :global(.natal-v3-question-starters li > button), .starterStrip button { min-height: 42px; border: 1px solid color-mix(in srgb,var(--nebo-ink) 10%,transparent); background: var(--nebo-surface); border-radius: 13px; padding: 9px 12px; font-size: 12px; line-height: 1.4; color: var(--nebo-ink); text-align: left; cursor: pointer; }
+.starterStrip button { flex: 0 0 auto; max-width: 190px; }
+.questions :global(.natal-v3-question-starters li svg) { display: none; }
+.questions :global(.natal-v3-question-composer form) { margin-top: 2px; }
+.questions :global(.natal-v3-composer-field) { min-height: 56px; align-items: center; padding: 9px 10px 9px 14px; background: var(--nebo-surface); border-color: color-mix(in srgb,var(--nebo-ink) 12%,transparent); }
+.questions :global(.natal-v3-composer-field textarea) { min-height: 26px; max-height: 140px; font-size: 14px; line-height: 1.5; color: var(--nebo-ink); }
+.questions :global(.natal-v3-composer-meta) { margin-top: 8px; }
+.questions :global(.natal-v3-question-warning) { font-size: 10px; line-height: 1.4; opacity: .7; margin-top: 4px; }
+.questions :global(.natal-v3-question-history) { margin-top: 16px; }
+.lockedInput { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 56px; border: 1px solid color-mix(in srgb,var(--nebo-ink) 12%,transparent); border-radius: 18px; background: var(--nebo-surface); padding: 10px 14px; color: var(--nebo-muted); cursor: pointer; text-align: left; }
+.lockedInput > span:last-child { display: grid; place-items: center; border-radius: 50%; width: 34px; height: 34px; background: var(--nebo-primary); color: var(--nebo-primary-ink); font-size: 22px; }
+.gate > p { font-size: 11px; margin: 8px 0 0; }
+.future { padding-top: 22px; margin-top: 16px; border-top: 1px solid color-mix(in srgb,var(--nebo-ink) 9%,transparent); }
+.explore button:focus-visible { outline: 2px solid var(--nebo-ink); outline-offset: 3px; }
+
+.questions :global(.natal-v3-question-starters button span) { font-size: 12.5px; line-height: 1.4; }
+.questions :global(.natal-v3-question-starters), .starterStrip { scrollbar-width: none; border: 0; }
+.questions :global(.natal-v3-question-starters::-webkit-scrollbar), .starterStrip::-webkit-scrollbar { display: none; }
+
+@keyframes gentleOrbit { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-5px) rotate(1deg); } }
+@media (prefers-reduced-motion: no-preference) { .explore .questionHero .heroArt { animation: gentleOrbit 9s ease-in-out infinite; } }

@@ -4,6 +4,8 @@
  * Сервер проверяет роль/право (RBAC) и пишет audit. См. lib/admin/*.
  */
 import { apiFetch } from './apiClient';
+import type { AdminActivityParams, AdminActivityReport, AdminUserActivityReport } from '../lib/admin/activityTypes';
+export type { AdminActivityParams, AdminActivityReport, AdminUserActivityReport } from '../lib/admin/activityTypes';
 
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 const ADMIN_DEV_USER_HEADER = 'x-admin-dev-user-id';
@@ -339,6 +341,8 @@ export const admin2Auth = {
 };
 
 export const admin2 = {
+  activity: (params: AdminActivityParams = {}) => req<AdminActivityReport>(`/api/admin/v2/activity?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))}`),
+  userActivity: (id: string, params: AdminActivityParams = {}) => req<AdminUserActivityReport>(`/api/admin/v2/users/${encodeURIComponent(id)}/activity?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))}`),
   me: () => req<AdminMe>('/api/admin/v2/me'),
   dashboard: () => req<AdminDashboard>('/api/admin/v2/dashboard'),
   listUsers: (params: { q?: string; premium?: string; segment?: string; sortBy?: string; sortOrder?: string; page?: number; pageSize?: number } = {}) => {
@@ -401,8 +405,8 @@ export const admin2 = {
   listCms: (type?: string) => req<{ items: AdminCmsRow[] }>(`/api/admin/v2/cms${type ? `?type=${encodeURIComponent(type)}` : ''}`),
   getCms: (id: number) => req<{ item: AdminCmsDetail; versions: any[] }>(`/api/admin/v2/cms/${id}`).then((d) => ({ ...d.item, versions: d.versions })),
   createCms: (body: { type: string; locale?: string; title?: string; body: string }) => req<{ ok: boolean; id: number }>('/api/admin/v2/cms', { method: 'POST', body }),
-  updateCms: (id: number, body: string, title?: string) => req<{ ok: boolean; version: number }>(`/api/admin/v2/cms/${id}`, { method: 'PATCH', body: { body, title } }),
-  publishCms: (id: number) => req<{ ok: boolean }>(`/api/admin/v2/cms/${id}`, { method: 'POST', body: { action: 'publish' } }),
+  updateCms: (id: number, body: string, title?: string, expectedVersion?: number) => req<{ ok: boolean; version: number }>(`/api/admin/v2/cms/${id}`, { method: 'PATCH', body: { body, title, expectedVersion } }),
+  publishCms: (id: number, expectedVersion?: number) => req<{ ok: boolean }>(`/api/admin/v2/cms/${id}`, { method: 'POST', body: { action: 'publish', expectedVersion } }),
   archiveCms: (id: number) => req<{ ok: boolean }>(`/api/admin/v2/cms/${id}`, { method: 'POST', body: { action: 'archive' } }),
   listForecastQuestions: (params: {
     status?: AdminForecastQuestion['status'] | 'all';

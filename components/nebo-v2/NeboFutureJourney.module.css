@@ -1,0 +1,109 @@
+.root { min-width: 0; margin: 8px 0 28px; color: var(--nebo-ink, #10162f); }
+.root .heading.heading { position: relative; z-index: 2; width: 100%; margin: 2px 0 0; color: #283b6b; font-size: 25px; line-height: 1.2; font-weight: 800; letter-spacing: -.65px; text-align: center; text-wrap: nowrap; }
+.card { position: relative; isolation: isolate; }
+.root .cover { position: relative; display: block; width: 100%; height: 196px; padding: 0; overflow: hidden; border: 0; border-radius: 0; background: transparent; color: var(--nebo-ink, #10162f); text-align: left; cursor: pointer; isolation: isolate; }
+.coverCopy { position: relative; z-index: 2; display: flex; align-items: flex-start; flex-direction: column; height: 100%; pointer-events: none; }
+.coverHeadline { position: absolute; left: 14px; top: 15px; display: block; max-width: 240px; margin: 0; color: #263653; font-size: 27px; line-height: 1.12; font-weight: 750; letter-spacing: -.7px; text-align: left; text-wrap: balance; }
+.coverCaption { position: absolute; top: 85px; left: 15px; max-width: 120px; color: #667493; font-size: 13px; line-height: 1.4; text-wrap: balance; }
+.coverInvitation { position: absolute; right: 0; bottom: 0; left: 0; padding: 18px 14px 11px; border-radius: 0 0 19px 19px; color: #263653; background: linear-gradient(transparent, rgb(244 242 253 / .9)); font-size: 17px; line-height: 1.25; font-weight: 650; letter-spacing: -.25px; text-align: center; }
+.coverAction { position: absolute; right: 10px; bottom: 6px; color: var(--nebo-muted, #69738a); font-size: 11px; line-height: 1.3; font-weight: 500; }
+.carLane { position: absolute; z-index: 0; right: 0; bottom: 5px; width: 63%; height: 130px; pointer-events: none; transform-origin: 80% 55%; }
+.car { position: absolute; right: 0; bottom: 4px; width: 100%; height: auto; object-fit: contain; max-width: none; user-select: none; transform: rotate(-3deg); transform-origin: 70% 85%; filter: drop-shadow(1px 1px 0 #fff) drop-shadow(-1px -1px 0 #fff) drop-shadow(0 7px 6px rgb(35 55 102 / .14)); }
+.roadGlow { position: absolute; left: -34px; bottom: 24px; width: 85%; height: 4px; border-radius: 50%; background: linear-gradient(90deg, transparent, #9bd3ff 48%, #e5f8ff 90%, transparent); box-shadow: 0 0 11px rgb(76 164 248 / .4); transform: rotate(-4deg); }
+.roadGlow::before,.roadGlow::after { content: ''; position: absolute; inset: -18px 6px auto -26px; height: 3px; border-radius: 50%; background: linear-gradient(90deg, transparent, #ffbd75 58%, #fff2d9 95%, transparent); box-shadow: 0 0 8px rgb(255 164 74 / .45); }
+.roadGlow::after { inset: 15px 29px auto -7px; height: 2px; background: linear-gradient(90deg, transparent, #88bdff 60%, transparent); }
+.controls { margin-top: 5px; border-radius: 21px; background: linear-gradient(140deg, #e4edff 0%, #dddff5 56%, #eee6f6 100%); }
+.controls[hidden] { display: none; }
+.content { position: relative; z-index: 2; padding: 15px 13px 12px; }
+.periods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 3px; margin: 0 25px 12px; border-radius: 12px; background: rgb(255 255 255 / .38); }
+.root .periods button { min-height: 32px; padding: 5px 9px; border: 0; border-radius: 9px; background: transparent; color: #59617a; font-size: 12px; font-weight: 650; cursor: pointer; }
+.root .periods button[aria-pressed='true'] { background: #fff; color: #282846; box-shadow: 0 1px 5px rgb(58 63 102 / .07); }
+.destinationLabel { margin: 0 0 8px; color: #5f6682; font-size: 10px; font-weight: 650; letter-spacing: .07em; text-align: center; text-transform: uppercase; }
+.dateControls { display: grid; grid-template-columns: 32px minmax(0, 1fr) 32px; align-items: center; gap: 8px; width: 100%; max-width: 310px; margin: 0 auto; }
+.root .step { display: grid; place-items: center; width: 32px; min-height: 44px; padding: 0; border: 0; border-radius: 11px; color: #384361; background: rgb(255 255 255 / .58); cursor: pointer; }
+.root .step:disabled { opacity: .35; }
+.root .circuit { display: grid; grid-template-columns: .75fr .75fr 1.25fr; gap: 5px; min-width: 0; width: 100%; padding: 8px 7px; border: 1px solid #344251; border-radius: 10px; background: linear-gradient(#283241, #19222c); box-shadow: inset 0 1px 0 rgb(255 255 255 / .12), 0 2px 5px rgb(28 40 65 / .14); cursor: pointer; }
+.root .circuit:not(button) { cursor: default; }
+.root .weekCircuit { grid-template-columns: 1.45fr .75fr 1.15fr; }
+.digitGroup .weekDigits { font-size: 19px; letter-spacing: -.06em; }
+.digitGroup { display: flex; min-width: 0; flex-direction: column; gap: 5px; align-items: stretch; }
+.digitGroup small { color: #b9c3d0; font-size: 8px; line-height: 1; font-weight: 650; letter-spacing: .11em; }
+.digitGroup strong { display: block; padding: 4px 3px 3px; border-radius: 4px; background: #141b22; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: .02em; box-shadow: inset 0 1px 3px rgb(0 0 0 / .3); }
+.day { color: #f4b3a2; text-shadow: 0 0 9px rgb(247 143 111 / .15); }
+.month { color: #f2dba1; text-shadow: 0 0 9px rgb(255 213 123 / .14); }
+.year { color: #b8dfc2; text-shadow: 0 0 9px rgb(143 229 169 / .14); }
+.pickerRow { display: flex; align-items: center; justify-content: space-between; gap: 7px; margin: 7px 0 12px; color: #566078; }
+.pickerRow label { flex: 0 0 auto; font-size: 11px; }
+.root .pickerRow input { min-width: 0; max-width: 155px; min-height: 38px; padding: 4px 5px; border: 0; border-radius: 7px; color: #394862; background: transparent; font-size: 16px; font-variant-numeric: tabular-nums; text-align: right; cursor: pointer; }
+.topics { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 13px; }
+.root .topics button { flex: 1 0 calc(25% - 6px); min-width: 0; min-height: 36px; padding: 7px 3px; border: 1px solid transparent; border-radius: 11px; background: rgb(255 255 255 / .48); color: #4a536e; font-size: 11px; line-height: 1.25; font-weight: 600; cursor: pointer; }
+.root .topics button[aria-pressed='true'] { border-color: rgb(101 101 169 / .24); color: #292443; background: #fff; box-shadow: 0 2px 6px rgb(60 65 100 / .08); }
+.root .run { display: flex; justify-content: center; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 11px 17px; border: 0; border-radius: 15px; color: #fff; background: linear-gradient(135deg, #25314e, #111b35); font-size: 14px; line-height: 1.3; font-weight: 650; cursor: pointer; }
+.root .run:disabled { opacity: .78; }
+.status { min-height: 18px; padding: 7px 1px 9px; color: #5a647c; font-size: 11px; line-height: 1.45; text-align: center; }
+.result { position: relative; margin: 0 11px 11px; padding: 14px 14px 15px; border: 1px solid rgb(255 255 255 / .75); border-radius: 15px; background: rgb(255 255 255 / .74); }
+.card:has(.result) { padding-bottom: 1px; }
+.resultDate { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 5px 9px; margin-bottom: 7px; color: #59627a; font-size: 10px; line-height: 1.35; }
+.resultDate span { padding: 3px 6px; border-radius: 5px; background: #e9e7f4; color: #554b70; }
+.root .resultText.resultText { margin: 0; color: #252e46; font-size: 13px; line-height: 1.6; text-wrap: pretty; }
+.root .premium { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 40px; padding: 8px 0 0; border: 0; background: transparent; color: #4e4287; font-size: 12px; font-weight: 650; cursor: pointer; }
+.root :is(button, input):focus-visible { outline: 3px solid #725bce; outline-offset: 3px; }
+.root button:disabled, .root input:disabled { cursor: default; }
+.stage { position: relative; height: 206px; overflow: hidden; isolation: isolate; }
+.stage .sceneVehicle { position: absolute; inset: 0; height: 100%; pointer-events: none; }
+.sceneVehicle::before { content: ''; position: absolute; right: -12%; bottom: -10%; width: 85%; height: 90%; border-radius: 50%; background: radial-gradient(ellipse, rgb(188 225 255 / .45), rgb(211 207 255 / .18) 48%, transparent 70%); }
+.sceneArtwork { position: absolute; z-index: 0; inset: 5px 0 0; overflow: hidden; border-radius: 19px; background: #f0eeff; }
+.scenePerson { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 70% center; transform-origin: 72% 24%; user-select: none; }
+.sceneVehicle:has(.sceneArtwork)::before { content: none; }
+.sceneVehicle:has(.sceneArtwork) .coverHeadline { max-width: 210px; }
+.sceneVehicle:has(.sceneArtwork) .coverCaption { color: #52647e; }
+.sceneWaiting .sceneVehicle, .sceneResult .sceneVehicle { visibility: hidden; }
+.scenePending { position: absolute; inset: 12px 7px 8px; display: grid; place-items: center; color: #576584; font-size: 15px; text-align: center; }
+.scenePending[hidden], .sceneForecast[hidden] { display: none; }
+.sceneForecast { position: absolute; inset: 12px 7px 8px; overflow: auto; overscroll-behavior: contain; padding: 17px 18px; border: 1px solid rgb(255 255 255 / .85); border-radius: 21px; background: linear-gradient(135deg, rgb(255 255 255 / .86), rgb(236 242 255 / .7)); scrollbar-width: thin; }
+.sceneForecast .resultDate { margin-bottom: 12px; font-size: 11px; }
+.root .sceneForecast .resultText.resultText { font-size: 15px; line-height: 1.5; }
+.wheelFire { position: absolute; inset: 0; opacity: 0; }
+.wheelFire span { position: absolute; left: 11%; bottom: 39px; width: 68px; height: 12px; border-radius: 80% 20% 35% 75%; background: linear-gradient(90deg, transparent 2%, #fb653b 24%, #ff9c31 56%, #fff0a9 87%, #fffef2); box-shadow: 0 4px 13px rgb(255 137 51 / .55); clip-path: polygon(0 38%, 35% 34%, 17% 0, 66% 23%, 97% 33%, 100% 67%, 63% 93%, 23% 100%, 35% 64%); transform: translateX(-86%); transform-origin: right center; }
+.wheelFire span:last-child { left: 55%; bottom: 22px; width: 88px; height: 15px; }
+.wheelFire span::after { content: ''; position: absolute; inset: 6px 2px 5px 35%; border-radius: 50%; background: #fff4bb; box-shadow: 0 0 5px #fff3b6; }
+@media (prefers-reduced-motion: no-preference) {
+  .car { animation: stickerDrive 4.2s ease-in-out infinite; }
+  .roadGlow { animation: stickerTrails 4.2s ease-out infinite; }
+  @keyframes stickerDrive { 0%,60%,100% { transform: translate(0,0) rotate(-4deg); } 66% { transform: translate(-4px,1px) rotate(-3deg); } 76% { transform: translate(8px,-3px) rotate(-5deg); } 86% { transform: translate(6px,-2px) rotate(-4.5deg); } }
+  @keyframes stickerTrails { 0%,58%,100% { opacity: .2; transform: translateX(0) rotate(-4deg) scaleX(.8); } 68% { opacity: .95; } 85% { opacity: .45; transform: translateX(-23px) rotate(-4deg) scaleX(1.15); } }
+  .root :is(.step, .topics button, .run, .premium) { transition: background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease; }
+  .root :is(.step, .topics button, .run):active:not(:disabled) { transform: scale(.96); }
+  .riding .car { animation: travel 600ms cubic-bezier(.55, 0, .88, .5) both; }
+  .riding .roadGlow { animation: roadFade 600ms ease-out both; }
+  @keyframes travel { 0% { transform: translateX(0) translateY(0) rotate(-4deg); opacity: 1; } 20% { transform: translateX(-5px) translateY(1px) rotate(-4deg); opacity: 1; } 78% { opacity: 1; } 100% { transform: translateX(340px) translateY(-12px) rotate(-4deg); opacity: 0; } }
+  @keyframes roadFade { 0% { opacity: 1; } 35% { opacity: .65; } 100% { opacity: 0; } }
+  .sceneDeparting .car { animation: none; }
+  .sceneDeparting .carLane { animation: sceneDriveAway 650ms cubic-bezier(.5, 0, .75, .45) both; }
+  .sceneDeparting .coverCopy { animation: wordsAway 650ms cubic-bezier(.4, 0, .75, .55) both; }
+  .sceneDeparting .wheelFire { animation: ignite 650ms ease-out both; }
+  .sceneDeparting .wheelFire span { animation: flameFlicker 120ms ease-in-out infinite alternate; }
+  .sceneDeparting .wheelFire span:last-child { animation-delay: -60ms; }
+  .sceneReturning .car { animation: none; }
+  .sceneReturning .carLane { animation: carReturns 500ms cubic-bezier(.16, 1, .3, 1) both; }
+  .sceneReturning .coverCopy { animation: wordsReturn 500ms cubic-bezier(.16, 1, .3, 1) both; }
+  .sceneResult .sceneForecast { animation: forecastArrives 240ms ease-out both; }
+  @keyframes sceneDriveAway { 0% { transform: translate(0, 0) scale(1); } 17% { transform: translate(-5px, 2px) scale(1); } 100% { transform: translate(170%, -120%) scale(.45) rotate(-12deg); } }
+  @keyframes wordsAway { 0%, 10% { transform: translateX(0); opacity: 1; } 80%, 100% { transform: translateX(-105%); opacity: 0; } }
+  @keyframes ignite { 0% { opacity: 0; } 12%, 85% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes flameFlicker { from { transform: translateX(-86%) scale(.85, .85); } to { transform: translateX(-86%) scale(1.1, 1.1); } }
+  @keyframes carReturns { from { transform: translate(130%, -70%) scale(.65); opacity: 0; } to { transform: translate(0, 0) scale(1); opacity: 1; } }
+  @keyframes wordsReturn { from { transform: translateX(-105%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes forecastArrives { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .sceneDeparting .scenePerson { animation: enterFuture 650ms cubic-bezier(.4, 0, .7, .5) both; }
+  .sceneDeparting:has(.sceneArtwork) .coverCopy { animation: futureCopyLeaves 230ms ease-out both; }
+  .sceneReturning .scenePerson { animation: leaveFuture 500ms cubic-bezier(.16, 1, .3, 1) both; }
+  .sceneReturning:has(.sceneArtwork) .coverCopy { animation: futureCopyReturns 400ms 100ms ease-out both; }
+  @keyframes enterFuture { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(-22%, 26%) scale(7); opacity: 0; } }
+  @keyframes leaveFuture { from { transform: translate(-22%, 26%) scale(7); opacity: 0; } to { transform: translate(0, 0) scale(1); opacity: 1; } }
+  @keyframes futureCopyLeaves { to { transform: translateY(-5px); opacity: 0; } }
+  @keyframes futureCopyReturns { from { transform: translateY(5px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+}
+@media (prefers-reduced-motion: reduce) { .root *, .root *::before, .root *::after { animation: none !important; transition: none !important; } }
+@media (max-width: 340px) { .content { padding-inline: 10px; } .dateControls { grid-template-columns: 28px minmax(0, 1fr) 28px; gap: 5px; } .root .step { width: 28px; } .root .circuit { gap: 5px; padding-inline: 7px; } .digitGroup strong { font-size: 20px; } .topics { gap: 4px; } .root .topics button { font-size: 10px; } }
+@media (forced-colors: active) { .root :is(button, input):focus-visible { outline-color: Highlight; } .root .topics button[aria-pressed='true'] { border-color: Highlight; } }

@@ -110,14 +110,14 @@ export const NatalMeaningExperience: React.FC<Props> = ({
       ) : (
         <section className="natal-v3-reading-error" role="alert"><h2>{ru ? 'Разбор не загрузился' : 'The reading did not load'}</h2><p>{categoryError || (ru ? 'Попробуй открыть его ещё раз.' : 'Try opening it again.')}</p><button type="button" onClick={onRetryCategory}>{ru ? 'Попробовать снова' : 'Try again'}</button></section>
       )}
-      <section className="natal-narrative-chapters" aria-labelledby="natal-narrative-chapters-title">
+      {!locked && Boolean(pack?.summary.length) ? <section className="natal-narrative-chapters" aria-labelledby="natal-narrative-chapters-title">
         <div className="natal-v3-section-heading"><h2 id="natal-narrative-chapters-title">{ru ? 'Что ещё про тебя?' : 'What else about you?'}</h2>{!isPremium ? <p>{ru ? 'Продолжение с Premium.' : 'Continue with Premium.'}</p> : null}</div>
         {suggestedChapters.map(({ categoryKey, label }) => {
           const category = getNatalReportCategory(categoryKey)!;
           return <button type="button" key={categoryKey} onClick={() => selectChapter(categoryKey)}><span><small>{category.title[language]}</small><strong>{label}</strong></span>{!isPremium ? <LockKeyhole aria-label="Premium" /> : <ChevronRight aria-hidden="true" />}</button>;
         })}
         <button type="button" className="natal-reading-all-chapters" onClick={() => { if (contentsRef.current) { contentsRef.current.open = true; contentsRef.current.scrollIntoView({ block: 'start', behavior: 'auto' }); contentsRef.current.querySelector('summary')?.focus(); } }}>{ru ? 'Все темы разбора' : 'All reading topics'}<ChevronDown aria-hidden="true" /></button>
-      </section>
+      </section> : null}
       {onOpenQuestions && isPremium ? <section className="natal-v3-ask-entry"><h2>{ru ? 'Есть свой вопрос?' : 'Have your own question?'}</h2><button type="button" onClick={() => onOpenQuestions(activeCategoryKey)}>{ru ? 'Спросить о себе' : 'Ask about yourself'}<ChevronRight aria-hidden="true" /></button></section> : null}
       <NatalEvidenceSheet target={locked && explanation?.mode === 'why' ? null : explanation} profile={profile} chartData={chartData} onClose={() => setExplanation(null)} />
     </div>

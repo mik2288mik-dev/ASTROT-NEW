@@ -6,12 +6,17 @@ import {
   buildPersonalForecastPrewarmProfile,
   buildPersonalForecastPrewarmTargets,
   prewarmPersonalForecastHorizon,
+  prewarmPersonalForecastIncrement,
   resetPersonalForecastPrewarmForTests,
   type PersonalForecastPrewarmRuntime,
+  type PersonalForecastIncrementRuntime,
 } from '../lib/personalForecastPrewarm';
 import {
   buildPersonalForecastBirthProfileFingerprint,
   getPersonalForecastRawProfile,
+  getPersonalForecastDayHorizon,
+  getPersonalForecastPeriodAccess,
+  MAX_FUTURE_FORECAST_DAYS,
   isPersonalForecastPeriodAllowedForTier,
   type PersonalForecastRawProfile,
 } from '../lib/personalForecastContract';
@@ -102,7 +107,7 @@ describe('personal forecast rolling prewarm', () => {
     );
   });
 
-  it('builds exactly five Free day targets and never includes Week or Month', () => {
+  it('builds exactly four Free day targets and never includes Week or Month', () => {
     const targets = buildPersonalForecastPrewarmTargets({
       accessTier: 'free',
       timezone: 'Europe/Moscow',
@@ -113,7 +118,6 @@ describe('personal forecast rolling prewarm', () => {
       { accessTier: 'free', period: 'day', periodKey: '2026-08-26' },
       { accessTier: 'free', period: 'day', periodKey: '2026-08-27' },
       { accessTier: 'free', period: 'day', periodKey: '2026-08-28' },
-      { accessTier: 'free', period: 'day', periodKey: '2026-08-29' },
     ]);
     expect(isPersonalForecastPeriodAllowedForTier('free', 'week')).toBe(false);
     expect(isPersonalForecastPeriodAllowedForTier('free', 'month')).toBe(false);
@@ -131,8 +135,8 @@ describe('personal forecast rolling prewarm', () => {
       now: new Date('2026-08-25T09:00:00.000Z'),
     }, injected);
     expect(result.cached).toHaveLength(3);
-    expect(result.generated).toHaveLength(2);
-    expect(injected.ensure).toHaveBeenCalledTimes(2);
+    expect(result.generated).toHaveLength(1);
+    expect(injected.ensure).toHaveBeenCalledTimes(1);
   });
 
   it('does not use a Premium package to satisfy Free Today', async () => {
@@ -182,7 +186,7 @@ describe('personal forecast rolling prewarm', () => {
     release();
     const [firstResult, secondResult] = await Promise.all([first, second]);
     expect(firstResult).toBe(secondResult);
-    expect(injected.ensure).toHaveBeenCalledTimes(5);
+    expect(injected.ensure).toHaveBeenCalledTimes(4);
   });
 
   it('does not coalesce a changed birth profile with an older in-flight horizon', async () => {
@@ -204,16 +208,88 @@ describe('personal forecast rolling prewarm', () => {
     expect(injected.ensure).toHaveBeenCalledTimes(2);
   });
 
-  it('adds only the next Week and Month when the five-day Premium horizon crosses both boundaries', () => {
+  it('finishes a full horizon requested during a bounded scheduled increment', async () => {
+    let release!: () => void;
+    const barrier = new Promise<void>((resolve) => { release = resolve; });
+    const cached = new Set<string>();
+    const injected = runtime({ cached });
+    (injected.ensure as jest.Mock).mockImplementation(async (target: PersonalForecastCacheContext) => {
+      await barrier;
+      cached.add(`${target.accessTier}:${target.period}:${target.periodKey}`);
+      return { status: 'ready', value: {}, fromCache: false };
+    });
+    const input = { userId: '1', profile, accessTier: 'free' as const, reason: 'app_open' as const, now: new Date('2026-09-08T12:00:00Z') };
+    const incremental = prewarmPersonalForecastHorizon({ ...input, maxMissingGenerations: 1 }, injected);
+    const complete = prewarmPersonalForecastHorizon(input, injected);
+    release();
+    await Promise.all([incremental, complete]);
+    expect(cached.size).toBe(4);
+    expect(injected.ensure).toHaveBeenCalledTimes(4);
+  });
+
+  it('prepares four days and the current Premium Week and Month across a calendar boundary', () => {
     const targets = buildPersonalForecastPrewarmTargets({
       accessTier: 'premium',
       timezone: 'Europe/Moscow',
       now: new Date('2026-08-28T09:00:00.000Z'),
     });
-    expect(targets.filter((target) => target.period === 'day')).toHaveLength(5);
+    expect(targets.filter((target) => target.period === 'day')).toHaveLength(4);
     expect(targets.filter((target) => target.period === 'week').map((target) => target.periodKey))
-      .toEqual(['2026-W35', '2026-W36']);
+      .toEqual(['2026-W35']);
     expect(targets.filter((target) => target.period === 'month').map((target) => target.periodKey))
-      .toEqual(['2026-08', '2026-09']);
+      .toEqual(['2026-08']);
+  });
+
+  it('uses profile-local dates across midnight, year rollover and daylight saving', () => {
+    expect(getPersonalForecastDayHorizon('Pacific/Kiritimati', new Date('2026-12-31T12:00:00Z')))
+      .toEqual(['2027-01-01', '2027-01-02', '2027-01-03', '2027-01-04']);
+    expect(getPersonalForecastDayHorizon('America/New_York', new Date('2026-11-01T04:30:00Z')))
+      .toEqual(['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04']);
+  });
+
+  it('permits Premium up to thirty calendar days while keeping Free future text locked', () => {
+    const common = { timezone: 'Europe/Moscow', now: new Date('2026-09-08T12:00:00Z'), period: 'day' as const };
+    expect(MAX_FUTURE_FORECAST_DAYS).toBe(30);
+    for (const accessTier of ['free', 'premium'] as const) {
+      expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-08' })).toBe('allowed');
+      expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-09' })).toBe(accessTier === 'premium' ? 'allowed' : 'premium_required');
+      expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-10-08' })).toBe(accessTier === 'premium' ? 'allowed' : 'premium_required');
+      for (const periodKey of ['2026-09-07', '2026-10-09', '2026-09-31', 'garbage']) {
+        expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey })).toBe('outside_horizon');
+      }
+    }
+  });
+
+  it('bounds scheduled generation and continues through eligible accounts with a cursor', async () => {
+    const empty = { targets: [], cached: [], generated: [], inProgress: [], failed: [], skippedEntitlement: [] };
+    const injected: PersonalForecastIncrementRuntime = {
+      listUsers: jest.fn(async (after) => after ? [] : ['1', '2', '3']),
+      loadUser: jest.fn(async (userId) => ({ userId, profile, accessTier: 'premium' as const })),
+      prewarm: jest.fn().mockResolvedValueOnce(empty).mockResolvedValueOnce({ ...empty, generated: [{}] }),
+    };
+    expect(await prewarmPersonalForecastIncrement({}, injected)).toEqual({ scanned: 2, generated: 1, inProgress: 0, failed: 0 });
+    expect(injected.prewarm).toHaveBeenCalledTimes(2);
+    expect(injected.prewarm).toHaveBeenLastCalledWith(expect.objectContaining({ userId: '2', maxMissingGenerations: 1, reason: 'scheduled_refresh' }));
+    await prewarmPersonalForecastIncrement({}, injected);
+    expect(injected.listUsers).toHaveBeenLastCalledWith('2', 16, expect.any(Date));
+    await prewarmPersonalForecastIncrement({}, { ...injected, listUsers: jest.fn(async () => []) });
+  });
+
+  it('coalesces overlapping scheduler ticks and releases the slot after a failure', async () => {
+    let release!: () => void;
+    const barrier = new Promise<void>((resolve) => { release = resolve; });
+    const injected: PersonalForecastIncrementRuntime = {
+      listUsers: jest.fn(async () => ['1']),
+      loadUser: jest.fn(async (userId) => ({ userId, profile, accessTier: 'free' as const })),
+      prewarm: jest.fn(async () => { await barrier; throw new Error('temporary failure'); }),
+    };
+    const first = prewarmPersonalForecastIncrement({}, injected);
+    const second = prewarmPersonalForecastIncrement({}, injected);
+    expect(first).toBe(second);
+    release();
+    expect(await first).toMatchObject({ failed: 1, generated: 0 });
+    expect(injected.prewarm).toHaveBeenCalledTimes(1);
+    await prewarmPersonalForecastIncrement({}, injected);
+    expect(injected.prewarm).toHaveBeenCalledTimes(2);
   });
 });

@@ -10,6 +10,7 @@ import {
   PERSONAL_FORECAST_PROMPT_VERSION,
   buildPersonalForecastBirthProfileFingerprint,
   getPersonalForecastPeriodKey,
+  getPersonalForecastDayHorizon,
   isPersonalForecastPackage,
   normalizeForecastTimezone,
   type PersonalForecastAccessPayload,
@@ -56,7 +57,7 @@ type PersonalForecastPeriodResultState = {
   result: PersonalForecastClientResult | null;
 };
 
-const LOCAL_CACHE_PREFIX = 'nebo:personal-forecast:v22-human-voice';
+const LOCAL_CACHE_PREFIX = 'nebo:personal-forecast:v23-period-reading-horizon';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
 
@@ -420,6 +421,16 @@ export function readLocalPersonalForecast(input: {
   const periodKey = input.periodKey
     || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
   return readStored(contextKey({ ...input, periodKey }));
+}
+
+/** Fetch only already prepared readings. Missing dates never start paid generation here. */
+export async function primePersonalForecastDayHorizon(profile: UserProfile): Promise<PersonalForecastClientResult[]> {
+  const dates = getPersonalForecastDayHorizon(profile.birthTimezone);
+  const accessibleDates = hasActivePremium(profile) ? dates : dates.slice(0, 1);
+  const results = await Promise.allSettled(accessibleDates.map((periodKey) => loadPersonalForecast({
+    profile, period: 'day', periodKey, options: { cacheOnly: true },
+  })));
+  return results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
 }
 
 export async function loadPersonalForecast(input: {

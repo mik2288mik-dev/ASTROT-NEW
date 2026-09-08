@@ -5,6 +5,7 @@ import {
   generateDailyCards,
 } from '../../../services/notificationRetentionService';
 import { processPendingRuStoreEvents } from '../../../lib/rustorePayments';
+import { prewarmPersonalForecastIncrement } from '../../../lib/personalForecastPrewarm';
 import {
   prewarmNextSignMonthIncrement,
   prewarmUpcomingSignHoroscopes,
@@ -142,6 +143,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   //    Runs at most once per 30-minute slot regardless of external cron frequency.
   const slot = `${dateKey}-${hour}-${Math.floor(minute / 30)}`;
   await once('rolling-daily', slot, () => planRetentionNotifications('rolling-daily', now, { limit: PLANNER_LIMIT }), ran);
+
+  // Uses each profile's timezone; fills one missing reading instead of bulk generation.
+  await once('personal-forecast-horizon', `${dateKey}-${hour}-${Math.floor(minute / 3)}`,
+    () => prewarmPersonalForecastIncrement({ now }), ran);
 
   return res.status(200).json({
     ok: true,

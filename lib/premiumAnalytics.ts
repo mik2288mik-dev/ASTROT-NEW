@@ -1,4 +1,5 @@
 import { NATAL_REPORT_ANSWER_KEYS } from './natalReading/reportCatalog';
+import { ACTIVITY_SCREENS, activityId } from './productActivity';
 
 export const PREMIUM_ANALYTICS_EVENTS = [
   'first_value_viewed',
@@ -27,6 +28,8 @@ export type PremiumAnalyticsEventName = typeof PREMIUM_ANALYTICS_EVENTS[number];
  * USER_APP_EVENT_ALIASES before they cross the API boundary.
  */
 export const PRODUCT_ANALYTICS_EVENTS = [
+  'app_opened', 'onboarding_started', 'onboarding_completed',
+  'birth_data_started', 'birth_data_completed', 'horoscope_opened', 'forecast_period_selected',
   'first_result_ready',
   'natal_section_open',
   'compatibility_ready',
@@ -87,6 +90,7 @@ export type SanitizedAnalyticsValue = string | number | boolean;
 
 export type SanitizedUserAppEvent = {
   eventId?: string;
+  sessionId?: string;
   eventType: UserAppEventName;
   section: string | null;
   source: string | null;
@@ -167,6 +171,13 @@ const SHARE_KEYS = ['content_type', 'source'] as const;
 const INVITE_KEYS = ['content_type', 'source'] as const;
 
 const ALLOWED_PAYLOAD_KEYS_BY_EVENT: Record<string, readonly string[]> = {
+  app_opened: [],
+  onboarding_started: [],
+  onboarding_completed: [],
+  birth_data_started: [],
+  birth_data_completed: [],
+  horoscope_opened: ['forecast_period', 'access_state'],
+  forecast_period_selected: ['forecast_period', 'access_state'],
   first_result_ready: FIRST_RESULT_KEYS,
   natal_section_open: NATAL_SECTION_KEYS,
   compatibility_ready: COMPATIBILITY_KEYS,
@@ -275,6 +286,8 @@ const PAYWALL_ENTRY_POINT_VALUES = new Set([
 ]);
 
 const ENUM_VALUES_BY_KEY: Record<string, ReadonlySet<string>> = {
+  forecast_period: new Set(['day', 'week', 'month', 'future']),
+  access_state: new Set(['open', 'locked', 'premium']),
   entry_point: PAYWALL_ENTRY_POINT_VALUES,
   placement: new Set(['today', 'week', 'month', 'deep_natal', 'personality_deep', 'natal_questions', 'compatibility_by_charts', 'saved_people', 'settings']),
   feature_key: new Set(['personal_daily', 'personal_daily_full', 'personal_weekly', 'personal_monthly', 'natal_deep', 'personality_deep', 'natal_questions', 'synastry_by_charts', 'saved_people']),
@@ -406,6 +419,7 @@ const SAFE_TOP_LEVEL_SOURCES = new Set([
 ]);
 
 const SAFE_SECTIONS = new Set([
+  ...ACTIVITY_SCREENS,
   'premium',
   'personal_forecast',
   'natal_story',
@@ -550,8 +564,10 @@ export function sanitizeUserAppEvent(input: unknown): SanitizedUserAppEvent | nu
 
   const eventId = sanitizeEventId(input.eventId);
   if (input.eventId != null && !eventId) return null;
+  const sessionId = activityId(input.sessionId);
   return {
     ...(eventId ? { eventId } : {}),
+    ...(sessionId ? { sessionId } : {}),
     eventType,
     section: typeof input.section === 'string' && SAFE_SECTIONS.has(input.section)
       ? input.section

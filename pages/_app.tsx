@@ -31,6 +31,8 @@ import '../styles/neboV2Matrix.css';
 import '../styles/neboV2Zodiac.css';
 import '../styles/neboV2Compatibility.css';
 import '../styles/neboV2People.css';
+import '../styles/neboV2Shells.css';
+import '../styles/admin2/admin.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 import { PublicAnalytics } from '../components/public-site/PublicAnalytics';
 import { installRuntimeDiagnostics } from '../lib/runtimeDiagnostics';
@@ -44,7 +46,7 @@ export default function App({ Component, pageProps, router }: AppProps) {
   const viewport = publicSiteEnabled
     ? 'width=device-width, initial-scale=1, viewport-fit=cover'
     : router.pathname === '/'
-      ? 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
+      ? 'width=device-width, initial-scale=1, viewport-fit=cover'
       : 'width=device-width, initial-scale=1, viewport-fit=cover';
 
   useEffect(() => {

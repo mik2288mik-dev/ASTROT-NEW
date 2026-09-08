@@ -1,0 +1,129 @@
+/* Administration has its own bounded typography and controls. */
+.admin2-app {
+  --admin-ink: #222b3d;
+  --admin-muted: #657086;
+  --admin-line: #e0e5ed;
+  --admin-soft: #f4f6fa;
+  --admin-accent: #6753c7;
+  font-family: Manrope, Inter, system-ui, sans-serif;
+  color: var(--admin-ink);
+  color-scheme: light;
+}
+.admin2-app *, .admin2-app *::before, .admin2-app *::after { box-sizing: border-box; }
+.admin2-app button, .admin2-app input, .admin2-app select, .admin2-app textarea { font-family: inherit; }
+.admin2-app button { -webkit-tap-highlight-color: transparent; }
+.admin2-app button:focus-visible, .admin2-app a:focus-visible, .admin2-app summary:focus-visible { outline: 3px solid #9f8bec; outline-offset: 2px; }
+.admin2-app input:focus-visible, .admin2-app select:focus-visible, .admin2-app textarea:focus-visible { outline: 2px solid #9f8bec; outline-offset: 0; }
+.admin2-app .admin2-card { min-width: 0; border: 1px solid var(--admin-line); border-radius: 20px; background: #fff; padding: 20px; }
+.admin2-app .admin2-button { display: inline-flex; align-items: center; justify-content: center; flex: none; gap: 8px; min-height: 42px; padding: 10px 14px; border: 1px solid transparent; border-radius: 12px; font-size: 13px; font-weight: 650; line-height: 1.3; transition: background-color 160ms; cursor: pointer; }
+.admin2-app .admin2-button:disabled { cursor: default; opacity: .5; }
+.admin2-app .admin2-button--primary { background: var(--admin-accent); color: #fff; }
+.admin2-app .admin2-button--secondary { border-color: var(--admin-line); background: #fff; color: #434f64; }
+.admin2-app .admin2-input { min-width: 0; min-height: 44px; padding: 11px 13px; border: 1px solid #d3dbe7; border-radius: 12px; background: #fff; color: var(--admin-ink); font-size: 15px; line-height: 1.35; }
+.admin2-app .admin2-input::placeholder { color: #7c879a; }
+.admin2-app .admin2-table-wrap { min-width: 0; overflow-x: auto; border: 1px solid var(--admin-line); border-radius: 18px; background: #fff; }
+.admin2-app .admin2-table-heading { padding: 14px 16px; background: #f7f8fb; color: #5c677d; font-size: 12px; line-height: 1.4; font-weight: 650; text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.admin2-app .admin2-table-cell { padding: 14px 16px; color: #4e596f; font-size: 13px; line-height: 1.5; }
+.admin2-app .admin2-table-wrap table { border-collapse: collapse; }
+.admin2-app .admin2-table-wrap tbody tr { border-top: 1px solid #edf0f5; }
+.admin2-app .admin2-table-wrap input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--admin-accent); }
+.admin2-app .admin2-error { padding: 14px 16px; border: 1px solid #f0bdc6; border-radius: 14px; color: #9b3141; background: #fff3f5; font-size: 14px; line-height: 1.5; }
+.admin2-app .admin2-header { flex-wrap: wrap; gap: 12px; padding: 14px 20px; flex: none; border-color: var(--admin-line); }
+.admin2-app .admin2-header h1 { font-size: 22px; line-height: 1.3; font-weight: 650; letter-spacing: -.4px; }
+.admin2-app .admin2-header > div { flex-wrap: wrap; }
+.admin2-app .admin2-main { scrollbar-gutter: stable; }
+.admin2-app .admin2-main:focus { outline: none; }
+.admin2-app .admin2-brand { display: flex; align-items: center; justify-content: space-between; padding: 12px 22px 8px; }
+.admin2-app .admin2-brand > span:last-child { font-size: 12px; color: var(--admin-muted); }
+.admin2-app .admin2-nav-link { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 11px 13px; border: 0; border-radius: 12px; background: transparent; color: #5b667a; text-align: left; font-size: 13px; line-height: 1.4; }
+.admin2-app .admin2-nav-link[aria-current="page"] { background: #eee9fb; color: #503caf; font-weight: 650; }
+.admin2-app .admin2-nav-trigger { min-width: 44px; min-height: 44px; }
+.admin2-app .admin2-nav-dialog { position: fixed; inset: 0 auto 0 0; width: min(300px, calc(100vw - 30px)); height: 100dvh; max-height: 100dvh; max-width: none; margin: 0; padding: max(12px, env(safe-area-inset-top, 0px)) 0 max(12px, env(safe-area-inset-bottom, 0px)); border: 0; background: #fff; color: var(--admin-ink); overflow: hidden; }
+.admin2-app .admin2-nav-dialog::backdrop { background: rgb(16 22 39 / .4); }
+.admin2-app .admin2-nav-dialog .admin2-sidebar { width: 100%; height: calc(100% - 44px); }
+.admin2-app .admin2-nav-close { display: block; min-height: 44px; margin-left: auto; padding: 10px 18px; border: 0; border-radius: 12px; color: var(--admin-muted); background: transparent; font-size: 14px; }
+.admin2-app .admin2-general-overview { margin-top: 24px; }
+.admin2-app .admin2-general-overview > summary { cursor: pointer; padding: 16px 0; color: var(--admin-muted); font-size: 14px; font-weight: 650; }
+
+/* Real activity analytics and drill-down. */
+.admin2-app .admin2-activity { display: grid; gap: 20px; }
+.admin2-app .admin2-section-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.admin2-app .admin2-section-heading h2 { margin: 0; font-size: 23px; line-height: 1.25; letter-spacing: -.5px; font-weight: 650; color: var(--admin-ink); }
+.admin2-app .admin2-section-heading p { margin: 8px 0 0; max-width: 65ch; color: var(--admin-muted); font-size: 14px; line-height: 1.55; }
+.admin2-app .admin2-period-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; padding: 16px; border: 1px solid var(--admin-line); border-radius: 18px; background: #fff; }
+.admin2-app .admin2-period-presets { display: flex; align-self: center; gap: 4px; padding: 4px; background: var(--admin-soft); border-radius: 12px; }
+.admin2-app .admin2-period-presets button { min-height: 38px; padding: 8px 12px; border: 0; border-radius: 9px; background: transparent; color: var(--admin-muted); font-size: 13px; }
+.admin2-app .admin2-period-presets button[aria-pressed="true"] { background: #fff; color: var(--admin-ink); box-shadow: 0 1px 4px rgb(24 33 55 / .1); font-weight: 650; }
+.admin2-app .admin2-period-field { display: grid; gap: 6px; min-width: 140px; }
+.admin2-app .admin2-period-field > span { font-size: 12px; color: var(--admin-muted); }
+.admin2-app .admin2-period-field input { width: 100%; }
+.admin2-app .admin2-period-description { margin: 0; font-size: 12px; color: var(--admin-muted); line-height: 1.5; }
+.admin2-app .admin2-activity-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.admin2-app .admin2-metric { padding: 20px; border: 1px solid var(--admin-line); border-radius: 18px; background: #fff; }
+.admin2-app .admin2-metric dt { color: var(--admin-muted); font-size: 13px; line-height: 1.4; }
+.admin2-app .admin2-metric dd { margin: 12px 0 0; color: var(--admin-ink); font-size: 28px; line-height: 1.15; letter-spacing: -.7px; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.admin2-app .admin2-metric small { display: block; margin-top: 8px; color: var(--admin-muted); font-size: 12px; line-height: 1.5; }
+.admin2-app .admin2-chart-card { display: grid; gap: 16px; padding: 22px; border: 1px solid var(--admin-line); border-radius: 20px; background: #fff; }
+.admin2-app .admin2-chart-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.admin2-app .admin2-chart-header h3, .admin2-app .admin2-analysis-grid h3, .admin2-app .admin2-timeline h3 { margin: 0; color: var(--admin-ink); font-size: 18px; font-weight: 650; line-height: 1.4; }
+.admin2-app .admin2-chart-metrics { display: flex; flex-wrap: wrap; gap: 5px; }
+.admin2-app .admin2-chart-metrics button { min-height: 38px; padding: 8px 11px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--admin-muted); font-size: 12px; }
+.admin2-app .admin2-chart-metrics button[aria-pressed="true"] { border-color: #dbd3f5; background: #f1edfb; color: #503caf; }
+.admin2-app .admin2-timeseries { display: block; width: 100%; height: 240px; overflow: visible; }
+.admin2-app .admin2-timeseries text { font-family: inherit; fill: var(--admin-muted); font-size: 11px; }
+.admin2-app .admin2-timeseries .admin2-chart-grid { stroke: #e9edf4; stroke-width: 1; }
+.admin2-app .admin2-timeseries .admin2-chart-bar { fill: #8571d9; }
+.admin2-app .admin2-timeseries g:focus-visible { outline: none; }
+.admin2-app .admin2-timeseries g:hover .admin2-chart-bar, .admin2-app .admin2-timeseries g:focus-visible .admin2-chart-bar { fill: #503caf; }
+.admin2-app .admin2-chart-table summary { width: fit-content; padding: 8px 0; cursor: pointer; color: var(--admin-muted); font-size: 13px; }
+.admin2-app .admin2-chart-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin2-app .admin2-chart-table th, .admin2-app .admin2-chart-table td { padding: 10px 12px; border-bottom: 1px solid var(--admin-line); text-align: left; font-variant-numeric: tabular-nums; }
+.admin2-app .admin2-chart-table > div { overflow-x: auto; }
+.admin2-app .admin2-analysis-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.admin2-app .admin2-analysis-grid > section { padding: 22px; border: 1px solid var(--admin-line); border-radius: 20px; background: #fff; }
+.admin2-app .admin2-funnel { display: grid; gap: 18px; margin: 22px 0 0; padding: 0; list-style: none; }
+.admin2-app .admin2-funnel-heading { display: flex; justify-content: space-between; gap: 14px; color: #505c72; font-size: 13px; line-height: 1.5; }
+.admin2-app .admin2-funnel-heading strong { color: var(--admin-ink); font-variant-numeric: tabular-nums; }
+.admin2-app .admin2-funnel-bar { height: 8px; margin-top: 8px; border-radius: 4px; background: #eeebf6; overflow: hidden; }
+.admin2-app .admin2-funnel-bar > span { display: block; height: 100%; background: #8571d9; border-radius: inherit; }
+.admin2-app .admin2-actions-list { margin: 14px 0 0; padding: 0; list-style: none; }
+.admin2-app .admin2-actions-list li { display: flex; justify-content: space-between; gap: 15px; padding: 13px 0; border-bottom: 1px solid #edf0f5; font-size: 13px; line-height: 1.45; }
+.admin2-app .admin2-actions-list small { display: block; margin-top: 4px; color: var(--admin-muted); font-size: 12px; }
+.admin2-app .admin2-actions-list strong { flex: none; font-variant-numeric: tabular-nums; }
+.admin2-app .admin2-empty, .admin2-app .admin2-loading { padding: 30px 20px; border: 1px solid var(--admin-line); border-radius: 18px; background: #fff; color: var(--admin-muted); font-size: 14px; line-height: 1.6; }
+.admin2-app .admin2-loading { display: flex; align-items: center; gap: 12px; }
+.admin2-app .admin2-loading svg { flex: none; animation: admin2-spin 1s linear infinite; }
+@keyframes admin2-spin { to { transform: rotate(360deg); } }
+.admin2-app .admin2-data-note { padding: 13px 16px; border: 1px solid #dcd8ed; border-radius: 14px; background: #f6f3fc; color: #655883; font-size: 13px; line-height: 1.55; }
+.admin2-app .admin2-user-activity { padding-top: 24px; margin-top: 24px; border-top: 1px solid var(--admin-line); }
+.admin2-app .admin2-timeline { margin: 0; padding: 0; list-style: none; }
+.admin2-app .admin2-timeline > li { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 16px; padding: 17px 0; border-bottom: 1px solid var(--admin-line); }
+.admin2-app .admin2-timeline time { color: var(--admin-muted); font-size: 12px; line-height: 1.5; }
+.admin2-app .admin2-timeline strong { font-size: 14px; color: var(--admin-ink); font-weight: 650; }
+.admin2-app .admin2-timeline p { margin: 6px 0 0; color: var(--admin-muted); font-size: 12px; line-height: 1.5; }
+.admin2-app .admin2-timeline .admin2-event-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.admin2-app .admin2-event-meta span { padding: 4px 7px; border-radius: 6px; background: var(--admin-soft); color: #63718a; font-size: 11px; }
+@media (hover: hover) {
+  .admin2-app .admin2-button--primary:hover:not(:disabled) { background: #5845b3; }
+  .admin2-app .admin2-button--secondary:hover:not(:disabled), .admin2-app .admin2-nav-link:hover { background: #f0eef8; }
+}
+@media (max-width: 767px) {
+  .admin2-app .admin2-header { padding: 12px; }
+  .admin2-app .admin2-header h1 { font-size: 20px; }
+  .admin2-app .admin2-header > div:last-child { margin-left: auto; gap: 6px; }
+  .admin2-app .admin2-header .admin2-button { min-height: 44px; font-size: 12px; padding: 8px 10px; }
+  .admin2-app .admin2-period-presets button, .admin2-app .admin2-chart-metrics button { min-height: 44px; }
+  .admin2-app .admin2-input { font-size: 16px; }
+  .admin2-app .admin2-card { padding: 16px; border-radius: 16px; }
+  .admin2-app .admin2-activity-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .admin2-app .admin2-metric { padding: 16px; }
+  .admin2-app .admin2-metric dd { font-size: 24px; }
+  .admin2-app .admin2-period-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; }
+  .admin2-app .admin2-period-presets { grid-column: 1 / -1; width: fit-content; }
+  .admin2-app .admin2-period-field { min-width: 0; }
+  .admin2-app .admin2-period-form > .admin2-button { grid-column: 1 / -1; }
+  .admin2-app .admin2-analysis-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin2-app .admin2-chart-card, .admin2-app .admin2-analysis-grid > section { padding: 16px; }
+  .admin2-app .admin2-timeline > li { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) { .admin2-app .admin2-loading svg { animation: none; } }

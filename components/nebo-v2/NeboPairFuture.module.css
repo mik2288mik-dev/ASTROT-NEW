@@ -1,0 +1,43 @@
+.future > h2 { margin: 4px 0 6px; font-size: 25px; line-height: 1.2; }
+.future .names { margin: 0 0 17px; color: var(--nebo-muted, #667493); font-size: 13px; }
+.stage { position: relative; isolation: isolate; min-height: 214px; border-radius: 22px; overflow: hidden; background: #f0e6f7; }
+.stage > img { position: absolute; z-index: -2; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.stage::after { content: ''; position: absolute; z-index: -1; inset: 0; background: linear-gradient(90deg, #eeebf8ed, #f9e9ed33 85%); }
+.stageCopy { width: 66%; padding: 25px 19px; }
+.stageCopy small { display: block; font-size: 12px; line-height: 1.4; color: #6b627f; }
+.stageCopy h3 { margin: 12px 0 0; font-size: 25px; line-height: 1.12; color: #343951; }
+.controls { padding: 10px 12px 16px; margin: 10px 0 25px; border-radius: 22px; background: linear-gradient(135deg, #e2eafa, #eee0f2); }
+.dateRow { display: grid; grid-template-columns: 28px minmax(0, 1fr) 28px; gap: 7px; max-width: 308px; margin: 2px auto 17px; align-items: center; }
+.dateRow > button { display: grid; place-items: center; min-height: 42px; padding: 0; border: 0; background: transparent; color: #41506c; cursor: pointer; }
+.dateRow > button:disabled { opacity: .3; }
+.digits { display: grid; grid-template-columns: 1.2fr .8fr 1.2fr; gap: 5px; padding: 8px; background: #233141; border-radius: 11px; }
+.digits small { display: block; font-size: 7px; color: #c5cfda; margin-bottom: 4px; }
+.digits b { display: block; font: 700 20px/1.1 Consolas, monospace; color: #efbba9; background: #14202c; padding: 3px; border-radius: 4px; white-space: nowrap; letter-spacing: -.7px; }
+.digits span:nth-child(2) b { color: #eddaa4; }.digits span:nth-child(3) b { color: #c4e1cd; }
+.topics { display: flex; flex-wrap: wrap; gap: 6px; }
+.topics button { flex: 1 0 28%; min-height: 38px; padding: 7px 5px; border: 1px solid transparent; border-radius: 11px; background: #ffffff94; color: #5f6582; font-size: 12px; line-height: 1.2; cursor: pointer; }
+.topics button[aria-pressed='true'] { border-color: #b5a0cf; background: #fff; color: #364365; }
+.primary { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 45px; margin-top: 15px; padding: 11px; border: 0; border-radius: 14px; background: linear-gradient(105deg, #425a7b, #85618e); color: #fff; font-size: 14px; cursor: pointer; }
+.primary:disabled { opacity: .6; cursor: default; }
+.answer { padding: 20px 17px; }
+.answer h3 { margin: 9px 0 12px; font-size: 19px; line-height: 1.25; color: var(--nebo-ink, #28344e); }
+.answer p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--nebo-ink, #344159); }
+.answer time, .answer > small { display: block; font-size: 11px; line-height: 1.4; color: #68738b; }
+.answer > small { margin-top: 14px; }
+.pending { position: absolute; inset: 0; display: grid; place-items: center; font-size: 14px; color: #5a627b; }
+.questions { margin-top: 25px; }
+.questions h2 { margin: 0 0 7px; font-size: 21px; line-height: 1.2; }
+.questions > p { margin: 0 0 13px; color: var(--nebo-muted, #68738b); font-size: 12px; line-height: 1.4; }
+.questionButtons { display: grid; gap: 7px; }
+.questionButtons button { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px; min-height: 46px; border: 1px solid #fff9; border-radius: 15px; background: #e3eafa; color: #344159; text-align: left; font-size: 13px; line-height: 1.4; cursor: pointer; }
+.questionButtons button:nth-child(2n) { background: #f4e1ed; }
+.questionButtons button[aria-pressed='true'] { border-color: #9a85b7; }
+.questionButtons svg { flex-shrink: 0; }
+.questions .answer { margin-top: 10px; border-radius: 19px; background: var(--nebo-surface, #fff); }
+.questionLoading { padding: 16px; font-size: 13px; color: #68738b; }
+.questions > small { display: block; margin: 12px 0 0; color: var(--nebo-muted, #68738b); font-size: 12px; }
+.future button:focus-visible, .questions button:focus-visible { outline: 3px solid #9a85b7; outline-offset: 3px; }
+@keyframes pairDeparture { to { transform: scale(1.45); opacity: 0; filter: blur(5px); } }
+@keyframes pairArrival { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: no-preference) { .stage[data-phase='loading'] > img, .stage[data-phase='loading'] .stageCopy { animation: pairDeparture 600ms ease-in both; }.stage[data-phase='idle'] .stageCopy, .answer { animation: pairArrival 300ms ease-out both; } }
+@media (prefers-reduced-motion: reduce) { .stage[data-phase='loading'] > img, .stage[data-phase='loading'] .stageCopy { opacity: 0; } }

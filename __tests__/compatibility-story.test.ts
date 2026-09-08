@@ -31,7 +31,7 @@ describe('evidence-based compatibility story', () => {
     expect(JSON.parse(prompt.user)).not.toHaveProperty('sectionPlan');
   });
 
-  it.each(['Совместимость: 87 баллов.', 'Он тайно любит тебя.', 'Она обязательно вернётся.', 'He still loves you.', 'Что делать дальше?', '**Ваши сильные стороны**'])('rejects unsupported or templated visible prose: %s', (addition) => {
+  it.each(['Совместимость: 87 баллов.', 'Он тайно любит тебя.', 'Она обязательно вернётся.', 'He still loves you.', 'Что делать дальше?', '**Ваши сильные стороны**', 'Солнце в Тельце помогает вам.', 'Луна в Раке усиливает чувства.', 'Венера определяет близость.', 'Вам нужно проработать этот паттерн.', 'Берегите свой ресурс.', 'Venus in Taurus supports your bond.'])('rejects unsupported or templated visible prose: %s', (addition) => {
     const calculated = calculation();
     const writer = compatibilityStory(selectCompatibilityWriterEvidence(calculated));
     writer.paragraphs[0].text += ` ${addition}`;

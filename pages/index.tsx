@@ -7,6 +7,7 @@ import App from '../App';
 const UiPreviewApp = dynamic(() => import('../components/ui-preview/UiPreviewApp'), {
   ssr: false,
 });
+const NeboPreviewApp = dynamic(() => import('../components/ui-preview/NeboPreviewApp'), { ssr: false });
 
 const UI_PREVIEW_BUILD_ENABLED = process.env.NODE_ENV === 'development'
   && process.env.NEXT_PUBLIC_UI_PREVIEW === '1';
@@ -33,7 +34,7 @@ export default function Home() {
   // the server and during the first client pass. This prevents the real App
   // from mounting briefly and avoids a hydration mismatch in native Live View.
   if (previewSurface === 'pending') return null;
-  if (previewSurface === 'preview') return <UiPreviewApp />;
+  if (previewSurface === 'preview') return router.query.design === 'nebo' ? <NeboPreviewApp /> : <UiPreviewApp />;
 
   return <>
     <Head>

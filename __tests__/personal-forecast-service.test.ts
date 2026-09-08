@@ -2,7 +2,7 @@
 jest.mock('../services/sessionService', () => ({ getTelegramInitDataHeaders: () => ({}) }));
 
 import { apiFetch } from '../services/apiClient';
-import { loadPersonalForecast } from '../services/personalForecastService';
+import { loadPersonalForecast, primePersonalForecastDayHorizon, clearPersonalForecastSessionCache } from '../services/personalForecastService';
 import { personalForecastFixture } from './personal-forecast-fixture';
 import { PERSONAL_FORECAST_CONTRACT_VERSION } from '../lib/personalForecastContract';
 import { LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION, projectPersonalForecastForWire } from '../lib/personalForecastWireCompatibility';
@@ -12,6 +12,7 @@ const mockedFetch = apiFetch as jest.Mock;
 describe('personal forecast cache miss generation', () => {
   beforeEach(() => {
     mockedFetch.mockReset();
+    clearPersonalForecastSessionCache();
   });
 
   afterEach(() => {
@@ -76,5 +77,17 @@ describe('personal forecast cache miss generation', () => {
         birthTime: '', birthPlace: '', language: 'en', isPremium: true } as never,
       period: 'day', periodKey: '2026-07-26', options: { force: true },
     })).rejects.toMatchObject({ code: 'PERSONAL_FORECAST_RESPONSE_INVALID' });
+  });
+
+  it.each([false, true])('primes only accessible prepared dates without POST generation for Premium=%s', async (isPremium) => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-08T12:00:00Z'));
+    try {
+      mockedFetch.mockResolvedValue({ status: 404, ok: false, json: async () => ({ code: 'PERSONAL_FORECAST_NOT_READY' }) });
+      expect(await primePersonalForecastDayHorizon({ id: 'prime-horizon', name: 'Mira', birthDate: '1990-01-01', birthTime: '', birthPlace: '', birthTimezone: 'Europe/Moscow', language: 'en', isPremium, premiumUntil: isPremium ? '2026-10-01T00:00:00Z' : null } as never)).toEqual([]);
+      expect(mockedFetch).toHaveBeenCalledTimes(isPremium ? 4 : 1);
+      expect(mockedFetch.mock.calls.every(([, options]) => options.method === 'GET')).toBe(true);
+      expect(mockedFetch.mock.calls.map(([url]) => new URL(url, 'https://nebo.invalid').searchParams.get('periodKey')))
+        .toEqual(isPremium ? ['2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11'] : ['2026-09-08']);
+    } finally { jest.useRealTimers(); }
   });
 });

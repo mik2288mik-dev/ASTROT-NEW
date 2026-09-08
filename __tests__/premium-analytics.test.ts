@@ -29,6 +29,8 @@ describe('Premium analytics contract', () => {
 
   it('publishes the canonical product funnel taxonomy', () => {
     expect(PRODUCT_ANALYTICS_EVENTS).toEqual([
+      'app_opened', 'onboarding_started', 'onboarding_completed',
+      'birth_data_started', 'birth_data_completed', 'horoscope_opened', 'forecast_period_selected',
       'first_result_ready',
       'natal_section_open',
       'compatibility_ready',

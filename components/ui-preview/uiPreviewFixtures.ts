@@ -1,5 +1,5 @@
 import type { ForecastSection, PersonalForecastPeriod } from '../../lib/personalForecastContract';
-import { PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU } from '../../lib/personalForecastExamples';
+import readingSamples from './readingSamples.json';
 import type { PreloadedNatalReport } from '../NatalReading/HumanReport';
 import {
   NATAL_REPORT_CATALOG_CONTRACT_VERSION,
@@ -933,59 +933,16 @@ function forecastSection(
   };
 }
 
-function forecastExample(period: PersonalForecastPeriod) {
-  const reference = PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.find((item) => item.period === period);
-  if (!reference) throw new Error(`Missing personal forecast preview example: ${period}`);
-  return reference.output;
+// Forecast previews use reviewed provider samples, never old writing templates.
+function forecastExample(period: PersonalForecastPeriod): ForecastSection {
+  const person = readingSamples.people.find(value => value.id === 'alina');
+  const forecast = (person?.forecasts as unknown as Partial<Record<PersonalForecastPeriod, { overview: ForecastSection }>>)?.[period];
+  return forecast?.overview || { ...forecastSection('overview', 'overview', 'Гороскоп', ['Пример ещё не готов.']), status: 'unavailable', diagnosticCode: 'PERSONAL_FORECAST_SECTION_UNAVAILABLE' };
 }
-
-const todayExample = forecastExample('day');
-const weekExample = forecastExample('week');
-const monthExample = forecastExample('month');
-
-export const UI_PREVIEW_TODAY_SECTIONS: ForecastSection[] = [
-  {
-    ...forecastSection('today-overview', 'overview', todayExample.title, [
-      todayExample.forecast,
-    ], ['detail']),
-    visualTag: 'decisions',
-    visualCue: 'decisions',
-  },
-  forecastSection('today-advice', 'dynamic', '', [
-    todayExample.closing,
-  ], ['action']),
-];
-
-export const UI_PREVIEW_WEEK_SECTION: ForecastSection = {
-  ...forecastSection('week-story', 'overview', weekExample.title, [
-    weekExample.forecast,
-  ], ['detail']),
-  visualTag: 'friends',
-  visualCue: 'friends',
-};
-
-export const UI_PREVIEW_WEEK_ADVICE_SECTION = forecastSection('week-advice', 'dynamic', '', [
-  weekExample.closing,
-], ['action']);
-
-export const UI_PREVIEW_WEEK_SECTIONS: ForecastSection[] = [
-  UI_PREVIEW_WEEK_SECTION,
-  UI_PREVIEW_WEEK_ADVICE_SECTION,
-];
-
-export const UI_PREVIEW_MONTH_SECTION: ForecastSection = {
-  ...forecastSection('month-story', 'overview', monthExample.title, [
-    monthExample.forecast,
-  ], ['detail']),
-  visualTag: 'work_money',
-  visualCue: 'work_money',
-};
-
-export const UI_PREVIEW_MONTH_ADVICE_SECTION = forecastSection('month-advice', 'dynamic', '', [
-  monthExample.closing,
-], ['action']);
-
-export const UI_PREVIEW_MONTH_SECTIONS: ForecastSection[] = [
-  UI_PREVIEW_MONTH_SECTION,
-  UI_PREVIEW_MONTH_ADVICE_SECTION,
-];
+export const UI_PREVIEW_TODAY_SECTIONS = [forecastExample('day')];
+export const UI_PREVIEW_WEEK_SECTION = forecastExample('week');
+export const UI_PREVIEW_MONTH_SECTION = forecastExample('month');
+export const UI_PREVIEW_WEEK_ADVICE_SECTION = UI_PREVIEW_WEEK_SECTION;
+export const UI_PREVIEW_MONTH_ADVICE_SECTION = UI_PREVIEW_MONTH_SECTION;
+export const UI_PREVIEW_WEEK_SECTIONS = [UI_PREVIEW_WEEK_SECTION];
+export const UI_PREVIEW_MONTH_SECTIONS = [UI_PREVIEW_MONTH_SECTION];

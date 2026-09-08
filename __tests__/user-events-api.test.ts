@@ -6,10 +6,12 @@ jest.mock('../lib/auth/appAuth', () => ({
 }));
 
 jest.mock('../lib/db', () => ({
-  getPool: () => ({ query: (...args: unknown[]) => mockQuery(...args) }),
+  getPool: () => ({ connect: async () => ({ query: (...args: unknown[]) => mockQuery(...args), release: jest.fn() }) }),
 }));
+jest.mock('../lib/neboOps', () => ({ enqueueNeboOpsEvent: jest.fn(), wakeNeboOpsDelivery: jest.fn() }));
 
 import handler from '../pages/api/users/events';
+const insertedEvent = () => mockQuery.mock.calls.find(([sql]) => sql.includes('INSERT INTO user_app_events'))!;
 
 function response() {
   const res: any = {};
@@ -49,8 +51,8 @@ describe('POST /api/users/events', () => {
     await handler(req, res);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(mockQuery).toHaveBeenCalledTimes(1);
-    const params = mockQuery.mock.calls[0][1];
+    expect(mockQuery).toHaveBeenCalledTimes(3);
+    const params = insertedEvent()[1];
     expect(params.slice(0, 5)).toEqual([
       '42',
       '018f1234-5678-4abc-8def-0123456789ab',
@@ -62,6 +64,7 @@ describe('POST /api/users/events', () => {
       placement: 'settings',
       entitlement_state: 'paid',
       paywall_instance_id: 'pw-restore-1',
+      runtime: 'web',
     });
   });
 
@@ -87,12 +90,13 @@ describe('POST /api/users/events', () => {
     await handler(req, res);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    const params = mockQuery.mock.calls[0][1];
+    const params = insertedEvent()[1];
     expect(params.slice(0, 5)).toEqual(['42', null, 'natal_section_open', 'chart', 'deep_natal']);
     expect(JSON.parse(params[5])).toEqual({
       section_key: 'strengths',
       access_state: 'open',
       source: 'section_grid',
+      runtime: 'web',
     });
   });
 
@@ -121,10 +125,10 @@ describe('POST /api/users/events', () => {
 
     await handler(req, res);
 
-    expect(mockQuery.mock.calls[0][0]).toContain(
+    expect(insertedEvent()[0]).toContain(
       'ON CONFLICT (event_id) WHERE event_id IS NOT NULL DO NOTHING',
     );
-    expect(mockQuery.mock.calls[0][1][1]).toBe('018f1234-5678-4abc-8def-0123456789ac');
+    expect(insertedEvent()[1][1]).toBe('018f1234-5678-4abc-8def-0123456789ac');
     expect(res.status).toHaveBeenCalledWith(200);
   });
 

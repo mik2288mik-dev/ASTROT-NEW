@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-08-30T00:23:26.755Z",
+  "files": [
+    {
+      "id": "01_natal-chart",
+      "raw": "docs\\store\\rustore\\screenshots\\raw\\01_natal-chart.png",
+      "poster": "docs\\store\\rustore\\screenshots\\posters\\01_natal-chart.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 404222
+    },
+    {
+      "id": "02_today-personal",
+      "raw": "docs\\store\\rustore\\screenshots\\raw\\02_today-personal.png",
+      "poster": "docs\\store\\rustore\\screenshots\\posters\\02_today-personal.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 369334
+    },
+    {
+      "id": "03_compatibility",
+      "raw": "docs\\store\\rustore\\screenshots\\raw\\03_compatibility.png",
+      "poster": "docs\\store\\rustore\\screenshots\\posters\\03_compatibility.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 513360
+    },
+    {
+      "id": "04_week-personal",
+      "raw": "docs\\store\\rustore\\screenshots\\raw\\04_week-personal.png",
+      "poster": "docs\\store\\rustore\\screenshots\\posters\\04_week-personal.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 358782
+    },
+    {
+      "id": "05_month-personal",
+      "raw": "docs\\store\\rustore\\screenshots\\raw\\05_month-personal.png",
+      "poster": "docs\\store\\rustore\\screenshots\\posters\\05_month-personal.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 401881
+    },
+    {
+      "id": "06_zodiac-horoscope",
+      "raw": "docs\\store\\rustore\\screenshots\\raw\\06_zodiac-horoscope.png",
+      "poster": "docs\\store\\rustore\\screenshots\\posters\\06_zodiac-horoscope.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 346687
+    },
+    {
+      "id": "07_ask-yourself",
+      "raw": "docs\\store\\rustore\\screenshots\\raw\\07_ask-yourself.png",
+      "poster": "docs\\store\\rustore\\screenshots\\posters\\07_ask-yourself.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 405627
+    },
+    {
+      "id": "08_destiny-matrix",
+      "raw": "docs\\store\\rustore\\screenshots\\raw\\08_destiny-matrix.png",
+      "poster": "docs\\store\\rustore\\screenshots\\posters\\08_destiny-matrix.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 361956
+    }
+  ]
+}

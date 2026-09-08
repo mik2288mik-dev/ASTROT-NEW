@@ -51,22 +51,22 @@ export function reduceToArcana(n: number): number {
 
 // Подписи позиций — простым языком, без эзотерики («кармическая задача», «предназначение»).
 const POSITION_META: Record<MatrixPositionKey, { ru: string; en: string; hintRu: string; hintEn: string }> = {
-  self: { ru: 'Твоя суть', en: 'Your core', hintRu: 'Кто ты внутри', hintEn: 'Who you are inside' },
-  portrait: { ru: 'Каким тебя видят', en: 'How others see you', hintRu: 'Первое впечатление', hintEn: 'First impression' },
-  talents: { ru: 'Сильные стороны', en: 'Strengths', hintRu: 'На что опираться', hintEn: 'What to lean on' },
-  karma: { ru: 'Зона роста', en: 'Growth area', hintRu: 'Главный урок', hintEn: 'Main lesson' },
-  comfort: { ru: 'Зона комфорта', en: 'Comfort zone', hintRu: 'Где тебе спокойно', hintEn: 'Where you feel steady' },
+  self: { ru: 'Твой характер', en: 'Your character', hintRu: 'Привычный способ действовать', hintEn: 'Your usual way of acting' },
+  portrait: { ru: 'Первое впечатление', en: 'First impression', hintRu: 'Как ты начинаешь знакомство', hintEn: 'How you meet someone' },
+  talents: { ru: 'Сильные стороны', en: 'Strengths', hintRu: 'Что тебе даётся легче', hintEn: 'What comes easily to you' },
+  karma: { ru: 'Что бывает непросто', en: 'What can be difficult', hintRu: 'Привычки, которые могут мешать', hintEn: 'Habits that can get in the way' },
+  comfort: { ru: 'Что тебя радует', en: 'What you enjoy', hintRu: 'Когда тебе хорошо', hintEn: 'When you feel comfortable' },
   personalPurpose: { ru: 'Личные цели', en: 'Personal goals', hintRu: 'Что важно для себя', hintEn: 'For yourself' },
-  socialPurpose: { ru: 'Роль среди людей', en: 'Role among people', hintRu: 'Чем ты полезен другим', hintEn: 'For others' },
-  spiritualPurpose: { ru: 'Твой путь', en: 'Your path', hintRu: 'Куда ты идёшь', hintEn: 'Where you are heading' },
+  socialPurpose: { ru: 'Среди людей', en: 'With other people', hintRu: 'Как ты участвуешь в общем деле', hintEn: 'How you join a shared task' },
+  spiritualPurpose: { ru: 'Твои интересы', en: 'Your interests', hintRu: 'Что тебе хочется узнать и попробовать', hintEn: 'What you want to explore' },
 };
 
 // Сферы жизни — отдельный блок (простые подписи, без эзотерики).
 const LIFE_AREA_META: Record<MatrixLifeAreaKey, { ru: string; en: string; hintRu: string; hintEn: string }> = {
-  money: { ru: 'Деньги и достаток', en: 'Money', hintRu: 'Как у тебя с ресурсом', hintEn: 'Your relationship with resources' },
+  money: { ru: 'Деньги', en: 'Money', hintRu: 'Покупки и привычки', hintEn: 'Spending and habits' },
   love: { ru: 'Любовь и близость', en: 'Love', hintRu: 'Что важно в отношениях', hintEn: 'What matters in relationships' },
-  health: { ru: 'Энергия и здоровье', en: 'Energy & health', hintRu: 'Где твой ресурс', hintEn: 'Where your energy comes from' },
-  lineage: { ru: 'Семейная линия', en: 'Family line', hintRu: 'Опора и опыт рода', hintEn: 'Roots and family experience' },
+  health: { ru: 'Дела и отдых', en: 'Activity and rest', hintRu: 'Привычный ритм жизни', hintEn: 'Your everyday pace' },
+  lineage: { ru: 'Семья', en: 'Family', hintRu: 'Отношения с близкими', hintEn: 'Relationships with family' },
 };
 
 /**

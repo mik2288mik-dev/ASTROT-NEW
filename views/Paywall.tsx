@@ -15,6 +15,8 @@ import {
 } from '../services/rustorePayService';
 import { STORE_RELEASE_CONFIG } from '../lib/storeReleaseConfig';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
+import { Art, Header } from '../components/nebo-v2/Primitives';
+import { Check, LoaderCircle } from 'lucide-react';
 import type { PurchaseRestoreStatus } from '../services/paymentProvider';
 import { loadTelegramPremiumPlans } from '../services/paymentPlanCatalog';
 import { paymentFailureCopy } from '../lib/paymentFailureCopy';
@@ -44,6 +46,7 @@ interface PaywallProps {
   initialPlanId?: PremiumPlanId;
   resumeNotice?: string | null;
   embedded?: boolean;
+  presentation?: 'classic' | 'nebo';
   uiPreview?: {
     plans: Array<{
       id: PremiumPlanId;
@@ -124,8 +127,10 @@ export const Paywall: React.FC<PaywallProps> = ({
   initialPlanId = 'premium_quarter',
   resumeNotice,
   embedded = false,
+  presentation = 'classic',
   uiPreview,
 }) => {
+  const refined = presentation === 'nebo';
   const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const ru = language === 'ru';
@@ -355,15 +360,16 @@ export const Paywall: React.FC<PaywallProps> = ({
 
   return (
     <div
-      className={`fresh-page pw2 ${embedded ? 'pw2--embedded' : 'pw2--overlay'}`}
+      className={`fresh-page pw2 ${embedded ? 'pw2--embedded' : 'pw2--overlay'}${refined ? ' nebo-v2-shell nebo-paywall' : ''}`}
       data-paywall-instance-id={context.paywallInstanceId}
       data-paywall-placement={context.placement}
       data-paywall-mode={embedded ? 'embedded' : 'overlay'}
       data-close-label={ru ? 'Закрыть' : 'Close'}
     >
-      {!embedded ? <AppTopBar title="Premium" onBack={onClose} /> : null}
+      {!embedded ? refined ? <Header title="Premium" onBack={onClose} /> : <AppTopBar title="Premium" onBack={onClose} /> : null}
       <div className="pw2-content">
         <div className="pw2-intro">
+          {refined ? <Art name="premium" className="nebo-premium-art" /> : null}
           <p className="pw2-kicker">NEBO Premium</p>
           <h1 className="pw2-title">
             {alreadyPremium
@@ -427,7 +433,7 @@ export const Paywall: React.FC<PaywallProps> = ({
                     />
                     <div className="pw2-plan-heading">
                       <p className="pw2-plan-period">{plan.periodLabel}</p>
-                      <p className="pw2-plan-selected" aria-hidden="true">{isSelected ? (ru ? 'Выбрано' : 'Selected') : (ru ? 'Полный доступ' : 'Full access')}</p>
+                      {!refined ? <p className="pw2-plan-selected" aria-hidden="true">{isSelected ? (ru ? 'Выбрано' : 'Selected') : (ru ? 'Полный доступ' : 'Full access')}</p> : null}
                     </div>
                     <p className={`pw2-plan-price ${hasCatalogPrice ? '' : 'is-placeholder'}`}>{price}</p>
                   </label>
@@ -449,7 +455,7 @@ export const Paywall: React.FC<PaywallProps> = ({
         <section className="pw2-included" aria-labelledby="pw2-benefits-title">
           <h2 id="pw2-benefits-title" className="pw2-section-title">{ru ? 'Что откроется' : 'What’s included'}</h2>
           <dl className="pw2-benefits">
-            {benefits.map((benefit) => <div key={benefit.title}><dt>{benefit.title}</dt><dd>{benefit.description}</dd></div>)}
+            {benefits.map((benefit) => <div key={benefit.title}><dt>{refined ? <Check size={18} strokeWidth={1.8} aria-hidden="true" /> : null}{benefit.title}</dt><dd>{benefit.description}</dd></div>)}
           </dl>
         </section>
         <div className="pw2-foot">
@@ -484,6 +490,7 @@ export const Paywall: React.FC<PaywallProps> = ({
               aria-describedby={renewalId}
               disabled={purchaseActionLocked || catalogLoading || !selectedPlan}
             >
+              {refined && (paying || purchaseState === 'pending') ? <LoaderCircle size={20} className="nebo-shell-spinner" aria-hidden="true" /> : null}
               {paying
                 ? (telegramPaymentsEnabled ? (ru ? 'Открываем Telegram…' : 'Opening Telegram…') : (ru ? 'Открываем RuStore…' : 'Opening RuStore…'))
                 : purchaseState === 'pending'

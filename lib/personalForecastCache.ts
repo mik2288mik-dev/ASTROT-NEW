@@ -1,3 +1,5 @@
+import { natalChartV2Repository } from './natalChartV2Repository';
+import { isCanonicalNatalChartDataComplete, buildCanonicalNatalInputHash } from './natalChartCanonical';
 import type { ContentInterpretation, UserProfile } from '../types';
 import { PERSONAL_FORECAST_VOICE_VERSION } from './appVoice';
 import { getUnifiedContentModel } from './appSettings';
@@ -158,7 +160,8 @@ function historicalReading(value: unknown): PersonalForecastRecentReading | null
   // Generated section IDs contain a content hash. Recognize the saved closing
   // contract as well as older explicit IDs; do not classify every legacy action as a closing.
   const hasClosing = last?.id === 'semantic:closing' || lastBlock?.atomId === 'closing'
-    || (lastBlock?.role === 'action' && Boolean(historyText(oldSignature?.closing, 220)));
+    || (Boolean(historyText(oldSignature?.closing, 220))
+      && (lastBlock?.role === 'action' || historyText(last?.text, 220) === historyText(oldSignature?.closing, 220)));
   const closing = hasClosing ? historyText(last?.text, 220) : '';
   const body = [overview, ...(hasClosing ? sections.slice(0, -1) : sections)]
     .map((section) => historyText(section?.text, 3_000)).filter(Boolean).join('\n\n').slice(0, 3_000);
@@ -189,14 +192,13 @@ export async function getRecentPersonalForecastHistory(input: PersonalForecastCa
      WHERE user_id = $1 AND chart_id IS NULL AND content_surface = 'forecast'
        AND content_variant IN ('daily', 'weekly', 'monthly')
        AND content->'meta'->>'contractVersion' LIKE 'personal-forecast-feed-v%'
-       AND NOT (content->>'period' = $2 AND content->>'periodKey' = $3)
-     ORDER BY updated_at DESC, id DESC LIMIT $4`, [input.userId, input.period, input.periodKey, HISTORY_LIMIT * 4],
+      ORDER BY updated_at DESC, id DESC LIMIT $2`, [input.userId, HISTORY_LIMIT * 4],
   );
   const seen = new Set<string>();
   return (result.rows as Array<{ user_id: unknown; content: unknown }>).flatMap((row) => {
     if (String(row.user_id) !== input.userId) return [];
     const item = historicalReading(row.content);
-    if (!item || (item.period === input.period && item.periodKey === input.periodKey)) return [];
+    if (!item) return [];
     const key = `${item.period}:${item.periodKey}:${item.fragments.map((part) => part.text).join('\n')}`;
     if (seen.has(key)) return [];
     seen.add(key); return [item];
@@ -257,6 +259,8 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
     throw new Error('PERSONAL_FORECAST_PREMIUM_REQUIRED');
   }
   const resolved = await identity(input);
+  const requestedMinimum = options.minimumGeneratedAt ? Date.parse(options.minimumGeneratedAt) : Number.NaN;
+  const minimumGeneratedAt = Number.isFinite(requestedMinimum) ? requestedMinimum : options.forceRegenerate ? Date.now() : null;
   let lockBusyLogged = false;
   return withContentGenerationLock({
     lockKey: buildContentGenerationLockKey({ userId: input.userId, accessTier: input.accessTier, contentSurface: 'forecast', contentVariant: resolved.contentVariant, cacheKey: resolved.cacheKey, promptVersion: PERSONAL_FORECAST_PROMPT_VERSION }),
@@ -267,17 +271,17 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
       logForecastDeliveryMetric({ domain: 'personal', outcome: 'generation_in_progress', tier: input.accessTier, period: input.period, periodKey: input.periodKey });
     },
     readCached: async () => {
-      if (options.forceRegenerate) return null;
       const cached = await getCachedPersonalForecast(input);
+      if (cached && minimumGeneratedAt !== null && Date.parse(cached.forecast.meta.generatedAt) <= minimumGeneratedAt) return null;
       return cached ? { value: cached.forecast, source: 'cache' as const } : null;
     },
     generate: async () => {
-      const [recentForecasts, crossUserRepeatFragments, crossUserSemanticSignatures] = await Promise.all([
-        getRecentPersonalForecastHistory(input),
-        getCrossUserRepeatFragments(input, resolved).catch(() => []),
-        getCrossUserSemanticSignatures(input, resolved).catch(() => []),
-      ]);
-      const forecast = await generatePersonalForecastPackage({ profile: input.profile as UserProfile, model: resolved.model, period: input.period, window: resolved.window, recentForecasts, crossUserRepeatFragments, crossUserSemanticSignatures });
+      const savedChart = await natalChartV2Repository.getPrimary(input.userId);
+      if (!savedChart || String(savedChart.user_id) !== input.userId || !isCanonicalNatalChartDataComplete(savedChart.chart_data)) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
+      const natal = savedChart.chart_data;
+      const expectedHash = buildCanonicalNatalInputHash({ birthDate: input.profile.birthDate, birthTime: input.profile.birthTime, birthPlace: input.profile.birthPlace, birthTimeMode: input.profile.birthTimeMode, birthTimeUncertaintyMinutes: input.profile.birthTimeUncertaintyMinutes, latitude: natal.birth.latitude, longitude: natal.birth.longitude, timezone: natal.birth.timezone });
+      if (savedChart.input_hash !== expectedHash) throw new Error('PERSONAL_FORECAST_CHART_OUTDATED');
+      const forecast = await generatePersonalForecastPackage({ natal, userId: input.userId, profile: input.profile as UserProfile, model: resolved.model, period: input.period, window: resolved.window });
       if (!isPersonalForecastPackage(forecast)) throw new Error(`PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(forecast) || 'UNKNOWN'}`);
       // A generated package is not ready until it is durably stored. Swallowing
       // this error reports a false success and leaves every later GET at 204.

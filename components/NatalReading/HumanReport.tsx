@@ -1,6 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, Crown, Send } from 'lucide-react';
 import type {
+  InterpretationSection,
   NatalChartData,
   UserProfile,
 } from '../../types';
@@ -27,24 +29,17 @@ import {
   type NatalEvidenceFact,
   type NatalPermanentFreeReport,
   type NatalPermanentPremiumReport,
+  type NatalReadingStatement,
 } from '../../lib/natalReading/permanentReport';
 import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
 import type { NatalQuestionStoredMessage } from '../../lib/natalReading/natalQuestionStore';
 import type { ChartListItem } from '../../services/storageService';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
+import { MONO_EASE } from '../mono-ui/motion';
 import { CosmicSheet } from '../lumia-ui/CosmicSheet';
 import type { PaywallContext } from '../../lib/paywallContext';
 import { normalizePersonalForecastQuestionInput } from '../../lib/personalForecastQuestionModeration';
-import { recordUserAppEvent } from '../../services/sessionService';
-import { NatalReportHub } from './NatalReportHub';
-import {
-  buildNatalReportTopics,
-  isNatalTopicKey,
-  type NatalTopicContent,
-  type NatalTopicKey,
-} from '../../lib/natalReading/reportTopics';
-import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
 
 export type PreloadedNatalReport = {
   report: NatalPermanentFreeReport;
@@ -99,24 +94,24 @@ const PLANET_LABELS: Array<{ key: string; labelRu: string; labelEn: string; icon
 
 const NATAL_QUESTION_STARTERS = [
   {
-    ru: 'Как я принимаю важные решения?',
-    en: 'How do I make important decisions?',
+    ru: 'Почему мне трудно просить о помощи?',
+    en: 'Why is it hard for me to ask for help?',
   },
   {
-    ru: 'Почему я могу быстро потерять интерес?',
-    en: 'Why can I lose interest quickly?',
+    ru: 'Как я обычно принимаю важные решения?',
+    en: 'How do I usually make important decisions?',
   },
   {
-    ru: 'Как я веду себя в ссоре?',
-    en: 'How do I act during an argument?',
+    ru: 'Что помогает мне не теряться в конфликте?',
+    en: 'What helps me stay grounded in a conflict?',
   },
   {
-    ru: 'Какая работа мне быстро надоедает?',
-    en: 'What kind of work bores me quickly?',
+    ru: 'Какие мои сильные стороны заметны в работе?',
+    en: 'Which of my strengths show up at work?',
   },
   {
-    ru: 'Как я обращаюсь с деньгами?',
-    en: 'How do I handle money?',
+    ru: 'Как я веду себя в близких отношениях?',
+    en: 'How do I tend to behave in close relationships?',
   },
   {
     ru: 'Что моя карта говорит о моём отношении к деньгам?',
@@ -164,11 +159,6 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
       ? 'Вопросы по карте доступны в Premium.'
       : 'Questions about the chart are available with Premium.';
   }
-  if (value?.code === 'FREE_NATAL_QUESTION_USED') {
-    return language === 'ru'
-      ? 'Бесплатный вопрос уже использован. В подписке можно задавать до 5 новых вопросов в день.'
-      : 'Your free question has already been used. The subscription includes up to 5 new questions a day.';
-  }
   if (value?.code === 'NATAL_QUESTION_DAILY_LIMIT') {
     return language === 'ru'
       ? 'На сегодня вопросы закончились. Можно вернуться завтра.'
@@ -181,8 +171,8 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
   }
   if (value?.code === 'NATAL_QUESTION_REJECTED') {
     return language === 'ru'
-      ? 'Здесь можно задать только конкретный вопрос о себе по сохранённой натальной карте. Выбери пример или уточни вопрос.'
-      : 'Only specific questions about you can be answered from your saved natal chart. Choose an example or make the question more specific.';
+      ? 'Здесь ИИ отвечает только на конкретные вопросы о тебе по сохранённой натальной карте. Выбери пример или уточни вопрос.'
+      : 'Here AI answers only specific questions about you from your saved natal chart. Choose an example or make the question more specific.';
   }
   if (value?.code === 'NATAL_QUESTION_SELF_CHART_REQUIRED') {
     return language === 'ru'
@@ -379,6 +369,39 @@ function buildNatalQuestionPairs(messages: readonly NatalQuestionStoredMessage[]
       answer: answersByQuestionId.get(String(question.id)) || null,
     }));
 }
+
+const SectionText: React.FC<{
+  section: InterpretationSection;
+  index?: number;
+}> = ({ section, index = 0 }) => {
+  const reduce = useReducedMotion();
+  const Comp = reduce ? 'section' : motion.section;
+  return (
+    <Comp
+      {...(!reduce
+        ? {
+            initial: { opacity: 0, y: 12 },
+            whileInView: { opacity: 1, y: 0 },
+            viewport: { once: true, margin: '-40px' },
+            transition: {
+              duration: 0.32,
+              delay: Math.min(index * 0.04, 0.16),
+              ease: MONO_EASE,
+            },
+          }
+        : {})}
+      data-reading-section-key={section.key}
+      className="natal-sec editorial-reading-section"
+    >
+      {section.title ? <h2 className="natal-sec-title">{section.title}</h2> : null}
+      <FormattedAiText
+        text={section.content}
+        className="natal-sec-body max-w-none"
+        paragraphClassName="natal-sec-p"
+      />
+    </Comp>
+  );
+};
 
 /** Compatibility paywall used by the existing story deck. */
 export const NatalUnlockSheet: React.FC<{
@@ -591,6 +614,42 @@ export const TechnicalDetails: React.FC<{ chartData: NatalChartData; language: '
   );
 };
 
+const StatementText: React.FC<{
+  statement: NatalReadingStatement;
+  className?: string;
+}> = ({
+  statement,
+  className = '',
+}) => (
+  <div className="natal-statement">
+    <FormattedAiText
+      text={statement.text}
+      className={`max-w-none ${className}`}
+      paragraphClassName="natal-sec-p"
+    />
+  </div>
+);
+
+const PremiumReport: React.FC<{
+  report: NatalPermanentPremiumReport;
+}> = ({ report }) => (
+  <section className="natal-permanent-premium" data-natal-contract={report.contractVersion}>
+    {report.sections.map((section) => (
+      <section key={section.id} className="natal-sec editorial-reading-section" data-premium-section={section.id}>
+        {section.title ? <h2 className="natal-sec-title">{section.title}</h2> : null}
+        <div className="natal-sec-body">
+          {section.paragraphs.map((paragraph, index) => (
+            <StatementText
+              key={`${section.id}-${index}`}
+              statement={paragraph}
+            />
+          ))}
+        </div>
+      </section>
+    ))}
+  </section>
+);
+
 const NatalReadingSkeleton: React.FC<{ language: 'ru' | 'en' }> = ({ language }) => (
   <section
     data-testid="human-report-loading-area"
@@ -618,6 +677,21 @@ const NatalReadingSkeleton: React.FC<{ language: 'ru' | 'en' }> = ({ language })
   </section>
 );
 
+const NatalPremiumSkeleton: React.FC<{ language: 'ru' | 'en' }> = ({ language }) => (
+  <section
+    className="natal-premium-skeleton"
+    role="status"
+    aria-label={language === 'ru' ? 'Подготавливаем полный разбор' : 'Preparing the full reading'}
+  >
+    <span className="sr-only">
+      {language === 'ru' ? 'Подготавливаем полный разбор.' : 'Preparing the full reading.'}
+    </span>
+    <span aria-hidden="true" />
+    <span aria-hidden="true" />
+    <span aria-hidden="true" />
+  </section>
+);
+
 export const HumanReport: React.FC<Props> = ({
   profile,
   chartData,
@@ -637,7 +711,6 @@ export const HumanReport: React.FC<Props> = ({
   const userId = profile.id ? String(profile.id) : '';
   const subjectName = chartSubject?.name || profile.name;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
-  const isPremium = hasActivePremium(profile);
   const cacheIdentity = useMemo(() => ({
     chartFingerprint: buildPermanentNatalChartFingerprint(profile, chartData),
     reportVersion: NATAL_PERMANENT_CONTRACT_VERSION,
@@ -667,12 +740,12 @@ export const HumanReport: React.FC<Props> = ({
   const initialBase = previewConfig && previewState !== 'ready'
     ? null
     : matchingPreloadedReport || cachedBase;
-  const cachedPremium = isPremium && userId
+  const cachedPremium = userId
     ? getHumanPremiumReportCached(userId, chartId, language, cacheIdentity)?.content || null
     : null;
   const [report, setReport] = useState<NatalPermanentFreeReport | null>(initialBase);
   const [premiumReport, setPremiumReport] = useState<NatalPermanentPremiumReport | null>(
-    isPremium ? previewPremiumReport || cachedPremium : null,
+    previewPremiumReport || cachedPremium,
   );
   const [loading, setLoading] = useState(previewConfig ? previewState === 'loading' : !initialBase);
   const [error, setError] = useState<string | null>(
@@ -689,23 +762,13 @@ export const HumanReport: React.FC<Props> = ({
   const [questionRetryToken, setQuestionRetryToken] = useState(0);
   const [baseRetryToken, setBaseRetryToken] = useState(0);
   const [premiumRetryToken, setPremiumRetryToken] = useState(0);
-  const [selectedTopicKey, setSelectedTopicKey] = useState<NatalTopicKey | null>(null);
-  const [topicFocusRequestId, setTopicFocusRequestId] = useState(0);
   const reportIdentity = `${userId}:${chartId ?? 'primary'}:${language}:${cacheIdentity.chartFingerprint}:${cacheIdentity.reportVersion}`;
   const baseIdentityRef = useRef(reportIdentity);
   const premiumIdentityRef = useRef(reportIdentity);
-  const firstResultEventIdentityRef = useRef('');
 
-  const returnToTopicHub = useCallback(() => {
-    setSelectedTopicKey(null);
-    requestAnimationFrame(() => {
-      const heading = document.getElementById('natal-topic-hub-title');
-      heading?.focus({ preventScroll: true });
-      heading?.scrollIntoView({ block: 'start', behavior: 'auto' });
-    });
-  }, []);
-
+  const isPremium = hasActivePremium(profile);
   const reliability = getPermanentNatalReliability(chartData);
+  const freeSections = report?.freeSections || [];
   const questionPairs = useMemo(
     () => buildNatalQuestionPairs(questionSnapshot?.messages || []),
     [questionSnapshot?.messages],
@@ -808,43 +871,7 @@ export const HumanReport: React.FC<Props> = ({
     setQuestionText('');
     setQuestionError(null);
     setUnansweredQuestionText(null);
-    setSelectedTopicKey(null);
   }, [reportIdentity]);
-
-  useEffect(() => {
-    if (surface !== 'reading' || selectedTopicKey == null) return;
-    const handleNativeBack = (event: Event) => {
-      const detail = (event as CustomEvent<NativeBackEventDetail>).detail;
-      if (detail.handled) return;
-      detail.handled = true;
-      returnToTopicHub();
-    };
-    window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
-    return () => window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
-  }, [returnToTopicHub, selectedTopicKey, surface]);
-
-  useEffect(() => {
-    if (surface !== 'reading' || !report) return;
-    const eventIdentity = `${reportIdentity}:${report.calculatedAt}`;
-    if (firstResultEventIdentityRef.current === eventIdentity) return;
-    firstResultEventIdentityRef.current = eventIdentity;
-    const topics = buildNatalReportTopics({
-      language,
-      report,
-      premiumReport,
-      isPremium,
-    });
-    void recordUserAppEvent({
-      eventType: 'first_result_ready',
-      section: 'natal',
-      source: 'natal_report',
-      eventPayload: {
-        result_type: 'natal_report',
-        open_section_count: topics.filter((topic) => topic.accessState !== 'locked').length,
-        total_section_count: topics.length,
-      },
-    });
-  }, [isPremium, language, premiumReport, report, reportIdentity, surface]);
 
   useEffect(() => {
     if (surface !== 'questions') return;
@@ -858,7 +885,7 @@ export const HumanReport: React.FC<Props> = ({
         : null);
       return;
     }
-    if (!userId) {
+    if (!isPremium || !userId) {
       setQuestionLoading(false);
       return;
     }
@@ -885,6 +912,7 @@ export const HumanReport: React.FC<Props> = ({
     return () => { cancelled = true; };
   }, [
     chartId,
+    isPremium,
     language,
     previewConfig,
     previewState,
@@ -901,46 +929,16 @@ export const HumanReport: React.FC<Props> = ({
       && premiumContinuation.returnAction === 'open_natal_questions'
       && surface === 'questions'
     ) {
-      requestAnimationFrame(() => {
-        const composer = document.getElementById('natal-question-composer');
-        composer?.focus({ preventScroll: true });
-        composer?.scrollIntoView({ block: 'start', behavior: 'auto' });
-      });
-      onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
-      return;
-    }
-    if (
-      premiumContinuation.featureKey === 'natal_deep'
-      && premiumContinuation.returnAction === 'open_natal_topic'
-      && isNatalTopicKey(premiumContinuation.returnEntityId)
-      && surface === 'reading'
-    ) {
-      setSelectedTopicKey(premiumContinuation.returnEntityId);
-      setTopicFocusRequestId((value) => value + 1);
-      void recordUserAppEvent({
-        eventType: 'natal_section_open',
-        section: 'natal',
-        source: 'deep_natal',
-        eventPayload: {
-          section_key: premiumContinuation.returnEntityId,
-          access_state: 'premium',
-          source: 'paywall_return',
-          paywall_instance_id: premiumContinuation.paywallInstanceId,
-        },
-      });
       onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
       return;
     }
     if (
       (premiumContinuation.featureKey === 'natal_deep'
         || premiumContinuation.featureKey === 'personality_deep')
+      && premiumReport
       && surface === 'reading'
     ) {
-      requestAnimationFrame(() => {
-        const heading = document.getElementById('natal-topic-hub-title');
-        heading?.focus({ preventScroll: true });
-        heading?.scrollIntoView({ block: 'start', behavior: 'auto' });
-      });
+      document.getElementById('natal-deep-premium')?.scrollIntoView({ block: 'center' });
       onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
     }
   }, [
@@ -966,17 +964,6 @@ export const HumanReport: React.FC<Props> = ({
       setQuestionSnapshot(next);
       setQuestionText('');
       setUnansweredQuestionText(null);
-      void recordUserAppEvent({
-        eventType: 'question_sent',
-        section: 'natal',
-        source: 'natal_questions',
-        eventPayload: {
-          section_key: 'natal_questions',
-          scope: 'self',
-          source: 'natal_report',
-          is_follow_up: questionPairs.length > 0,
-        },
-      });
     } catch (submitError) {
       if ((submitError as HumanReadingError)?.code === 'NATAL_QUESTION_GENERATION_FAILED') {
         setUnansweredQuestionText(value);
@@ -987,40 +974,8 @@ export const HumanReport: React.FC<Props> = ({
     }
   };
 
-  const openTopic = (
-    topic: NatalTopicContent,
-    source: 'section_grid' | 'continue',
-  ) => {
-    setSelectedTopicKey(topic.key);
-    setTopicFocusRequestId((value) => value + 1);
-    void recordUserAppEvent({
-      eventType: 'natal_section_open',
-      section: 'natal',
-      source: 'deep_natal',
-      eventPayload: {
-        section_key: topic.key,
-        access_state: topic.accessState,
-        source,
-      },
-    });
-  };
-
-  const requestTopicPremium = (topicKey: NatalTopicKey) => {
-    void requestPremium('deep_natal', {
-      placement: 'deep_natal',
-      featureKey: 'natal_deep',
-      triggerType: 'locked_feature',
-      returnView: 'chart',
-      returnScrollAnchor: `natal-topic-premium-${topicKey}`,
-      returnAction: 'open_natal_topic',
-      returnEntityId: topicKey,
-    });
-  };
-
   if (surface === 'questions') {
-    const remainingQuestions = isPremium
-      ? questionSnapshot?.usage.remaining ?? null
-      : questionSnapshot?.access.freeQuestionRemaining ?? null;
+    const remainingQuestions = questionSnapshot?.usage.remaining ?? null;
     const normalizedQuestionText = normalizePersonalForecastQuestionInput(questionText)
       .toLocaleLowerCase();
     const normalizedUnansweredQuestion = normalizePersonalForecastQuestionInput(
@@ -1051,21 +1006,13 @@ export const HumanReport: React.FC<Props> = ({
                 ? 'Сейчас можно повторить только вопрос, который остался без ответа.'
                 : 'For now, you can only retry the unanswered question.'))
       : questionLimitReached
-        ? (isPremium
-            ? (language === 'ru'
-                ? 'На сегодня вопросы закончились. Можно вернуться завтра.'
-                : 'You have used today\'s questions. You can return tomorrow.')
-            : (language === 'ru'
-                ? 'Бесплатный вопрос уже использован.'
-                : 'Your free question has already been used.'))
+        ? (language === 'ru'
+            ? 'На сегодня вопросы закончились. Можно вернуться завтра.'
+            : 'You have used today\'s questions. You can return tomorrow.')
         : remainingQuestions != null
-          ? (isPremium
-              ? (language === 'ru'
-                  ? `Осталось сегодня: ${remainingQuestions}`
-                  : `Remaining today: ${remainingQuestions}`)
-              : (language === 'ru'
-                  ? 'Первый вопрос по карте — бесплатно.'
-                  : 'Your first chart question is free.'))
+          ? (language === 'ru'
+              ? `Осталось сегодня: ${remainingQuestions}`
+              : `Remaining today: ${remainingQuestions}`)
           : !userId && previewConfig
             ? (language === 'ru'
                 ? 'В локальном превью отправка отключена.'
@@ -1081,23 +1028,19 @@ export const HumanReport: React.FC<Props> = ({
         aria-labelledby="natal-question-page-title"
       >
         <div className="natal-question-page-inner">
-          <>
-          {!isPremium
-          && questionSnapshot?.access.freeQuestionRemaining === 0
-          && !unansweredQuestionText ? (
+          {!isPremium ? (
             <section className="natal-question-locked" aria-labelledby="natal-question-locked-title">
               <h2 id="natal-question-locked-title">
                 {language === 'ru'
-                  ? 'Бесплатный вопрос уже использован'
-                  : 'Your free question has already been used'}
+                  ? 'Вопросы по карте доступны в Premium'
+                  : 'Questions about your chart are available with Premium'}
               </h2>
               <p>
                 {language === 'ru'
-                  ? 'В подписке можно задавать до 5 новых вопросов в день и продолжать уже начатые темы.'
-                  : 'The subscription lets you ask up to 5 new questions a day and continue existing topics.'}
+                  ? 'ИИ отвечает по сохранённой натальной карте. До 5 принятых вопросов в день.'
+                  : 'AI answers from your saved natal chart. Up to 5 accepted questions per day.'}
               </p>
               <button
-                id="natal-question-premium-button"
                 type="button"
                 className="natal-question-premium-button"
                 onClick={() => void requestPremium('natal_questions', {
@@ -1105,20 +1048,17 @@ export const HumanReport: React.FC<Props> = ({
                   featureKey: 'natal_questions',
                   triggerType: 'locked_feature',
                   returnView: 'chart',
-                  returnScrollAnchor: 'natal-question-premium-button',
+                  returnScrollAnchor: 'natal-question-page',
                   returnAction: 'open_natal_questions',
                 })}
               >
-                {language === 'ru' ? 'Продолжить вопросы' : 'Continue asking'}
+                <Crown aria-hidden="true" size={16} strokeWidth={2} />
+                {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
               </button>
             </section>
           ) : (
-              <section
-                id="natal-question-composer"
-                className="natal-question-composer"
-                aria-labelledby="natal-question-composer-title"
-                tabIndex={-1}
-              >
+            <>
+              <section className="natal-question-composer" aria-labelledby="natal-question-composer-title">
                 <form
                   onSubmit={submitQuestion}
                   aria-busy={(questionLoading || questionSubmitting) || undefined}
@@ -1128,13 +1068,9 @@ export const HumanReport: React.FC<Props> = ({
                       {language === 'ru' ? 'Что хочешь понять о себе?' : 'What do you want to understand about yourself?'}
                     </label>
                     <p id="natal-question-input-help">
-                      {isPremium
-                        ? (language === 'ru'
-                            ? 'Спроси о решениях, общении, любви, работе или деньгах. До 5 новых вопросов в день.'
-                            : 'Ask about decisions, communication, love, work, or money. Up to 5 new questions a day.')
-                        : (language === 'ru'
-                            ? 'Спроси о решениях, общении, любви, работе или деньгах. Один полный ответ по твоей карте — бесплатно.'
-                            : 'Ask about decisions, communication, love, work, or money. One full answer about your chart is free.')}
+                      {language === 'ru'
+                        ? 'ИИ ответит по сохранённой натальной карте. Спроси о своей реакции, решении, отношениях, работе, деньгах или сильной стороне. До 5 принятых вопросов в день.'
+                        : 'AI answers from your saved chart. Ask about your reaction, decision, relationships, work, money, or a strength. Up to 5 accepted questions per day.'}
                     </p>
                   </div>
                   <div className="natal-question-suggestions" aria-labelledby="natal-question-suggestions-title">
@@ -1169,17 +1105,12 @@ export const HumanReport: React.FC<Props> = ({
                     maxLength={300}
                     rows={4}
                     placeholder={language === 'ru'
-                      ? 'Например: почему я быстро теряю интерес?'
-                      : 'For example: why do I lose interest quickly?'}
+                      ? 'Например: почему мне трудно просить о помощи?'
+                      : 'For example: why is it hard for me to ask for help?'}
                     className="natal-question-input"
-                    aria-describedby="natal-question-input-help natal-question-sensitive-data-warning natal-question-status"
+                    aria-describedby="natal-question-input-help natal-question-status"
                     disabled={questionInputDisabled}
                   />
-                  <p id="natal-question-sensitive-data-warning" className="natal-question-status">
-                    {language === 'ru'
-                      ? 'Не указывай сведения о здоровье, документы, контакты, пароли или платёжные данные.'
-                      : 'Do not include health information, documents, contact details, passwords, or payment data.'}
-                  </p>
                   <div className="natal-question-form-actions">
                     <p id="natal-question-status" className="natal-question-status" aria-live="polite">
                       {questionStatus}
@@ -1202,7 +1133,6 @@ export const HumanReport: React.FC<Props> = ({
                   ) : null}
                 </form>
               </section>
-          )}
 
               <section className="natal-question-history" aria-labelledby="natal-question-history-title">
                 <h2 id="natal-question-history-title">
@@ -1261,12 +1191,13 @@ export const HumanReport: React.FC<Props> = ({
                 ) : (
                   <p className="natal-question-state">
                     {language === 'ru'
-                      ? 'Здесь появятся принятые вопросы и ответы по сохранённой натальной карте.'
-                      : 'Accepted questions and answers based on your saved natal chart will appear here.'}
+                      ? 'Здесь появятся принятые вопросы и ответы ИИ по сохранённой натальной карте.'
+                      : 'Accepted questions and AI answers from your saved natal chart will appear here.'}
                   </p>
                 )}
               </section>
             </>
+          )}
         </div>
       </article>
     );
@@ -1286,13 +1217,13 @@ export const HumanReport: React.FC<Props> = ({
           </header>
         ) : null}
 
-        {selectedTopicKey == null && reliability.quality === 'unknown' ? (
+        {reliability.quality === 'unknown' ? (
           <p className="natal-reliability-note">
             {language === 'ru'
               ? 'Время рождения неизвестно, поэтому разбор не использует первое впечатление, дома и другие детали, которые зависят от времени. Остальной портрет опирается на надёжные положения и аспекты.'
               : 'Birth time is unknown, so the reading excludes first impressions, houses, and other time-dependent details. The rest uses reliable placements and aspects.'}
           </p>
-        ) : selectedTopicKey == null && reliability.quality === 'approximate' ? (
+        ) : reliability.quality === 'approximate' ? (
           <p className="natal-reliability-note">
             {language === 'ru'
               ? 'Время рождения приблизительное, поэтому в разбор вошли только данные, устойчивые к этой погрешности.'
@@ -1300,7 +1231,7 @@ export const HumanReport: React.FC<Props> = ({
           </p>
         ) : null}
 
-        <div aria-busy={loading && !report}>
+        <div aria-live="polite" aria-busy={loading && !report}>
           {loading && !report ? (
             <NatalReadingSkeleton language={language} />
           ) : error || !report ? (
@@ -1319,76 +1250,103 @@ export const HumanReport: React.FC<Props> = ({
             </section>
           ) : (
             <>
-              {selectedTopicKey == null ? (
-                <header className="natal-reading-hook">
-                  <FormattedAiText
-                    text={report.hook.text}
-                    className="natal-reading-hook-text"
-                    paragraphClassName="natal-reading-hook-paragraph"
-                  />
-                </header>
-              ) : null}
-              <NatalReportHub
-                language={language}
-                report={report}
-                premiumReport={premiumReport}
-                isPremium={isPremium}
-                premiumLoading={premiumLoading}
-                premiumError={premiumError}
-                canPromotePremium={canPromotePremium}
-                selectedTopicKey={selectedTopicKey}
-                focusRequestId={topicFocusRequestId}
-                onSelectTopic={openTopic}
-                onBackToTopics={returnToTopicHub}
-                onRequestPremium={requestTopicPremium}
-                onRetryPremium={() => setPremiumRetryToken((value) => value + 1)}
-                onOpenQuestions={onOpenQuestions}
-                renderEvidence={(evidenceIds) => (
-                  <NatalEvidenceDetails
-                    evidenceIds={evidenceIds}
-                    evidenceById={evidenceById}
-                    language={language}
-                  />
-                )}
-              />
+              <header className="natal-reading-hook">
+                <FormattedAiText
+                  text={report.hook.text}
+                  className="natal-reading-hook-text"
+                  paragraphClassName="natal-reading-hook-paragraph"
+                />
+              </header>
+              {freeSections.map((item, index) => (
+                <SectionText
+                  key={item.key}
+                  section={item}
+                  index={index}
+                />
+              ))}
             </>
           )}
         </div>
 
         {report ? (
           <>
-            {selectedTopicKey == null ? (
-              <>
-                {onOpenQuestions ? (
-                  <section className="natal-question-action">
-                    <button
-                      type="button"
-                      className="natal-question-button"
-                      onClick={onOpenQuestions}
-                      aria-describedby="natal-question-action-description"
-                    >
-                      <Send aria-hidden="true" size={16} strokeWidth={2} />
-                      {language === 'ru' ? 'Задать вопрос по своей карте' : 'Ask a question about your chart'}
-                    </button>
-                    <p id="natal-question-action-description">
-                      {language === 'ru'
-                        ? 'Выбери готовый вопрос или задай свой. Ответ будет опираться только на сохранённую карту.'
-                        : 'Choose a suggested question or ask your own. The answer will use only your saved chart.'}
-                    </p>
-                  </section>
-                ) : null}
-
-                <TechnicalDetails chartData={chartData} language={language} />
-
-                <section className="natal-disclaimer">
-                  <p>
-                    {language === 'ru'
-                      ? 'Это ознакомительный разбор. Он не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.'
-                      : 'This is an informational reading. It does not replace medical, legal, financial, or other professional advice.'}
-                  </p>
+            {isPremium ? (
+              premiumLoading && !premiumReport ? (
+                <NatalPremiumSkeleton language={language} />
+              ) : premiumReport ? (
+                <div id="natal-deep-premium">
+                  <PremiumReport
+                    report={premiumReport}
+                  />
+                </div>
+              ) : premiumError ? (
+                <section className="natal-report-error" role="alert">
+                  <p>{premiumError}</p>
+                  <button
+                    type="button"
+                    className="natal-report-retry"
+                    onClick={() => setPremiumRetryToken((value) => value + 1)}
+                  >
+                    {language === 'ru' ? 'Попробовать ещё раз' : 'Try again'}
+                  </button>
                 </section>
-              </>
+              ) : null
+            ) : canPromotePremium ? (
+              <section id="natal-deep-premium" className="natal-premium-callout">
+                <h2>
+                  {language === 'ru' ? 'Полный портрет карты' : 'The complete chart portrait'}
+                </h2>
+                <p>
+                  {language === 'ru'
+                    ? 'В полном разборе добавятся главы об отношениях и семье, работе и своём деле, а также о ситуациях, когда всё идёт не по плану.'
+                    : 'The full reading adds chapters about relationships and family, work and your own business, and situations when things do not go to plan.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void requestPremium('deep_natal', {
+                    placement: 'deep_natal',
+                    featureKey: 'natal_deep',
+                    triggerType: 'locked_feature',
+                    returnView: 'chart',
+                    returnScrollAnchor: 'natal-deep-premium',
+                    returnAction: 'open_deep_natal',
+                  })}
+                  className="natal-premium-button"
+                >
+                  <Crown aria-hidden="true" size={16} strokeWidth={2} />
+                  {language === 'ru' ? 'Открыть в Premium' : 'Unlock with Premium'}
+                </button>
+              </section>
             ) : null}
+
+            {onOpenQuestions ? (
+              <section className="natal-question-action">
+                <button
+                  type="button"
+                  className="natal-question-button"
+                  onClick={onOpenQuestions}
+                  aria-describedby="natal-question-action-description"
+                >
+                  <Send aria-hidden="true" size={16} strokeWidth={2} />
+                  {language === 'ru' ? 'Спросить о себе' : 'Ask about yourself'}
+                </button>
+                <p id="natal-question-action-description">
+                  {language === 'ru'
+                    ? 'ИИ ответит по сохранённой натальной карте: о привычных реакциях, решениях, отношениях, работе, деньгах или сильных сторонах.'
+                    : 'AI answers from your saved natal chart about recurring reactions, decisions, relationships, work, money, or strengths.'}
+                </p>
+              </section>
+            ) : null}
+
+            <TechnicalDetails chartData={chartData} language={language} />
+
+            <section className="natal-disclaimer">
+              <p>
+                {language === 'ru'
+                  ? 'Это ознакомительный разбор. Он не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.'
+                  : 'This is an informational reading. It does not replace medical, legal, financial, or other professional advice.'}
+              </p>
+            </section>
           </>
         ) : null}
 

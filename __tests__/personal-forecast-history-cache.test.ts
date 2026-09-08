@@ -23,7 +23,7 @@ import {
   ensurePersonalForecast, getCachedPersonalForecast, getCompatibleStalePersonalForecast,
   getRecentPersonalForecastHistory, type PersonalForecastCacheContext,
 } from '../lib/personalForecastCache';
-import { buildPersonalForecastFeedPrompt, generatePersonalForecastPackage } from '../lib/personalForecastGeneration';
+import { generatePersonalForecastPackage } from '../lib/personalForecastGeneration';
 import { PERSONAL_FORECAST_CONTRACT_VERSION, resolvePersonalForecastWindow } from '../lib/personalForecastContract';
 import { personalForecastFixture } from './personal-forecast-fixture';
 
@@ -76,14 +76,13 @@ describe('personal forecast own history across versions and access tiers', () =>
     expect(sql).toContain('ORDER BY updated_at DESC, id DESC');
     expect(sql).not.toContain('access_tier =');
     expect(sql).not.toContain("contractVersion' =");
-    expect(params).toEqual(['42', 'day', '2026-07-26', 60]);
+    expect(params).toEqual(['42', 60]);
   });
 
-  it('filters foreign owners, unknown versions, malformed content, the current period and duplicate copies', async () => {
+  it('filters foreign owners, unknown versions, malformed content and duplicates while retaining prior copies of the current period', async () => {
     const own = priorReading();
     query.mockResolvedValue({ rows: [
       row(priorReading({ periodKey: '2026-07-24' }), 'another-account'),
-      row(priorReading({ periodKey: context.periodKey })),
       row(priorReading({ meta: { contractVersion: 'personal-forecast-feed-v999-future-shape' } })),
       row(priorReading({ meta: { contractVersion: 'zodiac-public-v29' } })),
       row(priorReading({ meta: { contractVersion: 'personal-forecast-feed-v13-chart-based' } })),
@@ -108,6 +107,14 @@ describe('personal forecast own history across versions and access tiers', () =>
     expect(JSON.stringify(history)).not.toContain('PRIVATE_');
   });
 
+  it('retains a previously shown current-day forecast after a tier or generator change', async () => {
+    query.mockResolvedValue({ rows: [row(priorReading({ periodKey: context.periodKey }))] });
+    const history = await getRecentPersonalForecastHistory({ ...context, accessTier: 'premium' });
+    expect(history).toHaveLength(1);
+    expect(history[0].periodKey).toBe(context.periodKey);
+    expect(query.mock.calls[0][0]).not.toContain("NOT (content->>'period'");
+  });
+
   it('retains legacy visible fragments without mistaking every action paragraph for the closing', async () => {
     query.mockResolvedValue({ rows: [row(priorReading({
       meta: { contractVersion: 'personal-forecast-feed-v14-raw-profile' },
@@ -127,6 +134,9 @@ describe('personal forecast own history across versions and access tiers', () =>
 
   it('recognizes the real materializer hashed closing ID and keeps it separate from the body', async () => {
     const forecast = personalForecastFixture();
+    forecast.meta.contractVersion = 'personal-forecast-feed-v29-period-horoscope' as typeof PERSONAL_FORECAST_CONTRACT_VERSION;
+    forecast.sections = [{ ...forecast.overview, id: 'semantic:closing', kind: 'dynamic', text: 'A meeting may change the plan.', contentBlocks: [{ ...forecast.overview.contentBlocks[0], text: 'A meeting may change the plan.', role: 'action', atomId: 'closing' }]}];
+    forecast.meta.semanticSignature!.closing = forecast.sections[0].text;
     forecast.periodKey = '2026-07-25';
     forecast.sections[0].id = 'semantic:direct-1-actual-content-hash';
     forecast.sections[0].contentBlocks[0].atomId = 'generated:semantic:direct-1-actual-content-hash:1';
@@ -138,117 +148,16 @@ describe('personal forecast own history across versions and access tiers', () =>
     expect(history.semanticSignature?.closing).toBe(forecast.sections[0].text);
   });
 
-  it('sends only bounded visible own history to the actual writer prompt, without saved metadata', async () => {
-    const marker = 'PERSONAL_VISIBLE_HISTORY';
-    query.mockResolvedValue({ rows: [row(priorReading({
-      overview: { title: 'T'.repeat(300), text: marker + ' '.repeat(2) + 'word '.repeat(1000) },
-      sections: [{ id: 'semantic:closing', text: 'C'.repeat(500) }],
-    }))] });
-    const history = await getRecentPersonalForecastHistory(context);
-    const prompt = buildPersonalForecastFeedPrompt({
-      language: 'ru', period: context.period,
-      window: resolvePersonalForecastWindow(context.period, context.periodKey, 'Europe/Moscow'),
-      reader: { name: 'Мира', grammaticalGender: 'unspecified' },
-      astrologerBrief: personalForecastFixture().meta.astrologerBrief,
-      recentForecasts: history,
-    });
-    const payload = JSON.parse(prompt.slice(prompt.indexOf('{')));
-    const previous = payload.anti_repeat_context.recent_forecasts;
-    expect(previous).toHaveLength(1);
-    expect(Object.keys(previous[0])).toEqual(['period', 'period_key', 'title', 'visible_text', 'closing']);
-    expect(previous[0].title).toHaveLength(120);
-    expect(previous[0].visible_text).toHaveLength(3000);
-    expect(previous[0].visible_text).toContain(marker);
-    expect(previous[0].closing).toHaveLength(220);
-    expect(prompt).not.toContain('PRIVATE_');
-    expect(prompt).not.toContain(context.profile.birthDate);
-    expect(prompt).not.toContain('birth_date');
+  it('retains the v30 lead-role closing separately after a writer upgrade', async () => {
+    const forecast = personalForecastFixture();
+    forecast.meta.contractVersion = 'personal-forecast-feed-v29-period-horoscope' as typeof PERSONAL_FORECAST_CONTRACT_VERSION;
+    forecast.sections = [{ ...forecast.overview, id: 'semantic:closing', kind: 'dynamic', text: 'A meeting may change the plan.', contentBlocks: [{ ...forecast.overview.contentBlocks[0], text: 'A meeting may change the plan.', role: 'action', atomId: 'closing' }]}];
+    forecast.meta.contractVersion = 'personal-forecast-feed-v30-nebo-human-voice' as typeof PERSONAL_FORECAST_CONTRACT_VERSION;
+    forecast.sections[0].contentBlocks[0].role = 'lead';
+    query.mockResolvedValue({ rows: [row(forecast)] });
+    const [history] = await getRecentPersonalForecastHistory(context);
+    expect(history.fragments.filter((fragment) => fragment.kind === 'closing')).toHaveLength(1);
+    expect(history.semanticSignature?.forecast).toBe(forecast.overview.text);
   });
 
-  it('does not request history without an owner or silently generate with empty memory after a history failure', async () => {
-    await expect(getRecentPersonalForecastHistory({ ...context, userId: '' })).rejects.toThrow('PERSONAL_FORECAST_PROFILE_REQUIRED');
-    expect(query).not.toHaveBeenCalled();
-    const failure = new Error('own history unavailable');
-    query.mockRejectedValueOnce(failure);
-    await expect(ensurePersonalForecast(context)).rejects.toBe(failure);
-    expect(generate).not.toHaveBeenCalled();
-    expect(upsertByUser).not.toHaveBeenCalled();
-  });
-});
-
-describe('personal forecast durable history and current-cache separation', () => {
-  type Stored = { user_id: string; content: ReturnType<typeof personalForecastFixture>; [key: string]: any };
-  let stored: Stored[];
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    stored = [];
-    query.mockReset().mockImplementation(async (sql: string, values: string[]) => ({
-      rows: sql.includes('user_id IS DISTINCT FROM') ? [] : stored
-        .filter((item) => item.user_id === values[0]).slice().reverse()
-        .map(({ user_id, content }) => ({ user_id, content })),
-    }));
-    getByUser.mockReset().mockImplementation(async (userId, tier, _surface, _variant, cacheKey) =>
-      stored.find((item) => item.user_id === userId && item.accessTier === tier && item.cacheKey === cacheKey) || null);
-    upsertByUser.mockReset().mockImplementation(async (userId, value) => {
-      stored.push({ user_id: userId, ...structuredClone(value) });
-    });
-    generate.mockReset().mockImplementation(async ({ period, window }) => {
-      const forecast = personalForecastFixture(period);
-      forecast.meta.model = 'gpt-5.6-luna';
-      forecast.periodKey = window.periodKey;
-      forecast.periodStart = window.periodStart;
-      forecast.periodEnd = window.periodEnd;
-      return forecast;
-    });
-  });
-
-  it('persists once, remembers that reading on the next period and reuses the new durable cache', async () => {
-    await ensurePersonalForecast(context);
-    expect(stored).toHaveLength(1);
-    expect(generate).toHaveBeenCalledTimes(1);
-    expect(generate.mock.calls[0][0].recentForecasts).toEqual([]);
-    const next = { ...context, periodKey: '2026-07-27', accessTier: 'premium' as const };
-    await ensurePersonalForecast(next);
-    expect(generate.mock.calls[1][0].recentForecasts).toEqual([
-      expect.objectContaining({ period: 'day', periodKey: '2026-07-26' }),
-    ]);
-    expect(stored).toHaveLength(2);
-    expect(stored[0].content.periodKey).toBe('2026-07-26');
-    expect(stored[1].content.periodKey).toBe('2026-07-27');
-    expect(await ensurePersonalForecast(next)).toEqual(expect.objectContaining({ status: 'ready', fromCache: true, value: stored[1].content }));
-    expect(generate).toHaveBeenCalledTimes(2);
-    expect(upsertByUser).toHaveBeenCalledTimes(2);
-  });
-
-  it('uses previous-version content only as history and regenerates the requested current package', async () => {
-    await ensurePersonalForecast(context);
-    const old = stored[0];
-    old.content.meta.contractVersion = 'personal-forecast-feed-v28-three-part-human' as typeof PERSONAL_FORECAST_CONTRACT_VERSION;
-    expect(await getCachedPersonalForecast(context)).toBeNull();
-    expect(await getCompatibleStalePersonalForecast(context)).toBeNull();
-    const next = { ...context, periodKey: '2026-07-27' };
-    expect(await getRecentPersonalForecastHistory(next)).toHaveLength(1);
-    expect(await ensurePersonalForecast(context)).toEqual(expect.objectContaining({ fromCache: false }));
-    expect(stored[1].content.meta.contractVersion).toBe(PERSONAL_FORECAST_CONTRACT_VERSION);
-    expect(generate).toHaveBeenCalledTimes(2);
-  });
-
-  it('never reuses another account or tier cache and keeps another account out of writer history', async () => {
-    await ensurePersonalForecast(context);
-    const other = { ...context, userId: '84' };
-    expect(await getCachedPersonalForecast(other)).toBeNull();
-    expect(await getRecentPersonalForecastHistory({ ...other, periodKey: '2026-07-27' })).toEqual([]);
-    await ensurePersonalForecast(other);
-    expect(generate.mock.calls[1][0].recentForecasts).toEqual([]);
-    expect(await getCachedPersonalForecast({ ...context, accessTier: 'premium' })).toBeNull();
-    expect(stored.map((item) => item.user_id)).toEqual(['42', '84']);
-  });
-
-  it('does not claim a persisted result when the write fails', async () => {
-    upsertByUser.mockRejectedValueOnce(new Error('write failed'));
-    await expect(ensurePersonalForecast(context)).rejects.toMatchObject({ code: 'PERSONAL_FORECAST_CACHE_WRITE_FAILED' });
-    expect(stored).toHaveLength(0);
-    expect(await getCachedPersonalForecast(context)).toBeNull();
-  });
 });

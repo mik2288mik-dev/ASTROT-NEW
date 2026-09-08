@@ -445,6 +445,70 @@
   font-weight: 400;
 }
 
+.footerAnalyticsButton {
+  appearance: none;
+  width: fit-content;
+  border: 0;
+  padding: 0;
+  color: var(--site-muted);
+  background: transparent;
+  font: inherit;
+  font-weight: 400;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.22em;
+  cursor: pointer;
+}
+
+.footerAnalyticsButton:hover {
+  color: var(--site-blue);
+}
+
+.analyticsConsent {
+  position: fixed;
+  z-index: 30;
+  right: 1rem;
+  bottom: 1rem;
+  max-width: 32rem;
+  padding: 1rem;
+  border: 1px solid var(--site-line);
+  border-radius: 0.75rem;
+  background: var(--site-paper);
+  box-shadow: 0 12px 36px rgb(37 37 35 / 18%);
+  color: var(--site-ink);
+}
+
+.analyticsConsent p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.analyticsConsentActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+.analyticsConsentActions button {
+  border: 1px solid var(--site-ink);
+  border-radius: 999px;
+  padding: 0.55rem 0.8rem;
+  background: var(--site-ink);
+  color: var(--site-paper);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.analyticsConsentActions button + button {
+  background: transparent;
+  color: var(--site-ink);
+}
+
 .footerMeta {
   grid-column: 1 / -1;
   margin: 0;

@@ -163,7 +163,8 @@ describe('saved compatibility story reader', () => {
     expect(html).toContain('aria-label="Your pair reading"');
     expect(html).toContain('aria-label="Compatibility chapters"');
     expect(html).toContain('What would you like to know?');
-    expect(html).toContain('“You” means Nina. Alex is named.');
+    expect(html).toContain('Nina + Alex');
+    expect(html).not.toContain('“You” means');
     expect(html).toContain('Trust at work');
     expect(html).toContain('Pace and responsibility');
     expect(html).toContain('Why?');

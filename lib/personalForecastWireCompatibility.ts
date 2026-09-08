@@ -113,6 +113,25 @@ function closedLegacySlot(source: ForecastSection, id: string): ForecastSection 
 }
 
 /** Adapt the already authorized response, never generate or persist another forecast. */
+function sectionedReading(original: PersonalForecastPackage): PersonalForecastPackage {
+  if (original.sections.length) return original;
+  const sentences = original.overview.text.trim().split(/(?<=[.!?…])\s+/u);
+  const ending = sentences.length > 1 ? sentences.pop()! : '';
+  if (!ending) throw new Error('PERSONAL_FORECAST_LEGACY_STRUCTURE_UNSUPPORTED');
+  const overview = legacySection(original.overview, sentences.join(' '), 'overview', 100);
+  const closing = legacySection(original.overview, ending, 'semantic:legacy-ending', 90);
+  closing.contentBlocks[0].role = 'action';
+  const words = original.overview.text.trim().split(/\s+/u).slice(0, 180);
+  const chunkSize = Math.max(8, Math.ceil(words.length / Math.min(4, Math.max(2, Math.ceil(words.length / 45)))));
+  const observations = Array.from({ length: Math.ceil(words.length / chunkSize) }, (_, index) => words.slice(index * chunkSize, (index + 1) * chunkSize).join(' '));
+  return { ...original, overview, sections: [closing], visual: { sectionAssetIds: { overview: null, [closing.id]: null } },
+    meta: { ...original.meta,
+      astrologerBrief: { tone: 'mixed', observations, briefSignature: 'direct-prose-wire-adapter' },
+      semanticSignature: { ...original.meta.semanticSignature, closing: ending },
+      freeSelection: original.period === 'day' ? { strongestSectionId: closing.id, rotatedSectionId: null, sectionIds: [closing.id] } : original.meta.freeSelection,
+    } };
+}
+
 export function projectPersonalForecastForWire(
   payload: PersonalForecastAccessPayload,
   wireVersion: string,
@@ -122,12 +141,13 @@ export function projectPersonalForecastForWire(
   }
   if (wireVersion === PERSONAL_FORECAST_CONTRACT_VERSION) return payload;
   if (Object.hasOwn(RELEASED_READING_PROMPTS, wireVersion)) {
+    const compatible = sectionedReading(payload.forecast);
     return {
       ...payload,
       forecast: {
-        ...payload.forecast,
+        ...compatible,
         meta: {
-          ...payload.forecast.meta,
+          ...compatible.meta,
           contractVersion: wireVersion,
           semanticVersion: wireVersion,
           promptVersion: RELEASED_READING_PROMPTS[wireVersion],
@@ -142,7 +162,7 @@ export function projectPersonalForecastForWire(
     throw new Error('PERSONAL_FORECAST_CONTRACT_UNSUPPORTED');
   }
 
-  const original = payload.forecast;
+  const original = sectionedReading(payload.forecast);
   const brief = original.meta.astrologerBrief;
   const signature = original.meta.semanticSignature;
   const closing = original.sections[0];
@@ -161,8 +181,7 @@ export function projectPersonalForecastForWire(
       lockedSectionIds = sections.slice(1).map((section) => section.id);
       freeSelection = { strongestSectionId: closing.id, rotatedSectionId: null, sectionIds: [closing.id] };
     } else {
-      // Current Day generation guarantees 3–4 sentences. Keep every sentence
-      // exactly once and in order; the last fragment may contain two sentences.
+      // Keep existing sentences once and in order in the older four-slot reader.
       const sentences = original.overview.text.trim().split(/(?<=[.!?…][»”"')\]]*)\s+/u);
       if (sentences.length < 3) throw new Error('PERSONAL_FORECAST_LEGACY_STRUCTURE_UNSUPPORTED');
       overview = legacySection(original.overview, sentences[0], 'overview', 100);
@@ -201,9 +220,9 @@ export function projectPersonalForecastForWire(
         currentGeneration: generationIdentity(original),
         astrologerBrief: {
           tone: brief.tone,
-          coreForecast: brief.observations[0],
+          coreForecast: brief.observations[0] || original.overview.text,
           secondaryForecast: brief.observations[1] || null,
-          distinctiveDetail: brief.observations.at(-1)!,
+          distinctiveDetail: brief.observations.at(-1) || closing.text,
           opportunity: null,
           friction: null,
           likelyResult: signature.outcome,

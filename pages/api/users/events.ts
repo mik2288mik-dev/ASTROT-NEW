@@ -40,6 +40,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const client = await getPool().connect();
+    const runtime = readClientRuntimeMetadata(req.headers || {}, appUser.provider === 'native' ? 'native'
+      : appUser.provider === 'telegram' ? 'telegram' : 'web');
     try {
       await client.query('BEGIN');
       const inserted = await client.query(
@@ -52,7 +54,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           event.eventType,
           event.section,
           event.source,
-          JSON.stringify(event.eventPayload),
+          JSON.stringify({ ...event.eventPayload,
+            ...(event.sessionId ? { session_id: event.sessionId } : {}),
+            runtime: runtime.runtime,
+            ...(runtime.appVersion ? { app_version: runtime.appVersion } : {}),
+            ...(runtime.osName ? { platform: runtime.osName } : {}),
+          }),
         ],
       );
       if (inserted.rows[0]) {

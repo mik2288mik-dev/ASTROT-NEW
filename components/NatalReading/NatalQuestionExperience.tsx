@@ -123,6 +123,7 @@ const QUESTION_STARTERS: Record<NatalReportCategoryKey, {
 };
 
 type Props = {
+  compact?: boolean;
   profile: UserProfile;
   chartData: NatalChartData;
   chartId?: number;
@@ -131,6 +132,7 @@ type Props = {
   requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
+  uiPreview?: { snapshot: NatalQuestionSnapshot; phase?: 'ready' | 'loading' | 'error'; onAsk: (question: string) => Promise<NatalQuestionSnapshot> };
 };
 
 type QuestionPair = {
@@ -223,7 +225,10 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   requestPremium,
   premiumContinuation,
   onPremiumContinuationHandled,
+  uiPreview,
+  compact = false,
 }) => {
+  const preview = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_UI_PREVIEW === '1' ? uiPreview : undefined;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const userId = profile.id ? String(profile.id) : '';
   const isPremium = hasActivePremium(profile);
@@ -250,6 +255,12 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   }, [reportIdentity]);
 
   useEffect(() => {
+    if (!isPremium) { setSnapshot(null); setLoading(false); setError(null); return; }
+    if (preview) {
+      setSnapshot(preview.snapshot); setLoading(preview.phase === 'loading');
+      setError(preview.phase === 'error' ? formatQuestionError(null, language) : null);
+      return;
+    }
     if (!userId) return;
     let cancelled = false;
     setLoading(true);
@@ -270,7 +281,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [chartId, language, reportIdentity, retryToken, userId]);
+  }, [chartId, language, reportIdentity, retryToken, userId, preview, isPremium]);
 
   useEffect(() => {
     if (
@@ -294,6 +305,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
 
   const submitQuestion = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!isPremium) return;
     const value = questionText.trim();
     const retryMatches = !unansweredQuestionText || (
       normalizePersonalForecastQuestionInput(value).toLocaleLowerCase()
@@ -303,11 +315,11 @@ export const NatalQuestionExperience: React.FC<Props> = ({
     setSubmitting(true);
     setError(null);
     try {
-      const next = await askNatalQuestion(userId, value, chartId);
+      const next = preview ? await preview.onAsk(value) : await askNatalQuestion(userId, value, chartId);
       setSnapshot(next);
       setQuestionText('');
       setUnansweredQuestionText(null);
-      void recordUserAppEvent({
+      if (!preview) void recordUserAppEvent({
         eventType: 'question_sent',
         section: 'natal',
         source: 'natal_questions',
@@ -335,7 +347,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
 
   const remainingQuestions = isPremium
     ? snapshot?.usage.remaining ?? null
-    : snapshot?.access.freeQuestionRemaining ?? null;
+    : 0;
   const normalizedQuestionText = normalizePersonalForecastQuestionInput(questionText).toLocaleLowerCase();
   const normalizedUnansweredQuestion = normalizePersonalForecastQuestionInput(
     unansweredQuestionText,
@@ -346,7 +358,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
     && normalizedQuestionText === normalizedUnansweredQuestion,
   );
   const questionLimitReached = remainingQuestions === 0 && !unansweredQuestionText;
-  const inputDisabled = loading || submitting || questionLimitReached || !userId;
+  const inputDisabled = !isPremium || loading || submitting || questionLimitReached || !userId;
   const statusText = submitting
     ? (language === 'ru' ? 'Готовим ответ…' : 'Preparing your answer…')
     : unansweredQuestionText
@@ -360,7 +372,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
       : questionLimitReached
         ? (isPremium
             ? (language === 'ru' ? 'На сегодня вопросы закончились.' : 'You have used today\'s questions.')
-            : (language === 'ru' ? 'Первый вопрос уже использован.' : 'Your first question has been used.'))
+            : (language === 'ru' ? 'Вопросы о себе доступны с Premium.' : 'Questions about yourself require Premium.'))
         : remainingQuestions != null
           ? (isPremium
               ? (language === 'ru' ? `Осталось сегодня: ${remainingQuestions}` : `Remaining today: ${remainingQuestions}`)
@@ -369,7 +381,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
 
   return (
     <article className="natal-v3-question-experience" aria-labelledby="natal-v3-question-title">
-      <header className="natal-v3-page-heading natal-v3-question-heading">
+      <header className="natal-v3-page-heading natal-v3-question-heading" hidden={compact}>
         <p>{language === 'ru' ? 'Спросить' : 'Ask'}</p>
         <h1 id="natal-v3-question-title">
           {language === 'ru'
@@ -383,7 +395,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         </span>
       </header>
 
-      <section className="natal-v3-question-context" aria-label={language === 'ru' ? 'Тема вопроса' : 'Question topic'}>
+      <section hidden={compact && contextCategory === 'main'} className="natal-v3-question-context" aria-label={language === 'ru' ? 'Тема вопроса' : 'Question topic'}>
         <button
           type="button"
           aria-expanded={contextOpen}
@@ -420,11 +432,11 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         ) : null}
       </section>
 
-      {!isPremium && snapshot?.access.freeQuestionRemaining === 0 && !unansweredQuestionText ? (
+      {!isPremium ? (
         <section className="natal-v3-question-paywall" aria-labelledby="natal-v3-question-paywall-title">
-          <p>{language === 'ru' ? 'Первый вопрос уже использован' : 'First question used'}</p>
+          <p>Premium</p>
           <h2 id="natal-v3-question-paywall-title">
-            {language === 'ru' ? 'Продолжай спрашивать по своей карте' : 'Keep asking about your chart'}
+            {language === 'ru' ? 'Спрашивай о себе по своей карте' : 'Ask about yourself using your chart'}
           </h2>
           <span>
             {language === 'ru'
@@ -482,7 +494,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                 value={questionText}
                 onChange={(event) => setQuestionText(event.target.value)}
                 maxLength={300}
-                rows={3}
+                rows={compact ? 1 : 3}
                 placeholder={language === 'ru'
                   ? 'Напиши свой вопрос…'
                   : 'Write your question…'}
@@ -513,7 +525,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         </section>
       )}
 
-      <section className="natal-v3-question-history" aria-labelledby="natal-v3-question-history-title">
+      <section hidden={compact && !loading && !error && !pairs.length} className="natal-v3-question-history" aria-labelledby="natal-v3-question-history-title">
         <div className="natal-v3-section-heading">
           <h2 id="natal-v3-question-history-title">
             {language === 'ru' ? 'Твои вопросы и ответы' : 'Your questions and answers'}

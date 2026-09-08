@@ -82,6 +82,7 @@ import {
 } from './services/rustorePayService';
 import type { PremiumPlanId } from './lib/premiumPricing';
 import { getAdminStatus } from './services/adminService';
+import { useProductActivity } from './services/useProductActivity';
 import {
     clearQueuedUserAppEvents,
     recordNotificationAttribution,
@@ -156,7 +157,7 @@ const Paywall = dynamic(() => import('./components/nebo-v2/EntryPoints').then((m
 const UnionRoom = dynamic(() => import('./components/nebo-v2/EntryPoints').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
 const AstrologyEncyclopedia = dynamic(
-    () => import('./views/v2/AstrologyEncyclopedia').then((module) => module.AstrologyEncyclopedia),
+    () => import('./components/nebo-v2/EntryPoints').then((module) => module.AstrologyEncyclopedia),
     { ssr: false },
 );
 const AuthGate = dynamic(() => import('./views/AuthGate').then((module) => module.AuthGate), { ssr: false });
@@ -398,6 +399,7 @@ const App: React.FC = () => {
     const [authSessionMode, setAuthSessionModeState] = useState<AuthSessionMode>('automatic');
     const [authGateMessage, setAuthGateMessage] = useState<string | null>(null);
     const [view, setView] = useState<ViewState>('onboarding');
+    useProductActivity({ enabled: Boolean(profile?.id), accountKey: profile?.id, screen: view });
     const [onboardingInitialStep, setOnboardingInitialStep] = useState<'stories' | 'birth'>('stories');
     const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
     const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
@@ -1603,16 +1605,7 @@ const App: React.FC = () => {
 
         void trackSessionActivity(true);
 
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                void trackSessionActivity();
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-        };
+        // Foreground duration and subsequent visits are measured by useProductActivity.
     }, [profile?.id, trackSessionActivity]);
 
     useEffect(() => {
@@ -2163,14 +2156,6 @@ const App: React.FC = () => {
 
         setView(newView);
     }, [getFeatureAccess, openNatalSetupOnboarding, profile, pushReturnView]);
-
-    // Аналитика экранов: фиксируем каждый вход на экран ровно один раз при смене.
-    // Завязано на view + profile.id (стабильный примитив), чтобы обновления полей
-    // профиля (Premium, баланс) не накручивали лишние события.
-    useEffect(() => {
-        if (!profile?.id) return;
-        void recordUserAppEvent({ eventType: 'screen_view', section: view });
-    }, [view, profile?.id]);
 
     const refreshPrimaryChartState = useCallback(async () => {
         if (!profile?.id) return;

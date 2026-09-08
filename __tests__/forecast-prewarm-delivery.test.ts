@@ -11,7 +11,7 @@ describe('forecast delivery orchestration contract', () => {
 
   it('rejects Free Week and Month before cache lookup or generation', () => {
     const handler = personalRoute.slice(personalRoute.indexOf('export default async function handler'));
-    const entitlementGuard = handler.indexOf("if (!entitlement.isPremium && period !== 'day')");
+    const entitlementGuard = handler.indexOf("if (periodAccess === 'premium_required')");
     expect(entitlementGuard).toBeGreaterThan(0);
     expect(entitlementGuard).toBeLessThan(handler.indexOf('getCachedPersonalForecast(cacheInput)'));
     expect(entitlementGuard).toBeLessThan(handler.indexOf('ensurePersonalForecast(cacheInput'));
@@ -30,7 +30,7 @@ describe('forecast delivery orchestration contract', () => {
     expect(userRoute).toContain('if(prewarmProfile&&data.isSetup===true)');
     expect(userRoute).toContain('maxMissingGenerations:1');
     expect(userRoute).not.toContain('await prewarmPersonalForecastHorizon');
-    expect(cronRoute).not.toContain('personalForecastPrewarm');
+    expect(cronRoute).toContain('prewarmPersonalForecastIncrement({ now })');
     expect(cronRoute).not.toContain('db.users');
   });
 

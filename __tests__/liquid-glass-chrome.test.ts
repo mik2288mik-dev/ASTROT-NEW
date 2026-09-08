@@ -114,11 +114,13 @@ describe('application chrome', () => {
     const personality = read('views/PersonalityReport.tsx');
     const settings = read('views/Settings.tsx');
 
-    [dashboard, horoscope, natal, compatibility, encyclopedia, services].forEach((screen) => {
+    [dashboard, horoscope, natal, compatibility, services].forEach((screen) => {
       expect(screen).toContain('EditorialChartsButton');
       expect(screen).toContain('Открыть мои карты');
       expect(screen).toContain('onClick={onOpenCharts}');
     });
+    expect(encyclopedia).toContain('<AppTopBar');
+    expect(encyclopedia).not.toContain('EditorialChartsButton');
     [matrix, personality].forEach((screen) => {
       expect(screen).toContain('EditorialProfileButton');
       expect(screen).toContain('rightAction={(');

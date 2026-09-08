@@ -9,7 +9,7 @@ import {
 import {
   createUnavailablePersonalForecast,
   getPersonalForecastPeriodKey,
-  isCurrentPersonalForecastPeriodKey,
+  getPersonalForecastPeriodAccess,
   normalizeForecastTimezone,
   slicePersonalForecastForAccess,
   type PersonalForecastAccessPayload,
@@ -111,21 +111,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const requestedPeriodKey = readPeriodKey(req);
   const periodKey = requestedPeriodKey
     || getPersonalForecastPeriodKey(period, new Date(), timezone);
-  if (
-    requestedPeriodKey
-    && !isCurrentPersonalForecastPeriodKey(period, periodKey, timezone)
-  ) {
+  const entitlement = await getPremiumEntitlementState(userId);
+  const accessTier = entitlement.isPremium ? 'premium' as const : 'free' as const;
+  const periodAccess = getPersonalForecastPeriodAccess({ accessTier, period, periodKey, timezone });
+  if (periodAccess === 'outside_horizon') {
     diagnostic.log('validation', 'error', { period, httpStatus: 400, errorCode: 'PERSONAL_FORECAST_PERIOD_KEY_INVALID' });
     return res.status(400).json({
-      error: 'Only the current personal forecast period can be requested',
+      error: 'Personal forecast date is outside the available range',
       code: 'PERSONAL_FORECAST_PERIOD_KEY_INVALID',
     });
   }
   const regenerate = readRegenerate(req);
   const regenerationAfter = readRegenerationAfter(req);
-  const entitlement = await getPremiumEntitlementState(userId);
-  const cacheInput = { userId, profile, accessTier: entitlement.isPremium ? 'premium' as const : 'free' as const, period, periodKey };
-  if (!entitlement.isPremium && period !== 'day') {
+  const cacheInput = { userId, profile, accessTier, period, periodKey };
+  if (periodAccess === 'premium_required') {
     diagnostic.log('access', 'error', { period, httpStatus: 403, errorCode: 'PERSONAL_FORECAST_PREMIUM_REQUIRED' });
     return res.status(403).json({
       error: 'Premium required',

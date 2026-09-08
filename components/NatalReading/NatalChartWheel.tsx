@@ -67,6 +67,13 @@ const PLANET_NAMES: Record<BodyKey | 'ascendant' | 'mc', Record<Language, string
   ascendant: { ru: 'Асцендент', en: 'Ascendant' },
   mc: { ru: 'MC', en: 'MC' },
 };
+const ASPECT_NAMES: Record<string, Record<Language, string>> = {
+  conjunction: { ru: 'соединение', en: 'conjunction' },
+  sextile: { ru: 'секстиль', en: 'sextile' },
+  square: { ru: 'квадрат', en: 'square' },
+  trine: { ru: 'трин', en: 'trine' },
+  opposition: { ru: 'оппозиция', en: 'opposition' },
+};
 
 function pointOnWheel(longitude: number, radius: number) {
   const radians = ((normalizeNatalWheelLongitude(longitude) - 90) * Math.PI) / 180;
@@ -322,7 +329,7 @@ export function NatalChartWheel({
         })}
         {aspects.map((aspect) => (
           <li key={`aspect-${aspect.id}`}>
-            {language === 'ru' ? 'Аспект' : 'Aspect'}: {aspect.fromKey} — {aspect.type} — {aspect.toKey}
+            {language === 'ru' ? 'Аспект' : 'Aspect'}: {PLANET_NAMES[aspect.fromKey as keyof typeof PLANET_NAMES]?.[language] || aspect.fromKey} — {ASPECT_NAMES[aspect.type]?.[language] || aspect.type} — {PLANET_NAMES[aspect.toKey as keyof typeof PLANET_NAMES]?.[language] || aspect.toKey}
           </li>
         ))}
       </ul>

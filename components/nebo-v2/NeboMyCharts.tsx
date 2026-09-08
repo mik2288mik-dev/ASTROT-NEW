@@ -28,6 +28,8 @@ type Props = {
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
   uiPreview?: ChartsResponse;
+  uiPreviewPhase?: 'ready' | 'loading' | 'error';
+  onOpenProfile?: () => void;
   embedded?: boolean;
 };
 
@@ -60,7 +62,11 @@ export function NeboMyCharts({
   onPremiumContinuationHandled,
   canPromotePremium = true,
   embedded = false,
+  uiPreview,
+  uiPreviewPhase = 'ready',
+  onOpenProfile,
 }: Props) {
+  const preview = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_UI_PREVIEW === '1' ? uiPreview : undefined;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const ru = language === 'ru';
   const premium = hasActivePremium(profile);
@@ -84,6 +90,12 @@ export function NeboMyCharts({
   const deleteDialog = useRef<HTMLDialogElement>(null);
 
   const load = useCallback(async () => {
+    if (preview) {
+      setData(uiPreviewPhase === 'ready' ? preview : null); setHistory([]);
+      setLoading(uiPreviewPhase === 'loading');
+      setError(uiPreviewPhase === 'error' ? (ru ? 'Не удалось загрузить людей.' : 'Could not load people.') : null);
+      return preview;
+    }
     if (!profile.id) return null;
     setLoading(true); setError(null);
     try {
@@ -95,7 +107,7 @@ export function NeboMyCharts({
       setError(caught instanceof Error && caught.message ? caught.message : (ru ? 'Не удалось загрузить людей.' : 'Could not load people.'));
       return null;
     } finally { setLoading(false); }
-  }, [profile.id, ru]);
+  }, [profile.id, ru, preview, uiPreviewPhase]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
@@ -149,6 +161,11 @@ export function NeboMyCharts({
       setFormError(ru ? 'Заполни дату, место и время рождения — или отметь, что время неизвестно.' : 'Add date, place and birth time, or mark the time as unknown.');
       return;
     }
+    if (preview) {
+      const base = data?.charts[0];
+      if (base) setData((current) => current ? { ...current, charts: [...current.charts, { ...base, id: Date.now(), name: name.trim() || (ru ? 'Без имени' : 'Unnamed'), birth_date: birthDate, birth_time: birthMode === 'unknown' ? null : birthTime, birth_place: birthPlace, is_primary: false, subject_type: 'saved_person', relation_label: relation || null }] } : current);
+      resetForm(); return;
+    }
     setActionLoading('add'); setFormError(null);
     try {
       await createChart(String(profile.id), {
@@ -171,6 +188,10 @@ export function NeboMyCharts({
   const removePerson = async () => {
     if (!profile.id || !deleteTarget || isSelfChart(deleteTarget)) return;
     const target = deleteTarget;
+    if (preview) {
+      setData((current) => current ? { ...current, charts: current.charts.filter((item) => item.id !== target.id) } : current);
+      setDeleteTarget(null); setSelected(null); setView('people'); return;
+    }
     setActionLoading(`delete-${target.id}`);
     try {
       await deleteChart(target.id, String(profile.id));
@@ -199,7 +220,7 @@ export function NeboMyCharts({
   };
 
   if (loading && !data) {
-    return <div className="nebo-screen nebo-people-screen"><Header name={profile.name || ''}/><div className="nebo-reader-scroll"><h1>{ru ? 'Люди и сохранённое' : 'People and saved'}</h1><div className="nebo-people-loading" aria-busy="true"><span/><span/><span/></div></div></div>;
+    return <div className="nebo-screen nebo-people-screen"><Header name={profile.name || ''} title={ru ? 'Люди' : 'People'} onPeople={() => { setSelected(null); setView('people'); }}/><div className="nebo-reader-scroll"><h1 className="sr-only">{ru ? 'Люди' : 'People'}</h1><div className="nebo-people-loading" aria-busy="true"><span/><span/><span/></div></div></div>;
   }
 
   if (view === 'person' && selected) {
@@ -213,8 +234,8 @@ export function NeboMyCharts({
     </div></div>;
   }
 
-  return <div className={`nebo-screen nebo-people-screen${embedded ? ' is-embedded' : ''}`}>{!embedded ? <Header name={profile.name || ''}/> : null}<div className="nebo-reader-scroll nebo-people-scroll">
-    <h1>{ru ? 'Люди и сохранённое' : 'People and saved'}</h1><p className="nebo-muted">{ru ? 'Близкие люди и сохранённые результаты в одном месте.' : 'People and saved results in one place.'}</p>
+  return <div className={`nebo-screen nebo-people-screen${embedded ? ' is-embedded' : ''}`}>{!embedded ? <Header name={profile.name || ''} title={ru ? 'Люди' : 'People'} onPeople={() => { setSelected(null); setView('people'); }}/> : null}<div className="nebo-reader-scroll nebo-people-scroll">
+    <h1 className="sr-only">{ru ? 'Люди' : 'People'}</h1><p className="nebo-muted">{ru ? 'Близкие люди и сохранённые результаты в одном месте.' : 'People and saved results in one place.'}</p>
     <div className="nebo-people-tabs" role="tablist"><button type="button" role="tab" aria-selected={view === 'people'} onClick={() => setView('people')}>{ru ? 'Люди' : 'People'}</button><button type="button" role="tab" aria-selected={view === 'history'} onClick={() => setView('history')}>{ru ? 'История' : 'History'}</button></div>
     {error ? <div className="nebo-people-error" role="alert"><span>{error}</span><button type="button" onClick={() => { void load(); }}>{ru ? 'Повторить' : 'Retry'}</button></div> : null}
     {view === 'people' ? <>

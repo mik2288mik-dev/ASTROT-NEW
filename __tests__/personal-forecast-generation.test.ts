@@ -1,12 +1,32 @@
-import { PERSONAL_FORECAST_RESPONSE_SCHEMA, getPersonalForecastResponseSchema, getPersonalForecastSystemPrompt, parseGeneratedFeedPayload, validateFreeGeneratedForecastFeed } from '../lib/personalForecastGeneration';
-import { PERSONAL_FORECAST_CACHE_VERSION, PERSONAL_FORECAST_CONTRACT_VERSION, PERSONAL_FORECAST_PROMPT_VERSION } from '../lib/personalForecastContract';
-const valid={title:'Без лишнего шума',forecast:'Сегодня одна обычная вещь может решиться проще, чем казалось вчера. Не обязательно устраивать из неё отдельный сериал — достаточно заметить, где ответ уже почти готов.',closing:'Редкий случай: меньше суеты действительно помогает.'};
-const check=(x={})=>validateFreeGeneratedForecastFeed({...valid,...x},new Set(),'day',{language:'ru',periodKey:'2026-09-08'});
-describe('NEBO personal forecast human voice',()=>{
- test('keeps strict JSON fields',()=>{expect(PERSONAL_FORECAST_RESPONSE_SCHEMA.required).toEqual(['title','forecast','closing']);expect(getPersonalForecastResponseSchema('week')).toBe(PERSONAL_FORECAST_RESPONSE_SCHEMA);});
- test('removes quotas and visible astrology/coaching',()=>{const p=getPersonalForecastSystemPrompt('ru','day');expect(p).toContain('не добивай текст до заданного объёма');expect(p).toContain('никакой астрологии');expect(p).not.toContain('3–4 предложений');});
- test('invalidates old forecast caches',()=>{expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('v48-nebo-human-voice');expect(PERSONAL_FORECAST_CACHE_VERSION).toContain('v20-nebo-human-voice');expect(PERSONAL_FORECAST_CONTRACT_VERSION).toContain('v30-nebo-human-voice');});
- test('accepts natural concise copy',()=>expect(check().errors).toEqual([]));
- test('keeps hard safety',()=>{expect(check({forecast:'Марс в транзите обещает отличный день.'}).errors).toContain('visible forecast copy contains a forbidden astrology term');expect(check({forecast:'Ты точно получишь деньги сегодня.'}).errors).toContain('visible forecast copy contains an unsupported event guarantee');});
- test('parses provider JSON',()=>expect(parseGeneratedFeedPayload(JSON.stringify(valid))).toEqual(valid));
+jest.mock('../lib/openaiResponses', () => ({ createLunaStructuredResponse: jest.fn() }));
+jest.mock('../lib/personalForecastDateContext', () => ({ buildPersonalForecastDateContext: jest.fn(() => ({ source: 'Swiss Ephemeris', samples: [{ date: '2026-07-26' }] })) }));
+import { createLunaStructuredResponse } from '../lib/openaiResponses';
+import { generatePersonalForecastPackage } from '../lib/personalForecastGeneration';
+import { resolvePersonalForecastWindow, getPersonalForecastPackageValidationError } from '../lib/personalForecastContract';
+import samples from '../components/ui-preview/readingSamples.json';
+import type { NatalChartDataV2 } from '../lib/natalChartV2Types';
+const writer = createLunaStructuredResponse as jest.Mock;
+const natal = samples.people[0].chart as unknown as NatalChartDataV2;
+const input = { profile: { isSetup:true, isPremium:true, theme:'light' as const, name:'Test', birthDate:'1990-03-14', birthTime:'09:41', birthPlace:'Moscow', language:'ru' as const }, natal, period:'day' as const, model:'gpt-5.6-luna', window:resolvePersonalForecastWindow('day','2026-07-26','Europe/Moscow') };
+beforeEach(()=>writer.mockReset());
+it('sends the saved chart and selected date to one writer and keeps the complete reading', async()=>{
+  writer.mockResolvedValue({content:JSON.stringify({title:'A new offer',forecast:'An unexpected offer may arrive. Its details may change after a conversation.'})});
+  const result=await generatePersonalForecastPackage(input);
+  expect(writer).toHaveBeenCalledTimes(1);
+  const data=JSON.parse(writer.mock.calls[0][0].input);
+  expect(data.saved_natal_calculation.positions).toEqual(natal.positions);
+  expect(data.selected_date.start).toBe('2026-07-26');
+  expect(data.selected_date_calculation.source).toBe('Swiss Ephemeris');
+  expect(data).not.toHaveProperty('astrologer_brief');
+  expect(result.sections).toEqual([]);
+  expect(result.overview.text).toBe('An unexpected offer may arrive. Its details may change after a conversation.');
+  expect(getPersonalForecastPackageValidationError(result)).toBeNull();
+});
+it.each([{title:'',forecast:'text'},{title:'Title',forecast:''},{title:'Guaranteed',forecast:'guaranteed'}])('rejects empty or unsafe writer output', async output=>{
+  writer.mockResolvedValue({content:JSON.stringify(output)});
+  await expect(generatePersonalForecastPackage(input)).rejects.toThrow('PERSONAL_FORECAST_GENERATION_INVALID');
+});
+it('does not substitute a canned reading on provider failure',async()=>{
+  writer.mockRejectedValue(new Error('provider down'));
+  await expect(generatePersonalForecastPackage(input)).rejects.toThrow('PERSONAL_FORECAST_WRITER_REQUEST_FAILED');
 });

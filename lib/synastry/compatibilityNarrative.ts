@@ -2,7 +2,7 @@ import type { CompatibilityEvidence, SynastryResult } from '../../types';
 import type { CalculatedCompatibility } from './compatibilityEngine';
 import { COMPATIBILITY_STORY_TOPICS, type CompatibilityStoryTopic } from './storyTopics';
 
-export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-story.v2';
+export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-story.v3';
 
 export type CompatibilityWriterResponse = {
   paragraphs: Array<{
@@ -49,6 +49,9 @@ const FORBIDDEN_PROSE = [
   /(?:вы\s+обязательно\s+(?:будете|помиритесь)|(?:он|она)\s+(?:обязательно\s+)?верн[её]тся|суждено быть вместе|кармическ\p{L}*\s+(?:союз|связь|урок)|you are destined|(?:he|she) will (?:definitely )?come back)/iu,
   /(?:\b(?:ASC|MC|orb|sextile|trine)\b|секстил\p{L}*|квадратур\p{L}*|орбис\p{L}*|\d+(?:[.,]\d+)?\s*°)/iu,
   /(?:между вами присутствует|в этой связи наблюдается|возникает динамика|считывается|держать фокус|бережно проживать|экологично выстраивать)/iu,
+  /(?<![\p{L}])(?:астролог[\p{L}]*|натальн[\p{L}]*|синастри[\p{L}]*|асцендент[\p{L}]*|десцендент[\p{L}]*|транзит[\p{L}]*|ретроград[\p{L}]*|аспект[\p{L}]*|зодиак[\p{L}]*|венер[аыуеой]+|меркури[йяюем]+|марс[аеуом]*|юпитер[аеуом]*|сатурн[аеуом]*|нептун[аеуом]*|плутон[аеуом]*|astrolog[\p{L}]*|synastry|ascendant|descendant|transits?|retrograde|zodiac|venus|mercury|jupiter|saturn|neptune|pluto)(?![\p{L}])/iu,
+  /(?:солнц[аеу]|лун[аыуеой]+|уран[аеуом]*|sun|moon|uranus)\s+(?:в\s+(?:знак[еау]\s+)?|in\s+(?:the\s+)?)(?:[\p{L}]+\s+)?(?:овн[аеуом]*|тельц[аеуом]*|близнец[аыуеовми]+|рак[аеуом]*|льв[аеуом]*|дев[аеуыой]+|вес[аыуеовми]+|скорпион[аеуом]*|стрельц[аеуом]*|козерог[аеуом]*|водоле[йяюем]+|рыб[аеуой]*|дом[аеуом]*|aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces|house)/iu,
+  /(?<![\p{L}])(?:коуч[\p{L}]*|паттерн[\p{L}]*|проработ[\p{L}]*|ресурс[\p{L}]*|вибрац[\p{L}]*|coach(?:ing)?|patterns?|resources?|vibrations?)(?![\p{L}])/iu,
 ];
 
 const RELATIONSHIP_CAVEAT = /(?:не\s+(?:(?:автоматически|обязательно)\s+)?(?:подтвержда\p{L}*|доказыва\p{L}*|означа\p{L}*|говор\p{L}*|доказательств\p{L}*)[^.!?]*(?:взаимн|чувств|намерен|романтическ|интерес)|взаимность[^.!?]*(?:предполож|догад|неизвест)|(?:does not|doesn't|not a)\s+(?:prove|confirm|mean|proof)[^.!?]*(?:feeling|intention|interest|reciproc))/iu;

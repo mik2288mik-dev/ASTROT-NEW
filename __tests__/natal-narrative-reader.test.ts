@@ -479,6 +479,7 @@ describe('natal narrative reader', () => {
     expect(html).toContain('aria-busy="true"');
     expect(html).not.toContain('role="alert"');
     expect(html).not.toContain(natalEditorialParagraphs[0]);
+    expect(html).not.toContain('Что ещё про тебя?');
   });
 
   it('shows a recoverable error when the requested story is unavailable', () => {
@@ -488,6 +489,7 @@ describe('natal narrative reader', () => {
     expect(html).toContain('Попробовать снова');
     expect(html).not.toContain('natal-narrative-copy');
     expect(html).not.toContain('aria-busy="true"');
+    expect(html).not.toContain('Что ещё про тебя?');
   });
 
   it('renders the current saved subject and language without replacing them with account-owner metadata', () => {

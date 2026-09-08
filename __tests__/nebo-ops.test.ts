@@ -160,6 +160,15 @@ describe('operational data and message formatting', () => {
     expect(message).not.toContain('MyTracker');
   });
 
+  it('adds install channel for login when distribution channel is present', () => {
+    const message = renderNeboOpsMessage({
+      event_type: 'login', user_id: '9000000003446',
+      occurred_at: '2026-09-04T16:03:09Z',
+      payload_json: { isFirstLogin: true, provider: 'vk_id', runtime: 'native', distributionChannel: 'rustore' },
+    }, { name: '@vk_38523093', language: 'ru' });
+    expect(message).toContain('📥 Канал установки: RuStore');
+  });
+
   it('distinguishes a server-confirmed payment from the client reporting a purchase', () => {
     const base = { user_id: '9001', occurred_at: '2026-09-04T16:03:09Z' };
     const confirmed = renderNeboOpsMessage({
@@ -215,6 +224,7 @@ describe('durable owner notification queue', () => {
   it('notifies only about logins, app visits, opening payment and the daily report', async () => {
     expect(shouldDeliverNeboOpsEvent('login')).toBe(true);
     expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'app_open' })).toBe(true);
+    expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'app_opened' })).toBe(true);
     expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'paywall_view' })).toBe(true);
     expect(shouldDeliverNeboOpsEvent('daily_summary')).toBe(true);
     for (const eventType of ['hourly_summary', 'support_ticket', 'ai_error', 'payment_confirmed', 'attribution_received']) {
@@ -233,7 +243,7 @@ describe('durable owner notification queue', () => {
   it('queues an app visit as a visit, without claiming a new authentication or leaking session ids', async () => {
     await enqueueNeboOpsEvent({ query } as any, {
       eventKey: 'visit:once', eventType: 'activity', userId: '-9001',
-      payload: { eventType: 'app_open', runtime: 'native', sessionId: 'PRIVATE_SESSION' },
+      payload: { eventType: 'app_open', runtime: 'native', distributionChannel: 'rustore', sessionId: 'PRIVATE_SESSION' },
     });
     const insert = query.mock.calls.find(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))!;
     expect(insert[1].slice(5)).toEqual(['pending', null]);
@@ -241,14 +251,15 @@ describe('durable owner notification queue', () => {
     const rendered = renderNeboOpsMessage({ event_type: 'activity', user_id: '-9001',
       payload_json: JSON.parse(insert[1][3]), occurred_at: new Date() });
     expect(rendered.split('\n')[0]).toBe('👋 Открыл приложение');
+    expect(rendered).toContain('📥 Канал установки: RuStore');
     expect(rendered).not.toContain('Первый вход');
     expect(rendered).not.toContain('Вход:');
   });
 
   it('delivers app visits to the configured owner instead of retiring them as ordinary activity', async () => {
     query.mockImplementation(async (sql: string, values?: unknown[]) => {
-      if (sql.includes('RETURNING id, event_type, user_id')) return { rows: [{
-        id: '42', event_type: 'activity', user_id: '-9001', payload_json: { eventType: 'app_open', runtime: 'native' },
+    if (sql.includes('RETURNING id, event_type, user_id')) return { rows: [{
+        id: '42', event_type: 'activity', user_id: '-9001', payload_json: { eventType: 'app_opened', runtime: 'native', distributionChannel: 'google_play' },
         occurred_at: '2026-09-09T09:00:00Z', attempts: 1, lease_token: values?.[1],
       }] };
       if (sql.includes('SELECT u.name, u.language, u.auth_provider')) return { rows: [{ name: 'Алина' }] };
@@ -260,8 +271,8 @@ describe('durable owner notification queue', () => {
     expect(body.text.split('\n')[0]).toBe('👋 Открыл приложение');
     const filtered = query.mock.calls.find(([sql]) => sql.includes("last_error_code = 'OWNER_SCOPE_FILTERED'"))!;
     const claim = query.mock.calls.find(([sql]) => sql.includes('RETURNING id, event_type, user_id'))!;
-    expect(filtered[0]).toContain("IN ('paywall_view', 'app_open')");
-    expect(claim[0]).toContain("IN ('paywall_view', 'app_open')");
+    expect(filtered[0]).toContain("IN ('paywall_view', 'app_open', 'app_opened')");
+    expect(claim[0]).toContain("IN ('paywall_view', 'app_open', 'app_opened')");
   });
 
   it('retires old noisy queue entries without sending them to Telegram', async () => {

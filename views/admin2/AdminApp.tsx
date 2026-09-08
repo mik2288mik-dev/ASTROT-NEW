@@ -1,4 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { NeboLogo } from '../../components/brand/NeboLogo';
+import { AdminActivityDashboard, AdminUserActivity } from '../../components/admin2/AdminActivity';
+import HomeCardsEditor from '../../components/admin2/HomeCardsEditor';
 import {
   admin2,
   admin2Auth,
@@ -66,14 +69,14 @@ const ROLE_LABEL: Record<AdminRole, string> = {
 
 // ── Spike-style light tokens ──
 const PAGE_BG = '#F4F5FA';
-const card = 'rounded-3xl bg-white p-5 shadow-[0_4px_24px_rgba(20,30,60,0.05)]';
-const btn = 'rounded-full px-4 py-2 text-sm font-semibold transition disabled:opacity-50';
-const btnPrimary = `${btn} bg-[#8C57FF] text-white hover:bg-[#7E4EE6] shadow-[0_2px_8px_rgba(140,87,255,0.35)]`;
-const btnGhost = `${btn} border border-slate-200 bg-white text-slate-600 hover:bg-slate-50`;
-const inputCls = 'rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-[#8C57FF] focus:bg-white focus:ring-4 focus:ring-[#8C57FF]/15';
-const th = 'px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400';
-const td = 'px-4 py-3 text-slate-600';
-const tableWrap = 'overflow-x-auto rounded-3xl bg-white shadow-[0_4px_24px_rgba(20,30,60,0.05)]';
+const card = 'admin2-card';
+const btn = 'admin2-button';
+const btnPrimary = `${btn} admin2-button--primary`;
+const btnGhost = `${btn} admin2-button--secondary`;
+const inputCls = 'admin2-input';
+const th = 'admin2-table-heading';
+const td = 'admin2-table-cell';
+const tableWrap = 'admin2-table-wrap';
 const trow = 'border-t border-slate-50 hover:bg-slate-50/60';
 
 // Materio-палитра: primary #8C57FF, info #16B1FF, success #56CA00, warning #FFB400, error #FF4C51
@@ -107,7 +110,7 @@ function Kpi({ label, value, sub, color = 'blue' }: { label: string; value: Reac
 }
 
 function ErrorNote({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">{children}</div>;
+  return <div className="admin2-error" role="alert">{children}</div>;
 }
 
 function Card({ title, children, className = '' }: { title?: string; children: React.ReactNode; className?: string }) {
@@ -149,7 +152,7 @@ function AdminAccessScreen({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 text-[#312D4B]" style={{ background: PAGE_BG }}>
+    <div className="admin2-app fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto p-4 text-[#312D4B]" style={{ background: PAGE_BG }}>
       <div className="w-full max-w-5xl overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(20,30,60,0.14)]">
         <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
           <div className="bg-[#312D4B] p-8 text-white">
@@ -218,6 +221,11 @@ const COMMERCE_ATTRIBUTION_STAGES: ReadonlyArray<{
 ];
 
 function DashboardSection() {
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  return <><AdminActivityDashboard/><details className="admin2-general-overview" onToggle={event => setOverviewOpen(event.currentTarget.open)}><summary>Общая сводка, удержание и платежи</summary>{overviewOpen ? <DashboardOverview/> : null}</details></>;
+}
+
+function DashboardOverview() {
   const [data, setData] = useState<AdminDashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { admin2.dashboard().then(setData).catch((e) => setError(e.message)); }, []);
@@ -247,7 +255,7 @@ function DashboardSection() {
                   <span className="text-slate-400">{s.users} · {s.pctOfStart}%{s.key !== 'signup' ? ` · ${s.pctOfPrev}% от пред.` : ''}</span>
                 </div>
                 <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-100">
-                  <div className="h-full rounded-full bg-gradient-to-r from-[#8C57FF] to-[#A379FF]" style={{ width: `${Math.max(2, s.pctOfStart)}%` }} />
+                  <div className="h-full rounded-full bg-[#7760d7]" style={{ width: `${Math.max(0, Math.min(100, s.pctOfStart))}%` }} />
                 </div>
               </div>
             ))}
@@ -341,6 +349,7 @@ function UserDetailPanel({
   canPii,
   canEdit,
   canBlock,
+  canViewActivity,
   onClose,
   onChanged,
 }: {
@@ -348,6 +357,7 @@ function UserDetailPanel({
   canPii: boolean;
   canEdit: boolean;
   canBlock: boolean;
+  canViewActivity: boolean;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -357,7 +367,7 @@ function UserDetailPanel({
   const [nameDraft, setNameDraft] = useState('');
   const [slotsDraft, setSlotsDraft] = useState(1);
   const [premiumDays, setPremiumDays] = useState(30);
-  const load = (pii = false) => admin2.getUser(id, pii).then(setUser).catch((e) => setError(e.message));
+  const load = (pii = false) => { setError(null); return admin2.getUser(id, pii).then(setUser).catch((e) => setError(e.message)); };
   useEffect(() => { load(false);   }, [id]);
   useEffect(() => {
     if (!user) return;
@@ -369,7 +379,7 @@ function UserDetailPanel({
     try { await fn(); await load(user?.pii.revealed ?? false); onChanged(); }
     catch (e: any) { setError(e.message); } finally { setBusy(false); }
   };
-  if (error && !user) return <Card><ErrorNote>{error}</ErrorNote></Card>;
+  if (error && !user) return <Card><ErrorNote>{error}</ErrorNote><div className="mt-3 flex gap-2"><button className={btnPrimary} onClick={() => load(false)}>Повторить</button><button className={btnGhost} onClick={onClose}>Закрыть</button></div></Card>;
   if (!user) return <Card><p className="text-sm text-slate-400">Загрузка…</p></Card>;
   return (
     <div className={`${card} space-y-4`}>
@@ -378,7 +388,7 @@ function UserDetailPanel({
         <button className={btnGhost} onClick={onClose}>Закрыть</button>
       </div>
       {error ? <ErrorNote>{error}</ErrorNote> : null}
-      <div className="grid grid-cols-2 gap-2 text-[13px] text-slate-500">
+      <div className="grid gap-2 text-[13px] text-slate-500 sm:grid-cols-2">
         <div>Премиум: <b className="text-slate-800">{user.isPremium ? 'да' : 'нет'}</b> {user.premiumUntil ? `до ${fmtDate(user.premiumUntil)}` : ''}</div>
         <div>Статус: <b className="text-slate-800">{user.isBlocked ? 'заблокирован' : 'активен'}</b></div>
         <div>Карт: <b className="text-slate-800">{user.savedCharts}</b> / слотов {user.chartSlots}</div>
@@ -405,7 +415,7 @@ function UserDetailPanel({
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Данные рождения (PII)</p>
           {canPii && !user.pii.revealed ? <button className={btnGhost} disabled={busy} onClick={() => load(true)}>Показать</button> : null}
         </div>
-        <div className="mt-2 grid grid-cols-3 gap-2 text-[13px] text-slate-500">
+        <div className="mt-2 grid gap-2 text-[13px] text-slate-500 sm:grid-cols-3">
           <div>Дата: <b className="text-slate-800">{user.pii.birthDate || '—'}</b></div>
           <div>Время: <b className="text-slate-800">{user.pii.birthTime || '—'}</b></div>
           <div>Место: <b className="text-slate-800">{user.pii.birthPlace || '—'}</b></div>
@@ -413,17 +423,18 @@ function UserDetailPanel({
         {!canPii ? <p className="mt-1 text-[11px] text-slate-400">Нет права на просмотр персональных данных.</p> : null}
       </div>
       <div className="grid gap-2 rounded-2xl bg-slate-50 p-4 sm:grid-cols-[1fr_120px_auto]">
-        <input className={inputCls} disabled={!canEdit} value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Имя" />
-        <input className={inputCls} disabled={!canEdit} type="number" min={1} max={50} value={slotsDraft} onChange={(e) => setSlotsDraft(Number(e.target.value))} />
+        <input className={inputCls} disabled={!canEdit} value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Имя" aria-label="Имя пользователя" />
+        <input className={inputCls} disabled={!canEdit} type="number" min={1} max={50} value={slotsDraft} onChange={(e) => setSlotsDraft(Number(e.target.value))} aria-label="Количество слотов карт" />
         <button className={btnGhost} disabled={!canEdit || busy || (!nameDraft.trim() && slotsDraft === user.chartSlots)} onClick={() => act(() => admin2.patchUser(id, { name: nameDraft.trim(), chartSlots: Math.max(1, Math.min(50, Math.round(slotsDraft || 1))) }))}>Сохранить профиль</button>
       </div>
       {!canEdit ? <p className="text-xs text-slate-400">У вашей роли нет права users.edit, поэтому изменения профиля и Premium недоступны.</p> : null}
       <div className="flex flex-wrap gap-2">
         <button className={btnGhost} disabled={!canBlock || busy} onClick={() => act(() => admin2.patchUser(id, { isBlocked: !user.isBlocked }))}>{user.isBlocked ? 'Разблокировать' : 'Заблокировать'}</button>
-        <input className={`${inputCls} w-28`} disabled={!canEdit} type="number" min={1} max={3650} value={premiumDays} onChange={(e) => setPremiumDays(Number(e.target.value))} />
+        <input className={`${inputCls} w-28`} disabled={!canEdit} type="number" min={1} max={3650} value={premiumDays} onChange={(e) => setPremiumDays(Number(e.target.value))} aria-label="На сколько дней выдать Premium" />
         <button className={btnPrimary} disabled={!canEdit || busy} onClick={() => act(() => admin2.setPremium(id, 'grant', Math.max(1, Math.min(3650, Math.round(premiumDays || 30)))))}>Выдать Premium</button>
         <button className={btnGhost} disabled={!canEdit || busy} onClick={() => act(() => admin2.setPremium(id, 'revoke'))}>Снять Premium</button>
       </div>
+      {canViewActivity ? <AdminUserActivity userId={id}/> : <p className="admin2-data-note">История действий доступна ролям с правом просмотра аналитики.</p>}
     </div>
   );
 }
@@ -431,6 +442,7 @@ function UserDetailPanel({
 function UsersSection({ me }: { me: AdminMe }) {
   const [page, setPage] = useState<AdminUsersPage | null>(null);
   const [q, setQ] = useState('');
+  const [appliedQuery, setAppliedQuery] = useState('');
   const [premium, setPremium] = useState('all');
   const [segment, setSegment] = useState('all');
   const [sortBy, setSortBy] = useState('last_seen');
@@ -443,20 +455,26 @@ function UsersSection({ me }: { me: AdminMe }) {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const listRequest = useRef(0);
+  const listParams = useRef({ q: appliedQuery, premium, segment, sortBy, sortOrder, page: pageNum, pageSize });
+  listParams.current = { q: appliedQuery, premium, segment, sortBy, sortOrder, page: pageNum, pageSize };
   const canPii = me.permissions.includes('user.pii.view');
   const canEdit = me.permissions.includes('users.edit');
   const canBlock = me.permissions.includes('users.block');
-  const load = () => {
-    setError(null);
-    return admin2.listUsers({ q, premium, segment, sortBy, sortOrder, page: pageNum, pageSize })
+  const load = useCallback(() => {
+    const request = ++listRequest.current;
+    setError(null); setLoading(true); setPage(null); setCheckedIds([]);
+    return admin2.listUsers(listParams.current)
       .then((next) => {
+        if (request !== listRequest.current) return;
         setPage(next);
-        setCheckedIds((ids) => ids.filter((id) => next.users.some((u) => u.id === id)));
       })
-      .catch((e) => setError(e.message));
-  };
-  useEffect(() => { load();   }, [pageNum, premium, segment, sortBy, sortOrder, pageSize]);
-  const resetAndLoad = () => { if (pageNum === 1) void load(); else setPageNum(1); };
+      .catch((e) => { if (request === listRequest.current) setError(e.message); })
+      .finally(() => { if (request === listRequest.current) setLoading(false); });
+  }, []);
+  useEffect(() => { void load(); return () => { listRequest.current += 1; }; }, [load, appliedQuery, pageNum, premium, segment, sortBy, sortOrder, pageSize]);
+  const resetAndLoad = () => { if (pageNum === 1 && appliedQuery === q.trim()) void load(); else { setAppliedQuery(q.trim()); setPageNum(1); } };
   const visibleIds = page?.users.map((u) => u.id) || [];
   const allVisibleChecked = visibleIds.length > 0 && visibleIds.every((id) => checkedIds.includes(id));
   const toggleAllVisible = () => {
@@ -502,36 +520,36 @@ function UsersSection({ me }: { me: AdminMe }) {
         </div>
       ) : null}
       <div className="grid gap-2 lg:grid-cols-[1fr_auto]">
-        <input className={`${inputCls} flex-1`} placeholder="Поиск по имени или ID…" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') resetAndLoad(); }} />
+        <input className={`${inputCls} flex-1`} aria-label="Поиск пользователей по имени или ID" placeholder="Поиск по имени или ID…" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') resetAndLoad(); }} />
         <button className={btnPrimary} onClick={resetAndLoad}>Найти</button>
       </div>
       <div className={`${card} grid gap-2 md:grid-cols-5`}>
-        <select className={inputCls} value={premium} onChange={(e) => { setPremium(e.target.value); setPageNum(1); }}>
+        <select className={inputCls} aria-label="Тариф" value={premium} onChange={(e) => { setPremium(e.target.value); setPageNum(1); }}>
           <option value="all">Все тарифы</option>
           <option value="premium">Только Premium</option>
-          <option value="free">Только free</option>
+          <option value="free">Бесплатный</option>
         </select>
-        <select className={inputCls} value={segment} onChange={(e) => { setSegment(e.target.value); setPageNum(1); }}>
+        <select className={inputCls} aria-label="Сегмент пользователей" value={segment} onChange={(e) => { setSegment(e.target.value); setPageNum(1); }}>
           <option value="all">Все сегменты</option>
           <option value="active_7d">Активные 7д</option>
           <option value="inactive_7d">Неактивные 7д</option>
           <option value="inactive_30d">Неактивные 30д</option>
           <option value="need_attention">Требуют внимания</option>
           <option value="new_user_no_birth_data">Без даты рождения</option>
-          <option value="high_intent_premium">High intent Premium</option>
+          <option value="high_intent_premium">Интерес к Premium</option>
         </select>
-        <select className={inputCls} value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPageNum(1); }}>
+        <select className={inputCls} aria-label="Сортировка" value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPageNum(1); }}>
           <option value="last_seen">Сорт: онлайн</option>
           <option value="created_at">Сорт: регистрация</option>
           <option value="premium_until">Сорт: Premium до</option>
           <option value="saved_charts_count">Сорт: карты</option>
           <option value="name">Сорт: имя</option>
         </select>
-        <select className={inputCls} value={sortOrder} onChange={(e) => { setSortOrder(e.target.value); setPageNum(1); }}>
+        <select className={inputCls} aria-label="Порядок сортировки" value={sortOrder} onChange={(e) => { setSortOrder(e.target.value); setPageNum(1); }}>
           <option value="desc">По убыванию</option>
           <option value="asc">По возрастанию</option>
         </select>
-        <select className={inputCls} value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPageNum(1); }}>
+        <select className={inputCls} aria-label="Строк на странице" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPageNum(1); }}>
           <option value={25}>25 строк</option>
           <option value={50}>50 строк</option>
           <option value={100}>100 строк</option>
@@ -553,7 +571,7 @@ function UsersSection({ me }: { me: AdminMe }) {
           <button className={btnGhost} disabled={bulkBusy} onClick={() => setCheckedIds([])}>Снять выбор</button>
         </div>
       ) : null}
-      {selected ? <UserDetailPanel id={selected} canPii={canPii} canEdit={canEdit} canBlock={canBlock} onClose={() => setSelected(null)} onChanged={load} /> : null}
+      {selected ? <UserDetailPanel key={selected} id={selected} canPii={canPii} canEdit={canEdit} canBlock={canBlock} canViewActivity={me.permissions.includes('analytics.view')} onClose={() => setSelected(null)} onChanged={load} /> : null}
       {page ? (
         <>
           <div className={tableWrap}>
@@ -591,7 +609,7 @@ function UsersSection({ me }: { me: AdminMe }) {
             </div>
           </div>
         </>
-      ) : <p className="text-sm text-slate-400">Загрузка…</p>}
+      ) : loading ? <p className="admin2-loading" role="status">Загружаем пользователей…</p> : error ? <button className={btnGhost} onClick={() => void load()}>Повторить загрузку</button> : null}
     </div>
   );
 }
@@ -1073,7 +1091,7 @@ function ContentSection({ me }: { me: AdminMe }) {
   const canEdit = me.permissions.includes('content.edit'); const canPublish = me.permissions.includes('content.publish');
   const canModerateForecastQuestions =
     canPublish && me.permissions.includes('user.pii.view');
-  const load = () => admin2.listCms().then((d) => setRows(d.items)).catch((e) => setError(e.message));
+  const load = () => admin2.listCms().then((d) => setRows(d.items.filter((item) => item.type !== 'home_card'))).catch((e) => setError(e.message));
   useEffect(() => { load(); }, []);
   const open = async (id: number) => { setError(null); try { const c = await admin2.getCms(id); setSel(c); setBody(c.body); setTitle(c.title || ''); } catch (e: any) { setError(e.message); } };
   const act = async (fn: () => Promise<any>) => { setBusy(true); setError(null); try { await fn(); await load(); if (sel) await open(sel.id); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
@@ -1083,16 +1101,18 @@ function ContentSection({ me }: { me: AdminMe }) {
       {canModerateForecastQuestions ? (
         <ForecastQuestionModerationCard canPublish />
       ) : null}
+      <HomeCardsEditor me={me}/>
       <p className="text-[13px] text-slate-500">Авторский контент: онбординг, paywall, FAQ, тексты пушей и т.п. — со статусами черновик → опубликован → архив и версиями.</p>
       {canEdit ? (
         <Card title="Новый материал">
           <div className="space-y-2">
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input className={`${inputCls} w-40`} placeholder="тип (faq, paywall…)" value={nt} onChange={(e) => setNt(e.target.value)} />
               <input className={`${inputCls} flex-1`} placeholder="заголовок" value={ntitle} onChange={(e) => setNtitle(e.target.value)} />
             </div>
             <textarea className={`${inputCls} h-24 w-full`} placeholder="текст…" value={nbody} onChange={(e) => setNbody(e.target.value)} />
-            <button className={btnPrimary} disabled={busy || nt.trim().length < 2 || !nbody.trim()} onClick={() => act(async () => { await admin2.createCms({ type: nt.trim(), title: ntitle.trim(), body: nbody.trim() }); setNt(''); setNtitle(''); setNbody(''); })}>Создать черновик</button>
+            {nt.trim().toLowerCase() === 'home_card' ? <p className="text-sm text-slate-500">Карточки главной создаются в редакторе выше.</p> : null}
+            <button className={btnPrimary} disabled={busy || nt.trim().length < 2 || !nbody.trim() || nt.trim().toLowerCase() === 'home_card'} onClick={() => act(async () => { await admin2.createCms({ type: nt.trim(), title: ntitle.trim(), body: nbody.trim() }); setNt(''); setNtitle(''); setNbody(''); })}>Создать черновик</button>
           </div>
         </Card>
       ) : null}
@@ -1686,6 +1706,8 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [booting, setBooting] = useState(true);
   const [active, setActive] = useState<SectionId>('dashboard');
   const [navOpen, setNavOpen] = useState(false);
+  const navDialogRef = useRef<HTMLDialogElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
 
   const loadMe = () => {
     setBooting(true);
@@ -1702,6 +1724,22 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   useEffect(() => { loadMe(); }, []);
   const visible = useMemo(() => (me ? NAV.filter((s) => me.permissions.includes(s.perm)) : []), [me]);
   useEffect(() => { if (visible.length && !visible.some((s) => s.id === active)) setActive(visible[0].id); }, [visible, active]);
+  useEffect(() => {
+    const dialog = navDialogRef.current;
+    if (!dialog) return;
+    if (navOpen && !dialog.open) dialog.showModal();
+    if (!navOpen && dialog.open) dialog.close();
+  }, [navOpen]);
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+    mainRef.current?.focus({ preventScroll: true });
+  }, [active]);
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    const closeOnDesktop = () => { if (desktop.matches) setNavOpen(false); };
+    desktop.addEventListener('change', closeOnDesktop);
+    return () => desktop.removeEventListener('change', closeOnDesktop);
+  }, []);
   useEffect(() => {
     if (!navOpen) return;
     const handleNativeBack = (event: Event) => {
@@ -1721,18 +1759,13 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   }
 
   const Sidebar = (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-slate-100 bg-white">
-      <div className="flex items-center gap-2.5 px-6 py-5">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#8C57FF] text-white">
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M12 2c3 2 5 5 5 9a5 5 0 0 1-10 0c0-4 2-7 5-9Zm0 7a2 2 0 1 0 2 2 2 2 0 0 0-2-2ZM6 20l2-3m10 3-2-3" /></svg>
-        </span>
-        <div><p className="text-base font-bold text-[#312D4B]">NEBO</p><p className="-mt-0.5 text-[11px] text-slate-400">Admin</p></div>
-      </div>
+    <aside className="admin2-sidebar flex h-full w-64 shrink-0 flex-col border-r border-slate-100 bg-white">
+      <div className="admin2-brand"><NeboLogo size="header" priority/><span>Управление</span></div>
       <p className="px-6 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">Управление</p>
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3">
+      <nav className="admin2-navigation flex-1 space-y-1 overflow-y-auto px-3" aria-label="Разделы администрирования">
         {visible.map((s) => (
-          <button key={s.id} onClick={() => go(s.id)}
-            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active === s.id ? 'bg-gradient-to-r from-[#8C57FF] to-[#A379FF] text-white shadow-[0_2px_10px_rgba(140,87,255,0.45)]' : 'text-slate-500 hover:bg-slate-50'}`}>
+          <button key={s.id} type="button" onClick={() => go(s.id)} aria-current={active===s.id?'page':undefined}
+            className="admin2-nav-link">
             <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] shrink-0" fill="currentColor"><path d={s.icon} /></svg>
             <span className="truncate">{s.label}</span>
           </button>
@@ -1749,19 +1782,16 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 
   return (
-    <div className="fixed inset-0 z-[60] flex text-[#312D4B]" style={{ background: PAGE_BG, paddingTop: 'env(safe-area-inset-top,0px)', paddingBottom: 'env(safe-area-inset-bottom,0px)' }}>
+    <div className="admin2-app fixed inset-0 z-[60] flex text-[#312D4B]" style={{ background: PAGE_BG, paddingTop: 'env(safe-area-inset-top,0px)', paddingBottom: 'env(safe-area-inset-bottom,0px)' }}>
       <div className="hidden lg:block">{Sidebar}</div>
-      {navOpen ? (
-        <div className="fixed inset-0 z-[70] flex lg:hidden">
-          <div className="absolute inset-0 bg-slate-900/30" onClick={() => setNavOpen(false)} />
-          <div className="relative shadow-2xl">{Sidebar}</div>
-        </div>
-      ) : null}
+      <dialog ref={navDialogRef} id="admin2-mobile-navigation" className="admin2-nav-dialog" aria-label="Разделы администрирования" onCancel={()=>setNavOpen(false)} onClose={()=>setNavOpen(false)}>
+        <button type="button" className="admin2-nav-close" onClick={()=>setNavOpen(false)} aria-label="Закрыть меню">Закрыть</button>{Sidebar}
+      </dialog>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3.5">
+        <header className="admin2-header flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3.5">
           <div className="flex items-center gap-2.5">
-            <button className="rounded-xl border border-slate-200 p-2 text-slate-500 lg:hidden" onClick={() => setNavOpen(true)} aria-label="Меню">
+            <button type="button" className="admin2-nav-trigger rounded-xl border border-slate-200 p-2 text-slate-500 lg:hidden" onClick={() => setNavOpen(true)} aria-label="Разделы админки" aria-controls="admin2-mobile-navigation" aria-expanded={navOpen}>
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" /></svg>
             </button>
             <h1 className="text-xl font-bold text-[#312D4B]">{activeLabel}</h1>
@@ -1776,7 +1806,9 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         {error ? <div className="p-4"><ErrorNote>{error.message}</ErrorNote></div> : null}
 
         {me ? (
-          <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+          <main ref={mainRef} tabIndex={-1} aria-label={activeLabel} className="admin2-main min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+            {visible.length === 0 ? <div className="admin2-empty">У этой роли пока нет доступных разделов. Обратитесь к владельцу приложения.</div> : null}
+            {visible.some((section) => section.id === active) && <>
             {active === 'dashboard' && <DashboardSection />}
             {active === 'users' && <UsersSection me={me} />}
             {active === 'charts' && <ChartsSection me={me} />}
@@ -1788,6 +1820,7 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {active === 'roles' && <RolesSection />}
             {active === 'audit' && <AuditSection />}
             {active === 'settings' && <SettingsSection />}
+            </>}
           </main>
         ) : <p className="p-6 text-sm text-slate-400">Загрузка…</p>}
       </div>

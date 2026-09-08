@@ -23,7 +23,6 @@ import {
   type NatalReadingLanguage,
 } from './permanentReport';
 import type {
-  NatalFreeQuestionUsage,
   NatalQuestionStoredMessage,
   NatalQuestionUsage,
 } from './natalQuestionStore';
@@ -53,7 +52,6 @@ export type NatalQuestionModeration = {
     | 'not_natal_question'
     | 'needs_specificity'
     | 'professional_prescription'
-    | 'sensitive_personal_data'
     | 'third_party_inference'
     | 'compatibility_requires_two_charts';
   normalizedQuestion: string;
@@ -99,11 +97,6 @@ export type NatalQuestionSnapshot = {
   chartId: number;
   messages: NatalQuestionStoredMessage[];
   usage: NatalQuestionUsage;
-  access: {
-    isPremium: boolean;
-    freeQuestionUsed: NatalFreeQuestionUsage['used'];
-    freeQuestionRemaining: NatalFreeQuestionUsage['remaining'];
-  };
   promptVersion: string;
   voiceVersion: string;
 };
@@ -214,21 +207,6 @@ const PROFESSIONAL_PRESCRIPTION_PATTERNS = [
   /(?:diagnos|disease|illness|treat(?:ment)?|medicine|medication|pills?|dosage)/iu,
   /(?:how\s+to\s+win\s+(?:a\s+)?lawsuit|should\s+i\s+sue|legal\s+(?:advice|strategy)|evade\s+tax)/iu,
   /(?:where\s+should\s+i\s+invest|which\s+stocks?\s+should\s+i\s+buy|should\s+i\s+invest|should\s+i\s+take\s+(?:a\s+)?loan|should\s+i\s+get\s+(?:a\s+)?mortgage)/iu,
-] as const;
-
-const SENSITIVE_INPUT_PATTERNS = [
-  /(?:здоровь|медицин|диагноз|диагност|болезн|заболеван|лечен|лекарств|препарат|таблет|дозировк|после\s+операци|беременн|депресси|паническ[\p{L}-]*\s+атак|психиатр|психотерап|расстройств)/iu,
-  /\b(?:health|medical|diagnos|disease|illness|treat(?:ment)?|medicine|medication|pills?|dosage|surgery|pregnan|depress|panic\s+attack|psychiatr|psychotherap|disorder)\w*\b/iu,
-  /(?:паспорт|снилс|(?<!\p{L})инн(?!\p{L})|водительск[\p{L}-]*\s+удостовер|удостоверен[\p{L}-]*\s+личност|номер\s+документ|серия\s+(?:и\s+)?номер)/iu,
-  /\b(?:passport|social\s+security|ssn|tax\s+id|driver'?s\s+licen[cs]e|identity\s+document|document\s+number)\b/iu,
-  /[\p{L}\d._%+-]+@[\p{L}\d.-]+\.[\p{L}]{2,}/iu,
-  /(?:@[\p{L}\d_]{3,}|(?:телефон|номер\s+телефона|мой\s+номер|phone(?:\s+number)?|contact\s+me)[^.!?\n]{0,32}\+?\d)/iu,
-  /(?<!\d)(?:\+\d[\d\s()-]{8,}\d)(?!\d)/u,
-  /(?:парол|пин[-\s]?код|код\s+из\s+смс|одноразов[\p{L}-]*\s+код|код\s+подтвержден|(?<!\p{L})otp(?!\p{L})|(?<!\p{L})(?:cvv|cvc)(?!\p{L}))/iu,
-  /\b(?:password|passcode|pin\s+code|one[-\s]?time\s+(?:password|code)|verification\s+code|otp|cvv|cvc)\b/iu,
-  /(?:банковск[\p{L}-]*\s+карт|номер\s+карт|плат[её]жн[\p{L}-]*\s+данн|банковск[\p{L}-]*\s+реквизит|номер\s+сч[её]та|(?<!\p{L})(?:бик|iban)(?!\p{L}))/iu,
-  /\b(?:bank\s+card|card\s+number|payment\s+data|bank\s+details|bank\s+account|account\s+number|routing\s+number|iban)\b/iu,
-  /(?<!\d)(?:\d[\s-]*){13,19}(?!\d)/u,
 ] as const;
 
 const THIRD_PARTY_INFERENCE_PATTERNS = [
@@ -374,15 +352,6 @@ export function moderateNatalQuestion(input: {
     period: 'month',
     existingCustomQuestions: input.existingQuestions,
   });
-  if (matchesQuestionPolicy(question, SENSITIVE_INPUT_PATTERNS)) {
-    return {
-      status: 'rejected',
-      reason: matchesQuestionPolicy(question, PROFESSIONAL_PRESCRIPTION_PATTERNS)
-        ? 'professional_prescription'
-        : 'sensitive_personal_data',
-      normalizedQuestion: shared.normalizedQuestion,
-    };
-  }
   if (shared.status === 'rejected' && shared.reason !== 'duplicate_catalog') {
     return {
       status: 'rejected',

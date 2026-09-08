@@ -16,6 +16,7 @@ import {
     LifeBuoy,
     LogIn,
     Scale,
+    Trash2,
     UserRound,
     VenusAndMars,
 } from 'lucide-react';
@@ -32,6 +33,7 @@ import {
 import { hasActivePremium } from '../lib/accessMatrix';
 import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
+import { Header, birthLine } from '../components/nebo-v2/Primitives';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
@@ -206,6 +208,9 @@ export interface SettingsProps {
     recoveryIdentityRequired?: boolean;
     onRecoveryIdentityReady?: () => void;
     embedded?: boolean;
+    presentation?: 'classic' | 'nebo';
+    initialScreen?: 'root' | 'feedback' | 'notifications' | 'profile';
+    appearanceControl?: React.ReactNode;
     uiPreview?: {
         notificationEnabled: boolean;
         quietStart: string;
@@ -279,7 +284,11 @@ export const Settings: React.FC<SettingsProps> = ({
     onRecoveryIdentityReady,
     uiPreview,
     embedded = false,
+    presentation = 'classic',
+    initialScreen = 'root',
+    appearanceControl,
 }) => {
+    const refined = presentation === 'nebo';
     const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
     const nativeNotifications = !previewFixture && isNativeAndroidRuntime();
     const rustorePurchaseControlsAvailable = Boolean(previewFixture)
@@ -307,6 +316,8 @@ export const Settings: React.FC<SettingsProps> = ({
     const [quietEnd, setQuietEnd] = useState(previewFixture?.quietEnd || (nativeNotifications ? '09:00' : '08:00'));
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [deletionError, setDeletionError] = useState('');
+    const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+    const deleteDialogRef = useRef<HTMLDialogElement>(null);
     const [loggingOut, setLoggingOut] = useState(false);
     const [logoutError, setLogoutError] = useState('');
     const [identities, setIdentities] = useState<LinkedIdentity[]>(previewFixture?.identities || []);
@@ -333,7 +344,7 @@ export const Settings: React.FC<SettingsProps> = ({
     const [manageSubscriptionError, setManageSubscriptionError] = useState(false);
     const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
     const [previewNotice, setPreviewNotice] = useState('');
-    const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>('root');
+    const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>(initialScreen);
     const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('problem');
     const [feedbackMessage, setFeedbackMessage] = useState('');
     const [feedbackReplyEmail, setFeedbackReplyEmail] = useState('');
@@ -930,12 +941,28 @@ export const Settings: React.FC<SettingsProps> = ({
         }
     };
 
+    const deleteAccount = () => {
+        if (!onDeleteAccount || deletingAccount || loggingOut) return;
+        setDeletionError('');
+        setDeletingAccount(true);
+        void onDeleteAccount().catch(() => {
+            setDeletionError(profile.language === 'en'
+                ? 'Account deletion did not complete. Your account is still active.'
+                : 'Не удалось удалить аккаунт. Он остаётся активным.');
+        }).finally(() => setDeletingAccount(false));
+    };
+
     const handleDeleteAccount = () => {
         if (previewFixture) {
             setPreviewNotice('В Preview удаление аккаунта отключено.');
             return;
         }
         if (!onDeleteAccount || deletingAccount) return;
+        if (refined) {
+            setDeletionError('');
+            setDeleteConfirmationOpen(true);
+            return;
+        }
         if (hasActiveRuStoreAutoRenewal) {
             const continueDeletion = window.confirm(profile.language === 'en'
                 ? 'Auto-renewal is active in RuStore. Deleting this account will not cancel it automatically. Select OK to continue deleting, or Cancel to manage the subscription in RuStore first.'
@@ -948,14 +975,15 @@ export const Settings: React.FC<SettingsProps> = ({
         if (!window.confirm(profile.language === 'en'
             ? 'Delete your account and related data permanently?'
             : 'Удалить аккаунт и связанные данные без возможности восстановления?')) return;
-        setDeletionError('');
-        setDeletingAccount(true);
-        void onDeleteAccount().catch(() => {
-            setDeletionError(profile.language === 'en'
-                ? 'Account deletion did not complete. Your account is still active.'
-                : 'Не удалось удалить аккаунт. Он остаётся активным.');
-        }).finally(() => setDeletingAccount(false));
+        deleteAccount();
     };
+
+    useEffect(() => {
+        const dialog = deleteDialogRef.current;
+        if (!dialog) return;
+        if (deleteConfirmationOpen && !dialog.open) dialog.showModal();
+        if (!deleteConfirmationOpen && dialog.open) dialog.close();
+    }, [deleteConfirmationOpen]);
 
     const handleLogout = () => {
         if (previewFixture) {
@@ -974,6 +1002,10 @@ export const Settings: React.FC<SettingsProps> = ({
 
     const returnToSettingsRoot = useCallback(() => {
         if (settingsDetailBusy) return;
+        if (refined && initialScreen !== 'root' && onBack) {
+            onBack();
+            return;
+        }
         setSettingsScreen('root');
         setEditing(false);
         setTempName(profile.name);
@@ -984,17 +1016,22 @@ export const Settings: React.FC<SettingsProps> = ({
             document.querySelector<HTMLButtonElement>(`[data-settings-target="${target}"]`)
                 ?.focus({ preventScroll: true });
         });
-    }, [profile.name, settingsDetailBusy]);
+    }, [initialScreen, onBack, profile.name, refined, settingsDetailBusy]);
 
     useEffect(() => {
         if (settingsScreen === 'root') return;
         const handleNativeBack = (event: Event) => {
+            if (deleteConfirmationOpen) {
+                if (!deletingAccount) setDeleteConfirmationOpen(false);
+                (event as CustomEvent<NativeBackEventDetail>).detail.handled = true;
+                return;
+            }
             returnToSettingsRoot();
             (event as CustomEvent<NativeBackEventDetail>).detail.handled = true;
         };
         window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
         return () => window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
-    }, [returnToSettingsRoot, settingsScreen]);
+    }, [deleteConfirmationOpen, deletingAccount, returnToSettingsRoot, settingsScreen]);
 
     const openSettingsScreen = (screen: Exclude<SettingsScreen, 'root'>) => {
         lastRootTargetRef.current = screen;
@@ -1026,7 +1063,7 @@ export const Settings: React.FC<SettingsProps> = ({
             language: 'Язык',
             auth: 'Способы входа',
             subscription: 'Подписка',
-            feedback: 'Обратная связь',
+            feedback: refined ? 'Поддержка' : 'Обратная связь',
             legal: 'Правовая информация',
             account: 'Аккаунт и данные',
             developer: 'Для разработчика',
@@ -1574,6 +1611,11 @@ export const Settings: React.FC<SettingsProps> = ({
             case 'feedback':
                 return (
                     <section className="settings-detail-panel" aria-label={settingsTitle.feedback}>
+                        {refined ? <div className="nebo-support-intro">
+                            <LifeBuoy size={28} strokeWidth={1.7} aria-hidden="true" />
+                            <div><h2>{profile.language === 'en' ? 'We are here' : 'Мы рядом'}</h2>
+                                <p>{profile.language === 'en' ? 'Ask a question, tell us about a problem or share an idea.' : 'Задай вопрос, расскажи о проблеме или предложи идею.'}</p></div>
+                        </div> : null}
                         {feedbackStatus === 'success' && feedbackTicketId ? (
                             <div className="settings-feedback-success">
                                 <div role="status" aria-live="polite">
@@ -1803,6 +1845,11 @@ export const Settings: React.FC<SettingsProps> = ({
             default:
                 return (
                     <div className="settings-root">
+                        {refined ? <button type="button" className="nebo-settings-profile" onClick={() => openSettingsScreen('profile')}>
+                            <span className="nebo-settings-avatar" aria-hidden="true">{profileDisplayName.slice(0, 1).toUpperCase()}</span>
+                            <span><strong>{profileDisplayName}</strong><small>{birthLine(profile) || (profile.language === 'en' ? 'Your profile' : 'Твой профиль')}</small></span>
+                            <ChevronRight size={20} aria-hidden="true" />
+                        </button> : null}
                         <section className="settings-group" aria-labelledby="settings-account-heading">
                             <h2 id="settings-account-heading">{profile.language === 'en' ? 'Account' : 'Аккаунт'}</h2>
                             <div className="settings-list">
@@ -1877,12 +1924,14 @@ export const Settings: React.FC<SettingsProps> = ({
                             </div>
                         </section>
 
+                        {refined && appearanceControl ? <section className="settings-group nebo-settings-appearance" aria-label={profile.language === 'en' ? 'Appearance' : 'Оформление'}>{appearanceControl}</section> : null}
+
                         <section className="settings-group" aria-labelledby="settings-help-heading">
                             <h2 id="settings-help-heading">{profile.language === 'en' ? 'Help' : 'Помощь'}</h2>
                             <div className="settings-list">
                                 <SettingsRow
                                     icon={<LifeBuoy size={16} strokeWidth={1.8} />}
-                                    label={profile.language === 'en' ? 'Support' : 'Обратная связь'}
+                                    label={profile.language === 'en' ? 'Support' : refined ? 'Поддержка' : 'Обратная связь'}
                                     target="feedback"
                                     onClick={() => openSettingsScreen('feedback')}
                                 />
@@ -1920,8 +1969,8 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     return (
-        <div className={`fresh-page settings-editorial-page${embedded ? ' settings-editorial-page--embedded' : ''}`}>
-            {!embedded ? (
+        <div className={`fresh-page settings-editorial-page${embedded ? ' settings-editorial-page--embedded' : ''}${refined ? ' nebo-v2-shell nebo-settings' : ''}`}>
+            {!embedded && refined ? <Header title={settingsTitle[settingsScreen]} onBack={settingsScreen === 'root' ? onBack : settingsDetailBusy ? undefined : returnToSettingsRoot} /> : !embedded ? (
                 <AppTopBar
                     title={settingsTitle[settingsScreen]}
                     onBack={settingsScreen === 'root'
@@ -1943,7 +1992,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 tabIndex={-1}
                 aria-label={settingsTitle[settingsScreen]}
             >
-                {embedded && settingsScreen !== 'root' ? (
+                {embedded && settingsScreen !== 'root' && !(refined && initialScreen !== 'root') ? (
                     <header className="settings-embedded-detail-header">
                         <button
                             type="button"
@@ -1960,6 +2009,23 @@ export const Settings: React.FC<SettingsProps> = ({
                 {previewNotice ? <p role="status" className="settings-preview-notice">{previewNotice}</p> : null}
                 {renderSettingsContent()}
             </div>
+            {refined ? <dialog ref={deleteDialogRef} className="nebo-delete-dialog" aria-labelledby="nebo-delete-title" aria-describedby="nebo-delete-description"
+                onCancel={(event) => { event.preventDefault(); if (!deletingAccount) setDeleteConfirmationOpen(false); }}
+                onClose={() => setDeleteConfirmationOpen(false)}>
+                <span className="nebo-delete-symbol" aria-hidden="true"><Trash2 size={28} strokeWidth={1.8} /></span>
+                <h2 id="nebo-delete-title">{profile.language === 'en' ? 'Delete your account?' : 'Удалить аккаунт?'}</h2>
+                <p id="nebo-delete-description">{profile.language === 'en' ? 'Your profile, saved charts and readings will be deleted permanently.' : 'Профиль, сохранённые карты и разборы будут удалены без возможности восстановления.'}</p>
+                {hasActiveRuStoreAutoRenewal ? <div className="nebo-delete-renewal">
+                    <p>{profile.language === 'en' ? 'RuStore auto-renewal is still active. Deleting this account will not cancel the subscription.' : 'В RuStore включено автопродление. Удаление аккаунта не отменяет подписку.'}</p>
+                    {onManageSubscription ? <button type="button" className="settings-text-action" disabled={deletingAccount || managingSubscription} onClick={() => void manageSubscription()}>{profile.language === 'en' ? 'Manage subscription in RuStore' : 'Управлять подпиской в RuStore'}</button> : null}
+                    {manageSubscriptionError ? <p className="settings-error-text" role="alert">{profile.language === 'en' ? 'Could not open RuStore. Open Profile → Subscriptions in RuStore.' : 'Не удалось открыть RuStore. Открой в нём Профиль → Подписки.'}</p> : null}
+                </div> : null}
+                {deletionError ? <p className="settings-error-text" role="alert">{deletionError}</p> : null}
+                <div className="nebo-delete-actions">
+                    <button type="button" disabled={deletingAccount} onClick={() => setDeleteConfirmationOpen(false)}>{profile.language === 'en' ? 'Cancel' : 'Отмена'}</button>
+                    <button type="button" className="nebo-delete-confirm" disabled={deletingAccount || managingSubscription} aria-busy={deletingAccount} onClick={deleteAccount}>{deletingAccount ? (profile.language === 'en' ? 'Deleting…' : 'Удаляем…') : (profile.language === 'en' ? 'Delete account' : 'Удалить аккаунт')}</button>
+                </div>
+            </dialog> : null}
         </div>
     );
 };

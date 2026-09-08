@@ -1,6 +1,7 @@
 import { birthProfileRepository } from './birthProfileRepository';
 import { toDateInputValue } from './date-utils';
-import { db } from './db';
+import { db, getPool } from './db';
+import { getPremiumEntitlementState } from './contentArchitecture';
 import { logForecastDeliveryMetric } from './forecastDeliveryMetrics';
 import {
   ensurePersonalForecast,
@@ -9,24 +10,24 @@ import {
 } from './personalForecastCache';
 import {
   buildPersonalForecastBirthProfileFingerprint,
-  getNextPersonalForecastPeriodKey,
+  getPersonalForecastDayHorizon,
   getPersonalForecastPeriodKey,
   isPersonalForecastPeriodAllowedForTier,
   normalizeForecastTimezone,
-  resolvePersonalForecastWindow,
   type PersonalForecastGenerationTier,
   type PersonalForecastPeriod,
   type PersonalForecastRawProfile,
 } from './personalForecastContract';
 
-export const PERSONAL_FORECAST_ROLLING_DAY_COUNT = 5;
+export { PERSONAL_FORECAST_ROLLING_DAY_COUNT } from './personalForecastContract';
 
 export type PersonalForecastPrewarmReason =
   | 'birth_profile_completed'
   | 'app_open'
   | 'forecast_open'
   | 'premium_activated'
-  | 'premium_restored';
+  | 'premium_restored'
+  | 'scheduled_refresh';
 
 export type PersonalForecastPrewarmTarget = {
   accessTier: PersonalForecastGenerationTier;
@@ -52,7 +53,11 @@ const DEFAULT_RUNTIME: PersonalForecastPrewarmRuntime = {
   readCached: getCachedPersonalForecast,
   ensure: ensurePersonalForecast,
 };
-const personalPrewarmInFlight = new Map<string, Promise<PersonalForecastPrewarmResult>>();
+const personalPrewarmInFlight = new Map<string, {
+  request: Promise<PersonalForecastPrewarmResult>;
+  generationLimit: number;
+  targetLimit: number;
+}>();
 
 function uniqueTargets(targets: PersonalForecastPrewarmTarget[]): PersonalForecastPrewarmTarget[] {
   const seen = new Set<string>();
@@ -64,34 +69,14 @@ function uniqueTargets(targets: PersonalForecastPrewarmTarget[]): PersonalForeca
   });
 }
 
-function dayKeys(now: Date, timezone: string): string[] {
-  const keys = [getPersonalForecastPeriodKey('day', now, timezone)];
-  while (keys.length < PERSONAL_FORECAST_ROLLING_DAY_COUNT) {
-    keys.push(getNextPersonalForecastPeriodKey('day', keys[keys.length - 1], timezone));
-  }
-  return keys;
-}
-
-function periodKeyForDay(
-  period: Extract<PersonalForecastPeriod, 'week' | 'month'>,
-  dayKey: string,
-  timezone: string,
-): string {
-  const dayWindow = resolvePersonalForecastWindow('day', dayKey, timezone);
-  return getPersonalForecastPeriodKey(
-    period,
-    new Date(dayWindow.startsAt.getTime() + 12 * 60 * 60 * 1000),
-    timezone,
-  );
-}
-
 export function buildPersonalForecastPrewarmTargets(input: {
   accessTier: PersonalForecastGenerationTier;
   timezone?: string | null;
   now?: Date;
 }): PersonalForecastPrewarmTarget[] {
   const timezone = normalizeForecastTimezone(input.timezone);
-  const days = dayKeys(input.now || new Date(), timezone);
+  const now = input.now || new Date();
+  const days = getPersonalForecastDayHorizon(timezone, now);
   const dayTargets = days.map((periodKey) => ({
     accessTier: input.accessTier,
     period: 'day' as const,
@@ -99,15 +84,11 @@ export function buildPersonalForecastPrewarmTargets(input: {
   }));
   if (input.accessTier === 'free') return dayTargets;
 
-  const weeks = days.map((dayKey) => periodKeyForDay('week', dayKey, timezone));
-  const months = days.map((dayKey) => periodKeyForDay('month', dayKey, timezone));
   return uniqueTargets([
     dayTargets[0],
-    { accessTier: 'premium', period: 'week', periodKey: weeks[0] },
-    { accessTier: 'premium', period: 'month', periodKey: months[0] },
+    { accessTier: 'premium', period: 'week', periodKey: getPersonalForecastPeriodKey('week', now, timezone) },
+    { accessTier: 'premium', period: 'month', periodKey: getPersonalForecastPeriodKey('month', now, timezone) },
     ...dayTargets.slice(1),
-    ...weeks.slice(1).map((periodKey) => ({ accessTier: 'premium' as const, period: 'week' as const, periodKey })),
-    ...months.slice(1).map((periodKey) => ({ accessTier: 'premium' as const, period: 'month' as const, periodKey })),
   ]);
 }
 
@@ -125,6 +106,10 @@ export async function prewarmPersonalForecastHorizon(input: {
     timezone: input.profile.birthTimezone,
     now: input.now,
   });
+  const boundedLimit = (value: number | undefined) => value === undefined
+    ? targets.length : Number.isFinite(value) ? Math.min(targets.length, Math.max(0, Math.floor(value))) : 0;
+  const generationLimit = boundedLimit(input.maxMissingGenerations);
+  const targetLimit = boundedLimit(input.maxTargets);
   const scopeKey = [
     input.userId,
     input.accessTier,
@@ -132,7 +117,12 @@ export async function prewarmPersonalForecastHorizon(input: {
     targets[0]?.periodKey || 'none',
   ].join(':');
   const existing = personalPrewarmInFlight.get(scopeKey);
-  if (existing) return existing;
+  if (existing) {
+    if (existing.generationLimit >= generationLimit && existing.targetLimit >= targetLimit) return existing.request;
+    // A one-item scheduler increment must not silently truncate a foreground fill.
+    await existing.request;
+    return prewarmPersonalForecastHorizon(input, runtime);
+  }
 
   const request = (async () => {
     const result: PersonalForecastPrewarmResult = {
@@ -144,8 +134,6 @@ export async function prewarmPersonalForecastHorizon(input: {
       skippedEntitlement: [],
     };
     let missingGenerations = 0;
-    const generationLimit = Math.max(0, input.maxMissingGenerations ?? targets.length);
-    const targetLimit = Math.max(0, input.maxTargets ?? targets.length);
 
     for (const target of targets.slice(0, targetLimit)) {
       if (!isPersonalForecastPeriodAllowedForTier(target.accessTier, target.period)) {
@@ -207,9 +195,9 @@ export async function prewarmPersonalForecastHorizon(input: {
     }
     return result;
   })().finally(() => {
-    if (personalPrewarmInFlight.get(scopeKey) === request) personalPrewarmInFlight.delete(scopeKey);
+    if (personalPrewarmInFlight.get(scopeKey)?.request === request) personalPrewarmInFlight.delete(scopeKey);
   });
-  personalPrewarmInFlight.set(scopeKey, request);
+  personalPrewarmInFlight.set(scopeKey, { request, generationLimit, targetLimit });
   return request;
 }
 
@@ -281,4 +269,75 @@ export function queuePersonalForecastPrewarmForUser(input: {
 
 export function resetPersonalForecastPrewarmForTests(): void {
   personalPrewarmInFlight.clear();
+  scheduledCursor = '';
+  scheduledInFlight = null;
+}
+
+type ScheduledForecastUser = { userId: string; profile: PersonalForecastRawProfile; accessTier: PersonalForecastGenerationTier };
+export type PersonalForecastIncrementRuntime = {
+  listUsers: (afterId: string, limit: number, now: Date) => Promise<string[]>;
+  loadUser: (userId: string) => Promise<ScheduledForecastUser | null>;
+  prewarm: typeof prewarmPersonalForecastHorizon;
+};
+
+const SCHEDULED_RUNTIME: PersonalForecastIncrementRuntime = {
+  async listUsers(afterId, limit, now) {
+    const result = await getPool().query<{ id: string }>(
+      `SELECT u.id::text AS id FROM users u
+       WHERE u.id::text > $1 AND u.birth_date IS NOT NULL AND NULLIF(TRIM(u.name), '') IS NOT NULL
+         AND (u.last_login >= $2::timestamptz - INTERVAL '7 days'
+           OR EXISTS (SELECT 1 FROM user_sessions s WHERE s.user_id = u.id
+             AND s.last_seen_at >= $2::timestamptz - INTERVAL '7 days'))
+       ORDER BY u.id::text LIMIT $3`, [afterId, now.toISOString(), limit],
+    );
+    return result.rows.map((row) => row.id);
+  },
+  async loadUser(userId) {
+    const [user, settings, entitlement] = await Promise.all([
+      db.users.get(userId, { hydratePrimaryChart: false }),
+      birthProfileRepository.get(userId),
+      getPremiumEntitlementState(userId),
+    ]);
+    const profile = buildPersonalForecastPrewarmProfile(userId, user, settings);
+    return profile ? { userId, profile, accessTier: entitlement.isPremium ? 'premium' : 'free' } : null;
+  },
+  prewarm: prewarmPersonalForecastHorizon,
+};
+
+let scheduledCursor = '';
+let scheduledInFlight: Promise<{ scanned: number; generated: number; inProgress: number; failed: number }> | null = null;
+
+/** At most one provider generation per tick. Cursor scans active accounts fairly;
+ * the existing per-user cache locks also deduplicate overlapping server replicas. */
+export function prewarmPersonalForecastIncrement(
+  input: { now?: Date; userLimit?: number } = {},
+  runtime: PersonalForecastIncrementRuntime = SCHEDULED_RUNTIME,
+) {
+  if (scheduledInFlight) return scheduledInFlight;
+  const now = input.now || new Date();
+  const userLimit = Math.min(32, Math.max(1, Math.floor(input.userLimit || 16)));
+  const request = (async () => {
+    const result = { scanned: 0, generated: 0, inProgress: 0, failed: 0 };
+    const ids = await runtime.listUsers(scheduledCursor, userLimit, now);
+    if (!ids.length) { scheduledCursor = ''; return result; }
+    for (const userId of ids) {
+      scheduledCursor = userId;
+      result.scanned += 1;
+      try {
+        const user = await runtime.loadUser(userId);
+        if (!user) continue;
+        const filled = await runtime.prewarm({ ...user, reason: 'scheduled_refresh', now, maxMissingGenerations: 1 });
+        result.generated += filled.generated.length;
+        result.inProgress += filled.inProgress.length;
+        result.failed += filled.failed.length;
+        if (filled.generated.length || filled.inProgress.length || filled.failed.length) break;
+      } catch {
+        result.failed += 1;
+        break;
+      }
+    }
+    return result;
+  })().finally(() => { if (scheduledInFlight === request) scheduledInFlight = null; });
+  scheduledInFlight = request;
+  return request;
 }

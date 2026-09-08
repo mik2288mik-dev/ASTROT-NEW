@@ -3,6 +3,7 @@ import { AdminAuthError, handleAdminError } from '../../../../../lib/adminAuth';
 import { requireAdminPermission } from '../../../../../lib/admin/rbac';
 import { recordAdminAction } from '../../../../../lib/admin/audit';
 import { getPool } from '../../../../../lib/db';
+import { HomeCardValidationError, parseHomeCard } from '../../../../../lib/homeCards';
 
 /**
  * Детали/правка/публикация CMS-контента.
@@ -12,7 +13,7 @@ import { getPool } from '../../../../../lib/db';
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const id = Number(req.query.id);
   try {
-    if (!Number.isFinite(id)) throw new AdminAuthError(400, 'BAD_ID', 'Valid id required');
+    if (!Number.isSafeInteger(id) || id <= 0) throw new AdminAuthError(400, 'BAD_ID', 'Valid id required');
     const pool = getPool();
 
     if (req.method === 'GET') {
@@ -36,8 +37,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const body = String(req.body?.body || '').trim();
       const title = req.body?.title !== undefined ? String(req.body.title).trim() : undefined;
       if (!body) throw new AdminAuthError(400, 'BAD_BODY', 'body is required');
-      const cur = await pool.query(`SELECT version, body FROM cms_content WHERE id = $1`, [id]);
+      const cur = await pool.query(`SELECT type, version, body FROM cms_content WHERE id = $1`, [id]);
       if (!cur.rows[0]) throw new AdminAuthError(404, 'NOT_FOUND', 'Content not found');
+      if (cur.rows[0].type === 'home_card') {
+        const card = parseHomeCard(body);
+        const client = await pool.connect();
+        let version: number;
+        try {
+          await client.query('BEGIN');
+          const locked = await client.query('SELECT version, body FROM cms_content WHERE id = $1 FOR UPDATE', [id]);
+          if (!locked.rows[0]) throw new AdminAuthError(404, 'NOT_FOUND', 'Карточка не найдена.');
+          if (req.body?.expectedVersion !== Number(locked.rows[0].version)) throw new AdminAuthError(409, 'VERSION_CONFLICT', 'Карточку уже изменили. Откройте её заново перед сохранением.');
+          version = Number(locked.rows[0].version) + 1;
+          await client.query('INSERT INTO cms_content_versions (content_id, version, body, editor_id) VALUES ($1, $2, $3, $4)', [id, locked.rows[0].version, locked.rows[0].body, ctx.userId]);
+          await client.query("UPDATE cms_content SET body = $1, title = $2, version = $3, status = 'draft', updated_at = CURRENT_TIMESTAMP WHERE id = $4", [JSON.stringify(card), card.title, version, id]);
+          await client.query('COMMIT');
+        } catch (error) { await client.query('ROLLBACK'); throw error; }
+        finally { client.release(); }
+        await recordAdminAction({ req, actor: ctx, action: 'content_published', entityType: 'cms_content', entityId: id, after: { version, status: 'draft' } });
+        return res.status(200).json({ ok: true, version });
+      }
       const nextVersion = Number(cur.rows[0].version) + 1;
       await pool.query(`INSERT INTO cms_content_versions (content_id, version, body, editor_id) VALUES ($1, $2, $3, $4)`,
         [id, cur.rows[0].version, cur.rows[0].body, ctx.userId]);
@@ -51,13 +70,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const action = String(req.body?.action || '');
       if (action === 'publish') {
         const ctx = await requireAdminPermission(req, 'content.publish');
-        await pool.query(`UPDATE cms_content SET status = 'published', published_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [id]);
+        const current = await pool.query('SELECT type, body, version FROM cms_content WHERE id = $1', [id]);
+        if (!current.rows[0]) throw new AdminAuthError(404, 'NOT_FOUND', 'Content not found');
+        if (current.rows[0].type === 'home_card') {
+          parseHomeCard(current.rows[0].body);
+          if (req.body?.expectedVersion !== Number(current.rows[0].version)) throw new AdminAuthError(409, 'VERSION_CONFLICT', 'Карточку уже изменили. Откройте её заново перед публикацией.');
+          const updated = await pool.query("UPDATE cms_content SET status = 'published', published_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND version = $2", [id, req.body.expectedVersion]);
+          if (!updated.rowCount) throw new AdminAuthError(409, 'VERSION_CONFLICT', 'Карточку уже изменили. Откройте её заново перед публикацией.');
+        } else await pool.query(`UPDATE cms_content SET status = 'published', published_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [id]);
         await recordAdminAction({ req, actor: ctx, action: 'content_published', entityType: 'cms_content', entityId: id, after: { status: 'published' } });
         return res.status(200).json({ ok: true });
       }
       if (action === 'archive') {
         const ctx = await requireAdminPermission(req, 'content.edit');
-        await pool.query(`UPDATE cms_content SET status = 'archived', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [id]);
+        const result = await pool.query(`UPDATE cms_content SET status = 'archived', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [id]);
+        if (!result.rowCount) throw new AdminAuthError(404, 'NOT_FOUND', 'Content not found');
         await recordAdminAction({ req, actor: ctx, action: 'content_reverted', entityType: 'cms_content', entityId: id, after: { status: 'archived' } });
         return res.status(200).json({ ok: true });
       }
@@ -66,6 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   } catch (error) {
+    if (error instanceof HomeCardValidationError) return handleAdminError(res, new AdminAuthError(400, 'BAD_HOME_CARD', error.message));
     return handleAdminError(res, error);
   }
 }
