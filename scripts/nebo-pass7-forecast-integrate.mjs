@@ -15,6 +15,7 @@ const edit = (file, before, after, label = file) => {
   if (replaceOnce(file, before, after)) changed.push(label);
 };
 
+edit('lib/personalForecastSimpleGeneration.ts', "  semanticFingerprint?: string | null;", "  semanticFingerprint: string | null;", 'recent-reading-type');
 edit('lib/personalForecastCache.ts', "} from './personalForecastGeneration';", "} from './personalForecastSimpleGeneration';", 'cache-runtime');
 edit('pages/api/content/forecast/personal.ts', "import { getPersonalForecastGenerationDiagnosticCode } from '../../../../lib/personalForecastGeneration';", "import { getPersonalForecastGenerationDiagnosticCode } from '../../../../lib/personalForecastSimpleGeneration';", 'route-runtime');
 edit('lib/personalForecastContract.ts', "  'personal-forecast-feed.v48-nebo-human-voice',", "  'personal-forecast-feed.v49-simple-human-horoscope',", 'prompt-version');
