@@ -19,6 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -37,4 +38,4 @@ jobs:
           NODE_ENV: production
         run: npm run build
       - name: Diff hygiene
-        run: git diff 4d956d13cc6d7bf2d012d06c507f72e9be442a27...HEAD --check
+        run: git diff origin/main...HEAD --check
