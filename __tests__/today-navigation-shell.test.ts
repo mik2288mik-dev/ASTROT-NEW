@@ -83,10 +83,11 @@ describe('Today minimal navigation shell', () => {
     expect(app).not.toContain("setNavigationSheet('services')");
   });
 
-  it('keeps Matrix inside the persistent Natal tab shell', () => {
+  it('keeps Matrix inside the persistent Natal tab shell and uses the NEBO adapter only in the approved design', () => {
     const app = read('App.tsx');
     const natal = read('views/v2/NatalMagazine.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
+    const neboMatrix = read('components/nebo-v2/NeboMatrixRoom.tsx');
 
     const primaryNav = natal.slice(natal.indexOf('className="natal-v3-primary-nav"'), natal.indexOf('</nav>'));
     const labels = ["'Карта'", "'Разбор'", "'Спросить о себе'", "'Матрица судьбы'"];
@@ -100,9 +101,15 @@ describe('Today minimal navigation shell', () => {
     expect(natal).toContain('embedded');
     expect(natal).not.toContain('onOpenMatrix');
     expect(natal).not.toContain("navigateTo('matrix')");
+
     expect(matrix).toContain('embedded?: boolean');
+    expect(matrix).toContain('useNeboVisualMode()');
+    expect(matrix).toContain('if (newDesign) return <NeboMatrixRoom {...props} />;');
+    expect(matrix).toContain('return <ClassicMatrixRoom {...props} />;');
     expect(matrix).toContain('{!embedded ? (');
-    // The classic natal tab remains intact; the approved admin UI may open its product route.
+    expect(neboMatrix).toContain("computeMatrix(computedDate, lang)");
+    expect(neboMatrix).toContain("role=\"dialog\"");
+
     expect(app).toContain('onOpenMatrix={() => navigateTo(\'matrix\')}');
     const entries = read('components/nebo-v2/EntryPoints.tsx');
     expect(entries).toContain('design.active?');
