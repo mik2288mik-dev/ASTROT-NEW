@@ -20,10 +20,18 @@ const RELEASED_READING_PROMPTS: Readonly<Record<string, string>> = {
 };
 
 export function resolvePersonalForecastWireVersion(value: unknown): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : '';
   if (value === undefined) return LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION;
-  return value === PERSONAL_FORECAST_CONTRACT_VERSION
-    || value === LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION
-    || (typeof value === 'string' && Object.hasOwn(RELEASED_READING_PROMPTS, value)) ? value : null;
+  if (!normalized) return null;
+  const baseVersion = normalized.split('+')[0].trim();
+  const normalizedVersion = baseVersion.split('#')[0].trim();
+
+  if (normalizedVersion === PERSONAL_FORECAST_CONTRACT_VERSION
+    || normalizedVersion === LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION
+    || normalizedVersion === RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION) {
+    return normalizedVersion;
+  }
+  return Object.hasOwn(RELEASED_READING_PROMPTS, normalizedVersion) ? normalizedVersion : null;
 }
 
 type CurrentGenerationIdentity = Pick<PersonalForecastPackage['meta'],

@@ -3944,6 +3944,145 @@ async function mvp055MyTrackerAttribution(pool: Pool): Promise<void> {
   }
 }
 
+async function mvp056ChartAvatars(pool: Pool): Promise<void> {
+  const name = 'mvp_056_chart_avatars';
+  if (await isMigrationApplied(pool, name)) return;
+  await pool.query('BEGIN');
+  try {
+    await pool.query(`CREATE TABLE IF NOT EXISTS user_chart_avatars (
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      subject_key TEXT NOT NULL CHECK(subject_key = 'self' OR subject_key ~ '^chart:[1-9][0-9]{0,14}
+  if (!DATABASE_URL) {
+    log.warn('DATABASE_URL not set. Skipping migrations.');
+    return;
+  }
+
+  let pool: Pool | null = null;
+  let migrationClient: PoolClient | null = null;
+  let migrationLockAcquired = false;
+
+  try {
+    log.info('Starting Lumia database migrations...');
+
+    pool = new Pool({
+      connectionString: DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 10000,
+      max: 3,
+    });
+
+    await testConnection(pool, 1, 1000);
+    migrationClient = await pool.connect();
+    await migrationClient.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY]);
+    migrationLockAcquired = true;
+    log.info('Migration advisory lock acquired');
+    // Every migration query must use the same PostgreSQL session that owns the
+    // session-level advisory lock. Pool.query() is not connection-affine.
+    const migrationDb = migrationClient as unknown as Pool;
+    await createMigrationsTable(migrationDb);
+
+    await migrationReset(migrationDb);
+    await lumia001FullSchema(migrationDb);
+    await lumia002MultiChart(migrationDb);
+    // КРИТИЧНО и РАНО: сверяем колонки users сразу после базовой схемы, ДО длинной
+    // цепочки миграций (любая из которых может упасть). Колонки вроде `gender` были
+    // дописаны в уже применённую lumia_002 и потому отсутствовали в проде — из-за чего
+    // db.users.set падал и НИ ОДИН новый пользователь не мог создать карту.
+    await reconcileUserColumns(migrationDb);
+    await lumia003StarPayments(migrationDb);
+    await lumia004AdminBackoffice(migrationDb);
+    await lumia005AppSettings(migrationDb);
+    await lumia006ScheduledNotifications(migrationDb);
+    await lumia007NotificationVisualHybrid(migrationDb);
+    await lumia008AdminNotificationEnhancements(migrationDb);
+    await lumia008aUsersPremiumUntilColumn(migrationDb);
+    await lumia009ContentArchitecture(migrationDb);
+    await lumia011RemoveDashboardAirVariant(migrationDb);
+    await lumia012DailyLumiTasks(migrationDb);
+    await lumia013CanonicalNatalPersistence(migrationDb);
+    await lumia014PlanetInsightVariant(migrationDb);
+    await lumia016NatalContentUnification(migrationDb);
+    await lumia017NatalHumanReadingV4Archive(migrationDb);
+    await lumia018NotificationFrequencyPreference(migrationDb);
+    await lumia019HoroscopeReactions(migrationDb);
+    await lumia020DailyFeedbackAssistant(migrationDb);
+    await lumia021NotificationScenarioEngine(migrationDb);
+    await lumia022RetentionNotificationQueue(migrationDb);
+    await lumia023StarsAccessTier(migrationDb);
+    await lumia024StarsOneOffPayments(migrationDb);
+    await lumia025RemoveLumiEconomy(migrationDb);
+    await lumia026AccessFoundation(migrationDb);
+    await lumia027ContentMatrixCache(migrationDb);
+    await lumia028HoroscopeEngagement(migrationDb);
+    await lumia029EnableNotificationScenarios(migrationDb);
+    await lumia030DisableRemovedScenarios(migrationDb);
+    await lumia031AdminFoundation(migrationDb);
+    await lumia032Monetization(migrationDb);
+    await lumia033ContentCms(migrationDb);
+    await lumia034Support(migrationDb);
+    await lumia035FeatureFlags(migrationDb);
+    await mvp036SchemaCleanup(migrationDb);
+    await mvp038PersonalForecastQuestions(migrationDb);
+    await mvp039RuStorePay(migrationDb);
+    await mvp040AccountIdentitySessions(migrationDb);
+    await mvp041AstrologyHistoryFoundation(migrationDb);
+    await mvp042SavedPersonIdentity(migrationDb);
+    await mvp043PasswordAuthentication(migrationDb);
+    await mvp044EmailIdentityUniqueness(migrationDb);
+    await mvp045AuthExpiryTimezone(migrationDb);
+    await mvp048AppSessionRefresh(migrationDb);
+    await mvp049ContentReactions(migrationDb);
+    await mvp050LegalAcknowledgements(migrationDb);
+    await mvp051SupportDeliveryOutbox(migrationDb);
+    await mvp052UserAppEventIdempotency(migrationDb);
+    await mvp053NatalChartRevisions(migrationDb);
+    await mvp054NeboOpsOutbox(migrationDb);
+    await mvp055MyTrackerAttribution(migrationDb);
+    await mvp056ChartAvatars(migrationDb);
+    await mvp044PremiumEntitlementLifecycle(migrationDb);
+    await mvp045RuStoreCallbackOrdering(migrationDb);
+    await mvp046RuStoreProviderOverlay(migrationDb);
+    await mvp047RuStoreAbsoluteTimestamps(migrationDb);
+    await syncNotificationCatalogFromSeed(migrationDb);
+    await cancelStaleScheduledNotifications(migrationDb);
+    await verifyTablesExist(migrationDb);
+
+    log.info('All Lumia migrations completed successfully');
+  } catch (error: any) {
+    log.error('Migration failed', { error: error.message, stack: error.stack });
+    throw error;
+  } finally {
+    if (migrationClient) {
+      try {
+        if (migrationLockAcquired) {
+          await migrationClient.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY]);
+          log.info('Migration advisory lock released');
+        }
+      } catch (e: any) {
+        log.warn('Error releasing migration advisory lock', { error: e.message });
+      } finally {
+        migrationClient.release();
+      }
+    }
+    if (pool) {
+      await pool.end().catch((e: any) => {
+        log.warn('Error closing migration pool', { error: e.message });
+      });
+      log.info('Database connection closed');
+    }
+  }
+}
+),
+      avatar JSONB NOT NULL CHECK(octet_length(avatar::text) <= 220000),
+      telegram_url TEXT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY(user_id,subject_key)
+    )`);
+    await markMigrationApplied(pool, name); await pool.query('COMMIT');
+  } catch(error) { await pool.query('ROLLBACK'); throw error; }
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');

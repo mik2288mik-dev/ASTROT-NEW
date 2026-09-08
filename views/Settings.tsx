@@ -1390,7 +1390,7 @@ export const Settings: React.FC<SettingsProps> = ({
                         ) : null}
                         {identities.length ? (
                             <div className="settings-identity-list" aria-label={profile.language === 'en' ? 'Linked methods' : 'Подключённые способы'}>
-                                {identities.map((identity) => (
+                                {identities.filter(identity => identity.provider !== 'google').map((identity) => (
                                     <div className="settings-identity-row" key={identity.provider}>
                                         <span>{IDENTITY_LABELS[identity.provider]}</span>
                                         <span>{identity.provider === 'email' && identity.email ? identity.email : (profile.language === 'en' ? 'Linked' : 'Подключён')}</span>
@@ -1417,7 +1417,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                     Telegram
                                 </button>
                             ) : null}
-                            {(['vk', 'yandex', 'google'] as const)
+                            {(['vk', 'yandex'] as const)
                                 .filter((provider) => authCapabilities?.[provider] === true)
                                 .filter((provider) => authPurpose === 'login' || !identities.some((identity) => identity.provider === provider))
                                 .map((provider) => (
