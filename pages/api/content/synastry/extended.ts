@@ -29,7 +29,10 @@ import {
   type CompatibilityPersonSource,
 } from '../../../../lib/synastry/compatibilityInput';
 import { normalizeZodiacKey } from '../../../../lib/zodiacKeys';
-import { createOrReuseCanonicalChart } from '../../../../lib/natalChartPersistence';
+import {
+  createOrReuseCanonicalChart,
+  repairCanonicalChartRecord,
+} from '../../../../lib/natalChartPersistence';
 import { isCanonicalNatalChartDataComplete } from '../../../../lib/natalChartCanonical';
 import {
   calculateCompatibility,
@@ -197,6 +200,33 @@ async function saveManualNatal(userId: string, input: FlexiblePersonInput, langu
     language,
   });
   return result.chart;
+}
+
+async function repairSavedChartOnDemand(
+  userId: string,
+  chartRecord: any,
+  chartLabel: string,
+) {
+  const needsRepair = !chartRecord?.id || !chartRecord.input_hash || !isCanonicalNatalChartDataComplete(chartRecord.chart_data);
+  if (!needsRepair) return chartRecord;
+  try {
+    const repaired = await repairCanonicalChartRecord(userId, chartRecord.id);
+    return repaired?.chart ?? null;
+  } catch (error) {
+    warnContentApi(
+      { scope: SCOPE, userId, chartId: chartRecord?.id ?? null, surface: 'synastry', variant: 'full' },
+      'repair_failed',
+      {
+        errorCode: 'CHART_REPAIR_FAILED',
+        metadata: {
+          chartLabel,
+          chartId: chartRecord?.id ?? null,
+          message: String(error instanceof Error ? error.message : error),
+        },
+      },
+    );
+    return null;
+  }
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -377,6 +407,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       }
       throw error;
     }
+    const repairedPrimary = await repairSavedChartOnDemand(userId, primaryChartRecord, 'subject');
+    if (!repairedPrimary) {
+      return res.status(409).json({
+        error: 'Saved natal charts required',
+        code: 'CHART_REPAIR_REQUIRED',
+        message: langRu ? 'Для сравнения нужны две сохранённые карты с готовым расчётом.' : 'Two saved calculated charts are required.',
+      });
+    }
+    primaryChartRecord = repairedPrimary;
     userChartData = (primaryChartRecord.chart_data as SynastryChartData) || null;
     if (!primaryChartRecord.id || !primaryChartRecord.input_hash || !isCanonicalNatalChartDataComplete(userChartData)) {
       return res.status(409).json({
@@ -435,6 +474,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         message: langRu ? 'Для сравнения нужны две разные карты.' : 'Choose two different charts.',
       });
     }
+    partnerChartData = (partnerChartRecord.chart_data as SynastryChartData) || null;
+    const repairedPartner = await repairSavedChartOnDemand(userId, partnerChartRecord, 'partner');
+    if (!repairedPartner) {
+      return res.status(409).json({
+        error: 'Saved natal charts required',
+        code: 'CHART_REPAIR_REQUIRED',
+        message: langRu ? 'Для сравнения нужны две сохранённые карты с готовым расчётом.' : 'Two saved calculated charts are required.',
+      });
+    }
+    partnerChartRecord = repairedPartner;
     partnerChartData = (partnerChartRecord.chart_data as SynastryChartData) || null;
   }
 
