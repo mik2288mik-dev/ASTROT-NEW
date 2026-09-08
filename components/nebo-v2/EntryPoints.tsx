@@ -3,10 +3,12 @@ import dynamic from 'next/dynamic';
 import { Dashboard as ClassicDashboard } from '../../views/Dashboard';
 import { Settings as ClassicSettings } from '../../views/Settings';
 import { ServiceScreen as ClassicServiceScreen } from '../../views/v2/ServiceScreen';
+import { MatrixRoom as ClassicMatrixRoom } from '../../views/v2/MatrixRoom';
 import { useNeboDesign } from './useNeboDesign';
 import { NeboDesignControl } from './NeboDesignControl';
 import { NeboScreenBoundary } from './NeboScreenBoundary';
 import { ActionRow, birthLine, Header, ProductCard } from './Primitives';
+import { NeboMatrixRoom } from './NeboMatrixRoom';
 import type { UserProfile } from '../../types';
 import type { NatalMagazine as ClassicNatalType } from '../../views/v2/NatalMagazine';
 const NewDashboard=dynamic(()=>import('./NeboDashboard').then(m=>m.NeboDashboard),{ssr:false});
@@ -24,6 +26,7 @@ export function Dashboard(props:DashboardProps){
 }
 type NatalProps=React.ComponentProps<typeof ClassicNatalType>&{onOpenMatrix:()=>void;onOpenSettings:()=>void};
 export function NatalMagazine(props:NatalProps){const design=useNeboDesign(props.profile);return design.active?<Boundary profile={props.profile}><NewNatal {...props}/></Boundary>:<ClassicNatal {...props}/>;}
+export function MatrixRoom(props:React.ComponentProps<typeof ClassicMatrixRoom>){const design=useNeboDesign(props.profile);return design.active?<Boundary profile={props.profile}><NeboMatrixRoom {...props}/></Boundary>:<ClassicMatrixRoom {...props}/>;}
 export function Settings(props:React.ComponentProps<typeof ClassicSettings>){
   const design=useNeboDesign(props.profile);
   return <><NeboDesignControl profile={props.profile}/>{design.active?<div className="nebo-legacy-skin nebo-settings-skin"><ClassicSettings {...props}/></div>:<ClassicSettings {...props}/>}</>;
