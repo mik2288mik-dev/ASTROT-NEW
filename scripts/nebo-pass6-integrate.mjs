@@ -2,10 +2,20 @@ import fs from 'node:fs';
 
 function replaceOnce(file, before, after) {
   const source = fs.readFileSync(file, 'utf8');
-  if (source.includes(after)) return false;
+  if (source.includes(after) && !source.includes(before)) return false;
   const count = source.split(before).length - 1;
+  if (count === 0 && source.includes(after)) return false;
   if (count !== 1) throw new Error(`${file}: expected one anchor, got ${count}`);
   fs.writeFileSync(file, source.replace(before, after));
+  return true;
+}
+
+function removeOnce(file, before) {
+  const source = fs.readFileSync(file, 'utf8');
+  const count = source.split(before).length - 1;
+  if (count === 0) return false;
+  if (count !== 1) throw new Error(`${file}: expected one removal anchor, got ${count}`);
+  fs.writeFileSync(file, source.replace(before, ''));
   return true;
 }
 
@@ -20,11 +30,7 @@ if (replaceOnce(
   "const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });",
   "const UnionRoom = dynamic(() => import('./components/nebo-v2/EntryPoints').then((module) => module.UnionRoom), { ssr: false });",
 )) changed.push('App.tsx:compatibility');
-if (replaceOnce(
-  'App.tsx',
-  "    LumiaBottomTabBar,\n    LumiaNavigationSheet,",
-  "    LumiaNavigationSheet,",
-)) changed.push('App.tsx:unused-nav-import');
+if (removeOnce('App.tsx', "    LumiaBottomTabBar,\n")) changed.push('App.tsx:unused-nav-import');
 if (replaceOnce(
   'pages/_app.tsx',
   "import '../styles/neboV2Zodiac.css';",
@@ -35,9 +41,13 @@ if (replaceOnce(
   "import React, { useEffect, useMemo, useState } from 'react';",
   "import React, { useEffect, useState } from 'react';",
 )) changed.push('NeboUnionRoom.tsx:import');
-if (replaceOnce(
+if (removeOnce(
   'components/nebo-v2/NeboUnionRoom.tsx',
   "  const selectedSaved = useMemo(() => charts.find((chart) => chart.id === partnerChartId) || null, [charts, partnerChartId]);\n",
-  "",
 )) changed.push('NeboUnionRoom.tsx:unused-state');
+if (replaceOnce(
+  'components/nebo-v2/NeboMyCharts.tsx',
+  "import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';",
+  "import React, { useCallback, useEffect, useRef, useState } from 'react';",
+)) changed.push('NeboMyCharts.tsx:import');
 console.log(JSON.stringify({ changed }));
