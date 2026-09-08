@@ -24,10 +24,11 @@ const paths: Record<GlyphName,React.ReactNode> = {
 export function Glyph({name='book',size=22}: {name?:GlyphName;size?:number}) {return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;}
 export function Header({name='',title,onBack,onProfile,onNotifications,onEscape}: {name?:string;title?:string;onBack?:()=>void;onProfile?:()=>void;onNotifications?:()=>void;onEscape?:()=>void}) {
   void onEscape;
+  const openNotifications = onNotifications || onProfile;
   return <header className="nebo-header">
     {onBack?<button type="button" className="nebo-icon-button" onClick={onBack} aria-label="Назад"><Glyph name="back"/></button>:<span className="nebo-wordmark">NEBO</span>}
     {title?<span className="nebo-header-title">{title}</span>:<span className="nebo-header-spacer"/>}
-    {onNotifications?<button type="button" className="nebo-header-bell" onClick={onNotifications} aria-label="Уведомления"><Glyph name="bell" size={23}/></button>:<span className="nebo-header-bell" aria-hidden="true"><Glyph name="bell" size={23}/></span>}
+    {openNotifications?<button type="button" className="nebo-header-bell" onClick={openNotifications} aria-label="Уведомления"><Glyph name="bell" size={23}/></button>:null}
     {onProfile?<button type="button" className="nebo-avatar" onClick={onProfile} aria-label="Открыть профиль">{name.trim().slice(0,1).toUpperCase()||<Glyph name="people"/>}</button>:null}
   </header>;
 }
