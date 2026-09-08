@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           git config user.name 'NEBO validation'
           git config user.email 'nebo-validation@users.noreply.github.com'
-          git add App.tsx pages/_app.tsx components/nebo-v2/NeboUnionRoom.tsx
+          git add App.tsx pages/_app.tsx components/nebo-v2/NeboUnionRoom.tsx components/nebo-v2/NeboMyCharts.tsx
           if ! git diff --cached --quiet; then
             git commit -m 'feat(ui): integrate native NEBO compatibility and people flows'
             git push origin HEAD:refs/heads/nebo-parity-pass6-20260908
