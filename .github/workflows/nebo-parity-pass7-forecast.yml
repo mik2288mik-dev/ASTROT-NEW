@@ -1,0 +1,57 @@
+name: Validate NEBO simple forecast runtime
+on:
+  push:
+    branches: [nebo-parity-pass7-forecast-20260908]
+permissions:
+  contents: write
+concurrency:
+  group: nebo-parity-pass7-forecast
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: node scripts/nebo-pass7-forecast-integrate.mjs
+      - run: npm ci --no-audit --no-fund
+      - name: Lint simple forecast runtime
+        run: npx eslint lib/personalForecastSimpleGeneration.ts lib/personalForecastCache.ts lib/personalForecastContract.ts lib/personalForecastWireCompatibility.ts pages/api/content/forecast/personal.ts __tests__/personal-forecast-simple-runtime.test.ts --max-warnings=0
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: New forecast contract and redaction tests
+        run: npx jest --runInBand __tests__/personal-forecast-simple-runtime.test.ts __tests__/personal-forecast-wire-compatibility.test.ts __tests__/personal-forecast-cache.test.ts
+      - name: Production build
+        env:
+          NODE_ENV: production
+        run: npm run build
+      - name: Runtime import guard
+        run: |
+          grep -q "personalForecastSimpleGeneration" lib/personalForecastCache.ts
+          grep -q "personalForecastSimpleGeneration" pages/api/content/forecast/personal.ts
+          ! grep -q "from './personalForecastGeneration'" lib/personalForecastCache.ts
+      - name: Diff hygiene
+        run: |
+          git diff --check
+          git diff --name-only origin/main...HEAD
+          git diff --name-only | sort
+      - name: Commit validated forecast integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'NEBO validation'
+          git config user.email 'nebo-validation@users.noreply.github.com'
+          git add lib/personalForecastCache.ts lib/personalForecastContract.ts lib/personalForecastWireCompatibility.ts pages/api/content/forecast/personal.ts
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat(forecast): switch personal forecasts to simple human runtime'
+            git push origin HEAD:refs/heads/nebo-parity-pass7-forecast-20260908
+          fi
