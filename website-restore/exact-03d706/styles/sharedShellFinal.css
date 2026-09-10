@@ -1,0 +1,148 @@
+/* Final shared rails: one top bar, one tab rhythm, one divider treatment. */
+.app-top-bar,
+.app-top-bar.home-logo-bar {
+  border: 0 !important;
+  border-bottom: 0 !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.app-top-bar-title,
+.forecast-feed-page .app-top-bar-title,
+.natal-editorial-page .app-top-bar-title,
+.compat-editorial-page .app-top-bar-title,
+.horo-reader-page .app-top-bar-title,
+.encyclopedia-editorial-page .app-top-bar-title {
+  color: #292724;
+  font-family: var(--fresh-font, 'Manrope', system-ui, sans-serif);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+}
+
+.app-top-bar-action,
+.forecast-feed-page .today-profile-button.app-top-bar-action,
+.editorial-profile-button.app-top-bar-action {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #292724;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.app-top-bar-action svg,
+.forecast-feed-page .today-profile-button svg,
+.editorial-profile-button.app-top-bar-action svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.35;
+}
+
+.fresh-page.personality-report-page {
+  padding-top: 0;
+}
+
+.editorial-tabs,
+.today-period-tabs,
+.fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs {
+  display: grid;
+  box-sizing: border-box;
+  width: min(calc(100% - 32px), 620px);
+  min-height: 51px;
+  margin: 0 auto;
+  padding: 0;
+  grid-template-columns: repeat(var(--editorial-tab-count, 3), minmax(0, 1fr));
+  border: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: translateY(-0.25rem);
+}
+
+/* Sign horoscope uses the exact same full-width period rail as the personal forecast. */
+.fresh-page.horo-reader-page .horo-reader-controls {
+  width: 100%;
+  margin-top: 0;
+}
+
+.editorial-tab,
+.today-period-tab,
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  min-height: 51px !important;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 5px;
+  border: 0;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #817b75 !important;
+  font: inherit;
+  font-size: clamp(11px, 2.85vw, 13px);
+  font-weight: 480;
+  line-height: 1.18;
+  transition: color 140ms cubic-bezier(0.2, 0, 0, 1), transform 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.editorial-tab.is-active,
+.today-period-tab[aria-selected='true'],
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active,
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] {
+  background: transparent !important;
+  color: #292724 !important;
+  font-weight: 650;
+}
+
+.editorial-tab::after,
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab::after,
+.today-period-tab-underline {
+  position: absolute;
+  right: 50%;
+  bottom: -1px;
+  left: auto;
+  width: 48px;
+  height: 1px;
+  background: transparent;
+  content: '';
+  transform: translateX(50%);
+}
+
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab:nth-child(2)::after {
+  width: 43px;
+}
+
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab:nth-child(3)::after {
+  width: 42px;
+}
+
+.editorial-tab.is-active::after,
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active::after,
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true']::after,
+.today-period-tab[aria-selected='true'] .today-period-tab-underline {
+  background: #292724 !important;
+}
+
+.editorial-tab:focus-visible,
+.today-period-tab:focus-visible,
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab:focus-visible {
+  outline: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editorial-tab,
+  .today-period-tab,
+  .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab {
+    transition: none;
+  }
+}

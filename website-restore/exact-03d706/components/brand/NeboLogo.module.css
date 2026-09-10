@@ -1,0 +1,65 @@
+.logo {
+  position: relative;
+  display: inline-block;
+  width: 9rem;
+  aspect-ratio: 1.55 / 1;
+  flex: none;
+  overflow: visible;
+  background: transparent;
+  line-height: 0;
+  isolation: isolate;
+  vertical-align: middle;
+}
+
+.image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  user-select: none;
+}
+
+.compact {
+  width: 5rem;
+}
+
+.header {
+  width: 6rem;
+}
+
+.standard {
+  width: 9rem;
+}
+
+.large {
+  width: clamp(15rem, 70vw, 19rem);
+}
+
+.loading {
+  width: min(12rem, 58vw);
+}
+
+.fullCloud {
+  overflow: visible;
+}
+
+@media (max-width: 360px) {
+  .header {
+    width: 5.55rem;
+  }
+
+  .standard {
+    width: 8.4rem;
+  }
+
+  .large {
+    width: min(16.5rem, 76vw);
+  }
+}

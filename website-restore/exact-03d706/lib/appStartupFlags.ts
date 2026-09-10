@@ -1,0 +1,1 @@
+export const CACHE_ONLY_PREWARM_BUDGET_MS = 1_500;

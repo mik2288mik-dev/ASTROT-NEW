@@ -1,0 +1,82 @@
+name: NEBO admin design pilot validation
+on:
+  push:
+    branches: [nebo-admin-redesign-20260907]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nebo-admin-design-pilot
+  cancel-in-progress: false
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/nebo-admin-redesign-20260907'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: horoscope
+          POSTGRES_PASSWORD: horoscope
+          POSTGRES_DB: horoscope_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U horoscope -d horoscope_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+      APP_SESSION_SECRET: ci-session-secret-not-for-production
+      NEXT_TELEMETRY_DISABLED: '1'
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Admin, concurrency, natal and navigation contracts
+        env:
+          NODE_ENV: test
+        run: >-
+          npx jest --runInBand --runTestsByPath
+          __tests__/nebo-admin-design.test.ts
+          __tests__/nebo-preference-concurrency.test.ts
+          __tests__/natal-catalog-ui-contract.test.ts
+          __tests__/natal-meaning-map-v3.test.ts
+          __tests__/personal-forecast-header-logo.test.ts
+      - name: Migrate using production source layout without UI files
+        env:
+          NODE_ENV: test
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime=$(mktemp -d)
+          trap 'rm -rf "$runtime"' EXIT
+          cp -R scripts lib "$runtime/"
+          cp package.json "$runtime/"
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$runtime/node_modules"
+          test ! -f "$runtime/types.ts"
+          cd "$runtime"
+          npm run migrate
+      - name: Confirm additive preference schema
+        run: |
+          node --input-type=module <<'NODE'
+          import pg from 'pg';
+          const client = new pg.Client({connectionString: process.env.DATABASE_URL});
+          await client.connect();
+          const {rows} = await client.query("SELECT column_name FROM information_schema.columns WHERE table_name='user_design_preferences'");
+          for (const key of ['user_id','preferences','revision','updated_at']) if (!rows.some(r=>r.column_name===key)) throw new Error('Missing preference column: '+key);
+          await client.end();
+          console.log('Preference schema verified from production source layout.');
+          NODE
+      - name: Production build
+        env:
+          NODE_ENV: production
+        run: npm run build

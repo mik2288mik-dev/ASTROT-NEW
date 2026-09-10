@@ -1,0 +1,222 @@
+/* Final mobile polish for the illustrated card system.
+   Keep this file after cardBackgrounds.css so it only refines hierarchy,
+   readability and the Telegram top-edge transition without changing layout. */
+
+/* Content now fades under Telegram's fixed chrome instead of being cut off sharply. */
+.home-screen.fresh-page::before {
+  height: calc(
+    max(
+      env(safe-area-inset-top, 0px),
+      var(--tg-content-safe-area-inset-top, 0px),
+      var(--tg-safe-area-inset-top, 0px),
+      48px
+    ) + 3.35rem
+  );
+  z-index: 65;
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    rgba(255, 255, 255, 0.99) 52%,
+    rgba(255, 255, 255, 0.9) 72%,
+    rgba(255, 255, 255, 0.42) 88%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.home-day-hero.has-card-background,
+.home-sphere-card.has-card-background,
+.home-feed-card.has-card-background,
+.pd-areahero.has-card-background {
+  transition:
+    transform 170ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 170ms ease;
+}
+
+.home-day-hero.has-card-background:active,
+.home-sphere-card.has-card-background:active,
+.home-feed-card.has-card-background:active {
+  transform: translateY(1px) scale(0.992);
+}
+
+.home-day-hero.has-card-background:focus-visible,
+.home-sphere-card.has-card-background:focus-visible,
+.home-feed-card.has-card-background:focus-visible {
+  outline: 3px solid rgba(20, 120, 255, 0.42);
+  outline-offset: 3px;
+}
+
+/* Hero: keep the cover feeling, but let the title lead and the teaser support it. */
+.home-day-hero.has-card-background::after {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(7, 12, 25, 0.78) 0%,
+      rgba(7, 12, 25, 0.61) 38%,
+      rgba(7, 12, 25, 0.2) 69%,
+      rgba(7, 12, 25, 0.02) 91%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(7, 12, 25, 0.68) 0%,
+      rgba(7, 12, 25, 0.38) 30%,
+      rgba(7, 12, 25, 0.06) 62%,
+      rgba(7, 12, 25, 0) 78%
+    );
+}
+
+.home-day-hero.has-card-background .home-day-hero-title {
+  font-size: clamp(1.96rem, 7.05vw, 2.64rem);
+  line-height: 1.01;
+  text-shadow:
+    0 3px 18px rgba(0, 0, 0, 0.34),
+    0 1px 2px rgba(0, 0, 0, 0.28);
+}
+
+.home-day-hero.has-card-background .home-day-hero-text {
+  max-width: 19.5rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(0.88rem, 3.25vw, 0.96rem);
+  font-weight: 550;
+  line-height: 1.4;
+  letter-spacing: -0.004em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.42);
+  -webkit-line-clamp: 3;
+}
+
+/* Topic cards: a local left/bottom scrim protects copy without washing out the art. */
+.home-sphere-card.has-card-background::after {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(7, 12, 25, 0.86) 0%,
+      rgba(7, 12, 25, 0.72) 39%,
+      rgba(7, 12, 25, 0.29) 66%,
+      rgba(7, 12, 25, 0.02) 89%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(7, 12, 25, 0.76) 0%,
+      rgba(7, 12, 25, 0.48) 32%,
+      rgba(7, 12, 25, 0.08) 68%,
+      rgba(7, 12, 25, 0) 82%
+    );
+}
+
+.home-sphere-card.has-card-background .home-sphere-title {
+  max-width: 70%;
+  line-height: 1.02;
+  text-shadow:
+    0 2px 13px rgba(0, 0, 0, 0.34),
+    0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+.home-sphere-card.has-card-background .home-sphere-hook {
+  max-width: 72%;
+  margin-top: 0.42rem;
+  color: rgba(255, 255, 255, 0.91);
+  font-size: clamp(0.78rem, 3vw, 0.84rem);
+  font-weight: 550;
+  line-height: 1.3;
+  letter-spacing: -0.003em;
+  text-shadow: 0 2px 11px rgba(0, 0, 0, 0.42);
+}
+
+/* Large navigation cards use the same hierarchy as the topic carousel. */
+.home-feed-card.has-card-background::after {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(7, 12, 25, 0.86) 0%,
+      rgba(7, 12, 25, 0.7) 40%,
+      rgba(7, 12, 25, 0.22) 69%,
+      rgba(7, 12, 25, 0.02) 91%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(7, 12, 25, 0.58) 0%,
+      rgba(7, 12, 25, 0.26) 34%,
+      rgba(7, 12, 25, 0) 70%
+    );
+}
+
+.home-feed-card.has-card-background .home-soft-card-title {
+  line-height: 1.04;
+  text-shadow:
+    0 2px 13px rgba(0, 0, 0, 0.34),
+    0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
+.home-feed-card.has-card-background .home-soft-card-text {
+  margin-top: 0.46rem;
+  color: rgba(255, 255, 255, 0.91);
+  font-size: clamp(0.8rem, 3vw, 0.86rem);
+  font-weight: 550;
+  line-height: 1.36;
+  letter-spacing: -0.003em;
+  text-shadow: 0 2px 11px rgba(0, 0, 0, 0.4);
+}
+
+/* Expanded topic cover: same art, calmer subtitle, clearer editorial hierarchy. */
+.pd-areahero.has-card-background::after {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(7, 12, 25, 0.79) 0%,
+      rgba(7, 12, 25, 0.58) 42%,
+      rgba(7, 12, 25, 0.16) 72%,
+      rgba(7, 12, 25, 0.01) 92%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(7, 12, 25, 0.72) 0%,
+      rgba(7, 12, 25, 0.36) 36%,
+      rgba(7, 12, 25, 0) 74%
+    );
+}
+
+.pd-areahero.has-card-background .pd-areahero-title {
+  line-height: 1.02;
+  text-shadow:
+    0 2px 14px rgba(0, 0, 0, 0.34),
+    0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
+.pd-areahero.has-card-background .pd-areahero-sub {
+  margin-top: 0.42rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8rem;
+  font-weight: 560;
+  line-height: 1.32;
+  letter-spacing: -0.002em;
+  text-shadow: 0 2px 11px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 380px) {
+  .home-screen.fresh-page::before {
+    height: calc(
+      max(
+        env(safe-area-inset-top, 0px),
+        var(--tg-content-safe-area-inset-top, 0px),
+        var(--tg-safe-area-inset-top, 0px),
+        46px
+      ) + 3.05rem
+    );
+  }
+
+  .home-day-hero.has-card-background .home-day-hero-title {
+    font-size: clamp(1.86rem, 7vw, 2.34rem);
+  }
+
+  .home-day-hero.has-card-background .home-day-hero-text {
+    font-size: 0.86rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-day-hero.has-card-background,
+  .home-sphere-card.has-card-background,
+  .home-feed-card.has-card-background,
+  .pd-areahero.has-card-background {
+    transition: none;
+  }
+}

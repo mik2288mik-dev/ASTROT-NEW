@@ -1,0 +1,253 @@
+/*
+ * Shared visual chrome for the app shell.
+ * This file is imported last so the menu trigger and white application canvas
+ * stay identical on every primary screen without touching forecast logic.
+ */
+
+:root {
+  --app-canvas: #ffffff;
+  --bg-primary: #ffffff;
+  --bg-card: #ffffff;
+  --lumia-home-bg: #ffffff;
+  --lumia-home-bg-wash: #ffffff;
+  --lumia-home-surface: #ffffff;
+  --lumia-shared-menu-left: calc(
+    max(
+      env(safe-area-inset-left, 0px),
+      var(--tg-content-safe-area-inset-left, 0px),
+      var(--tg-safe-area-inset-left, 0px)
+    ) + 14px
+  );
+  --lumia-shared-menu-top: calc(
+    max(
+      env(safe-area-inset-top, 0px),
+      var(--tg-content-safe-area-inset-top, 0px),
+      var(--tg-safe-area-inset-top, 0px),
+      18px
+    ) + 5px
+  );
+  --lumia-shared-menu-top-telegram: calc(
+    max(
+      env(safe-area-inset-top, 0px),
+      var(--tg-content-safe-area-inset-top, 0px),
+      var(--tg-safe-area-inset-top, 0px),
+      18px
+    ) + 51px
+  );
+}
+
+html,
+body,
+#__next,
+.lumia-app-shell,
+.lumia-app-shell > main,
+.lumia-main-scroll {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+.app-top-bar,
+.app-top-bar.home-logo-bar {
+  border: 0 !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.app-top-bar::before,
+.app-top-bar::after {
+  display: none !important;
+  background: none !important;
+}
+
+.lumia-side-drawer-menu-button,
+.lumia-side-drawer-menu-button.is-telegram,
+.lumia-universal-drawer-button,
+.lumia-universal-drawer-button.is-telegram {
+  left: var(--lumia-shared-menu-left) !important;
+  z-index: 120;
+  display: grid;
+  box-sizing: border-box;
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  box-shadow: none;
+  color: #202020;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lumia-side-drawer-menu-button,
+.lumia-universal-drawer-button {
+  top: var(--lumia-shared-menu-top) !important;
+}
+
+.lumia-side-drawer-menu-button.is-telegram,
+.lumia-universal-drawer-button.is-telegram {
+  top: var(--lumia-shared-menu-top-telegram) !important;
+}
+
+/* App.tsx still owns the legacy trigger state; the global trigger below replaces its visuals. */
+.lumia-app-shell > .lumia-side-drawer-menu-button {
+  display: none !important;
+}
+
+.lumia-universal-drawer-button {
+  position: fixed;
+}
+
+.lumia-universal-drawer-button.is-expanded {
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.12);
+}
+
+.lumia-side-drawer-menu-button:hover,
+.lumia-universal-drawer-button:hover {
+  background: rgba(17, 24, 39, 0.035);
+}
+
+.lumia-side-drawer-menu-button:active,
+.lumia-universal-drawer-button:active {
+  background: rgba(17, 24, 39, 0.07);
+}
+
+.lumia-side-drawer-menu-button:focus-visible,
+.lumia-universal-drawer-button:focus-visible {
+  outline: 2px solid rgba(17, 24, 39, 0.7);
+  outline-offset: 1px;
+}
+
+.lumia-side-drawer-menu-icon,
+.lumia-universal-drawer-mark {
+  display: block;
+  width: 43px;
+  height: 33px;
+  overflow: visible;
+  background-image: url('/assets/brand/personal-horoscope-mark.svg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter:
+    brightness(0)
+    contrast(1.6)
+    drop-shadow(0.75px 0 0 #000000)
+    drop-shadow(-0.75px 0 0 #000000)
+    drop-shadow(0 0.75px 0 #000000)
+    drop-shadow(0 -0.75px 0 #000000)
+    drop-shadow(0.4px 0.4px 0 #000000)
+    drop-shadow(-0.4px 0.4px 0 #000000)
+    drop-shadow(0.4px -0.4px 0 #000000)
+    drop-shadow(-0.4px -0.4px 0 #000000);
+}
+
+.lumia-side-drawer-menu-icon line {
+  display: none;
+}
+
+.forecast-feed-page .app-top-bar-title--personal-forecast {
+  color: #1d1d1d;
+  font-size: 16.5px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.forecast-feed-page .app-top-bar-context--period {
+  box-sizing: border-box;
+  width: min(100%, var(--forecast-feed-reading-width, 620px));
+  margin: 0 auto;
+  padding: clamp(22px, 6vw, 30px) 24px 0;
+  color: #171717;
+  font-family: Georgia, 'Times New Roman', 'Noto Serif', serif;
+  font-size: clamp(2rem, 9vw, 2.4rem);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.forecast-feed-page .forecast-feed-reading-header {
+  width: 100%;
+  margin-top: 0;
+  padding-top: 0;
+  text-align: center;
+}
+
+.forecast-feed-page .forecast-feed-date-zone {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  margin: 5px auto 0;
+  padding-inline: 24px;
+  text-align: center;
+}
+
+.forecast-feed-page .forecast-feed-date-cluster,
+.forecast-feed-page .forecast-feed-date,
+.forecast-feed-page .forecast-feed-date-value {
+  width: 100%;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.forecast-feed-page .forecast-feed-date {
+  align-items: center;
+  justify-content: center;
+}
+
+.forecast-feed-page .forecast-feed-date-value {
+  display: block;
+  color: #626262;
+  font-family: 'Manrope', Arial, Helvetica, sans-serif !important;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: 'lnum' 1, 'tnum' 1;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: lowercase;
+}
+
+.forecast-feed-page .forecast-feed-date-value::first-letter {
+  text-transform: uppercase;
+}
+
+@media (max-width: 380px) {
+  .lumia-side-drawer-menu-icon,
+  .lumia-universal-drawer-mark {
+    width: 41px;
+    height: 31px;
+  }
+
+  .forecast-feed-page .app-top-bar-context--period {
+    padding-top: 20px;
+    font-size: 2rem;
+  }
+
+  .forecast-feed-page .forecast-feed-date-zone {
+    margin-top: 4px;
+  }
+
+  .forecast-feed-page .forecast-feed-date-value {
+    font-size: 13.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lumia-side-drawer-menu-button,
+  .lumia-universal-drawer-button {
+    transition: none;
+  }
+}

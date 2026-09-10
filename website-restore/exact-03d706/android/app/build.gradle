@@ -1,0 +1,218 @@
+apply plugin: 'com.android.application'
+
+def appPackageId = 'ru.tvoygoroskop.app'
+def localSigningProperties = new Properties()
+def localSigningPropertiesFile = rootProject.file('signing.properties')
+if (localSigningPropertiesFile.exists()) {
+    localSigningPropertiesFile.withInputStream { localSigningProperties.load(it) }
+}
+def signingValue = { String name -> project.findProperty(name) ?: System.getenv(name) ?: localSigningProperties.getProperty(name) }
+def releaseStoreFileValue = signingValue('RELEASE_STORE_FILE')
+def releaseStorePasswordValue = signingValue('RELEASE_STORE_PASSWORD')
+def releaseKeyAliasValue = signingValue('RELEASE_KEY_ALIAS')
+def releaseKeyPasswordValue = signingValue('RELEASE_KEY_PASSWORD')
+def releaseSigningReady = releaseStoreFileValue && releaseStorePasswordValue && releaseKeyAliasValue && releaseKeyPasswordValue
+def authValue = { String name -> (project.findProperty(name) ?: System.getenv(name) ?: '').toString().trim() }
+def buildConfigString = { String value -> '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"' }
+def googleAuthClientId = authValue('GOOGLE_AUTH_CLIENT_ID')
+def googleAuthHandlerClass = 'ru.tvoygoroskop.app.auth.GoogleIdentityAuthHandler'
+def yandexAndroidClientId = authValue('YANDEX_ANDROID_CLIENT_ID')
+def vkAndroidClientId = authValue('VK_ANDROID_CLIENT_ID')
+def vkIdAndroidClientSecret = authValue('VK_ID_ANDROID_CLIENT_SECRET')
+def vkIdConfigured = !vkAndroidClientId.isEmpty() && !vkIdAndroidClientSecret.isEmpty()
+def myTrackerSdkKey = authValue('MYTRACKER_SDK_KEY')
+def rustoreConsoleAppId = project.findProperty('RUSTORE_CONSOLE_APP_ID') ?: System.getenv('RUSTORE_CONSOLE_APP_ID') ?: 'RUSTORE_CONSOLE_APP_ID_REQUIRED'
+def rustoreScheme = project.findProperty('RUSTORE_PAY_SCHEME') ?: System.getenv('RUSTORE_PAY_SCHEME') ?: "${appPackageId}.rustore"
+def rustorePaymentsEnabledValue = (System.getenv('NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED') ?: project.findProperty('NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED') ?: '0').toString()
+def rustorePaymentsEnabled = ['1', 'true', 'yes', 'on'].contains(rustorePaymentsEnabledValue.trim().toLowerCase())
+def appVersionCodeValue = System.getenv('APP_VERSION_CODE') ?: project.findProperty('APP_VERSION_CODE') ?: '1'
+def appVersionNameValue = System.getenv('APP_VERSION_NAME') ?: project.findProperty('APP_VERSION_NAME') ?: '1.0.0'
+def releaseTaskRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') && !it.toLowerCase().contains('lint') }
+def developmentPackageTaskRequested = gradle.startParameter.taskNames.any {
+    def taskName = it.toLowerCase()
+    taskName.contains('development') && (
+        taskName.contains('assemble') || taskName.contains('bundle') || taskName.contains('install') || taskName.contains('package')
+    )
+}
+
+if (releaseTaskRequested && !releaseSigningReady) {
+    throw new GradleException('Release signing is required. Set RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS and RELEASE_KEY_PASSWORD.')
+}
+if (developmentPackageTaskRequested) {
+    def missingProviderValues = []
+    if (!yandexAndroidClientId || yandexAndroidClientId == '0') missingProviderValues += 'YANDEX_ANDROID_CLIENT_ID'
+    if (!vkAndroidClientId || vkAndroidClientId == '0') missingProviderValues += 'VK_ANDROID_CLIENT_ID'
+    if (!vkIdAndroidClientSecret || vkIdAndroidClientSecret == 'VK_ID_ANDROID_CLIENT_SECRET_REQUIRED') missingProviderValues += 'VK_ID_ANDROID_CLIENT_SECRET'
+    if (!missingProviderValues.isEmpty()) {
+        throw new GradleException("Development APK auth configuration is incomplete: ${missingProviderValues.join(', ')}")
+    }
+}
+
+android {
+    namespace = appPackageId
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId appPackageId
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode Integer.parseInt(appVersionCodeValue.toString())
+        versionName appVersionNameValue.toString()
+        manifestPlaceholders = [
+            rustoreConsoleAppId: rustoreConsoleAppId,
+            rustorePayScheme: rustoreScheme,
+            YANDEX_CLIENT_ID: yandexAndroidClientId ?: '0',
+            VKIDClientID: vkAndroidClientId ?: '0',
+            VKIDClientSecret: vkIdAndroidClientSecret ?: 'VK_ID_ANDROID_CLIENT_SECRET_REQUIRED',
+            VKIDRedirectHost: 'vk.ru',
+            VKIDRedirectScheme: vkAndroidClientId ? "vk${vkAndroidClientId}" : 'vk0',
+        ]
+        buildConfigField 'boolean', 'RUSTORE_PAYMENTS_ENABLED', rustorePaymentsEnabled ? 'true' : 'false'
+        buildConfigField 'String', 'GOOGLE_AUTH_SERVER_CLIENT_ID', '""'
+        buildConfigField 'boolean', 'GOOGLE_AUTH_ENABLED', 'false'
+        buildConfigField 'String', 'OPTIONAL_IDENTITY_AUTH_HANDLER_CLASS', buildConfigString('')
+        buildConfigField 'String', 'YANDEX_ANDROID_CLIENT_ID', buildConfigString(yandexAndroidClientId)
+        buildConfigField 'String', 'VK_ANDROID_CLIENT_ID', buildConfigString(vkAndroidClientId)
+        buildConfigField 'boolean', 'VK_ID_CONFIGURED', vkIdConfigured ? 'true' : 'false'
+        buildConfigField 'String', 'MYTRACKER_SDK_KEY', buildConfigString(myTrackerSdkKey)
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (releaseSigningReady) {
+            release {
+                storeFile file(releaseStoreFileValue)
+                storePassword releaseStorePasswordValue
+                keyAlias releaseKeyAliasValue
+                keyPassword releaseKeyPasswordValue
+            }
+        }
+    }
+    flavorDimensions += 'distribution'
+    productFlavors {
+        development {
+            dimension 'distribution'
+            buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"development"'
+        }
+        telegram {
+            dimension 'distribution'
+            buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"telegram"'
+        }
+        rustore {
+            dimension 'distribution'
+            buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"rustore"'
+            manifestPlaceholders = [rustoreConsoleAppId: rustoreConsoleAppId, rustorePayScheme: rustoreScheme]
+        }
+        googlePlay {
+            dimension 'distribution'
+            buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"google_play"'
+            buildConfigField 'String', 'GOOGLE_AUTH_SERVER_CLIENT_ID', buildConfigString(googleAuthClientId)
+            buildConfigField 'boolean', 'GOOGLE_AUTH_ENABLED', 'true'
+            buildConfigField 'String', 'OPTIONAL_IDENTITY_AUTH_HANDLER_CLASS', buildConfigString(googleAuthHandlerClass)
+        }
+    }
+    buildFeatures {
+        buildConfig true
+    }
+    sourceSets { googlePlay.java.srcDir 'src/googleAuth/java' }
+    buildTypes {
+        release {
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+def mobileBuildMarkerFile = file('src/main/assets/public/nebo-mobile-build.json')
+def sourceCommitOverride = authValue('SOURCE_COMMIT') ?: authValue('RAILWAY_GIT_COMMIT_SHA') ?: authValue('GITHUB_SHA')
+def currentSourceCommit = sourceCommitOverride
+    ? providers.provider { sourceCommitOverride.toLowerCase() }
+    : providers.exec {
+        workingDir rootProject.file('..')
+        commandLine 'git', 'rev-parse', '--verify', 'HEAD'
+      }.standardOutput.asText.map { it.trim().toLowerCase() }
+def verifyMobileBuildMarker = { String expectedChannel ->
+    if (!mobileBuildMarkerFile.exists()) {
+        throw new GradleException("Mobile web assets are missing their provenance marker. Run the matching android build command before assembling ${expectedChannel}.")
+    }
+    def marker = new groovy.json.JsonSlurper().parse(mobileBuildMarkerFile)
+    def apiOrigin = String.valueOf(marker.apiOrigin ?: '')
+    def markerSourceCommit = String.valueOf(marker.sourceCommit ?: '').toLowerCase()
+    def markerVersionCode = String.valueOf(marker.versionCode ?: '')
+    def markerVersionName = String.valueOf(marker.versionName ?: '')
+    if (
+        marker.format != 2
+        || marker.mobileBuild != true
+        || marker.channel != expectedChannel
+        || !apiOrigin.startsWith('https://')
+        || markerSourceCommit != currentSourceCommit.get()
+        || markerVersionCode != appVersionCodeValue.toString()
+        || markerVersionName != appVersionNameValue.toString()
+    ) {
+        throw new GradleException("Mobile web assets do not match the ${expectedChannel} Android flavor. Rebuild and sync the matching mobile bundle before assembling.")
+    }
+}
+
+def expectedChannelForPreBuild = { String taskName ->
+    def normalized = taskName.toLowerCase()
+    if (!normalized.startsWith('pre') || !normalized.endsWith('build')) return null
+    if (normalized.contains('development')) return 'development'
+    if (normalized.contains('telegram')) return 'telegram'
+    if (normalized.contains('rustore')) return 'rustore'
+    if (normalized.contains('googleplay')) return 'google_play'
+    return null
+}
+
+// Android Studio and direct Gradle invocations otherwise can package whatever
+// Capacitor copied last, including an older channel-less web bundle.
+tasks.configureEach { task ->
+    def expectedChannel = expectedChannelForPreBuild(task.name)
+    if (expectedChannel != null) {
+        task.doFirst {
+            verifyMobileBuildMarker(expectedChannel)
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    googlePlayImplementation 'androidx.credentials:credentials:1.6.0'
+    googlePlayImplementation 'androidx.credentials:credentials-play-services-auth:1.6.0'
+    googlePlayImplementation 'com.google.android.libraries.identity.googleid:googleid:1.2.0'
+    implementation 'com.yandex.android:authsdk:3.2.1'
+    implementation 'com.vk.id:vkid:2.7.2'
+    implementation 'com.my.tracker:mytracker-sdk:3.6.0'
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+    rustoreImplementation platform('ru.rustore.sdk:bom:2026.08.01')
+    rustoreImplementation 'ru.rustore.sdk:pay'
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
