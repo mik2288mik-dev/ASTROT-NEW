@@ -66,6 +66,7 @@ RUN cp website-restore/overrides/components/public-site/NeboLanding.tsx componen
     && cp website-restore/overrides/styles/OpenAiPublicSite.module.css styles/OpenAiPublicSite.module.css \
     && cp website-restore/overrides/pages/site.tsx pages/site.tsx \
     && node website-restore/patch-site.mjs \
+    && rm -rf website-restore/overrides \
     && node scripts/build-website.mjs
 
 FROM node:22-alpine AS runner
