@@ -1,0 +1,99 @@
+import type { Language, NatalChartData, PlanetInsight, UserProfile } from '../types';
+import { getOpenAIModelForContent } from './appSettings';
+import {
+  createLunaJsonResponse,
+  getOpenAIResponsesClient,
+} from './openaiResponses';
+import {
+  buildPlanetInsightCacheKey,
+  getPlanetDisplayName,
+  getPlanetPositionFromChart,
+  normalizePlanetKey,
+  type NatalPlanetKey,
+} from './natalPlanetMeta';
+import { buildPlanetInsight } from './planetInsightContent';
+import {
+  addLanguageInstruction,
+  createPlanetInsightPrompt,
+  type PlanetInsightAIResponse,
+} from './prompts';
+import { getAppSystemVoice, withAppVoiceVersion } from './appVoice';
+import { hasActivePremium } from './accessMatrix';
+
+export const PLANET_INSIGHT_PROMPT_VERSION = withAppVoiceVersion('planet_insight.v1');
+
+export async function generatePlanetInsight(
+  profile: UserProfile,
+  chartData: NatalChartData,
+  planetId: NatalPlanetKey
+): Promise<PlanetInsight> {
+  const language: Language = profile.language === 'en' ? 'en' : 'ru';
+  const position = getPlanetPositionFromChart(chartData, planetId);
+
+  if (!position) {
+    throw new Error(`PLANET_POSITION_MISSING:${planetId}`);
+  }
+
+  if (!getOpenAIResponsesClient()) {
+    return buildPlanetInsight(chartData, planetId, language);
+  }
+
+  const planetLabel = getPlanetDisplayName(planetId, language);
+  const house = typeof position.house === 'number' ? position.house : Number(position.house) || null;
+  const degree =
+    typeof position.degree === 'number' && Number.isFinite(position.degree)
+      ? Math.round(position.degree)
+      : null;
+  const anchorSummary = [
+    `${getPlanetDisplayName('sun', language)}: ${chartData.sun?.sign || ''}`,
+    `${getPlanetDisplayName('moon', language)}: ${chartData.moon?.sign || ''}`,
+    `${getPlanetDisplayName('rising', language)}: ${chartData.rising?.sign || ''}`,
+  ].join(' • ');
+
+  try {
+    const prompt = addLanguageInstruction(
+      createPlanetInsightPrompt(chartData, profile, {
+        planetLabel,
+        planetSign: position.sign,
+        planetDegree: degree,
+        house,
+        anchorSummary,
+      }),
+      language
+    );
+    const { model } = await getOpenAIModelForContent({
+      accessTier: hasActivePremium(profile) ? 'premium' : 'free',
+      contentSurface: 'natal',
+      contentVariant: 'planet_insight',
+    });
+
+    void model;
+    const response = await createLunaJsonResponse({
+      instructions: getAppSystemVoice(language === 'en' ? 'en' : 'ru'),
+      input: prompt,
+      maxOutputTokens: 520,
+    });
+    const parsed = JSON.parse(response.content) as PlanetInsightAIResponse;
+    return buildPlanetInsight(chartData, planetId, language, parsed);
+  } catch {
+    return buildPlanetInsight(chartData, planetId, language);
+  }
+}
+
+export function resolvePlanetInsightRequest(
+  planetIdRaw: string | null | undefined,
+  language: Language,
+  calculationVersion?: string | null
+) {
+  const planetId = normalizePlanetKey(String(planetIdRaw || ''));
+  if (!planetId) {
+    throw new Error(language === 'en' ? 'Invalid planet id' : 'Некорректная планета');
+  }
+
+  return {
+    planetId,
+    cacheKey: buildPlanetInsightCacheKey(planetId, language, calculationVersion),
+  };
+}
+
+export { buildPlanetInsight } from './planetInsightContent';

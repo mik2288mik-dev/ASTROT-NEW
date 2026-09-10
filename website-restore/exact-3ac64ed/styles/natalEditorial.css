@@ -1,0 +1,906 @@
+/*
+ * Natal chart — light editorial flow.
+ *
+ * This stylesheet is intentionally scoped to .natal-editorial-page and loaded
+ * after the shared product styles. The chart data, Premium flow, navigation,
+ * and generated copy remain owned by their existing components.
+ */
+
+.fresh-page.natal-editorial-page {
+  --natal-editorial-bg: var(--app-canvas);
+  --natal-editorial-ink: #17191d;
+  --natal-editorial-muted: #6f747c;
+  --natal-editorial-line: rgba(23, 25, 29, 0.09);
+  background: var(--natal-editorial-bg);
+  color: var(--natal-editorial-ink);
+}
+
+.natal-editorial-page .product-screen-cover--natal {
+  width: 100%;
+  min-height: 176px;
+  margin: 0 0 4px;
+  padding: 34px 20px 28px;
+  overflow: hidden;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+}
+
+.natal-editorial-page .product-screen-cover--natal::before {
+  content: '';
+  position: absolute;
+  inset: -14px 0;
+  z-index: 0;
+  background-image: var(--card-bg-image);
+  background-position: var(--card-bg-position, center);
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: brightness(1.12) saturate(0.62) contrast(0.86);
+  opacity: 0.46;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 78%, transparent 100%);
+}
+
+.natal-editorial-page .product-screen-cover--natal::before,
+.natal-editorial-page .product-screen-cover--natal::after {
+  display: none;
+}
+
+.natal-editorial-page .natal-zodiac-sticker--inline {
+  width: 33%;
+  margin: 1.5rem 24px 0 auto;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.natal-editorial-page .product-screen-cover--natal::after {
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.78) 52%, rgba(255, 255, 255, 0.36) 100%),
+    linear-gradient(180deg, var(--natal-editorial-bg) 0%, transparent 22%, transparent 74%, var(--natal-editorial-bg) 100%);
+}
+
+.natal-editorial-page .product-screen-cover-copy {
+  z-index: 2;
+  max-width: min(76%, 26rem);
+}
+
+.natal-editorial-page .product-screen-cover-title {
+  color: var(--natal-editorial-ink);
+  font-size: clamp(1.55rem, 6vw, 2rem);
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.natal-editorial-page .product-screen-cover-text {
+  max-width: 24rem;
+  margin-top: 0.68rem;
+  color: var(--natal-editorial-muted);
+  font-size: clamp(0.91rem, 3.45vw, 1rem);
+  font-weight: 480;
+  line-height: 1.52;
+}
+
+.natal-editorial-page .natal-big3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: 0 20px;
+  padding: 15px 0 22px;
+  border-top: 1px solid var(--natal-editorial-line);
+  border-bottom: 1px solid var(--natal-editorial-line);
+}
+
+.natal-editorial-page .natal-big3-card {
+  min-width: 0;
+  min-height: 54px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 4px 9px;
+  border-left: 1px solid var(--natal-editorial-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.natal-editorial-page .natal-big3-card:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.natal-editorial-page .natal-big3-card:last-child {
+  padding-right: 0;
+}
+
+.natal-editorial-page .natal-big3-ico {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(20, 120, 255, 0.07);
+  color: #2468b2;
+}
+
+.natal-editorial-page .natal-big3-planet {
+  color: var(--natal-editorial-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.natal-editorial-page .natal-big3-sign {
+  margin-top: 3px;
+  color: var(--natal-editorial-ink);
+  font-size: clamp(0.75rem, 3.1vw, 0.86rem);
+  font-weight: 720;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.natal-editorial-page .natal-chart-wheel {
+  width: min(calc(100% - 48px), 620px);
+  margin: 32px auto 40px;
+  padding: 0;
+  color: var(--natal-editorial-ink);
+  background: #ffffff;
+}
+
+.natal-editorial-page .natal-chart-wheel-svg {
+  display: block;
+  width: min(100%, 480px);
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.natal-editorial-page .natal-chart-wheel-ring {
+  fill: none;
+  stroke: rgba(23, 25, 29, 0.18);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-editorial-page .natal-chart-wheel-ring--outer {
+  stroke: rgba(23, 25, 29, 0.34);
+}
+
+.natal-editorial-page .natal-chart-wheel-ring--aspects {
+  stroke: rgba(23, 25, 29, 0.08);
+}
+
+.natal-editorial-page .natal-chart-wheel-sign {
+  color: #555c65;
+}
+
+.natal-editorial-page .natal-chart-wheel-sign > line {
+  stroke: rgba(23, 25, 29, 0.17);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-editorial-page .natal-chart-wheel-aspect {
+  fill: none;
+  stroke-width: 1.15;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-editorial-page .natal-chart-wheel-aspect--conjunction {
+  stroke: rgba(55, 65, 81, 0.42);
+}
+
+.natal-editorial-page .natal-chart-wheel-aspect--sextile,
+.natal-editorial-page .natal-chart-wheel-aspect--trine {
+  stroke: rgba(37, 99, 151, 0.44);
+}
+
+.natal-editorial-page .natal-chart-wheel-aspect--square,
+.natal-editorial-page .natal-chart-wheel-aspect--opposition {
+  stroke: rgba(151, 68, 55, 0.42);
+  stroke-dasharray: 3 2;
+}
+
+.natal-editorial-page .natal-chart-wheel-marker {
+  color: #23272d;
+}
+
+.natal-editorial-page .natal-chart-wheel-marker > circle {
+  fill: #ffffff;
+  stroke: rgba(23, 25, 29, 0.2);
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-editorial-page .natal-chart-wheel-marker > text {
+  fill: #727780;
+  font-family: inherit;
+  font-size: 6px;
+  font-weight: 650;
+}
+
+.natal-editorial-page .natal-chart-wheel-angle {
+  color: #1f5f9e;
+}
+
+.natal-editorial-page .natal-chart-wheel-angle > circle {
+  fill: #f7fbff;
+  stroke: rgba(31, 95, 158, 0.32);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-editorial-page .natal-chart-wheel-caption {
+  display: grid;
+  gap: 5px;
+  max-width: 480px;
+  margin: 16px auto 0;
+  color: var(--natal-editorial-muted);
+  text-align: left;
+}
+
+.natal-editorial-page .natal-chart-wheel-caption strong {
+  color: var(--natal-editorial-ink);
+  font-size: 14px;
+  font-weight: 680;
+  line-height: 1.3;
+}
+
+.natal-editorial-page .natal-chart-wheel-caption span {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.natal-editorial-page .natal-chart-wheel-a11y {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.natal-magazine-heading {
+  box-sizing: border-box;
+  width: min(100%, 620px);
+  margin: 26px auto 18px;
+  padding: 0 24px;
+}
+
+.natal-magazine-heading h1 {
+  margin: 0;
+  color: #171717;
+  font-size: clamp(36px, 9.2vw, 46px);
+  font-weight: 540;
+  letter-spacing: -0.05em;
+  line-height: 1.02;
+}
+
+.natal-magazine-heading p {
+  margin: 10px 0 0;
+  color: #686868;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.natal-chart-portrait {
+  display: flex;
+  box-sizing: border-box;
+  width: min(100%, 620px);
+  margin: 0 auto 22px;
+  padding: 0 24px;
+  flex-direction: column;
+}
+
+.natal-chart-portrait-visual {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  background: url('/assets/cosmic/drawer-stars.webp') center / cover no-repeat;
+}
+
+.natal-chart-portrait-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(4, 4, 6, 0.08), rgba(4, 4, 6, 0.22));
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.natal-chart-portrait-mobile-key {
+  display: none;
+}
+
+.natal-chart-portrait-caption {
+  order: -1;
+  margin: 0 0 10px;
+  color: #333333;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.natal-chart-portrait-caption strong {
+  font-weight: 650;
+}
+
+.natal-chart-portrait-caption span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.natal-chart-portrait-aspect {
+  stroke: rgba(246, 239, 222, 0.72);
+  stroke-width: 0.85;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-chart-portrait-aspect.is-square,
+.natal-chart-portrait-aspect.is-opposition {
+  stroke: rgba(214, 178, 132, 0.74);
+}
+
+.natal-chart-portrait-aspect.is-separating {
+  stroke-dasharray: 4 4;
+}
+
+.natal-chart-portrait-node {
+  fill: rgba(255, 244, 216, 0.94);
+}
+
+.natal-chart-portrait-points {
+  color: rgba(250, 247, 239, 0.88);
+}
+
+.natal-chart-portrait-retro {
+  fill: rgba(231, 215, 184, 0.86);
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.natal-chart-portrait-divider {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 0.8;
+}
+
+.natal-chart-portrait-key {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.natal-chart-portrait-key-label {
+  fill: rgba(255, 255, 255, 0.92);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.natal-chart-portrait-key-value {
+  fill: rgba(229, 231, 235, 0.72);
+  font-size: 9.5px;
+}
+
+.natal-chart-portrait-a11y {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.natal-empty-content {
+  box-sizing: border-box;
+  width: min(100%, 620px);
+  margin: 0 auto;
+  padding: 0 24px 24px;
+}
+
+.natal-empty-content p {
+  margin: 0 0 18px;
+  color: var(--fresh-muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.natal-empty-content .fresh-btn-primary {
+  width: 100%;
+}
+
+@media (max-width: 420px) {
+  .natal-chart-portrait-svg {
+    width: 143.836%;
+    max-width: none;
+    border-radius: 0;
+  }
+
+  .natal-chart-portrait-divider,
+  .natal-chart-portrait-key {
+    display: none;
+  }
+
+  .natal-chart-portrait-mobile-key {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+    gap: 8px;
+    padding: 11px 12px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(4, 6, 14, 0.2);
+  }
+
+  .natal-chart-portrait-mobile-key-item {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 7px;
+    color: rgba(255, 255, 255, 0.94);
+  }
+
+  .natal-chart-portrait-mobile-key-item > span {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+  }
+
+  .natal-chart-portrait-mobile-key-item strong,
+  .natal-chart-portrait-mobile-key-item small {
+    overflow-wrap: anywhere;
+  }
+
+  .natal-chart-portrait-mobile-key-item strong {
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.2;
+  }
+
+  .natal-chart-portrait-mobile-key-item small {
+    color: rgba(229, 231, 235, 0.72);
+    font-size: 11px;
+    line-height: 1.25;
+  }
+}
+
+.natal-editorial-page .natal-editorial-report {
+  padding-top: 0;
+  background: transparent;
+}
+
+.natal-editorial-page .natal-sec {
+  margin: 0;
+  padding: 30px 4px;
+  border: 0;
+  border-top: 1px solid var(--natal-editorial-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.natal-editorial-page .natal-sec:first-child {
+  padding-top: 30px;
+  border-top: 0;
+}
+
+.natal-editorial-page .natal-sec-title {
+  max-width: 27rem;
+  margin: 0;
+  color: var(--natal-editorial-ink);
+  font-size: clamp(1.35rem, 5.4vw, 1.58rem);
+  font-weight: 760;
+  letter-spacing: -0.025em;
+  line-height: 1.18;
+}
+
+.natal-editorial-page .natal-sec-body {
+  max-width: 34rem;
+  margin-top: 15px;
+}
+
+.natal-editorial-page .natal-sec-p {
+  margin: 0;
+  color: #292c31;
+  font-size: clamp(0.98rem, 3.75vw, 1.05rem);
+  font-weight: 430;
+  letter-spacing: 0;
+  line-height: 1.68;
+}
+
+.natal-editorial-page .natal-sec-p + .natal-sec-p {
+  margin-top: 0.9em;
+}
+
+.natal-editorial-page .natal-sec-bullets {
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.natal-editorial-page .natal-sec-bullets li {
+  padding-left: 16px;
+  color: var(--natal-editorial-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.natal-editorial-page .natal-sec-bullets li::before {
+  top: 0.58em;
+  width: 5px;
+  height: 5px;
+  background: #2468b2;
+}
+
+.natal-editorial-page .cib {
+  margin: 0;
+  padding: 28px 4px 30px;
+  border: 0;
+  border-top: 1px solid var(--natal-editorial-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.natal-editorial-page .cib-head {
+  margin-bottom: 14px;
+  color: var(--natal-editorial-ink);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.natal-editorial-page .cib-bar {
+  height: 8px;
+  background: #e9edf2;
+}
+
+.natal-editorial-page .cib-legend {
+  gap: 9px 14px;
+  margin-top: 14px;
+}
+
+.natal-editorial-page .cib-summary {
+  max-width: 34rem;
+  margin-top: 16px;
+  color: #363a40;
+  line-height: 1.62;
+}
+
+.natal-editorial-page .natal-topics-section {
+  padding: 30px 4px;
+  border-color: var(--natal-editorial-line);
+}
+
+.natal-editorial-page .natal-topic-row {
+  margin-top: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--natal-editorial-line);
+  background: transparent;
+  box-shadow: none;
+}
+
+.natal-editorial-page .natal-topic-row:first-child {
+  border-top: 1px solid var(--natal-editorial-line);
+}
+
+.natal-editorial-page .natal-topic-row > button {
+  padding: 18px 2px 18px 13px;
+}
+
+.natal-editorial-page .natal-topic-teaser {
+  border-color: var(--natal-editorial-line);
+  background: transparent;
+}
+
+.natal-editorial-page .natal-topic-teaser:first-child {
+  border-top: 1px solid var(--natal-editorial-line);
+}
+
+.natal-editorial-page .natal-premium-card {
+  border: 1px solid rgba(20, 120, 255, 0.1);
+  background: linear-gradient(135deg, #f2f7fd 0%, #f8f6fc 100%);
+  box-shadow: none;
+}
+
+.natal-editorial-page .natal-premium-button {
+  box-shadow: 0 8px 18px rgba(20, 120, 255, 0.16);
+}
+
+.natal-editorial-page .natal-technical-details,
+.natal-editorial-page .natal-disclaimer {
+  border-color: var(--natal-editorial-line);
+}
+
+@media (max-width: 380px) {
+  .natal-editorial-page .product-screen-cover--natal {
+    width: 100%;
+    min-height: 166px;
+    margin-right: 0;
+    margin-left: 0;
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .natal-editorial-page .product-screen-cover-copy {
+    max-width: 82%;
+  }
+
+  .natal-editorial-page .natal-big3 {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+
+  .natal-editorial-page .natal-big3-card {
+    gap: 6px;
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .natal-editorial-page .natal-big3-ico {
+    width: 27px;
+    height: 27px;
+  }
+
+  .natal-editorial-page .natal-chart-wheel {
+    width: calc(100% - 32px);
+    margin-top: 28px;
+  }
+}
+
+/* Optional calculation notes stay out of the reading until the reader asks for them. */
+.astrology-details-toggle {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #65686e;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.astrology-details-toggle:focus-visible {
+  outline: 2px solid #17191d;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.astrology-details-toggle-track {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 24px;
+  flex: 0 0 40px;
+  border-radius: 999px;
+  background: #d8dade;
+  transition: background-color 160ms ease;
+}
+
+.astrology-details-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.2);
+  transition: transform 160ms ease;
+}
+
+.astrology-details-toggle.is-active {
+  color: #27292d;
+}
+
+.astrology-details-toggle.is-active .astrology-details-toggle-track {
+  background: #27292d;
+}
+
+.astrology-details-toggle.is-active .astrology-details-toggle-thumb {
+  transform: translateX(16px);
+}
+
+.natal-editorial-page .natal-astrology-toggle-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 6px;
+}
+
+.natal-editorial-page .natal-inline-evidence {
+  display: grid;
+  gap: 6px;
+  max-width: 34rem;
+  margin: 14px 0 0;
+  padding: 0 0 0 14px;
+  border-left: 1px solid rgba(23, 25, 29, 0.16);
+  color: #71757c;
+  font-size: 12.5px;
+  font-weight: 450;
+  line-height: 1.45;
+  list-style: none;
+}
+
+.natal-editorial-page .natal-inline-evidence li {
+  margin: 0;
+  padding: 0;
+}
+
+.natal-editorial-page .natal-evidence-disclosure {
+  max-width: 34rem;
+  margin-top: 14px;
+}
+
+.natal-editorial-page .natal-evidence-disclosure summary {
+  width: fit-content;
+  cursor: pointer;
+  color: #71757c;
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.natal-editorial-page .natal-report-retry {
+  min-height: 44px;
+  margin-top: 18px;
+  padding: 10px 16px;
+  border: 1px solid var(--natal-editorial-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--natal-editorial-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.natal-editorial-page .natal-personality-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  margin: 0 auto 28px;
+  padding: 22px 20px;
+  border-top: 1px solid var(--natal-editorial-line);
+  border-bottom: 1px solid var(--natal-editorial-line);
+}
+
+.natal-editorial-page .natal-personality-entry h2,
+.natal-editorial-page .natal-personality-entry p {
+  margin: 0;
+}
+
+.natal-editorial-page .natal-personality-entry h2 {
+  font-size: 21px;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+.natal-editorial-page .natal-personality-entry p {
+  max-width: 34rem;
+  margin-top: 7px;
+  color: var(--natal-editorial-muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.natal-editorial-page .natal-personality-entry button {
+  min-height: 44px;
+  padding: 10px 17px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--natal-editorial-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (max-width: 560px) {
+  .natal-editorial-page .natal-personality-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .natal-editorial-page .natal-personality-entry button {
+    width: 100%;
+  }
+}
+
+.natal-editorial-page .natal-statement + .natal-statement {
+  margin-top: 0.9em;
+}
+
+/* The first load keeps the same reading rhythm without presenting progress UI. */
+.natal-editorial-page .natal-reading-skeleton {
+  width: min(100%, 34rem);
+  padding: 20px 0 6px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-visual {
+  display: grid;
+  gap: 36px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-hook,
+.natal-editorial-page .natal-reading-skeleton-section {
+  display: grid;
+  gap: 12px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-hook {
+  gap: 9px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-hook span,
+.natal-editorial-page .natal-reading-skeleton-title,
+.natal-editorial-page .natal-reading-skeleton-line {
+  display: block;
+  border-radius: 3px;
+  background: #ececec;
+  animation: natal-reading-skeleton-pulse 1.35s ease-in-out infinite alternate;
+}
+
+.natal-editorial-page .natal-reading-skeleton-hook span {
+  width: 88%;
+  height: 20px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-hook span:last-child {
+  width: 62%;
+}
+
+.natal-editorial-page .natal-reading-skeleton-title {
+  width: 46%;
+  height: 27px;
+  margin-bottom: 4px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-section:nth-child(3) .natal-reading-skeleton-title {
+  width: 58%;
+}
+
+.natal-editorial-page .natal-reading-skeleton-line {
+  width: 100%;
+  height: 14px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-line:last-child {
+  width: 72%;
+}
+
+@keyframes natal-reading-skeleton-pulse {
+  from { opacity: 0.56; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .astrology-details-toggle-track,
+  .astrology-details-toggle-thumb {
+    transition: none;
+  }
+
+  .natal-editorial-page .natal-reading-skeleton-hook span,
+  .natal-editorial-page .natal-reading-skeleton-title,
+  .natal-editorial-page .natal-reading-skeleton-line {
+    animation: none;
+  }
+}

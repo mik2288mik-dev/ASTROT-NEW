@@ -1,0 +1,311 @@
+﻿/**
+ * Валидация входных данных для API-роутов
+ * Использует встроенную валидацию без внешних зависимостей
+ */
+
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+}
+
+/**
+ * Валидация даты в формате YYYY-MM-DD
+ */
+export function validateDate(dateString: string): { isValid: boolean; error?: string } {
+  if (!dateString || typeof dateString !== 'string') {
+    return { isValid: false, error: 'Date is required' };
+  }
+
+  // Проверяем формат YYYY-MM-DD
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
+  if (!dateMatch) {
+    return { isValid: false, error: 'Date must be in format YYYY-MM-DD' };
+  }
+
+  // Date parses impossible calendar days by rolling them into the next month.
+  // Compare the UTC components after parsing so values like 2023-02-29 fail.
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const day = Number(dateMatch[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year
+    || date.getUTCMonth() !== month - 1
+    || date.getUTCDate() !== day
+  ) {
+    return { isValid: false, error: 'Invalid date' };
+  }
+
+  // Проверяем, что дата не в будущем (для даты рождения)
+  const now = new Date();
+  const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  if (date.getTime() > todayUtc) {
+    return { isValid: false, error: 'Date cannot be in the future' };
+  }
+
+  // Проверяем разумный диапазон (не раньше 1900 года)
+  if (date.getTime() < Date.UTC(1900, 0, 1)) {
+    return { isValid: false, error: 'Date cannot be before 1900' };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Валидация времени в формате HH:MM или H:MM
+ */
+export function validateTime(timeString: string): { isValid: boolean; error?: string } {
+  if (!timeString || typeof timeString !== 'string') {
+    return { isValid: false, error: 'Time is required' };
+  }
+
+  // Проверяем формат HH:MM или H:MM (допускаем однозначный час)
+  const timeRegex = /^(\d{1,2}):([0-5]\d)$/;
+  const match = timeString.match(timeRegex);
+  
+  if (!match) {
+    return { isValid: false, error: 'Time must be in format HH:MM (24-hour format)' };
+  }
+  
+  const hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  
+  if (hours < 0 || hours > 23) {
+    return { isValid: false, error: 'Hours must be between 0 and 23' };
+  }
+  
+  if (minutes < 0 || minutes > 59) {
+    return { isValid: false, error: 'Minutes must be between 0 and 59' };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Валидация имени
+ */
+export function validateName(name: string): { isValid: boolean; error?: string } {
+  if (!name || typeof name !== 'string') {
+    return { isValid: false, error: 'Name is required' };
+  }
+
+  const trimmedName = name.trim();
+  if (trimmedName.length === 0) {
+    return { isValid: false, error: 'Name cannot be empty' };
+  }
+
+  if (trimmedName.length < 2) {
+    return { isValid: false, error: 'Name must be at least 2 characters' };
+  }
+
+  if (trimmedName.length > 100) {
+    return { isValid: false, error: 'Name must be less than 100 characters' };
+  }
+
+  // Имя отображаемое и часто берётся из Telegram: может содержать эмодзи, акценты
+  // (José), любой алфавит и цифры. Не режем по белому списку — иначе блокируем
+  // реальных пользователей. Отклоняем только управляющие символы.
+  if (/\p{Cc}/u.test(trimmedName)) {
+    return { isValid: false, error: 'Name contains invalid characters' };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Валидация места рождения
+ */
+export function validateBirthPlace(place: string): { isValid: boolean; error?: string } {
+  if (!place || typeof place !== 'string') {
+    return { isValid: false, error: 'Birth place is required' };
+  }
+
+  const trimmedPlace = place.trim();
+  if (trimmedPlace.length === 0) {
+    return { isValid: false, error: 'Birth place cannot be empty' };
+  }
+
+  if (trimmedPlace.length < 2) {
+    return { isValid: false, error: 'Birth place must be at least 2 characters' };
+  }
+
+  if (trimmedPlace.length > 200) {
+    return { isValid: false, error: 'Birth place must be less than 200 characters' };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Валидация языка
+ */
+export function validateLanguage(language: string): { isValid: boolean; error?: string } {
+  if (!language || typeof language !== 'string') {
+    return { isValid: false, error: 'Language is required' };
+  }
+
+  const validLanguages = ['ru', 'en'];
+  if (!validLanguages.includes(language)) {
+    return { isValid: false, error: `Language must be one of: ${validLanguages.join(', ')}` };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Валидация данных для расчета натальной карты
+ */
+export function validateNatalChartInput(data: {
+  name?: string;
+  birthDate?: string;
+  birthTime?: string;
+  birthPlace?: string;
+  language?: string;
+}): ValidationResult {
+  const errors: ValidationError[] = [];
+
+  // Валидация имени
+  if (data.name !== undefined) {
+    const nameValidation = validateName(data.name);
+    if (!nameValidation.isValid) {
+      errors.push({ field: 'name', message: nameValidation.error || 'Invalid name' });
+    }
+  } else {
+    errors.push({ field: 'name', message: 'Name is required' });
+  }
+
+  // Валидация даты рождения
+  if (data.birthDate !== undefined) {
+    const dateValidation = validateDate(data.birthDate);
+    if (!dateValidation.isValid) {
+      errors.push({ field: 'birthDate', message: dateValidation.error || 'Invalid date' });
+    }
+  } else {
+    errors.push({ field: 'birthDate', message: 'Birth date is required' });
+  }
+
+  // Валидация времени рождения (опционально)
+  if (data.birthTime !== undefined && data.birthTime !== null && data.birthTime !== '') {
+    const timeValidation = validateTime(data.birthTime);
+    if (!timeValidation.isValid) {
+      errors.push({ field: 'birthTime', message: timeValidation.error || 'Invalid time' });
+    }
+  }
+
+  // Валидация места рождения
+  if (data.birthPlace !== undefined) {
+    const placeValidation = validateBirthPlace(data.birthPlace);
+    if (!placeValidation.isValid) {
+      errors.push({ field: 'birthPlace', message: placeValidation.error || 'Invalid birth place' });
+    }
+  } else {
+    errors.push({ field: 'birthPlace', message: 'Birth place is required' });
+  }
+
+  // Валидация языка (опционально)
+  if (data.language !== undefined && data.language !== null && data.language !== '') {
+    const languageValidation = validateLanguage(data.language);
+    if (!languageValidation.isValid) {
+      errors.push({ field: 'language', message: languageValidation.error || 'Invalid language' });
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Валидация данных для синастрии
+ */
+export function validateSynastryInput(data: {
+  profile?: any;
+  partnerName?: string;
+  partnerDate?: string;
+  partnerTime?: string;
+  partnerPlace?: string;
+  language?: string;
+}): ValidationResult {
+  const errors: ValidationError[] = [];
+
+  // Валидация профиля
+  if (!data.profile) {
+    errors.push({ field: 'profile', message: 'Profile is required' });
+  } else {
+    // Валидируем основные поля профиля
+    if (!data.profile.name) {
+      errors.push({ field: 'profile.name', message: 'Profile name is required' });
+    }
+    if (!data.profile.birthDate) {
+      errors.push({ field: 'profile.birthDate', message: 'Profile birth date is required' });
+    }
+    if (!data.profile.birthPlace) {
+      errors.push({ field: 'profile.birthPlace', message: 'Profile birth place is required' });
+    }
+  }
+
+  // Валидация имени партнера
+  if (data.partnerName !== undefined) {
+    const nameValidation = validateName(data.partnerName);
+    if (!nameValidation.isValid) {
+      errors.push({ field: 'partnerName', message: nameValidation.error || 'Invalid partner name' });
+    }
+  } else {
+    errors.push({ field: 'partnerName', message: 'Partner name is required' });
+  }
+
+  // Валидация даты партнера
+  if (data.partnerDate !== undefined) {
+    const dateValidation = validateDate(data.partnerDate);
+    if (!dateValidation.isValid) {
+      errors.push({ field: 'partnerDate', message: dateValidation.error || 'Invalid partner date' });
+    }
+  } else {
+    errors.push({ field: 'partnerDate', message: 'Partner date is required' });
+  }
+
+  // Валидация времени партнера (опционально)
+  if (data.partnerTime !== undefined && data.partnerTime !== null && data.partnerTime !== '') {
+    const timeValidation = validateTime(data.partnerTime);
+    if (!timeValidation.isValid) {
+      errors.push({ field: 'partnerTime', message: timeValidation.error || 'Invalid partner time' });
+    }
+  }
+
+  // Валидация языка (опционально)
+  if (data.language !== undefined && data.language !== null && data.language !== '') {
+    const languageValidation = validateLanguage(data.language);
+    if (!languageValidation.isValid) {
+      errors.push({ field: 'language', message: languageValidation.error || 'Invalid language' });
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Форматирует ошибки валидации в понятное сообщение для пользователя
+ */
+export function formatValidationErrors(errors: ValidationError[], language: 'ru' | 'en' = 'ru'): string {
+  if (errors.length === 0) {
+    return language === 'ru' ? 'Ошибка валидации' : 'Validation error';
+  }
+
+  if (errors.length === 1) {
+    return errors[0].message;
+  }
+
+  const errorMessages = errors.map(e => e.message).join(', ');
+  return language === 'ru' 
+    ? `Ошибки валидации: ${errorMessages}`
+    : `Validation errors: ${errorMessages}`;
+}

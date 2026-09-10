@@ -1,0 +1,58 @@
+jest.mock('../services/telegramStarsPayment', () => ({
+  requestStarsPayment: jest.fn(),
+}));
+jest.mock('../services/rustorePayService', () => ({
+  requestRuStorePayment: jest.fn(),
+}));
+
+import { getPaymentProvider } from '../services/paymentProvider';
+import { requestStarsPayment } from '../services/telegramStarsPayment';
+import { requestRuStorePayment } from '../services/rustorePayService';
+
+const profile = { id: '42', language: 'ru' } as any;
+const telegram = requestStarsPayment as jest.MockedFunction<typeof requestStarsPayment>;
+const rustore = requestRuStorePayment as jest.MockedFunction<typeof requestRuStorePayment>;
+
+describe('payment provider isolation', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('only asks Telegram Stars on the telegram channel', async () => {
+    telegram.mockResolvedValue('paid');
+    await expect(getPaymentProvider('telegram').purchase(profile, 'premium_week')).resolves.toEqual({ status: 'completed' });
+    expect(telegram).toHaveBeenCalledTimes(1);
+    expect(rustore).not.toHaveBeenCalled();
+  });
+
+  it('keeps an unresolved Telegram invoice pending instead of reporting payment success', async () => {
+    telegram.mockResolvedValue('pending');
+    await expect(getPaymentProvider('telegram').purchase(profile, 'premium_week')).resolves.toEqual({
+      status: 'pending',
+      reason: 'TELEGRAM_STARS_CONFIRMATION_PENDING',
+    });
+    expect(rustore).not.toHaveBeenCalled();
+  });
+
+  it('only asks RuStore Pay on the rustore channel', async () => {
+    rustore.mockResolvedValue({ status: 'completed' });
+    await expect(getPaymentProvider('rustore', '1').purchase(profile, 'premium_week')).resolves.toEqual({ status: 'completed' });
+    expect(rustore).toHaveBeenCalledTimes(1);
+    expect(telegram).not.toHaveBeenCalled();
+  });
+
+  it('keeps RuStore purchases disabled until monetization is explicitly enabled', async () => {
+    await expect(getPaymentProvider('rustore', '0').purchase(profile, 'premium_week')).resolves.toEqual({
+      status: 'unavailable',
+      reason: 'PAYMENTS_NOT_AVAILABLE_ON_THIS_CHANNEL',
+    });
+    expect(rustore).not.toHaveBeenCalled();
+  });
+
+  it.each(['google_play', 'development'] as const)('does not start external payment for %s', async (channel) => {
+    await expect(getPaymentProvider(channel).purchase(profile, 'premium_week')).resolves.toEqual({
+      status: 'unavailable',
+      reason: 'PAYMENTS_NOT_AVAILABLE_ON_THIS_CHANNEL',
+    });
+    expect(telegram).not.toHaveBeenCalled();
+    expect(rustore).not.toHaveBeenCalled();
+  });
+});

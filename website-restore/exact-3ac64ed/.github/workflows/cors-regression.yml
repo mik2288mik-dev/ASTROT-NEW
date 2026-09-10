@@ -1,0 +1,26 @@
+name: CORS regression
+
+on:
+  pull_request:
+    paths:
+      - 'middleware.ts'
+      - 'lib/apiCors.ts'
+      - '__tests__/mobile-api-auth.test.ts'
+      - '.github/workflows/cors-regression.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Targeted CORS regression
+        run: npm test -- --runTestsByPath __tests__/mobile-api-auth.test.ts --runInBand
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
