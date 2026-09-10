@@ -1,5 +1,6 @@
 package ru.tvoygoroskop.app;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 
@@ -13,6 +14,8 @@ import ru.tvoygoroskop.app.notifications.NativeNotificationsPlugin;
 
 /** Android entry point for the public RuStore application identity. */
 public class MainActivity extends BridgeActivity {
+    private Object ruStoreUpdateBridge;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         NativeDiagnosticsPlugin.installCrashHandler(this);
@@ -27,6 +30,7 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         NativeDiagnosticsPlugin.mark(this, "activity_onCreate_after_capacitor");
         if (isRuStorePaymentsEnabled() && savedInstanceState == null) proceedRuStoreIntent(getIntent());
+        startRuStoreUpdateCheck();
     }
 
     @Override
@@ -56,6 +60,12 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    public void onDestroy() {
+        stopRuStoreUpdateCheck();
+        super.onDestroy();
+    }
+
+    @Override
     public void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
@@ -63,9 +73,12 @@ public class MainActivity extends BridgeActivity {
         if (isRuStorePaymentsEnabled()) proceedRuStoreIntent(intent);
     }
 
+    private boolean isRuStoreBuild() {
+        return "rustore".equals(BuildConfig.DISTRIBUTION_CHANNEL);
+    }
+
     private boolean isRuStorePaymentsEnabled() {
-        return "rustore".equals(BuildConfig.DISTRIBUTION_CHANNEL)
-            && BuildConfig.RUSTORE_PAYMENTS_ENABLED;
+        return isRuStoreBuild() && BuildConfig.RUSTORE_PAYMENTS_ENABLED;
     }
 
     @SuppressWarnings("unchecked")
@@ -84,6 +97,29 @@ public class MainActivity extends BridgeActivity {
             bridge.getMethod("proceedIntent", Intent.class).invoke(null, intent);
         } catch (ReflectiveOperationException ignored) {
             // The SDK bridge is unavailable outside the enabled RuStore flavor.
+        }
+    }
+
+    private void startRuStoreUpdateCheck() {
+        if (!isRuStoreBuild() || ruStoreUpdateBridge != null) return;
+        try {
+            Class<?> bridgeClass = Class.forName("ru.tvoygoroskop.app.rustore.RuStoreUpdateBridge");
+            Object bridge = bridgeClass.getConstructor(Context.class).newInstance(this);
+            ruStoreUpdateBridge = bridge;
+            bridgeClass.getMethod("start").invoke(bridge);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+            ruStoreUpdateBridge = null;
+        }
+    }
+
+    private void stopRuStoreUpdateCheck() {
+        Object bridge = ruStoreUpdateBridge;
+        ruStoreUpdateBridge = null;
+        if (bridge == null) return;
+        try {
+            bridge.getClass().getMethod("stop").invoke(bridge);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+            // Update cleanup is best-effort and must never affect app shutdown.
         }
     }
 }

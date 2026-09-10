@@ -31,3 +31,10 @@
 -keep class ru.tvoygoroskop.app.rustore.RuStorePayBridge {
     public static void proceedIntent(android.content.Intent);
 }
+
+# MainActivity loads the flavor-only update bridge and its methods by name.
+-keep class ru.tvoygoroskop.app.rustore.RuStoreUpdateBridge {
+    public <init>(android.content.Context);
+    public void start();
+    public void stop();
+}
