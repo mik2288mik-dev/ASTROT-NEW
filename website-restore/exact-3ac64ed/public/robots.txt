@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /api/
-Disallow: /admin
-Disallow: /auth/
-
-Sitemap: https://www.tvoi-goroskop.ru/sitemap.xml
