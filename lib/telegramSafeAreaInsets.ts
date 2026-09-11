@@ -14,6 +14,7 @@ type WebAppInsets = {
 };
 
 type TelegramWebAppLike = {
+  platform?: string;
   contentSafeAreaInset?: WebAppInsets;
   safeAreaInset?: WebAppInsets;
   viewportHeight?: number;
@@ -55,6 +56,13 @@ export function applyTelegramSafeAreaCssVars(): void {
 
   applyInsetVars(root, 'tg-content-safe-area-inset', wa.contentSafeAreaInset);
   applyInsetVars(root, 'tg-safe-area-inset', wa.safeAreaInset);
+
+  if (wa.platform === 'tdesktop') {
+    root.style.setProperty('--tg-content-safe-area-inset-left', '0px');
+    root.style.setProperty('--tg-content-safe-area-inset-right', '0px');
+    root.style.setProperty('--tg-safe-area-inset-left', '0px');
+    root.style.setProperty('--tg-safe-area-inset-right', '0px');
+  }
 
   if (typeof wa.viewportHeight === 'number' && Number.isFinite(wa.viewportHeight) && wa.viewportHeight > 0) {
     root.style.setProperty('--tg-viewport-height', `${wa.viewportHeight}px`);
