@@ -1,0 +1,3 @@
+- `docs/onboarding-site-legal-v1`: documentation and specifications only.
+- `feat/marketing-site-v1`: standalone website implementation, to be created from the docs branch.
+- `feat/onboarding-v1`: runtime onboarding, created only after Forecast V3 is published.
