@@ -1,0 +1,132 @@
+{
+  "keyword": "гороскоп",
+  "periodicity": "month",
+  "period_start": "2024-07",
+  "period_end": "2026-06",
+  "region": "Россия",
+  "device": "Смартфоны",
+  "collected_at": "2026-07-29T18:55:20.342Z",
+  "source_url": "https://wordstat.yandex.ru/?region=225&view=graph&words=%D0%B3%D0%BE%D1%80%D0%BE%D1%81%D0%BA%D0%BE%D0%BF",
+  "rows": [
+    {
+      "period": "июль 2024",
+      "requests": 4451612,
+      "share_percent": 0.074
+    },
+    {
+      "period": "август 2024",
+      "requests": 4346158,
+      "share_percent": 0.072
+    },
+    {
+      "period": "сентябрь 2024",
+      "requests": 4277334,
+      "share_percent": 0.067
+    },
+    {
+      "period": "октябрь 2024",
+      "requests": 4854867,
+      "share_percent": 0.069
+    },
+    {
+      "period": "ноябрь 2024",
+      "requests": 5085546,
+      "share_percent": 0.07
+    },
+    {
+      "period": "декабрь 2024",
+      "requests": 6103274,
+      "share_percent": 0.082
+    },
+    {
+      "period": "январь 2025",
+      "requests": 5698332,
+      "share_percent": 0.074
+    },
+    {
+      "period": "февраль 2025",
+      "requests": 4440830,
+      "share_percent": 0.062
+    },
+    {
+      "period": "март 2025",
+      "requests": 4787153,
+      "share_percent": 0.062
+    },
+    {
+      "period": "апрель 2025",
+      "requests": 4360115,
+      "share_percent": 0.059
+    },
+    {
+      "period": "май 2025",
+      "requests": 4077048,
+      "share_percent": 0.058
+    },
+    {
+      "period": "июнь 2025",
+      "requests": 4204063,
+      "share_percent": 0.062
+    },
+    {
+      "period": "июль 2025",
+      "requests": 4317656,
+      "share_percent": 0.063
+    },
+    {
+      "period": "август 2025",
+      "requests": 4305021,
+      "share_percent": 0.063
+    },
+    {
+      "period": "сентябрь 2025",
+      "requests": 4268953,
+      "share_percent": 0.059
+    },
+    {
+      "period": "октябрь 2025",
+      "requests": 4900119,
+      "share_percent": 0.062
+    },
+    {
+      "period": "ноябрь 2025",
+      "requests": 5020212,
+      "share_percent": 0.064
+    },
+    {
+      "period": "декабрь 2025",
+      "requests": 5636339,
+      "share_percent": 0.073
+    },
+    {
+      "period": "январь 2026",
+      "requests": 5058491,
+      "share_percent": 0.069
+    },
+    {
+      "period": "февраль 2026",
+      "requests": 4039108,
+      "share_percent": 0.062
+    },
+    {
+      "period": "март 2026",
+      "requests": 4477274,
+      "share_percent": 0.06
+    },
+    {
+      "period": "апрель 2026",
+      "requests": 4513222,
+      "share_percent": 0.059
+    },
+    {
+      "period": "май 2026",
+      "requests": 4183477,
+      "share_percent": 0.058
+    },
+    {
+      "period": "июнь 2026",
+      "requests": 4375325,
+      "share_percent": 0.061
+    }
+  ]
+}

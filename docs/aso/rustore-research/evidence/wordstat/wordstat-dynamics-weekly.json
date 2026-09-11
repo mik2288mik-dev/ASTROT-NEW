@@ -1,0 +1,272 @@
+{
+  "keyword": "гороскоп",
+  "periodicity": "week",
+  "period_start": "28 июля 2025 – 3 августа 2025",
+  "period_end": "20 июля 2026 – 26 июля 2026",
+  "region": "Россия",
+  "device": "Смартфоны",
+  "collected_at": "2026-07-29T18:55:49.686Z",
+  "source_url": "https://wordstat.yandex.ru/?region=225&view=graph&words=%D0%B3%D0%BE%D1%80%D0%BE%D1%81%D0%BA%D0%BE%D0%BF",
+  "rows": [
+    {
+      "period": "28 июля 2025 – 3 августа 2025",
+      "requests": 1011270,
+      "share_percent": 0.066
+    },
+    {
+      "period": "4 августа 2025 – 10 августа 2025",
+      "requests": 980480,
+      "share_percent": 0.063
+    },
+    {
+      "period": "11 августа 2025 – 17 августа 2025",
+      "requests": 973254,
+      "share_percent": 0.063
+    },
+    {
+      "period": "18 августа 2025 – 24 августа 2025",
+      "requests": 977770,
+      "share_percent": 0.064
+    },
+    {
+      "period": "25 августа 2025 – 31 августа 2025",
+      "requests": 968681,
+      "share_percent": 0.064
+    },
+    {
+      "period": "1 сентября 2025 – 7 сентября 2025",
+      "requests": 953150,
+      "share_percent": 0.06
+    },
+    {
+      "period": "8 сентября 2025 – 14 сентября 2025",
+      "requests": 972637,
+      "share_percent": 0.058
+    },
+    {
+      "period": "15 сентября 2025 – 21 сентября 2025",
+      "requests": 992496,
+      "share_percent": 0.058
+    },
+    {
+      "period": "22 сентября 2025 – 28 сентября 2025",
+      "requests": 1030080,
+      "share_percent": 0.06
+    },
+    {
+      "period": "29 сентября 2025 – 5 октября 2025",
+      "requests": 1043136,
+      "share_percent": 0.061
+    },
+    {
+      "period": "6 октября 2025 – 12 октября 2025",
+      "requests": 1036483,
+      "share_percent": 0.06
+    },
+    {
+      "period": "13 октября 2025 – 19 октября 2025",
+      "requests": 1101900,
+      "share_percent": 0.059
+    },
+    {
+      "period": "20 октября 2025 – 26 октября 2025",
+      "requests": 1159805,
+      "share_percent": 0.063
+    },
+    {
+      "period": "27 октября 2025 – 2 ноября 2025",
+      "requests": 1198375,
+      "share_percent": 0.069
+    },
+    {
+      "period": "3 ноября 2025 – 9 ноября 2025",
+      "requests": 1143727,
+      "share_percent": 0.063
+    },
+    {
+      "period": "10 ноября 2025 – 16 ноября 2025",
+      "requests": 1137815,
+      "share_percent": 0.062
+    },
+    {
+      "period": "17 ноября 2025 – 23 ноября 2025",
+      "requests": 1192155,
+      "share_percent": 0.064
+    },
+    {
+      "period": "24 ноября 2025 – 30 ноября 2025",
+      "requests": 1225930,
+      "share_percent": 0.065
+    },
+    {
+      "period": "1 декабря 2025 – 7 декабря 2025",
+      "requests": 1251483,
+      "share_percent": 0.067
+    },
+    {
+      "period": "8 декабря 2025 – 14 декабря 2025",
+      "requests": 1222112,
+      "share_percent": 0.067
+    },
+    {
+      "period": "15 декабря 2025 – 21 декабря 2025",
+      "requests": 1257710,
+      "share_percent": 0.071
+    },
+    {
+      "period": "22 декабря 2025 – 28 декабря 2025",
+      "requests": 1295569,
+      "share_percent": 0.079
+    },
+    {
+      "period": "29 декабря 2025 – 4 января 2026",
+      "requests": 1431605,
+      "share_percent": 0.096
+    },
+    {
+      "period": "5 января 2026 – 11 января 2026",
+      "requests": 1164236,
+      "share_percent": 0.074
+    },
+    {
+      "period": "12 января 2026 – 18 января 2026",
+      "requests": 1088208,
+      "share_percent": 0.065
+    },
+    {
+      "period": "19 января 2026 – 25 января 2026",
+      "requests": 1070728,
+      "share_percent": 0.062
+    },
+    {
+      "period": "26 января 2026 – 1 февраля 2026",
+      "requests": 1066718,
+      "share_percent": 0.063
+    },
+    {
+      "period": "2 февраля 2026 – 8 февраля 2026",
+      "requests": 1044207,
+      "share_percent": 0.061
+    },
+    {
+      "period": "9 февраля 2026 – 15 февраля 2026",
+      "requests": 1011345,
+      "share_percent": 0.061
+    },
+    {
+      "period": "16 февраля 2026 – 22 февраля 2026",
+      "requests": 992485,
+      "share_percent": 0.063
+    },
+    {
+      "period": "23 февраля 2026 – 1 марта 2026",
+      "requests": 979125,
+      "share_percent": 0.062
+    },
+    {
+      "period": "2 марта 2026 – 8 марта 2026",
+      "requests": 909323,
+      "share_percent": 0.059
+    },
+    {
+      "period": "9 марта 2026 – 15 марта 2026",
+      "requests": 977924,
+      "share_percent": 0.058
+    },
+    {
+      "period": "16 марта 2026 – 22 марта 2026",
+      "requests": 1030748,
+      "share_percent": 0.059
+    },
+    {
+      "period": "23 марта 2026 – 29 марта 2026",
+      "requests": 1078487,
+      "share_percent": 0.062
+    },
+    {
+      "period": "30 марта 2026 – 5 апреля 2026",
+      "requests": 1086924,
+      "share_percent": 0.063
+    },
+    {
+      "period": "6 апреля 2026 – 12 апреля 2026",
+      "requests": 1029255,
+      "share_percent": 0.058
+    },
+    {
+      "period": "13 апреля 2026 – 19 апреля 2026",
+      "requests": 1048544,
+      "share_percent": 0.058
+    },
+    {
+      "period": "20 апреля 2026 – 26 апреля 2026",
+      "requests": 1064684,
+      "share_percent": 0.059
+    },
+    {
+      "period": "27 апреля 2026 – 3 мая 2026",
+      "requests": 1014371,
+      "share_percent": 0.059
+    },
+    {
+      "period": "4 мая 2026 – 10 мая 2026",
+      "requests": 833845,
+      "share_percent": 0.054
+    },
+    {
+      "period": "11 мая 2026 – 17 мая 2026",
+      "requests": 910232,
+      "share_percent": 0.055
+    },
+    {
+      "period": "18 мая 2026 – 24 мая 2026",
+      "requests": 987666,
+      "share_percent": 0.059
+    },
+    {
+      "period": "25 мая 2026 – 31 мая 2026",
+      "requests": 1056400,
+      "share_percent": 0.064
+    },
+    {
+      "period": "1 июня 2026 – 7 июня 2026",
+      "requests": 1025969,
+      "share_percent": 0.062
+    },
+    {
+      "period": "8 июня 2026 – 14 июня 2026",
+      "requests": 984447,
+      "share_percent": 0.058
+    },
+    {
+      "period": "15 июня 2026 – 21 июня 2026",
+      "requests": 1021780,
+      "share_percent": 0.06
+    },
+    {
+      "period": "22 июня 2026 – 28 июня 2026",
+      "requests": 1022708,
+      "share_percent": 0.061
+    },
+    {
+      "period": "29 июня 2026 – 5 июля 2026",
+      "requests": 1022275,
+      "share_percent": 0.061
+    },
+    {
+      "period": "6 июля 2026 – 12 июля 2026",
+      "requests": 991298,
+      "share_percent": 0.057
+    },
+    {
+      "period": "13 июля 2026 – 19 июля 2026",
+      "requests": 1005777,
+      "share_percent": 0.054
+    },
+    {
+      "period": "20 июля 2026 – 26 июля 2026",
+      "requests": 1051333,
+      "share_percent": 0.054
+    }
+  ]
+}
