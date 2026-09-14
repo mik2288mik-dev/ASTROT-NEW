@@ -77,7 +77,7 @@ export const EVENT_LABELS: Record<string, string> = {
   trial_started: 'Триал начат',
   purchase_success: 'Подписка оформлена',
   purchase_cancelled: 'Оплата отменена',
-  subscription_cancelled: 'Подписка отменена',
+  subscription_cancelled: 'Автопродление отключено',
   subscription_expired: 'Подписка истекла',
   purchase_failed: 'Ошибка оплаты',
   restore_started: 'Начало восстановления',
