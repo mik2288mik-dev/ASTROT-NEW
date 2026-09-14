@@ -18,6 +18,7 @@ import {
 import { processPendingRuStoreEvents } from './rustorePayments';
 import { processSupportDeliveryOutbox } from './supportOutbox';
 import { ensureNeboOpsWorker } from './neboOps';
+import { processOwnerCriticalAlerts } from './ownerCriticalAlerts';
 import { prewarmPersonalForecastIncrement } from './personalForecastPrewarm';
 
 const MSK_TZ = 'Europe/Moscow';
@@ -127,6 +128,15 @@ async function dispatchTick() {
   } catch {
     // Do not log provider messages here: a third-party error may contain ticket PII.
     console.warn('[cron] support delivery queue failed');
+  }
+
+  // The 5 September owner-scope filter intentionally retired payment lifecycle
+  // and owner support Telegram rows. Recover only those critical alerts after
+  // the normal queues have persisted their final state; ordinary activity stays filtered.
+  try {
+    await processOwnerCriticalAlerts(20);
+  } catch {
+    console.warn('[cron] owner critical alert recovery failed');
   } finally {
     dispatching = false;
   }
