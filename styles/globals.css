@@ -2407,23 +2407,6 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* iOS rubber-banding fix: position:fixed only on touch mobile devices */
-@media (max-width: 639px) and (hover: none) and (pointer: coarse) {
-  html, body {
-    position: fixed;
-    inset: 0;
-    overflow: hidden;
-  }
-}
-
-/* Telegram Desktop: force normal flow — its WebView mis-resolves position:fixed */
-html.tg-desktop,
-html.tg-desktop body {
-  position: static !important;
-  inset: auto !important;
-  overflow-x: hidden !important;
-}
-
 #root,
 #__next {
   width: 100%;
@@ -2431,19 +2414,14 @@ html.tg-desktop body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
   position: relative;
   background-color: var(--tg-theme-bg-color, #ffffff);
 }
 
 .lumia-app-shell {
   width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
-  height: var(--tg-viewport-stable-height, 100dvh);
-  min-height: var(--tg-viewport-stable-height, 100dvh);
-  max-height: var(--tg-viewport-stable-height, 100dvh);
+  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -2451,17 +2429,21 @@ html.tg-desktop body {
   background-color: #ffffff;
 }
 
-.lumia-app-shell.is-admin-view {
-  max-width: none;
-  margin: 0;
+/* Telegram Desktop: reset horizontal safe-area insets to prevent right-offset bugs */
+@media (min-width: 640px) {
+  .lumia-tg-main-gutter,
+  .lumia-tg-screen-pad,
+  .lumia-tg-hub-pad {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }
 
-@media (min-width: 640px) {
-  .lumia-app-shell:not(.is-admin-view) {
-    border-left: 1px solid rgba(17, 24, 39, 0.08);
-    border-right: 1px solid rgba(17, 24, 39, 0.08);
-    box-shadow: 0 0 40px rgba(17, 24, 39, 0.06);
-  }
+html.tg-desktop .lumia-tg-main-gutter,
+html.tg-desktop .lumia-tg-screen-pad,
+html.tg-desktop .lumia-tg-hub-pad {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Telegram Desktop: use 100% height instead of viewport-dependent vars */

@@ -57,7 +57,10 @@ export function applyTelegramSafeAreaCssVars(): void {
   applyInsetVars(root, 'tg-content-safe-area-inset', wa.contentSafeAreaInset);
   applyInsetVars(root, 'tg-safe-area-inset', wa.safeAreaInset);
 
-  const isDesktopPlatform = ['tdesktop', 'macos', 'web', 'weba', 'webk'].includes(wa.platform || '');
+  const platform = String(wa.platform || '').toLowerCase();
+  const isDesktopPlatform =
+    ['tdesktop', 'macos', 'web', 'weba', 'webk', 'windows', 'desktop'].includes(platform) ||
+    (typeof navigator !== 'undefined' && !/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent));
   if (isDesktopPlatform) {
     root.style.setProperty('--tg-content-safe-area-inset-left', '0px');
     root.style.setProperty('--tg-content-safe-area-inset-right', '0px');

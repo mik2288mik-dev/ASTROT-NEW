@@ -15,6 +15,20 @@ function getTelegramWebApp(): TelegramWebAppLike | null {
   return (window as any).Telegram?.WebApp || null;
 }
 
+function isDesktopEnvironment(tg: any): boolean {
+  const platform = String(tg?.platform || '').toLowerCase();
+  if (['tdesktop', 'weba', 'webk', 'web', 'macos', 'windows', 'desktop'].includes(platform)) {
+    return true;
+  }
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent || '';
+    if (!/android|iphone|ipad|ipod|mobile/i.test(ua)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function ensureTelegramFullscreen(): boolean {
   const tg = getTelegramWebApp();
   if (!tg) return false;
@@ -24,8 +38,7 @@ export function ensureTelegramFullscreen(): boolean {
     tg.expand?.();
     tg.disableVerticalSwipes?.();
 
-    const platform = String((tg as any).platform || '').toLowerCase();
-    const isDesktopOrWeb = ['tdesktop', 'weba', 'webk', 'web', 'macos'].includes(platform);
+    const isDesktopOrWeb = isDesktopEnvironment(tg);
 
     if (!isDesktopOrWeb && typeof tg.requestFullscreen === 'function' && !tg.isFullscreen) {
       tg.requestFullscreen();
@@ -57,8 +70,7 @@ export function installTelegramFullscreenGuard(): () => void {
       const tg = getTelegramWebApp();
       if (!tg?.onEvent || !tg?.offEvent) return;
 
-      const platform = String((tg as any).platform || '').toLowerCase();
-      const isDesktopOrWeb = ['tdesktop', 'weba', 'webk', 'web', 'macos'].includes(platform);
+      const isDesktopOrWeb = isDesktopEnvironment(tg);
 
       const handleActivated = () => ensureTelegramFullscreen();
       const handleFullscreenChanged = () => {
