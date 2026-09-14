@@ -2396,6 +2396,7 @@ html, body {
   color: var(--text-main);
   transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s ease;
   
+  inset: 0;
   position: fixed; 
   overflow: hidden;
   
@@ -2421,6 +2422,17 @@ html, body {
   min-height: var(--tg-viewport-stable-height, 100dvh);
   max-height: var(--tg-viewport-stable-height, 100dvh);
   touch-action: pan-x pan-y;
+}
+
+@media (min-width: 640px) {
+  .lumia-app-shell:not(.is-admin-view) {
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    border-left: 1px solid rgba(17, 24, 39, 0.08);
+    border-right: 1px solid rgba(17, 24, 39, 0.08);
+    box-shadow: 0 0 40px rgba(17, 24, 39, 0.06);
+  }
 }
 
 /* Telegram Mini App / iPhone safe-area: use env() when viewport-fit=cover is set */

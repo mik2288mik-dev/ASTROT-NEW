@@ -2577,8 +2577,8 @@ const App: React.FC = () => {
 
     if (view === 'onboarding') {
         return (
-            <div className="relative isolate fixed inset-0 h-[100dvh] overflow-hidden">
-                <div className="relative z-10 h-full">
+            <div className="fixed inset-0 z-10 flex h-full w-full flex-col overflow-hidden bg-white">
+                <div className="relative z-10 h-full w-full">
                     <Onboarding
                         onComplete={handleOnboardingComplete}
                         initialStep={hasPendingOnboardingDraft ? 'birth' : onboardingInitialStep}
@@ -2685,10 +2685,14 @@ const App: React.FC = () => {
                 showsBottomNavigation ? 'has-today-bottom-navigation' : ''
             } ${
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
+            } ${
+                view === 'admin' ? 'is-admin-view' : ''
             }`}
         >
             <main
-                className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
+                className={`lumia-tg-main-gutter relative z-10 flex-1 w-full overflow-hidden min-h-0 bg-white ${
+                    view === 'admin' ? 'max-w-none' : 'max-w-reading-wide mx-auto'
+                }`}
                 aria-hidden={navigationSheet || paywallContext ? true : undefined}
                 inert={navigationSheet || paywallContext ? true : undefined}
             >
@@ -2911,7 +2915,7 @@ const App: React.FC = () => {
             {paywallContext ? (
                 <div
                     ref={paywallHostRef}
-                    className="fixed inset-0 z-[150] h-[100dvh] overflow-hidden bg-white"
+                    className="fixed inset-0 z-[150] h-full w-full overflow-hidden bg-white"
                     style={{ zIndex: 150 }}
                     role="dialog"
                     aria-modal="true"

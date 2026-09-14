@@ -24,7 +24,10 @@ export function ensureTelegramFullscreen(): boolean {
     tg.expand?.();
     tg.disableVerticalSwipes?.();
 
-    if (typeof tg.requestFullscreen === 'function' && !tg.isFullscreen) {
+    const platform = String((tg as any).platform || '').toLowerCase();
+    const isDesktopOrWeb = ['tdesktop', 'weba', 'webk', 'web', 'macos'].includes(platform);
+
+    if (!isDesktopOrWeb && typeof tg.requestFullscreen === 'function' && !tg.isFullscreen) {
       tg.requestFullscreen();
     }
 
@@ -54,18 +57,23 @@ export function installTelegramFullscreenGuard(): () => void {
       const tg = getTelegramWebApp();
       if (!tg?.onEvent || !tg?.offEvent) return;
 
+      const platform = String((tg as any).platform || '').toLowerCase();
+      const isDesktopOrWeb = ['tdesktop', 'weba', 'webk', 'web', 'macos'].includes(platform);
+
       const handleActivated = () => ensureTelegramFullscreen();
       const handleFullscreenChanged = () => {
-        if (!getTelegramWebApp()?.isFullscreen) {
+        if (!isDesktopOrWeb && !getTelegramWebApp()?.isFullscreen) {
           window.setTimeout(() => {
             ensureTelegramFullscreen();
           }, 80);
         }
       };
       const handleFullscreenFailed = () => {
-        window.setTimeout(() => {
-          ensureTelegramFullscreen();
-        }, 180);
+        if (!isDesktopOrWeb) {
+          window.setTimeout(() => {
+            ensureTelegramFullscreen();
+          }, 180);
+        }
       };
 
       tg.onEvent('activated', handleActivated);
