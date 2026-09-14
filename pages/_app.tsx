@@ -45,8 +45,11 @@ export default function App({ Component, pageProps, router }: AppProps) {
       const tg = (window as any).Telegram?.WebApp;
       if (tg) {
         tg.ready?.();
-        tg.expand?.();
-        if (['tdesktop', 'macos', 'web', 'weba', 'webk'].includes(tg.platform)) {
+        const isDesktop = ['tdesktop', 'macos', 'web', 'weba', 'webk'].includes(tg.platform);
+        if (!isDesktop) {
+          tg.expand?.();
+        }
+        if (isDesktop) {
           document.documentElement.classList.add('tg-desktop');
         }
       }
