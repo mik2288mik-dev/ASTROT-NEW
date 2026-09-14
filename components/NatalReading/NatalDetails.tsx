@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Circle, House, Compass, Triangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Circle, House, Compass, Triangle, Square, Asterisk } from 'lucide-react';
 import type { NatalChartWheelSource } from '../../lib/natalChartWheelModel';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { buildMapData, explainMapSelection, mapObject, MAP_HOUSES, MAP_ASPECTS, type MapSelection } from './mapExplanation';
@@ -26,16 +26,17 @@ export function NatalDetails({ chart, onSelect }: { chart: NatalChartWheelSource
   return <div aria-label="Подробности твоей карты">{groups.map(({title, Icon, rows, color}) => {
     const open = expanded.includes(title);
     const shown = open ? rows : rows.slice(0,3);
-    const art: NatalArt = title === 'Планеты' ? 'character' : title === 'Дома' ? 'home' : title === 'Аспекты' ? 'communication' : 'plus';
+    const art: NatalArt = title === 'Планеты' ? 'planets' : title === 'Дома' ? 'houses' : title === 'Аспекты' ? 'aspects' : 'points';
     return <section key={title} className={styles.detailsGroup} style={{'--section-accent':color} as React.CSSProperties}>
-      <header className={styles.detailsHeading}><span className={styles.sectionMarker}><Icon size={22} aria-hidden="true"/></span><h2>{title}</h2><small>{rows.length}</small><NatalArtwork art={art}/></header>
+      <header className={styles.detailsHeading}><NatalArtwork art={art}/><h2>{title}</h2>{rows.length > 3 ? <button type="button" className={styles.detailsMore} aria-expanded={open} onClick={() => setExpanded(current => open ? current.filter(item => item !== title) : [...current,title])}>{open ? 'Свернуть' : `Все ${rows.length}`}<ChevronDown size={17} aria-hidden="true" style={{transform:open?'rotate(180deg)':undefined}}/></button> : <small>{rows.length}</small>}</header>
       <div className={styles.detailsRows}>{shown.map(row => {
         const objectKey = 'objectKey' in row ? row.objectKey : undefined;
+        const AspectIcon = row.title.startsWith('Квадрат:') ? Square : row.title.startsWith('Секстиль:') ? Asterisk : Icon;
         return <button key={row.id} type="button" onClick={e => onSelect({kind:row.kind,id:row.id},e.currentTarget)}>
-        {typeof objectKey === 'string' ? <PlanetIcon planet={objectKey === 'northNode' ? 'north-node' : objectKey === 'southNode' ? 'south-node' : objectKey === 'ascendant' ? 'asc' : objectKey === 'descendant' ? 'desc' : objectKey} size={24} stroke={mapObject(objectKey)?.color}/> : <Icon size={24} color={color} aria-hidden="true"/>}
+        {typeof objectKey === 'string' ? <PlanetIcon planet={objectKey === 'northNode' ? 'north-node' : objectKey === 'southNode' ? 'south-node' : objectKey === 'ascendant' ? 'asc' : objectKey === 'descendant' ? 'desc' : objectKey} size={30} stroke={mapObject(objectKey)?.color}/> : row.kind === 'house' ? <i className={styles.houseNumber} aria-hidden="true">{row.id}</i> : <AspectIcon size={26} color={row.title.startsWith('Квадрат:') ? '#ed3152' : row.title.startsWith('Тригон:') ? '#00a76d' : color} aria-hidden="true"/>}
         <span><strong>{row.title}</strong><small>{row.meaning}</small></span><ChevronRight size={17} aria-hidden="true"/>
       </button>})}</div>
-      {!rows.length ? <p className={styles.detailsEmpty}>В сохранённой карте нет надёжных данных для этой группы.</p> : rows.length > 3 ? <button type="button" className={styles.detailsMore} aria-expanded={open} onClick={() => setExpanded(current => open ? current.filter(item => item !== title) : [...current,title])}>{open ? 'Свернуть' : `Все ${rows.length}`}<ChevronDown size={17} aria-hidden="true" style={{transform:open?'rotate(180deg)':undefined}}/></button> : null}
+      {!rows.length ? <p className={styles.detailsEmpty}>В сохранённой карте нет надёжных данных для этой группы.</p> : null}
     </section>;
   })}</div>;
 }

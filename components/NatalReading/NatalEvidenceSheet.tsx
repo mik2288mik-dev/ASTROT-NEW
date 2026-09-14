@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import styles from './NatalSection.module.css';
 import type { NatalChartData, UserProfile } from '../../types';
 import {
   buildNatalModelContext,
@@ -437,7 +438,7 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
     >
       <section
         ref={panelRef}
-        className="natal-v3-sheet natal-v3-evidence-sheet"
+        className={`natal-v3-sheet natal-v3-evidence-sheet ${styles.evidenceSheet}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="natal-v3-evidence-title"
