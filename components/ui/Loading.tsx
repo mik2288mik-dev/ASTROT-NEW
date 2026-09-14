@@ -34,7 +34,7 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
 
   return (
     <div
-      className="absolute inset-0 z-50 flex h-full w-full flex-col items-center justify-center overflow-hidden"
+      className="flex flex-1 h-full w-full min-h-[100dvh] max-w-[480px] mx-auto flex-col items-center justify-center overflow-hidden relative z-50"
       style={{
         backgroundColor: 'var(--app-canvas, #FFFFFF)',
       }}

@@ -38,9 +38,22 @@ export default function App({ Component, pageProps, router }: AppProps) {
   const publicSiteEnabled = process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1';
   const viewport = publicSiteEnabled
     ? 'width=device-width, initial-scale=1, viewport-fit=cover'
-    : router.pathname === '/'
-      ? 'width=device-width, initial-scale=1, viewport-fit=cover'
-      : 'width=device-width, initial-scale=1, viewport-fit=cover';
+    : 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+
+  useEffect(() => {
+    try {
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg) {
+        tg.ready?.();
+        tg.expand?.();
+        if (['tdesktop', 'macos', 'web', 'weba', 'webk'].includes(tg.platform)) {
+          document.documentElement.classList.add('tg-desktop');
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     if (!publicSiteEnabled) return;

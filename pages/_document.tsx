@@ -27,8 +27,8 @@ export default class MeouDocument extends Document<MeouDocumentProps> {
           {loadTelegramAppDependencies ? <><script src="https://telegram.org/js/telegram-web-app.js"></script><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" /><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" /></> : null}
         </Head>
         <body>
-          {/* Detect Telegram Desktop before first paint to apply CSS overrides */}
-          <script dangerouslySetInnerHTML={{ __html: `try{if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.platform==='tdesktop'){document.documentElement.classList.add('tg-desktop')}}catch(e){}` }} />
+          {/* Early Telegram WebApp initialization and desktop platform detection */}
+          <script dangerouslySetInnerHTML={{ __html: `try{var tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready&&tg.ready();tg.expand&&tg.expand();if(['tdesktop','macos','web','weba','webk'].indexOf(tg.platform)!==-1){document.documentElement.classList.add('tg-desktop')}}}catch(e){}` }} />
           <Main /><NextScript />
         </body>
       </Html>

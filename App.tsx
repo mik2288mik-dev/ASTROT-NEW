@@ -767,7 +767,7 @@ const App: React.FC = () => {
         tg?.enableClosingConfirmation?.();
 
         // Apply tg-desktop class ASAP so CSS overrides take effect before layout
-        if (tg?.platform === 'tdesktop') {
+        if (['tdesktop', 'macos', 'web', 'weba', 'webk'].includes(tg?.platform || '')) {
             document.documentElement.classList.add('tg-desktop');
         }
 
