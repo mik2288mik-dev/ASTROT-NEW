@@ -1798,13 +1798,16 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500 sm:inline-flex">{authMode}</span>
+            <a href="/admin" target="_blank" rel="noopener noreferrer" className={`${btnGhost} text-indigo-600 font-bold flex items-center gap-1`}>
+              <span>⚡</span>
+              <span>Открыть NEBO Ops</span>
+            </a>
             <button className={btnGhost} disabled={booting} onClick={loadMe}>{booting ? 'Проверяю…' : 'Проверить доступ'}</button>
             <button className={btnGhost} onClick={onClose}>В приложение</button>
           </div>
         </header>
 
         {error ? <div className="p-4"><ErrorNote>{error.message}</ErrorNote></div> : null}
-
         {me ? (
           <main ref={mainRef} tabIndex={-1} aria-label={activeLabel} className="admin2-main min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
             {visible.length === 0 ? <div className="admin2-empty">У этой роли пока нет доступных разделов. Обратитесь к владельцу приложения.</div> : null}

@@ -33,8 +33,23 @@ import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 
 export const config = { maxDuration: 180 };
 
+function readSingleQueryValue(value: unknown): string {
+  if (typeof value === 'string') return value.trim();
+  if (Array.isArray(value)) {
+    for (const candidate of value) {
+      if (typeof candidate === 'string') {
+        const normalized = candidate.trim();
+        if (normalized.length > 0) return normalized;
+      }
+    }
+  }
+  return '';
+}
+
 function readPeriod(req: NextApiRequest): PersonalForecastPeriod | null {
-  const normalized = String(req.method === 'GET' ? req.query.period || '' : req.body?.period || '').trim().toLowerCase();
+  const normalized = (req.method === 'GET'
+    ? readSingleQueryValue(req.query.period)
+    : String(req.body?.period || '').trim()).toLowerCase();
   if (normalized === 'today') return 'day';
   return (['day', 'week', 'month'] as const).includes(normalized as PersonalForecastPeriod)
     ? normalized as PersonalForecastPeriod
@@ -42,7 +57,9 @@ function readPeriod(req: NextApiRequest): PersonalForecastPeriod | null {
 }
 
 function readPeriodKey(req: NextApiRequest): string {
-  return String(req.method === 'GET' ? req.query.periodKey || '' : req.body?.periodKey || '').trim();
+  return req.method === 'GET'
+    ? readSingleQueryValue(req.query.periodKey)
+    : String(req.body?.periodKey || '').trim();
 }
 
 function readRegenerate(req: NextApiRequest): boolean {
@@ -81,7 +98,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   try {
   const auth = await requireAppUser(req, { allowGuest: true });
-  const wireVersion = resolvePersonalForecastWireVersion(req.query.contractVersion);
+  const contractVersionInput = req.method === 'GET'
+    ? req.query.contractVersion
+    : (req.body?.contractVersion ?? req.query.contractVersion);
+  const wireVersion = resolvePersonalForecastWireVersion(
+    req.method === 'GET' ? readSingleQueryValue(contractVersionInput) : contractVersionInput,
+  );
   if (!wireVersion) {
     diagnostic.log('validation', 'error', { httpStatus: 400, errorCode: 'PERSONAL_FORECAST_CONTRACT_UNSUPPORTED' });
     return res.status(400).json({

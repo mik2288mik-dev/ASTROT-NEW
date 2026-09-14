@@ -460,4 +460,105 @@ export const admin2 = {
     const suffix = s.toString() ? `?${s}` : '';
     return req<{ entries: AdminAuditRow[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>(`/api/admin/v2/audit${suffix}`);
   },
+  // Observability & Pulse
+  pulse: () => req<AdminPulse>('/api/admin/v2/pulse'),
+  aiRequests: (params: { page?: number; pageSize?: number; scenario?: string; status?: string; model?: string; userId?: string; traceId?: string } = {}) => {
+    const s = new URLSearchParams();
+    if (params.page) s.set('page', String(params.page));
+    if (params.pageSize) s.set('pageSize', String(params.pageSize));
+    if (params.scenario) s.set('scenario', params.scenario);
+    if (params.status) s.set('status', params.status);
+    if (params.model) s.set('model', params.model);
+    if (params.userId) s.set('userId', params.userId);
+    if (params.traceId) s.set('traceId', params.traceId);
+    const suffix = s.toString() ? `?${s}` : '';
+    return req<{ requests: AdminAiRequestRow[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>(`/api/admin/v2/ai/requests${suffix}`);
+  },
+  aiDefects: (status = 'all') => req<{ defects: AdminAiDefectRow[] }>(`/api/admin/v2/ai/defects?status=${encodeURIComponent(status)}`),
+  patchAiDefect: (id: number, patch: { status?: string; adminNote?: string }) => req<{ ok: boolean }>('/api/admin/v2/ai/defects', { method: 'PATCH', body: { id, ...patch } }),
+  errors: (status = 'all') => req<{ errors: AdminTechnicalErrorRow[] }>(`/api/admin/v2/errors?status=${encodeURIComponent(status)}`),
+  patchError: (id: number, patch: { status?: string; adminNote?: string }) => req<{ ok: boolean }>('/api/admin/v2/errors', { method: 'PATCH', body: { id, ...patch } }),
+  funnels: (days = 30) => req<{ periodDays: number; steps: AdminFunnelStep[] }>(`/api/admin/v2/analytics/funnels?days=${days}`),
+  retentionCohorts: () => req<{ cohorts: AdminCohortRow[] }>('/api/admin/v2/analytics/retention'),
+  versions: () => req<{ versions: AdminVersionRow[] }>('/api/admin/v2/analytics/versions'),
+  acquisition: () => req<AdminAcquisitionData>('/api/admin/v2/analytics/acquisition'),
+  systemHealth: () => req<AdminSystemHealth>('/api/admin/v2/system/health'),
+  events: (params: { page?: number; limit?: number; userId?: string; eventType?: string; section?: string; source?: string; search?: string; from?: string; to?: string } = {}) => {
+    const s = new URLSearchParams();
+    if (params.page && params.limit) s.set('offset', String((params.page - 1) * params.limit));
+    if (params.limit) s.set('limit', String(params.limit));
+    if (params.userId) s.set('user_id', params.userId);
+    if (params.eventType) s.set('event_type', params.eventType);
+    if (params.section) s.set('section', params.section);
+    if (params.source) s.set('source', params.source);
+    if (params.search) s.set('search', params.search);
+    if (params.from) s.set('from', params.from);
+    if (params.to) s.set('to', params.to);
+    const suffix = s.toString() ? `?${s}` : '';
+    return req<{ events: any[]; total: number; limit: number; offset: number; filterSuggestions: { eventTypes: string[]; sections: string[] } }>(`/api/admin/v2/events${suffix}`);
+  },
 };
+
+export type AdminPulse = {
+  pulse: { active5m: number; active15m: number; events15m: number; generatedAt: string };
+  recentRegistrations: Array<{ id: string; name: string; provider: string; createdAt: string; isPremium: boolean; device: string | null }>;
+  recentEvents: Array<{ id: number; userId: string; userName: string | null; eventType: string; label: string; section: string | null; source: string | null; occurredAt: string }>;
+  recentPayments: Array<{ id: number; userId: string; amount: number; currency: string; status: string; createdAt: string; provider: string }>;
+  recentErrors: Array<{ id: number; endpoint: string; httpStatus: number | null; errorCode: string; message: string; count: number; lastSeenAt: string }>;
+  recentAiDefects: Array<{ id: number; scenario: string; model: string; category: string; errorCode: string; message: string; count: number; lastSeenAt: string }>;
+};
+
+export type AdminAiRequestRow = {
+  id: number; traceId: string; userId: string | null; userName: string | null;
+  scenario: string; model: string; provider: string; status: 'success' | 'error' | 'rejected';
+  durationMs: number; latencyBreakdown: any | null; tokensPrompt: number | null;
+  tokensCompletion: number | null; costEstimatedCents: number | null; inputSafe: any | null;
+  outputText: string | null; errorCode: string | null; rejectionReason: string | null;
+  createdAt: string;
+};
+
+export type AdminAiDefectRow = {
+  id: number; groupKey: string; category: string; errorCode: string; message: string;
+  scenario: string; model: string; lastTraceId: string | null; lastUserId: string | null;
+  occurrencesCount: number; affectedUsersCount: number; firstSeenAt: string; lastSeenAt: string;
+  sampleInput: any | null; sampleOutput: string | null; status: 'new' | 'investigating' | 'fixed' | 'ignored';
+  adminNote: string | null; resolvedAt: string | null;
+};
+
+export type AdminTechnicalErrorRow = {
+  id: number; fingerprint: string; endpoint: string; httpStatus: number | null;
+  errorCode: string; message: string; stackTrace: string | null; appVersion: string | null;
+  platform: string | null; occurrencesCount: number; affectedUsersCount: number;
+  firstSeenAt: string; lastSeenAt: string; sampleRequestId: string | null;
+  status: 'new' | 'investigating' | 'resolved' | 'ignored'; adminNote: string | null;
+};
+
+export type AdminFunnelStep = {
+  key: string; label: string; users: number; pctOfStart: number; pctOfPrev: number; dropOffPct: number;
+};
+
+export type AdminCohortRow = {
+  week: string; cohortSize: number; d1: number | null; d3: number | null; d7: number | null; d14: number | null; d30: number | null;
+};
+
+export type AdminVersionRow = {
+  version: string; totalUsers: number; activeUsers7d: number; newUsers30d: number;
+  premiumUsers: number; conversionPct: number; errorsCount: number; errorRate: number;
+  firstSeenAt: string; lastSeenAt: string;
+};
+
+export type AdminAcquisitionData = {
+  sources: Array<{ source: string; campaign: string; users: number; premiumUsers: number; active7d: number; conversionPct: number }>;
+  providers: Array<{ provider: string; users: number; premiumUsers: number; active7d: number; conversionPct: number }>;
+};
+
+export type AdminSystemHealth = {
+  healthy: boolean;
+  database: { status: string; latencyMs: number; pool: { total: number; idle: number; waiting: number } };
+  queues: { notifications: { pending: number; failed: number }; opsOutbox: { pending: number; failed: number } };
+  errorsLast1h: number;
+  providers: Record<string, any>;
+  system: { uptimeSeconds: number; nodeVersion: string; rssMb: number; heapUsedMb: number; heapTotalMb: number; env: string };
+  checkedAt: string;
+};
+

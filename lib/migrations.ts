@@ -3967,6 +3967,111 @@ async function mvp056ChartAvatars(pool: Pool): Promise<void> {
   }
 }
 
+async function mvp057AdminObservabilityFoundation(pool: Pool): Promise<void> {
+  const name = 'mvp_057_admin_observability_foundation';
+  if (await isMigrationApplied(pool, name)) return;
+
+  await pool.query('BEGIN');
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS app_ai_requests (
+        id BIGSERIAL PRIMARY KEY,
+        trace_id TEXT NOT NULL,
+        user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+        scenario TEXT NOT NULL,
+        model TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('success', 'error', 'rejected')),
+        duration_ms INTEGER NOT NULL,
+        latency_breakdown_json JSONB,
+        tokens_prompt INTEGER,
+        tokens_completion INTEGER,
+        cost_estimated_cents NUMERIC(8,4),
+        input_safe_json JSONB,
+        output_text TEXT,
+        error_code TEXT,
+        rejection_reason TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_app_ai_requests_created_at
+        ON app_ai_requests(created_at DESC)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_app_ai_requests_user_id
+        ON app_ai_requests(user_id)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_app_ai_requests_scenario
+        ON app_ai_requests(scenario, status)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_app_ai_requests_trace
+        ON app_ai_requests(trace_id)
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS app_ai_defects (
+        id BIGSERIAL PRIMARY KEY,
+        group_key TEXT NOT NULL UNIQUE,
+        category TEXT NOT NULL,
+        error_code TEXT NOT NULL,
+        message TEXT NOT NULL,
+        scenario TEXT NOT NULL,
+        model TEXT NOT NULL,
+        last_trace_id TEXT,
+        last_user_id BIGINT,
+        occurrences_count INTEGER NOT NULL DEFAULT 1,
+        affected_users_count INTEGER NOT NULL DEFAULT 1,
+        first_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        sample_input_json JSONB,
+        sample_output TEXT,
+        status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'investigating', 'fixed', 'ignored')),
+        admin_note TEXT,
+        resolved_at TIMESTAMPTZ
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_app_ai_defects_status
+        ON app_ai_defects(status, last_seen_at DESC)
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS app_technical_errors (
+        id BIGSERIAL PRIMARY KEY,
+        fingerprint TEXT NOT NULL UNIQUE,
+        endpoint TEXT NOT NULL,
+        http_status INTEGER,
+        error_code TEXT NOT NULL,
+        message TEXT NOT NULL,
+        stack_trace TEXT,
+        app_version TEXT,
+        platform TEXT,
+        occurrences_count INTEGER NOT NULL DEFAULT 1,
+        affected_users_count INTEGER NOT NULL DEFAULT 1,
+        first_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        sample_request_id TEXT,
+        status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'investigating', 'resolved', 'ignored')),
+        admin_note TEXT
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_app_technical_errors_status
+        ON app_technical_errors(status, last_seen_at DESC)
+    `);
+
+    await markMigrationApplied(pool, name);
+    await pool.query('COMMIT');
+    log.info(`Migration ${name} applied`);
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    throw error;
+  }
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -4055,6 +4160,8 @@ export async function runMigrations(): Promise<void> {
     await mvp053NatalChartRevisions(migrationDb);
     await mvp054NeboOpsOutbox(migrationDb);
     await mvp055MyTrackerAttribution(migrationDb);
+    await mvp056ChartAvatars(migrationDb);
+    await mvp057AdminObservabilityFoundation(migrationDb);
     await mvp044PremiumEntitlementLifecycle(migrationDb);
     await mvp045RuStoreCallbackOrdering(migrationDb);
     await mvp046RuStoreProviderOverlay(migrationDb);

@@ -40,10 +40,24 @@ export type AiPingResult = {
   error?: string;
 };
 
+import { recordAiRequest } from './aiLogger';
+import { randomUUID } from 'crypto';
+
 /** Calls the same OpenAI Responses API route as the production content writers. */
 export async function pingAiGeneration(): Promise<AiPingResult> {
   const started = Date.now();
+  const traceId = randomUUID();
   if (!process.env.OPENAI_API_KEY) {
+    await recordAiRequest({
+      traceId,
+      scenario: 'content_diagnostic',
+      model: OPENAI_LUNA_MODEL,
+      provider: 'openai',
+      status: 'error',
+      durationMs: 0,
+      errorCode: 'OPENAI_API_KEY_MISSING',
+      rejectionReason: 'OPENAI_API_KEY не задан — генерация недоступна.',
+    });
     return {
       ok: false,
       model: OPENAI_LUNA_MODEL,
@@ -59,19 +73,42 @@ export async function pingAiGeneration(): Promise<AiPingResult> {
       maxOutputTokens: 16,
     });
     const sample = response.content;
+    const durationMs = Date.now() - started;
+    await recordAiRequest({
+      traceId,
+      scenario: 'content_diagnostic',
+      model: OPENAI_LUNA_MODEL,
+      provider: 'openai',
+      status: sample ? 'success' : 'error',
+      durationMs,
+      outputText: sample,
+      errorCode: sample ? undefined : 'EMPTY_RESPONSE',
+    });
     return {
       ok: Boolean(sample),
       model: OPENAI_LUNA_MODEL,
-      latencyMs: Date.now() - started,
+      latencyMs: durationMs,
       sample: sample.slice(0, 120),
       error: sample ? undefined : 'Модель вернула пустой ответ.',
     };
   } catch (error: unknown) {
+    const durationMs = Date.now() - started;
+    const errorMsg = error instanceof Error ? error.message : 'Ошибка вызова OpenAI.';
+    await recordAiRequest({
+      traceId,
+      scenario: 'content_diagnostic',
+      model: OPENAI_LUNA_MODEL,
+      provider: 'openai',
+      status: 'error',
+      durationMs,
+      errorCode: 'OPENAI_PING_ERROR',
+      rejectionReason: errorMsg,
+    });
     return {
       ok: false,
       model: OPENAI_LUNA_MODEL,
-      latencyMs: Date.now() - started,
-      error: error instanceof Error ? error.message : 'Ошибка вызова OpenAI.',
+      latencyMs: durationMs,
+      error: errorMsg,
     };
   }
 }
