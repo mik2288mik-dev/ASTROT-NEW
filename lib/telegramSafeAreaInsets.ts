@@ -62,6 +62,7 @@ export function applyTelegramSafeAreaCssVars(): void {
     root.style.setProperty('--tg-content-safe-area-inset-right', '0px');
     root.style.setProperty('--tg-safe-area-inset-left', '0px');
     root.style.setProperty('--tg-safe-area-inset-right', '0px');
+    root.classList.add('tg-desktop');
   }
 
   if (typeof wa.viewportHeight === 'number' && Number.isFinite(wa.viewportHeight) && wa.viewportHeight > 0) {

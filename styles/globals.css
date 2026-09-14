@@ -2383,6 +2383,10 @@ body.theme-lumia-air ::-webkit-scrollbar-thumb {
    position: fixed + width/height 100% prevents the whole browser window 
    from bouncing/rubber-banding on iOS. 
    Scrolling is delegated to internal overflow containers.
+
+   On Telegram Desktop WebView, position:fixed resolves the viewport against
+   the monitor rather than the Mini App window, pushing content off-screen.
+   We apply position:fixed ONLY on narrow (mobile) screens.
 */
 html, body {
   height: 100%;
@@ -2395,17 +2399,31 @@ html, body {
   background-color: var(--bg-primary);
   color: var(--text-main);
   transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s ease;
-  
-  inset: 0;
-  position: fixed; 
+
   overflow: hidden;
-  
+  overscroll-behavior: none;
+
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* Без pinch/double-tap zoom в WebView / Safari */
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
+}
+
+/* iOS rubber-banding fix: position:fixed only on mobile screens */
+@media (max-width: 639px) {
+  html, body {
+    position: fixed;
+    inset: 0;
+  }
+}
+
+/* Telegram Desktop: force normal flow — its WebView mis-resolves position:fixed */
+html.tg-desktop,
+html.tg-desktop body {
+  position: static !important;
+  inset: auto !important;
 }
 
 #__next {
@@ -2424,15 +2442,16 @@ html, body {
   touch-action: pan-x pan-y;
 }
 
-@media (min-width: 640px) {
-  .lumia-app-shell:not(.is-admin-view) {
-    max-width: 480px;
-    margin-left: auto;
-    margin-right: auto;
-    border-left: 1px solid rgba(17, 24, 39, 0.08);
-    border-right: 1px solid rgba(17, 24, 39, 0.08);
-    box-shadow: 0 0 40px rgba(17, 24, 39, 0.06);
-  }
+/* Telegram Desktop: use 100% height instead of viewport-dependent vars */
+html.tg-desktop #__next {
+  height: 100%;
+  min-height: 100%;
+}
+
+html.tg-desktop .lumia-app-shell {
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
 }
 
 /* Telegram Mini App / iPhone safe-area: use env() when viewport-fit=cover is set */

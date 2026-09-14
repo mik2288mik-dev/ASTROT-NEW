@@ -34,13 +34,9 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex h-full w-full flex-col items-center justify-center overflow-hidden"
+      className="absolute inset-0 z-50 flex h-full w-full flex-col items-center justify-center overflow-hidden"
       style={{
         backgroundColor: 'var(--app-canvas, #FFFFFF)',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
       }}
       data-nebo-startup-loading="true"
       role="status"

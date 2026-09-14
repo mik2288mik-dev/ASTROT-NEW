@@ -765,6 +765,12 @@ const App: React.FC = () => {
         tg?.setBackgroundColor?.('#FFFFFF');
         tg?.setBottomBarColor?.('#FFFFFF');
         tg?.enableClosingConfirmation?.();
+
+        // Apply tg-desktop class ASAP so CSS overrides take effect before layout
+        if (tg?.platform === 'tdesktop') {
+            document.documentElement.classList.add('tg-desktop');
+        }
+
         appDebugLog('telegram_init', {
             platform: tg?.platform,
             version: tg?.version,
