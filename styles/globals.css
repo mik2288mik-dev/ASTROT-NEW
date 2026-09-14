@@ -2439,45 +2439,7 @@ html, body {
   }
 }
 
-html.tg-desktop .lumia-tg-main-gutter,
-html.tg-desktop .lumia-tg-screen-pad,
-html.tg-desktop .lumia-tg-hub-pad {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
 
-/* Telegram Desktop: use 100% height instead of viewport-dependent vars */
-html.tg-desktop,
-html.tg-desktop body {
-  height: 100% !important;
-  min-height: 100% !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  transform: none !important;
-  zoom: 1 !important;
-  position: static !important;
-}
-
-html.tg-desktop #__next {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  margin: 0 !important;
-  transform: none !important;
-}
-
-html.tg-desktop .lumia-app-shell {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 100% !important;
-  max-height: 100% !important;
-  margin: 0 !important;
-}
 
 /* Telegram Mini App / iPhone safe-area: use env() when viewport-fit=cover is set */
 :root {

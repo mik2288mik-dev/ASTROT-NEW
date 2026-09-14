@@ -28,7 +28,7 @@ export default class MeouDocument extends Document<MeouDocumentProps> {
         </Head>
         <body>
           {/* Early Telegram WebApp initialization and desktop platform detection */}
-          <script dangerouslySetInnerHTML={{ __html: `try{var tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready&&tg.ready();var isDesktop=['tdesktop','macos','web','weba','webk'].indexOf(tg.platform)!==-1;if(!isDesktop){tg.expand&&tg.expand();}if(isDesktop){document.documentElement.classList.add('tg-desktop');}}}catch(e){}` }} />
+          <script dangerouslySetInnerHTML={{ __html: `try{var tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready&&tg.ready();tg.expand&&tg.expand();}}catch(e){}` }} />
           <Main /><NextScript />
         </body>
       </Html>
