@@ -341,6 +341,7 @@ export const admin2Auth = {
 };
 
 export const admin2 = {
+  clearDevAuth: admin2Auth.clearDevAuth,
   activity: (params: AdminActivityParams = {}) => req<AdminActivityReport>(`/api/admin/v2/activity?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))}`),
   userActivity: (id: string, params: AdminActivityParams = {}) => req<AdminUserActivityReport>(`/api/admin/v2/users/${encodeURIComponent(id)}/activity?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))}`),
   me: () => req<AdminMe>('/api/admin/v2/me'),

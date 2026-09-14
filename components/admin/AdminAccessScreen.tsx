@@ -1,23 +1,32 @@
 import React, { useState } from 'react';
 import { admin2Auth, Admin2Error } from '../../services/admin2Service';
 
-export function AdminAccessScreen({
-  error,
-  busy,
-  onRetry,
-  onClose,
-}: {
-  error: Admin2Error | Error | null;
-  busy: boolean;
-  onRetry: () => void;
+export interface AdminAccessScreenProps {
+  error?: Admin2Error | Error | null;
+  busy?: boolean;
+  onRetry?: () => void;
+  onAuthenticated?: () => void;
   onClose?: () => void;
-}) {
+}
+
+export function AdminAccessScreen({
+  error = null,
+  busy = false,
+  onRetry,
+  onAuthenticated,
+  onClose,
+}: AdminAccessScreenProps) {
   const storedAuth = admin2Auth.getStoredDevAuth();
   const [userId, setUserId] = useState(storedAuth?.userId || '');
   const [secret, setSecret] = useState(storedAuth?.secret || '');
   const [formError, setFormError] = useState<string | null>(null);
   const code = error instanceof Admin2Error ? error.code : null;
   const hasTelegramAuth = admin2Auth.hasTelegramAuth();
+
+  const handleAction = () => {
+    if (onAuthenticated) onAuthenticated();
+    else if (onRetry) onRetry();
+  };
 
   const saveAndRetry = () => {
     setFormError(null);
@@ -26,13 +35,13 @@ export function AdminAccessScreen({
       return;
     }
     admin2Auth.saveDevAuth(userId.trim(), secret.trim());
-    onRetry();
+    handleAction();
   };
 
   const clearAndRetry = () => {
     admin2Auth.clearDevAuth();
     setSecret('');
-    onRetry();
+    handleAction();
   };
 
   return (

@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { pool } from '../../../../lib/db';
-import { getAdminContext, roleHasPermission } from '../../../../lib/admin/auth';
+import { getPool } from '../../../../../lib/db';
+import { getAdminContext, roleHasPermission } from '../../../../../lib/admin/rbac';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -8,6 +8,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    const pool = getPool();
     const ctx = await getAdminContext(req);
     if (!ctx) {
       return res.status(401).json({ error: 'UNAUTHORIZED' });

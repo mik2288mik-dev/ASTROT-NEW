@@ -220,7 +220,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             )}
 
             {currentTab === 'users' && (
-              <UsersSection initialUserId={targetUserId} />
+              <UsersSection me={me} initialUserId={targetUserId || undefined} />
             )}
 
             {currentTab === 'events' && (

@@ -14,7 +14,12 @@ function fmtDate(s: string | null): string {
   }
 }
 
-export function DashboardSection({ onNavigate }: { onNavigate?: (section: string, params?: Record<string, string>) => void }) {
+export interface DashboardSectionProps {
+  onNavigate?: (section: string, params?: Record<string, string>) => void;
+  onSelectUser?: (userId: string) => void;
+}
+
+export function DashboardSection({ onNavigate, onSelectUser }: DashboardSectionProps) {
   const [pulse, setPulse] = useState<AdminPulse | null>(null);
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [pulseBusy, setPulseBusy] = useState(false);
@@ -99,7 +104,18 @@ export function DashboardSection({ onNavigate }: { onNavigate?: (section: string
               {pulse?.recentEvents.slice(0, 6).map((e) => (
                 <div key={e.id} className="flex items-center justify-between gap-2 text-white/70 py-1 border-b border-white/5 last:border-0">
                   <span className="truncate">
-                    <b className="text-white">{e.userName || e.userId}:</b> {e.label}
+                    {onSelectUser ? (
+                      <button
+                        type="button"
+                        onClick={() => onSelectUser(e.userId)}
+                        className="text-white hover:underline text-left font-bold cursor-pointer"
+                      >
+                        {e.userName || e.userId}:
+                      </button>
+                    ) : (
+                      <b className="text-white">{e.userName || e.userId}:</b>
+                    )}{' '}
+                    {e.label}
                   </span>
                   <span className="shrink-0 text-[10px] text-white/40">{fmtDate(e.occurredAt)}</span>
                 </div>
@@ -116,7 +132,18 @@ export function DashboardSection({ onNavigate }: { onNavigate?: (section: string
                 <div key={p.id} className="flex items-center justify-between gap-2 text-emerald-300 py-1 border-b border-white/5">
                   <span className="flex items-center gap-1 truncate">
                     <CreditCard size={12} />
-                    <b>+{p.amount} {p.currency}</b> от {p.userId}
+                    <b>+{p.amount} {p.currency}</b> от{' '}
+                    {onSelectUser ? (
+                      <button
+                        type="button"
+                        onClick={() => onSelectUser(p.userId)}
+                        className="underline hover:text-white cursor-pointer"
+                      >
+                        {p.userId}
+                      </button>
+                    ) : (
+                      p.userId
+                    )}
                   </span>
                   <span className="text-[10px] text-white/40">{fmtDate(p.createdAt)}</span>
                 </div>

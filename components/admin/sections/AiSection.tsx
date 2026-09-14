@@ -553,7 +553,7 @@ export const AiSection: React.FC = () => {
                   >
                     <div className="font-semibold text-gray-900">{p.key}</div>
                     <div className="flex items-center justify-between text-gray-400 mt-1">
-                      <span>v{p.currentVersion || 1} • {p.locale || 'ru'}</span>
+                      <span>v{p.version || 1} • {p.locale || 'ru'}</span>
                       <StatusBadge status={p.status} />
                     </div>
                   </button>
@@ -570,7 +570,7 @@ export const AiSection: React.FC = () => {
                   <div>
                     <h3 className="font-bold text-gray-900 text-base">{editingPrompt.key}</h3>
                     <p className="text-xs text-gray-400">
-                      Версия {editingPrompt.currentVersion} • Статус: {editingPrompt.status}
+                      Версия {editingPrompt.version} • Статус: {editingPrompt.status}
                     </p>
                   </div>
                   <div className="flex gap-2">

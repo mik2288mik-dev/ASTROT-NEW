@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { handleAdminError } from '../../../../lib/adminAuth';
-import { getAdminContext, roleHasPermission } from '../../../../lib/admin/rbac';
-import { getPool } from '../../../../lib/db';
-import { recordAdminAction } from '../../../../lib/admin/audit';
+import { handleAdminError } from '../../../../../lib/adminAuth';
+import { getAdminContext, roleHasPermission } from '../../../../../lib/admin/rbac';
+import { getPool } from '../../../../../lib/db';
+import { recordAdminAction } from '../../../../../lib/admin/audit';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
