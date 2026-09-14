@@ -10,10 +10,8 @@ describe('Today minimal navigation shell', () => {
     const navigation = read('components/lumia-ui/LumiaBottomTabBar.tsx');
 
     expect(app).not.toContain('LumiaSideDrawer');
-    expect(app.match(/<NeboBottomTabBar/g)).toHaveLength(1);
-    const adapter = read('components/nebo-v2/NeboBottomTabBar.tsx');
-    expect(adapter).toContain('if (!design.active) return <ClassicBar {...props}/>;');
-    expect(adapter).toContain('useNeboDesign(props.profile)');
+    expect(app.match(/<LumiaBottomTabBar/g)).toHaveLength(1);
+    expect(app).not.toContain('useNeboDesign');
     expect(app).toContain('shouldShowLumiaBottomNavigation(view)');
     expect(navigation).toContain('data-nav-id="personal"');
     expect(navigation).toContain('data-nav-id="zodiac"');
@@ -86,23 +84,14 @@ describe('Today minimal navigation shell', () => {
   it('keeps Matrix in the Natal shell and switches only the new-design presentation', () => {
     const natal = read('views/v2/NatalMagazine.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
-    const neboMatrix = read('components/nebo-v2/NeboMatrixRoom.tsx');
 
     const primaryNav = natal.slice(natal.indexOf('className="natal-v3-primary-nav"'), natal.indexOf('</nav>'));
-    ['Карта', 'Разбор', 'Спросить о себе', 'Матрица судьбы'].forEach((label) => expect(primaryNav).toContain(label));
-    expect(primaryNav).toContain("selectTab('matrix')");
-    expect(natal).toContain('<MatrixRoom');
-    expect(natal).toContain('embedded');
+    ['Карта', 'Разбор', 'Спросить о себе'].forEach((label) => expect(primaryNav).toContain(label));
+    expect(primaryNav).not.toContain('Матрица судьбы');
+    expect(natal).toContain('<InteractiveNatalMap');
 
-    expect(matrix).toContain("from '../../components/nebo-v2/useNeboDesign'");
-    expect(matrix).toContain("from '../../components/nebo-v2/NeboMatrixRoom'");
-    expect(matrix).toContain('const newDesign = useNeboVisualMode();');
-    expect(matrix).toContain('if (newDesign) return <NeboMatrixRoom {...props} />;');
-    expect(matrix).toContain('return <ClassicMatrixRoom {...props} />;');
-    expect(neboMatrix).toContain('computeMatrix(computedDate, lang)');
-    expect(neboMatrix).toContain('aria-modal="true"');
-    expect(neboMatrix).toContain("setView('scheme')");
-    expect(neboMatrix).toContain("setView('reading')");
+    expect(matrix).toContain('computeMatrix(computedDate, lang)');
+    expect(matrix).not.toContain('useNeboVisualMode');
   });
 
   it('keeps Today period tabs and reduced-motion guards unchanged', () => {

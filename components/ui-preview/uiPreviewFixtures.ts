@@ -43,6 +43,7 @@ export const UI_PREVIEW_SCREENS = [
   'horoscope',
   'natal',
   'natal-reading',
+  'matrix',
   'compatibility-input',
   'compatibility-signs',
   'compatibility-result',
@@ -91,6 +92,7 @@ export const UI_PREVIEW_SCREEN_LABELS: Record<UiPreviewScreen, string> = {
   horoscope: 'Гороскоп по знакам',
   natal: 'Натальное колесо',
   'natal-reading': 'Натальный разбор',
+  matrix: 'Матрица судьбы',
   'compatibility-input': 'Совместимость — данные',
   'compatibility-signs': 'Совместимость — знаки',
   'compatibility-result': 'Совместимость — результат',
@@ -126,7 +128,8 @@ const BIRTH_TIME_ALIASES: Record<string, UiPreviewBirthTime> = {
 
 export function parseUiPreviewScenario(search: string): UiPreviewScenario {
   const query = new URLSearchParams(search);
-  const requestedScreen = query.get('screen') || '';
+  const legacyScreen = query.get('screen') || '';
+  const requestedScreen = ({ 'natal-map': 'natal', compatibility: 'compatibility-input', 'matrix-scheme': 'matrix' } as Record<string, string>)[legacyScreen] || legacyScreen;
   const screen = UI_PREVIEW_SCREENS.includes(requestedScreen as UiPreviewScreen)
     ? requestedScreen as UiPreviewScreen
     : 'today';
@@ -160,6 +163,7 @@ export function previewViewForScreen(screen: UiPreviewScreen): ViewState {
   if (screen === 'settings') return 'settings';
   if (screen === 'charts') return 'charts';
   if (screen === 'menu') return 'services';
+  if (screen === 'matrix') return 'matrix';
   if (screen === 'natal-reading') return 'personality';
   return 'chart';
 }

@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
-import { Art, Header, type ArtName } from '../../components/nebo-v2/Primitives';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
 import {
   buildKnowledgeInlineLinkCandidates,
@@ -40,7 +39,6 @@ export type AstrologyEncyclopediaProps = {
   /** Kept for route compatibility; the library intentionally does not use personal chart data. */
   onOpenCharts?: () => void;
   embedded?: boolean;
-  presentation?: 'classic' | 'nebo';
 };
 
 const CATEGORY_DIAGRAMS: Partial<Record<KnowledgeCategoryId, KnowledgeDiagramId>> = {
@@ -55,9 +53,8 @@ const CATEGORY_DIAGRAMS: Partial<Record<KnowledgeCategoryId, KnowledgeDiagramId>
 export function AstrologyEncyclopedia({
   profile,
   embedded = false,
-  presentation = 'classic',
 }: AstrologyEncyclopediaProps) {
-  const refined = presentation === 'nebo';
+
   const language = knowledgeLanguage(profile.language);
   const ru = language === 'ru';
   const topics = useMemo(() => getKnowledgeTopics(language), [language]);
@@ -354,7 +351,7 @@ export function AstrologyEncyclopedia({
 
   if (!topics.length) {
     return (
-      <div className={`fresh-page encyclopedia-editorial-page ${styles.page}${refined ? ' nebo-v2-shell nebo-knowledge' : ''}`}>
+      <div className={`fresh-page encyclopedia-editorial-page ${styles.page}`}>
         {!embedded ? <AppTopBar title={ru ? 'Энциклопедия' : 'Encyclopedia'} /> : null}
         <div className={`${styles.content} ${styles.empty}`}>
           <h1>{ru ? 'Материалов пока нет' : 'No articles yet'}</h1>
@@ -370,15 +367,15 @@ export function AstrologyEncyclopedia({
   const showArticleContents = activeTopic ? shouldShowKnowledgeContents(activeTopic) : false;
 
   return (
-    <div className={`fresh-page encyclopedia-editorial-page ${styles.page}${embedded ? ' !min-h-0 !pt-0 !pb-0 before:!hidden' : ''}${refined ? ' nebo-v2-shell nebo-knowledge' : ''}`}>
-      {!embedded && refined ? <Header title={ru ? 'Энциклопедия' : 'Encyclopedia'} onBack={headerBack} /> : !embedded ? (
+    <div className={`fresh-page encyclopedia-editorial-page ${styles.page}${embedded ? ' !min-h-0 !pt-0 !pb-0 before:!hidden' : ''}`}>
+      {!embedded ? (
         <AppTopBar
           title={ru ? 'Энциклопедия' : 'Encyclopedia'}
           onBack={headerBack}
         />
       ) : null}
 
-      <div ref={contentRef} className={`${styles.content}${refined ? ' nebo-knowledge-content' : ''}`}>
+      <div ref={contentRef} className={`${styles.content}`}>
         {embedded && headerBack ? (
           <button className={styles.backButton} type="button" onClick={headerBack}>
             <ChevronLeft aria-hidden="true" strokeWidth={1.7} />
@@ -389,7 +386,7 @@ export function AstrologyEncyclopedia({
         {current.screen === 'catalog' ? (
           <>
             <header className={styles.catalogHeader}>
-              <h1 className={refined ? 'nebo-knowledge-title' : styles.visuallyHidden} ref={catalogHeadingRef} tabIndex={-1}>
+              <h1 className={styles.visuallyHidden} ref={catalogHeadingRef} tabIndex={-1}>
                 {ru ? 'Энциклопедия' : 'Encyclopedia'}
               </h1>
               <p>
@@ -399,9 +396,9 @@ export function AstrologyEncyclopedia({
               </p>
             </header>
 
-            <div className={`${styles.search}${refined ? ' nebo-knowledge-search' : ''}`} role="search">
-              <label htmlFor="knowledge-search">{ru ? refined ? 'Что хочешь узнать?' : 'Что хотите понять?' : 'What do you want to understand?'}</label>
-              <div className={`${styles.searchControl}${refined ? ' nebo-knowledge-search-control' : ''}`}>
+            <div className={`${styles.search}`} role="search">
+              <label htmlFor="knowledge-search">{ru ? 'Что хотите понять?' : 'What do you want to understand?'}</label>
+              <div className={`${styles.searchControl}`}>
                 <Search aria-hidden="true" strokeWidth={1.7} />
                 <input
                   id="knowledge-search"
@@ -410,7 +407,7 @@ export function AstrologyEncyclopedia({
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={ru
-                    ? refined ? 'Поиск статей, тем и понятий' : 'Асцендент, полнолуние, дома, ретроградный Меркурий…'
+                    ? 'Асцендент, полнолуние, дома, ретроградный Меркурий…'
                     : 'Ascendant, full moon, houses, Mercury retrograde…'}
                   autoComplete="off"
                 />
@@ -453,20 +450,7 @@ export function AstrologyEncyclopedia({
               </section>
             ) : (
               <>
-                {refined ? <section className="nebo-knowledge-categories" aria-label={ru ? 'Начать с темы' : 'Explore a topic'}>
-                  {([
-                    {id:'planets',art:'month',tone:'blue'},
-                    {id:'signs',art:'zodiac',tone:'lilac'},
-                    {id:'houses',art:'natal-chart',tone:'lilac'},
-                    {id:'aspects',art:'rings',tone:'blue'},
-                  ] as const).map(({id,art,tone}) => {
-                    const group=topicGroups.find(candidate=>candidate.categoryId===id);
-                    return group ? <button key={id} type="button" className={`nebo-knowledge-category nebo-tone-${tone}`} onClick={()=>openCategory(id)}>
-                      <strong>{group.label}</strong><small>{ru ? 'Статьи и объяснения' : 'Articles and explanations'}</small><Art name={art as ArtName}/>
-                    </button> : null;
-                  })}
-                </section> : null}
-                <section className={`${styles.popular}${refined ? ' nebo-knowledge-popular' : ''}`} aria-labelledby="knowledge-popular-title">
+                <section className={`${styles.popular}`} aria-labelledby="knowledge-popular-title">
                   <h2 id="knowledge-popular-title">{ru ? 'Часто ищут' : 'Popular topics'}</h2>
                   <ul className={styles.popularList} role="list">
                     {popularTopics.map(({ topic, label }) => (
@@ -476,7 +460,7 @@ export function AstrologyEncyclopedia({
                           type="button"
                           onClick={() => openTopic(topic.id)}
                         >
-                          {refined ? <><span><strong>{topic.title}</strong><small>{topic.categoryLabel}</small></span><ChevronRight size={18} aria-hidden="true" /></> : label}
+                          {label}
                         </button>
                       </li>
                     ))}
@@ -487,7 +471,7 @@ export function AstrologyEncyclopedia({
                   <h2 className={styles.sectionTitle} id="knowledge-directions-title">
                     {ru ? 'Разобраться по теме' : 'Browse by topic'}
                   </h2>
-                  <ul className={`${styles.hubGrid}${refined ? ' nebo-knowledge-hubs' : ''}`} role="list">
+                  <ul className={`${styles.hubGrid}`} role="list">
                     {ENCYCLOPEDIA_HUBS.map((hub) => (
                       <li key={hub.id}>
                         <button
@@ -584,7 +568,7 @@ export function AstrologyEncyclopedia({
             </div>
           </section>
         ) : activeTopic ? (
-          <article className={`${styles.article}${refined ? ' nebo-knowledge-article' : ''}`} aria-labelledby={`knowledge-${activeTopic.id}`}>
+          <article className={`${styles.article}`} aria-labelledby={`knowledge-${activeTopic.id}`}>
             <header className={styles.articleHeader}>
               <p className={styles.eyebrow}>{activeTopic.categoryLabel}</p>
               <h1 id={`knowledge-${activeTopic.id}`} ref={articleHeadingRef} tabIndex={-1}>

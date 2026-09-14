@@ -27,7 +27,13 @@
 - `Меню` opens the existing full menu screen; it is not a trigger for a drawer.
 - Сегодня, Неделя и Месяц remain the existing period tabs at the top of the personal forecast and `Зодиак` screens. Do not move them into another navigation surface or rewrite their product behavior without direct instruction.
 - The product brand mark is the cloud-style `NEBO` wordmark used in the current application screenshots. Do not substitute a planet icon or an unrelated navigation symbol for it.
-- Inside `Натальная карта`, preserve the four existing tabs and their order: `Карта`, `Разбор`, `Спросить о себе`, `Матрица судьбы`.
+- Inside `Натальная карта`, preserve the tabs and their order: `Карта`, `Разбор`, `Спросить о себе`. `Матрица судьбы` is a separate function and must not appear as a natal tab.
+
+## Current interface
+
+- Use only the current white NEBO interface: existing AppTopBar, typography, spacing, and LumiaBottomTabBar. The former administrator design pilot is retired; do not restore alternate screens, themes, design preferences, or an administrator design switch.
+- Local UI Preview displays the same current components. URL flags must not enable an alternate product design.
+- Keep the new interactive natal wheel, its selection sheet, and the separate per-element `Почему такой вывод` screen. Use existing saved chart data; do not recalculate it for display.
 
 ## Натальный разбор
 

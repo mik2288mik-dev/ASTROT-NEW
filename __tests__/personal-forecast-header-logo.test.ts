@@ -51,10 +51,8 @@ describe('personal forecast header and shared navigation', () => {
 
     expect(nextApp).not.toContain('UniversalDrawerTrigger');
     expect(app).not.toContain('LumiaSideDrawer');
-    expect(app.match(/<NeboBottomTabBar/g)).toHaveLength(1);
-    const adapter = read('components/nebo-v2/NeboBottomTabBar.tsx');
-    expect(adapter).toContain('if (!design.active) return <ClassicBar {...props}/>;');
-    expect(adapter).toContain('useNeboDesign(props.profile)');
+    expect(app.match(/<LumiaBottomTabBar/g)).toHaveLength(1);
+    expect(app).not.toContain('useNeboDesign');
     expect(navigation).not.toContain('today-bottom-nav-quick-links');
     expect(navigation).toContain('data-nav-id="compatibility"');
     expect(navigation).toContain('today-bottom-nav-hub');

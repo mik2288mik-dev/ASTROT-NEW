@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, CalendarDays, ChevronDown, Clock3, MapPin, Orbit } from 'lucide-react';
+import { MonoAvatar } from '../../components/mono-ui/MonoAvatar';
+import { NatalOverviewExperience, NatalOverviewMode } from '../../components/NatalReading/NatalOverviewExperience';
+import styles from '../../components/NatalReading/NatalSection.module.css';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { PreloadedNatalReport } from '../../components/NatalReading/HumanReport';
 import type { NatalPermanentPremiumReport } from '../../lib/natalReading/permanentReport';
@@ -12,8 +14,12 @@ import {
 import { NatalQuestionExperience } from '../../components/NatalReading/NatalQuestionExperience';
 import type { NatalExperienceView } from '../../components/NatalReading/NatalMeaningExperience';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
-import { NatalChartWheel } from '../../components/NatalReading/NatalChartWheel';
-import { MatrixRoom } from './MatrixRoom';
+import { InteractiveNatalMap } from '../../components/NatalReading/InteractiveNatalMap';
+import { hasActivePremium } from '../../lib/accessMatrix';
+import { NatalQuestionDemo } from '../../components/NatalReading/NatalQuestionDemo';
+import { NatalArtwork } from '../../components/NatalReading/NatalArtwork';
+
+
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
 import type { NatalReportCategoryKey } from '../../lib/natalReading/reportCatalog';
 import {
@@ -50,10 +56,11 @@ type NatalMagazineProps = {
     reportState?: 'ready' | 'loading' | 'error';
     premiumReport?: NatalPermanentPremiumReport | null;
     catalog?: NatalCatalogReportUiPreview;
+    questions?: React.ComponentProps<typeof NatalQuestionExperience>['uiPreview'];
   };
 };
 
-export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix';
+export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'details' | 'matrix';
 
 export function isSavedPersonChartSubject(
   chartSubject: Pick<ChartListItem, 'subject_type' | 'is_primary'> | null | undefined,
@@ -63,9 +70,10 @@ export function isSavedPersonChartSubject(
 
 export function normalizeNatalScreenTab(
   tab: NatalScreenTab,
-  isSavedPerson: boolean,
+  _isSavedPerson: boolean,
 ): NatalScreenTab {
-  return isSavedPerson && tab === 'ask' ? 'foundation' : tab;
+  // Keep the four tabs visible; saved-person questions show the existing API limitation.
+  return tab;
 }
 
 type NatalPreviewInitialTab = NonNullable<NatalMagazineProps['uiPreview']>['initialTab'];
@@ -76,7 +84,7 @@ function previewTabToScreen(
 ): NatalScreenTab {
   if (openQuestion || value === 'questions' || value === 'ask') return 'ask';
   if (value === 'map') return 'map';
-  if (value === 'matrix') return 'matrix';
+  if (value === 'matrix') return 'map';
   if (value === 'explore') return 'explore';
   return 'foundation';
 }
@@ -98,7 +106,6 @@ export function NatalMagazine({
   openQuestionRequest,
   onQuestionRequestHandled,
   onOpenCharts,
-  onOpenEncyclopedia,
   uiPreview,
 }: NatalMagazineProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
@@ -107,6 +114,7 @@ export function NatalMagazine({
   const subjectBirthTime = chartSubject ? (chartSubject.birth_time ?? '') : profile.birthTime;
   const subjectBirthPlace = chartSubject ? chartSubject.birth_place : profile.birthPlace;
   const isSavedPerson = isSavedPersonChartSubject(chartSubject);
+  const isPremium = hasActivePremium(profile);
   const previewConfig = process.env.NODE_ENV === 'development'
     && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
       ? uiPreview
@@ -121,13 +129,17 @@ export function NatalMagazine({
     previewTabToScreen(previewConfig?.initialTab, Boolean(previewConfig?.openQuestion)),
     isSavedPerson,
   ));
+  const [overviewMode, setOverviewMode] = useState<'story' | 'topics'>('story');
   const [questionContext, setQuestionContext] = useState<NatalReportCategoryKey>('main');
-  const [matrixMounted, setMatrixMounted] = useState(false);
-  const lastContentTabRef = useRef<Exclude<NatalScreenTab, 'map'>>('foundation');
+
   const handledExternalQuestionRequestRef = useRef(0);
   const normalizedActiveTab = normalizeNatalScreenTab(activeTab, isSavedPerson);
-  const showPrimaryNavigation = true;
-  const primaryNavItemCount = isSavedPerson ? 3 : 4;
+  const sectionRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const host = sectionRef.current?.closest('.lumia-main-scroll');
+    if (host) host.scrollTo({ top: 0, behavior: 'auto' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [normalizedActiveTab, chartId, chartSubject?.id]);
 
   useEffect(() => {
     if (normalizedActiveTab !== activeTab) setActiveTab(normalizedActiveTab);
@@ -135,7 +147,6 @@ export function NatalMagazine({
 
   useEffect(() => {
     if (readingRenderer !== 'classic' || normalizedActiveTab !== 'explore') return;
-    lastContentTabRef.current = 'foundation';
     setActiveTab('foundation');
   }, [normalizedActiveTab, readingRenderer]);
 
@@ -161,13 +172,16 @@ export function NatalMagazine({
     if (!isSavedPerson) {
       setQuestionContext('main');
       setActiveTab('ask');
-      lastContentTabRef.current = 'ask';
     }
     onQuestionRequestHandled?.();
   }, [chartLoadState, data, isSavedPerson, onCreateChart, onQuestionRequestHandled, openQuestionRequest, profile.isSetup]);
 
   useEffect(() => {
     if (!premiumContinuation || premiumContinuation.returnView !== 'chart') return;
+    if (premiumContinuation.returnAction === 'open_natal_map_element') {
+      setActiveTab(premiumContinuation.returnEntityId?.startsWith('details:') ? 'details' : 'map');
+      return;
+    }
     if (
       premiumContinuation.featureKey === 'natal_questions'
       && premiumContinuation.returnAction === 'open_natal_questions'
@@ -178,7 +192,7 @@ export function NatalMagazine({
         return;
       }
       setActiveTab('ask');
-      lastContentTabRef.current = 'ask';
+      if (!isPremium) onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
       return;
     }
     if (
@@ -186,30 +200,11 @@ export function NatalMagazine({
       && premiumContinuation.returnAction === 'open_natal_answer'
     ) {
       setActiveTab('explore');
-      lastContentTabRef.current = 'explore';
     }
-  }, [isSavedPerson, onPremiumContinuationHandled, premiumContinuation]);
+  }, [isPremium, isSavedPerson, onPremiumContinuationHandled, premiumContinuation]);
 
   const selectTab = (tab: NatalScreenTab) => {
-    const requestedTab = tab === 'explore' && readingRenderer === 'classic'
-      ? 'foundation'
-      : tab;
-    const normalized = normalizeNatalScreenTab(requestedTab, isSavedPerson);
-    if (normalized === 'matrix') {
-      setMatrixMounted(true);
-      lastContentTabRef.current = 'matrix';
-      setActiveTab('matrix');
-      return;
-    }
-    if (normalized === 'map') {
-      if (normalizedActiveTab !== 'map') {
-        lastContentTabRef.current = normalizedActiveTab as Exclude<NatalScreenTab, 'map'>;
-      }
-      setActiveTab('map');
-      return;
-    }
-    lastContentTabRef.current = normalized as Exclude<NatalScreenTab, 'map'>;
-    setActiveTab(normalized);
+    setActiveTab(tab === 'matrix' ? 'map' : tab);
   };
 
   const openQuestions = (categoryKey: NatalReportCategoryKey) => {
@@ -221,89 +216,18 @@ export function NatalMagazine({
 
   const header = (
     <>
-      <AppTopBar title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} />
-      {data ? (
-        <div className="natal-v3-subject-bar">
-          {onOpenCharts ? (
-            <button
-              type="button"
-              className="natal-v3-subject-switch"
-              onClick={onOpenCharts}
-              aria-label={language === 'ru' ? 'Выбрать другую карту' : 'Choose another chart'}
-            >
-              <span>{subjectName || (language === 'ru' ? 'Моя карта' : 'My chart')}</span>
-              <ChevronDown aria-hidden="true" />
-            </button>
-          ) : (
-            <span className="natal-v3-subject-name">{subjectName}</span>
-          )}
-          {normalizedActiveTab === 'map' ? (
-            <button
-              type="button"
-              className="natal-v3-header-action"
-              onClick={() => selectTab(lastContentTabRef.current)}
-            >
-              <ArrowLeft aria-hidden="true" />
-              {lastContentTabRef.current === 'matrix'
-                ? (language === 'ru' ? 'К матрице' : 'Back to matrix')
-                : (language === 'ru' ? 'К разбору' : 'Back to reading')}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="natal-v3-header-action"
-              onClick={() => selectTab('map')}
-            >
-              <Orbit aria-hidden="true" />
-              {language === 'ru' ? 'Круг карты' : 'Chart wheel'}
-            </button>
-          )}
-        </div>
-      ) : null}
-      {data && showPrimaryNavigation ? (
-        <nav
-          className="natal-v3-primary-nav"
-          data-items={primaryNavItemCount}
-          aria-label={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
-        >
-          <button
-            type="button"
-            className={normalizedActiveTab === 'map' ? 'is-active' : undefined}
-            aria-current={normalizedActiveTab === 'map' ? 'page' : undefined}
-            onClick={() => selectTab('map')}
-          >
-            {language === 'ru' ? 'Карта' : 'Chart'}
-          </button>
-          <>
-            <button
-              type="button"
-              className={normalizedActiveTab === 'foundation' || normalizedActiveTab === 'explore' ? 'is-active' : undefined}
-              aria-current={normalizedActiveTab === 'foundation' || normalizedActiveTab === 'explore' ? 'page' : undefined}
-              onClick={() => selectTab('foundation')}
-            >
-              {language === 'ru' ? 'Разбор' : 'Reading'}
-            </button>
-          </>
-          {!isSavedPerson ? (
-            <button
-              type="button"
-              className={normalizedActiveTab === 'ask' ? 'is-active' : undefined}
-              aria-current={normalizedActiveTab === 'ask' ? 'page' : undefined}
-              onClick={() => selectTab('ask')}
-            >
-              {language === 'ru' ? 'Спросить о себе' : 'Ask about yourself'}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className={normalizedActiveTab === 'matrix' ? 'is-active' : undefined}
-            aria-current={normalizedActiveTab === 'matrix' ? 'page' : undefined}
-            onClick={() => selectTab('matrix')}
-          >
-            {language === 'ru' ? 'Матрица судьбы' : 'Matrix'}
-          </button>
-        </nav>
-      ) : null}
+      <AppTopBar title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} rightAction={onOpenCharts ? <button type="button" className="app-top-bar-action" aria-label={`Выбрать сохранённую карту: ${subjectName || 'Моя карта'}`} onClick={onOpenCharts}><MonoAvatar initial={(subjectName || '?').slice(0,1)} size={36}/></button> : undefined}/>
+      {data ? <nav className={styles.navigation} aria-label="Вкладки натальной карты">
+        {([
+          { id: 'foundation', label: 'Обзор' },
+          { id: 'map', label: 'Карта' },
+          { id: 'details', label: 'Подробно' },
+          { id: 'ask', label: 'Спросить' },
+        ] as const).map(tab => {
+          const active = tab.id === normalizedActiveTab || (tab.id === 'foundation' && normalizedActiveTab === 'explore');
+          return <button key={tab.id} type="button" aria-current={active ? 'page' : undefined} onClick={() => selectTab(tab.id)}>{tab.label}</button>;
+        })}
+      </nav> : null}
     </>
   );
 
@@ -313,7 +237,7 @@ export function NatalMagazine({
     const isChartError = chartLoadState === 'error'
       || (profile.isSetup && chartLoadState === 'ready');
     return (
-      <div className="fresh-page natal-editorial-page natal-mvp-page natal-v3-page">
+      <div ref={sectionRef} className="fresh-page natal-editorial-page natal-mvp-page natal-v3-page">
         {header}
         <section
           className="natal-empty-content"
@@ -361,53 +285,35 @@ export function NatalMagazine({
     chartSubject?.input_hash || buildNatalChartFingerprint(data),
     chartSubject?.calculation_version || data.calculationVersion || 'unknown',
   ].join(':');
+  const birthLine = [formatDisplayDate(data.birth?.localDate || subjectBirthDate, language), (data.birth ? data.birth.localTime : subjectBirthTime)?.slice(0, 5) || 'Время не указано', data.birth?.place || subjectBirthPlace].filter(Boolean).join(' · ');
+  const person = <header className={styles.person}><h1>{subjectName || 'Моя карта'}</h1><p>{birthLine}</p></header>;
   const catalogView: NatalExperienceView = normalizedActiveTab === 'explore'
     ? 'explore'
     : 'foundation';
 
   return (
-    <div className="fresh-page natal-editorial-page natal-mvp-page natal-v3-page">
+    <div ref={sectionRef} className="fresh-page natal-editorial-page natal-mvp-page natal-v3-page">
       {header}
 
-      {normalizedActiveTab === 'map' ? (
-        <section className="natal-v3-wheel-stage" aria-labelledby="natal-map-title">
-          <header className="natal-v3-wheel-heading">
-            <p>{language === 'ru' ? 'Карта рождения' : 'Birth chart'}</p>
-            <h1 id="natal-map-title">{subjectName}</h1>
-          </header>
-
-          <NatalChartWheel
-            chart={data}
-            language={language}
-            downloadName={`${subjectName || 'natal'}-chart`}
-          />
-
-          <dl className="natal-v3-wheel-meta">
-            <div>
-              <dt><CalendarDays aria-hidden="true" />{language === 'ru' ? 'Дата' : 'Date'}</dt>
-              <dd>{formatDisplayDate(subjectBirthDate, language)}</dd>
-            </div>
-            <div>
-              <dt><Clock3 aria-hidden="true" />{language === 'ru' ? 'Время' : 'Time'}</dt>
-              <dd>{subjectBirthTime || (language === 'ru' ? 'Не указано' : 'Not specified')}</dd>
-            </div>
-            <div>
-              <dt><MapPin aria-hidden="true" />{language === 'ru' ? 'Место' : 'Place'}</dt>
-              <dd>{subjectBirthPlace || (language === 'ru' ? 'Не указано' : 'Not specified')}</dd>
-            </div>
-          </dl>
-
-          {onOpenEncyclopedia ? (
-            <button type="button" className="natal-v3-reference-link" onClick={onOpenEncyclopedia}>
-              <span>{language === 'ru' ? 'Что означают знаки, дома и аспекты' : 'What signs, houses, and aspects mean'}</span>
-              <span aria-hidden="true">→</span>
-            </button>
-          ) : null}
-        </section>
+      {normalizedActiveTab === 'map' || normalizedActiveTab === 'details' ? (
+        <InteractiveNatalMap
+          key={reportSubjectKey}
+          chart={data}
+          view={normalizedActiveTab === 'details' ? 'details' : 'map'}
+          name={subjectName || 'Моя карта'}
+          birthLine={birthLine}
+          isPremium={isPremium}
+          premiumContinuation={premiumContinuation}
+          onPremiumContinuationHandled={onPremiumContinuationHandled}
+          onRequestPremium={(selection, view) => { void requestPremium('deep_natal', {placement:'deep_natal',featureKey:'natal_deep',triggerType:'locked_feature',returnView:'chart',returnAction:'open_natal_map_element',returnEntityId:`${view}:${selection.kind}:${selection.id}`}); }}
+        />
       ) : null}
 
       {normalizedActiveTab === 'foundation' || normalizedActiveTab === 'explore' ? (
-        <section className="natal-reading-stage natal-catalog-stage natal-v3-reading-stage">
+        <section className={styles.content}>
+          {person}
+          <div className={styles.mode} role="group" aria-label="Как читать обзор">{(['story','topics'] as const).map(mode => <button type="button" key={mode} aria-pressed={overviewMode === mode} onClick={() => {setOverviewMode(mode); if (mode === 'story') selectTab('foundation');}}>{mode === 'story' ? 'Рассказ' : 'По темам'}</button>)}</div>
+          <NatalOverviewMode.Provider value={{mode:overviewMode,onTopics:() => setOverviewMode('topics')}}>
           {readingRenderer === 'catalog' ? (
             <NatalCatalogReport
               key={`catalog:${reportSubjectKey}`}
@@ -416,7 +322,8 @@ export function NatalMagazine({
               chartId={chartId}
               chartSubject={chartSubject}
               view={catalogView}
-              onViewChange={(view) => selectTab(view)}
+              onViewChange={(view) => { if (view === 'explore') setOverviewMode('topics'); selectTab(view); }}
+              experienceComponent={NatalOverviewExperience}
               requestPremium={requestPremium}
               premiumContinuation={premiumContinuation}
               onPremiumContinuationHandled={onPremiumContinuationHandled}
@@ -437,6 +344,7 @@ export function NatalMagazine({
               preloadedReport={preloadedReport}
               hideIntro
               surface="reading"
+              overviewMode={overviewMode}
               premiumContinuation={premiumContinuation}
               onPremiumContinuationHandled={onPremiumContinuationHandled}
               canPromotePremium={canPromotePremium}
@@ -447,12 +355,17 @@ export function NatalMagazine({
               } : undefined}
             />
           )}
+          </NatalOverviewMode.Provider>
         </section>
       ) : null}
 
-      {normalizedActiveTab === 'ask' && !isSavedPerson ? (
-        <section className="natal-v3-question-stage">
-          <NatalQuestionExperience
+      {normalizedActiveTab === 'ask' ? (
+        <section className={styles.content}>
+          {person}
+          {isSavedPerson ? <section className={styles.state}><h2>Вопросы по своей карте</h2><p>Сейчас «Спросить о себе» работает только с твоей основной картой. Для вопросов выбери её через аватар в шапке.</p></section> :
+          !isPremium ? <NatalQuestionDemo chart={data} onRequestPremium={() => {void requestPremium('natal_questions',{placement:'natal_questions',featureKey:'natal_questions',triggerType:'locked_feature',returnView:'chart',returnAction:'open_natal_questions'});}}/> : <div className={styles.premiumQuestions}><NatalArtwork art="plus" className={styles.questionArtwork}/><NatalQuestionExperience
+            key={reportSubjectKey}
+            uiPreview={previewConfig?.questions}
             profile={profile}
             chartData={data}
             chartId={chartId}
@@ -461,19 +374,10 @@ export function NatalMagazine({
             requestPremium={requestPremium}
             premiumContinuation={premiumContinuation}
             onPremiumContinuationHandled={onPremiumContinuationHandled}
-          />
+          /></div>}
         </section>
       ) : null}
 
-      {matrixMounted ? (
-        <div className="natal-matrix-stage" hidden={normalizedActiveTab !== 'matrix'}>
-          <MatrixRoom
-            profile={profile}
-            onBack={() => selectTab('foundation')}
-            embedded
-          />
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -19,13 +19,19 @@ import {
 } from '../lumia-ui/LumiaBottomTabBar';
 import { HoroscopeReader } from '../../views/v2/HoroscopeReader';
 import { NatalMagazine } from '../../views/v2/NatalMagazine';
+import { MatrixRoom } from '../../views/v2/MatrixRoom';
+import readingSamples from './readingSamples.json';
+import type { NatalCatalogReportUiPreview } from '../NatalReading/NatalCatalogReport';
 import { UnionRoom } from '../../views/v2/UnionRoom';
 import { AstrologyEncyclopedia } from '../../views/v2/AstrologyEncyclopedia';
 import { ServiceScreen, type ServiceTab } from '../../views/v2/ServiceScreen';
 import { Settings } from '../../views/Settings';
 import { MyCharts } from '../../views/MyCharts';
 import { Paywall } from '../../views/Paywall';
+import { Onboarding } from '../../views/Onboarding';
+import { AuthGate } from '../../views/AuthGate';
 import type { PaywallContext } from '../../lib/paywallContext';
+import { createPaywallContextFromRequest } from '../../lib/paywallContext';
 import {
   UI_PREVIEW_ACCESS,
   UI_PREVIEW_BIRTH_TIMES,
@@ -483,16 +489,26 @@ export default function UiPreviewApp() {
   const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
   const [serviceTab, setServiceTab] = useState<ServiceTab>('knowledge');
   const [paywallReturnScreen, setPaywallReturnScreen] = useState<UiPreviewScreen>('today');
+  const [natalContinuation, setNatalContinuation] = useState<PaywallContext | null>(null);
   const [settingsReturnScreen] = useState<UiPreviewScreen>('today');
   const [chartsReturnScreen, setChartsReturnScreen] = useState<UiPreviewScreen>('menu');
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  const profile = useMemo(
-    () => createUiPreviewProfile(scenario.access, scenario.birthTime),
-    [scenario.access, scenario.birthTime],
-  );
-  const chart = useMemo(() => createUiPreviewChart(scenario.birthTime), [scenario.birthTime]);
-  const natalProfile = useMemo(() => ({ ...profile, id: '' }), [profile]);
+  const [samplePerson, setSamplePerson] = useState(() => {
+    const person = new URLSearchParams(window.location.search).get('person');
+    return readingSamples.people.find(sample => sample.id === person);
+  });
+  const profile = useMemo(() => {
+    const base = createUiPreviewProfile(scenario.access, scenario.birthTime);
+    if (!samplePerson || scenario.access === 'guest') return base;
+    return { ...base, name: samplePerson.profile.name, birthDate: samplePerson.profile.birthDate,
+      birthTime: scenario.birthTime === 'unknown' ? '' : samplePerson.profile.birthTime,
+      birthPlace: samplePerson.profile.birthPlace };
+  }, [scenario.access, scenario.birthTime, samplePerson]);
+  const chart = useMemo(() => samplePerson && scenario.birthTime === 'exact'
+    ? samplePerson.chart as unknown as ReturnType<typeof createUiPreviewChart>
+    : createUiPreviewChart(scenario.birthTime), [scenario.birthTime, samplePerson]);
+  const natalProfile = useMemo(() => ({ ...profile, id: '', gender: samplePerson ? samplePerson.profile.gender as typeof profile.gender : profile.gender }), [profile,samplePerson]);
   const natalReport = useMemo(
     () => createUiPreviewNatalReport(natalProfile, chart),
     [chart, natalProfile],
@@ -501,7 +517,9 @@ export default function UiPreviewApp() {
     () => createUiPreviewNatalPremiumReport(natalProfile, chart),
     [chart, natalProfile],
   );
-  const natalCatalog = useMemo(() => createUiPreviewNatalCatalog(), []);
+  const natalCatalog = useMemo(() => ({ ...createUiPreviewNatalCatalog(), ...(samplePerson ? {categoryPacks: samplePerson.categoryPacks as unknown as NatalCatalogReportUiPreview['categoryPacks']} : {}) }), [samplePerson]);
+  const natalPreviewCharts = useMemo(() => samplePerson ? readingSamples.people.map((sample, index) => ({ ...createUiPreviewCharts({...profile, name:sample.profile.name, birthDate:sample.profile.birthDate, birthTime:sample.profile.birthTime, birthPlace:sample.profile.birthPlace}, sample.chart as unknown as typeof chart)[0], id:index + 1, is_primary:index === 0, subject_type:index === 0 ? 'self' as const : 'saved_person' as const, input_hash:`ui-preview-${sample.id}` })) : createUiPreviewCharts(profile,chart), [samplePerson,profile,chart]);
+  const selectedNatalSubject = samplePerson ? natalPreviewCharts[readingSamples.people.indexOf(samplePerson)] : undefined;
   const view = previewViewForScreen(scenario.screen);
   const showsBottomNavigation = !['onboarding', 'paywall'].includes(scenario.screen);
 
@@ -517,14 +535,20 @@ export default function UiPreviewApp() {
   const changeScenario = (patch: Partial<UiPreviewScenario>) => {
     setScenario((current) => {
       const next = { ...current, ...patch };
-      window.history.replaceState(null, '', scenarioToSearch(next));
+      const query = new URLSearchParams(scenarioToSearch(next));
+      const previous = new URLSearchParams(window.location.search);
+      for (const key of ['person', 'controls'] as const) {
+        const value = previous.get(key);
+        if (value !== null) query.set(key, value);
+      }
+      window.history.replaceState(null, '', `?${query.toString()}`);
       return next;
     });
   };
   const navigate = (screen: UiPreviewScreen) => {
     if (screen === 'paywall') {
       setPaywallReturnScreen(
-        scenario.screen === 'menu' || scenario.screen === 'settings' || scenario.screen === 'charts'
+        ['menu', 'settings', 'charts', 'natal', 'natal-reading', 'question'].includes(scenario.screen)
           ? scenario.screen
           : 'today',
       );
@@ -582,7 +606,16 @@ export default function UiPreviewApp() {
       </div>
     );
   } else if (scenario.screen === 'onboarding') {
-    scene = (
+    scene = new URLSearchParams(window.location.search).get('actualOnboarding') === '1' ? (
+      <div className="ui-preview-actual-onboarding">
+        {new URLSearchParams(window.location.search).get('authPreview') === '1' ? <AuthGate onAccountLogin={() => {}} onGuestStart={async () => {}}/> : <Onboarding
+          initialStep={new URLSearchParams(window.location.search).get('onboardingStep') === 'birth' ? 'birth' : 'stories'}
+          onComplete={async () => {navigate('natal');}}
+          onSkip={() => navigate('today')}
+          onSignIn={() => {const query=new URLSearchParams(window.location.search); query.set('authPreview','1'); window.location.search=query.toString();}}
+        />}
+      </div>
+    ) : (
       <OnboardingScene
         birthTime={scenario.birthTime}
         onBirthTime={(birthTime) => changeScenario({ birthTime })}
@@ -593,6 +626,8 @@ export default function UiPreviewApp() {
     scene = <PaywallScene profile={profile} onClose={() => navigate(paywallReturnScreen)} />;
   } else if (scenario.screen === 'encyclopedia') {
     scene = <AstrologyEncyclopedia profile={profile} onOpenCharts={openCharts} />;
+  } else if (scenario.screen === 'matrix') {
+    scene = <MatrixRoom profile={profile} onBack={() => navigate('menu')} onOpenProfile={() => navigate('settings')} onOpenCharts={openCharts} />;
   } else if (scenario.screen === 'today' || scenario.screen === 'week' || scenario.screen === 'month') {
     scene = <DiaryScene screen={scenario.screen} premium={scenario.access === 'premium'} profile={profile} onNavigate={navigate} onOpenCharts={openCharts} />;
   } else if (scenario.screen === 'horoscope' || scenario.screen === 'zodiac-picker') {
@@ -615,7 +650,14 @@ export default function UiPreviewApp() {
         key={`${scenario.screen}:${scenario.access}:${scenario.birthTime}`}
         data={scenario.state === 'empty' ? null : chart}
         profile={natalProfile}
-        requestPremium={() => navigate('paywall')}
+        chartId={selectedNatalSubject?.id}
+        chartSubject={selectedNatalSubject}
+        requestPremium={(source, payload) => {
+          setNatalContinuation(createPaywallContextFromRequest({ source, payload, currentView: 'chart' }));
+          navigate('paywall');
+        }}
+        premiumContinuation={natalContinuation}
+        onPremiumContinuationHandled={() => setNatalContinuation(null)}
         preloadedReport={natalReport}
         onCreateChart={() => navigate('onboarding')}
         onOpenPersonalityReport={() => navigate('natal-reading')}
@@ -633,6 +675,7 @@ export default function UiPreviewApp() {
             ? scenario.state
             : 'ready',
           premiumReport: scenario.access === 'premium' ? natalPremiumReport : null,
+          questions: {snapshot:{chartId:selectedNatalSubject?.id || 1,messages:[],usage:{usageDate:'2026-09-13',used:0,limit:5,remaining:5},promptVersion:'local-preview',voiceVersion:'local-preview'},onAsk:async () => {throw new Error('Local preview does not generate answers');}},
           catalog: {
             ...natalCatalog,
             state: scenario.state === 'loading' || scenario.state === 'error'
@@ -668,10 +711,19 @@ export default function UiPreviewApp() {
         <AppTopBar title="Мои карты" onBack={() => navigate(chartsReturnScreen)} />
         <MyCharts
           profile={profile}
+          natalLimitsPreview={['natal','natal-reading','question'].includes(chartsReturnScreen)}
           canPromotePremium={scenario.access !== 'premium'}
           onRequestPremium={() => navigate('paywall')}
+          onChartSelect={['natal','natal-reading','question'].includes(chartsReturnScreen) ? selected => {
+              const sample = readingSamples.people[selected.id - 1];
+              if (samplePerson && sample) {
+                setSamplePerson(sample);
+                const query = new URLSearchParams(window.location.search); query.set('person',sample.id); window.history.replaceState(null,'',`?${query}`);
+              }
+              navigate(chartsReturnScreen);
+          } : undefined}
           uiPreview={{
-            charts: createUiPreviewCharts(profile, chart),
+            charts: ['natal','natal-reading','question'].includes(chartsReturnScreen) ? natalPreviewCharts : createUiPreviewCharts(profile, chart),
             chartSlots: scenario.access === 'premium' ? 5 : 1,
             canAddMore: false,
             canAddSavedPeople: false,
@@ -744,7 +796,7 @@ export default function UiPreviewApp() {
         </>
       ) : null}
 
-      <PreviewControls scenario={scenario} onChange={changeScenario} />
+      {new URLSearchParams(window.location.search).get('controls') !== '0' ? <PreviewControls scenario={scenario} onChange={changeScenario} /> : null}
     </div>
   );
 }

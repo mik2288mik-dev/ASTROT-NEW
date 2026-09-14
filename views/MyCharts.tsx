@@ -36,6 +36,7 @@ interface MyChartsProps {
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
   uiPreview?: ChartsResponse;
+  natalLimitsPreview?: boolean;
   embedded?: boolean;
 }
 
@@ -78,12 +79,14 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   onPremiumContinuationHandled,
   canPromotePremium = true,
   uiPreview,
+  natalLimitsPreview = false,
   embedded = false,
 }) => {
   const previewData = process.env.NODE_ENV === 'development'
     && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
       ? uiPreview
       : undefined;
+  const localNatalLimits = Boolean(previewData && natalLimitsPreview);
 
   const [data, setData] = useState<ChartsResponse | null>(previewData ?? null);
   const [loading, setLoading] = useState(!previewData);
@@ -161,9 +164,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   // The profile carries the latest backend-validated entitlement. A cached
   // chart-list boolean must never outlive its dated canonical snapshot.
   const hasPremiumAccess = hasActivePremium(profile, entitlementNow);
-  const accessibleSavedIds = getAccessibleSavedPersonIds(charts, hasPremiumAccess);
+  const accessibleSavedIds = localNatalLimits && hasPremiumAccess ? new Set(savedCharts.map(chart => chart.id)) : getAccessibleSavedPersonIds(charts, hasPremiumAccess);
   const canAddMore = serverCanAddMore
-    && savedCharts.length < (hasPremiumAccess ? PREMIUM_SAVED_PERSON_LIMIT : FREE_SAVED_PERSON_LIMIT);
+    && savedCharts.length < (hasPremiumAccess ? localNatalLimits ? Infinity : PREMIUM_SAVED_PERSON_LIMIT : FREE_SAVED_PERSON_LIMIT);
   const canOpenPremiumFlow = canPromotePremium && Boolean(onRequestPremium);
   const isChartEffectivelyLocked = useCallback((chart: ChartListItem) => (
     chart.access_locked === true
@@ -491,7 +494,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                 </h1>
                 <p className="mt-2 text-[14px] leading-relaxed text-mono-muted">
                   {lang === 'ru'
-                    ? 'Твоя карта доступна всегда. Карты других людей сохраняются и открываются с Premium.'
+                    ? localNatalLimits ? 'Free — твоя карта и ещё один человек. С NEBO+ — безлимит сохранённых карт.' : 'Твоя карта доступна всегда. Карты других людей сохраняются и открываются с Premium.'
                     : 'Your chart is always available. Other people’s charts are saved and unlocked with Premium.'}
                 </p>
                 {canAddMore ? (
@@ -629,7 +632,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                 {lang === 'ru' ? 'Сохранённые люди' : 'Saved people'}
               </h2>
               <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
-                {hasPremiumAccess
+                {localNatalLimits ? hasPremiumAccess ? `Сохранено ${savedCharts.length} · NEBO+ — безлимит` : 'Free — 2 карты: своя и ещё один человек.' : hasPremiumAccess
                   ? (lang === 'ru' ? `Сохранено ${savedCharts.length} из ${PREMIUM_SAVED_PERSON_LIMIT}` : `${savedCharts.length} of ${PREMIUM_SAVED_PERSON_LIMIT} saved`)
                   : (lang === 'ru' ? `С Premium — до ${PREMIUM_SAVED_PERSON_LIMIT} дополнительных карт` : `Premium includes up to ${PREMIUM_SAVED_PERSON_LIMIT} additional charts`)}
               </p>
@@ -660,7 +663,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                 {lang === 'ru' ? 'Одна дополнительная карта доступна бесплатно' : 'One additional chart is included for free'}
               </p>
               <p className="text-[13px] leading-relaxed text-mono-muted">
-                {lockedChartCount > 0
+                {localNatalLimits ? 'NEBO+ — безлимит сохранённых карт.' : lockedChartCount > 0
                   ? (lang === 'ru' ? 'Эти карты не удалены: они снова откроются после подключения Premium.' : 'These charts are not deleted: they unlock again with Premium.')
                   : (lang === 'ru' ? `Можно сохранить до ${PREMIUM_SAVED_PERSON_LIMIT} дополнительных карт.` : `You can save up to ${PREMIUM_SAVED_PERSON_LIMIT} additional charts.`)}
               </p>
@@ -677,10 +680,10 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           ) : !canAddMore ? (
             <aside className="fresh-card fresh-card--flat p-4">
               <p className="text-[14px] font-semibold text-mono-ink">
-                {lang === 'ru' ? 'Лимит сохранённых карт достигнут' : 'Saved chart limit reached'}
+                {localNatalLimits ? 'NEBO+ — безлимит сохранённых карт' : lang === 'ru' ? 'Лимит сохранённых карт достигнут' : 'Saved chart limit reached'}
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
-                {lang === 'ru' ? `В текущем доступе можно хранить до ${chartSlots - 1} дополнительных карт.` : `Your current access allows up to ${chartSlots - 1} additional charts.`}
+                {localNatalLimits ? 'В локальном preview добавление карт отключено.' : lang === 'ru' ? `В текущем доступе можно хранить до ${chartSlots - 1} дополнительных карт.` : `Your current access allows up to ${chartSlots - 1} additional charts.`}
               </p>
             </aside>
           ) : null}

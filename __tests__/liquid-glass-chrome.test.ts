@@ -70,7 +70,7 @@ describe('application chrome', () => {
   it('uses the exact same AppTopBar component on every primary application screen', () => {
     const primaryScreens = [
       'views/Dashboard.tsx',
-      'views/v2/HoroscopeReader.tsx',
+      'views/v2/HoroscopeReaderClassic.tsx',
       'views/v2/UnionRoom.tsx',
       'views/v2/NatalMagazine.tsx',
       'views/v2/MatrixRoom.tsx',
@@ -169,9 +169,7 @@ describe('application chrome', () => {
     expect(todayStyles).toContain('min-height: 44px');
     expect(globals).toContain('--tg-content-safe-area-inset-right: 0px');
     expect(read('styles/liquidGlassChrome.css')).toContain('top: calc(var(--app-top-bar-content-safe-top) + 5px)');
-    expect(app.match(/<NeboBottomTabBar/g)).toHaveLength(1);
-    const adapter = read('components/nebo-v2/NeboBottomTabBar.tsx');
-    expect(adapter).toContain('if (!design.active) return <ClassicBar {...props}/>;');
-    expect(adapter).toContain('useNeboDesign(props.profile)');
+    expect(app.match(/<LumiaBottomTabBar/g)).toHaveLength(1);
+    expect(app).not.toContain('useNeboDesign');
   });
 });

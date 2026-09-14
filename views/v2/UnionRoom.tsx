@@ -1351,8 +1351,8 @@ export function UnionRoom(props: UnionRoomProps) {
   }, [screen, selected, premium, peopleLoaded, previewResultState, runDeep]);
 
   const compatibilityTabs = useMemo(() => [
-    { id: 'birth' as const, label: ru ? 'По картам' : 'By charts' },
-    { id: 'sign' as const, label: ru ? 'По знакам' : 'By zodiac signs' },
+    { id: 'birth' as const, label: ru ? 'По дате рождения' : 'By birth date' },
+    { id: 'sign' as const, label: ru ? 'По знаку зодиака' : 'By zodiac sign' },
   ], [ru]);
   const activeCompatibilityTab: CompatibilityTab = screen === 'result'
     ? selected?.kind === 'sign' ? 'sign' : 'birth'
@@ -1427,7 +1427,7 @@ export function UnionRoom(props: UnionRoomProps) {
                 <div className="compat-entry-disclosure-body">
                   <p className="compat-entry-disclosure-lead">
                     {ru
-                      ? 'Это не вердикт «подходите вы или нет». Разбор покажет, как устроена ваша связь и на что лучше обратить внимание.'
+                      ? 'Сравнение покажет, что вас сближает, в чём вы различаетесь и как вам легче понять друг друга.'
                       : 'This is not a verdict on whether you belong together. It shows how your connection works and what deserves attention.'}
                   </p>
                   <div className="compat-entry-disclosure-points">
@@ -1441,8 +1441,8 @@ export function UnionRoom(props: UnionRoomProps) {
                     <div className="compat-entry-disclosure-point">
                       <span aria-hidden="true" />
                       <p>
-                        <strong>{ru ? 'Где можно не совпасть' : 'Where you may differ'}</strong>
-                        <small>{ru ? 'Какие различия чаще вызывают напряжение или недопонимание.' : 'Which differences are more likely to create tension or misunderstanding.'}</small>
+                        <strong>{ru ? 'В чём вы различаетесь' : 'Where you may differ'}</strong>
+                        <small>{ru ? 'Какие привычки и взгляды могут стать причиной споров.' : 'Which differences are more likely to create tension or misunderstanding.'}</small>
                       </p>
                     </div>
                     <div className="compat-entry-disclosure-point">
@@ -1454,7 +1454,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     </div>
                   </div>
                   <p className="compat-entry-disclosure-note">
-                    {ru ? 'Выбранная сфера задаёт контекст разбора.' : 'The selected area sets the context for the reading.'}
+                    {ru ? 'Выбери тип отношений, чтобы разбор учитывал, кто вы друг другу.' : 'The selected area sets the context for the reading.'}
                   </p>
                 </div>
               </details>

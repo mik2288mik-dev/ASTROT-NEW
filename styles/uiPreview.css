@@ -14,6 +14,9 @@ body.ui-preview-document-scroll {
   overflow: visible;
 }
 
+/* Render the actual setup components in the same viewport host as the app. */
+.ui-preview-actual-onboarding{position:fixed;inset:0;height:100dvh;overflow:hidden;z-index:100;background:#fff}
+
 #__next.ui-preview-document-scroll {
   display: block;
   width: 100%;

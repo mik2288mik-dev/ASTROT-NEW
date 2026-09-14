@@ -361,6 +361,8 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   const inputDisabled = !isPremium || loading || submitting || questionLimitReached || !userId;
   const statusText = submitting
     ? (language === 'ru' ? 'Готовим ответ…' : 'Preparing your answer…')
+    : !userId && preview
+      ? (language === 'ru' ? 'В локальном превью отправка отключена.' : 'Sending is disabled in the local preview.')
     : unansweredQuestionText
       ? (canRetryUnanswered
           ? (language === 'ru'

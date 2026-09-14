@@ -5435,11 +5435,11 @@ a,
   font-family: var(--fresh-font);
 }
 .pw2::before { content: none; }
-.pw2--overlay { height: 100dvh; overflow: hidden; }
+.pw2--overlay { position: fixed; inset: 0; z-index: 150; width: 100%; height: var(--tg-viewport-height, 100dvh); max-height: 100dvh; overflow: hidden; margin: 0; }
 .pw2 > .app-top-bar-spacer { flex-shrink: 0; }
 .pw2-content { min-height: 0; padding: 12px 0 24px; }
 .pw2--overlay .pw2-content { flex: 1 1 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-.pw2-content > *, .pw2-checkout-inner { box-sizing: border-box; width: min(calc(100% - 32px), 560px); margin-inline: auto; }
+.pw2-content > *, .pw2-checkout-inner { box-sizing: border-box; width: min(calc(100% - 32px - max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px)) - max(env(safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px))), 560px); margin-inline: auto; overflow-wrap: anywhere; }
 .pw2-kicker { margin: 0 0 6px; color: var(--pw-muted); font-size: 0.8125rem; font-weight: 600; }
 .pw2-title { max-width: 23ch; margin: 0; color: var(--pw-ink); font-size: 1.75rem; font-weight: 600; letter-spacing: -0.035em; line-height: 1.16; text-wrap: balance; }
 .pw2-sub { max-width: 45ch; margin: 8px 0 0; color: var(--pw-muted); font-size: 1rem; line-height: 1.4; text-wrap: pretty; }
@@ -5464,7 +5464,7 @@ a,
 .pw2-benefits > div { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; }
 .pw2-benefits dt { color: var(--pw-ink); font-size: 0.9375rem; font-weight: 600; line-height: 1.4; }
 .pw2-benefits dd { min-width: 0; margin: 0; color: var(--pw-muted); font-size: 0.9375rem; line-height: 1.4; }
-.pw2-checkout { position: relative; z-index: 5; flex-shrink: 0; padding: 12px 0 max(8px, env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px)); border-top: 1px solid var(--pw-rule); background: #fff; }
+.pw2-checkout { position: relative; z-index: 5; flex-shrink: 0; padding: 12px 0 max(8px, env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)); border-top: 1px solid var(--pw-rule); background: #fff; }
 .pw2--overlay .pw2-checkout { max-height: 55dvh; overflow-y: auto; }
 .pw2-checkout-inner { display: grid; gap: 8px; }
 .pw2-selection-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -9975,4 +9975,29 @@ body,
   border-radius: 999px;
   background: #171717;
   content: '';
+}
+
+/* Setup adapts its spacing first; natural scrolling remains available when
+   content, errors, keyboard or safe insets exceed the available viewport. */
+.meou-onboarding[data-onboarding-screen='birth']{
+  --birth-logo-size:clamp(4.5rem,12dvh,6.75rem);
+  overflow-y:auto;
+  overscroll-behavior-y:contain;
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-onboarding-shell{
+  height:auto;min-height:100%;max-height:none;overflow:visible;
+  grid-template-rows:auto minmax(min-content,1fr);
+  padding:max(var(--meou-safe-top),clamp(.5rem,1.5dvh,1rem)) max(var(--meou-safe-right),1.5rem) max(var(--meou-safe-bottom),clamp(.5rem,1.5dvh,1rem)) max(var(--meou-safe-left),1.5rem);
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth{min-height:min-content;grid-template-rows:auto minmax(min-content,1fr)}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-form{min-height:min-content;row-gap:clamp(.35rem,1dvh,.65rem)}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-field input,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-city-field .fresh-input{font-size:1rem;min-height:3rem}
+.meou-onboarding[data-onboarding-screen='birth'] :is(.meou-field>span,.meou-field>label,.meou-time-mode legend,.meou-gender-mode legend){font-size:.75rem;line-height:1.3}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-privacy{font-size:.75rem;line-height:1.4}
+@media(max-height:650px){
+  .pw2-content{padding-top:8px;padding-bottom:16px}
+  .pw2-checkout{padding-top:8px}
+  .pw2 .pw2-plan{min-height:58px}
+  .pw2-title{font-size:1.5rem}
 }

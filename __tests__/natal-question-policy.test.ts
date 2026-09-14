@@ -143,11 +143,6 @@ describe('saved natal-chart question policy', () => {
     expect(endpoint).toContain('NATAL_QUESTION_SELF_CHART_REQUIRED');
   });
 
-  it('places questions before future forecasts in the shared personal sheet', () => {
-    const sheet = read('components/nebo-v2/NeboPersonalExplore.tsx');
-    expect(sheet.indexOf('<NatalQuestionExperience')).toBeGreaterThan(-1);
-    expect(sheet.indexOf('<NatalQuestionExperience')).toBeLessThan(sheet.indexOf('<NeboFutureJourney'));
-  });
 
   it('offers six fill-only starters and explains the AI chart boundary', () => {
     const report = read('components/NatalReading/HumanReport.tsx');

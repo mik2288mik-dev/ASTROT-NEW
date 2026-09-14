@@ -62,6 +62,7 @@ type Props = {
   canPromotePremium?: boolean;
   onOpenQuestions?: () => void;
   surface?: 'reading' | 'questions';
+  overviewMode?: 'story' | 'topics';
   uiPreview?: {
     state?: 'ready' | 'loading' | 'error';
     premiumReport?: NatalPermanentPremiumReport | null;
@@ -706,6 +707,7 @@ export const HumanReport: React.FC<Props> = ({
   canPromotePremium = true,
   onOpenQuestions,
   surface = 'reading',
+  overviewMode,
   uiPreview,
 }) => {
   const userId = profile.id ? String(profile.id) : '';
@@ -1257,13 +1259,7 @@ export const HumanReport: React.FC<Props> = ({
                   paragraphClassName="natal-reading-hook-paragraph"
                 />
               </header>
-              {freeSections.map((item, index) => (
-                <SectionText
-                  key={item.key}
-                  section={item}
-                  index={index}
-                />
-              ))}
+              {freeSections.map((item, index) => overviewMode === 'topics' ? <details className="natal-overview-classic-topic" key={item.key}><summary>{item.title || `Наблюдение ${index + 1}`}</summary><SectionText section={item} index={index}/></details> : <SectionText key={item.key} section={overviewMode === 'story' ? {...item, title: ''} : item} index={index}/>)}
             </>
           )}
         </div>
@@ -1338,7 +1334,7 @@ export const HumanReport: React.FC<Props> = ({
               </section>
             ) : null}
 
-            <TechnicalDetails chartData={chartData} language={language} />
+            {!overviewMode ? <TechnicalDetails chartData={chartData} language={language} /> : null}
 
             <section className="natal-disclaimer">
               <p>
