@@ -6,9 +6,14 @@ import {
   AdminVersionRow,
   AdminAcquisitionData,
 } from '../../../services/admin2Service';
+import { AdminRecharts } from './AdminRecharts';
 
 export const AnalyticsSection: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'funnels' | 'retention' | 'versions' | 'traffic'>('funnels');
+  const [activeTab, setActiveTab] = useState<'funnels' | 'retention' | 'versions' | 'traffic' | 'charts'>('funnels');
+
+  // Charts
+  const [chartMetric, setChartMetric] = useState<'users' | 'revenue' | 'errors'>('users');
+  const [chartDays, setChartDays] = useState<number>(30);
 
   // Funnels
   const [funnelDays, setFunnelDays] = useState(30);
@@ -130,11 +135,19 @@ export const AnalyticsSection: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('traffic')}
-            className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-colors ${
               activeTab === 'traffic' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Источники (UA)
+            Источники (Traffic)
+          </button>
+          <button
+            onClick={() => setActiveTab('charts')}
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-colors ${
+              activeTab === 'charts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Графики (Charts)
           </button>
         </div>
       </div>
@@ -471,6 +484,15 @@ export const AnalyticsSection: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {activeTab === 'charts' && (
+        <AdminRecharts
+          chartMetric={chartMetric}
+          setChartMetric={setChartMetric}
+          chartDays={chartDays}
+          setChartDays={setChartDays}
+        />
       )}
     </div>
   );
