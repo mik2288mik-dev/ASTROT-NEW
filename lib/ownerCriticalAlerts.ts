@@ -1,6 +1,6 @@
 import { getPool } from './db';
 import { getNeboOpsConfig, renderNeboOpsMessage, sendNeboOpsText } from './neboOps';
-import { parseSupportMetadata } from './supportDelivery';
+import { parseSupportMetadata, type SupportDiagnostics } from './supportDelivery';
 
 const FINANCIAL_EVENT_TYPES = [
   'payment_confirmed',
@@ -35,6 +35,15 @@ type FinancialRow = {
   attempts: number | string;
 };
 
+type OwnerUserSummary = {
+  name?: string | null;
+  language?: string | null;
+  auth_provider?: string | null;
+  created_at?: Date | string | null;
+  premium_until?: Date | string | null;
+  has_premium?: boolean;
+};
+
 type SupportRow = {
   outbox_id: string | number;
   ticket_id: string | number;
@@ -54,12 +63,11 @@ function boundedLimit(value: number): number {
   return Math.max(1, Math.min(50, Math.trunc(value)));
 }
 
-function supportVersionText(diagnostics: ReturnType<typeof parseSupportMetadata> extends infer T
-  ? T extends { diagnostics: infer D } ? D : never
-  : never): string {
-  const value = diagnostics as { appVersion?: string; versionCode?: string } | null | undefined;
-  if (value?.appVersion && value?.versionCode) return `${value.appVersion} (${value.versionCode})`;
-  return value?.appVersion || value?.versionCode || 'не указана';
+function supportVersionText(diagnostics: SupportDiagnostics | null): string {
+  if (diagnostics?.appVersion && diagnostics?.versionCode) {
+    return `${diagnostics.appVersion} (${diagnostics.versionCode})`;
+  }
+  return diagnostics?.appVersion || diagnostics?.versionCode || 'не указана';
 }
 
 function formatMoscow(value: Date | string): string {
@@ -94,9 +102,9 @@ async function sendFilteredFinancialAlerts(limit: number): Promise<number> {
 
   let sentCount = 0;
   for (const row of rows.rows) {
-    let user: Record<string, unknown> | undefined;
+    let user: OwnerUserSummary | undefined;
     if (row.user_id) {
-      const userResult = await pool.query(
+      const userResult = await pool.query<OwnerUserSummary>(
         `SELECT u.name, u.language, u.auth_provider, u.created_at,
                 GREATEST(u.premium_until, p.active_until AT TIME ZONE 'UTC') AS premium_until,
                 COALESCE(GREATEST(u.premium_until, p.active_until AT TIME ZONE 'UTC') > NOW(), FALSE) AS has_premium
@@ -211,11 +219,11 @@ async function sendMissedSupportAlerts(limit: number): Promise<number> {
 
 /**
  * Restores only owner-critical Telegram alerts that the 5 September owner-scope
- * filter intentionally retired. It does not widen ordinary activity alerts.
+ * filter retired. Ordinary screen/action noise remains filtered.
  *
- * Existing queues remain the source of truth. Successfully recovered rows are
- * marked sent, so old payments/support are delivered once and future rows keep
- * the same durable history and rate-limited Telegram sender.
+ * Existing durable queues stay the source of truth. Successfully recovered rows
+ * are marked sent, so missed payments/support are delivered once and future rows
+ * keep the existing rate-limited Telegram sender.
  */
 export async function processOwnerCriticalAlerts(limit = 20): Promise<OwnerCriticalAlertResult> {
   const result: OwnerCriticalAlertResult = { financialSent: 0, supportSent: 0 };
