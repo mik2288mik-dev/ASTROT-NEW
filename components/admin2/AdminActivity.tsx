@@ -5,6 +5,7 @@ import { admin2, type AdminActivityReport, type AdminUserActivityReport } from '
 type Period = 'day' | 'week' | 'month' | 'custom';
 type Range = { from: string; to: string; period: Period; timezone: string };
 type SeriesMetric = 'users' | 'visits' | 'events' | 'activeMs';
+type ChartKind = 'bars' | 'line' | 'area';
 const TIMEZONE = 'Europe/Moscow';
 const NUMBER = new Intl.NumberFormat('ru-RU');
 const METRICS: Array<{ key: SeriesMetric; label: string }> = [
@@ -12,6 +13,11 @@ const METRICS: Array<{ key: SeriesMetric; label: string }> = [
   { key: 'visits', label: 'Посещения' },
   { key: 'events', label: 'Действия' },
   { key: 'activeMs', label: 'Активное время' },
+];
+const CHART_KINDS: Array<{ key: ChartKind; label: string }> = [
+  { key: 'bars', label: 'Столбцы' },
+  { key: 'line', label: 'Линия' },
+  { key: 'area', label: 'Область' },
 ];
 
 function today(): string {
@@ -93,6 +99,7 @@ function Metric({ label, value, note }: { label: string; value: React.ReactNode;
 
 function ActivityChart({ data }: { data: AdminActivityReport }) {
   const [metric, setMetric] = useState<SeriesMetric>('users');
+  const [chartKind, setChartKind] = useState<ChartKind>('bars');
   const [width, setWidth] = useState(760);
   const chartRef = useRef<SVGSVGElement>(null);
   const id = useId();
@@ -129,29 +136,47 @@ function ActivityChart({ data }: { data: AdminActivityReport }) {
     }).format(date);
   };
   const metricLabel = METRICS.find(item => item.key === metric)?.label || '';
+  const chartKindLabel = CHART_KINDS.find(item => item.key === chartKind)?.label.toLowerCase() || 'график';
+  const points = series.flatMap((point, index) => {
+    const value = point[metric];
+    if (value === null) return [];
+    const x = left + index * step + step / 2;
+    const y = top + plotHeight - Math.max(0, value) / max * plotHeight;
+    return [{ x, y, point, value }];
+  });
+  const linePoints = points.map(({ x, y }) => `${x},${y}`).join(' ');
+  const areaPoints = points.length
+    ? `${points[0].x},${top + plotHeight} ${linePoints} ${points[points.length - 1].x},${top + plotHeight}`
+    : '';
   return <section className="admin2-chart-card" aria-labelledby={`${id}-title`}>
     <div className="admin2-chart-header"><h3 id={`${id}-title`}>Активность по времени</h3>
-      <div className="admin2-chart-metrics" role="group" aria-label="Показатель графика">{METRICS.map(item => <button key={item.key} type="button" aria-pressed={item.key === metric} onClick={() => setMetric(item.key)}>{item.label}</button>)}</div>
+      <div className="admin2-chart-controls">
+        <div className="admin2-chart-metrics" role="group" aria-label="Показатель графика">{METRICS.map(item => <button key={item.key} type="button" aria-pressed={item.key === metric} onClick={() => setMetric(item.key)}>{item.label}</button>)}</div>
+        <div className="admin2-chart-metrics" role="group" aria-label="Тип графика">{CHART_KINDS.map(item => <button key={item.key} type="button" aria-pressed={item.key === chartKind} onClick={() => setChartKind(item.key)}>{item.label}</button>)}</div>
+      </div>
     </div>
     {series.length && available ? <figure>
       <svg ref={chartRef} className="admin2-timeseries" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${id}-chart-title ${id}-chart-description`}>
         <title id={`${id}-chart-title`}>{metricLabel} за выбранный период</title>
-        <desc id={`${id}-chart-description`}>Столбцы показывают реальные значения. Все числа доступны в таблице под графиком.</desc>
+        <desc id={`${id}-chart-description`}>{chartKindLabel} показывает реальные значения. Все числа доступны в таблице под графиком.</desc>
         {[0, .25, .5, .75, 1].map(fraction => {
           const y = top + plotHeight * (1 - fraction);
           return <g key={fraction}><line className="admin2-chart-grid" x1={left} x2={width - right} y1={y} y2={y}/><text x={left - 9} y={y + 4} textAnchor="end">{metric === 'activeMs' ? durationAxis(max * fraction) : NUMBER.format(Math.round(max * fraction))}</text></g>;
         })}
+        {chartKind === 'area' && areaPoints ? <polygon className="admin2-chart-area" points={areaPoints} /> : null}
+        {chartKind !== 'bars' && linePoints ? <polyline className="admin2-chart-line" points={linePoints} /> : null}
         {series.map((point, index) => {
           const value = point[metric];
           const barHeight = value === null ? 0 : Math.max(0, value) / max * plotHeight;
           const x = left + index * step;
           return <g key={point.at}>
-            {value !== null ? <rect className="admin2-chart-bar" x={x + step * .15} y={top + plotHeight - barHeight} width={step * .7} height={barHeight} rx={Math.min(4, step * .14)}><title>{labelFor(point.at)}: {metric === 'activeMs' ? duration(value) : NUMBER.format(value)}</title></rect> : null}
+            {chartKind === 'bars' && value !== null ? <rect className="admin2-chart-bar" x={x + step * .15} y={top + plotHeight - barHeight} width={step * .7} height={barHeight} rx={Math.min(4, step * .14)}><title>{labelFor(point.at)}: {metric === 'activeMs' ? duration(value) : NUMBER.format(value)}</title></rect> : null}
+            {chartKind !== 'bars' && value !== null ? <circle className="admin2-chart-point" cx={x + step / 2} cy={top + plotHeight - barHeight} r="3"><title>{labelFor(point.at)}: {metric === 'activeMs' ? duration(value) : NUMBER.format(value)}</title></circle> : null}
             {index % labelEvery === 0 ? <text x={x + step / 2} y={height - 10} textAnchor="middle">{labelFor(point.at)}</text> : null}
           </g>;
         })}
       </svg>
-      <figcaption className="admin2-period-description">{metric === 'activeMs' ? 'Время измеряется только при открытом приложении и взаимодействии с ним.' : `Каждый столбец — ${data.range.bucket === 'hour' ? 'час' : 'день'} выбранного периода.`}</figcaption>
+      <figcaption className="admin2-period-description">{metric === 'activeMs' ? 'Время измеряется только при открытом приложении и взаимодействии с ним.' : `Каждая точка — ${data.range.bucket === 'hour' ? 'час' : 'день'} выбранного периода.`}</figcaption>
     </figure> : <div className="admin2-empty">{metric === 'activeMs' ? 'За этот период активное время ещё не измерялось. Историю посещений можно посмотреть отдельно.' : 'За этот период нет данных для графика.'}</div>}
     <details className="admin2-chart-table"><summary>Показать данные таблицей</summary><div><table><thead><tr><th scope="col">Время</th><th scope="col">Пользователи</th><th scope="col">Посещения</th><th scope="col">Действия</th><th scope="col">Активное время</th></tr></thead><tbody>{series.map(point => <tr key={point.at}><td>{labelFor(point.at)}</td><td>{NUMBER.format(point.users)}</td><td>{NUMBER.format(point.visits)}</td><td>{NUMBER.format(point.events)}</td><td>{duration(point.activeMs)}</td></tr>)}</tbody></table></div></details>
   </section>;

@@ -77,9 +77,12 @@ const on = (value: boolean) => value ? '✅' : '◻️';
 const hour = (value: number | null) => value === null ? 'выкл' : `${String(value).padStart(2, '0')}:00 МСК`;
 
 export function renderNeboOpsMenu(prefs: NeboOpsPreferences): { text: string; replyMarkup: TelegramReplyMarkup } {
-  const adminUrl = String(process.env.NEBO_ADMIN_URL || process.env.PUBLIC_APP_ORIGIN || '').replace(/\/$/, '');
-  const adminButton = /^https:\/\//.test(adminUrl)
-    ? [[{ text: '🛠 Открыть админку', url: adminUrl.endsWith('/admin') ? adminUrl : `${adminUrl}/admin` }]]
+  // Внешний /admin не получает Telegram initData и показывал владельцу форму
+  // браузерного входа. Ссылка Mini App передаёт подписанный Telegram контекст,
+  // а сервер /api/admin/v2/me допускает только OWNER_ID/назначенные роли.
+  const mainBot = String(process.env.NEBO_MAIN_BOT_USERNAME || '').replace(/^@/, '').trim();
+  const adminButton = /^[A-Za-z0-9_]{5,}$/.test(mainBot)
+    ? [[{ text: '🛠 Открыть админку', url: `https://t.me/${mainBot}?startapp=admin` }]]
     : [];
   return {
     text: [
@@ -117,5 +120,40 @@ export async function ensureNeboOpsBotSetup(token: string): Promise<void> {
     if (responses.some((response) => !response.ok)) setupStarted = false;
   } catch {
     setupStarted = false;
+  }
+}
+
+/** Регистрирует /menu только у выделенного бота. Отдельные webhook URL не
+ * позволяют сообщению из оплат оказаться в обработчике поддержки и наоборот. */
+export async function ensureNeboOwnerChannelBotSetup(
+  channel: 'payments' | 'support',
+  token: string,
+): Promise<void> {
+  const secret = String(process.env.NEBO_OPS_WEBHOOK_SECRET || '').trim();
+  const base = String(process.env.NEBO_OPS_PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/$/, '');
+  if (secret.length < 32 || !base.startsWith('https://')) return;
+  const api = `https://api.telegram.org/bot${token}`;
+  try {
+    const responses = await Promise.all([
+      fetch(`${api}/setWebhook`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: `${base}/api/telegram/owner-channel-webhook?channel=${channel}`,
+          secret_token: secret,
+          allowed_updates: ['message'],
+          drop_pending_updates: false,
+        }), signal: AbortSignal.timeout(8_000),
+      }),
+      fetch(`${api}/setMyCommands`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commands: [{ command: 'menu', description: 'О боте' }] }),
+        signal: AbortSignal.timeout(8_000),
+      }),
+    ]);
+    if (responses.some((response) => !response.ok)) {
+      console.warn(`[nebo-ops] ${channel} bot setup failed`);
+    }
+  } catch {
+    console.warn(`[nebo-ops] ${channel} bot setup failed`);
   }
 }

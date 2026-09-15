@@ -175,11 +175,15 @@
 .admin2-chart-card, .admin2-analysis-grid > section { padding: 16px; border: 1px solid var(--admin-line); border-radius: 14px; background: #fff; }
 .admin2-chart-card { display: grid; gap: 12px; }
 .admin2-chart-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.admin2-chart-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .admin2-chart-header h3, .admin2-analysis-grid h3 { margin: 0; color: var(--admin-ink); font-size: 15px; font-weight: 650; }
 .admin2-timeseries { display: block; width: 100%; height: 248px; overflow: visible; }
 .admin2-timeseries text { fill: var(--admin-faint); font-family: inherit; font-size: 10px; }
 .admin2-chart-grid { stroke: rgb(23 24 26 / 8%); stroke-width: 1; }
 .admin2-chart-bar { fill: #35373b; }
+.admin2-chart-line { fill: none; stroke: #35373b; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.admin2-chart-area { fill: rgb(53 55 59 / 13%); }
+.admin2-chart-point { fill: #fff; stroke: #35373b; stroke-width: 2; }
 .admin2-chart-table summary { width: fit-content; padding: 6px 0; color: var(--admin-muted); cursor: pointer; font-size: 11px; }
 .admin2-chart-table > div { overflow-x: auto; }
 .admin2-analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; container-type: inline-size; }

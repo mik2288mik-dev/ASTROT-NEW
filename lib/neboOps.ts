@@ -3,7 +3,12 @@ import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import type { PoolClient } from 'pg';
 import { getPool } from './db';
 import type { TelegramReplyMarkup } from './telegramBot';
-import { ensureNeboOpsBotSetup, getNeboOpsPreferences, isNeboOpsEventEnabled } from './neboOpsSettings';
+import {
+  ensureNeboOpsBotSetup,
+  ensureNeboOwnerChannelBotSetup,
+  getNeboOpsPreferences,
+  isNeboOpsEventEnabled,
+} from './neboOpsSettings';
 
 type Queryable = Pick<PoolClient, 'query'>;
 type Payload = Record<string, unknown>;
@@ -808,6 +813,10 @@ export function ensureNeboOpsWorker(): void {
   // Retry Telegram webhook/command registration on later server calls if a
   // transient Telegram failure occurred during the initial process startup.
   void ensureNeboOpsBotSetup(config.token);
+  const payments = getNeboOwnerChannelConfig('payments');
+  const support = getNeboOwnerChannelConfig('support');
+  if (payments) void ensureNeboOwnerChannelBotSetup('payments', payments.token);
+  if (support) void ensureNeboOwnerChannelBotSetup('support', support.token);
   if (state.started) return;
   state.started = true;
   void connectWakeupListener();

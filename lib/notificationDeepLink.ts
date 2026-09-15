@@ -38,6 +38,9 @@ export type StartParamRoute = {
 /** короткий код → экран приложения (обратная сторона SECTION_TO_CODE).
  *  view-значения совпадают с ViewState приложения (App.tsx). */
 const CODE_TO_ROUTE: Record<string, StartParamRoute> = {
+  // Админка открывается только внутри основного Mini App. Сам доступ всё равно
+  // проверяется сервером по подписанному Telegram initData.
+  admin: { view: 'admin' },
   dc: { view: 'dashboard', todaySection: 'daily-card' },
   natal: { view: 'chart' },
   natalx: { view: 'chart' },

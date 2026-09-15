@@ -304,7 +304,7 @@ function getStartParamView(): ViewState | null {
     const resolved = resolveStartParamRoute(getStartParamRaw());
     if (!resolved) return null;
     const v = resolved.route.view as ViewState;
-    return NOTIFICATION_QUERY_VIEWS.has(v) || v === 'chart' ? v : null;
+    return NOTIFICATION_QUERY_VIEWS.has(v) || v === 'chart' || v === 'admin' ? v : null;
 }
 
 function getRequestedViewFromQuery(): ViewState | null {
@@ -1114,13 +1114,25 @@ const App: React.FC = () => {
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
                     prepareStartupPersonalForecasts(updatedProfile);
                     if (cancelled) return;
-                    showStartupDashboard('dashboard');
+                    // Админ-ссылка из бота обязана сохранить Telegram-контекст и
+                    // не теряться из-за локального кэша натальной карты.
+                    // Не-владельцу всё равно не открываем экран до серверной
+                    // авторизации: UI остаётся на обычном дашборде.
+                    showStartupDashboard(
+                        requestedViewRef.current === 'admin' && updatedProfile.isAdmin
+                            ? 'admin'
+                            : requestedViewRef.current || 'dashboard',
+                    );
                     scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, startupChartId, true);
                     return;
                 }
 
                 prepareStartupPersonalForecasts(updatedProfile);
-                showStartupDashboard(requestedViewRef.current || 'dashboard');
+                showStartupDashboard(
+                    requestedViewRef.current === 'admin' && !updatedProfile.isAdmin
+                        ? 'dashboard'
+                        : requestedViewRef.current || 'dashboard',
+                );
                 void loadPrimaryChartOnce(updatedProfile).then((chart) => {
                     if (cancelled || !chart?.sun || !chart?.moon) return;
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
