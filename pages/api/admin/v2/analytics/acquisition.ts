@@ -17,29 +17,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const pool = getPool();
 
-    // 1. MyTracker traffic sources
+    // 1. First-touch acquisition: MyTracker when available, otherwise the
+    // first observed runtime/distribution channel. This keeps Telegram/web
+    // users visible instead of silently dropping everyone without an SDK callback.
     const myTrackerRes = await pool.query(`
-      SELECT
-        COALESCE(traffic_source, 'Не указан') AS source,
-        COALESCE(campaign_title, 'Органический / Прямой') AS campaign,
-        COUNT(DISTINCT m.user_id)::int AS users_count,
-        COUNT(DISTINCT m.user_id) FILTER (WHERE u.is_premium)::int AS premium_users,
-        COUNT(DISTINCT m.user_id) FILTER (WHERE u.last_seen_at >= NOW() - INTERVAL '7 days')::int AS active_7d
-      FROM mytracker_users m
-      LEFT JOIN users u ON u.id = m.user_id
+      WITH first_login AS (
+        SELECT DISTINCT ON (user_id)
+          user_id,
+          NULLIF(payload_json->>'distributionChannel', '') AS distribution_channel,
+          NULLIF(payload_json->>'runtime', '') AS runtime
+        FROM nebo_ops_outbox
+        WHERE event_type = 'login' AND user_id IS NOT NULL
+        ORDER BY user_id, occurred_at ASC, id ASC
+      ), premium AS (
+        SELECT user_id, MAX(ends_at) AS active_until
+        FROM premium_entitlements
+        WHERE status = 'active' AND ends_at > NOW()
+        GROUP BY user_id
+      ), attributed AS (
+        SELECT u.id AS user_id,
+          COALESCE(
+            NULLIF(m.traffic_source, ''),
+            CASE COALESCE(fl.distribution_channel, fl.runtime, u.platform, u.auth_provider)
+              WHEN 'rustore' THEN 'RuStore'
+              WHEN 'google_play' THEN 'Google Play'
+              WHEN 'telegram' THEN 'Telegram'
+              WHEN 'native' THEN 'Приложение · прямой вход'
+              WHEN 'web' THEN 'Веб · прямой вход'
+              ELSE 'Не определён'
+            END
+          ) AS source,
+          COALESCE(NULLIF(m.campaign_title, ''), NULLIF(ak.campaign_key, ''), 'Органический / Прямой') AS campaign,
+          (GREATEST(u.premium_until, p.active_until) > NOW()) AS is_premium,
+          u.last_login
+        FROM users u
+        LEFT JOIN mytracker_users m ON m.user_id = u.id
+        LEFT JOIN user_acquisition_keys ak ON ak.user_id = u.id
+        LEFT JOIN first_login fl ON fl.user_id = u.id
+        LEFT JOIN premium p ON p.user_id = u.id
+      )
+      SELECT source, campaign,
+        COUNT(*)::int AS users_count,
+        COUNT(*) FILTER (WHERE is_premium)::int AS premium_users,
+        COUNT(*) FILTER (WHERE last_login >= NOW() - INTERVAL '7 days')::int AS active_7d
+      FROM attributed
       GROUP BY 1, 2
       ORDER BY users_count DESC
       LIMIT 50
-    `).catch(() => ({ rows: [] }));
+    `);
 
     // 2. Auth provider breakdown
-    const providersRes = await pool.query(`
+    const providersRes = await pool.query(`WITH premium AS (
+        SELECT user_id, MAX(ends_at) AS active_until
+        FROM premium_entitlements
+        WHERE status = 'active' AND ends_at > NOW()
+        GROUP BY user_id
+      )
       SELECT
         COALESCE(auth_provider, 'guest') AS provider,
         COUNT(*)::int AS users_count,
-        COUNT(*) FILTER (WHERE is_premium)::int AS premium_users,
-        COUNT(*) FILTER (WHERE last_seen_at >= NOW() - INTERVAL '7 days')::int AS active_7d
-      FROM users
+        COUNT(*) FILTER (WHERE GREATEST(u.premium_until, premium.active_until) > NOW())::int AS premium_users,
+        COUNT(*) FILTER (WHERE last_login >= NOW() - INTERVAL '7 days')::int AS active_7d
+      FROM users u
+      LEFT JOIN premium ON premium.user_id = u.id
       GROUP BY 1
       ORDER BY users_count DESC
     `);

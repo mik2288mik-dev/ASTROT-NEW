@@ -34,9 +34,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // 2. Recent 8 registrations
       pool.query(`
-        SELECT id, name, auth_provider, created_at, is_premium, current_device
-        FROM users
-        ORDER BY created_at DESC
+        SELECT u.id, u.name, u.auth_provider, u.created_at, u.platform,
+               (GREATEST(u.premium_until, pe.active_until) > NOW()) AS is_premium
+        FROM users u
+        LEFT JOIN LATERAL (
+          SELECT MAX(ends_at) AS active_until FROM premium_entitlements
+          WHERE user_id = u.id AND status = 'active' AND ends_at > NOW()
+        ) pe ON TRUE
+        ORDER BY u.created_at DESC
         LIMIT 8
       `),
 
@@ -52,8 +57,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // 4. Recent 6 payments
       pool.query(`
-        SELECT id, user_id, total_amount as amount, currency, status, created_at, 'telegram_stars' as provider
-        FROM stars_payments
+        SELECT * FROM (
+          SELECT id::text AS id, user_id, stars_amount::numeric AS amount, currency,
+                 COALESCE(status, 'completed') AS status, created_at,
+                 COALESCE(provider, 'telegram_stars') AS provider
+          FROM star_payments
+          UNION ALL
+          SELECT ('rustore:' || id::text) AS id, user_id, NULL::numeric AS amount, 'RUB' AS currency,
+                 status, COALESCE(purchased_at, created_at) AS created_at, provider
+          FROM store_purchases
+        ) payments
         ORDER BY created_at DESC
         LIMIT 6
       `),
@@ -92,10 +105,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         provider: row.auth_provider || 'guest',
         createdAt: row.created_at,
         isPremium: Boolean(row.is_premium),
-        device: row.current_device || null,
+        device: row.platform || null,
       })),
       recentEvents: recentEvents.rows.map((row) => ({
-        id: Number(row.id),
+        id: String(row.id),
         userId: String(row.user_id),
         userName: row.user_name || null,
         eventType: row.event_type,
@@ -107,7 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       recentPayments: recentPayments.rows.map((row) => ({
         id: Number(row.id),
         userId: String(row.user_id),
-        amount: Number(row.amount || 0),
+        amount: row.amount === null ? null : Number(row.amount),
         currency: row.currency || 'XTR',
         status: row.status,
         createdAt: row.created_at,

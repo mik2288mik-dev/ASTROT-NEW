@@ -278,7 +278,7 @@ const ADMIN_USER_METRICS_CTE = `
       u.language,
       u.birth_date,
       u.birth_time,
-      u.premium_until,
+      GREATEST(u.premium_until, MAX(pe.entitlement_premium_until)) AS premium_until,
       COALESCE(u.login_streak, 0) AS login_streak,
       COALESCE(u.chart_slots, 1) AS chart_slots,
       COALESCE(u.is_admin, FALSE) AS is_admin,
@@ -293,6 +293,12 @@ const ADMIN_USER_METRICS_CTE = `
     FROM users u
     LEFT JOIN natal_charts nc ON nc.user_id = u.id
     LEFT JOIN user_sessions us ON us.user_id = u.id
+    LEFT JOIN (
+      SELECT user_id, MAX(ends_at) AS entitlement_premium_until
+      FROM premium_entitlements
+      WHERE status = 'active' AND ends_at > NOW()
+      GROUP BY user_id
+    ) pe ON pe.user_id = u.id
     LEFT JOIN (
       SELECT user_id, MAX(occurred_at) AS last_event
       FROM user_app_events

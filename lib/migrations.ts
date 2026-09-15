@@ -4072,6 +4072,63 @@ async function mvp057AdminObservabilityFoundation(pool: Pool): Promise<void> {
   }
 }
 
+async function mvp058NeboOpsPreferences(pool: Pool): Promise<void> {
+  const name = 'mvp_058_nebo_ops_preferences';
+  if (await isMigrationApplied(pool, name)) return;
+  await pool.query('BEGIN');
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS nebo_ops_preferences (
+        id SMALLINT PRIMARY KEY CHECK (id = 1),
+        notify_logins BOOLEAN NOT NULL DEFAULT TRUE,
+        notify_payments BOOLEAN NOT NULL DEFAULT TRUE,
+        notify_paywalls BOOLEAN NOT NULL DEFAULT TRUE,
+        notify_support BOOLEAN NOT NULL DEFAULT TRUE,
+        daily_report_hour SMALLINT CHECK (daily_report_hour IS NULL OR daily_report_hour BETWEEN 0 AND 23),
+        weekly_report_weekday SMALLINT NOT NULL DEFAULT 0 CHECK (weekly_report_weekday BETWEEN 0 AND 6),
+        weekly_report_hour SMALLINT CHECK (weekly_report_hour IS NULL OR weekly_report_hour BETWEEN 0 AND 23),
+        last_daily_report_key TEXT,
+        last_weekly_report_key TEXT,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query(`
+      INSERT INTO nebo_ops_preferences (id, daily_report_hour, weekly_report_hour)
+      VALUES (1, 23, 20)
+      ON CONFLICT (id) DO NOTHING
+    `);
+    await markMigrationApplied(pool, name);
+    await pool.query('COMMIT');
+    log.info(`Migration ${name} applied`);
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    throw error;
+  }
+}
+
+async function mvp059UserAcquisitionKeys(pool: Pool): Promise<void> {
+  const name = 'mvp_059_user_acquisition_keys';
+  if (await isMigrationApplied(pool, name)) return;
+  await pool.query('BEGIN');
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_acquisition_keys (
+        user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        source TEXT NOT NULL CHECK (source ~ '^[a-z][a-z0-9_-]{0,31}$'),
+        campaign_key TEXT NOT NULL CHECK (campaign_key ~ '^[A-Za-z0-9_-]{1,64}$'),
+        first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await markMigrationApplied(pool, name);
+    await pool.query('COMMIT');
+    log.info(`Migration ${name} applied`);
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    throw error;
+  }
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -4162,6 +4219,8 @@ export async function runMigrations(): Promise<void> {
     await mvp055MyTrackerAttribution(migrationDb);
     await mvp056ChartAvatars(migrationDb);
     await mvp057AdminObservabilityFoundation(migrationDb);
+    await mvp058NeboOpsPreferences(migrationDb);
+    await mvp059UserAcquisitionKeys(migrationDb);
     await mvp044PremiumEntitlementLifecycle(migrationDb);
     await mvp045RuStoreCallbackOrdering(migrationDb);
     await mvp046RuStoreProviderOverlay(migrationDb);

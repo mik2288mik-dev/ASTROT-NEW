@@ -27,9 +27,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         FROM user_app_events WHERE event_type = ANY($1::text[])`, [INTERACTIVE_EVENT_TYPES]),
       pool.query(`SELECT
           COALESCE(SUM(stars_amount), 0)::bigint AS total_stars,
-          COUNT(*)::int AS total_payments,
-          COALESCE(SUM(stars_amount) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days'), 0)::bigint AS stars_30d
-        FROM star_payments`).catch(() => ({ rows: [{ total_stars: 0, total_payments: 0, stars_30d: 0 }] })),
+          COUNT(*)::int + (SELECT COUNT(*)::int FROM store_purchases
+            WHERE status IN ('store_trial', 'paid', 'grace', 'cancelled_active')) AS total_payments,
+          COALESCE(SUM(stars_amount) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days'), 0)::bigint AS stars_30d,
+          (SELECT COUNT(*)::int FROM store_purchases
+            WHERE status IN ('store_trial', 'paid', 'grace', 'cancelled_active')) AS rustore_purchases
+        FROM star_payments`).catch(() => ({ rows: [{ total_stars: 0, total_payments: 0, stars_30d: 0, rustore_purchases: 0 }] })),
       pool.query(`SELECT
           COUNT(*)::int AS signups,
           COUNT(*) FILTER (WHERE birth_date IS NOT NULL)::int AS with_birth,
@@ -39,7 +42,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           (SELECT COUNT(DISTINCT user_id)::int FROM user_app_events
             WHERE event_type IN ('checkout_start','checkout_started')) AS checkout,
           (SELECT COUNT(*)::int FROM (
-            SELECT id AS user_id FROM users WHERE premium_until IS NOT NULL
+            SELECT id AS user_id FROM users WHERE premium_until > NOW()
+            UNION
+            SELECT user_id FROM premium_entitlements
+              WHERE status = 'active' AND ends_at > NOW()
+            UNION
+            SELECT user_id FROM store_purchases
+              WHERE status IN ('store_trial', 'paid', 'grace', 'cancelled_active')
             UNION
             SELECT user_id FROM user_app_events
               WHERE event_type IN (
@@ -161,6 +170,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         mau: Number(a.mau || 0),
         totalStars: Number(r.total_stars || 0),
         totalPayments: Number(r.total_payments || 0),
+        rustorePurchases: Number(r.rustore_purchases || 0),
         stars30d: Number(r.stars_30d || 0),
         premiumRate: overview.total_users > 0
           ? Math.round((overview.active_premium_users / overview.total_users) * 100)

@@ -3,6 +3,7 @@ import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import type { PoolClient } from 'pg';
 import { getPool } from './db';
 import type { TelegramReplyMarkup } from './telegramBot';
+import { ensureNeboOpsBotSetup, getNeboOpsPreferences, isNeboOpsEventEnabled } from './neboOpsSettings';
 
 type Queryable = Pick<PoolClient, 'query'>;
 type Payload = Record<string, unknown>;
@@ -146,6 +147,21 @@ export function getNeboOpsConfig(env: NodeJS.ProcessEnv = process.env): NeboOpsC
   const chatId = (env.NEBO_OPS_CHAT_ID || owner).trim();
   if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(token) || !/^[1-9]\d{0,15}$/.test(owner)
     || !Number.isSafeInteger(Number(owner)) || chatId !== owner) return null;
+  return { token, chatId };
+}
+
+/** Optional dedicated owner bots. Until they are configured, critical messages
+ * deliberately keep using the notification bot instead of being dropped. */
+export function getNeboOwnerChannelConfig(
+  channel: 'payments' | 'support',
+  env: NodeJS.ProcessEnv = process.env,
+): NeboOpsConfig | null {
+  const fallback = getNeboOpsConfig(env);
+  const prefix = channel === 'payments' ? 'NEBO_PAYMENTS' : 'NEBO_SUPPORT';
+  const token = String(env[`${prefix}_BOT_TOKEN`] || '').trim();
+  const chatId = String(env[`${prefix}_CHAT_ID`] || env.OWNER_ID || '').trim();
+  if (!token) return fallback;
+  if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(token) || !/^[1-9]\d{0,15}$/.test(chatId)) return fallback;
   return { token, chatId };
 }
 
@@ -470,9 +486,12 @@ export function renderNeboOpsMessage(row: Pick<OpsRow, 'event_type' | 'user_id' 
   if (p.runtime) lines.push(`📱 Платформа: ${p.runtime === 'native' ? 'Приложение' : p.runtime === 'telegram' ? 'Telegram Mini App' : 'Браузер'}`);
   if (row.event_type === 'login') {
     const source = text(user.attribution_source, 120);
+    const directTelegram = !source && p.runtime === 'telegram' && p.distributionChannel === 'telegram';
     lines.push(source
       ? `🎯 Источник аккаунта (MyTracker): ${source}`
-      : user.mytracker_id ? '🎯 Источник установки: ожидаем MyTracker' : '🎯 Источник установки: не определён');
+      : user.mytracker_id ? '🎯 Источник установки: ожидаем MyTracker'
+        : directTelegram ? '🎯 Источник входа: Telegram · прямой'
+          : '🎯 Источник установки: не определён');
     const campaign = text(user.attribution_campaign, 120);
     if (source && campaign) lines.push(`📣 Кампания: ${campaign}`);
     const attributedAt = validDate(user.attribution_at);
@@ -522,8 +541,11 @@ function worker(): WorkerState {
 }
 
 /** All messages use the verified owner chat and share the per-chat rate limit. */
-export async function sendNeboOpsText(message: string, options?: { replyMarkup?: TelegramReplyMarkup }): Promise<SendResult> {
-  const config = getNeboOpsConfig();
+export async function sendNeboOpsTextWithConfig(
+  config: NeboOpsConfig | null,
+  message: string,
+  options?: { replyMarkup?: TelegramReplyMarkup },
+): Promise<SendResult> {
   if (!config) return { ok: false, error: 'OPS_UNCONFIGURED' };
   let client: PoolClient | null = null;
   let locked = false;
@@ -578,10 +600,15 @@ export async function sendNeboOpsText(message: string, options?: { replyMarkup?:
   }
 }
 
+export async function sendNeboOpsText(message: string, options?: { replyMarkup?: TelegramReplyMarkup }): Promise<SendResult> {
+  return sendNeboOpsTextWithConfig(getNeboOpsConfig(), message, options);
+}
+
 export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: number; failed: number; claimed: number }> {
   const result = { sent: 0, failed: 0, claimed: 0 };
   if (!getNeboOpsConfig()) return result;
   const pool = getPool();
+  const preferences = await getNeboOpsPreferences();
   await pool.query(
     `UPDATE nebo_ops_outbox SET status = CASE WHEN attempts >= $1 THEN 'dead' ELSE 'failed' END,
        locked_at = NULL, lease_token = NULL, next_attempt_at = NOW(), updated_at = NOW(),
@@ -629,6 +656,15 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
       );
       continue;
     }
+    if (!isNeboOpsEventEnabled(row.event_type, row.payload_json, preferences)) {
+      await pool.query(
+        `UPDATE nebo_ops_outbox SET status = 'dead', attempts = GREATEST(0, attempts - 1),
+           locked_at = NULL, lease_token = NULL, last_error_code = 'OWNER_SETTING_DISABLED', updated_at = NOW()
+         WHERE id = $1 AND lease_token = $2::uuid AND status = 'processing'`,
+        [row.id, lease],
+      );
+      continue;
+    }
     const includeMyTracker = process.env.MYTRACKER_ENABLED === '1';
     const user = row.user_id ? (await pool.query<UserSummary>(
       `SELECT u.name, u.language, u.auth_provider,
@@ -651,7 +687,11 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
       await pool.query('DELETE FROM nebo_ops_outbox WHERE id = $1 AND lease_token = $2::uuid', [row.id, lease]);
       continue;
     }
-    const sent = await sendNeboOpsText(renderNeboOpsMessage(row, user));
+    const isDedicatedPaymentBot = row.event_type === 'payment_confirmed'
+      && Boolean(String(process.env.NEBO_PAYMENTS_BOT_TOKEN || '').trim());
+    const sent = isDedicatedPaymentBot
+      ? await sendNeboOpsTextWithConfig(getNeboOwnerChannelConfig('payments'), renderNeboOpsMessage(row, user))
+      : await sendNeboOpsText(renderNeboOpsMessage(row, user));
     if (sent.ok) {
       await pool.query(
         `UPDATE nebo_ops_outbox SET status = 'sent', sent_at = NOW(), telegram_message_id = $3,
@@ -746,7 +786,8 @@ export function wakeNeboOpsDelivery(): void {
 export function ensureNeboOpsWorker(): void {
   if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' || process.env.NEXT_RUNTIME === 'edge') return;
   const state = worker();
-  if (!getNeboOpsConfig()) {
+  const config = getNeboOpsConfig();
+  if (!config) {
     if (isNeboOpsEnabled() && !state.configurationWarning) {
       state.configurationWarning = true;
       console.warn('[nebo-ops] enabled but the owner bot token/chat is not configured correctly');
@@ -754,6 +795,9 @@ export function ensureNeboOpsWorker(): void {
     return;
   }
   state.configurationWarning = false;
+  // Retry Telegram webhook/command registration on later server calls if a
+  // transient Telegram failure occurred during the initial process startup.
+  void ensureNeboOpsBotSetup(config.token);
   if (state.started) return;
   state.started = true;
   void connectWakeupListener();

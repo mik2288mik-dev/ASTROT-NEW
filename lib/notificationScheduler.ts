@@ -18,6 +18,7 @@ import {
 import { processPendingRuStoreEvents } from './rustorePayments';
 import { processSupportDeliveryOutbox } from './supportOutbox';
 import { ensureNeboOpsWorker } from './neboOps';
+import { maybeSendScheduledNeboOpsReports } from './neboOpsReports';
 import { processOwnerCriticalAlerts } from './ownerCriticalAlerts';
 import { prewarmPersonalForecastIncrement } from './personalForecastPrewarm';
 
@@ -137,6 +138,12 @@ async function dispatchTick() {
     await processOwnerCriticalAlerts(20);
   } catch {
     console.warn('[cron] owner critical alert recovery failed');
+  }
+
+  try {
+    await maybeSendScheduledNeboOpsReports(new Date());
+  } catch {
+    console.warn('[cron] owner report scheduling failed');
   } finally {
     dispatching = false;
   }

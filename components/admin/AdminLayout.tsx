@@ -1,5 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { AdminMe, admin2 } from '../../services/admin2Service';
+import React, { useEffect, useState } from 'react';
+import {
+  Activity,
+  Bell,
+  Bot,
+  ChartNoAxesCombined,
+  CircleDollarSign,
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Maximize2,
+  Menu,
+  Minimize2,
+  Orbit,
+  Search,
+  Settings2,
+  TriangleAlert,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
+import { AdminMe } from '../../services/admin2Service';
 import { DashboardSection } from './sections/DashboardSection';
 import { UsersSection } from './sections/UsersSection';
 import { EventsSection } from './sections/EventsSection';
@@ -32,6 +52,52 @@ interface AdminLayoutProps {
   onTabChange?: (tab: AdminTab) => void;
 }
 
+type NavItem = { key: AdminTab; label: string; icon: LucideIcon };
+type NavGroup = { title: string; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: 'Операции',
+    items: [
+      { key: 'dashboard', label: 'Обзор', icon: LayoutDashboard },
+      { key: 'users', label: 'Пользователи', icon: Users },
+      { key: 'events', label: 'События', icon: Activity },
+    ],
+  },
+  {
+    title: 'Аналитика',
+    items: [
+      { key: 'analytics', label: 'Воронки и когорты', icon: ChartNoAxesCombined },
+      { key: 'billing', label: 'Оплаты и Premium', icon: CircleDollarSign },
+      { key: 'ai', label: 'AI и модели', icon: Bot },
+      { key: 'errors', label: 'Ошибки', icon: TriangleAlert },
+    ],
+  },
+  {
+    title: 'Продукт',
+    items: [
+      { key: 'charts', label: 'Натальные карты', icon: Orbit },
+      { key: 'content', label: 'Контент', icon: FileText },
+      { key: 'comms', label: 'Уведомления и поддержка', icon: Bell },
+      { key: 'system', label: 'Система и доступы', icon: Settings2 },
+    ],
+  },
+];
+
+const TITLES: Record<AdminTab, string> = {
+  dashboard: 'Обзор',
+  users: 'Пользователи',
+  events: 'Журнал событий',
+  ai: 'AI и модели',
+  errors: 'Центр ошибок',
+  analytics: 'Воронки и когорты',
+  billing: 'Оплаты и Premium',
+  charts: 'Натальные карты',
+  content: 'Контент',
+  comms: 'Уведомления и поддержка',
+  system: 'Система и доступы',
+};
+
 export const AdminLayout: React.FC<AdminLayoutProps> = ({
   me,
   initialTab = 'dashboard',
@@ -44,13 +110,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [fullWidth, setFullWidth] = useState(false);
 
+  useEffect(() => setCurrentTab(initialTab), [initialTab]);
   useEffect(() => {
-    setCurrentTab(initialTab);
-  }, [initialTab]);
+    if (window.matchMedia('(max-width: 1023px)').matches) setSidebarOpen(false);
+  }, []);
 
   const handleSelectTab = (tab: AdminTab) => {
     setCurrentTab(tab);
-    if (onTabChange) onTabChange(tab);
+    onTabChange?.(tab);
+    if (window.matchMedia('(max-width: 1023px)').matches) setSidebarOpen(false);
   };
 
   const handleSelectUser = (userId: string) => {
@@ -58,236 +126,81 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     handleSelectTab('users');
   };
 
-  const handleGlobalSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGlobalSearchSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
     if (!globalSearch.trim()) return;
     handleSelectUser(globalSearch.trim());
     setGlobalSearch('');
   };
 
-  const navGroups = [
-    {
-      title: 'Операции',
-      items: [
-        { key: 'dashboard' as AdminTab, label: 'Пульс & Дашборд', icon: '⚡' },
-        { key: 'users' as AdminTab, label: 'Пользователи', icon: '👥' },
-        { key: 'events' as AdminTab, label: 'Журнал событий', icon: '📋' },
-      ],
-    },
-    {
-      title: 'Наблюдаемость',
-      items: [
-        { key: 'ai' as AdminTab, label: 'AI & Модели', icon: '🧠' },
-        { key: 'errors' as AdminTab, label: 'Центр ошибок', icon: '🚨' },
-        { key: 'analytics' as AdminTab, label: 'Воронки & Когорты', icon: '📈' },
-      ],
-    },
-    {
-      title: 'Бизнес & Продукт',
-      items: [
-        { key: 'billing' as AdminTab, label: 'Финансы & Тарифы', icon: '💳' },
-        { key: 'charts' as AdminTab, label: 'Натальные карты', icon: '🌌' },
-        { key: 'content' as AdminTab, label: 'Контент & Карточки', icon: '📝' },
-        { key: 'comms' as AdminTab, label: 'Пуши & Саппорт', icon: '💬' },
-      ],
-    },
-    {
-      title: 'Управление',
-      items: [
-        { key: 'system' as AdminTab, label: 'Система & RBAC', icon: '⚙️' },
-      ],
-    },
-  ];
+  const toggleFullscreen = () => {
+    setFullWidth((value) => !value);
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => undefined);
+    else document.exitFullscreen().catch(() => undefined);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex font-sans antialiased">
-      {/* Desktop Sidebar */}
-      <aside className={`w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800 select-none transition-all duration-300 ${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full overflow-hidden'}`}>
-        {/* Brand */}
-        <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white font-black text-base flex items-center justify-center shadow-lg shadow-indigo-600/30">
-              N
-            </div>
-            <div>
-              <div className="font-extrabold text-white text-base tracking-wide flex items-center gap-1.5">
-                <span>NEBO</span>
-                <span className="text-[10px] bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-1.5 py-0.5 rounded font-bold">
-                  OPS
-                </span>
-              </div>
-              <div className="text-[11px] text-slate-400">Панель управления</div>
-            </div>
-          </div>
+    <div className="admin2-app admin-shell">
+      <button type="button" className={`admin-sidebar-scrim ${sidebarOpen ? 'is-visible' : ''}`} aria-label="Закрыть меню" onClick={() => setSidebarOpen(false)} />
+
+      <aside className={`admin-sidebar ${sidebarOpen ? 'is-open' : 'is-collapsed'}`} aria-label="Разделы админки">
+        <div className="admin-sidebar-brand">
+          <div className="admin-wordmark" aria-label="NEBO Ops"><strong>NEBO</strong><span>OPS</span></div>
+          <button type="button" className="admin-icon-button admin-sidebar-close" aria-label="Закрыть меню" onClick={() => setSidebarOpen(false)}><X aria-hidden="true" /></button>
         </div>
 
-        {/* Nav Items */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          {navGroups.map((grp) => (
-            <div key={grp.title} className="space-y-1">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-3 mb-2">
-                {grp.title}
-              </div>
-              {grp.items.map((item) => {
-                const isActive = currentTab === item.key;
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => handleSelectTab(item.key)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                      isActive
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-                    }`}
-                  >
-                    <span className="text-sm">{item.icon}</span>
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+        <nav className="admin-sidebar-nav">
+          {NAV_GROUPS.map((group) => (
+            <section key={group.title} className="admin-nav-group" aria-label={group.title}>
+              <p>{group.title}</p>
+              {group.items.map(({ key, label, icon: Icon }) => (
+                <button key={key} type="button" className="admin-nav-item" aria-current={currentTab === key ? 'page' : undefined} onClick={() => handleSelectTab(key)}>
+                  <Icon aria-hidden="true" /><span>{label}</span>
+                </button>
+              ))}
+            </section>
           ))}
-        </div>
+        </nav>
 
-        {/* User Card in Sidebar */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/50">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5 overflow-hidden pr-2">
-              <div className="text-xs font-bold text-slate-200 truncate">{me.userId}</div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-indigo-400 font-mono bg-indigo-950/60 px-1.5 py-0.2 rounded border border-indigo-800/40">
-                  {me.role}
-                </span>
-                {me.isOwner && (
-                  <span className="text-[10px] text-amber-400 font-bold">★ Owner</span>
-                )}
-              </div>
-            </div>
-            {onLogout && (
-              <button
-                onClick={onLogout}
-                title="Выйти"
-                className="text-slate-400 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
-            )}
-          </div>
+        <div className="admin-account">
+          <div className="admin-account-copy"><strong title={me.userId}>{me.userId}</strong><p>{me.role}{me.isOwner ? ' · владелец' : ''}</p></div>
+          {onLogout ? <button type="button" className="admin-icon-button" title="Выйти" aria-label="Выйти" onClick={onLogout}><LogOut aria-hidden="true" /></button> : null}
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Desktop TopBar */}
-        <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3 w-full max-w-md">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-colors"
-              title={sidebarOpen ? "Скрыть меню" : "Показать меню"}
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <form onSubmit={handleGlobalSearchSubmit} className="relative w-full">
-              <input
-                type="text"
-                placeholder="Быстрый поиск по ID (напр: 123456)..."
-                value={globalSearch}
-                onChange={(e) => setGlobalSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-              />
-              <svg
-                className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </form>
+      <div className="admin-workspace">
+        <header className="admin-topbar">
+          <div className="admin-topbar-title">
+            <button type="button" className="admin-icon-button" aria-label={sidebarOpen ? 'Скрыть меню' : 'Показать меню'} onClick={() => setSidebarOpen((value) => !value)}><Menu aria-hidden="true" /></button>
+            <div><p>NEBO Ops</p><h1>{TITLES[currentTab]}</h1></div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs">
-            <button
-              onClick={() => {
-                setFullWidth(!fullWidth);
-                if (!document.fullscreenElement) {
-                  document.documentElement.requestFullscreen().catch(() => {});
-                } else {
-                  document.exitFullscreen().catch(() => {});
-                }
-              }}
-              className={`p-1.5 rounded-lg border transition-colors flex items-center gap-1.5 ${
-                fullWidth ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-              }`}
-              title="На весь экран"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={fullWidth ? "M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" : "M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"} />
-              </svg>
-            </button>
+          <form className="admin-global-search" onSubmit={handleGlobalSearchSubmit} role="search">
+            <Search aria-hidden="true" />
+            <label htmlFor="admin-global-search" className="sr-only">Найти пользователя по ID</label>
+            <input id="admin-global-search" name="userId" type="search" placeholder="ID пользователя" value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} />
+            <span>Enter</span>
+          </form>
 
-            <div className="flex items-center gap-2 text-slate-500">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Production</span>
-            </div>
-            <div className="h-4 w-px bg-slate-200" />
-            <div className="text-slate-600 font-medium">
-              Права: <span className="font-mono text-indigo-600 font-semibold">{me.permissions.length}</span>
-            </div>
+          <div className="admin-topbar-actions">
+            <div className="admin-environment"><span />Production</div>
+            <button type="button" className="admin-icon-button" title="На весь экран" aria-label="На весь экран" onClick={toggleFullscreen}>{fullWidth ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}</button>
           </div>
         </header>
 
-        {/* Section Viewport */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className={`${fullWidth ? 'w-full max-w-none' : 'max-w-7xl mx-auto'} transition-all space-y-6`}>
-            {currentTab === 'dashboard' && (
-              <DashboardSection onSelectUser={handleSelectUser} />
-            )}
-
-            {currentTab === 'users' && (
-              <UsersSection me={me} initialUserId={targetUserId || undefined} />
-            )}
-
-            {currentTab === 'events' && (
-              <EventsSection onSelectUser={handleSelectUser} />
-            )}
-
-            {currentTab === 'ai' && (
-              <AiSection />
-            )}
-
-            {currentTab === 'errors' && (
-              <ErrorsSection />
-            )}
-
-            {currentTab === 'analytics' && (
-              <AnalyticsSection />
-            )}
-
-            {currentTab === 'billing' && (
-              <BillingSection onSelectUser={handleSelectUser} />
-            )}
-
-            {currentTab === 'charts' && (
-              <ChartsSection onSelectUser={handleSelectUser} />
-            )}
-
-            {currentTab === 'content' && (
-              <ContentSection me={me} onSelectUser={handleSelectUser} />
-            )}
-
-            {currentTab === 'comms' && (
-              <CommsSection onSelectUser={handleSelectUser} />
-            )}
-
-            {currentTab === 'system' && (
-              <SystemSection me={me} onSelectUser={handleSelectUser} />
-            )}
+        <main className="admin-main" tabIndex={-1}>
+          <div className={fullWidth ? 'admin-content is-fluid' : 'admin-content'}>
+            {currentTab === 'dashboard' && <DashboardSection onSelectUser={handleSelectUser} onNavigate={(tab) => handleSelectTab(tab as AdminTab)} />}
+            {currentTab === 'users' && <UsersSection me={me} initialUserId={targetUserId || undefined} />}
+            {currentTab === 'events' && <EventsSection onSelectUser={handleSelectUser} />}
+            {currentTab === 'ai' && <AiSection />}
+            {currentTab === 'errors' && <ErrorsSection />}
+            {currentTab === 'analytics' && <AnalyticsSection />}
+            {currentTab === 'billing' && <BillingSection onSelectUser={handleSelectUser} />}
+            {currentTab === 'charts' && <ChartsSection onSelectUser={handleSelectUser} />}
+            {currentTab === 'content' && <ContentSection me={me} onSelectUser={handleSelectUser} />}
+            {currentTab === 'comms' && <CommsSection onSelectUser={handleSelectUser} />}
+            {currentTab === 'system' && <SystemSection me={me} onSelectUser={handleSelectUser} />}
           </div>
         </main>
       </div>

@@ -1,5 +1,6 @@
 import { logger } from './logger';
-import { isNeboOpsEnabled, sendNeboOpsText } from './neboOps';
+import { getNeboOwnerChannelConfig, isNeboOpsEnabled, sendNeboOpsText, sendNeboOpsTextWithConfig } from './neboOps';
+import { getNeboOpsPreferences } from './neboOpsSettings';
 import { sendTelegramTextMessage } from './telegramBot';
 
 export const SUPPORT_CATEGORIES = ['problem', 'idea', 'payment', 'question', 'other'] as const;
@@ -297,6 +298,9 @@ async function sendSupportTelegram(input: SupportDeliveryInput): Promise<Support
   const chatId = firstConfiguredValue(process.env.SUPPORT_TELEGRAM_CHAT_ID, process.env.OWNER_ID);
   if (!chatId) return { channel: 'telegram', result: 'unconfigured' };
   try {
+    if (isNeboOpsEnabled() && !(await getNeboOpsPreferences()).notify_support) {
+      return { channel: 'telegram', result: 'suppressed' };
+    }
     const adminUrl = supportAdminUrl();
     const message = [
       `✉️ Новое обращение NEBO #${input.ticketId}`,
@@ -313,7 +317,9 @@ async function sendSupportTelegram(input: SupportDeliveryInput): Promise<Support
       ? { replyMarkup: { inline_keyboard: [[{ text: 'Открыть обращение', url: adminUrl }]] } }
       : undefined;
     if (isNeboOpsEnabled()) {
-      const result = await sendNeboOpsText(message, options);
+      const result = String(process.env.NEBO_SUPPORT_BOT_TOKEN || '').trim()
+        ? await sendNeboOpsTextWithConfig(getNeboOwnerChannelConfig('support'), message, options)
+        : await sendNeboOpsText(message, options);
       return {
         channel: 'telegram',
         result: result.ok ? 'sent' : 'failed',

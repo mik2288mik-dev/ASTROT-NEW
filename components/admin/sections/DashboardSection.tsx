@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { admin2, type AdminDashboard, type AdminPulse } from '../../../services/admin2Service';
 import { AdminActivityDashboard } from '../../admin2/AdminActivity';
 import { KpiCard } from '../common/KpiCard';
-import { StatusBadge } from '../common/StatusBadge';
-import { Activity, AlertTriangle, ArrowRight, CheckCircle2, CreditCard, RefreshCw, Sparkles, UserPlus, Users, Zap } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CreditCard, RefreshCw } from 'lucide-react';
 
 function fmtDate(s: string | null): string {
   if (!s) return '—';
@@ -49,9 +48,10 @@ export function DashboardSection({ onNavigate, onSelectUser }: DashboardSectionP
   const k = dashboard?.kpis;
 
   return (
-    <div className="space-y-6">
+    <div className="admin-dashboard space-y-6">
+      {error ? <p className="admin2-error" role="alert">{error}</p> : null}
       {/* ── Блок «Что происходит прямо сейчас» (Pulse) ── */}
-      <div className="rounded-[24px] bg-gradient-to-r from-[#312D4B] to-[#453F63] p-5 text-white shadow-md">
+      <div className="admin-pulse rounded-[24px] bg-gradient-to-r from-[#312D4B] to-[#453F63] p-5 text-white shadow-md">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
           <div className="flex items-center gap-2.5">
             <span className="relative flex h-3 w-3">
@@ -132,7 +132,7 @@ export function DashboardSection({ onNavigate, onSelectUser }: DashboardSectionP
                 <div key={p.id} className="flex items-center justify-between gap-2 text-emerald-300 py-1 border-b border-white/5">
                   <span className="flex items-center gap-1 truncate">
                     <CreditCard size={12} />
-                    <b>+{p.amount} {p.currency}</b> от{' '}
+                    <b>{p.amount === null ? 'Покупка RuStore' : `+${p.amount} ${p.currency}`}</b> от{' '}
                     {onSelectUser ? (
                       <button
                         type="button"
@@ -167,34 +167,30 @@ export function DashboardSection({ onNavigate, onSelectUser }: DashboardSectionP
 
       {/* ── Ключевые метрики продукта (KPIs) ── */}
       {k ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4">
+        <div className="admin-kpi-grid grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4">
           <KpiCard
             color="blue"
             label="Всего пользователей"
             value={k.totalUsers.toLocaleString('ru-RU')}
             sub={`+${k.newUsers1d} за день`}
-            icon={<Users size={18} />}
           />
           <KpiCard
             color="violet"
             label="Активный Premium"
             value={k.activePremiumUsers.toLocaleString('ru-RU')}
             sub={`${k.premiumRate}% проникновение`}
-            icon={<Sparkles size={18} />}
           />
           <KpiCard
             color="sky"
             label="DAU / WAU / MAU"
             value={`${k.dau} / ${k.wau} / ${k.mau}`}
             sub="активность"
-            icon={<Zap size={18} />}
           />
           <KpiCard
             color="rose"
             label="Выручка Stars"
             value={`${k.totalStars.toLocaleString('ru-RU')} ⭐`}
             sub={`${k.stars30d} за 30д`}
-            icon={<CreditCard size={18} />}
           />
           <KpiCard
             color="emerald"

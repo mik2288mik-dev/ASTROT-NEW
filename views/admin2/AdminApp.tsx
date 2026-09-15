@@ -823,11 +823,11 @@ function BillingSection({ me }: { me: AdminMe }) {
               {pays.map((p) => (
                 <tr key={p.id} className={trow}>
                   <td className={td}><div className="text-slate-800">{p.ownerName || p.userId}</div><div className="text-[11px] text-slate-400">{p.userId}</div></td>
-                  <td className={td}>{p.amount} {p.currency}</td>
+                  <td className={td}>{p.amount === null ? 'Сумма у провайдера' : `${p.amount} ${p.currency}`}</td>
                   <td className={`${td} text-xs`}>{p.provider} · {p.platform}</td>
                   <td className={`${td} text-xs`}>{p.status === 'refunded' ? <span className="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-600">возврат</span> : <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-600">{p.status}</span>}</td>
                   <td className={`${td} text-xs text-slate-400`}>{fmtDate(p.createdAt)}</td>
-                  <td className={td}>{canRefund && p.status !== 'refunded' ? <button className={btnGhost} disabled={busy} onClick={() => refund(p.id)}>Вернуть</button> : null}</td>
+                  <td className={td}>{canRefund && p.canRefund && p.refundableId !== null && p.status !== 'refunded' ? <button className={btnGhost} disabled={busy} onClick={() => refund(p.refundableId!)}>Вернуть</button> : null}</td>
                 </tr>
               ))}
               {pays.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Платежей нет</td></tr> : null}

@@ -453,7 +453,7 @@ export const BillingSection: React.FC<BillingSectionProps> = ({ onSelectUser }) 
                       </td>
 
                       <td className="py-3 px-4 font-bold text-gray-900">
-                        {p.currency === 'XTR' ? `⭐ ${p.amount}` : `${p.amount} ${p.currency}`}
+                        {p.amount === null ? 'Сумма у провайдера' : (p.currency === 'XTR' ? `⭐ ${p.amount}` : `${p.amount} ${p.currency}`)}
                       </td>
 
                       <td className="py-3 px-4 text-gray-600 font-mono">
@@ -465,9 +465,9 @@ export const BillingSection: React.FC<BillingSectionProps> = ({ onSelectUser }) 
                       </td>
 
                       <td className="py-3 px-4">
-                        {p.status === 'completed' && !p.refundedAt && (
+                        {p.canRefund && p.refundableId !== null && p.status === 'completed' && !p.refundedAt && (
                           <button
-                            onClick={() => handleRefund(p.id)}
+                            onClick={() => handleRefund(p.refundableId!)}
                             className="text-rose-600 hover:underline font-semibold text-xs"
                           >
                             Возврат

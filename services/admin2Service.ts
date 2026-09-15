@@ -40,7 +40,7 @@ export type AdminDashboard = {
     totalUsers: number; activePremiumUsers: number; usersWithoutBirthData: number;
     newUsers1d: number; newUsers7d: number; newUsers30d: number; totalCharts: number;
     dau: number; wau: number; mau: number;
-    totalStars: number; totalPayments: number; stars30d: number; premiumRate: number;
+    totalStars: number; totalPayments: number; stars30d: number; rustorePurchases: number; premiumRate: number;
   };
   funnel: Array<{ key: string; label: string; users: number; pctOfStart: number; pctOfPrev: number }>;
   retention: { d1: number | null; d7: number | null; d30: number | null };
@@ -97,9 +97,9 @@ export type AdminEntry = {
 };
 
 export type AdminPaymentRow = {
-  id: number; userId: string; ownerName: string | null; provider: string; status: string;
-  amount: number; currency: string; product: string | null; platform: string;
-  chargeId: string | null; createdAt: string | null; refundedAt: string | null;
+  id: string; refundableId: number | null; userId: string; ownerName: string | null; provider: string; status: string;
+  amount: number | null; currency: string; product: string | null; platform: string;
+  chargeId: string | null; canRefund: boolean; createdAt: string | null; refundedAt: string | null;
 };
 export type AdminSubscriptionRow = {
   userId: string; name: string | null; plan: string; status: string; provider: string;
@@ -108,6 +108,16 @@ export type AdminSubscriptionRow = {
 export type AdminRevenue = {
   totalStars: number; totalPayments: number; stars30d: number; payments30d: number;
   refunds: number; refundedStars: number; activePremium: number; trials: number;
+  rustorePurchases: number; rustorePurchases30d: number;
+};
+
+export type AdminTimeseriesPoint = {
+  date: string;
+  activeUsers: number;
+  stars: number;
+  starPurchases: number;
+  rustorePurchases: number;
+  errors: number;
 };
 export type AdminPromo = {
   code: string; type: string; value: number; maxUses: number; usedCount: number;
@@ -483,6 +493,7 @@ export const admin2 = {
   retentionCohorts: () => req<{ cohorts: AdminCohortRow[] }>('/api/admin/v2/analytics/retention'),
   versions: () => req<{ versions: AdminVersionRow[] }>('/api/admin/v2/analytics/versions'),
   acquisition: () => req<AdminAcquisitionData>('/api/admin/v2/analytics/acquisition'),
+  timeseries: (days = 30) => req<{ days: number; timezone: string; points: AdminTimeseriesPoint[] }>(`/api/admin/v2/analytics/timeseries?days=${days}`),
   systemHealth: () => req<AdminSystemHealth>('/api/admin/v2/system/health'),
   events: (params: { page?: number; limit?: number; userId?: string; eventType?: string; section?: string; source?: string; search?: string; from?: string; to?: string } = {}) => {
     const s = new URLSearchParams();
@@ -504,7 +515,7 @@ export type AdminPulse = {
   pulse: { active5m: number; active15m: number; events15m: number; generatedAt: string };
   recentRegistrations: Array<{ id: string; name: string; provider: string; createdAt: string; isPremium: boolean; device: string | null }>;
   recentEvents: Array<{ id: number; userId: string; userName: string | null; eventType: string; label: string; section: string | null; source: string | null; occurredAt: string }>;
-  recentPayments: Array<{ id: number; userId: string; amount: number; currency: string; status: string; createdAt: string; provider: string }>;
+  recentPayments: Array<{ id: string; userId: string; amount: number | null; currency: string; status: string; createdAt: string; provider: string }>;
   recentErrors: Array<{ id: number; endpoint: string; httpStatus: number | null; errorCode: string; message: string; count: number; lastSeenAt: string }>;
   recentAiDefects: Array<{ id: number; scenario: string; model: string; category: string; errorCode: string; message: string; count: number; lastSeenAt: string }>;
 };

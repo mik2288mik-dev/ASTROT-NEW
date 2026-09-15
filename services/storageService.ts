@@ -292,6 +292,15 @@ export const postReferralClaim = async (userId: string, inviteCode: string): Pro
   };
 };
 
+function postTelegramStartAttribution(userId: string, startParam: string): void {
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(startParam)) return;
+  void apiFetch('/api/users/acquisition/telegram-start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+    body: JSON.stringify({ userId, startParam }),
+  }).catch(() => undefined);
+}
+
 /**
  * One session attempt: read Telegram start_param and claim referral if present.
  */
@@ -304,6 +313,7 @@ export function runReferralFromStartParam(
   const sp = typeof tg?.initDataUnsafe?.start_param === 'string' ? tg.initDataUnsafe.start_param.trim() : '';
   if (!sp) return;
   if (/^(card\d|today_|checkin_|chart_|natal_)/i.test(sp)) return;
+  postTelegramStartAttribution(userId, sp);
   const k = `lumi_ref_${userId}`;
   try {
     if (sessionStorage.getItem(k)) return;
