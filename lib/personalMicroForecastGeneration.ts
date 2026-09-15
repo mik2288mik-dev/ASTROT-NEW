@@ -1,5 +1,6 @@
 import { buildPersonalForecastDateContext } from './personalForecastDateContext';
-import { getPersonalHoroscopeVoice, getDirectHoroscopeVoiceViolationCodes } from './personalForecastGeneration';
+import { getDirectHoroscopeVoiceViolationCodes } from './personalForecastGeneration';
+import { getNeboCoreVoice } from './voice/core';
 import { createHash } from 'crypto';
 import type { ContentInterpretation } from '../types';
 import { PERSONAL_FORECAST_VOICE_VERSION } from './appVoice';
@@ -135,7 +136,7 @@ export async function generatePersonalMicroForecastText(input: Input, resolved: 
   let previousDraft: unknown;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const response = await provider.responses.create(buildLunaStructuredResponseParams({
-      instructions: getPersonalHoroscopeVoice(input.profile.language === 'en' ? 'en' : 'ru') + '\n' + "Для каждой выбранной темы верни teaser — короткий вопрос о событиях выбранного дня, недели или месяца, и text — ответ на него из одного-двух предложений. Это прогноз, а не совет выбрать занятие. Вопрос и ответ должны относиться к одной теме. Ответ короткий: 15–30 слов; вопрос — 4–8 слов. Темы различаются по содержанию. Не повторяй общий гороскоп. Верни только topics с заданными id в исходном порядке.",
+      instructions: getNeboCoreVoice(input.profile.language === 'en' ? 'en' : 'ru') + '\n\nДля каждой выбранной темы верни teaser — короткий вопрос о событиях выбранного дня, недели или месяца, и text — ответ на него из одного-двух предложений. Это прогноз, а не совет выбрать занятие. Вопрос и ответ должны относиться к одной теме. Ответ короткий: 15–30 слов; вопрос — 4–8 слов. Темы различаются по содержанию. Не повторяй общий гороскоп. Верни только topics с заданными id в исходном порядке.',
       input: JSON.stringify({
         language: input.profile.language === 'en' ? 'en' : 'ru',
         profile: { birthDate: input.profile.birthDate, birthTimeMode: input.profile.birthTimeMode, gender: input.profile.gender },

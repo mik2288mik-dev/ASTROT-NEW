@@ -86,8 +86,8 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false }:
           <div className="product-screen-cover-title">{ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}</div>
           <div className="product-screen-cover-text">
             {ru
-              ? 'Сильные стороны, привычные сценарии и точки роста — через числа рождения.'
-              : 'Strengths, recurring patterns, and growth points through birth numbers.'}
+              ? 'Характер, привычные сценарии и уязвимые места — через числа рождения.'
+              : 'Character, recurring patterns, and weak spots through birth numbers.'}
           </div>
         </div>
       </section>
@@ -179,8 +179,8 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false }:
             <EditorialEvidence label={ru ? 'Основа расчёта' : 'Basis of the calculation'} className="mtx-note">
               <EditorialProse
                 text={ru
-                  ? 'Матрица судьбы — это расклад из чисел твоей даты рождения. Каждое число описывает одну тему характера: сильные стороны, зону роста, отношения, цели. Это про самопонимание, а не предсказание. Если одна тема выпадает на нескольких позициях — она у тебя выражена сильнее.'
-                  : 'The Destiny Matrix is a layout of numbers from your birth date. Each number describes one theme of character — strengths, growth, relationships, goals. It is for self-understanding, not prediction. If one theme appears in several positions, it is stronger for you.'}
+                  ? 'Матрица судьбы — это расклад из чисел даты рождения. Каждое число описывает одну тему: сильные стороны, уязвимости, отношения. Это про самопонимание, а не предсказание. Если одна тема выпадает на нескольких позициях — она выражена сильнее.'
+                  : 'The Destiny Matrix is a layout of numbers from your birth date. Each number describes one theme — strengths, vulnerabilities, relationships. It is for self-understanding, not prediction. If one theme appears in several positions, it is stronger for you.'}
               />
             </EditorialEvidence>
           ) : null}

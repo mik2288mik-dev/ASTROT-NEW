@@ -8,7 +8,7 @@ describe('sign daily horoscope cache', () => {
 
   it('returns a validated shared cache hit without calculating or generating', async () => {
     const reading: SignHoroscopeReadingV2 = {
-      schemaVersion: 'sign-horoscope-reading-v4',
+      schemaVersion: 'sign-horoscope-reading-v5',
       sign: 'Aries',
       period: 'day',
       periodKey: '2026-08-09',

@@ -662,7 +662,7 @@ export const UI_PREVIEW_HOROSCOPE: {
   sign: 'pisces',
   readings: {
     today: {
-      schemaVersion: 'sign-horoscope-reading-v4',
+      schemaVersion: 'sign-horoscope-reading-v5',
       sign: 'pisces',
       period: 'day',
       periodKey: '2026-08-22',
@@ -670,7 +670,7 @@ export const UI_PREVIEW_HOROSCOPE: {
       text: 'Сегодня проще услышать суть и не распыляться на детали. Если нужен ответ, задай прямой вопрос и дай человеку время сформулировать свою позицию.',
     },
     week: {
-      schemaVersion: 'sign-horoscope-reading-v4',
+      schemaVersion: 'sign-horoscope-reading-v5',
       sign: 'pisces',
       period: 'week',
       periodKey: '2026-W34',
@@ -678,7 +678,7 @@ export const UI_PREVIEW_HOROSCOPE: {
       text: 'Не пытайся ускорить все дела одновременно. Один выбранный приоритет поможет спокойно завершить важное и оставить место для разговора, который давно требовал конкретики.',
     },
     month: {
-      schemaVersion: 'sign-horoscope-reading-v4',
+      schemaVersion: 'sign-horoscope-reading-v5',
       sign: 'pisces',
       period: 'month',
       periodKey: '2026-08',
@@ -831,7 +831,7 @@ export const UI_PREVIEW_COMPATIBILITY_STEADY: typeof UI_PREVIEW_COMPATIBILITY = 
       { id: 'emotional_closeness', title: 'Эмоциональная близость', text: 'Они редко устраивают длинные разговоры о чувствах без повода. Поддержка появляется иначе: Олег удерживает договорённость, Ирина замечает, где нужна конкретная помощь. Уязвимость становится проще, когда просьба звучит прямо.', evidenceIds: ['preview:moon-venus'] },
       { id: 'communication', title: 'Как вы общаетесь', text: 'Разговор у них предметный. Ирина проверяет детали и последствия, Олег быстрее отделяет главное от второстепенного. Вместе они принимают сильные решения, если заранее понимают: сейчас собирают варианты или уже выбирают.', evidenceIds: ['preview:sun-moon', 'preview:mercury-mars'] },
       { id: 'conflicts', title: 'Как вы проживаете конфликты', text: 'Сбой начинается с упрямого молчания. Каждый уверен, что его позиция и так понятна, поэтому спор о мелочи превращается в соревнование выдержки. Вернуться к одному факту полезнее, чем ждать, кто первым уступит.', evidenceIds: ['preview:mercury-mars'] },
-      { id: 'everyday_life', title: 'Быт и привычки', text: 'Повседневность — сильная часть союза: дела не теряются, обещания не требуют напоминаний. Напряжение появляется, когда один меняет план на ходу, а второй узнаёт об этом постфактум.', evidenceIds: ['preview:sun-moon'] },
+      { id: 'action_do_life', title: 'Быт и привычки', text: 'Повседневность — сильная часть союза: дела не теряются, обещания не требуют напоминаний. Напряжение появляется, когда один меняет план на ходу, а второй узнаёт об этом постфактум.', evidenceIds: ['preview:sun-moon'] },
       { id: 'personal_space', title: 'Личное пространство', text: 'Обоим легче сохранять близость без постоянного контакта. Но пауза должна иметь понятную рамку: отсутствие ответа без объяснения быстро превращает спокойную дистанцию в холодность.', evidenceIds: ['preview:moon-venus'] },
       { id: 'stability', title: 'Что делает связь устойчивее', text: 'Эту пару держит предсказуемость в хорошем смысле: можно рассчитывать, что договорённость доживёт до действия. Чтобы надёжность не стала рутиной, им важно иногда менять привычный сценарий по взаимному решению, а не из внезапного недовольства.', evidenceIds: ['preview:sun-moon'] },
     ],
@@ -846,9 +846,9 @@ export const UI_PREVIEW_COMPATIBILITY_STEADY: typeof UI_PREVIEW_COMPATIBILITY = 
 
 export function createUiPreviewCompatibilityStory(result: SynastryResult): NonNullable<SynastryResult['storyParagraphs']> {
   const topics = [
-    ['connection', ['between_you']], ['closeness', ['attraction', 'emotional_closeness']],
-    ['conversation', ['communication']], ['friction', ['tension', 'conflicts']],
-    ['everyday', ['everyday_life', 'stability']],
+    ['index', ['between_you']], ['support', ['attraction', 'emotional_closeness']],
+    ['architecture', ['communication']], ['risk', ['tension', 'conflicts']],
+    ['action_do', ['action_do_life', 'stability']],
   ] as const;
   return topics.flatMap(([topic, ids]) => {
     const section = ids.map((id) => result.sections?.find((item) => item.id === id)).find(Boolean);

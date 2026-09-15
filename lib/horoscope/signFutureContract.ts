@@ -1,7 +1,7 @@
 import { normalizeZodiacKey, type ZodiacKey } from '../zodiacKeys';
 import { getPersonalFutureTimelineStops, type PersonalFutureTimelineStop } from '../personalFutureForecastContract';
 
-export const SIGN_FUTURE_VERSION = 'zodiac-future-v2-premium-plain-deepseek';
+export const SIGN_FUTURE_VERSION = 'zodiac-future-v3-premium-plain-deepseek';
 export const SIGN_FUTURE_TOPICS = ['general', 'luck', 'work', 'love', 'money', 'family', 'communication'] as const;
 export type SignFutureTopic = typeof SIGN_FUTURE_TOPICS[number];
 export type SignFutureSelection = PersonalFutureTimelineStop & { sign: ZodiacKey; topic: SignFutureTopic; language: 'ru' | 'en' };

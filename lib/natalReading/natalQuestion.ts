@@ -1,6 +1,7 @@
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
 import { APP_VOICE_VERSION, getAppSystemVoice, withAppVoiceVersion } from '../appVoice';
+import { getNatalStorySystemPrompt } from '../voice/contracts/natal';
 import {
   createLunaStructuredResponse,
   OPENAI_LUNA_MODEL,
@@ -29,10 +30,8 @@ import type {
 
 const MAX_ANSWER_ATTEMPTS = 2;
 
-export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion(
-  'natal-question.v4.scope-gate.responses-strict-schema-repair',
-);
-export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v4';
+export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question-v4');
+export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v6';
 
 const NATAL_QUESTION_RESPONSE_SCHEMA: StrictJsonSchema = {
   type: 'object',
@@ -665,7 +664,7 @@ async function requestStructuredNatalQuestionAnswer(input: {
   prompt: string;
 }): Promise<RawNatalQuestionAnswer> {
   const response = await createLunaStructuredResponse({
-    instructions: getAppSystemVoice(input.language),
+    instructions: getNatalStorySystemPrompt(input.language),
     input: input.prompt,
     maxOutputTokens: 900,
     schemaName: 'natal_question_answer',

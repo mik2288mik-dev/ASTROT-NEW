@@ -1,21 +1,31 @@
 /** Prompts for the long-scroll natal interpretation screen. */
+/** Prompts for the long-scroll natal interpretation screen. */
 
 import type { SerializedChartForPrompt } from './chartSerializer';
 import type { CanonicalNatalReport } from '../natal/canonicalReport';
 
 export type NatalReadingPromptSource = SerializedChartForPrompt | CanonicalNatalReport;
 
-const NATAL_READING_TASK_RULES = `ТЕХНИЧЕСКИЕ ПРАВИЛА:
-- Используй только переданные данные карты.
+import { getNatalStorySystemPrompt, getNatalAstrologySystemPrompt } from '../voice/contracts/natal';
+import { getPersonalForecastSystemPrompt } from '../voice/contracts/personalForecast';
+
+export function getNatalReadingTaskRules(language: 'ru' | 'en' = 'ru', voiceType: 'story' | 'astrology' | 'forecast' = 'story'): string {
+  const voice = voiceType === 'story' ? getNatalStorySystemPrompt(language) 
+    : voiceType === 'astrology' ? getNatalAstrologySystemPrompt(language) 
+    : getPersonalForecastSystemPrompt(language);
+  
+  const techRules = language === 'en' ? `TECHNICAL OUTPUT RULES:
+- Address the reader as "you".
+- Start with a concrete conclusion. Do not start by describing the analysis process, defining a term, or using the phrase "the chart shows".
+- Strictly follow the requested output format.
+- Do not add comments before or after, do not use Markdown headings inside JSON fields.` : `ТЕХНИЧЕСКИЕ ПРАВИЛА ВЫВОДА:
 - Обращайся к читателю на «ты».
 - Начинай с конкретного вывода. Не начинай с описания процесса анализа, определения термина или фразы «карта показывает».
-- Описывай поведение, решения, разговоры и реакции обычными словами.
-- Если используешь планету, знак, дом или аспект, сразу объясни, что именно это меняет в описываемой ситуации.
-- Не придумывай травмы, детство, родителей, диагнозы, профессию, доход, события или факты биографии.
-- Не используй психологическую, коучинговую, мистическую или мотивационную воду.
-- Не используй слова и идеи «энергия», «суперсила», «предназначение», «внутренний путь», «повторяющийся сценарий» как пустые объяснения.
 - Соблюдай заданный формат вывода строго.
 - Не добавляй комментариев до и после, не используй Markdown-заголовки внутри JSON-полей.`;
+
+  return `${voice}\n\n${techRules}`;
+}
 
 function chartHeader(chart: NatalReadingPromptSource): string {
   return `ДАННЫЕ КАРТЫ:
@@ -43,8 +53,8 @@ function promptContext(chart: NatalReadingPromptSource): string {
  * Generates: 5 short labels + subtitles, portrait, overlooked trait,
  * two competing traits + synthesis.
  */
-export function buildPortraitPrompt(chart: NatalReadingPromptSource): string {
-  return `${NATAL_READING_TASK_RULES}
+export function buildPortraitPrompt(chart: NatalReadingPromptSource, language: 'ru' | 'en' = 'ru'): string {
+  return `${getNatalReadingTaskRules(language, 'story')}
 
 ${promptContext(chart)}
 
@@ -82,8 +92,8 @@ ${promptContext(chart)}
  * Aspects prompt — JSON output.
  * 5 key calculated factors of the chart with badges + a closing summary.
  */
-export function buildAspectsPrompt(chart: NatalReadingPromptSource): string {
-  return `${NATAL_READING_TASK_RULES}
+export function buildAspectsPrompt(chart: NatalReadingPromptSource, language: 'ru' | 'en' = 'ru'): string {
+  return `${getNatalReadingTaskRules(language, 'astrology')}
 
 ${promptContext(chart)}
 
@@ -123,9 +133,10 @@ ${promptContext(chart)}
  */
 export function buildWeekPrompt(
   chart: NatalReadingPromptSource,
-  weekDates: { from: string; to: string }
+  weekDates: { from: string; to: string },
+  language: 'ru' | 'en' = 'ru'
 ): string {
-  return `${NATAL_READING_TASK_RULES}
+  return `${getNatalReadingTaskRules(language, 'forecast')}
 
 ${promptContext(chart)}
 
@@ -143,9 +154,10 @@ ${promptContext(chart)}
 /** Today prompt — JSON output. Premium content. */
 export function buildTodayPrompt(
   chart: NatalReadingPromptSource,
-  dateLabel: string
+  dateLabel: string,
+  language: 'ru' | 'en' = 'ru'
 ): string {
-  return `${NATAL_READING_TASK_RULES}
+  return `${getNatalReadingTaskRules(language, 'forecast')}
 
 ${promptContext(chart)}
 
@@ -200,9 +212,10 @@ export const DEEP_DIVE_TOPICS: Record<DeepDiveTopic['key'], DeepDiveTopic> = {
 
 export function buildDeepDivePrompt(
   chart: NatalReadingPromptSource,
-  topic: DeepDiveTopic
+  topic: DeepDiveTopic,
+  language: 'ru' | 'en' = 'ru'
 ): string {
-  return `${NATAL_READING_TASK_RULES}
+  return `${getNatalReadingTaskRules(language, 'story')}
 
 ${promptContext(chart)}
 

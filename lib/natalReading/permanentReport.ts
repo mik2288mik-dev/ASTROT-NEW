@@ -19,18 +19,18 @@ import {
   withAppVoiceVersion,
 } from '../appVoice';
 
-export const NATAL_PERMANENT_CONTRACT_VERSION = 'natal-permanent-report-v8';
+export const NATAL_PERMANENT_CONTRACT_VERSION = 'natal-permanent-v9';
 export const NATAL_PERMANENT_FREE_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v7`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v8`,
 );
 export const NATAL_PERMANENT_PREMIUM_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v7`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v8`,
 );
 export const NATAL_PERMANENT_FREE_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.permanent.free.v8',
+  'natal.permanent.free.v9',
 );
 export const NATAL_PERMANENT_PREMIUM_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.permanent.premium.v8',
+  'natal.permanent.premium.v9',
 );
 
 export type NatalReadingLanguage = 'ru' | 'en';

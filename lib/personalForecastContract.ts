@@ -134,6 +134,8 @@ export type ForecastSection = {
   fixedKey?: FixedForecastSectionKey;
   sourceTopicKey?: ForecastTopicKey;
   title?: string;
+  actionType?: 'buy' | 'talk' | 'move' | 'stop' | null;
+  actionText?: string | null;
   text: string;
   contentBlocks: ForecastContentBlock[];
   semanticFactIds: string[];
@@ -247,10 +249,10 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
   'personal-forecast-feed.v54-dated-natal-horoscope',
 );
-export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v26-dated-natal-horoscope';
+export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v27-dated-natal-horoscope';
 /** Input/cache identity, not an astrological calculation version. */
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-swiss-dated-natal-v17';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v32-direct-prose';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v33-direct-prose';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<

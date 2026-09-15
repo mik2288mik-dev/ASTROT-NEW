@@ -138,6 +138,11 @@ export function ForecastSectionBlock({
             </button>
           </div>
         ) : renderContentBlocks(section, period)}
+        {section.actionType && section.actionText && !locked ? (
+          <div className={`forecast-action-card is-${section.actionType}`}>
+            <span className="forecast-action-text">{section.actionText}</span>
+          </div>
+        ) : null}
         {showsEndVisual && endVisualAsset ? (
           <ForecastEndEditorialVisual
             asset={endVisualAsset}

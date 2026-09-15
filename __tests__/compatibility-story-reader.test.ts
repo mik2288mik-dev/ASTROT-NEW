@@ -80,12 +80,12 @@ describe('saved compatibility story reader', () => {
 
   it('navigates only to chapters that exist, focuses their headings, and performs no request', () => {
     const result = saved();
-    result.storyParagraphs = result.storyParagraphs!.filter((paragraph) => paragraph.topic === 'connection' || paragraph.topic === 'everyday');
+    result.storyParagraphs = result.storyParagraphs!.filter((paragraph) => paragraph.topic === 'index' || paragraph.topic === 'action_do');
     const tree = CompatibilityStoryReader(props({ result }));
     const buttons = elements(tree, 'button').filter((button) => button.props.className !== 'compat-story-back');
     const headings = elements(tree, 'h2');
     expect(buttons).toHaveLength(2);
-    expect(headings.map((heading) => heading.props.id)).toEqual(['compat-story-connection', 'compat-story-everyday']);
+    expect(headings.map((heading) => heading.props.id)).toEqual(['compat-story-index', 'compat-story-action_do']);
     const targets = new Map(headings.map((heading) => [heading.props.id, { focus: jest.fn(), scrollIntoView: jest.fn() }]));
     const getElementById = jest.fn((id: string) => targets.get(id));
     const fetch = jest.fn();
@@ -115,14 +115,14 @@ describe('saved compatibility story reader', () => {
       { ...first, id: 'not-cited', label: 'Непроцитированный факт' },
     ];
     result.storyParagraphs = [
-      { ...result.storyParagraphs![0], topic: 'connection', evidenceIds: [first.id, first.id, 'missing-saved-fact'] },
-      { ...result.storyParagraphs![1], topic: 'connection', evidenceIds: [first.id] },
-      { ...result.storyParagraphs![2], topic: 'closeness', evidenceIds: [second.id] },
+      { ...result.storyParagraphs![0], topic: 'index', evidenceIds: [first.id, first.id, 'missing-saved-fact'] },
+      { ...result.storyParagraphs![1], topic: 'index', evidenceIds: [first.id] },
+      { ...result.storyParagraphs![2], topic: 'support', evidenceIds: [second.id] },
     ];
     result.limitations = [];
     const html = render({ result });
-    const firstChapter = chapterHtml(html, 'connection');
-    const secondChapter = chapterHtml(html, 'closeness');
+    const firstChapter = chapterHtml(html, 'index');
+    const secondChapter = chapterHtml(html, 'support');
     expect(firstChapter.match(/<li>/gu)).toHaveLength(1);
     expect(firstChapter).toContain('<li>Факт первой главы</li>');
     expect(firstChapter).not.toContain('Факт второй главы');
@@ -209,17 +209,17 @@ describe('compatibility chapter writer contract', () => {
   it('accepts neighbouring paragraphs in one chapter but rejects returning to a completed chapter', () => {
     const candidate = writer();
     expect(validateCompatibilityNarrative(candidate, calculated).paragraphs).toHaveLength(8);
-    candidate.paragraphs[4].topic = 'connection';
+    candidate.paragraphs[4].topic = 'index';
     expect(() => validateCompatibilityNarrative(candidate, calculated)).toThrow('topic_repeated');
   });
 
   it('rejects a detailed story restricted to three topics while accepting four supported topics', () => {
     const candidate = writer();
     candidate.paragraphs = candidate.paragraphs.map((paragraph) => ({
-      ...paragraph, topic: paragraph.topic === 'everyday' || paragraph.topic === 'friction' ? 'conversation' : paragraph.topic,
+      ...paragraph, topic: paragraph.topic === 'action_do' || paragraph.topic === 'risk' ? 'architecture' : paragraph.topic,
     }));
     expect(() => validateCompatibilityNarrative(candidate, calculated)).toThrow('topics_too_narrow');
-    candidate.paragraphs[7].topic = 'everyday';
+    candidate.paragraphs[7].topic = 'action_do';
     expect(validateCompatibilityNarrative(candidate, calculated).paragraphs).toHaveLength(8);
   });
 
@@ -227,10 +227,10 @@ describe('compatibility chapter writer contract', () => {
     const sparse = { ...calculated, evidence: selectCompatibilityWriterEvidence(calculated).filter((fact) => fact.direction === 'mutual').slice(0, 3) };
     const candidate: CompatibilityWriterResponse = compatibilityStory(selectCompatibilityWriterEvidence(sparse));
     candidate.paragraphs = candidate.paragraphs.map((paragraph, index) => ({
-      ...paragraph, topic: index < 3 ? 'connection' : index < 6 ? 'conversation' : 'everyday',
+      ...paragraph, topic: index < 3 ? 'index' : index < 6 ? 'architecture' : 'action_do',
     }));
     expect(validateCompatibilityNarrative(candidate, sparse).paragraphs).toHaveLength(8);
-    candidate.paragraphs = candidate.paragraphs.map((paragraph) => ({ ...paragraph, topic: paragraph.topic === 'everyday' ? 'conversation' : paragraph.topic }));
+    candidate.paragraphs = candidate.paragraphs.map((paragraph) => ({ ...paragraph, topic: paragraph.topic === 'action_do' ? 'architecture' : paragraph.topic }));
     expect(() => validateCompatibilityNarrative(candidate, sparse)).toThrow('topics_too_narrow');
   });
 });

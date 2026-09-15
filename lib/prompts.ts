@@ -279,8 +279,11 @@ function natalEvidenceJson(evidence: AstroEvidenceItem[] | undefined) {
   return JSON.stringify((evidence || []).slice(0, 8), null, 2);
 }
 
+import { getNatalAstrologySystemPrompt } from './voice/contracts/natal';
+
 function natalTaskRules(language: string) {
-  return `Language: ${language}
+  const lang: 'ru' | 'en' = language === 'ru' ? 'ru' : 'en';
+  return `${getNatalAstrologySystemPrompt(lang)}
 
 Task rules:
 - Every section must clearly come from astroEvidence: planet/sign/house/aspect/transit -> human translation -> concrete life situation.
@@ -475,8 +478,9 @@ export const createPlanetInsightPrompt = (
   );
   const displayName = profile.name || 'the user';
 
-  return `User: ${displayName}
-Language: ${profile.language}
+  const lang: 'ru' | 'en' = profile.language === 'ru' ? 'ru' : 'en';
+  return `${getNatalAstrologySystemPrompt(lang)}
+User: ${displayName}
 
 Core chart anchors:
 ${natalDataJson}

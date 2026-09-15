@@ -1,16 +1,17 @@
 import type { SignHoroscopePeriod, SignHoroscopeReadingV2 } from '../../types';
 import { getAppSystemVoice, getPersonalForecastVoiceViolationCodes, hasAppVoiceViolation } from '../appVoice';
+import { getNeboCoreVoice } from '../voice/core';
 import type { ZodiacKey } from '../zodiacKeys';
 
-export const SIGN_HOROSCOPE_READING_SCHEMA_VERSION = 'sign-horoscope-reading-v4' as const;
-export const SIGN_HOROSCOPE_CACHE_VERSION = 'sign-horoscope-v6-plain-deepseek' as const;
+export const SIGN_HOROSCOPE_READING_SCHEMA_VERSION = 'sign-horoscope-reading-v5' as const;
+export const SIGN_HOROSCOPE_CACHE_VERSION = 'sign-horoscope-v8-plain-deepseek' as const;
 export const SIGN_HOROSCOPE_MODEL = 'deepseek-v4-flash' as const;
 export const MAX_SIGN_HOROSCOPE_WORDS = 130;
 
 export function getSignForecastVoice(language: 'ru' | 'en'): string {
-  return `${getAppSystemVoice(language)}\n${language === 'ru'
-    ? 'Голос NEBO: обычный разговор на ты. Назови, что человек может сделать, заметить или услышать, и конкретный предмет разговора. Не пиши отчёт о личности или эффективности. Без «вектора», «динамики», «ресурса», «потенциала», «энергии», «осознанности», «проработки», «расширения рамок», «живого отклика», «держать курс», «сохранять фокус» и «замедлиться». Никакой психологии, терапии, мистики, канцелярита и придуманных острот. Не заставляй деньги, время, тишину и договорённости разговаривать или принимать решения. Не повторяй мысль ради объёма и не заканчивай служебным «речь идёт о…». Заголовок — 1–5 понятных слов. Ровно столько текста, сколько нужно для законченной мысли. Внешние события — возможные, не гарантированные. Не придумывай работу, партнёра, покупки, планы или чужие чувства. Не давай медицинских и инвестиционных советов. У общего прогноза неизвестен пол читателя: используй нейтральные формы. Разные темы и знаки должны давать разные наблюдения, подтверждённые переданными основаниями. Одна мысль с новым заголовком не становится новой.'
-    : 'NEBO voice: plain everyday language addressing you. Name an ordinary action and its concrete object. No astrology, mysticism, therapy, coaching, corporate prose, personification, forced jokes, filler or recap. A clear 1–5-word title and enough prose to finish the thought. External events are possibilities, never guarantees. Invent no occupation, relationship, plans or other people’s feelings. No medical or investment advice. Use gender-neutral wording. Different topics and signs need distinct observations supported by the supplied evidence, never one story with renamed headings.'}`;
+  return `${getNeboCoreVoice(language)}\n${language === 'ru'
+    ? 'Голос NEBO: обычный разговор на ты. Назови, что человек может сделать, заметить или услышать, и конкретный предмет разговора. Не пиши отчёт о личности или эффективности. Без «вектора», «динамики», «ресурса», «потенциала», «энергии», «осознанности», «проработки», «расширения рамок», «живого отклика», «держать курс», «сохранять фокус» и «замедлиться». Не заставляй деньги, время, тишину и договорённости разговаривать или принимать решения. Не повторяй мысль ради объёма и не заканчивай служебным «речь идёт о…». Заголовок — 1–5 понятных слов. Ровно столько текста, сколько нужно для законченной мысли. У общего прогноза неизвестен пол читателя: используй нейтральные формы. Разные темы и знаки должны давать разные наблюдения, подтверждённые переданными основаниями. Одна мысль с новым заголовком не становится новой.'
+    : 'HOROSCOPE RULES: Name an ordinary action and its concrete object. No personification, forced jokes, filler or recap. A clear 1–5-word title and enough prose to finish the thought. Use gender-neutral wording. Different topics and signs need distinct observations supported by the supplied evidence, never one story with renamed headings.'}`;
 }
 
 const USER_COPY_ASTROLOGY_TERMS = /\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|planet|astrology|astrological|aspect|transit|retrograde|natal|zodiac|horoscope|ruler|ascendant|conjunction|opposition|trine|sextile|orb|solar\s+house|whole-sign\s+house)\b|(?:солнц|лун|меркур|венер|марс|юпитер|сатурн|уран|нептун|плутон|планет|астролог|аспект|транзит|ретроград|натал|зодиак|гороскоп|управител|асцендент|соединени|оппозиц|трин|секстил|орб|солнечн[а-яё]*\s+дом|дом[а-яё]*\s+от\s+знака)/iu;

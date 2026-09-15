@@ -248,7 +248,7 @@ export interface SynastryResult {
   narrativeVersion?: string;
   narrativeEvidenceIds?: string[];
   storyParagraphs?: Array<{
-    topic: 'connection' | 'closeness' | 'conversation' | 'friction' | 'everyday';
+    topic: 'architecture' | 'support' | 'risk' | 'verdict' | 'index' | 'action_do' | 'action_dont';
     text: string;
     evidenceIds: string[];
     direction: CompatibilityEvidence['direction'];
@@ -397,7 +397,7 @@ export type SignHoroscopePeriod = 'day' | 'week' | 'month';
  * server-side; every user sees only one headline and one coherent story.
  */
 export interface SignHoroscopeReadingV2 {
-  schemaVersion: 'sign-horoscope-reading-v4';
+  schemaVersion: 'sign-horoscope-reading-v5';
   sign: string;
   period: SignHoroscopePeriod;
   periodKey: string;

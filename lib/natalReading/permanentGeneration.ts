@@ -78,33 +78,29 @@ function parsePayload<T>(value: string): T {
   }
 }
 
+import { getNatalStorySystemPrompt } from '../voice/contracts/natal';
+
 export function getPermanentNatalSystemPrompt(language: NatalReadingLanguage): string {
   const task = language === 'ru'
     ? `ЗАДАЧА НАТАЛЬНОГО ПОРТРЕТА
-- Преврати сухие астро-факты в живой, точный рассказ о человеке, без эзотерики и психологической воды.
 - В пользовательских hook и content не называй планеты, знаки, дома, аспекты, градусы и орбисы. Переводи расчёт в обычный язык характера, решений и поведения; технические факты интерфейс покажет отдельно по evidence_ids.
-- Не пиши «Вы склонны» или «Вам свойственно». Говори прямо, естественно и по-человечески, без канцелярита и готовых психологических формул.
 - Все разделы — части одного цельного портрета. Вступление называет главную линию карты, а следующие главы продолжают её и не начинают рассказ заново.
 - Жизненные главы, их порядок и смысл заданы в READER CHAPTER PLAN. Не придумывай другие рубрики. Если у главы несколько section_key, каждый content добавляет новую часть, а интерфейс соединит их под одним заголовком.
 - Пиши через обычные ситуации и действия: выбор, знакомство, ссору с партнёром, просьбу близкого, семейную договорённость, разговор с начальником, дедлайн, клиента, своё дело или решение с деловым партнёром. Не выдумывай событие из биографии; показывай условную узнаваемую ситуацию.
 - Показывай две реальные стороны одного способа поведения и условие, при котором человек переключается между ними. Не называй это «противоречием»: опиши конкретно, например человек легко знакомится, но близко подпускает медленно.
-- Не используй в пользовательском тексте слова и формулы «проявляется», «напрягается», «опора», «ресурс», «паттерн», «потенциал», «внутренний рисунок», «внутреннее противоречие», «раскрываешься» и похожий язык психологического отчёта.
 - Не заканчивай каждый блок советом. Сначала объясни, как человек обычно действует, что ему даётся легче и что реально усложняет ситуацию.
 - Каждый блок обязан вернуть только реальные evidence_ids из входного массива. Не печатай эти идентификаторы в пользовательском тексте.
 - Ответ — только валидный JSON без Markdown.`
     : `NATAL PORTRAIT TASK
-- Turn calculated astrological facts into a vivid, precise story about a person without mysticism or pseudo-psychology.
 - Do not name planets, signs, houses, aspects, degrees, or orbs in user-facing hook or content. Translate the calculation into ordinary language about character, decisions, and behaviour; the interface reveals technical facts separately through evidence_ids.
-- Write directly, naturally, and in plain human language, without formal or canned psychological formulas.
 - Every section belongs to one coherent portrait. The opening names the chart's central thread, and later chapters continue it instead of restarting the story.
 - The life chapters, their order, and their purpose are fixed in READER CHAPTER PLAN. Invent no other headings. When a chapter has several section_key values, each content field adds a different part and the interface joins them under one heading.
 - Write through ordinary situations and actions: a choice, new acquaintance, disagreement with a partner, request from a relative, family agreement, conversation with a manager, deadline, client, own business, or decision with a business partner. Use conditional examples and never invent biography.
 - Show two concrete sides of one behaviour and the condition that switches the person between them. Do not label this an “inner contradiction”; describe the actual difference, such as meeting people easily but allowing closeness slowly.
-- Avoid abstract report language such as “manifests”, “inner resource”, “support point”, “pattern”, “potential”, “inner contradiction”, or “unfolds”.
 - Do not end every block with advice. Explain first how the person usually acts, what comes more easily, and what concretely makes a situation harder.
 - Every block must return only existing evidence_ids from the input. Never print those identifiers in the user-facing text.
 - Return valid JSON only, with no Markdown.`;
-  return `${getAppSystemVoice(language)}\n\n${task}`;
+  return `${getNatalStorySystemPrompt(language)}\n\n${task}`;
 }
 
 function readerChapterPlan(

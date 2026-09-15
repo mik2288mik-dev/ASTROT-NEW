@@ -176,7 +176,7 @@ function signLocalStorageKey(
 function isSignHoroscopeReading(value: unknown): value is SignHoroscopeReadingV2 {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<SignHoroscopeReadingV2>;
-  return candidate.schemaVersion === 'sign-horoscope-reading-v4'
+  return candidate.schemaVersion === 'sign-horoscope-reading-v5'
     && typeof candidate.sign === 'string'
     && (candidate.period === 'day' || candidate.period === 'week' || candidate.period === 'month')
     && typeof candidate.periodKey === 'string'

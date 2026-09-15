@@ -2,7 +2,7 @@ import type { PersonalFutureTimelineStop } from '../personalFutureForecastContra
 import type { RelationshipContext } from './relationshipContext';
 import type { ZodiacKey } from '../zodiacKeys';
 
-export const PAIR_FUTURE_VERSION = 'pair-future-v4-age-aware-plain';
+export const PAIR_FUTURE_VERSION = 'pair-future-v6-age-aware-plain';
 export const PAIR_FUTURE_TOPICS = {
   general: ['Общий прогноз', 'Overview'], communication: ['Общение', 'Communication'],
   closeness: ['Близость', 'Closeness'], plans: ['Общие планы', 'Shared plans'],

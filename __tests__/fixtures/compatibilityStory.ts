@@ -15,7 +15,7 @@ export function compatibilityStory(evidence: Array<Pick<CompatibilityEvidence, '
     'Самая живая возможность этой связи — не безупречное совпадение, а разговор, после которого у обоих появляется больше конкретных вариантов. Уязвимое место находится рядом: тот же интерес к чужому решению может стать нажимом, если объяснение начинают требовать. Вашему контакту подходит возможность обсуждать различия и оставлять человеку последнее слово о себе. Дальше значение будут иметь ваши реальные ответы и поступки, а не красивое совпадение описаний.',
   ];
   return { paragraphs: texts.map((text, index) => ({
-    topic: (['connection', 'connection', 'closeness', 'closeness', 'conversation', 'conversation', 'friction', 'everyday'] as const)[index],
+    topic: (['index', 'index', 'support', 'support', 'architecture', 'architecture', 'risk', 'action_do'] as const)[index],
     text,
     evidenceIds: [mutual[index % mutual.length]?.id || evidence[0]?.id || 'missing-fixture-evidence'],
     direction: 'mutual',

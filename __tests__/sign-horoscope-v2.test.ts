@@ -62,7 +62,7 @@ function reading(
   periodKey: string,
 ): SignHoroscopeReadingV2 {
   return {
-    schemaVersion: 'sign-horoscope-reading-v4',
+    schemaVersion: 'sign-horoscope-reading-v5',
     sign,
     period,
     periodKey,
@@ -116,7 +116,7 @@ describe('shared sign horoscope contract', () => {
     expect(result).toEqual({
       ok: true,
       reading: {
-        schemaVersion: 'sign-horoscope-reading-v4',
+        schemaVersion: 'sign-horoscope-reading-v5',
         sign: 'Aries',
         period: 'day',
         periodKey: '2026-08-09',

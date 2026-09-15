@@ -1,5 +1,6 @@
 import { buildPersonalForecastDateContext } from './personalForecastDateContext';
-import { getPersonalHoroscopeVoice, getDirectHoroscopeVoiceViolationCodes } from './personalForecastGeneration';
+import { getDirectHoroscopeVoiceViolationCodes } from './personalForecastGeneration';
+import { getNeboCoreVoice } from './voice/core';
 import { createHash } from 'crypto';
 import type { ContentInterpretation } from '../types';
 import { PERSONAL_FORECAST_VOICE_VERSION } from './appVoice';
@@ -157,7 +158,7 @@ export async function generatePersonalFutureForecastText(input: Input, resolved:
   let previousDraft: unknown;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const response = await provider.responses.create(buildLunaStructuredResponseParams({
-      instructions: getPersonalHoroscopeVoice(input.profile.language === 'en' ? 'en' : 'ru') + '\n' + "Ответь только на выбранную тему и только о выбранных датах. Верни text: один короткий прогноз из одного-двух предложений, 20–45 слов. Не перечисляй остальные темы. Не повторяй бытовые советы или пожелания. Возвращай только text, без заголовка.",
+      instructions: getNeboCoreVoice(input.profile.language === 'en' ? 'en' : 'ru') + '\n\nОтветь только на выбранную тему и только о выбранных датах. Верни text: один короткий прогноз из одного-двух предложений, 20–45 слов. Не перечисляй остальные темы. Не повторяй бытовые советы или пожелания. Возвращай только text, без заголовка.',
       input: JSON.stringify({
         language: input.profile.language === 'en' ? 'en' : 'ru',
         selected_period: { period: input.period, date: input.date, from: resolved.window.periodStart, to: resolved.window.periodEnd, timezone: resolved.window.timezone },

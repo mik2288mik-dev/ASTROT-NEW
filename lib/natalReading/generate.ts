@@ -48,7 +48,7 @@ export async function generatePortrait(
   const serialized = promptSource(profile, chart);
   const raw = await llmTagged({
     system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
-    user: buildPortraitPrompt(serialized),
+    user: buildPortraitPrompt(serialized, profile.language === 'en' ? 'en' : 'ru'),
     model: {
       accessTier: 'free',
       contentSurface: 'natal',
@@ -81,7 +81,7 @@ export async function generateAspects(
   const serialized = promptSource(profile, chart);
   const result = await llmJson<NatalReadingAspects>({
     system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
-    user: buildAspectsPrompt(serialized),
+    user: buildAspectsPrompt(serialized, profile.language === 'en' ? 'en' : 'ru'),
     model: {
       accessTier: 'free',
       contentSurface: 'natal',
@@ -146,7 +146,7 @@ export async function generateToday(
   });
   const result = await llmJson<NatalReadingToday>({
     system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
-    user: buildTodayPrompt(serialized, dateLabel),
+    user: buildTodayPrompt(serialized, dateLabel, profile.language === 'en' ? 'en' : 'ru'),
     model: {
       accessTier: 'premium',
       contentSurface: 'natal',
