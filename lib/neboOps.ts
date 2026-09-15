@@ -244,7 +244,7 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
 }
 
 export function shouldDeliverNeboOpsEvent(eventType: string, payload: Payload = {}): boolean {
-  return eventType === 'login' || eventType === 'daily_summary'
+  return eventType === 'login' || eventType === 'daily_summary' || eventType === 'payment_confirmed'
     || (eventType === 'activity' && (payload?.eventType === 'paywall_view'
       || payload?.eventType === 'app_open' || payload?.eventType === 'app_opened'));
 }
@@ -595,7 +595,7 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
        last_error_code = 'OWNER_SCOPE_FILTERED', updated_at = NOW()
      WHERE status IN ('pending', 'failed')
        AND NOT (
-         event_type IN ('login', 'daily_summary')
+         event_type IN ('login', 'daily_summary', 'payment_confirmed')
          OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') IN ('paywall_view', 'app_open', 'app_opened'))
        )`,
   );
@@ -609,7 +609,7 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
          SELECT id FROM nebo_ops_outbox
          WHERE status IN ('pending', 'failed') AND next_attempt_at <= NOW() AND attempts < $1
            AND (
-             event_type IN ('login', 'daily_summary')
+             event_type IN ('login', 'daily_summary', 'payment_confirmed')
              OR (event_type = 'activity' AND payload_json->>'eventType' IN ('paywall_view', 'app_open', 'app_opened'))
            )
          ORDER BY CASE WHEN event_type = 'activity' THEN 1 ELSE 0 END, next_attempt_at, id

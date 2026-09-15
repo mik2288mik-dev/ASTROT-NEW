@@ -221,13 +221,14 @@ describe('operational data and message formatting', () => {
 });
 
 describe('durable owner notification queue', () => {
-  it('notifies only about logins, app visits, opening payment and the daily report', async () => {
+  it('notifies about logins, app visits, opening and confirming payment, and the daily report', async () => {
     expect(shouldDeliverNeboOpsEvent('login')).toBe(true);
     expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'app_open' })).toBe(true);
     expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'app_opened' })).toBe(true);
     expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'paywall_view' })).toBe(true);
+    expect(shouldDeliverNeboOpsEvent('payment_confirmed')).toBe(true);
     expect(shouldDeliverNeboOpsEvent('daily_summary')).toBe(true);
-    for (const eventType of ['hourly_summary', 'support_ticket', 'ai_error', 'payment_confirmed', 'attribution_received']) {
+    for (const eventType of ['hourly_summary', 'support_ticket', 'ai_error', 'attribution_received']) {
       expect(shouldDeliverNeboOpsEvent(eventType)).toBe(false);
     }
     for (const eventType of ['screen_view', 'checkout_start', 'question_sent', 'purchase_success']) {
@@ -613,8 +614,8 @@ describe('notification integration with committed user actions', () => {
   });
 });
 
-describe('owner support notification preference', () => {
-  it('suppresses queued support alerts without sending or retrying them', async () => {
+describe('owner support notifications', () => {
+  it('retries a queued support alert when the owner sender is temporarily busy', async () => {
     const supportQuery = jest.fn(async (sql: string) => {
       if (sql.includes('SELECT id, ticket_id, channel, attempts')) {
         return { rows: [{ id: 71, ticket_id: 301, channel: 'telegram', attempts: 9 }], rowCount: 1 };
@@ -642,16 +643,16 @@ describe('owner support notification preference', () => {
     });
 
     await expect(processSupportDeliveryOutbox(1, undefined, 'telegram')).resolves.toEqual({
-      claimed: 1, sent: 0, retried: 0, dead: 1, staleRecovered: 0,
+      claimed: 1, sent: 0, retried: 1, dead: 0, staleRecovered: 0,
     });
     expect(supportQuery).toHaveBeenCalledWith(
       expect.stringContaining('AND ($4::TEXT IS NULL OR channel = $4::TEXT)'), [10, 1, null, 'telegram'],
     );
-    expect(send).not.toHaveBeenCalled();
-    const suppressed = query.mock.calls.find(([sql]) => sql.includes('OWNER_SCOPE_FILTERED'))!;
-    expect(suppressed[0]).toContain("SET status = 'dead'");
-    expect(suppressed[0]).toContain("WHERE id = $1 AND status = 'processing' AND attempts = $2");
-    expect(suppressed[1]).toEqual([71, 10]);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0]).toContain('✉️ Новое обращение NEBO #301');
+    expect(send.mock.calls[0][0]).not.toContain('Не получается открыть прогноз');
+    const deferred = query.mock.calls.find(([sql]) => sql.includes("last_error_code = 'SUPPORT_DELIVERY_DEFERRED'"))!;
+    expect(deferred[0]).toContain('attempts = GREATEST(0, attempts - 1)');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
