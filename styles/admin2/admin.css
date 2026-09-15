@@ -20,6 +20,20 @@
 .admin2-app button:focus-visible, .admin2-app a:focus-visible, .admin2-app summary:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
 .admin2-app input:focus-visible, .admin2-app select:focus-visible, .admin2-app textarea:focus-visible { outline: 2px solid #3b82f6; outline-offset: -1px; }
 
+/* Embedded Admin v2: these classes must have real CSS, not only utility
+ * class names. Telegram Desktop does not always load the utility layer into
+ * the embedded Web App; without this the sidebar labels run into each other. */
+.admin2-app .admin2-sidebar { display: flex; width: 256px; min-width: 256px; height: 100%; flex-direction: column; border-right: 1px solid var(--admin-line); background: #fff; overflow: hidden; }
+.admin2-app .admin2-brand { display: flex; min-height: 72px; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; }
+.admin2-app .admin2-brand > span { flex: none; color: var(--admin-muted); font-size: 13px; font-weight: 500; }
+.admin2-app .admin2-navigation { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 4px; padding: 0 12px 12px; overflow-y: auto; }
+.admin2-app .admin2-nav-link { display: flex; width: 100%; min-height: 42px; align-items: center; gap: 12px; padding: 10px 12px; border: 0; border-radius: 12px; background: transparent; color: #62656b; cursor: pointer; text-align: left; font-size: 14px; font-weight: 500; line-height: 1.25; }
+.admin2-app .admin2-nav-link svg { width: 18px; height: 18px; flex: none; color: #687080; }
+.admin2-app .admin2-nav-link span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin2-app .admin2-nav-link[aria-current="page"] { background: #eeeafd; color: #6048c9; font-weight: 650; }
+.admin2-app .admin2-nav-link[aria-current="page"] svg { color: #6048c9; }
+@media (hover: hover) { .admin2-app .admin2-nav-link:hover { background: #f5f4f9; color: #3c354f; } }
+
 /* Shell */
 .admin-shell { position: fixed; inset: 0; z-index: 60; display: flex; min-height: 100dvh; overflow: hidden; background: #fff; isolation: isolate; }
 .admin-sidebar { position: relative; z-index: 30; display: flex; width: 232px; flex: none; flex-direction: column; border-right: 1px solid var(--admin-line); background: #fff; overflow: hidden; transition: width 180ms ease, transform 180ms ease; }

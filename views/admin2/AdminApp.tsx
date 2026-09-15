@@ -1709,6 +1709,22 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const navDialogRef = useRef<HTMLDialogElement>(null);
   const mainRef = useRef<HTMLElement>(null);
 
+  // Админка — рабочий стол, а не маленький pop-up поверх переписки. Telegram
+  // Desktop поддерживает expand, а в новых клиентах — requestFullscreen.
+  // Вызов ограничен этим экраном, чтобы не менять поведение всего Mini App.
+  useEffect(() => {
+    const telegram = (window as any).Telegram?.WebApp;
+    try {
+      telegram?.ready?.();
+      telegram?.expand?.();
+      if (!telegram?.isFullscreen && typeof telegram?.requestFullscreen === 'function') {
+        telegram.requestFullscreen();
+      }
+    } catch {
+      // Старые Telegram Desktop просто оставляют развёрнутый Web App.
+    }
+  }, []);
+
   const loadMe = () => {
     setBooting(true);
     setError(null);
@@ -1798,10 +1814,6 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500 sm:inline-flex">{authMode}</span>
-            <a href="/admin" target="_blank" rel="noopener noreferrer" className={`${btnGhost} text-indigo-600 font-bold flex items-center gap-1`}>
-              <span>⚡</span>
-              <span>Открыть NEBO Ops</span>
-            </a>
             <button className={btnGhost} disabled={booting} onClick={loadMe}>{booting ? 'Проверяю…' : 'Проверить доступ'}</button>
             <button className={btnGhost} onClick={onClose}>В приложение</button>
           </div>

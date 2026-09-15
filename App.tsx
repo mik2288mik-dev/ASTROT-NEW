@@ -313,6 +313,7 @@ function getRequestedViewFromQuery(): ViewState | null {
     if (requested) {
         if (LEGACY_NOTIFICATION_VIEW_ALIASES[requested]) return LEGACY_NOTIFICATION_VIEW_ALIASES[requested];
         if (NOTIFICATION_QUERY_VIEWS.has(requested as ViewState)) return requested as ViewState;
+        if (requested === 'admin') return 'admin';
     }
     return getStartParamView();
 }

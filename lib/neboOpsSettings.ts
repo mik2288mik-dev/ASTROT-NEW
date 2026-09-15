@@ -77,12 +77,12 @@ const on = (value: boolean) => value ? '✅' : '◻️';
 const hour = (value: number | null) => value === null ? 'выкл' : `${String(value).padStart(2, '0')}:00 МСК`;
 
 export function renderNeboOpsMenu(prefs: NeboOpsPreferences): { text: string; replyMarkup: TelegramReplyMarkup } {
-  // Внешний /admin не получает Telegram initData и показывал владельцу форму
-  // браузерного входа. Ссылка Mini App передаёт подписанный Telegram контекст,
-  // а сервер /api/admin/v2/me допускает только OWNER_ID/назначенные роли.
-  const mainBot = String(process.env.NEBO_MAIN_BOT_USERNAME || '').replace(/^@/, '').trim();
-  const adminButton = /^[A-Za-z0-9_]{5,}$/.test(mainBot)
-    ? [[{ text: '🛠 Открыть админку', url: `https://t.me/${mainBot}?startapp=admin` }]]
+  // Inline web_app разворачивается клиентом Telegram как приложение, а не
+  // открывается маленьким окном поверх переписки, как обычная t.me-ссылка.
+  // initData остаётся в Web App и сервер допускает только OWNER_ID/роли.
+  const appOrigin = String(process.env.NEBO_ADMIN_MINI_APP_URL || process.env.PUBLIC_APP_ORIGIN || '').replace(/\/$/, '');
+  const adminButton = /^https:\/\//.test(appOrigin)
+    ? [[{ text: '🛠 Открыть админку', web_app: { url: `${appOrigin}/?view=admin` } }]]
     : [];
   return {
     text: [
