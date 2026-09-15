@@ -150,18 +150,16 @@ export function getNeboOpsConfig(env: NodeJS.ProcessEnv = process.env): NeboOpsC
   return { token, chatId };
 }
 
-/** Optional dedicated owner bots. Until they are configured, critical messages
- * deliberately keep using the notification bot instead of being dropped. */
+/** Dedicated delivery bots never fall back to the notification bot: a payment
+ * or support alert must not be mixed into the owner events stream. */
 export function getNeboOwnerChannelConfig(
   channel: 'payments' | 'support',
   env: NodeJS.ProcessEnv = process.env,
 ): NeboOpsConfig | null {
-  const fallback = getNeboOpsConfig(env);
   const prefix = channel === 'payments' ? 'NEBO_PAYMENTS' : 'NEBO_SUPPORT';
   const token = String(env[`${prefix}_BOT_TOKEN`] || '').trim();
   const chatId = String(env[`${prefix}_CHAT_ID`] || env.OWNER_ID || '').trim();
-  if (!token) return fallback;
-  if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(token) || !/^[1-9]\d{0,15}$/.test(chatId)) return fallback;
+  if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(token) || !/^[1-9]\d{0,15}$/.test(chatId)) return null;
   return { token, chatId };
 }
 
@@ -687,11 +685,23 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
       await pool.query('DELETE FROM nebo_ops_outbox WHERE id = $1 AND lease_token = $2::uuid', [row.id, lease]);
       continue;
     }
-    const isDedicatedPaymentBot = row.event_type === 'payment_confirmed'
-      && Boolean(String(process.env.NEBO_PAYMENTS_BOT_TOKEN || '').trim());
-    const sent = isDedicatedPaymentBot
-      ? await sendNeboOpsTextWithConfig(getNeboOwnerChannelConfig('payments'), renderNeboOpsMessage(row, user))
-      : await sendNeboOpsText(renderNeboOpsMessage(row, user));
+    const paymentEvents = new Set([
+      'payment_confirmed', 'trial_started', 'subscription_grace', 'subscription_cancelled',
+      'subscription_expired', 'subscription_resumed', 'payment_refunded',
+    ]);
+    const dedicatedChannel = paymentEvents.has(row.event_type)
+      ? 'payments'
+      : row.event_type === 'support_ticket' ? 'support' : null;
+    const destination = dedicatedChannel
+      ? getNeboOwnerChannelConfig(dedicatedChannel)
+      : getNeboOpsConfig();
+    const sent = destination
+      ? await sendNeboOpsTextWithConfig(destination, renderNeboOpsMessage(row, user))
+      : {
+        ok: false,
+        error: dedicatedChannel === 'payments' ? 'PAYMENTS_BOT_UNCONFIGURED' : 'SUPPORT_BOT_UNCONFIGURED',
+        retryAfterSeconds: 300,
+      };
     if (sent.ok) {
       await pool.query(
         `UPDATE nebo_ops_outbox SET status = 'sent', sent_at = NOW(), telegram_message_id = $3,

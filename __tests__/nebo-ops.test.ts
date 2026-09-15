@@ -66,7 +66,9 @@ function claimOneEvent(attempts = 1, userExists = true) {
 beforeEach(() => {
   process.env = {
     ...originalEnv, NODE_ENV: 'test', NEBO_OPS_TELEGRAM_ENABLED: '1',
-    NEBO_OPS_BOT_TOKEN: TOKEN, NEBO_OPS_CHAT_ID: OWNER_ID, OWNER_ID,
+    NEBO_OPS_BOT_TOKEN: TOKEN, NEBO_OPS_CHAT_ID: OWNER_ID,
+    NEBO_SUPPORT_BOT_TOKEN: TOKEN, NEBO_SUPPORT_CHAT_ID: OWNER_ID,
+    NEBO_PAYMENTS_BOT_TOKEN: TOKEN, NEBO_PAYMENTS_CHAT_ID: OWNER_ID, OWNER_ID,
   };
   delete processState.__neboOpsWorkerV1;
   query.mockReset();
@@ -638,7 +640,7 @@ describe('owner support notifications', () => {
     });
     jest.spyOn(logger, 'info').mockImplementation(() => undefined);
     jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
-    const send = jest.spyOn(neboOps, 'sendNeboOpsText').mockResolvedValue({
+    const send = jest.spyOn(neboOps, 'sendNeboOpsTextWithConfig').mockResolvedValue({
       ok: false, error: 'TELEGRAM_RATE_LIMIT', deferred: true, retryAfterSeconds: 300,
     });
 
@@ -649,8 +651,8 @@ describe('owner support notifications', () => {
       expect.stringContaining('AND ($4::TEXT IS NULL OR channel = $4::TEXT)'), [10, 1, null, 'telegram'],
     );
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][0]).toContain('✉️ Новое обращение NEBO #301');
-    expect(send.mock.calls[0][0]).not.toContain('Не получается открыть прогноз');
+    expect(send.mock.calls[0][1]).toContain('✉️ Новое обращение NEBO #301');
+    expect(send.mock.calls[0][1]).not.toContain('Не получается открыть прогноз');
     const deferred = query.mock.calls.find(([sql]) => sql.includes("last_error_code = 'SUPPORT_DELIVERY_DEFERRED'"))!;
     expect(deferred[0]).toContain('attempts = GREATEST(0, attempts - 1)');
     expect(fetchMock).not.toHaveBeenCalled();

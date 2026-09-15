@@ -1,5 +1,5 @@
 import { logger } from './logger';
-import { getNeboOwnerChannelConfig, isNeboOpsEnabled, sendNeboOpsText, sendNeboOpsTextWithConfig } from './neboOps';
+import { getNeboOwnerChannelConfig, isNeboOpsEnabled, sendNeboOpsTextWithConfig } from './neboOps';
 import { getNeboOpsPreferences } from './neboOpsSettings';
 import { sendTelegramTextMessage } from './telegramBot';
 
@@ -317,9 +317,9 @@ async function sendSupportTelegram(input: SupportDeliveryInput): Promise<Support
       ? { replyMarkup: { inline_keyboard: [[{ text: 'Открыть обращение', url: adminUrl }]] } }
       : undefined;
     if (isNeboOpsEnabled()) {
-      const result = String(process.env.NEBO_SUPPORT_BOT_TOKEN || '').trim()
-        ? await sendNeboOpsTextWithConfig(getNeboOwnerChannelConfig('support'), message, options)
-        : await sendNeboOpsText(message, options);
+      const supportBot = getNeboOwnerChannelConfig('support');
+      if (!supportBot) return { channel: 'telegram', result: 'unconfigured' };
+      const result = await sendNeboOpsTextWithConfig(supportBot, message, options);
       return {
         channel: 'telegram',
         result: result.ok ? 'sent' : 'failed',
