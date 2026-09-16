@@ -12,6 +12,7 @@ import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { buildSignHoroscopeLockKey } from '../../../../lib/horoscope/signGenerationLock';
+import { projectSignHoroscopeForWire } from '../../../../lib/horoscope/signWireCompatibility';
 
 export const config = { maxDuration: 90 };
 
@@ -40,6 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const requestedPeriod = String(source?.periodKey || '').trim();
   const periodKey = getMoscowMonthKey();
   const language: Language = source?.language === 'en' ? 'en' : 'ru';
+  const userAgent = String(req.headers['user-agent'] || '');
   if (requestedPeriod !== periodKey) {
     return res.status(400).json({ error: 'PERIOD_NOT_CURRENT', code: 'PERIOD_NOT_CURRENT' });
   }
@@ -50,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!snapshot) return res.status(404).json({ error: 'NOT_FOUND', code: 'SIGN_MONTHLY_NOT_READY' });
     res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json({
-      reading: snapshot.reading,
+      reading: projectSignHoroscopeForWire(snapshot.reading, userAgent),
       source: snapshot.stale ? 'stale' : 'cache',
       stale: snapshot.stale,
     });
@@ -68,7 +70,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     if (result.status === 'in_progress') return res.status(202).json(generationInProgressPayload(result.retryAfterMs));
     res.setHeader('Cache-Control', 'private, no-store');
-    return res.status(200).json({ reading: result.value, source: result.fromCache ? 'cache' : 'generated' });
+    return res.status(200).json({
+      reading: projectSignHoroscopeForWire(result.value, userAgent),
+      source: result.fromCache ? 'cache' : 'generated',
+    });
   } catch (error: any) {
     return res.status(503).json({
       error: error?.code || 'SIGN_MONTHLY_GENERATION_FAILED',

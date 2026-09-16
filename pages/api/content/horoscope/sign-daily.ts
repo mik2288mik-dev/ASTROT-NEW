@@ -12,6 +12,7 @@ import {
   withContentGenerationLock,
 } from '../../../../lib/contentGenerationLock';
 import { buildSignHoroscopeLockKey } from '../../../../lib/horoscope/signGenerationLock';
+import { projectSignHoroscopeForWire } from '../../../../lib/horoscope/signWireCompatibility';
 import { hasDatabaseUrl } from '../../../../lib/database-url';
 
 export const config = { maxDuration: 90 };
@@ -34,6 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const sign = normalizeZodiacKey(String((req.method === 'GET' ? req.query.sign : req.body?.sign) || ''));
   const date = readDate(req);
   const language = readLanguage(req);
+  const userAgent = String(req.headers['user-agent'] || '');
 
   // Today is public Free content, but callers may only access the current
   // Moscow day. Tomorrow is warmed through the authenticated cron path.
@@ -54,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'NOT_FOUND', code: 'SIGN_HOROSCOPE_NOT_READY' });
     }
     return res.status(200).json({
-      reading: snapshot.reading,
+      reading: projectSignHoroscopeForWire(snapshot.reading, userAgent),
       source: snapshot.stale ? 'stale' : 'cache',
       stale: snapshot.stale,
     });
@@ -83,7 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     return res.status(200).json({
-      reading: lockResult.value,
+      reading: projectSignHoroscopeForWire(lockResult.value, userAgent),
       source: lockResult.fromCache ? (lockResult.source || 'cache') : 'generated',
     });
   } catch (error: any) {
