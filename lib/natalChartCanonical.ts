@@ -91,8 +91,8 @@ export function buildLegacyCanonicalNatalInputHash(input: {
     mode: input.birthTimeMode || input.birthTimeQuality,
     localTime: input.birthTime,
     uncertaintyMinutes: input.birthTimeUncertaintyMinutes,
-    rangeStartLocalTime: input.birthTimeRangeStart,
-    rangeEndLocalTime: input.birthTimeRangeEnd,
+    rangeStart: input.birthTimeRangeStart,
+    rangeEnd: input.birthTimeRangeEnd,
   });
   const timezone = String(input.timezone || '').trim();
   const latitude = normalizeCoordinateForStorage(input.latitude).toFixed(6);

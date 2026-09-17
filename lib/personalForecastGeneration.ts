@@ -33,6 +33,17 @@ export function getDirectHoroscopeVoiceViolationCodes(text: string): string[] {
   return getPersonalForecastVoiceViolationCodes(text).filter(code => !legacyVocabularyCodes.has(code));
 }
 
+export interface PersonalForecastGenerationInput {
+  natal: NatalChartDataV2;
+  userId: string;
+  profile: UserProfile;
+  model: string;
+  period: PersonalForecastPeriod;
+  window: PersonalForecastWindow;
+  history: PersonalForecastRecentReading[];
+  retryReason?: string;
+}
+
 /** One provider request. No brief, examples, editorial stages or generated conclusion. */
 export async function generatePersonalForecastPackage(
   input: PersonalForecastGenerationInput,
@@ -156,7 +167,7 @@ export async function generatePersonalForecastPackage(
   const contentBlocks: any[] = [{ id: 'overview:reading', role: 'detail', text: visibleText, semanticFactId: 'birth-profile', atomId: 'forecast_body' }];
 
   result.overview = { ...result.overview, status: 'ready', diagnosticCode: null,
-    title, text: visibleText, actionType, actionText, importance: 100, visualTag: 'personal-story',
+    title, text: visibleText, actionType: actionType as 'buy' | 'talk' | 'move' | 'stop' | null, actionText, importance: 100, visualTag: 'personal-story',
     semanticFactIds: ['birth-profile'], semanticFingerprint: fingerprint,
     contentBlocks: contentBlocks as any,
     explanationAnchors: [], premiumTeaser: teaser, lockedPreview: buildForecastLockedPreview(visibleText, teaser) };
