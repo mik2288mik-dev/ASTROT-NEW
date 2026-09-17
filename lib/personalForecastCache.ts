@@ -1,5 +1,5 @@
 import { natalChartV2Repository } from './natalChartV2Repository';
-import { isCanonicalNatalChartDataComplete, buildCanonicalNatalInputHash } from './natalChartCanonical';
+import { isCanonicalNatalChartDataComplete, buildCanonicalNatalInputHash, buildLegacyCanonicalNatalInputHash } from './natalChartCanonical';
 import type { ContentInterpretation, UserProfile } from '../types';
 import { PERSONAL_FORECAST_VOICE_VERSION } from './appVoice';
 import { getUnifiedContentModel } from './appSettings';
@@ -268,6 +268,7 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
     onLockBusy: () => {
       if (lockBusyLogged) return;
       lockBusyLogged = true;
+      lockBusyLogged = true;
       logForecastDeliveryMetric({ domain: 'personal', outcome: 'generation_in_progress', tier: input.accessTier, period: input.period, periodKey: input.periodKey });
     },
     readCached: async () => {
@@ -280,9 +281,54 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
       if (!savedChart || String(savedChart.user_id) !== input.userId || !isCanonicalNatalChartDataComplete(savedChart.chart_data)) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
       const natal = savedChart.chart_data;
       const expectedHash = buildCanonicalNatalInputHash({ birthDate: input.profile.birthDate, birthTime: input.profile.birthTime, birthPlace: input.profile.birthPlace, birthTimeMode: input.profile.birthTimeMode, birthTimeUncertaintyMinutes: input.profile.birthTimeUncertaintyMinutes, latitude: natal.birth.latitude, longitude: natal.birth.longitude, timezone: natal.birth.timezone });
-      if (savedChart.input_hash !== expectedHash) throw new Error('PERSONAL_FORECAST_CHART_OUTDATED');
-      const forecast = await generatePersonalForecastPackage({ natal, userId: input.userId, profile: input.profile as UserProfile, model: resolved.model, period: input.period, window: resolved.window });
-      if (!isPersonalForecastPackage(forecast)) throw new Error(`PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(forecast) || 'UNKNOWN'}`);
+      if (savedChart.input_hash !== expectedHash) {
+        const expectedLegacyHash = buildLegacyCanonicalNatalInputHash({ birthDate: input.profile.birthDate, birthTime: input.profile.birthTime, birthTimeMode: input.profile.birthTimeMode, birthTimeUncertaintyMinutes: input.profile.birthTimeUncertaintyMinutes, latitude: natal.birth.latitude, longitude: natal.birth.longitude, timezone: natal.birth.timezone });
+        if (savedChart.input_hash === expectedLegacyHash) {
+          if (
+              natal.birth.localDate === input.profile.birthDate &&
+              (natal.birth.time?.localTime || undefined) === (input.profile.birthTime || undefined) &&
+              natal.birth.latitude !== undefined &&
+              natal.birth.longitude !== undefined &&
+              natal.birth.timezone !== undefined
+            ) {
+            await getPool().query('UPDATE natal_charts SET input_hash = $1 WHERE id = $2', [expectedHash, savedChart.id]);
+          } else {
+            throw new Error('PERSONAL_FORECAST_CHART_OUTDATED');
+          }
+        } else {
+          throw new Error('PERSONAL_FORECAST_CHART_OUTDATED');
+        }
+      }
+      
+      const allHistory = await getRecentPersonalForecastHistory(input);
+      const history = allHistory.filter(h => h.period === input.period);
+      
+      let forecast: PersonalForecastPackage | null = null;
+      let lastError: unknown = null;
+      let retryReason: string | undefined = undefined;
+
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const generated = await generatePersonalForecastPackage({
+            natal, userId: input.userId, profile: input.profile as UserProfile,
+            model: resolved.model, period: input.period, window: resolved.window,
+            history, retryReason
+          });
+          if (!isPersonalForecastPackage(generated)) {
+            throw new Error(`PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(generated) || 'UNKNOWN'}`);
+          }
+          forecast = generated;
+          break;
+        } catch (error) {
+          lastError = error;
+          retryReason = error instanceof Error ? error.message : String(error);
+        }
+      }
+
+      if (!forecast) {
+        throw lastError;
+      }
+
       // A generated package is not ready until it is durably stored. Swallowing
       // this error reports a false success and leaves every later GET at 204.
       try {

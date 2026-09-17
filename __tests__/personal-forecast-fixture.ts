@@ -100,6 +100,10 @@ function sectionFixture(input: {
 
 export function personalForecastFixture(period: PersonalForecastPeriod = 'day'): PersonalForecastPackage {
   const result = structuredClone(samples.people[0].forecasts[period]) as unknown as PersonalForecastPackage;
+  result.meta.contractVersion = PERSONAL_FORECAST_CONTRACT_VERSION;
+  result.meta.semanticVersion = PERSONAL_FORECAST_CONTRACT_VERSION;
+  result.meta.promptVersion = PERSONAL_FORECAST_PROMPT_VERSION;
+  result.meta.calculationVersion = PERSONAL_FORECAST_CALCULATION_VERSION;
   const key = period === 'day' ? '2026-07-26' : period === 'week' ? '2026-W30' : '2026-07';
   const window = resolvePersonalForecastWindow(period, key, 'Europe/Moscow');
   return { ...result, periodKey: key, periodStart: window.periodStart, periodEnd: window.periodEnd };

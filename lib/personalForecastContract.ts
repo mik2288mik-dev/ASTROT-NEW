@@ -247,9 +247,9 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v54-dated-natal-horoscope',
+  'personal-forecast-feed.v56-direct-day+week-month',
 );
-export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v27-dated-natal-horoscope';
+export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v31-direct-prose';
 /** Input/cache identity, not an astrological calculation version. */
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-swiss-dated-natal-v17';
 export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v33-direct-prose';

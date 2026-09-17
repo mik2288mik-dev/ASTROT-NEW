@@ -74,6 +74,40 @@ export function buildCanonicalNatalInputHash(input: {
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
+export function buildLegacyCanonicalNatalInputHash(input: {
+  birthDate: string;
+  birthTime?: string | null;
+  birthTimeMode?: string | null;
+  birthTimeUncertaintyMinutes?: number | null;
+  birthTimeRangeStart?: string | null;
+  birthTimeRangeEnd?: string | null;
+  birthTimeQuality?: string | null;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+}): string {
+  const normalizedBirthDate = normalizeBirthDateInput(input.birthDate);
+  const time = normalizeBirthTimeContract({
+    mode: input.birthTimeMode || input.birthTimeQuality,
+    localTime: input.birthTime,
+    uncertaintyMinutes: input.birthTimeUncertaintyMinutes,
+    rangeStartLocalTime: input.birthTimeRangeStart,
+    rangeEndLocalTime: input.birthTimeRangeEnd,
+  });
+  const timezone = String(input.timezone || '').trim();
+  const latitude = normalizeCoordinateForStorage(input.latitude).toFixed(6);
+  const longitude = normalizeCoordinateForStorage(input.longitude).toFixed(6);
+  const raw = [
+    'swisseph-canonical-v2', // The old CANONICAL_NATAL_CALCULATION_VERSION
+    normalizedBirthDate,
+    birthTimeFingerprint(time),
+    latitude,
+    longitude,
+    timezone,
+  ].join('|');
+  return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
 function parseJson(value: any): any {
   if (typeof value !== 'string') return value;
   try { return JSON.parse(value); } catch { return null; }

@@ -10,19 +10,19 @@ const natal = samples.people[0].chart as unknown as NatalChartDataV2;
 const input = { profile: { isSetup:true, isPremium:true, theme:'light' as const, name:'Test', birthDate:'1990-03-14', birthTime:'09:41', birthPlace:'Moscow', language:'ru' as const }, natal, period:'day' as const, model:'gpt-5.6-luna', window:resolvePersonalForecastWindow('day','2026-07-26','Europe/Moscow') };
 beforeEach(()=>writer.mockReset());
 it('sends the saved chart and selected date to one writer and keeps the complete reading', async()=>{
-  writer.mockResolvedValue({content:JSON.stringify({title:'A new offer',forecast:'An unexpected offer may arrive. Its details may change after a conversation.'})});
+  writer.mockResolvedValue({content:JSON.stringify({title:'A new offer',body:'An unexpected offer may arrive. Its details may change after a conversation.',closing:'Good luck'})});
   const result=await generatePersonalForecastPackage(input);
   expect(writer).toHaveBeenCalledTimes(1);
   const data=JSON.parse(writer.mock.calls[0][0].input);
-  expect(data.saved_natal_calculation.positions).toEqual(natal.positions);
-  expect(data.selected_date.start).toBe('2026-07-26');
-  expect(data.selected_date_calculation.source).toBe('Swiss Ephemeris');
+  expect(data.person.name).toBe('Test');
+  expect(data.date).toBe('2026-07-26');
+  expect(data.strong_factors).toEqual([]);
   expect(data).not.toHaveProperty('astrologer_brief');
   expect(result.sections).toEqual([]);
-  expect(result.overview.text).toBe('An unexpected offer may arrive. Its details may change after a conversation.');
+  expect(result.overview.text).toBe('An unexpected offer may arrive. Its details may change after a conversation.\n\nGood luck');
   expect(getPersonalForecastPackageValidationError(result)).toBeNull();
 });
-it.each([{title:'',forecast:'text'},{title:'Title',forecast:''},{title:'Guaranteed',forecast:'guaranteed'}])('rejects empty or unsafe writer output', async output=>{
+it.each([{title:'',body:'text'},{title:'Title',body:''},{title:'Guaranteed',body:'guaranteed'}])('rejects empty or unsafe writer output', async output=>{
   writer.mockResolvedValue({content:JSON.stringify(output)});
   await expect(generatePersonalForecastPackage(input)).rejects.toThrow('PERSONAL_FORECAST_GENERATION_INVALID');
 });

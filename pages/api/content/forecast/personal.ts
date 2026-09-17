@@ -102,7 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ? req.query.contractVersion
     : (req.body?.contractVersion ?? req.query.contractVersion);
   const wireVersion = resolvePersonalForecastWireVersion(
-    req.method === 'GET' ? readSingleQueryValue(contractVersionInput) : contractVersionInput,
+    req.method === 'GET' ? (contractVersionInput === undefined ? undefined : readSingleQueryValue(contractVersionInput)) : contractVersionInput,
   );
   if (!wireVersion) {
     diagnostic.log('validation', 'error', { httpStatus: 400, errorCode: 'PERSONAL_FORECAST_CONTRACT_UNSUPPORTED' });
@@ -251,15 +251,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       errorCode: diagnosticCode,
       httpStatus: 503,
     });
+    const staleFallback = await getCompatibleStalePersonalForecast(cacheInput).catch(() => null);
+    if (staleFallback) {
+      diagnostic.log('stale_read', 'cache_hit', { period, source: 'stale', httpStatus: 200 });
+      return res.status(200).json(responsePayload(
+        staleFallback.forecast,
+        entitlement.isPremium,
+        'stale',
+        wireVersion,
+      ));
+    }
+
     return res.status(503).json({
-      error: 'Personal forecast unavailable',
+      error: 'Personal forecast generating',
       code: diagnosticCode,
       forecast: createUnavailablePersonalForecast(
         period,
         periodKey,
         timezone,
         profile.language,
-        'unavailable',
+        'generating',
         diagnosticCode,
       ),
     });
