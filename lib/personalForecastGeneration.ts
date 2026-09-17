@@ -35,12 +35,12 @@ export function getDirectHoroscopeVoiceViolationCodes(text: string): string[] {
 
 export interface PersonalForecastGenerationInput {
   natal: NatalChartDataV2;
-  userId: string;
+  userId?: string;
   profile: UserProfile;
   model: string;
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
-  history: PersonalForecastRecentReading[];
+  history?: PersonalForecastRecentReading[];
   retryReason?: string;
 }
 
