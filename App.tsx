@@ -163,8 +163,8 @@ const AuthGate = dynamic(() => import('./views/AuthGate').then((module) => modul
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
-const STARTUP_SAFETY_TIMEOUT_MS = 12_000;
-const STARTUP_PROFILE_FETCH_TIMEOUT_MS = 8_000;
+const STARTUP_SAFETY_TIMEOUT_MS = 30_000;
+const STARTUP_PROFILE_FETCH_TIMEOUT_MS = 12_000;
 
 function useDisableAppZoom(): void {
     useEffect(() => {
@@ -1013,7 +1013,7 @@ const App: React.FC = () => {
                 } else {
                     try {
                         storedProfile = await getProfile({
-                            maxAttempts: 1,
+                            maxAttempts: 2,
                             timeoutMs: STARTUP_PROFILE_FETCH_TIMEOUT_MS,
                         });
                     } catch (profileError) {
