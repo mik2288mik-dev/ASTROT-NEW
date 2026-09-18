@@ -17,7 +17,7 @@ import {
 import {
   buildNatalReportCatalogContext,
   resolveNatalReportAnswerEvidence,
-  resolveNatalReportCategoryEvidence,
+  resolveNatalReportNarrativeEvidence,
 } from './reportCatalogEvidence';
 import {
   getNatalReportAnswer,
@@ -63,7 +63,7 @@ export function natalReportCategoryCacheOptions(
 ): CachedReadingOptions {
   const language = languageOf(ctx);
   const built = buildNatalReportCatalogContext(ctx.profile, ctx.chartData!);
-  const evidence = resolveNatalReportCategoryEvidence(built, categoryKey);
+  const narrativeEvidence = resolveNatalReportNarrativeEvidence(built, categoryKey);
   return {
     accessTier: categoryKey === 'main' ? 'free' : 'premium',
     contentVariant: 'brief',
@@ -81,11 +81,7 @@ export function natalReportCategoryCacheOptions(
       chartFingerprint: buildPermanentNatalChartFingerprint(ctx.profile, ctx.chartData!),
       contractVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
       promptVersion: NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION,
-      evidence: evidence.map((plan) => ({
-        answerKey: plan.answerKey,
-        evidenceIds: plan.evidenceIds,
-        requiredEvidenceIds: plan.requiredEvidenceIds,
-      })),
+      narrativeEvidenceIds: narrativeEvidence.map((fact) => fact.id),
       mainAnchor: categoryKey === 'main' ? null : mainAnchorForHash(mainAnchor),
       entryQuestions: categoryKey === 'main' ? [] : mainAnchor?.followUps
         ?.filter((item) => item.categoryKey === categoryKey) || [],
