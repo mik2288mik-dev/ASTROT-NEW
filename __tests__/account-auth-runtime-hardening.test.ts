@@ -386,6 +386,95 @@ describe('account authentication runtime hardening', () => {
     }
   });
 
+  it('retries the Android startup profile GET on the trusted Railway origin after a transport failure', async () => {
+    const nativePlatform = jest.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+    const platform = jest.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+    process.env.NEXT_PUBLIC_API_URL = 'https://api.tvoi-goroskop.ru';
+    mockCapacitorHttpRequest
+      .mockRejectedValueOnce(new Error('connection failed'))
+      .mockResolvedValueOnce({
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+        data: { id: '42', name: 'Profile' },
+        url: 'https://astrot-production.up.railway.app/api/users/me',
+      });
+
+    try {
+      const response = await apiFetch(
+        '/api/users/me',
+        { headers: { Authorization: 'Bearer test-token' } },
+        12_000,
+      );
+
+      expect(response.status).toBe(200);
+      expect(mockCapacitorHttpRequest).toHaveBeenCalledTimes(2);
+      expect(mockCapacitorHttpRequest.mock.calls[0][0]).toEqual(expect.objectContaining({
+        url: 'https://api.tvoi-goroskop.ru/api/users/me',
+        method: 'GET',
+        connectTimeout: 4_000,
+      }));
+      expect(mockCapacitorHttpRequest.mock.calls[1][0]).toEqual(expect.objectContaining({
+        url: 'https://astrot-production.up.railway.app/api/users/me',
+        method: 'GET',
+        headers: expect.objectContaining({ authorization: 'Bearer test-token' }),
+      }));
+    } finally {
+      platform.mockRestore();
+      nativePlatform.mockRestore();
+    }
+  });
+
+  it('does not retry the Android profile request on an HTTP response', async () => {
+    const nativePlatform = jest.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+    const platform = jest.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+    process.env.NEXT_PUBLIC_API_URL = 'https://api.tvoi-goroskop.ru';
+    mockCapacitorHttpRequest.mockResolvedValueOnce({
+      status: 503,
+      headers: { 'content-type': 'application/json' },
+      data: { error: 'temporarily unavailable' },
+      url: 'https://api.tvoi-goroskop.ru/api/users/me',
+    });
+
+    try {
+      const response = await apiFetch(
+        '/api/users/me',
+        { headers: { Authorization: 'Bearer test-token' } },
+        12_000,
+      );
+
+      expect(response.status).toBe(503);
+      expect(mockCapacitorHttpRequest).toHaveBeenCalledTimes(1);
+    } finally {
+      platform.mockRestore();
+      nativePlatform.mockRestore();
+    }
+  });
+
+  it('never replays Android mutations on the fallback origin', async () => {
+    const nativePlatform = jest.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+    const platform = jest.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+    process.env.NEXT_PUBLIC_API_URL = 'https://api.tvoi-goroskop.ru';
+    mockCapacitorHttpRequest.mockRejectedValueOnce(new Error('connection failed'));
+
+    try {
+      await expect(apiFetch(
+        '/api/users/me',
+        {
+          method: 'POST',
+          headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'No replay' }),
+        },
+        12_000,
+      )).rejects.toThrow('Failed to fetch');
+
+      expect(mockCapacitorHttpRequest).toHaveBeenCalledTimes(1);
+      expect(mockCapacitorHttpRequest.mock.calls[0][0].url).toBe('https://api.tvoi-goroskop.ru/api/users/me');
+    } finally {
+      platform.mockRestore();
+      nativePlatform.mockRestore();
+    }
+  });
+
   it('masks Google for RuStore while preserving the future Google Play provider', () => {
     process.env.GOOGLE_AUTH_WEB_CLIENT_ID = '';
     process.env.GOOGLE_AUTH_CLIENT_ID = 'google-client';
