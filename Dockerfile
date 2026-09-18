@@ -54,6 +54,12 @@ RUN update-ca-certificates
 
 # Standalone bundle contains only files needed at runtime.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+# Railway has historically retained an older standalone start path on some
+# deployments. Keep that path valid so either "node server.js" or the legacy
+# "node .next/standalone/server.js" starts the exact same standalone server.
+RUN mkdir -p .next/standalone && \
+    printf "require('../../server.js');\n" > .next/standalone/server.js && \
+    chown -R nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Production validation and migrations run in Railway's pre-deploy container.
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
