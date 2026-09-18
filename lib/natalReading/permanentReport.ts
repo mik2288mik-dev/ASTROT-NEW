@@ -18,13 +18,17 @@ import {
   withAppVoiceCacheKey,
   withAppVoiceVersion,
 } from '../appVoice';
+import {
+  selectNatalTopicEvidence,
+  type NatalEvidenceTopicKey,
+} from './topicSelector';
 
 export const NATAL_PERMANENT_CONTRACT_VERSION = 'natal-permanent-v9';
 export const NATAL_PERMANENT_FREE_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v8`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v9.topic-selector-v1`,
 );
 export const NATAL_PERMANENT_PREMIUM_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v8`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v9.topic-selector-v1`,
 );
 export const NATAL_PERMANENT_FREE_CACHE_KEY = withAppVoiceCacheKey(
   'natal.permanent.free.v9',
@@ -127,8 +131,8 @@ export const NATAL_READER_CHAPTERS: readonly NatalReaderChapterDefinition[] = [
     key: 'inner_world',
     title: { ru: 'Что у тебя внутри', en: 'What is going on inside you' },
     focus: {
-      ru: 'Свяжи характер и чувства: что человек переживает глубже, чем показывает, и как это влияет на обычные реакции.',
-      en: 'Connect character and feelings: what runs deeper than the person shows and how it affects everyday reactions.',
+      ru: 'Свяжи характер и чувства: что человеку обычно нравится, что его задевает и как это проявляется в обычных реакциях. Не придумывай скрытую внутреннюю жизнь.',
+      en: 'Connect character and feelings: what the person tends to enjoy, what can bother them, and how this appears in ordinary reactions. Do not invent a hidden inner life.',
     },
     domainKeys: ['base_portrait', 'emotional_world'],
   },
@@ -136,8 +140,8 @@ export const NATAL_READER_CHAPTERS: readonly NatalReaderChapterDefinition[] = [
     key: 'new_people',
     title: { ru: 'Как ты ведёшь себя с новыми людьми', en: 'How you act around new people' },
     focus: {
-      ru: 'Опиши первый контакт: что человек замечает, когда начинает доверять и почему со стороны его могут понять не сразу.',
-      en: 'Describe first contact: what the person notices, when trust begins, and why others may not understand them at once.',
+      ru: 'Опиши первый контакт: как человек знакомится, что замечает и как постепенно становится понятнее другим.',
+      en: 'Describe first contact: how the person meets someone new, what they notice, and how they gradually become clearer to others.',
     },
     domainKeys: ['first_impression'],
   },
@@ -154,8 +158,8 @@ export const NATAL_READER_CHAPTERS: readonly NatalReaderChapterDefinition[] = [
     key: 'communication',
     title: { ru: 'Как ты общаешься', en: 'How you communicate' },
     focus: {
-      ru: 'Разбери разговоры, переписку и спор: как человек объясняет свою позицию, слушает и отвечает под давлением.',
-      en: 'Cover conversations, messages, and disagreement: how the person explains a position, listens, and answers under pressure.',
+      ru: 'Разбери разговоры и переписку: как человек объясняет свою позицию, слушает, задаёт вопросы и поддерживает контакт. Спор упоминай только если его прямо поддерживают выбранные факты.',
+      en: 'Cover conversations and messages: how the person explains a position, listens, asks questions, and keeps contact. Mention disagreement only when the selected evidence directly supports it.',
     },
     domainKeys: ['communication'],
   },
@@ -172,17 +176,17 @@ export const NATAL_READER_CHAPTERS: readonly NatalReaderChapterDefinition[] = [
     key: 'relationships',
     title: { ru: 'Отношения и семья', en: 'Relationships and family' },
     focus: {
-      ru: 'Свяжи сближение, доверие, семейные просьбы, общий быт и договорённости. Покажи, что человек делает для близких и чего ждёт в ответ. Не выдумывай детство, отношения с родителями или семейные события.',
-      en: 'Connect closeness, trust, family requests, shared routines, and agreements. Show what the person does for close people and expects in return. Do not invent childhood, parental relationships, or family events.',
+      ru: 'Свяжи симпатию, сближение, нежность, совместное время и договорённости. Покажи, как человек проявляет интерес и что делает близость приятной. Трудности добавляй только при прямом основании. Не выдумывай детство, отношения с родителями или семейные события.',
+      en: 'Connect attraction, closeness, affection, shared time, and agreements. Show how the person expresses interest and what makes closeness enjoyable. Add difficulty only when directly supported. Do not invent childhood, parental relationships, or family events.',
     },
-    domainKeys: ['close_relationship', 'relationships_deep', 'control_freedom_trust'],
+    domainKeys: ['close_relationship', 'relationships_deep'],
   },
   {
     key: 'work',
     title: { ru: 'Работа и своё дело', en: 'Work and your own business' },
     focus: {
-      ru: 'Опиши рабочий темп, отношение к начальнику, клиентам, ответственности, срокам и самостоятельным решениям. Покажи, как тот же стиль выглядит в своём деле или работе с деловым партнёром. Не делай выводов о конкретной профессии, доходе или успехе бизнеса.',
-      en: 'Describe work pace and the approach to managers, clients, responsibility, deadlines, and independent decisions. Show how the same style looks in a business or with a business partner. Do not infer a specific profession, income, or business success.',
+      ru: 'Опиши, какие задачи захватывают внимание, какой темп удобен, как человек начинает, доводит дела и взаимодействует с другими. Начальство, дедлайны и конфликты не делай обязательными темами. Не делай выводов о конкретной профессии, доходе или успехе бизнеса.',
+      en: 'Describe which tasks hold attention, what pace fits, how the person starts and finishes work, and how they work with others. Do not make managers, deadlines, or conflict mandatory topics. Do not infer a specific profession, income, or business success.',
     },
     domainKeys: ['work_ambition'],
   },
@@ -575,118 +579,141 @@ function buildReportPlan(input: {
   const ids = (...values: Array<string | null | undefined>) => (
     [...new Set(values.filter((value): value is string => !!value && byId.has(value)))]
   );
-  const aspectsFor = (...keys: string[]) => input.evidence.filter((fact) => {
-    if (fact.kind !== 'aspect') return false;
-    const from = text(fact.data.fromKey || fact.data.from).toLocaleLowerCase('en-US');
-    const to = text(fact.data.toKey || fact.data.to).toLocaleLowerCase('en-US');
-    return (keys.includes(from) || keys.includes(to))
-      && !!endpointEvidence(from)
-      && !!endpointEvidence(to);
-  });
-  const aspectBundle = (fact: NatalEvidenceFact | null | undefined) => {
-    if (!fact || fact.kind !== 'aspect') return [];
-    const fromKey = text(fact.data.fromKey || fact.data.from).toLocaleLowerCase('en-US');
-    const toKey = text(fact.data.toKey || fact.data.to).toLocaleLowerCase('en-US');
-    return ids(fact.id, endpointEvidence(fromKey), endpointEvidence(toKey));
-  };
-  const firstAspect = (...keys: string[]) => aspectsFor(...keys)[0] || null;
-  const firstAspectBundle = (...keys: string[]) => aspectBundle(firstAspect(...keys));
-  const aspectBetween = (left: string, right: string) => input.evidence.find((fact) => {
-    if (fact.kind !== 'aspect') return false;
-    const from = text(fact.data.fromKey || fact.data.from).toLocaleLowerCase('en-US');
-    const to = text(fact.data.toKey || fact.data.to).toLocaleLowerCase('en-US');
-    return ((from === left && to === right) || (from === right && to === left))
-      && !!endpointEvidence(from)
-      && !!endpointEvidence(to);
-  }) || null;
-  const hardAspects = input.evidence.filter((fact) => (
-    fact.kind === 'aspect' && HARD_ASPECT_TYPES.has(text(fact.data.type).toLocaleLowerCase('en-US'))
-  ));
-  const harmoniousAspects = input.evidence.filter((fact) => (
-    fact.kind === 'aspect' && HARMONIOUS_ASPECT_TYPES.has(text(fact.data.type).toLocaleLowerCase('en-US'))
-  ));
   const plan: NatalReportPlanItem[] = [];
   const add = (
     key: NatalPersonalityDomain,
     access: 'free' | 'premium',
     evidenceIds: string[],
     requiredEvidenceIds: string[] = [],
-    minimumEvidence = 2,
+    minimumEvidence = 1,
   ) => {
     const supported = ids(...evidenceIds);
     const required = ids(...requiredEvidenceIds);
     if (supported.length < minimumEvidence || required.some((id) => !supported.includes(id))) return;
     plan.push({ key, access, evidenceIds: supported, requiredEvidenceIds: required });
   };
+  const topicFacts = (topic: NatalEvidenceTopicKey, limit = 5) => (
+    selectNatalTopicEvidence(input.evidence, topic, { limit, min: 1 })
+  );
+  const topicIds = (topic: NatalEvidenceTopicKey, limit = 5) => (
+    topicFacts(topic, limit).map((fact) => fact.id)
+  );
+  const topAspectBundle = (topic: NatalEvidenceTopicKey) => {
+    const aspect = topicFacts(topic, 5).find((fact) => fact.kind === 'aspect');
+    if (!aspect) return [];
+    const from = text(aspect.data.fromKey || aspect.data.from).toLocaleLowerCase('en-US');
+    const to = text(aspect.data.toKey || aspect.data.to).toLocaleLowerCase('en-US');
+    return ids(aspect.id, endpointEvidence(from), endpointEvidence(to));
+  };
 
   const basePortraitCore = ids(placement('sun'), placement('moon'));
   add('base_portrait', 'free', ids(
-    ...basePortraitCore, ...firstAspectBundle('sun', 'moon'), placement('mercury'),
-  ), basePortraitCore);
+    ...basePortraitCore, ...topicIds('main', 4),
+  ), basePortraitCore, 2);
+
   if (input.ascendantIncluded) {
     add('first_impression', 'free', ids(
-      'natal.angle.ascendant', placement('sun'), ...firstAspectBundle('ascendant'),
+      'natal.angle.ascendant', ...topicIds('first_impression', 4),
     ), ['natal.angle.ascendant'], 1);
   }
+
   const thinkingCore = ids(placement('mercury'), placement('sun'));
   add('thinking', 'free', ids(
-    ...thinkingCore, ...firstAspectBundle('mercury'),
-  ), thinkingCore);
-  const communicationCore = ids(placement('mercury'), placement('mars'));
+    ...thinkingCore, ...topicIds('decisions', 4),
+  ), thinkingCore, 2);
+
+  const communicationCore = ids(placement('mercury'));
   add('communication', 'free', ids(
-    ...communicationCore, ...firstAspectBundle('mercury', 'mars'),
-  ), communicationCore);
+    ...communicationCore, ...topicIds('communication', 5),
+  ), communicationCore, 1);
+
   const emotionalCore = ids(placement('moon'), placement('venus'));
   add('emotional_world', 'free', ids(
-    ...emotionalCore, ...firstAspectBundle('moon', 'venus'),
-  ), emotionalCore);
-  const strengthBundle = aspectBundle(harmoniousAspects[0]);
-  const strengthCore = ids(placement('sun'), placement('mars'), placement('jupiter'));
-  const strengthRequired = strengthBundle.length >= 3 ? strengthBundle : strengthCore;
-  add('strengths', 'free', ids(...strengthCore, ...strengthBundle), strengthRequired, 3);
+    ...emotionalCore, ...topicIds('inner', 4),
+  ), emotionalCore, 2);
 
-  add('close_relationship', 'premium', ids(
-    ...emotionalCore, ...firstAspectBundle('moon', 'venus'),
-  ), emotionalCore);
+  const strengthEvidence = topicIds('strengths', 5);
+  add(
+    'strengths',
+    'free',
+    strengthEvidence,
+    strengthEvidence.slice(0, Math.min(2, strengthEvidence.length)),
+    2,
+  );
+
+  const closeEvidence = ids(
+    ...emotionalCore,
+    ...topicIds('closeness', 5),
+  );
+  add('close_relationship', 'premium', closeEvidence, emotionalCore, 2);
+
   const relationshipCore = ids(placement('venus'), placement('mars'));
-  add('relationships_deep', 'premium', ids(
-    ...relationshipCore, placement('moon'), ...aspectBundle(aspectBetween('venus', 'mars')),
-  ), relationshipCore);
-  const conflictCandidate = aspectBetween('mercury', 'mars');
-  const conflictAspect = conflictCandidate
-    && HARD_ASPECT_TYPES.has(text(conflictCandidate.data.type).toLocaleLowerCase('en-US'))
-      ? conflictCandidate
-      : null;
-  const conflictBundle = aspectBundle(conflictAspect);
+  const relationshipEvidence = ids(
+    ...relationshipCore,
+    placement('moon'),
+    ...topicIds('love', 6),
+  );
+  add('relationships_deep', 'premium', relationshipEvidence, relationshipCore, 2);
+
+  const conflictBundle = topAspectBundle('conflict');
   if (conflictBundle.length >= 3) {
-    add('conflict', 'premium', ids(
-      ...communicationCore, ...conflictBundle,
-    ), conflictBundle, 3);
+    add('conflict', 'premium', conflictBundle, conflictBundle, 3);
   }
-  const controlBundle = firstAspectBundle('saturn', 'uranus', 'pluto');
-  if (controlBundle.length >= 3) {
-    add('control_freedom_trust', 'premium', controlBundle, controlBundle, 3);
+
+  const autonomyBundle = topAspectBundle('autonomy');
+  if (autonomyBundle.length >= 3) {
+    add('control_freedom_trust', 'premium', autonomyBundle, autonomyBundle, 3);
   }
-  const workBundle = firstAspectBundle('mars', 'saturn', 'jupiter');
+
   const workCore = ids(placement('mars'), placement('saturn'), placement('jupiter'));
   const workEvidence = ids(
     ...workCore,
-    ...workBundle, 'natal.angle.mc',
+    ...topicIds('work', 6),
+    'natal.angle.mc',
   );
-  add('work_ambition', 'premium', workEvidence, workCore, 3);
+  add(
+    'work_ambition',
+    'premium',
+    workEvidence,
+    workCore.length >= 2 ? workCore.slice(0, 2) : workEvidence.slice(0, 2),
+    2,
+  );
 
-  for (const aspect of hardAspects) {
-    const fromKey = text(aspect.data.fromKey || aspect.data.from).toLocaleLowerCase('en-US') as NatalBodyKey;
-    const toKey = text(aspect.data.toKey || aspect.data.to).toLocaleLowerCase('en-US') as NatalBodyKey;
-    const required = ids(aspect.id, placement(fromKey), placement(toKey));
-    if (required.length !== 3) continue;
-    add('central_contradictions', 'premium', ids(
-      ...required,
-      ...hardAspects.map((fact) => fact.id),
-    ), required, 3);
-    break;
+  const personalBodies = new Set(['sun', 'moon', 'mercury', 'venus', 'mars']);
+  const hardAspect = input.evidence
+    .filter((fact) => {
+      if (fact.kind !== 'aspect') return false;
+      const type = text(fact.data.type).toLocaleLowerCase('en-US');
+      if (!HARD_ASPECT_TYPES.has(type)) return false;
+      const from = text(fact.data.fromKey || fact.data.from).toLocaleLowerCase('en-US');
+      const to = text(fact.data.toKey || fact.data.to).toLocaleLowerCase('en-US');
+      return personalBodies.has(from) || personalBodies.has(to);
+    })
+    .sort((left, right) => {
+      const leftOrb = finite(left.data.orb) ?? 99;
+      const rightOrb = finite(right.data.orb) ?? 99;
+      return leftOrb - rightOrb || left.id.localeCompare(right.id);
+    })[0];
+  if (hardAspect) {
+    const from = text(hardAspect.data.fromKey || hardAspect.data.from).toLocaleLowerCase('en-US');
+    const to = text(hardAspect.data.toKey || hardAspect.data.to).toLocaleLowerCase('en-US');
+    const contradictionBundle = ids(
+      hardAspect.id,
+      endpointEvidence(from),
+      endpointEvidence(to),
+    );
+    if (contradictionBundle.length >= 3) {
+      add(
+        'central_contradictions',
+        'premium',
+        contradictionBundle,
+        contradictionBundle,
+        3,
+      );
+    }
   }
-  const misunderstoodBundle = firstAspectBundle('uranus', 'neptune', 'pluto');
+
+  const misunderstoodBundle = topAspectBundle('misunderstood');
   if (misunderstoodBundle.length >= 3) {
     add('misunderstood', 'premium', misunderstoodBundle, misunderstoodBundle, 3);
   }
