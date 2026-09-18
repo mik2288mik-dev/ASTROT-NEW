@@ -192,10 +192,10 @@ export const NATAL_READER_CHAPTERS: readonly NatalReaderChapterDefinition[] = [
   },
   {
     key: 'challenges',
-    title: { ru: 'Когда всё идёт не по плану', en: 'When things do not go to plan' },
+    title: { ru: 'Когда планы меняются', en: 'When plans change' },
     focus: {
-      ru: 'Разбери конкретную ситуацию: договорённость внезапно меняется, на человека давят, его понимают не так или начинается спор. Покажи первую реакцию и что он обычно делает дальше.',
-      en: 'Cover a concrete situation: an agreement suddenly changes, the person is pressured or misunderstood, or a disagreement begins. Show the first response and what they usually do next.',
+      ru: 'Разбери, как человек перестраивается, когда договорённость или план меняются. Давление, непонимание или спор добавляй только если соответствующий выбранный домен действительно присутствует; не объединяй их в обязательный набор.',
+      en: 'Describe how the person adjusts when an agreement or plan changes. Add pressure, misunderstanding, or disagreement only when the corresponding selected domain is actually present; never bundle them as a mandatory set.',
     },
     domainKeys: ['conflict', 'central_contradictions', 'misunderstood'],
   },
