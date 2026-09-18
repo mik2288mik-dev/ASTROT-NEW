@@ -19,6 +19,7 @@ import {
 const DEFAULT_TIMEOUT_MS = 30_000;
 const NATIVE_SESSION_READ_TIMEOUT_MS = 2_000;
 const NATIVE_HTTP_MAX_CONNECT_TIMEOUT_MS = 8_000;
+const NATIVE_REFRESH_RECOVERY_DELAYS_MS = [0, 75, 150, 300] as const;
 const SESSION_REFRESH_PATH = '/api/auth/session/refresh';
 const REFRESHABLE_ACCESS_CODES = new Set(['APP_SESSION_EXPIRED', 'APP_AUTH_REQUIRED']);
 const TERMINAL_SESSION_CODES = new Set([
@@ -309,6 +310,50 @@ async function readNativeSession(): Promise<StoredNativeSession | null> {
   return token ? { version: 1, accessToken: token } : null;
 }
 
+function nativeSessionAdvanced(
+  previous: StoredNativeSession,
+  latest: StoredNativeSession | null,
+): latest is NativeSessionBundle {
+  if (!latest || latest.version !== 2) return false;
+  if (previous.version === 1) return true;
+  return latest.accessToken !== previous.accessToken
+    || latest.refreshToken !== previous.refreshToken
+    || latest.accessExpiresAt > previous.accessExpiresAt;
+}
+
+async function waitForNativeRefreshRecovery(
+  previous: StoredNativeSession,
+  signal?: AbortSignal,
+): Promise<NativeSessionBundle | null> {
+  for (const delayMs of NATIVE_REFRESH_RECOVERY_DELAYS_MS) {
+    if (signal?.aborted) throw requestWasAborted();
+    if (delayMs > 0) {
+      await new Promise<void>((resolve, reject) => {
+        let settled = false;
+        const cleanup = () => signal?.removeEventListener('abort', abort);
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolve();
+        };
+        const abort = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          cleanup();
+          reject(requestWasAborted());
+        };
+        const timer = setTimeout(finish, delayMs);
+        signal?.addEventListener('abort', abort, { once: true });
+      });
+    }
+    const latest = await readNativeSession().catch(() => null);
+    if (nativeSessionAdvanced(previous, latest)) return latest;
+  }
+  return null;
+}
+
 /**
  * A fresh native install has no app session yet. Resolve that state locally so
  * startup can render the sign-in gate instead of waiting for an unauthenticated
@@ -424,12 +469,18 @@ async function refreshNativeSession(
     if ((response.status === 404 || response.status === 405) && session.version === 1) return null;
     const code = await responseSessionCode(response);
     if (!response.ok) {
+      if (response.status === 409 && code === 'APP_SESSION_REFRESH_CONCURRENT') {
+        const recovered = await waitForNativeRefreshRecovery(session, signal);
+        if (recovered) return recovered;
+      }
       throw refreshResponseError(response.status, code || 'APP_SESSION_REFRESH_FAILED');
     }
     const payload = await response.json().catch(() => ({})) as NativeSessionResponse;
     const bundle = asNativeSessionBundle(payload);
     if (!bundle) throw refreshResponseError(502, 'APP_SESSION_REFRESH_RESPONSE_INVALID');
     if (nativeSessionMutation !== startingMutation) {
+      const recovered = await readNativeSession().catch(() => null);
+      if (nativeSessionAdvanced(session, recovered)) return recovered;
       throw refreshResponseError(409, 'APP_SESSION_CHANGED');
     }
     await persistNativeSessionResponse(payload);

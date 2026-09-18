@@ -217,6 +217,78 @@ describe('account authentication runtime hardening', () => {
     jest.restoreAllMocks();
   });
 
+  it('recovers native startup when another request wins refresh rotation', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const staleSession = {
+      version: 2 as const,
+      accessToken: 'stale-access-token',
+      refreshToken: 'stale-refresh-token',
+      accessExpiresAt: now - 1,
+      refreshExpiresAt: now + 3_600,
+      absoluteExpiresAt: now + 7_200,
+    };
+    const refreshedSession = {
+      version: 2 as const,
+      accessToken: 'refreshed-access-token',
+      refreshToken: 'refreshed-refresh-token',
+      accessExpiresAt: now + 900,
+      refreshExpiresAt: now + 3_600,
+      absoluteExpiresAt: now + 7_200,
+    };
+    mockedNativeSessionStore.getSession.mockReset();
+    mockedNativeSessionStore.getSession
+      .mockResolvedValueOnce(staleSession)
+      .mockResolvedValue(refreshedSession);
+
+    const nativePlatform = jest.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
+    const platform = jest.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+    mockCapacitorHttpRequest.mockImplementation(async (input: any) => {
+      if (String(input.url).endsWith('/api/auth/session/refresh')) {
+        expect(input.headers.authorization).toBe(`Refresh ${staleSession.refreshToken}`);
+        return {
+          status: 409,
+          headers: { 'content-type': 'application/json' },
+          data: { code: 'APP_SESSION_REFRESH_CONCURRENT' },
+          url: input.url,
+        };
+      }
+      if (String(input.url).endsWith('/api/users/me')) {
+        expect(input.headers.authorization).toBe(`Bearer ${refreshedSession.accessToken}`);
+        return {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+          data: {
+            id: '42',
+            name: 'Profile',
+            birthDate: '',
+            birthTime: '',
+            birthPlace: '',
+            isSetup: true,
+            language: 'ru',
+            theme: 'light',
+            isPremium: false,
+          },
+          url: input.url,
+        };
+      }
+      throw new Error(`Unexpected native request: ${input.url}`);
+    });
+    global.fetch = jest.fn() as typeof fetch;
+
+    try {
+      const response = await apiFetch('/api/users/me', {}, 5_000);
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({ id: '42' });
+      expect(mockCapacitorHttpRequest).toHaveBeenCalledTimes(2);
+      expect(mockedNativeSessionStore.clearToken).not.toHaveBeenCalled();
+    } finally {
+      platform.mockRestore();
+      nativePlatform.mockRestore();
+      global.fetch = originalFetch;
+    }
+  });
+
   it('uses bounded explicit Android HTTP when the mobile build starts before Capacitor marks itself native', async () => {
     const nativePlatform = jest.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
     const platform = jest.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
