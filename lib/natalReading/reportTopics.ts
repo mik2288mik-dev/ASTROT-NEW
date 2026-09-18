@@ -44,7 +44,7 @@ const TOPIC_DEFINITIONS: readonly NatalTopicDefinition[] = [
       en: 'How you act when meeting someone and what people tend to notice first.',
     },
     freeSectionKey: 'how_others_see_you',
-    related: ['communication', 'relationships', 'challenges', 'inner_world'],
+    related: ['communication', 'relationships', 'strengths', 'inner_world'],
   },
   {
     key: 'decisions',
@@ -54,7 +54,7 @@ const TOPIC_DEFINITIONS: readonly NatalTopicDefinition[] = [
       en: 'How you choose between options and why a decision can sometimes take longer.',
     },
     freeSectionKey: 'thinking',
-    related: ['inner_world', 'work', 'challenges', 'strengths'],
+    related: ['inner_world', 'work', 'communication', 'strengths'],
   },
   {
     key: 'communication',
@@ -64,7 +64,7 @@ const TOPIC_DEFINITIONS: readonly NatalTopicDefinition[] = [
       en: 'How you explain your position, listen, ask questions, and keep a conversation going.',
     },
     freeSectionKey: 'communication',
-    related: ['new_people', 'relationships', 'challenges', 'decisions'],
+    related: ['new_people', 'relationships', 'decisions', 'strengths'],
   },
   {
     key: 'strengths',
@@ -74,7 +74,7 @@ const TOPIC_DEFINITIONS: readonly NatalTopicDefinition[] = [
       en: 'The tasks where your strongest qualities produce a visible result.',
     },
     freeSectionKey: 'strengths',
-    related: ['work', 'decisions', 'challenges', 'inner_world'],
+    related: ['work', 'decisions', 'relationships', 'inner_world'],
   },
   {
     key: 'relationships',
@@ -83,7 +83,7 @@ const TOPIC_DEFINITIONS: readonly NatalTopicDefinition[] = [
       ru: 'Как ты сближаешься, доверяешь и чего ждёшь от близких.',
       en: 'How you grow close, build trust, and what you expect from people close to you.',
     },
-    related: ['new_people', 'communication', 'challenges', 'inner_world'],
+    related: ['new_people', 'communication', 'strengths', 'inner_world'],
   },
   {
     key: 'work',
@@ -92,14 +92,14 @@ const TOPIC_DEFINITIONS: readonly NatalTopicDefinition[] = [
       ru: 'Какой темп, ответственность и степень свободы подходят тебе в работе.',
       en: 'The pace, responsibility, and degree of freedom that suit you at work.',
     },
-    related: ['strengths', 'decisions', 'challenges', 'inner_world'],
+    related: ['strengths', 'decisions', 'communication', 'inner_world'],
   },
   {
     key: 'challenges',
-    title: { ru: 'Когда всё идёт не по плану', en: 'When things do not go to plan' },
+    title: { ru: 'Когда планы меняются', en: 'When plans change' },
     description: {
-      ru: 'Как ты реагируешь, когда планы меняются, на тебя давят или понимают не так.',
-      en: 'How you respond when plans change, pressure rises, or people misunderstand you.',
+      ru: 'Как ты перестраиваешься, когда договорённость или план меняются.',
+      en: 'How you adjust when an agreement or plan changes.',
     },
     related: ['inner_world', 'communication', 'decisions', 'relationships'],
   },
