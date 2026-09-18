@@ -30,8 +30,8 @@ const TOPIC_DEFINITIONS: readonly NatalTopicDefinition[] = [
     key: 'inner_world',
     title: { ru: 'Что у тебя внутри', en: 'What is going on inside you' },
     description: {
-      ru: 'Что ты переживаешь глубже, чем показываешь, и как это видно в обычных реакциях.',
-      en: 'What runs deeper than you show and how it appears in everyday reactions.',
+      ru: 'Что тебе нравится, что задевает и как чувства проявляются в обычных реакциях.',
+      en: 'What you enjoy, what can bother you, and how feelings appear in everyday reactions.',
     },
     freeSectionKey: 'base_portrait',
     related: ['new_people', 'communication', 'relationships', 'strengths'],
@@ -40,8 +40,8 @@ const TOPIC_DEFINITIONS: readonly NatalTopicDefinition[] = [
     key: 'new_people',
     title: { ru: 'Как тебя видят', en: 'How people see you' },
     description: {
-      ru: 'Как тебя считывают при знакомстве и почему первое впечатление бывает неточным.',
-      en: 'How people read you at first and why their first impression can be incomplete.',
+      ru: 'Как ты ведёшь себя при знакомстве и что люди замечают в тебе сначала.',
+      en: 'How you act when meeting someone and what people tend to notice first.',
     },
     freeSectionKey: 'how_others_see_you',
     related: ['communication', 'relationships', 'challenges', 'inner_world'],
@@ -60,8 +60,8 @@ const TOPIC_DEFINITIONS: readonly NatalTopicDefinition[] = [
     key: 'communication',
     title: { ru: 'Как ты общаешься', en: 'How you communicate' },
     description: {
-      ru: 'Как ты объясняешь свою позицию, слушаешь и отвечаешь в споре.',
-      en: 'How you explain your position, listen, and respond in a disagreement.',
+      ru: 'Как ты объясняешь свою позицию, слушаешь, задаёшь вопросы и поддерживаешь разговор.',
+      en: 'How you explain your position, listen, ask questions, and keep a conversation going.',
     },
     freeSectionKey: 'communication',
     related: ['new_people', 'relationships', 'challenges', 'decisions'],
