@@ -60,11 +60,11 @@ describe('startup profile bootstrap', () => {
     const nativeSessionCheck = app.indexOf('await hasNativeAppSession()');
     const profileFetch = app.indexOf('storedProfile = await getProfile({', nativeSessionCheck);
 
-    expect(app).toContain('STARTUP_PROFILE_FETCH_TIMEOUT_MS = 8_000');
+    expect(app).toContain('STARTUP_PROFILE_FETCH_TIMEOUT_MS = 12_000');
     expect(nativeSessionCheck).toBeGreaterThan(-1);
     expect(profileFetch).toBeGreaterThan(nativeSessionCheck);
     expect(app.slice(nativeSessionCheck, profileFetch)).toContain("setAuthSessionMode('signed_out')");
-    expect(app.slice(profileFetch, profileFetch + 250)).toContain('maxAttempts: 1');
+    expect(app.slice(profileFetch, profileFetch + 250)).toContain('maxAttempts: 2');
     expect(app.slice(profileFetch, profileFetch + 250)).toContain('timeoutMs: STARTUP_PROFILE_FETCH_TIMEOUT_MS');
   });
 
