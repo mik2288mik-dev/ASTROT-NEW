@@ -1,0 +1,30 @@
+name: Android API Diagnostics
+
+on:
+  push:
+    branches:
+      - diag-android-api-20260918
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: DNS
+        run: |
+          set -x
+          getent ahosts api.tvoi-goroskop.ru || true
+          getent ahosts astrot-production.up.railway.app || true
+      - name: Custom domain HTTPS
+        run: |
+          set -x
+          curl -vkI --connect-timeout 10 --max-time 20 https://api.tvoi-goroskop.ru/api/health || true
+          curl -vk --connect-timeout 10 --max-time 20 https://api.tvoi-goroskop.ru/api/health || true
+      - name: Railway domain HTTPS
+        run: |
+          set -x
+          curl -vkI --connect-timeout 10 --max-time 20 https://astrot-production.up.railway.app/api/health || true
+          curl -vk --connect-timeout 10 --max-time 20 https://astrot-production.up.railway.app/api/health || true
+      - name: TLS certificate
+        run: |
+          set -x
+          echo | openssl s_client -connect api.tvoi-goroskop.ru:443 -servername api.tvoi-goroskop.ru -showcerts 2>&1 | sed -n '1,120p' || true
