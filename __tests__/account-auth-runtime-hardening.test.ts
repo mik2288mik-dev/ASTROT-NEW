@@ -237,7 +237,8 @@ describe('account authentication runtime hardening', () => {
 
       expect(response.headers.get('content-type')).toContain('application/json');
       await expect(response.json()).resolves.toEqual({ yandex: true, vk: true });
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(global.fetch).toHaveBeenCalledWith('/nebo-mobile-build.json', { cache: 'no-store' });
       expect(mockCapacitorHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
         url: 'https://api.example.test/api/auth/capabilities?runtime=native',
         method: 'GET',
