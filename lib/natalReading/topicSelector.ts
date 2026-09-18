@@ -253,6 +253,7 @@ export function scoreNatalEvidenceForTopic(
   if (fact.kind === 'aspect') return aspectTopicScore(fact, spec);
 
   if (fact.kind === 'placement') {
+    if (!text(fact.data.sign) || key(fact.data.reliability) === 'variableinrange') return null;
     const body = placementBody(fact);
     const primary = indexScore(spec.primaryBodies, body, 72, 4);
     if (primary > 0) return primary;
@@ -261,12 +262,14 @@ export function scoreNatalEvidenceForTopic(
   }
 
   if (fact.kind === 'angle') {
+    if (!text(fact.data.sign) || key(fact.data.reliability) === 'variableinrange') return null;
     const angle = key(fact.data.key || fact.object);
     const index = (spec.angles || []).map(key).indexOf(angle);
     return index < 0 ? null : 68 - index * 4;
   }
 
   if (fact.kind === 'house') {
+    if (!text(fact.data.sign) || key(fact.data.reliability) === 'variableinrange') return null;
     const house = finite(fact.data.house);
     const index = house == null ? -1 : (spec.houses || []).indexOf(Math.round(house));
     return index < 0 ? null : 54 - index * 4;
