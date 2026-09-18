@@ -5,6 +5,12 @@ import { isNativeAppRuntime } from './nativeRuntime';
 const NATIVE_SESSION_TOKEN_KEY = 'lumia_native_session_token';
 const NATIVE_SESSION_READ_TIMEOUT_MS = 2_000;
 
+// A native API request used to read the secure session on every auth/header
+// pass. Some OEM bridges can occasionally stall; once a valid token has been
+// read, keep it in memory for the lifetime of the WebView so one request does
+// not spend its whole timeout budget reading the same secure value twice.
+let inMemoryNativeSessionRaw: string | null = null;
+
 export type NativeSessionBundle = {
   version: 2;
   accessToken: string;
@@ -85,12 +91,17 @@ async function withinNativeReadBudget<T>(promise: Promise<T>, fallback: T, opera
 
 async function readRawSession(): Promise<string | null> {
   if (shouldUseNativeKeystore()) {
+    if (inMemoryNativeSessionRaw) return inMemoryNativeSessionRaw;
+
     const result = await withinNativeReadBudget(
       nativeIdentityAuth.getSessionToken(),
       { token: null as string | null },
       'secure-session read',
     );
-    if (result.token) return result.token;
+    if (result.token) {
+      inMemoryNativeSessionRaw = result.token;
+      return result.token;
+    }
 
     // One-time upgrade path from the former plain Preferences store. Some OEM
     // bridges can stall a plugin call during cold start, so this compatibility
@@ -101,6 +112,7 @@ async function readRawSession(): Promise<string | null> {
       'legacy Preferences read',
     );
     if (!legacy.value) return null;
+    inMemoryNativeSessionRaw = legacy.value;
 
     // Return the usable legacy value immediately. Migration is best-effort and
     // deliberately detached from startup so a keystore write cannot block UI.
@@ -115,6 +127,7 @@ async function readRawSession(): Promise<string | null> {
 async function writeRawSession(value: string): Promise<void> {
   if (shouldUseNativeKeystore()) {
     await nativeIdentityAuth.setSessionToken({ token: value });
+    inMemoryNativeSessionRaw = value;
     await Preferences.remove({ key: NATIVE_SESSION_TOKEN_KEY });
     return;
   }
@@ -147,6 +160,7 @@ export const nativeSessionStore: NativeSessionStore = {
   },
   async clearToken() {
     if (shouldUseNativeKeystore()) {
+      inMemoryNativeSessionRaw = null;
       await nativeIdentityAuth.clearSessionToken();
       await Preferences.remove({ key: NATIVE_SESSION_TOKEN_KEY });
       return;
