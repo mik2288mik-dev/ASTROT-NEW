@@ -3,16 +3,16 @@ import { NATAL_NARRATIVE_VOICE_VERSION } from './narrativeVoice';
 
 export const NATAL_REPORT_CATALOG_CONTRACT_VERSION = 'natal-report-catalog-v2';
 export const NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.category.narrative.v4.${NATAL_NARRATIVE_VOICE_VERSION}`,
+  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.category.narrative.v5.topic-selector.${NATAL_NARRATIVE_VOICE_VERSION}`,
 );
 export const NATAL_REPORT_CATALOG_ANSWER_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.answer.v1`,
+  `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.answer.v2.topic-selector`,
 );
 export const NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY = withAppVoiceCacheKey(
-  `natal.report-catalog.category.narrative.v4.${NATAL_NARRATIVE_VOICE_VERSION}`,
+  `natal.report-catalog.category.narrative.v5.topic-selector.${NATAL_NARRATIVE_VOICE_VERSION}`,
 );
 export const NATAL_REPORT_CATALOG_ANSWER_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.report-catalog.answer.v2',
+  'natal.report-catalog.answer.v3.topic-selector',
 );
 
 export const NATAL_REPORT_CATEGORY_KEYS = [
