@@ -78,19 +78,19 @@ const TOPIC_DEFINITIONS: readonly NatalTopicDefinition[] = [
   },
   {
     key: 'relationships',
-    title: { ru: 'Отношения и семья', en: 'Relationships and family' },
+    title: { ru: 'Отношения и близость', en: 'Relationships and closeness' },
     description: {
-      ru: 'Как ты сближаешься, доверяешь и чего ждёшь от близких.',
-      en: 'How you grow close, build trust, and what you expect from people close to you.',
+      ru: 'Как ты сближаешься, проявляешь интерес и что делает близость приятной.',
+      en: 'How you grow close, show interest, and what makes closeness enjoyable.',
     },
     related: ['new_people', 'communication', 'strengths', 'inner_world'],
   },
   {
     key: 'work',
-    title: { ru: 'Работа и своё дело', en: 'Work and your own business' },
+    title: { ru: 'Работа и задачи', en: 'Work and tasks' },
     description: {
-      ru: 'Какой темп, ответственность и степень свободы подходят тебе в работе.',
-      en: 'The pace, responsibility, and degree of freedom that suit you at work.',
+      ru: 'Какой темп, тип задач и способ работать подходят тебе лучше.',
+      en: 'The pace, kinds of tasks, and ways of working that fit you better.',
     },
     related: ['strengths', 'decisions', 'communication', 'inner_world'],
   },
