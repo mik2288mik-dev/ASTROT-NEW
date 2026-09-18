@@ -19,6 +19,9 @@ import {
 const DEFAULT_TIMEOUT_MS = 30_000;
 const NATIVE_SESSION_READ_TIMEOUT_MS = 2_000;
 const NATIVE_HTTP_MAX_CONNECT_TIMEOUT_MS = 8_000;
+const NATIVE_PROFILE_PRIMARY_CONNECT_TIMEOUT_MS = 4_000;
+const NATIVE_API_FALLBACK_ORIGIN = 'https://astrot-production.up.railway.app';
+const NATIVE_PROFILE_FALLBACK_PATHS = new Set(['/api/users/me']);
 const SESSION_REFRESH_PATH = '/api/auth/session/refresh';
 const REFRESHABLE_ACCESS_CODES = new Set(['APP_SESSION_EXPIRED', 'APP_AUTH_REQUIRED']);
 const TERMINAL_SESSION_CODES = new Set([
@@ -211,9 +214,47 @@ function raceNativeRequest<T>(request: Promise<T>, signal?: AbortSignal): Promis
   });
 }
 
+function nativeProfileFallbackUrl(url: string, method: string): string | null {
+  if (method !== 'GET') return null;
+  try {
+    const primary = new URL(getApiBaseUrl());
+    const requested = new URL(url);
+    if (requested.origin !== primary.origin) return null;
+    if (!NATIVE_PROFILE_FALLBACK_PATHS.has(requested.pathname)) return null;
+    return `${NATIVE_API_FALLBACK_ORIGIN}${requested.pathname}${requested.search}`;
+  } catch {
+    return null;
+  }
+}
+
+async function nativeHttpRequestOnce(
+  url: string,
+  init: RequestInit,
+  nativeTimeout: number,
+  connectTimeout: number,
+): Promise<HttpResponse> {
+  return raceNativeRequest(
+    CapacitorHttp.request({
+      url,
+      method: init.method || 'GET',
+      headers: headersAsNativeObject(init.headers),
+      ...(init.body == null ? {} : { data: init.body }),
+      connectTimeout: Math.max(1, Math.min(nativeTimeout, connectTimeout)),
+      readTimeout: nativeTimeout,
+      responseType: 'arraybuffer',
+    }),
+    init.signal || undefined,
+  );
+}
+
 /**
  * Android's explicit Capacitor HTTP bridge bypasses WebView transport/CORS
  * failures without installing the unsafe global fetch/XHR interception.
+ *
+ * The published app uses our custom API domain. For the startup profile GET
+ * only, a transport-level failure may retry the same read against Railway's
+ * service domain. HTTP responses never trigger this fallback, so server errors
+ * and auth failures are not hidden and mutations are never replayed.
  */
 async function apiTransportFetch(
   url: string,
@@ -228,6 +269,7 @@ async function apiTransportFetch(
   const nativeTimeout = Math.max(1, Math.floor(timeoutMs));
   const method = (init.method || 'GET').toUpperCase();
   const path = nativeDiagnosticPath(url);
+  const fallbackUrl = nativeProfileFallbackUrl(url, method);
   const traceId = normalizeDiagnosticTraceId(new Headers(init.headers || {}).get(NEBO_TRACE_HEADER)) || undefined;
   const startedAt = Date.now();
   diagnosticLog('INFO', 'native_http_start', `${method} ${path} ${formatDiagnosticFields({
@@ -236,20 +278,13 @@ async function apiTransportFetch(
     stage: 'request',
     status: 'start',
   })}`);
+
   try {
-    const raw = await raceNativeRequest(
-      CapacitorHttp.request({
-        url,
-        method: init.method || 'GET',
-        headers: headersAsNativeObject(init.headers),
-        ...(init.body == null ? {} : { data: init.body }),
-        connectTimeout: Math.min(nativeTimeout, NATIVE_HTTP_MAX_CONNECT_TIMEOUT_MS),
-        readTimeout: nativeTimeout,
-        // API responses are JSON or binary. The native bridge still parses
-        // JSON by its content type and returns base64 for binary response data.
-        responseType: 'arraybuffer',
-      }),
-      init.signal || undefined,
+    const raw = await nativeHttpRequestOnce(
+      url,
+      init,
+      nativeTimeout,
+      fallbackUrl ? NATIVE_PROFILE_PRIMARY_CONNECT_TIMEOUT_MS : NATIVE_HTTP_MAX_CONNECT_TIMEOUT_MS,
     );
     diagnosticLog(raw.status >= 400 ? 'WARN' : 'INFO', 'native_http_end', `${method} ${path} ${formatDiagnosticFields({
       traceId,
@@ -261,19 +296,53 @@ async function apiTransportFetch(
       errorCode: nativeResponseErrorCode(raw),
     })}`);
     return nativeHttpResponse(raw);
-  } catch (error) {
-    const aborted = isAbortError(error);
-    diagnosticLog(aborted ? 'WARN' : 'ERROR', 'native_http_failed', `${method} ${path} ${formatDiagnosticFields({
+  } catch (primaryError) {
+    const primaryAborted = isAbortError(primaryError);
+    diagnosticLog(primaryAborted ? 'WARN' : 'ERROR', 'native_http_failed', `${method} ${path} ${formatDiagnosticFields({
       traceId,
       side: 'client',
       stage: 'transport',
-      status: aborted ? 'timeout' : 'error',
+      status: primaryAborted ? 'timeout' : 'error',
       durationMs: Date.now() - startedAt,
-      errorCode: diagnosticErrorCode(error, aborted ? 'REQUEST_ABORTED' : 'NATIVE_HTTP_FAILED'),
+      errorCode: diagnosticErrorCode(primaryError, primaryAborted ? 'REQUEST_ABORTED' : 'NATIVE_HTTP_FAILED'),
     })}`);
-    if (aborted) throw error;
+
+    if (!primaryAborted && fallbackUrl && !init.signal?.aborted) {
+      const fallbackStartedAt = Date.now();
+      diagnosticLog('WARN', 'native_http_fallback', `${method} ${path} ${formatDiagnosticFields({
+        traceId,
+        side: 'client',
+        stage: 'fallback',
+        status: 'start',
+      })}`);
+      try {
+        const fallbackRaw = await nativeHttpRequestOnce(
+          fallbackUrl,
+          init,
+          nativeTimeout,
+          NATIVE_HTTP_MAX_CONNECT_TIMEOUT_MS,
+        );
+        diagnosticLog(fallbackRaw.status >= 400 ? 'WARN' : 'INFO', 'native_http_fallback_end', `${method} ${path} ${formatDiagnosticFields({
+          traceId,
+          side: 'client',
+          stage: 'fallback',
+          status: fallbackRaw.status >= 400 ? 'error' : 'ok',
+          durationMs: Date.now() - fallbackStartedAt,
+          httpStatus: fallbackRaw.status,
+          errorCode: nativeResponseErrorCode(fallbackRaw),
+        })}`);
+        return nativeHttpResponse(fallbackRaw);
+      } catch (fallbackError) {
+        if (isAbortError(fallbackError)) throw fallbackError;
+        const networkError = new TypeError('Failed to fetch');
+        (networkError as TypeError & { cause?: unknown }).cause = fallbackError;
+        throw networkError;
+      }
+    }
+
+    if (primaryAborted) throw primaryError;
     const networkError = new TypeError('Failed to fetch');
-    (networkError as TypeError & { cause?: unknown }).cause = error;
+    (networkError as TypeError & { cause?: unknown }).cause = primaryError;
     throw networkError;
   }
 }
