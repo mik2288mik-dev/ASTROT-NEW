@@ -283,20 +283,42 @@ export type RankedNatalEvidence = {
   score: number;
 };
 
-export function rankNatalTopicEvidence(
-  facts: readonly NatalEvidenceFact[],
-  topic: NatalEvidenceTopicKey,
-): RankedNatalEvidence[] {
-  return facts
-    .map((fact) => ({ fact, score: scoreNatalEvidenceForTopic(fact, topic) }))
-    .filter((item): item is RankedNatalEvidence => item.score != null)
-    .sort((left, right) => right.score - left.score || left.fact.id.localeCompare(right.fact.id));
-}
-
 function factBodies(fact: NatalEvidenceFact): string[] {
   if (fact.kind === 'placement') return [placementBody(fact)].filter(Boolean);
   if (fact.kind === 'aspect') return aspectEndpoints(fact).filter(Boolean);
   return [];
+}
+
+function corroborationBonus(
+  item: NatalEvidenceFact,
+  candidates: readonly NatalEvidenceFact[],
+): number {
+  const anchors = new Set(factBodies(item));
+  if (anchors.size === 0) return 0;
+  let supportingFacts = 0;
+  for (const other of candidates) {
+    if (other.id === item.id) continue;
+    const overlap = factBodies(other).some((body) => anchors.has(body));
+    if (overlap) supportingFacts += 1;
+  }
+  // Confirmation matters, but it must never overpower topic relevance or orb.
+  return Math.min(12, supportingFacts * 3);
+}
+
+export function rankNatalTopicEvidence(
+  facts: readonly NatalEvidenceFact[],
+  topic: NatalEvidenceTopicKey,
+): RankedNatalEvidence[] {
+  const base = facts
+    .map((fact) => ({ fact, score: scoreNatalEvidenceForTopic(fact, topic) }))
+    .filter((item): item is RankedNatalEvidence => item.score != null);
+  const candidateFacts = base.map((item) => item.fact);
+  return base
+    .map((item) => ({
+      ...item,
+      score: item.score + corroborationBonus(item.fact, candidateFacts),
+    }))
+    .sort((left, right) => right.score - left.score || left.fact.id.localeCompare(right.fact.id));
 }
 
 /**
