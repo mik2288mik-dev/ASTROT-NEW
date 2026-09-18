@@ -10,6 +10,8 @@ describe('Android native network hardening', () => {
     expect(api).toContain('CapacitorHttp.request');
     expect(api).toContain("diagnosticLog('INFO', 'native_http_start'");
     expect(api).toContain("'native_http_failed'");
-    expect(api).toContain("diagnosticLog(aborted ? 'WARN' : 'ERROR'");
+    expect(api).toContain("'native_http_fallback'");
+    expect(api).toContain("NATIVE_PROFILE_FALLBACK_PATHS = new Set(['/api/users/me'])");
+    expect(api).toContain("NATIVE_API_FALLBACK_ORIGIN = 'https://astrot-production.up.railway.app'");
   });
 });
