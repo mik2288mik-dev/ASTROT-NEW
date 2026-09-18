@@ -174,7 +174,7 @@ export const NATAL_READER_CHAPTERS: readonly NatalReaderChapterDefinition[] = [
   },
   {
     key: 'relationships',
-    title: { ru: 'Отношения и семья', en: 'Relationships and family' },
+    title: { ru: 'Отношения и близость', en: 'Relationships and closeness' },
     focus: {
       ru: 'Свяжи симпатию, сближение, нежность, совместное время и договорённости. Покажи, как человек проявляет интерес и что делает близость приятной. Трудности добавляй только при прямом основании. Не выдумывай детство, отношения с родителями или семейные события.',
       en: 'Connect attraction, closeness, affection, shared time, and agreements. Show how the person expresses interest and what makes closeness enjoyable. Add difficulty only when directly supported. Do not invent childhood, parental relationships, or family events.',
@@ -183,7 +183,7 @@ export const NATAL_READER_CHAPTERS: readonly NatalReaderChapterDefinition[] = [
   },
   {
     key: 'work',
-    title: { ru: 'Работа и своё дело', en: 'Work and your own business' },
+    title: { ru: 'Работа и задачи', en: 'Work and tasks' },
     focus: {
       ru: 'Опиши, какие задачи захватывают внимание, какой темп удобен, как человек начинает, доводит дела и взаимодействует с другими. Начальство, дедлайны и конфликты не делай обязательными темами. Не делай выводов о конкретной профессии, доходе или успехе бизнеса.',
       en: 'Describe which tasks hold attention, what pace fits, how the person starts and finishes work, and how they work with others. Do not make managers, deadlines, or conflict mandatory topics. Do not infer a specific profession, income, or business success.',
