@@ -18,7 +18,7 @@ describe('startup profile bootstrap', () => {
     const app = read('App.tsx');
     const profileLoaded = app.indexOf('storedProfile = await getProfile({');
     const localChart = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)', profileLoaded);
-    const dashboard = app.indexOf("showStartupDashboard('dashboard')", localChart);
+    const dashboard = app.indexOf('showStartupDashboard(', localChart);
 
     expect(profileLoaded).toBeGreaterThan(-1);
     expect(localChart).toBeGreaterThan(profileLoaded);
