@@ -11,7 +11,6 @@ jobs:
     env:
       NODE_ENV: test
       NEXT_PUBLIC_MOBILE_BUILD: '1'
-      NEXT_PUBLIC_ANDROID_BUILD: '1'
       MOBILE_BUILD: '1'
       NEXT_PUBLIC_API_URL: https://api.tvoi-goroskop.ru
       NEXT_PUBLIC_DISTRIBUTION_CHANNEL: rustore
