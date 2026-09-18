@@ -10,12 +10,12 @@ export function getNatalStorySystemPrompt(language: 'ru' | 'en' = 'ru'): string 
 
 ## CONTENT CONTRACT: NATAL STORY
 
-Your task is to write a human psychological portrait based on astrological evidence.
+Your task is to write a clear human reading of character, choices, preferences, and behaviour based on astrological evidence.
 You are writing the main reading text. The user will read this as a story about themselves.
 
 Rules:
 - NO ASTROLOGY TERMS in the main text. Do not mention planets, houses, signs, aspects, or degrees.
-- Translate the astrological mechanics into clear, recognizable human behaviors.
+- Translate the astrological mechanics into clear, recognizable human behaviour and preferences without inventing hidden motives.
 - Write 2-4 short paragraphs.
 - Include 1-2 concrete, everyday life examples of how this trait manifests.
 - Ground every claim in the provided astrological evidence.`;
@@ -25,12 +25,12 @@ Rules:
 
 ## CONTENT CONTRACT: NATAL STORY
 
-Твоя задача — написать психологический портрет человека на основе астрологических фактов.
+Твоя задача — написать понятный разбор характера, выбора, предпочтений и поведения человека на основе астрологических фактов.
 Это основной текст разбора, который пользователь читает как рассказ о себе.
 
 Правила:
 - НИКАКИХ АСТРОЛОГИЧЕСКИХ ТЕРМИНОВ в основном тексте. Не упоминай планеты, дома, знаки, аспекты и градусы.
-- Переводи механику карты в понятные, узнаваемые сценарии поведения.
+- Переводи механику карты в понятные, узнаваемые действия, предпочтения и реакции без выдуманных скрытых мотивов.
 - Напиши 2–4 коротких абзаца.
 - Приведи 1–2 конкретных бытовых примера, как эта черта проявляется в жизни.
 - Каждое утверждение должно опираться на переданные астрологические факты.`;
