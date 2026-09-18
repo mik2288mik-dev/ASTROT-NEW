@@ -11,6 +11,7 @@ jest.mock('../lib/contentGenerationLock', () => ({ buildContentGenerationLockKey
 jest.mock('../lib/natalReading/reportCatalogEvidence', () => ({
   buildNatalReportCatalogContext: () => ({}),
   resolveNatalReportCategoryEvidence: () => [{ answerKey: 'test', evidenceIds: ['sun'], requiredEvidenceIds: ['sun'] }],
+  resolveNatalReportNarrativeEvidence: () => [{ id: 'sun', kind: 'placement', object: 'sun', data: { key: 'sun', sign: 'Aries' } }],
   resolveNatalReportAnswerEvidence: () => ({ evidenceIds: ['sun'], requiredEvidenceIds: ['sun'] }),
 }));
 jest.mock('../lib/natalReading/permanentReport', () => ({ buildPermanentNatalChartFingerprint: (_profile: unknown, chart: { fingerprint: string }) => chart.fingerprint }));
