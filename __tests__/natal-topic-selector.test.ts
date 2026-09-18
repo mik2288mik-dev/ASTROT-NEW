@@ -14,6 +14,24 @@ function placement(body: string): NatalEvidenceFact {
   };
 }
 
+function angle(id: string, key: string, reliability = 'exact'): NatalEvidenceFact {
+  return {
+    id,
+    kind: 'angle',
+    object: key,
+    data: { key, sign: 'Libra', reliability },
+  };
+}
+
+function house(id: string, number: number, reliability = 'exact'): NatalEvidenceFact {
+  return {
+    id,
+    kind: 'house',
+    object: `house-${number}`,
+    data: { house: number, sign: 'Taurus', reliability },
+  };
+}
+
 function aspect(
   id: string,
   from: string,
@@ -91,6 +109,54 @@ describe('natal topic selector', () => {
     ];
     const ranked = rankNatalTopicEvidence(facts, 'love');
     expect(ranked[0].fact.id).toBe('venus-trine-moon');
+  });
+
+  test('hard aspects remain eligible for the right broad topic without being treated as globally negative', () => {
+    const facts = [
+      placement('venus'),
+      placement('moon'),
+      placement('saturn'),
+      aspect('venus-square-saturn', 'venus', 'saturn', 'square', 0.2),
+    ];
+    const selected = selectNatalTopicEvidence(facts, 'love', { limit: 4, min: 2 });
+    expect(selected.map((fact) => fact.id)).toContain('venus-square-saturn');
+  });
+
+  test('variable time-dependent facts are excluded while reliable ones remain eligible', () => {
+    const facts = [
+      placement('venus'),
+      placement('moon'),
+      angle('asc-stable', 'descendant', 'exact'),
+      angle('asc-variable', 'descendant', 'variable_in_range'),
+      house('house-7-stable', 7, 'exact'),
+      house('house-7-variable', 7, 'variable_in_range'),
+    ];
+    const ids = selectNatalTopicEvidence(facts, 'love', { limit: 8, min: 2 })
+      .map((fact) => fact.id);
+    expect(ids).toContain('asc-stable');
+    expect(ids).toContain('house-7-stable');
+    expect(ids).not.toContain('asc-variable');
+    expect(ids).not.toContain('house-7-variable');
+  });
+
+  test('the same chart routes different topics to different compact evidence sets', () => {
+    const facts = [
+      placement('venus'),
+      placement('moon'),
+      placement('mercury'),
+      placement('mars'),
+      placement('saturn'),
+      aspect('venus-trine-moon', 'venus', 'moon', 'trine', 0.4),
+      aspect('mercury-square-mars', 'mercury', 'mars', 'square', 0.5),
+      aspect('mars-trine-saturn', 'mars', 'saturn', 'trine', 0.6),
+    ];
+    const love = new Set(selectNatalTopicEvidence(facts, 'love', { limit: 4, min: 2 }).map((fact) => fact.id));
+    const communication = new Set(selectNatalTopicEvidence(facts, 'communication', { limit: 4, min: 2 }).map((fact) => fact.id));
+    const work = new Set(selectNatalTopicEvidence(facts, 'work', { limit: 4, min: 2 }).map((fact) => fact.id));
+    expect(love.has('venus-trine-moon')).toBe(true);
+    expect(love.has('mercury-square-mars')).toBe(false);
+    expect(communication.has('mercury-square-mars')).toBe(true);
+    expect(work.has('mars-trine-saturn')).toBe(true);
   });
 
   test.each([
