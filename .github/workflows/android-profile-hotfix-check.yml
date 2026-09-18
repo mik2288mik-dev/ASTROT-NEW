@@ -1,0 +1,39 @@
+name: Android Profile Hotfix Check
+
+on:
+  push:
+    branches:
+      - android-profile-hotfix-20260918
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      NEXT_PUBLIC_MOBILE_BUILD: '1'
+      NEXT_PUBLIC_ANDROID_BUILD: '1'
+      MOBILE_BUILD: '1'
+      NEXT_PUBLIC_API_URL: https://api.tvoi-goroskop.ru
+      NEXT_PUBLIC_DISTRIBUTION_CHANNEL: rustore
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH: premium_month
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_QUARTER: premium_quarter
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_YEAR: premium_year
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Targeted Android/profile tests
+        run: >
+          npm test -- --runInBand
+          __tests__/account-auth-runtime-hardening.test.ts
+          __tests__/startup-profile-bootstrap.test.ts
+          __tests__/capacitor-http-network-hardening.test.ts
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Mobile web bundle
+        env:
+          NODE_ENV: production
+        run: npm run build:mobile
