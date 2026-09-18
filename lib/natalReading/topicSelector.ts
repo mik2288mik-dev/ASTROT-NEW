@@ -221,12 +221,14 @@ function aspectTopicScore(fact: NatalEvidenceFact, spec: TopicSpec): number | nu
   const secondary = new Set((spec.secondaryBodies || []).map(key));
   const primaryHits = Number(primary.has(from)) + Number(primary.has(to));
   const secondaryHits = Number(secondary.has(from)) + Number(secondary.has(to));
-  if (primaryHits === 0 && secondaryHits === 0) return null;
+  // A secondary body may refine a topic, but it cannot create the topic by
+  // itself. Broad chapters therefore never inherit an unrelated outer-planet
+  // aspect merely because Saturn/Uranus/etc. appears somewhere in the chart.
+  if (primaryHits === 0) return null;
 
   let score = 0;
   if (primaryHits === 2) score += 105;
-  else if (primaryHits === 1) score += 74;
-  else score += 36;
+  else score += 74;
   score += secondaryHits * 14;
   score += indexScore(spec.primaryBodies, from, 18, 2);
   score += indexScore(spec.primaryBodies, to, 18, 2);
