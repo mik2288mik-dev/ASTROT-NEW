@@ -333,6 +333,7 @@ describe('mobile API and native auth', () => {
     expect(cors).toContain("headers.get('x-forwarded-host')");
     expect(cors).toContain("headers.get('x-forwarded-proto')");
     expect(cors).toContain('X-Nebo-Trace-Id');
+    expect(cors).toContain('X-Nebo-Client');
     expect(middleware).toContain("'Vary'");
     expect(middleware).not.toContain("Access-Control-Allow-Origin', '*");
     expect(middleware).not.toContain('Access-Control-Allow-Credentials');
