@@ -60,24 +60,34 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build RuStore debug APK
+      - name: Create temporary test signing key
+        run: |
+          keytool -genkeypair -noprompt             -keystore "$RUNNER_TEMP/test-release.jks"             -storepass testpass123             -keypass testpass123             -alias nebo-test             -keyalg RSA -keysize 4096 -validity 2             -dname "CN=NEBO Test Release, O=Test, C=XX"
+          echo "RELEASE_STORE_FILE=$RUNNER_TEMP/test-release.jks" >> "$GITHUB_ENV"
+          echo "RELEASE_STORE_PASSWORD=testpass123" >> "$GITHUB_ENV"
+          echo "RELEASE_KEY_ALIAS=nebo-test" >> "$GITHUB_ENV"
+          echo "RELEASE_KEY_PASSWORD=testpass123" >> "$GITHUB_ENV"
+
+      - name: Build RuStore release-like APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRustoreDebug
+          ./gradlew --no-daemon assembleRustoreRelease
 
-      - name: Verify APK and version
+      - name: Verify APK, version and size
         shell: bash
         run: |
-          APK="android/app/build/outputs/apk/rustore/debug/app-rustore-debug.apk"
+          APK="android/app/build/outputs/apk/rustore/release/app-rustore-release.apk"
           test -f "$APK"
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | head -n 1
-          sha256sum "$APK" | tee "$RUNNER_TEMP/nebo-1.0.4-vc8-sha256.txt"
+          ls -lh "$APK"
+          stat -c '%s bytes' "$APK"
+          sha256sum "$APK" | tee "$RUNNER_TEMP/nebo-1.0.4-vc8-release-sha256.txt"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NEBO-1.0.4-vc8-APK
+          name: NEBO-1.0.4-vc8-RELEASE-LIKE
           path: |
-            android/app/build/outputs/apk/rustore/debug/app-rustore-debug.apk
-            ${{ runner.temp }}/nebo-1.0.4-vc8-sha256.txt
+            android/app/build/outputs/apk/rustore/release/app-rustore-release.apk
+            ${{ runner.temp }}/nebo-1.0.4-vc8-release-sha256.txt
