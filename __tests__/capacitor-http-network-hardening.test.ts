@@ -11,5 +11,9 @@ describe('Android native network hardening', () => {
     expect(api).toContain("diagnosticLog('INFO', 'native_http_start'");
     expect(api).toContain("'native_http_failed'");
     expect(api).toContain("diagnosticLog(aborted ? 'WARN' : 'ERROR'");
+    expect(api).toContain("'android_transport_fallback'");
+    expect(api).toContain("'native_to_webview'");
+    expect(api).toContain("'webview_to_native'");
+    expect(api).toContain("preferredAndroidApiTransport = 'webview'");
   });
 });
