@@ -212,30 +212,71 @@ function raceNativeRequest<T>(request: Promise<T>, signal?: AbortSignal): Promis
   });
 }
 
-/**
- * Android's explicit Capacitor HTTP bridge bypasses WebView transport/CORS
- * failures without installing the unsafe global fetch/XHR interception.
- */
-async function apiTransportFetch(
+type AndroidApiTransport = 'native' | 'webview';
+let preferredAndroidApiTransport: AndroidApiTransport = 'native';
+
+function canRetryAcrossAndroidTransports(method: string): boolean {
+  return method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
+}
+
+async function webViewTransportFetch(
   url: string,
   init: RequestInit,
-  timeoutMs = DEFAULT_TIMEOUT_MS,
+  method: string,
+  path: string,
+  traceId?: string,
 ): Promise<Response> {
-  if (!usesAndroidNativeHttp() || !canUseNativeHttpBody(init.body)) {
-    return fetch(url, init);
+  const startedAt = Date.now();
+  diagnosticLog('INFO', 'webview_http_start', `${method} ${path} ${formatDiagnosticFields({
+    traceId,
+    side: 'client',
+    stage: 'request',
+    status: 'start',
+    source: 'webview',
+  })}`);
+  try {
+    const response = await fetch(url, init);
+    diagnosticLog(response.status >= 400 ? 'WARN' : 'INFO', 'webview_http_end', `${method} ${path} ${formatDiagnosticFields({
+      traceId,
+      side: 'client',
+      stage: 'response',
+      status: response.status >= 400 ? 'error' : 'ok',
+      durationMs: Date.now() - startedAt,
+      httpStatus: response.status,
+      source: 'webview',
+    })}`);
+    return response;
+  } catch (error) {
+    const aborted = isAbortError(error);
+    diagnosticLog(aborted ? 'WARN' : 'ERROR', 'webview_http_failed', `${method} ${path} ${formatDiagnosticFields({
+      traceId,
+      side: 'client',
+      stage: 'transport',
+      status: aborted ? 'timeout' : 'error',
+      durationMs: Date.now() - startedAt,
+      errorCode: diagnosticErrorCode(error, aborted ? 'REQUEST_ABORTED' : 'WEBVIEW_HTTP_FAILED'),
+      source: 'webview',
+    })}`);
+    throw error;
   }
-  if (init.signal?.aborted) throw requestWasAborted();
+}
 
+async function nativeTransportFetch(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+  method: string,
+  path: string,
+  traceId?: string,
+): Promise<Response> {
   const nativeTimeout = Math.max(1, Math.floor(timeoutMs));
-  const method = (init.method || 'GET').toUpperCase();
-  const path = nativeDiagnosticPath(url);
-  const traceId = normalizeDiagnosticTraceId(new Headers(init.headers || {}).get(NEBO_TRACE_HEADER)) || undefined;
   const startedAt = Date.now();
   diagnosticLog('INFO', 'native_http_start', `${method} ${path} ${formatDiagnosticFields({
     traceId,
     side: 'client',
     stage: 'request',
     status: 'start',
+    source: 'native',
   })}`);
   try {
     const raw = await raceNativeRequest(
@@ -260,6 +301,7 @@ async function apiTransportFetch(
       durationMs: Date.now() - startedAt,
       httpStatus: raw.status,
       errorCode: nativeResponseErrorCode(raw),
+      source: 'native',
     })}`);
     return nativeHttpResponse(raw);
   } catch (error) {
@@ -271,11 +313,70 @@ async function apiTransportFetch(
       status: aborted ? 'timeout' : 'error',
       durationMs: Date.now() - startedAt,
       errorCode: diagnosticErrorCode(error, aborted ? 'REQUEST_ABORTED' : 'NATIVE_HTTP_FAILED'),
+      source: 'native',
     })}`);
     if (aborted) throw error;
     const networkError = new TypeError('Failed to fetch');
     (networkError as TypeError & { cause?: unknown }).cause = error;
     throw networkError;
+  }
+}
+
+/**
+ * Android uses an adaptive transport. Native HTTP remains the default because it
+ * avoids vendor WebView regressions, but safe read requests automatically fall
+ * back to the WebView network stack when the native route cannot connect.
+ *
+ * Once a safe request succeeds through WebView, the app keeps that transport for
+ * the session so auth/profile POSTs do not repeatedly hit a broken native route.
+ * Mutating requests are never replayed across transports after a transport error.
+ */
+async function apiTransportFetch(
+  url: string,
+  init: RequestInit,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<Response> {
+  if (!usesAndroidNativeHttp() || !canUseNativeHttpBody(init.body)) {
+    return fetch(url, init);
+  }
+  if (init.signal?.aborted) throw requestWasAborted();
+
+  const method = (init.method || 'GET').toUpperCase();
+  const path = nativeDiagnosticPath(url);
+  const traceId = normalizeDiagnosticTraceId(new Headers(init.headers || {}).get(NEBO_TRACE_HEADER)) || undefined;
+
+  if (preferredAndroidApiTransport === 'webview') {
+    try {
+      return await webViewTransportFetch(url, init, method, path, traceId);
+    } catch (error) {
+      if (isAbortError(error) || !canRetryAcrossAndroidTransports(method)) throw error;
+      diagnosticLog('WARN', 'android_transport_fallback', `${method} ${path} ${formatDiagnosticFields({
+        traceId,
+        side: 'client',
+        stage: 'transport_fallback',
+        status: 'start',
+        source: 'webview_to_native',
+      })}`);
+      const response = await nativeTransportFetch(url, init, timeoutMs, method, path, traceId);
+      preferredAndroidApiTransport = 'native';
+      return response;
+    }
+  }
+
+  try {
+    return await nativeTransportFetch(url, init, timeoutMs, method, path, traceId);
+  } catch (error) {
+    if (isAbortError(error) || !canRetryAcrossAndroidTransports(method)) throw error;
+    diagnosticLog('WARN', 'android_transport_fallback', `${method} ${path} ${formatDiagnosticFields({
+      traceId,
+      side: 'client',
+      stage: 'transport_fallback',
+      status: 'start',
+      source: 'native_to_webview',
+    })}`);
+    const response = await webViewTransportFetch(url, init, method, path, traceId);
+    preferredAndroidApiTransport = 'webview';
+    return response;
   }
 }
 
