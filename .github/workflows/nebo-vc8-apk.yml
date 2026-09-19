@@ -1,0 +1,83 @@
+name: NEBO 1.0.4 (8) APK
+
+on:
+  push:
+    branches:
+      - android-1.0.4-vc8-test-20260919
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_MOBILE_BUILD: '1'
+      MOBILE_BUILD: '1'
+      NEXT_PUBLIC_ANDROID_BUILD: '1'
+      NEXT_PUBLIC_API_URL: https://api.tvoi-goroskop.ru
+      NEXT_PUBLIC_DISTRIBUTION_CHANNEL: rustore
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH: premium_month
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_QUARTER: premium_quarter
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_YEAR: premium_year
+      RUSTORE_ALLOWED_PRODUCT_IDS: premium_month,premium_quarter,premium_year
+      RUSTORE_CONSOLE_APP_ID: '2063750823'
+      RUSTORE_PACKAGE_NAME: ru.tvoygoroskop.app
+      RUSTORE_PAY_MODE: production
+      NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED: '0'
+      YANDEX_ANDROID_CLIENT_ID: '0'
+      VK_ANDROID_CLIENT_ID: '0'
+      VK_ID_ANDROID_CLIENT_SECRET: VK_ID_ANDROID_CLIENT_SECRET_REQUIRED
+      APP_VERSION_CODE: '8'
+      APP_VERSION_NAME: 1.0.4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Install Android platform
+        shell: bash
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME" -type f -path "*/bin/sdkmanager" | head -n 1)"
+          test -n "$SDKMANAGER"
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build mobile bundle
+        run: npm run build:mobile
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build RuStore debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRustoreDebug
+
+      - name: Verify APK and version
+        shell: bash
+        run: |
+          APK="android/app/build/outputs/apk/rustore/debug/app-rustore-debug.apk"
+          test -f "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | head -n 1
+          sha256sum "$APK" | tee "$RUNNER_TEMP/nebo-1.0.4-vc8-sha256.txt"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEBO-1.0.4-vc8-APK
+          path: |
+            android/app/build/outputs/apk/rustore/debug/app-rustore-debug.apk
+            ${{ runner.temp }}/nebo-1.0.4-vc8-sha256.txt
