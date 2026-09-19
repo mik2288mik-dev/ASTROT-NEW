@@ -76,7 +76,7 @@ function readRegenerationAfter(req: NextApiRequest): string | null {
 }
 
 const PREMIUM_MAINTENANCE_NOTICE =
-  'Техническое сообщение\\n\\nМы обновляем базу данных, поэтому часть функций может работать нестабильно. Работы займут до 3 рабочих дней. Все дни Premium, затронутые сбоем, мы учтём и добавим автоматически.';
+  'Техническое сообщение\n\nМы обновляем базу данных, поэтому часть функций может работать нестабильно. Работы займут до 3 рабочих дней. Все дни Premium, затронутые сбоем, мы учтём и добавим автоматически.';
 const DEFAULT_PREMIUM_MAINTENANCE_NOTICE_UNTIL = Date.parse('2026-09-24T00:00:00+03:00');
 
 function premiumMaintenanceNoticeEnabled(): boolean {
@@ -105,7 +105,7 @@ function withPremiumMaintenanceNotice(
 
   const contentBlocks = forecast.overview.contentBlocks.map((block, index) => (
     index === 0
-      ? { ...block, text: `${PREMIUM_MAINTENANCE_NOTICE}\\n\\n${block.text.trim()}` }
+      ? { ...block, text: `${PREMIUM_MAINTENANCE_NOTICE}\n\n${block.text.trim()}` }
       : block
   ));
   const text = contentBlocks.map((block) => block.text.trim()).join('\\n\\n');
