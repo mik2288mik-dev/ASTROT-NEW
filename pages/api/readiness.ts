@@ -10,7 +10,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await getPool().query('SELECT 1');
     return res.status(200).json({ ready: true, checks: { database: true, swissEphemeris: true } });
-  } catch {
+  } catch (error) {
+    const candidate = error as { name?: unknown; code?: unknown; message?: unknown; errno?: unknown } | null;
+    console.error('[readiness] database check failed', {
+      name: String(candidate?.name || 'Error'),
+      code: String(candidate?.code || candidate?.errno || 'UNKNOWN'),
+      message: String(candidate?.message || 'Database readiness check failed').slice(0, 500),
+    });
     return res.status(503).json({ ready: false, checks: { database: false, swissEphemeris: true } });
   }
 }
