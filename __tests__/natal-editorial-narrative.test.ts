@@ -58,8 +58,8 @@ describe('natal editorial narrative', () => {
     expect(report!.freeAnswers).toEqual([]);
     expect(report!.summary.every((paragraph) => !('focus' in paragraph))).toBe(true);
     expect(NATAL_REPORT_CATALOG_CONTRACT_VERSION).toBe('natal-report-catalog-v2');
-    expect(NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY).toContain(`narrative.v4.${NATAL_NARRATIVE_VOICE_VERSION}`);
-    expect(NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION).toContain(`narrative.v4.${NATAL_NARRATIVE_VOICE_VERSION}`);
+    expect(NATAL_REPORT_CATALOG_CATEGORY_CACHE_KEY).toContain(`narrative.v5.topic-selector.${NATAL_NARRATIVE_VOICE_VERSION}`);
+    expect(NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION).toContain(`narrative.v5.topic-selector.${NATAL_NARRATIVE_VOICE_VERSION}`);
   });
 
   it.each(['character', 'love', 'communication', 'work', 'money'] as const)(
@@ -128,7 +128,7 @@ describe('natal editorial narrative', () => {
     expect(planning.previously_cited_evidence_ids).toEqual(available.filter((id) => alreadyCited.has(id)));
     expect(JSON.stringify(planning)).not.toContain('invented:old-anchor-id');
     expect(prompt).toContain(mainAnchor.summary[0].text);
-    expect(prompt).toContain('5–8');
+    expect(prompt).toContain('компактный набор фактов');
     expect(prompt).toContain('"gender": "female"');
     expect(prompt).not.toContain('full_answer_covers');
     expect(buildNatalReportCategoryPrompt({ language, built, categoryKey: 'main' })).not.toContain('CONTINUATION EVIDENCE:');

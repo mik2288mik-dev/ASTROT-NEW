@@ -1,7 +1,7 @@
 import { getAppSystemVoice } from '../appVoice';
 
 /** Category narratives only: question and forecast identities stay separate. */
-export const NATAL_NARRATIVE_VOICE_VERSION = 'natal-voice-v4';
+export const NATAL_NARRATIVE_VOICE_VERSION = 'natal-voice-v5-topic-pure';
 
 const EXAMPLE_TITLES = [
   'Доверяешь не сразу', 'Не любишь, когда тобой командуют',

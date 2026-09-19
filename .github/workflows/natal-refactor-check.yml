@@ -1,0 +1,54 @@
+name: Natal Refactor Check
+
+on:
+  push:
+    branches:
+      - natal-topic-selector-v1-20260918
+  workflow_dispatch:
+
+jobs:
+  natal:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: horoscope
+          POSTGRES_PASSWORD: horoscope
+          POSTGRES_DB: horoscope_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U horoscope -d horoscope_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+      APP_SESSION_SECRET: ci-session-secret-not-for-production
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run migrate
+      - name: Natal targeted tests
+        run: >
+          npm test -- --runInBand
+          __tests__/natal-topic-selector.test.ts
+          __tests__/natal-topic-routing.test.ts
+          __tests__/natal-editorial-narrative.test.ts
+          __tests__/natal-catalog-continuation-cache.test.ts
+          __tests__/natal-catalog-payload-roundtrip.test.ts
+          __tests__/natal-permanent-v2.test.ts
+          __tests__/natal-personality-golden-output.test.ts
+          __tests__/natal-report-topics.test.ts
+          __tests__/natal-personality-report-contract.test.ts
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Web build
+        run: npm run build

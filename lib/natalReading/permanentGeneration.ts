@@ -86,18 +86,18 @@ export function getPermanentNatalSystemPrompt(language: NatalReadingLanguage): s
 - В пользовательских hook и content не называй планеты, знаки, дома, аспекты, градусы и орбисы. Переводи расчёт в обычный язык характера, решений и поведения; технические факты интерфейс покажет отдельно по evidence_ids.
 - Все разделы — части одного цельного портрета. Вступление называет главную линию карты, а следующие главы продолжают её и не начинают рассказ заново.
 - Жизненные главы, их порядок и смысл заданы в READER CHAPTER PLAN. Не придумывай другие рубрики. Если у главы несколько section_key, каждый content добавляет новую часть, а интерфейс соединит их под одним заголовком.
-- Пиши через обычные ситуации и действия: выбор, знакомство, ссору с партнёром, просьбу близкого, семейную договорённость, разговор с начальником, дедлайн, клиента, своё дело или решение с деловым партнёром. Не выдумывай событие из биографии; показывай условную узнаваемую ситуацию.
-- Показывай две реальные стороны одного способа поведения и условие, при котором человек переключается между ними. Не называй это «противоречием»: опиши конкретно, например человек легко знакомится, но близко подпускает медленно.
-- Не заканчивай каждый блок советом. Сначала объясни, как человек обычно действует, что ему даётся легче и что реально усложняет ситуацию.
+- Пиши через обычные ситуации и действия: выбор, знакомство, симпатию, совместное время, разговор, просьбу близкого, увлечение, задачу, покупку или рабочее решение. Спор, давление, контроль, риск, начальника и дедлайн упоминай только в тех section_key, где отобранные факты прямо поддерживают именно эту тему. Не выдумывай событие из биографии; показывай условную узнаваемую ситуацию.
+- Показывай разные условия одного способа поведения только когда это действительно следует из данных. Не добавляй обязательное «но», проблему или противоположную сторону к каждому наблюдению. Законченное приятное или нейтральное наблюдение может остаться таким.
+- Не заканчивай каждый блок советом. Объясни, как человек обычно действует, что ему нравится или даётся легче; сложность добавляй только при прямом основании.
 - Каждый блок обязан вернуть только реальные evidence_ids из входного массива. Не печатай эти идентификаторы в пользовательском тексте.
 - Ответ — только валидный JSON без Markdown.`
     : `NATAL PORTRAIT TASK
 - Do not name planets, signs, houses, aspects, degrees, or orbs in user-facing hook or content. Translate the calculation into ordinary language about character, decisions, and behaviour; the interface reveals technical facts separately through evidence_ids.
 - Every section belongs to one coherent portrait. The opening names the chart's central thread, and later chapters continue it instead of restarting the story.
 - The life chapters, their order, and their purpose are fixed in READER CHAPTER PLAN. Invent no other headings. When a chapter has several section_key values, each content field adds a different part and the interface joins them under one heading.
-- Write through ordinary situations and actions: a choice, new acquaintance, disagreement with a partner, request from a relative, family agreement, conversation with a manager, deadline, client, own business, or decision with a business partner. Use conditional examples and never invent biography.
-- Show two concrete sides of one behaviour and the condition that switches the person between them. Do not label this an “inner contradiction”; describe the actual difference, such as meeting people easily but allowing closeness slowly.
-- Do not end every block with advice. Explain first how the person usually acts, what comes more easily, and what concretely makes a situation harder.
+- Write through ordinary situations and actions: a choice, new acquaintance, attraction, shared time, conversation, request from someone close, hobby, task, purchase, or work decision. Mention conflict, pressure, control, risk, managers, or deadlines only in section_key values whose selected evidence directly supports that topic. Use conditional examples and never invent biography.
+- Show different conditions of one behaviour only when the evidence actually supports them. Do not attach a mandatory “but”, problem, or opposite side to every observation. A complete pleasant or neutral observation may stand on its own.
+- Do not end every block with advice. Explain how the person tends to act and what feels easier or more enjoyable; add difficulty only when directly supported.
 - Every block must return only existing evidence_ids from the input. Never print those identifiers in the user-facing text.
 - Return valid JSON only, with no Markdown.`;
   return `${getNatalStorySystemPrompt(language)}\n\n${task}`;
@@ -133,7 +133,7 @@ function permanentInputRules(built: BuiltNatalModelContext): string {
 - Every section must cite one or more evidence_ids that exist verbatim in the supplied evidence array.
 - Use only the section_key values listed in reportPlan. Write exactly one section for every requested item for this tier.
 - A section may cite only evidenceIds listed for its reportPlan item. It must cite every requiredEvidenceId.
-- For central_contradictions, explain both strong pulls and how they coexist; never erase one by declaring the other the person's real nature.
+- For central_contradictions, explain both strong pulls and how they coexist; never erase one by declaring the other the person's real nature. Do not generalize that tension into unrelated sections.
 - Do not return a title. Reader-facing chapter titles are assigned by the server from section_key.
 - Evidence identifiers are machine references. Do not print them inside user-facing text.
 - No Markdown and no fields outside the requested JSON object.
@@ -147,9 +147,9 @@ export function buildPermanentNatalFreePrompt(
 ): string {
   const instructions = language === 'ru'
     ? `Создай hook из двух-трёх предложений. Один раз прямо назови его главной линией натальной карты, затем объясни эту линию простыми словами. Это начало всего портрета, а не рекламный слоган.
-Затем напиши content для каждого free-пункта reportPlan. Все части одной читательской главы вместе должны давать 3–5 предложений: прямой ответ по теме, обычную жизненную ситуацию и важную оговорку. Не добавляй темы и не пропускай указанные; section_key возьми из reportPlan, free: true.`
+Затем напиши content для каждого free-пункта reportPlan. Все части одной читательской главы вместе должны давать 3–5 предложений: прямой ответ по теме и обычную жизненную ситуацию. Оговорка нужна только если она действительно следует из выбранных фактов; не добавляй обязательное «но». Не добавляй темы и не пропускай указанные; section_key возьми из reportPlan, free: true.`
     : `Create a two- or three-sentence hook. Refer once to the central thread of the birth chart, then explain that thread in plain language. This opens the whole portrait and is not an advertising slogan.
-Then write content for every free reportPlan item. All parts of one reader chapter together must make 3–5 sentences: a direct answer, an ordinary life situation, and an important qualification. Add no topics and omit none; use the reportPlan section_key and set free to true.`;
+Then write content for every free reportPlan item. All parts of one reader chapter together must make 3–5 sentences: a direct answer and an ordinary life situation. Add a qualification only when the selected evidence actually supports it; do not force a “but”. Add no topics and omit none; use the reportPlan section_key and set free to true.`;
   return `${permanentInputRules(built)}
 
 ${instructions}

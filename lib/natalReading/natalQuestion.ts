@@ -23,6 +23,11 @@ import {
   type NatalPermanentPremiumReport,
   type NatalReadingLanguage,
 } from './permanentReport';
+import {
+  inferNatalEvidenceTopic,
+  selectNatalTopicEvidence,
+  type NatalEvidenceTopicKey,
+} from './topicSelector';
 import type {
   NatalQuestionStoredMessage,
   NatalQuestionUsage,
@@ -30,7 +35,7 @@ import type {
 
 const MAX_ANSWER_ATTEMPTS = 2;
 
-export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question-v4');
+export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question-v5-topic-selector');
 export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v6';
 
 const NATAL_QUESTION_RESPONSE_SCHEMA: StrictJsonSchema = {
@@ -102,8 +107,14 @@ export type NatalQuestionSnapshot = {
 
 export type NatalQuestionPromptContext = {
   chartId: number;
+  topic: NatalEvidenceTopicKey;
   chart: ReturnType<typeof buildNatalPromptContext>;
-  permanentReport: NatalPermanentPremiumReport;
+  permanentReport: {
+    sections: Array<{
+      title: string;
+      paragraphs: Array<{ text: string; evidenceIds: string[] }>;
+    }>;
+  };
   recentMessages: Array<{
     role: 'user' | 'assistant';
     text: string;
@@ -460,22 +471,35 @@ export function buildNatalQuestionPromptContext(input: {
   permanentReport: NatalPermanentPremiumReport;
   history: readonly NatalQuestionStoredMessage[];
   question: string;
-}): { built: BuiltNatalModelContext; context: NatalQuestionPromptContext } {
+}): {
+  built: BuiltNatalModelContext;
+  context: NatalQuestionPromptContext;
+  allowedEvidenceIds: Set<string>;
+} {
   const built = buildNatalModelContext(input.profile, input.chartData);
   const promptChart = buildNatalPromptContext(built);
   const narrativeEvidenceIds = getNatalNarrativeEvidenceIds(built);
-  const hasNarrativeEvidence = (value: Record<string, unknown>) => (
-    narrativeEvidenceIds.has(text(value.evidenceId))
+  const safeFacts = built.context.evidence.filter((fact) => narrativeEvidenceIds.has(fact.id));
+  const normalizedQuestion = normalizePersonalForecastQuestionInput(input.question);
+  const topic = inferNatalEvidenceTopic(normalizedQuestion);
+  const selectedEvidence = selectNatalTopicEvidence(safeFacts, topic, { limit: 6, min: 2 });
+  const selectedEvidenceIds = new Set(selectedEvidence.map((fact) => fact.id));
+  if (selectedEvidenceIds.size === 0) {
+    throw new Error('NATAL_QUESTION_RELEVANT_EVIDENCE_EMPTY');
+  }
+
+  const hasSelectedEvidence = (value: Record<string, unknown>) => (
+    selectedEvidenceIds.has(text(value.evidenceId))
   );
   const { angles: allAngles, houses: allHouses, ...chartWithoutTimeDependentFacts } = promptChart.chart;
   const positions = Object.fromEntries(
-    Object.entries(promptChart.chart.positions).filter(([, value]) => hasNarrativeEvidence(value)),
+    Object.entries(promptChart.chart.positions).filter(([, value]) => hasSelectedEvidence(value)),
   );
-  const aspects = promptChart.chart.aspects.filter(hasNarrativeEvidence);
+  const aspects = promptChart.chart.aspects.filter(hasSelectedEvidence);
   const angles = allAngles
-    ? Object.fromEntries(Object.entries(allAngles).filter(([, value]) => hasNarrativeEvidence(value)))
+    ? Object.fromEntries(Object.entries(allAngles).filter(([, value]) => hasSelectedEvidence(value)))
     : {};
-  const houses = allHouses?.filter(hasNarrativeEvidence) || [];
+  const houses = allHouses?.filter(hasSelectedEvidence) || [];
   const questionChart: ReturnType<typeof buildNatalPromptContext> = {
     ...promptChart,
     chart: {
@@ -485,8 +509,24 @@ export function buildNatalQuestionPromptContext(input: {
       ...(Object.keys(angles).length > 0 ? { angles } : {}),
       ...(houses.length > 0 ? { houses } : {}),
     },
-    evidence: promptChart.evidence.filter((fact) => narrativeEvidenceIds.has(fact.id)),
+    evidence: promptChart.evidence.filter((fact) => selectedEvidenceIds.has(fact.id)),
   };
+
+  const permanentReport = {
+    sections: input.permanentReport.sections.flatMap((section) => {
+      const paragraphs = section.paragraphs
+        .filter((paragraph) => paragraph.evidenceIds.some((id) => selectedEvidenceIds.has(id)))
+        .map((paragraph) => ({
+          text: paragraph.text,
+          evidenceIds: paragraph.evidenceIds.filter((id) => selectedEvidenceIds.has(id)),
+        }))
+        .filter((paragraph) => paragraph.evidenceIds.length > 0);
+      return paragraphs.length > 0
+        ? [{ title: section.title, paragraphs }]
+        : [];
+    }),
+  };
+
   const chartMessages = input.history.filter((message) => message.chartId === input.chartId);
   const answersByQuestionId = new Map<number, NatalQuestionStoredMessage>();
   for (const message of chartMessages) {
@@ -504,21 +544,25 @@ export function buildNatalQuestionPromptContext(input: {
     .sort(([left], [right]) => (
       left.createdAt.localeCompare(right.createdAt) || left.id - right.id
     ))
-    .slice(-8)
+    .slice(-4)
     .flatMap(([question, answer]) => [question, answer])
     .map((message) => ({
       role: message.role,
       text: message.text,
-      evidenceIds: evidenceIdsFromPayload(message.payload),
+      evidenceIds: evidenceIdsFromPayload(message.payload)
+        .filter((id) => selectedEvidenceIds.has(id)),
     }));
+
   return {
     built,
+    allowedEvidenceIds: selectedEvidenceIds,
     context: {
       chartId: input.chartId,
+      topic,
       chart: questionChart,
-      permanentReport: input.permanentReport,
+      permanentReport,
       recentMessages,
-      question: normalizePersonalForecastQuestionInput(input.question),
+      question: normalizedQuestion,
     },
   };
 }
@@ -533,7 +577,7 @@ export function buildNatalQuestionPrompt(
     : 'Answer in English and address the reader as “you”.';
   return `${languageRule}
 
-Answer the user's question from the permanent calculated birth chart and the permanent report below.
+Answer the user's question from the compact topic-specific birth-chart evidence and the relevant parts of the permanent report below. The evidence has already been selected for this question; do not import unrelated themes from elsewhere in the chart.
 
 Rules:
 - Return JSON only: {"answer":"3-5 complete sentences","evidence_ids":["existing evidence id"]}.
@@ -689,8 +733,7 @@ export async function generateNatalQuestionAnswer(input: {
   requestAnswer?: NatalQuestionAnswerRequester;
 }): Promise<NatalQuestionAnswer> {
   const language: NatalReadingLanguage = input.profile.language === 'en' ? 'en' : 'ru';
-  const { built, context } = buildNatalQuestionPromptContext(input);
-  const allowedEvidenceIds = getNatalNarrativeEvidenceIds(built);
+  const { built, context, allowedEvidenceIds } = buildNatalQuestionPromptContext(input);
   const requestAnswer = input.requestAnswer || requestStructuredNatalQuestionAnswer;
   let validationCodes: NatalQuestionValidationCode[] = [];
 
