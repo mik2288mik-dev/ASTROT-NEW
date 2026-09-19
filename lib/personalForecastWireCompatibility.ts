@@ -179,25 +179,61 @@ export function projectPersonalForecastForWire(
   let lockedSectionIds = [...payload.lockedSectionIds];
   let freeSelection = original.meta.freeSelection;
   if (original.period === 'day') {
+    const maintenanceClosing = 'Приносим извинения за неудобства.';
+    const maintenanceEnd = original.overview.text.indexOf(maintenanceClosing);
+    const hasMaintenanceNotice = original.overview.text.startsWith('Техническое сообщение')
+      && maintenanceEnd >= 0;
+    const maintenanceText = hasMaintenanceNotice
+      ? original.overview.text.slice(0, maintenanceEnd + maintenanceClosing.length).trim()
+      : null;
+    const readingText = hasMaintenanceNotice
+      ? original.overview.text.slice(maintenanceEnd + maintenanceClosing.length).trim()
+      : original.overview.text.trim();
+
     if (payload.accessTier === 'free') {
-      // The whole free reading remains visible. The old validator requires
-      // three trailing sections, but accepts at most two free section IDs.
-      sections.push(
-        closedLegacySlot(original.overview, 'semantic:legacy-slot:1'),
-        closedLegacySlot(original.overview, 'semantic:legacy-slot:2'),
-      );
-      lockedSectionIds = sections.slice(1).map((section) => section.id);
-      freeSelection = { strongestSectionId: closing.id, rotatedSectionId: null, sectionIds: [closing.id] };
+      if (maintenanceText && readingText) {
+        // Older released readers collapse whitespace inside one slot. Put the
+        // notice and the horoscope in different slots so the UI creates a real
+        // vertical break between them.
+        overview = legacySection(original.overview, maintenanceText, 'overview', 100);
+        const fullReading = [readingText, closing.text.trim()].filter(Boolean).join(' ');
+        sections = [
+          legacySection(closing, fullReading, closing.id, 90),
+          closedLegacySlot(original.overview, 'semantic:legacy-slot:1'),
+          closedLegacySlot(original.overview, 'semantic:legacy-slot:2'),
+        ];
+        lockedSectionIds = sections.slice(1).map((section) => section.id);
+        freeSelection = { strongestSectionId: closing.id, rotatedSectionId: null, sectionIds: [closing.id] };
+      } else {
+        // The whole free reading remains visible. The old validator requires
+        // three trailing sections, but accepts at most two free section IDs.
+        sections.push(
+          closedLegacySlot(original.overview, 'semantic:legacy-slot:1'),
+          closedLegacySlot(original.overview, 'semantic:legacy-slot:2'),
+        );
+        lockedSectionIds = sections.slice(1).map((section) => section.id);
+        freeSelection = { strongestSectionId: closing.id, rotatedSectionId: null, sectionIds: [closing.id] };
+      }
     } else {
       // Keep existing sentences once and in order in the older four-slot reader.
-      const sentences = original.overview.text.trim().split(/(?<=[.!?…][»”"')\]]*)\s+/u);
-      if (sentences.length < 3) throw new Error('PERSONAL_FORECAST_LEGACY_STRUCTURE_UNSUPPORTED');
-      overview = legacySection(original.overview, sentences[0], 'overview', 100);
-      sections = [
-        legacySection(original.overview, sentences[1], 'semantic:legacy-body:1', 90),
-        legacySection(original.overview, sentences.slice(2).join(' '), 'semantic:legacy-body:2', 70),
-        legacySection(closing, closing.text, closing.id, 80),
-      ];
+      const sentences = readingText.split(/(?<=[.!?…][»”"')\]]*)\s+/u).filter(Boolean);
+      if (maintenanceText && sentences.length >= 2) {
+        overview = legacySection(original.overview, maintenanceText, 'overview', 100);
+        sections = [
+          legacySection(original.overview, sentences[0], 'semantic:legacy-body:1', 90),
+          legacySection(original.overview, sentences.slice(1).join(' '), 'semantic:legacy-body:2', 70),
+          legacySection(closing, closing.text, closing.id, 80),
+        ];
+      } else {
+        const fallbackSentences = original.overview.text.trim().split(/(?<=[.!?…][»”"')\]]*)\s+/u);
+        if (fallbackSentences.length < 3) throw new Error('PERSONAL_FORECAST_LEGACY_STRUCTURE_UNSUPPORTED');
+        overview = legacySection(original.overview, fallbackSentences[0], 'overview', 100);
+        sections = [
+          legacySection(original.overview, fallbackSentences[1], 'semantic:legacy-body:1', 90),
+          legacySection(original.overview, fallbackSentences.slice(2).join(' '), 'semantic:legacy-body:2', 70),
+          legacySection(closing, closing.text, closing.id, 80),
+        ];
+      }
       freeSelection = {
         strongestSectionId: sections[0].id,
         rotatedSectionId: closing.id,
