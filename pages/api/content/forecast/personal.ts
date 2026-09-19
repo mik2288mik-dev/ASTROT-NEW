@@ -75,7 +75,7 @@ function readRegenerationAfter(req: NextApiRequest): string | null {
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
 }
 
-const MAINTENANCE_FORECAST_BREAK = '\n\n';
+const MAINTENANCE_FORECAST_BREAK = '\n\u2800\n';
 const PREMIUM_MAINTENANCE_NOTICE = [
   'Техническое сообщение',
   'Мы обновляем базу данных, приложение может работать нестабильно. Работы на РФ серверах займут до 3 рабочих дней. Всем Premium-пользователям автоматически добавим 5 дополнительных дней Premium-доступа.',
