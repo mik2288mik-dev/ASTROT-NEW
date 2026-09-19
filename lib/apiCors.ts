@@ -1,5 +1,5 @@
 export const API_CORS_ALLOW_METHODS = 'GET,POST,PUT,PATCH,DELETE,OPTIONS';
-export const API_CORS_ALLOW_HEADERS = 'Content-Type,Authorization,X-Telegram-Init-Data,X-Nebo-Trace-Id';
+export const API_CORS_ALLOW_HEADERS = 'Content-Type,Authorization,X-Telegram-Init-Data,X-Nebo-Trace-Id,X-Nebo-Client';
 
 const DEFAULT_NATIVE_ORIGINS = [
   'https://localhost',
