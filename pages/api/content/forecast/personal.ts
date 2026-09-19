@@ -7,6 +7,7 @@ import {
   getCachedPersonalForecast,
 } from '../../../../lib/personalForecastCache';
 import {
+  buildForecastLockedPreview,
   createUnavailablePersonalForecast,
   getPersonalForecastPeriodKey,
   getPersonalForecastPeriodAccess,
@@ -74,6 +75,52 @@ function readRegenerationAfter(req: NextApiRequest): string | null {
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
 }
 
+const PREMIUM_MAINTENANCE_NOTICE =
+  'Техническое сообщение\\n\\nМы обновляем базу данных, поэтому часть функций может работать нестабильно. Работы займут до 3 рабочих дней. Все дни Premium, затронутые сбоем, мы учтём и добавим автоматически.';
+const DEFAULT_PREMIUM_MAINTENANCE_NOTICE_UNTIL = Date.parse('2026-09-24T00:00:00+03:00');
+
+function premiumMaintenanceNoticeEnabled(): boolean {
+  if (process.env.NEBO_PREMIUM_MAINTENANCE_NOTICE_ENABLED === '0') return false;
+  const configuredUntil = String(process.env.NEBO_PREMIUM_MAINTENANCE_NOTICE_UNTIL || '').trim();
+  const until = configuredUntil ? Date.parse(configuredUntil) : DEFAULT_PREMIUM_MAINTENANCE_NOTICE_UNTIL;
+  return Number.isFinite(until) && Date.now() < until;
+}
+
+function withPremiumMaintenanceNotice(
+  forecast: Parameters<typeof slicePersonalForecastForAccess>[0],
+  isPremium: boolean,
+) {
+  if (
+    !isPremium
+    || forecast.period !== 'day'
+    || forecast.periodKey !== getPersonalForecastPeriodKey('day', new Date(), forecast.timezone)
+    || !premiumMaintenanceNoticeEnabled()
+    || forecast.overview.text.startsWith('Техническое сообщение')
+  ) {
+    return forecast;
+  }
+
+  const firstBlock = forecast.overview.contentBlocks[0];
+  if (!firstBlock) return forecast;
+
+  const contentBlocks = forecast.overview.contentBlocks.map((block, index) => (
+    index === 0
+      ? { ...block, text: `${PREMIUM_MAINTENANCE_NOTICE}\\n\\n${block.text.trim()}` }
+      : block
+  ));
+  const text = contentBlocks.map((block) => block.text.trim()).join('\\n\\n');
+
+  return {
+    ...forecast,
+    overview: {
+      ...forecast.overview,
+      text,
+      contentBlocks,
+      lockedPreview: buildForecastLockedPreview(text, forecast.overview.premiumTeaser),
+    },
+  };
+}
+
 function responsePayload(
   forecast: Parameters<typeof slicePersonalForecastForAccess>[0],
   isPremium: boolean,
@@ -81,8 +128,9 @@ function responsePayload(
   wireVersion: string,
 ) {
   const sliced = slicePersonalForecastForAccess(forecast, isPremium);
+  const forecastWithNotice = withPremiumMaintenanceNotice(sliced.forecast, isPremium);
   return projectPersonalForecastForWire({
-    forecast: sliced.forecast,
+    forecast: forecastWithNotice,
     accessTier: isPremium ? 'premium' : 'free',
     lockedSectionIds: sliced.lockedSectionIds,
     periodLocked: sliced.periodLocked,
