@@ -1,0 +1,75 @@
+name: Emergency APK
+
+on:
+  push:
+    branches:
+      - emergency-android-test-20260919
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_MOBILE_BUILD: '1'
+      MOBILE_BUILD: '1'
+      NEXT_PUBLIC_ANDROID_BUILD: '1'
+      NEXT_PUBLIC_API_URL: https://api.tvoi-goroskop.ru
+      NEXT_PUBLIC_DISTRIBUTION_CHANNEL: development
+      NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED: '0'
+      YANDEX_ANDROID_CLIENT_ID: ci-yandex-android-client
+      VK_ANDROID_CLIENT_ID: '100000'
+      VK_ID_ANDROID_CLIENT_SECRET: ci-vk-secret-not-for-production
+      APP_VERSION_CODE: '100'
+      APP_VERSION_NAME: 1.0.5-emergency
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Install Android platform
+        shell: bash
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
+          "$SDKMANAGER" --version
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build mobile web assets
+        run: npm run build:mobile
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build emergency debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDevelopmentDebug
+
+      - name: Calculate checksum
+        shell: bash
+        run: |
+          APK="android/app/build/outputs/apk/development/debug/app-development-debug.apk"
+          test -f "$APK"
+          sha256sum "$APK" | tee "$RUNNER_TEMP/emergency-apk-sha256.txt"
+
+      - name: Upload emergency APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEBO-emergency-test-apk
+          path: |
+            android/app/build/outputs/apk/development/debug/app-development-debug.apk
+            ${{ runner.temp }}/emergency-apk-sha256.txt
