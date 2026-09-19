@@ -40,7 +40,13 @@ jobs:
       - name: Install Android platform
         shell: bash
         run: |
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
+          SDKMANAGER="$(find "$ANDROID_HOME" -type f -path "*/bin/sdkmanager" | head -n 1)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "sdkmanager not found under $ANDROID_HOME"
+            find "$ANDROID_HOME" -maxdepth 4 -type d | sort | head -n 200
+            exit 1
+          fi
+          echo "Using $SDKMANAGER"
           "$SDKMANAGER" --version
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
 
