@@ -19,6 +19,10 @@ import {
 const DEFAULT_TIMEOUT_MS = 30_000;
 const NATIVE_SESSION_READ_TIMEOUT_MS = 2_000;
 const NATIVE_HTTP_MAX_CONNECT_TIMEOUT_MS = 8_000;
+const NATIVE_API_FALLBACK_ORIGINS = [
+  'https://astrot-production.up.railway.app',
+  'https://astrot-new-production.up.railway.app',
+] as const;
 const NATIVE_REFRESH_RECOVERY_DELAYS_MS = [0, 75, 150, 300] as const;
 const SESSION_REFRESH_PATH = '/api/auth/session/refresh';
 const REFRESHABLE_ACCESS_CODES = new Set(['APP_SESSION_EXPIRED', 'APP_AUTH_REQUIRED']);
@@ -273,6 +277,36 @@ async function apiTransportFetch(
       errorCode: diagnosticErrorCode(error, aborted ? 'REQUEST_ABORTED' : 'NATIVE_HTTP_FAILED'),
     })}`);
     if (aborted) throw error;
+
+    // Emergency test-build resilience: when the custom API ingress itself is
+    // unreachable, retry the same authenticated request against independent
+    // Railway service domains. This branch is never merged into production.
+    let primaryOrigin = '';
+    try { primaryOrigin = new URL(getApiBaseUrl()).origin; } catch { /* noop */ }
+    let currentOrigin = '';
+    try { currentOrigin = new URL(url).origin; } catch { /* noop */ }
+    if (primaryOrigin && currentOrigin === primaryOrigin) {
+      for (const fallbackOrigin of NATIVE_API_FALLBACK_ORIGINS) {
+        try {
+          const fallbackUrl = new URL(url);
+          fallbackUrl.protocol = new URL(fallbackOrigin).protocol;
+          fallbackUrl.host = new URL(fallbackOrigin).host;
+          const raw = await CapacitorHttp.request({
+            url: fallbackUrl.toString(),
+            method: init.method || 'GET',
+            headers: headersAsNativeObject(init.headers),
+            ...(init.body == null ? {} : { data: init.body }),
+            connectTimeout: Math.min(nativeTimeout, NATIVE_HTTP_MAX_CONNECT_TIMEOUT_MS),
+            readTimeout: nativeTimeout,
+            responseType: 'arraybuffer',
+          });
+          return nativeHttpResponse(raw);
+        } catch {
+          // Try the next independent ingress.
+        }
+      }
+    }
+
     const networkError = new TypeError('Failed to fetch');
     (networkError as TypeError & { cause?: unknown }).cause = error;
     throw networkError;
