@@ -155,16 +155,31 @@ export function readLunaResponseContent(response: LunaResponseContent): string {
   if (response.status === 'incomplete') {
     throw new Error(`OPENAI_RESPONSE_INCOMPLETE:${response.incomplete_details?.reason || 'unknown'}`);
   }
+
+  const outputTexts: string[] = [];
   for (const item of response.output) {
     if (item.type !== 'message') continue;
     const refusal = item.content.find((content) => content.type === 'refusal');
     if (refusal?.type === 'refusal') {
       throw new Error('OPENAI_RESPONSE_REFUSAL');
     }
+    for (const content of item.content) {
+      if (content.type === 'output_text' && typeof content.text === 'string') {
+        outputTexts.push(content.text);
+      }
+    }
   }
-  const content = response.output_text.trim();
-  if (!content) throw new Error('OPENAI_RESPONSE_EMPTY');
 
+  // The OpenAI Node SDK populates response.output_text client-side. Our Railway
+  // relay returns the raw REST payload, so rebuild the same convenience field
+  // from response.output when it is absent on Timeweb.
+  const content = (
+    typeof response.output_text === 'string' && response.output_text.trim()
+      ? response.output_text
+      : outputTexts.join('')
+  ).trim();
+
+  if (!content) throw new Error('OPENAI_RESPONSE_EMPTY');
   return content;
 }
 
