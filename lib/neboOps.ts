@@ -626,6 +626,25 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
        last_error_code = 'LEASE_EXPIRED'
      WHERE status = 'processing' AND locked_at < NOW() - INTERVAL '90 seconds'`, [MAX_ATTEMPTS],
   );
+  // Recover recent critical events that the previous owner-scope filter retired.
+  // Rows already sent or disabled by the owner are never replayed.
+  await pool.query(
+    `UPDATE nebo_ops_outbox
+     SET status = 'pending', last_error_code = NULL, next_attempt_at = NOW(), updated_at = NOW()
+     WHERE status = 'dead'
+       AND last_error_code = 'OWNER_SCOPE_FILTERED'
+       AND occurred_at >= NOW() - INTERVAL '7 days'
+       AND (
+         event_type IN (
+           'login', 'payment_confirmed', 'trial_started',
+           'subscription_grace', 'subscription_cancelled', 'subscription_expired',
+           'subscription_resumed', 'payment_refunded', 'support_ticket',
+           'diagnostic', 'hourly_summary', 'daily_summary', 'ai_error', 'attribution_received'
+         )
+         OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') IN ('paywall_view', 'app_open', 'app_opened'))
+       )`,
+  );
+
   // Preserve historical facts for the daily aggregate while retiring messages
   // that were queued under the broader, previous notification preferences.
   await pool.query(
