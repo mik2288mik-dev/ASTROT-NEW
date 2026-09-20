@@ -463,7 +463,7 @@ export function getPool(): Pool {
       types: { getTypeParser: (oid: number, format?: 'text' | 'binary') =>
         oid === 1082 ? (value: string) => value : pgTypes.getTypeParser(oid, format) },
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-      max: 20,
+      max: 5,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000, // 5 seconds timeout for faster startup
     });
