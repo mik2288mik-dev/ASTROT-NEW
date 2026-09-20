@@ -10,9 +10,7 @@ import {
   type NatalPermanentPremiumReport,
 } from '../../../../lib/natalReading/permanentReport';
 import {
-  generatePermanentPremiumWithLock,
   getCachedPermanentPremiumReport,
-  waitForPermanentPremiumReport,
 } from '../../../../lib/natalReading/permanentApi';
 import {
   generateNatalQuestionAnswer,
@@ -42,16 +40,14 @@ import { startServerOperationalDiagnostic } from '../../../../lib/serverOperatio
 export const config = { maxDuration: 90 };
 
 async function readPermanentReport(
-  userId: string,
   ctx: NonNullable<Awaited<ReturnType<typeof ensureValidContext>>>['ctx'],
-): Promise<NatalPermanentPremiumReport> {
+): Promise<NatalPermanentPremiumReport | null> {
   const cached = await getCachedPermanentPremiumReport(ctx);
   if (cached?.content) return cached.content;
-  const generated = await generatePermanentPremiumWithLock({ userId, ctx });
-  if (generated.status === 'ready') return generated.value.content;
-  const waited = await waitForPermanentPremiumReport({ ctx, timeoutMs: 30_000 });
-  if (!waited) throw new Error('NATAL_PREMIUM_GENERATION_IN_PROGRESS');
-  return waited;
+  // A question must not wait for the large Premium report to be generated.
+  // The saved chart remains the source of truth, and a later report simply
+  // enriches the same answer context when it is already available.
+  return null;
 }
 
 async function snapshot(input: {
@@ -203,7 +199,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       generate: async () => {
         diagnostic.log('generation', 'start', { source: 'selected_chart_context' });
-        const permanentReport = await readPermanentReport(userId, ctx);
+        const permanentReport = await readPermanentReport(ctx);
         const currentHistory = await listNatalQuestionMessages({ userId, chartId, pairLimit: 8 });
         const answer = await generateNatalQuestionAnswer({
           chartId,

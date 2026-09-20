@@ -103,7 +103,7 @@ export type NatalQuestionSnapshot = {
 export type NatalQuestionPromptContext = {
   chartId: number;
   chart: ReturnType<typeof buildNatalPromptContext>;
-  permanentReport: NatalPermanentPremiumReport;
+  permanentReport: NatalPermanentPremiumReport | null;
   recentMessages: Array<{
     role: 'user' | 'assistant';
     text: string;
@@ -457,7 +457,7 @@ export function buildNatalQuestionPromptContext(input: {
   chartId: number;
   profile: UserProfile;
   chartData: NatalChartData | NatalChartDataV2;
-  permanentReport: NatalPermanentPremiumReport;
+  permanentReport: NatalPermanentPremiumReport | null;
   history: readonly NatalQuestionStoredMessage[];
   question: string;
 }): { built: BuiltNatalModelContext; context: NatalQuestionPromptContext } {
@@ -533,7 +533,7 @@ export function buildNatalQuestionPrompt(
     : 'Answer in English and address the reader as “you”.';
   return `${languageRule}
 
-Answer the user's question from the permanent calculated birth chart and the permanent report below.
+Answer the user's question from the saved calculated birth chart and, when it is available, the permanent report below.
 
 Rules:
 - Return JSON only: {"answer":"3-5 complete sentences","evidence_ids":["existing evidence id"]}.
@@ -683,7 +683,7 @@ export async function generateNatalQuestionAnswer(input: {
   chartId: number;
   profile: UserProfile;
   chartData: NatalChartData | NatalChartDataV2;
-  permanentReport: NatalPermanentPremiumReport;
+  permanentReport: NatalPermanentPremiumReport | null;
   history: readonly NatalQuestionStoredMessage[];
   question: string;
   requestAnswer?: NatalQuestionAnswerRequester;

@@ -243,7 +243,6 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   const [contextOpen, setContextOpen] = useState(false);
   const [explanation, setExplanation] = useState<NatalExplanationTarget | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
-  const historyEndRef = useRef<HTMLDivElement>(null);
   const pairs = useMemo(() => buildQuestionPairs(snapshot?.messages || []), [snapshot?.messages]);
   const starters = QUESTION_STARTERS[contextCategory][language];
 
@@ -297,11 +296,6 @@ export const NatalQuestionExperience: React.FC<Props> = ({
     });
     onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
   }, [isPremium, onPremiumContinuationHandled, premiumContinuation]);
-
-  useEffect(() => {
-    if (!pairs.length) return;
-    historyEndRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [pairs.length]);
 
   const submitQuestion = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -592,7 +586,6 @@ export const NatalQuestionExperience: React.FC<Props> = ({
               : 'Questions you have already asked about the chart will appear here.'}
           </p>
         )}
-        <div ref={historyEndRef} />
       </section>
 
       <NatalEvidenceSheet
