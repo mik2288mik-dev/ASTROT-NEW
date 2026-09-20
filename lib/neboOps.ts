@@ -61,7 +61,7 @@ const SUMMARY_STAT_KEYS = [
 const EVENT_TYPES = new Set([
   'login', 'activity', 'payment_confirmed', 'trial_started',
   'subscription_grace', 'subscription_cancelled', 'subscription_expired', 'subscription_resumed',
-  'payment_refunded', 'support_ticket', 'diagnostic', 'hourly_summary', 'daily_summary', 'ai_error', 'attribution_received',
+  'payment_refunded', 'support_ticket', 'diagnostic', 'hourly_summary', 'daily_summary', 'ai_error', 'technical_error', 'attribution_received',
 ]);
 const PROVIDERS: Record<string, string> = {
   telegram: 'Telegram', telegram_stars: 'Telegram Stars',
@@ -115,6 +115,7 @@ const TITLES: Record<string, string> = {
   subscription_resumed: '✅ Подписка восстановлена',
   support_ticket: '✉️ Новое обращение', diagnostic: '🛠 Проверка уведомлений',
   ai_error: '⚠️ Ошибка генерации ИИ',
+  technical_error: '🚨 Ошибка сервера',
   attribution_received: '🎯 MyTracker · Источник определён',
 };
 
@@ -210,6 +211,24 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
   if (typeof input.reportId === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(input.reportId)) result.reportId = input.reportId;
   if (typeof input.traceId === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(input.traceId)) result.traceId = input.traceId;
   if (typeof input.serverVersion === 'string' && /^[0-9a-f]{7,40}$/i.test(input.serverVersion)) result.serverVersion = input.serverVersion;
+  for (const key of ['scope', 'diagnosticEvent', 'surface', 'source']) {
+    const value = code(input[key]);
+    if (value) result[key] = value;
+  }
+  if (input.metadata && typeof input.metadata === 'object' && !Array.isArray(input.metadata)) {
+    const source = input.metadata as Payload;
+    const metadata: Payload = {};
+    for (const key of ['side', 'stage', 'httpStatus', 'nodeEnv', 'blocks', 'tier', 'requestedTier', 'resolvedTier', 'modelTier', 'swisseph', 'algorithmic', 'mixed', 'unavailable']) {
+      const value = source[key];
+      if (typeof value === 'boolean') metadata[key] = value;
+      else if (typeof value === 'number' && Number.isFinite(value)) metadata[key] = value;
+      else {
+        const safe = text(value, 100);
+        if (safe) metadata[key] = safe;
+      }
+    }
+    result.metadata = metadata;
+  }
   const httpStatus = positiveNumber(input.httpStatus);
   if (httpStatus !== undefined && Number.isInteger(httpStatus) && httpStatus >= 100 && httpStatus <= 599) result.httpStatus = httpStatus;
   const durationMs = positiveNumber(input.durationMs);
@@ -273,6 +292,7 @@ export function shouldDeliverNeboOpsEvent(eventType: string, payload: Payload = 
     'payment_refunded',
     'support_ticket',
     'ai_error',
+    'technical_error',
     'diagnostic',
     'daily_summary',
   ]);
@@ -476,6 +496,26 @@ export function renderNeboOpsMessage(row: Pick<OpsRow, 'event_type' | 'user_id' 
     if (user.has_premium === true) lines.push(`💎 Доступ сейчас: Premium${premiumUntil ? ` до ${moscowDateTime(premiumUntil)} МСК` : ''}`);
     else if (user.has_premium === false) lines.push('🔓 Доступ сейчас: бесплатный');
   }
+  if (row.event_type === 'technical_error') {
+    if (p.scope || p.diagnosticEvent) {
+      lines.push(`📍 Источник: ${[p.scope, p.diagnosticEvent].filter(Boolean).join(' · ')}`);
+    }
+    if (p.surface) lines.push(`🧩 Раздел: ${p.surface}`);
+    if (p.source) lines.push(`🛠 Компонент: ${p.source}`);
+    if (p.errorCode) lines.push(`⚙️ Код: ${p.errorCode}`);
+    if (p.status) lines.push(`📌 Статус: ${p.status}`);
+    if (typeof p.durationMs === 'number') lines.push(`⏱ Длительность: ${(p.durationMs / 1_000).toFixed(1).replace('.', ',')} с`);
+    if (p.serverVersion) lines.push(`🖥 Версия: ${p.serverVersion}`);
+    if (p.traceId) lines.push(`🔗 Trace: ${p.traceId}`);
+    const metadata = p.metadata && typeof p.metadata === 'object' && !Array.isArray(p.metadata)
+      ? p.metadata as Payload
+      : {};
+    const metaPairs = Object.entries(metadata)
+      .filter(([, value]) => ['string', 'number', 'boolean'].includes(typeof value))
+      .slice(0, 10)
+      .map(([key, value]) => `${key}=${String(value)}`);
+    if (metaPairs.length) lines.push(`🧾 Детали: ${metaPairs.join(' · ')}`);
+  }
   if (row.event_type === 'ai_error') {
     const operation = p.operation === 'personal_forecast'
       ? { label: 'Личный прогноз', endpoint: '/api/content/forecast/personal' }
@@ -644,7 +684,7 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
            'login', 'daily_summary', 'payment_confirmed', 'trial_started',
            'subscription_grace', 'subscription_cancelled', 'subscription_expired',
            'subscription_resumed', 'payment_refunded', 'support_ticket',
-           'ai_error', 'diagnostic'
+           'ai_error', 'technical_error', 'diagnostic'
          )
          OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') IN (
            'paywall_view', 'app_open', 'app_opened', 'purchase_failed', 'restore_failed'
