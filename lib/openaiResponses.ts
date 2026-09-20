@@ -45,19 +45,15 @@ type LunaResponseContent = Pick<
 const DEFAULT_OPENAI_RELAY_URL =
   'https://astrot-production.up.railway.app/api/internal/openai-responses';
 
-function isRailwayRuntime(): boolean {
-  return Boolean(
-    process.env.RAILWAY_ENVIRONMENT
-    || process.env.RAILWAY_ENVIRONMENT_ID
-    || process.env.RAILWAY_SERVICE_ID,
-  );
+function useDirectOpenAI(): boolean {
+  return process.env.OPENAI_RELAY_DIRECT === '1';
 }
 
 function getOpenAIRelayAuthToken(): string {
-  const appSessionSecret = String(process.env.APP_SESSION_SECRET || '').trim();
-  if (!appSessionSecret) throw new Error('OPENAI_RELAY_AUTH_SECRET_MISSING');
+  const apiKey = String(process.env.OPENAI_API_KEY || '').trim();
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
   return createHash('sha256')
-    .update(`nebo-openai-relay-v1:${appSessionSecret}`)
+    .update(`nebo-openai-relay-v1:${apiKey}`)
     .digest('hex');
 }
 
@@ -177,7 +173,7 @@ async function createLunaResponse(
 ): Promise<LunaResponseResult> {
   let response: OpenAI.Responses.Response;
 
-  if (isRailwayRuntime()) {
+  if (useDirectOpenAI()) {
     const openai = getOpenAIResponsesClient();
     if (!openai) throw new Error('OPENAI_API_KEY is not configured');
     response = await openai.responses.create(params);
