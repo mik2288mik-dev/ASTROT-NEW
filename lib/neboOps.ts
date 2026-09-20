@@ -263,9 +263,24 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
 }
 
 export function shouldDeliverNeboOpsEvent(eventType: string, payload: Payload = {}): boolean {
-  return eventType === 'login' || eventType === 'daily_summary' || eventType === 'payment_confirmed'
+  const criticalOwnerEvents = new Set([
+    'payment_confirmed',
+    'trial_started',
+    'subscription_grace',
+    'subscription_cancelled',
+    'subscription_expired',
+    'subscription_resumed',
+    'payment_refunded',
+    'support_ticket',
+    'ai_error',
+    'diagnostic',
+    'daily_summary',
+  ]);
+  return eventType === 'login'
+    || criticalOwnerEvents.has(eventType)
     || (eventType === 'activity' && (payload?.eventType === 'paywall_view'
-      || payload?.eventType === 'app_open' || payload?.eventType === 'app_opened'));
+      || payload?.eventType === 'app_open' || payload?.eventType === 'app_opened'
+      || payload?.eventType === 'purchase_failed' || payload?.eventType === 'restore_failed'));
 }
 
 export async function enqueueNeboOpsEvent(db: Queryable, input: NeboOpsEvent): Promise<void> {
