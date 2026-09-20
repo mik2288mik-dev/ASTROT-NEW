@@ -66,7 +66,11 @@ export async function cycleNeboOpsReportSchedule(kind: 'daily' | 'weekly'): Prom
 
 export function isNeboOpsEventEnabled(eventType: string, payload: Record<string, unknown>, prefs: NeboOpsPreferences): boolean {
   if (eventType === 'login') return prefs.notify_logins;
-  if (eventType === 'payment_confirmed') return prefs.notify_payments;
+  if ([
+    'payment_confirmed', 'trial_started', 'subscription_grace', 'subscription_cancelled',
+    'subscription_expired', 'subscription_resumed', 'payment_refunded',
+  ].includes(eventType)) return prefs.notify_payments;
+  if (eventType === 'support_ticket') return prefs.notify_support;
   if (eventType === 'activity' && ['paywall_view', 'app_open', 'app_opened'].includes(String(payload.eventType))) {
     return payload.eventType === 'paywall_view' ? prefs.notify_paywalls : prefs.notify_logins;
   }
