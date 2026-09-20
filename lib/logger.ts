@@ -152,14 +152,20 @@ export function sanitizeLogEvent(payload: LogEvent): LogEvent {
 }
 
 function emit(level: LogLevel, payload: LogEvent) {
+  const sanitized = sanitizeLogEvent(payload);
   const entry = {
     level,
     ts: new Date().toISOString(),
-    ...sanitizeLogEvent(payload),
+    ...sanitized,
   };
   const line = JSON.stringify(entry);
   if (level === 'error') {
     console.error(line);
+    if (process.env.NODE_ENV === 'production') {
+      void import('./ownerErrorReporter')
+        .then(({ queueOwnerTechnicalError }) => queueOwnerTechnicalError(sanitized))
+        .catch(() => undefined);
+    }
     return;
   }
   if (level === 'warn') {
