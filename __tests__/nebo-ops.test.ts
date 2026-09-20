@@ -223,14 +223,21 @@ describe('operational data and message formatting', () => {
 });
 
 describe('durable owner notification queue', () => {
-  it('notifies about logins, app visits, opening and confirming payment, and the daily report', async () => {
+  it('notifies about owner-critical events and keeps ordinary activity filtered', async () => {
     expect(shouldDeliverNeboOpsEvent('login')).toBe(true);
     expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'app_open' })).toBe(true);
     expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'app_opened' })).toBe(true);
     expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'paywall_view' })).toBe(true);
-    expect(shouldDeliverNeboOpsEvent('payment_confirmed')).toBe(true);
-    expect(shouldDeliverNeboOpsEvent('daily_summary')).toBe(true);
-    for (const eventType of ['hourly_summary', 'support_ticket', 'ai_error', 'attribution_received']) {
+    expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'purchase_failed' })).toBe(true);
+    expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'restore_failed' })).toBe(true);
+    for (const eventType of [
+      'payment_confirmed', 'trial_started', 'subscription_grace', 'subscription_cancelled',
+      'subscription_expired', 'subscription_resumed', 'payment_refunded', 'support_ticket',
+      'ai_error', 'diagnostic', 'daily_summary',
+    ]) {
+      expect(shouldDeliverNeboOpsEvent(eventType)).toBe(true);
+    }
+    for (const eventType of ['hourly_summary', 'attribution_received']) {
       expect(shouldDeliverNeboOpsEvent(eventType)).toBe(false);
     }
     for (const eventType of ['screen_view', 'checkout_start', 'question_sent', 'purchase_success']) {
