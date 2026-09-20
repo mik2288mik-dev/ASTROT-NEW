@@ -640,8 +640,15 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
        last_error_code = 'OWNER_SCOPE_FILTERED', updated_at = NOW()
      WHERE status IN ('pending', 'failed')
        AND NOT (
-         event_type IN ('login', 'daily_summary', 'payment_confirmed')
-         OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') IN ('paywall_view', 'app_open', 'app_opened'))
+         event_type IN (
+           'login', 'daily_summary', 'payment_confirmed', 'trial_started',
+           'subscription_grace', 'subscription_cancelled', 'subscription_expired',
+           'subscription_resumed', 'payment_refunded', 'support_ticket',
+           'ai_error', 'diagnostic'
+         )
+         OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') IN (
+           'paywall_view', 'app_open', 'app_opened', 'purchase_failed', 'restore_failed'
+         ))
        )`,
   );
   const count = Number.isFinite(limit) ? Math.min(MAX_BATCH, Math.max(1, Math.trunc(limit))) : MAX_BATCH;
