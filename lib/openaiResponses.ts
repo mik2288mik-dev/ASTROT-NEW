@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import OpenAI from 'openai';
 import { OPENAI_LUNA_MODEL } from './openai-models';
 
@@ -40,6 +41,65 @@ type LunaResponseContent = Pick<
   OpenAI.Responses.Response,
   'status' | 'incomplete_details' | 'output' | 'output_text'
 >;
+
+const DEFAULT_OPENAI_RELAY_URL =
+  'https://astrot-production.up.railway.app/api/internal/openai-responses';
+
+function isRailwayRuntime(): boolean {
+  return Boolean(
+    process.env.RAILWAY_ENVIRONMENT
+    || process.env.RAILWAY_ENVIRONMENT_ID
+    || process.env.RAILWAY_SERVICE_ID,
+  );
+}
+
+function getOpenAIRelayAuthToken(): string {
+  const appSessionSecret = String(process.env.APP_SESSION_SECRET || '').trim();
+  if (!appSessionSecret) throw new Error('OPENAI_RELAY_AUTH_SECRET_MISSING');
+  return createHash('sha256')
+    .update(`nebo-openai-relay-v1:${appSessionSecret}`)
+    .digest('hex');
+}
+
+async function createResponseViaRelay(
+  params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
+): Promise<OpenAI.Responses.Response> {
+  const relayUrl = String(
+    process.env.OPENAI_RELAY_URL || DEFAULT_OPENAI_RELAY_URL,
+  ).trim();
+
+  const response = await fetch(relayUrl, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${getOpenAIRelayAuthToken()}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(params),
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    let detail = '';
+    try {
+      const parsed = JSON.parse(text) as { error?: { message?: string } | string };
+      detail = typeof parsed.error === 'string'
+        ? parsed.error
+        : String(parsed.error?.message || '');
+    } catch {
+      detail = '';
+    }
+    throw new Error(
+      `OPENAI_RELAY_HTTP_${response.status}${detail ? `:${detail.slice(0, 240)}` : ''}`,
+    );
+  }
+
+  try {
+    return JSON.parse(text) as OpenAI.Responses.Response;
+  } catch {
+    throw new Error('OPENAI_RELAY_INVALID_RESPONSE');
+  }
+}
 
 export function buildLunaStructuredResponseParams(input: LunaStructuredResponseInput) {
   return {
@@ -115,10 +175,16 @@ export function readLunaResponseContent(response: LunaResponseContent): string {
 async function createLunaResponse(
   params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
 ): Promise<LunaResponseResult> {
-  const openai = getOpenAIResponsesClient();
-  if (!openai) throw new Error('OPENAI_API_KEY is not configured');
+  let response: OpenAI.Responses.Response;
 
-  const response = await openai.responses.create(params);
+  if (isRailwayRuntime()) {
+    const openai = getOpenAIResponsesClient();
+    if (!openai) throw new Error('OPENAI_API_KEY is not configured');
+    response = await openai.responses.create(params);
+  } else {
+    response = await createResponseViaRelay(params);
+  }
+
   const content = readLunaResponseContent(response);
 
   return {
