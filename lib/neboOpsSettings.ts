@@ -105,6 +105,21 @@ export function renderNeboOpsMenu(prefs: NeboOpsPreferences): { text: string; re
 }
 
 let setupStarted = false;
+
+function failedTelegramSetupOperations(responses: readonly Response[]): string[] {
+  return responses
+    .map((response, index) => (!response.ok
+      ? `${index === 0 ? 'setWebhook' : 'setMyCommands'}_HTTP_${response.status}`
+      : null))
+    .filter((failure): failure is string => failure !== null);
+}
+
+function telegramSetupFailureReason(error: unknown): 'TIMEOUT' | 'NETWORK_ERROR' {
+  return error instanceof Error && error.name === 'TimeoutError'
+    ? 'TIMEOUT'
+    : 'NETWORK_ERROR';
+}
+
 export async function ensureNeboOpsBotSetup(token: string): Promise<void> {
   if (setupStarted) return;
   setupStarted = true;
@@ -117,9 +132,14 @@ export async function ensureNeboOpsBotSetup(token: string): Promise<void> {
       fetch(`${api}/setWebhook`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: `${base}/api/telegram/ops-webhook`, secret_token: secret, allowed_updates: ['message', 'callback_query'], drop_pending_updates: false }), signal: AbortSignal.timeout(8_000) }),
       fetch(`${api}/setMyCommands`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ commands: [{ command: 'menu', description: 'Настройки уведомлений' }, { command: 'report', description: 'Отчёт за сегодня' }, { command: 'week', description: 'Отчёт за 7 дней' }] }), signal: AbortSignal.timeout(8_000) }),
     ]);
-    if (responses.some((response) => !response.ok)) setupStarted = false;
-  } catch {
+    const failures = failedTelegramSetupOperations(responses);
+    if (failures.length) {
+      setupStarted = false;
+      console.warn(`[nebo-ops] primary bot setup failed: ${failures.join(',')}`);
+    }
+  } catch (error) {
     setupStarted = false;
+    console.warn(`[nebo-ops] primary bot setup failed: ${telegramSetupFailureReason(error)}`);
   }
 }
 
@@ -150,10 +170,14 @@ export async function ensureNeboOwnerChannelBotSetup(
         signal: AbortSignal.timeout(8_000),
       }),
     ]);
-    if (responses.some((response) => !response.ok)) {
-      console.warn(`[nebo-ops] ${channel} bot setup failed`);
+    const failures = failedTelegramSetupOperations(responses);
+    if (failures.length) {
+      // Keep the log operational: Telegram's response body can include details
+      // we do not need to persist, while the endpoint and status identify the
+      // broken configuration without ever exposing a bot token.
+      console.warn(`[nebo-ops] ${channel} bot setup failed: ${failures.join(',')}`);
     }
-  } catch {
-    console.warn(`[nebo-ops] ${channel} bot setup failed`);
+  } catch (error) {
+    console.warn(`[nebo-ops] ${channel} bot setup failed: ${telegramSetupFailureReason(error)}`);
   }
 }
