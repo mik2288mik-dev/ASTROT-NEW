@@ -48,6 +48,7 @@ import {
 import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
+import { AppEntryAnnouncement } from './components/AppEntryAnnouncement';
 import { AppTopBar } from './components/lumia-ui/AppTopBar';
 import { NeboLogo } from './components/brand/NeboLogo';
 import {
@@ -89,6 +90,12 @@ import {
     recordUserSession,
     waitForTelegramInitData,
 } from './services/sessionService';
+import {
+    hasSeenAppEntryAnnouncement,
+    loadAppEntryAnnouncement,
+    markAppEntryAnnouncementSeen,
+} from './services/appEntryAnnouncementService';
+import type { AppEntryAnnouncement as AppEntryAnnouncementData } from './lib/appEntryAnnouncement';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
@@ -423,6 +430,7 @@ const App: React.FC = () => {
     const [paywallResumeNotice, setPaywallResumeNotice] = useState<string | null>(null);
     const [firstValueReached, setFirstValueReached] = useState(false);
     const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
+    const [appEntryAnnouncement, setAppEntryAnnouncement] = useState<AppEntryAnnouncementData | null>(null);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
@@ -473,6 +481,23 @@ const App: React.FC = () => {
         setFirstValueReached(reached);
         setPremiumContinuation(null);
     }, [profile?.id]);
+
+    useEffect(() => {
+        if (loading || !profile?.id || view !== 'dashboard') return;
+        let cancelled = false;
+        void loadAppEntryAnnouncement()
+            .then((announcement) => {
+                if (cancelled || !announcement || hasSeenAppEntryAnnouncement(announcement)) return;
+                setAppEntryAnnouncement(announcement);
+            })
+            .catch(() => undefined);
+        return () => { cancelled = true; };
+    }, [loading, profile?.id, view]);
+
+    const closeAppEntryAnnouncement = useCallback(() => {
+        if (appEntryAnnouncement) markAppEntryAnnouncementSeen(appEntryAnnouncement);
+        setAppEntryAnnouncement(null);
+    }, [appEntryAnnouncement]);
 
     useEffect(() => {
         const userId = profile?.id ? String(profile.id) : '';
@@ -2979,6 +3004,13 @@ const App: React.FC = () => {
                         ×
                     </button>
                 </div>
+            ) : null}
+
+            {!paywallContext && !navigationSheet ? (
+                <AppEntryAnnouncement
+                    announcement={appEntryAnnouncement}
+                    onClose={closeAppEntryAnnouncement}
+                />
             ) : null}
 
             {showsBottomNavigation ? (

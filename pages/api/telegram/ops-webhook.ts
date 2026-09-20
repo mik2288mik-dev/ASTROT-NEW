@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'crypto';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getNeboOpsConfig, sendNeboOpsText } from '../../../lib/neboOps';
 import { sendNeboOpsBusinessReport } from '../../../lib/neboOpsReports';
+import { telegramApiRequest } from '../../../lib/telegramRelay';
 import {
   cycleNeboOpsReportSchedule,
   getNeboOpsPreferences,
@@ -22,11 +23,10 @@ function safeEqual(left: string, right: string): boolean {
 }
 
 async function answerCallback(token: string, callbackId: string, text: string) {
-  await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ callback_query_id: callbackId, text: text.slice(0, 180) }),
-    signal: AbortSignal.timeout(8_000),
-  }).catch(() => undefined);
+  await telegramApiRequest(token, 'answerCallbackQuery', {
+    callback_query_id: callbackId,
+    text: text.slice(0, 180),
+  }, { signal: AbortSignal.timeout(8_000) }).catch(() => undefined);
 }
 
 async function sendMenu() {

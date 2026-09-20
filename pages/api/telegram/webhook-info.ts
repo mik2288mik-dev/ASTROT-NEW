@@ -4,6 +4,7 @@ import {
   getTelegramBotToken,
   isTelegramWebhookEnabled,
 } from '../../../lib/telegramWebhookMode';
+import { telegramApiRequest } from '../../../lib/telegramRelay';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/webhook-info] ${msg}`, data || ''),
@@ -41,9 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`, {
-      signal: AbortSignal.timeout(10_000),
-    });
+    const tgRes = await telegramApiRequest(botToken, 'getWebhookInfo', {}, { signal: AbortSignal.timeout(10_000) });
     const data = await tgRes.json();
 
     log.info('getWebhookInfo called', { ok: data.ok });

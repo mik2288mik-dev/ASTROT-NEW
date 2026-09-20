@@ -194,6 +194,16 @@ body.theme-lumia-air #__next {
   -webkit-overflow-scrolling: touch;
 }
 
+.app-entry-announcement-message {
+  max-width: 58ch;
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--text-main, #1f1f1f);
+  font-size: 1rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
 .lumia-home-screen {
   background: #ffffff;
   color: var(--lumia-home-text);

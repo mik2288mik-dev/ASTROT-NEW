@@ -1,4 +1,5 @@
 import { getTelegramBotToken } from './telegramEnv';
+import { telegramApiRequest } from './telegramRelay';
 
 type TelegramSendResult = {
   ok: boolean;
@@ -55,9 +56,7 @@ export async function resolveBotUsername(): Promise<string> {
   const botToken = getTelegramBotToken();
   if (!botToken) { cachedBotUsername = ''; return ''; }
   try {
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`, {
-      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
-    });
+    const response = await telegramApiRequest(botToken, 'getMe', {}, { signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS) });
     const data = await response.json();
     cachedBotUsername = String(data?.result?.username || '').replace(/^@/, '').trim();
   } catch {
@@ -74,12 +73,9 @@ export async function refundStarPayment(
   const botToken = getTelegramBotToken();
   if (!botToken) return { ok: false, error: 'BOT_TOKEN is not configured' };
   try {
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/refundStarPayment`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: Number(userId), telegram_payment_charge_id: telegramPaymentChargeId }),
-      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
-    });
+    const response = await telegramApiRequest(botToken, 'refundStarPayment', {
+      user_id: Number(userId), telegram_payment_charge_id: telegramPaymentChargeId,
+    }, { signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS) });
     const data = await response.json().catch(() => ({} as any));
     if (!response.ok || !data?.ok) return { ok: false, error: data?.description || `Telegram refund failed: ${response.status}` };
     return { ok: true };
@@ -111,14 +107,7 @@ export async function sendTelegramTextMessage(
       body.reply_markup = options.replyMarkup;
     }
 
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
-    });
+    const response = await telegramApiRequest(botToken, 'sendMessage', body, { signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS) });
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload?.ok === false) {
@@ -222,14 +211,7 @@ export async function sendTelegramPhotoMessage(
       body.reply_markup = options.replyMarkup;
     }
 
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
-    });
+    const response = await telegramApiRequest(botToken, 'sendPhoto', body, { signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS) });
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload?.ok === false) {
@@ -258,16 +240,11 @@ export async function answerTelegramCallbackQuery(
   const botToken = getTelegramBotToken();
   if (!botToken) return { ok: false, error: 'BOT_TOKEN is not configured' };
   try {
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        callback_query_id: callbackQueryId,
-        text: text || undefined,
-        show_alert: false,
-      }),
-      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
-    });
+    const response = await telegramApiRequest(botToken, 'answerCallbackQuery', {
+      callback_query_id: callbackQueryId,
+      text: text || undefined,
+      show_alert: false,
+    }, { signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS) });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload?.ok === false) {
       return { ok: false, error: payload?.description || `answerCallbackQuery failed: ${response.status}` };

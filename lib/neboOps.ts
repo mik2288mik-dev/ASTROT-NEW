@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { telegramApiRequest } from './telegramRelay';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import type { PoolClient } from 'pg';
 import { getPool } from './db';
@@ -623,11 +624,12 @@ export async function sendNeboOpsTextWithConfig(
     if (delay > 0) await new Promise<void>((resolve) => setTimeout(resolve, delay));
     await client.query("UPDATE nebo_ops_delivery_state SET next_send_at = NOW() + INTERVAL '1100 milliseconds' WHERE id = 1");
     try {
-      const response = await fetch(`https://api.telegram.org/bot${config.token}/sendMessage`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: config.chatId, text: message.slice(0, 3_800), disable_web_page_preview: true, reply_markup: options?.replyMarkup }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
+      const response = await telegramApiRequest(config.token, 'sendMessage', {
+        chat_id: config.chatId,
+        text: message.slice(0, 3_800),
+        disable_web_page_preview: true,
+        reply_markup: options?.replyMarkup,
+      }, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
       const data = await response.json().catch(() => null);
       if (response.ok && data?.ok === true && Number.isSafeInteger(data.result?.message_id)) {
         return { ok: true, messageId: data.result.message_id };

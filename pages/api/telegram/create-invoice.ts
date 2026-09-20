@@ -11,6 +11,7 @@ import {
   getTelegramWebhookSecret,
   isTelegramWebhookEnabled,
 } from '../../../lib/telegramWebhookMode';
+import { telegramApiRequest } from '../../../lib/telegramRelay';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/create-invoice] ${msg}`, data || ''),
@@ -111,19 +112,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Payload too long', code: 'PAYLOAD_TOO_LONG' });
     }
 
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: product.title,
-        description: product.description,
-        payload,
-        provider_token: '',
-        currency: 'XTR',
-        prices: [{ label: product.label, amount: product.starsAmount }],
-      }),
-      signal: AbortSignal.timeout(10_000),
-    });
+    const response = await telegramApiRequest(botToken, 'createInvoiceLink', {
+      title: product.title,
+      description: product.description,
+      payload,
+      provider_token: '',
+      currency: 'XTR',
+      prices: [{ label: product.label, amount: product.starsAmount }],
+    }, { signal: AbortSignal.timeout(10_000) });
 
     const data = await response.json();
     if (!data.ok) {

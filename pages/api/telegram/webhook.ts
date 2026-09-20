@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { answerTelegramCallbackQuery } from '../../../lib/telegramBot';
+import { telegramApiRequest } from '../../../lib/telegramRelay';
 import { processTelegramSuccessfulPayment } from '../../../lib/starsPaymentService';
 import {
   getTelegramBotToken,
@@ -82,12 +83,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (botToken) {
       try {
         const preCheckoutId = (update.pre_checkout_query as { id: string }).id;
-        await fetch(`https://api.telegram.org/bot${botToken}/answerPreCheckoutQuery`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pre_checkout_query_id: preCheckoutId, ok: true }),
-          signal: AbortSignal.timeout(10_000),
-        });
+        await telegramApiRequest(botToken, 'answerPreCheckoutQuery', {
+          pre_checkout_query_id: preCheckoutId,
+          ok: true,
+        }, { signal: AbortSignal.timeout(10_000) });
       } catch (e: any) {
         log.error('Failed to answer pre-checkout', { error: e.message });
       }

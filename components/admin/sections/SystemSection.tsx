@@ -9,6 +9,11 @@ import {
   AdminMe,
 } from '../../../services/admin2Service';
 import { StatusBadge } from '../common/StatusBadge';
+import {
+  APP_ENTRY_ANNOUNCEMENT_FLAG,
+  APP_ENTRY_ANNOUNCEMENT_MAX_MESSAGE_LENGTH,
+  APP_ENTRY_ANNOUNCEMENT_MAX_TITLE_LENGTH,
+} from '../../../lib/appEntryAnnouncement';
 
 interface SystemSectionProps {
   me: AdminMe;
@@ -27,7 +32,7 @@ const ROLES: AdminRole[] = [
 ];
 
 export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }) => {
-  const [activeTab, setActiveTab] = useState<'health' | 'flags' | 'rbac' | 'audit'>('health');
+  const [activeTab, setActiveTab] = useState<'health' | 'announcement' | 'flags' | 'rbac' | 'audit'>('health');
 
   // ===================== HEALTH =====================
   const [health, setHealth] = useState<AdminSystemHealth | null>(null);
@@ -41,6 +46,13 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
   const [newFlagKey, setNewFlagKey] = useState('');
   const [newFlagVal, setNewFlagVal] = useState('true');
   const [newFlagDesc, setNewFlagDesc] = useState('');
+
+  // ===================== APP ENTRY ANNOUNCEMENT =====================
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementMessage, setAnnouncementMessage] = useState('');
+  const [announcementId, setAnnouncementId] = useState('');
+  const [announcementBusy, setAnnouncementBusy] = useState(false);
+  const [announcementNotice, setAnnouncementNotice] = useState<string | null>(null);
 
   // ===================== RBAC =====================
   const [admins, setAdmins] = useState<AdminEntry[]>([]);
@@ -106,10 +118,20 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
 
   useEffect(() => {
     if (activeTab === 'health') loadHealth();
-    if (activeTab === 'flags') loadFlags();
+    if (activeTab === 'flags' || activeTab === 'announcement') loadFlags();
     if (activeTab === 'rbac') loadRbac();
     if (activeTab === 'audit') loadAudit();
   }, [activeTab, loadHealth, loadFlags, loadRbac, loadAudit]);
+
+  useEffect(() => {
+    if (activeTab !== 'announcement') return;
+    const setting = flags.find((flag) => flag.key === APP_ENTRY_ANNOUNCEMENT_FLAG)?.value;
+    if (!setting || typeof setting !== 'object' || Array.isArray(setting)) return;
+    const value = setting as Record<string, unknown>;
+    setAnnouncementTitle(typeof value.title === 'string' ? value.title : '');
+    setAnnouncementMessage(typeof value.message === 'string' ? value.message : '');
+    setAnnouncementId(typeof value.id === 'string' ? value.id : '');
+  }, [activeTab, flags]);
 
   // Flag handlers
   const handleSaveFlag = async (key: string, rawVal: string, desc?: string) => {
@@ -144,6 +166,35 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
     await handleSaveFlag(newFlagKey.trim(), newFlagVal, newFlagDesc.trim());
     setNewFlagKey('');
     setNewFlagDesc('');
+  };
+
+  const saveAnnouncement = async (enabled: boolean) => {
+    const title = announcementTitle.trim();
+    const message = announcementMessage.trim();
+    if (enabled && (!title || !message)) {
+      setAnnouncementNotice('Заполни заголовок и текст сообщения.');
+      return;
+    }
+    setAnnouncementBusy(true);
+    setAnnouncementNotice(null);
+    try {
+      const id = enabled ? `entry-${Date.now().toString(36)}` : announcementId || `entry-${Date.now().toString(36)}`;
+      await admin2.setFlag(APP_ENTRY_ANNOUNCEMENT_FLAG, {
+        enabled,
+        id,
+        title: title || 'Сообщение',
+        message: message || 'Сообщение скрыто.',
+      }, 'Входное сообщение для всех пользователей приложения');
+      setAnnouncementId(id);
+      setAnnouncementNotice(enabled
+        ? 'Сообщение опубликовано. Каждый пользователь увидит эту новую версию один раз при входе.'
+        : 'Входное сообщение скрыто.');
+      await loadFlags();
+    } catch (error) {
+      setAnnouncementNotice(error instanceof Error ? error.message : 'Не удалось сохранить сообщение.');
+    } finally {
+      setAnnouncementBusy(false);
+    }
   };
 
   // RBAC handlers
@@ -184,7 +235,7 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
           </p>
         </div>
 
-        <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+        <div className="flex flex-wrap bg-gray-100 p-1 rounded-xl gap-1">
           <button
             onClick={() => setActiveTab('health')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -193,6 +244,16 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
           >
             Здоровье системы
           </button>
+          {me.isOwner && (
+            <button
+              onClick={() => setActiveTab('announcement')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                activeTab === 'announcement' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Сообщение в приложении
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('flags')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -306,6 +367,63 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
             </div>
           </div>
         </div>
+      )}
+
+      {/* ===================== APP ENTRY ANNOUNCEMENT ===================== */}
+      {activeTab === 'announcement' && me.isOwner && (
+        <section className="max-w-2xl bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+          <div>
+            <h3 className="font-bold text-gray-900 text-base">Сообщение при входе</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Это не push-уведомление: сообщение появится поверх главного экрана один раз для каждого пользователя после публикации.
+            </p>
+          </div>
+          <div>
+            <label className="block text-gray-600 font-semibold mb-1 text-sm" htmlFor="app-entry-announcement-title">Заголовок</label>
+            <input
+              id="app-entry-announcement-title"
+              type="text"
+              value={announcementTitle}
+              maxLength={APP_ENTRY_ANNOUNCEMENT_MAX_TITLE_LENGTH}
+              onChange={(event) => setAnnouncementTitle(event.target.value)}
+              placeholder="Например: Важное сообщение"
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl"
+              disabled={announcementBusy}
+            />
+          </div>
+          <div>
+            <label className="block text-gray-600 font-semibold mb-1 text-sm" htmlFor="app-entry-announcement-message">Текст</label>
+            <textarea
+              id="app-entry-announcement-message"
+              value={announcementMessage}
+              maxLength={APP_ENTRY_ANNOUNCEMENT_MAX_MESSAGE_LENGTH}
+              onChange={(event) => setAnnouncementMessage(event.target.value)}
+              placeholder="Что нужно сообщить пользователям"
+              className="w-full min-h-32 px-3 py-2 border border-gray-200 rounded-xl resize-y"
+              disabled={announcementBusy}
+            />
+            <p className="mt-1 text-xs text-gray-400">{announcementMessage.length} / {APP_ENTRY_ANNOUNCEMENT_MAX_MESSAGE_LENGTH}</p>
+          </div>
+          {announcementNotice && <p className="text-sm text-gray-600" role="status">{announcementNotice}</p>}
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => void saveAnnouncement(true)}
+              disabled={announcementBusy}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-xl"
+            >
+              {announcementBusy ? 'Сохраняю…' : 'Опубликовать для всех'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void saveAnnouncement(false)}
+              disabled={announcementBusy || !announcementId}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-semibold rounded-xl"
+            >
+              Скрыть сообщение
+            </button>
+          </div>
+        </section>
       )}
 
       {/* ===================== FLAGS ===================== */}

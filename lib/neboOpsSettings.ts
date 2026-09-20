@@ -1,5 +1,6 @@
 import { getPool } from './db';
 import type { TelegramReplyMarkup } from './telegramBot';
+import { telegramApiRequest } from './telegramRelay';
 
 export type NeboOpsPreferenceKey = 'notify_logins' | 'notify_payments' | 'notify_paywalls' | 'notify_support';
 export type NeboOpsPreferences = {
@@ -126,11 +127,10 @@ export async function ensureNeboOpsBotSetup(token: string): Promise<void> {
   const secret = String(process.env.NEBO_OPS_WEBHOOK_SECRET || '').trim();
   const base = String(process.env.NEBO_OPS_PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/$/, '');
   if (secret.length < 32 || !base.startsWith('https://')) { setupStarted = false; return; }
-  const api = `https://api.telegram.org/bot${token}`;
   try {
     const responses = await Promise.all([
-      fetch(`${api}/setWebhook`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: `${base}/api/telegram/ops-webhook`, secret_token: secret, allowed_updates: ['message', 'callback_query'], drop_pending_updates: false }), signal: AbortSignal.timeout(8_000) }),
-      fetch(`${api}/setMyCommands`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ commands: [{ command: 'menu', description: 'Настройки уведомлений' }, { command: 'report', description: 'Отчёт за сегодня' }, { command: 'week', description: 'Отчёт за 7 дней' }] }), signal: AbortSignal.timeout(8_000) }),
+      telegramApiRequest(token, 'setWebhook', { url: `${base}/api/telegram/ops-webhook`, secret_token: secret, allowed_updates: ['message', 'callback_query'], drop_pending_updates: false }, { signal: AbortSignal.timeout(8_000) }),
+      telegramApiRequest(token, 'setMyCommands', { commands: [{ command: 'menu', description: 'Настройки уведомлений' }, { command: 'report', description: 'Отчёт за сегодня' }, { command: 'week', description: 'Отчёт за 7 дней' }] }, { signal: AbortSignal.timeout(8_000) }),
     ]);
     const failures = failedTelegramSetupOperations(responses);
     if (failures.length) {
@@ -152,23 +152,15 @@ export async function ensureNeboOwnerChannelBotSetup(
   const secret = String(process.env.NEBO_OPS_WEBHOOK_SECRET || '').trim();
   const base = String(process.env.NEBO_OPS_PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/$/, '');
   if (secret.length < 32 || !base.startsWith('https://')) return;
-  const api = `https://api.telegram.org/bot${token}`;
   try {
     const responses = await Promise.all([
-      fetch(`${api}/setWebhook`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      telegramApiRequest(token, 'setWebhook', {
           url: `${base}/api/telegram/owner-channel-webhook?channel=${channel}`,
           secret_token: secret,
           allowed_updates: ['message'],
           drop_pending_updates: false,
-        }), signal: AbortSignal.timeout(8_000),
-      }),
-      fetch(`${api}/setMyCommands`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ commands: [{ command: 'menu', description: 'О боте' }] }),
-        signal: AbortSignal.timeout(8_000),
-      }),
+        }, { signal: AbortSignal.timeout(8_000) }),
+      telegramApiRequest(token, 'setMyCommands', { commands: [{ command: 'menu', description: 'О боте' }] }, { signal: AbortSignal.timeout(8_000) }),
     ]);
     const failures = failedTelegramSetupOperations(responses);
     if (failures.length) {
