@@ -4,9 +4,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 const CONTEXT = 'nebo-openai-relay-v1';
 
 function relayToken(): string {
-  const secret = String(process.env.APP_SESSION_SECRET || '').trim();
-  if (!secret) throw new Error('APP_SESSION_SECRET_MISSING');
-  return createHash('sha256').update(`${CONTEXT}:${secret}`).digest('hex');
+  const apiKey = String(process.env.OPENAI_API_KEY || '').trim();
+  if (!apiKey) throw new Error('OPENAI_API_KEY_MISSING');
+  return createHash('sha256').update(`${CONTEXT}:${apiKey}`).digest('hex');
 }
 
 function authorized(req: NextApiRequest): boolean {
@@ -20,6 +20,9 @@ function authorized(req: NextApiRequest): boolean {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (process.env.OPENAI_RELAY_DIRECT !== '1') {
+    return res.status(404).json({ error: 'NOT_FOUND' });
+  }
   if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
 
   try {
