@@ -1,4 +1,7 @@
+import { installOwnerErrorAlerts } from './lib/ownerErrorAlerts';
 import { ensureNotificationScheduler } from './lib/notificationScheduler';
+
+installOwnerErrorAlerts();
 
 try {
   ensureNotificationScheduler('instrumentation');

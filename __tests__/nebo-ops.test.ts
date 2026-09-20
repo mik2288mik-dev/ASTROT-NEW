@@ -230,8 +230,12 @@ describe('durable owner notification queue', () => {
     expect(shouldDeliverNeboOpsEvent('activity', { eventType: 'paywall_view' })).toBe(true);
     expect(shouldDeliverNeboOpsEvent('payment_confirmed')).toBe(true);
     expect(shouldDeliverNeboOpsEvent('daily_summary')).toBe(true);
-    for (const eventType of ['hourly_summary', 'support_ticket', 'ai_error', 'attribution_received']) {
-      expect(shouldDeliverNeboOpsEvent(eventType)).toBe(false);
+    for (const eventType of [
+      'hourly_summary', 'support_ticket', 'ai_error', 'attribution_received',
+      'trial_started', 'subscription_grace', 'subscription_cancelled',
+      'subscription_expired', 'subscription_resumed', 'payment_refunded',
+    ]) {
+      expect(shouldDeliverNeboOpsEvent(eventType)).toBe(true);
     }
     for (const eventType of ['screen_view', 'checkout_start', 'question_sent', 'purchase_success']) {
       expect(shouldDeliverNeboOpsEvent('activity', { eventType })).toBe(false);
