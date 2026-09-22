@@ -912,6 +912,43 @@ body.theme-lumia-air #__next {
   padding-bottom: 18px;
 }
 
+/* Sheets are ordinary product UI unless a caller explicitly asks for a cosmic surface. */
+.cosmic-sheet-layer:has(.cosmic-sheet-panel--standard) .cosmic-sheet-backdrop {
+  background: rgba(33, 31, 28, 0.18);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.cosmic-sheet-panel--standard.cosmic-surface,
+.cosmic-sheet-panel--standard .cosmic-sheet-plane,
+.cosmic-sheet-panel--standard .cosmic-sheet-footer {
+  background: #fff;
+  color: #292724;
+}
+
+.cosmic-sheet-panel--standard.cosmic-surface {
+  box-shadow: 0 -1.3rem 3.5rem rgba(35, 31, 27, 0.14);
+}
+
+.cosmic-sheet-panel--standard .cosmic-surface__art { display: none; }
+.cosmic-sheet-panel--standard .cosmic-sheet-handle { height: 2px; background: #c8c2ba; }
+.cosmic-sheet-panel--standard .cosmic-sheet-title { color: #292724; }
+.cosmic-sheet-panel--standard .cosmic-sheet-subtitle { color: #7b756e; }
+.cosmic-sheet-panel--standard .cosmic-sheet-close { border: 0; background: transparent; color: #403d38; }
+.cosmic-sheet-panel--standard .cosmic-sheet-content { color: #292724; }
+.cosmic-sheet-panel--standard .cosmic-sheet-content :is(input, textarea, select) {
+  border-color: rgba(57, 53, 48, 0.16);
+  background: #fff;
+  color: #292724;
+  caret-color: #292724;
+}
+.cosmic-sheet-panel--standard .cosmic-sheet-content :is(input, textarea)::placeholder { color: #9b958e; }
+.cosmic-sheet-panel--standard .cosmic-sheet-footer { border-top-color: rgba(57, 53, 48, 0.12); }
+.cosmic-sheet-panel--standard .cosmic-sheet-close:focus-visible,
+.cosmic-sheet-panel--standard .cosmic-sheet-content :is(button, a, input, textarea, select):focus-visible {
+  outline-color: #292724;
+}
+
 .day-sheet-state,
 .day-sheet-reading p {
   margin: 0;
@@ -962,7 +999,7 @@ body.theme-lumia-air #__next {
 .day-sheet-loading div:nth-child(1) { width: 82%; }
 .day-sheet-loading div:nth-child(3) { width: 68%; }
 
-.lz-sheet-panel.cosmic-sheet-panel {
+.lz-sheet-panel.cosmic-sheet-panel--cosmic {
   background: #050711;
 }
 
@@ -970,7 +1007,7 @@ body.theme-lumia-air #__next {
   padding-top: 4px;
 }
 
-.lz-sheet-panel .cosmic-sheet-content button span:last-child {
+.lz-sheet-panel.cosmic-sheet-panel--cosmic .cosmic-sheet-content button span:last-child {
   color: #fff;
 }
 

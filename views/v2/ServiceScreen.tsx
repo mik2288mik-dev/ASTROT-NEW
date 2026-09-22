@@ -8,28 +8,28 @@ import {
 import type { UserProfile } from '../../types';
 import { AstrologyEncyclopedia } from './AstrologyEncyclopedia';
 
-export type ServiceTab = 'knowledge' | 'store' | 'settings';
+export type ServiceTab = 'matrix' | 'knowledge' | 'store';
 
 export type ServiceScreenProps = {
   profile: UserProfile;
   onOpenCharts: () => void;
+  onOpenMatrix: () => void;
   premiumStoreContent: React.ReactNode;
-  settingsContent: React.ReactNode;
   initialTab?: ServiceTab;
   activeTab?: ServiceTab;
   onTabChange?: (tab: ServiceTab) => void;
 };
 
 const SERVICE_TABS_RU: readonly EditorialTabItem<ServiceTab>[] = [
+  { id: 'matrix', label: 'Матрица судьбы' },
   { id: 'knowledge', label: 'Хочу знать' },
-  { id: 'store', label: 'Premium' },
-  { id: 'settings', label: 'Настройки' },
+  { id: 'store', label: 'Магазин' },
 ];
 
 const SERVICE_TABS_EN: readonly EditorialTabItem<ServiceTab>[] = [
+  { id: 'matrix', label: 'Destiny matrix' },
   { id: 'knowledge', label: 'Learn' },
-  { id: 'store', label: 'Premium' },
-  { id: 'settings', label: 'Settings' },
+  { id: 'store', label: 'Store' },
 ];
 
 export function ServiceScreen({
@@ -37,8 +37,8 @@ export function ServiceScreen({
   activeTab: controlledTab,
   onTabChange,
   onOpenCharts,
+  onOpenMatrix,
   premiumStoreContent,
-  settingsContent,
   profile,
 }: ServiceScreenProps) {
   const [internalTab, setInternalTab] = useState<ServiceTab>(initialTab);
@@ -47,6 +47,10 @@ export function ServiceScreen({
   const ru = profile.language !== 'en';
 
   const selectTab = (tab: ServiceTab) => {
+    if (tab === 'matrix') {
+      onOpenMatrix();
+      return;
+    }
     if (controlledTab === undefined) setInternalTab(tab);
     onTabChange?.(tab);
     window.requestAnimationFrame(() => {
@@ -58,12 +62,7 @@ export function ServiceScreen({
     <div ref={rootRef} className="fresh-page services-screen-page">
       <AppTopBar
         title={ru ? 'Меню' : 'Menu'}
-        rightAction={(
-          <EditorialChartsButton
-            label={ru ? 'Открыть мои карты' : 'Open my charts'}
-            onClick={onOpenCharts}
-          />
-        )}
+        rightAction={<EditorialChartsButton label={ru ? 'Открыть мои карты' : 'Open my charts'} onClick={onOpenCharts} />}
       />
       <EditorialTabs
         className="services-screen-tabs"
@@ -82,11 +81,7 @@ export function ServiceScreen({
         <div className="service-premium-content">
           {premiumStoreContent}
         </div>
-      ) : (
-        <div className="services-settings-content">
-          {settingsContent}
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }

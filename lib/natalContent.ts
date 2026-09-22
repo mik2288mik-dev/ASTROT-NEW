@@ -14,7 +14,7 @@ import {
   NatalFullAIResponse,
   NatalLivingAIResponse,
 } from './prompts';
-import { getAppSystemVoice } from './appVoice';
+import { getNeboCoreVoice } from './voice/core';
 import { getModelForTier } from './appSettings';
 import {
   createLunaJsonResponse,
@@ -73,7 +73,7 @@ async function createJsonCompletion<T>({
   void model;
   void _temperature;
   const response = await createLunaJsonResponse({
-    instructions: getAppSystemVoice(language),
+    instructions: getNeboCoreVoice(language),
     input: prompt,
     maxOutputTokens: maxTokens,
   });

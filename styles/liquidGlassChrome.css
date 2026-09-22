@@ -92,6 +92,20 @@
   justify-content: flex-end;
 }
 
+.app-top-bar-side--end.has-actions {
+  width: auto;
+}
+
+.app-top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.app-top-bar-settings-button {
+  color: #303746;
+}
+
 .app-top-bar-side--start {
   left: var(--app-top-bar-safe-left);
 }

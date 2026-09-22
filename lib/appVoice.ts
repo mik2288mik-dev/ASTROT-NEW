@@ -1,9 +1,10 @@
+import { getNeboCoreVoice } from './voice/core';
 /**
  * The shared runtime voice for user-facing AI content.
  * Product-specific layers may sharpen it without changing the global tone.
  */
 
-export const APP_VOICE_VERSION = '10';
+export const APP_VOICE_VERSION = '15';
 export const PERSONAL_FORECAST_VOICE_VERSION = '16';
 
 const APP_SYSTEM_VOICE_RU = `## ГОЛОС ПРИЛОЖЕНИЯ «ТВОЙ ГОРОСКОП»

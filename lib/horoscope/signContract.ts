@@ -1,5 +1,5 @@
 import type { SignHoroscopePeriod, SignHoroscopeReadingV2 } from '../../types';
-import { getAppSystemVoice, getPersonalForecastVoiceViolationCodes, hasAppVoiceViolation } from '../appVoice';
+import { getPersonalForecastVoiceViolationCodes, hasAppVoiceViolation } from '../appVoice';
 import { getNeboCoreVoice } from '../voice/core';
 import type { ZodiacKey } from '../zodiacKeys';
 

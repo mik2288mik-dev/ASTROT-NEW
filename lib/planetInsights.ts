@@ -17,7 +17,8 @@ import {
   createPlanetInsightPrompt,
   type PlanetInsightAIResponse,
 } from './prompts';
-import { getAppSystemVoice, withAppVoiceVersion } from './appVoice';
+import { getNeboCoreVoice } from './voice/core';
+import { withAppVoiceVersion } from './appVoice';
 import { hasActivePremium } from './accessMatrix';
 
 export const PLANET_INSIGHT_PROMPT_VERSION = withAppVoiceVersion('planet_insight.v1');
@@ -69,7 +70,7 @@ export async function generatePlanetInsight(
 
     void model;
     const response = await createLunaJsonResponse({
-      instructions: getAppSystemVoice(language === 'en' ? 'en' : 'ru'),
+      instructions: getNeboCoreVoice(language === 'en' ? 'en' : 'ru'),
       input: prompt,
       maxOutputTokens: 520,
     });

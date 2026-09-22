@@ -1,5 +1,5 @@
 import { getContentPolicy, type GeneratedContentType } from './contentMatrix';
-import { getAppSystemVoice } from './appVoice';
+import { getNeboCoreVoice } from './voice/core';
 
 export type AppPromptLanguage = 'ru' | 'en';
 export type AppContentPrompt = {
@@ -34,7 +34,7 @@ function buildPrompt(
   return {
     promptVersion: policy.promptVersion,
     responseFormat: 'json_object',
-    system: getAppSystemVoice(lang),
+    system: getNeboCoreVoice(lang),
     user: `${task}
 
 Правила типа контента:

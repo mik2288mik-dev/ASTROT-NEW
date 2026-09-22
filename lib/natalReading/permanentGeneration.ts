@@ -1,6 +1,6 @@
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
-import { getAppSystemVoice } from '../appVoice';
+import { getNeboCoreVoice } from '../voice/core';
 import {
   createLunaStructuredResponse,
   type StrictJsonSchema,

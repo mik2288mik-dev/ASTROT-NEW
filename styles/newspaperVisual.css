@@ -638,7 +638,6 @@
 .matrix-editorial-page .mtx-card,
 .matrix-editorial-page .mtx-note {
   border: 0 !important;
-  border-bottom: 1px solid var(--news-rule) !important;
   border-radius: 0 !important;
   background: #fff !important;
   box-shadow: none !important;
@@ -921,23 +920,77 @@
   margin-top: 2rem;
 }
 
+/* One wide reading column: every matrix block starts and ends on the same grid. */
+.matrix-editorial-page {
+  --matrix-content-width: min(calc(100% - 2rem), 46rem);
+}
+
+.matrix-editorial-page .product-screen-cover--matrix,
+.matrix-editorial-page .mtx-calculation-note,
+.matrix-editorial-page .mtx-form,
 .matrix-editorial-page .mtx-result {
-  max-width: 40rem;
+  box-sizing: border-box;
+  width: var(--matrix-content-width);
   margin-right: auto;
   margin-left: auto;
 }
 
+.matrix-editorial-page .mtx-result {
+  max-width: none;
+  padding: 0;
+}
+
+/* Matrix starts with the description, not a second copy of the screen title. */
+.matrix-editorial-page .product-screen-cover--matrix {
+  display: block;
+  min-height: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0 0 0.5rem;
+  border-bottom: 0 !important;
+  background: #fff !important;
+}
+
+.matrix-editorial-page .product-screen-cover--matrix .product-screen-cover-copy {
+  max-width: none;
+}
+
+.matrix-editorial-page .product-screen-cover--matrix .product-screen-cover-text {
+  max-width: 100%;
+  margin: 0;
+  color: var(--news-muted);
+  font-size: 0.95rem;
+  font-weight: 620;
+  line-height: 1.45;
+}
+
+.matrix-editorial-page .mtx-calculation-note {
+  padding: 0.25rem 0 0;
+  color: var(--news-muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.matrix-editorial-page .mtx-form {
+  padding: 0.25rem 0 0.5rem;
+}
+
+.matrix-editorial-page .mtx-form-row {
+  margin-top: 0;
+}
+
 .matrix-editorial-page .mtx-hero-shell {
-  padding: 0 1.25rem;
+  padding: 0;
 }
 
 .matrix-editorial-page .mtx-hero {
-  padding: 1.25rem 1.15rem 1.35rem !important;
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.9rem 1.15rem 0.95rem !important;
 }
 
 .matrix-editorial-page .mtx-hero-kicker,
 .matrix-editorial-page .mtx-hero-also {
-  margin: 0.8rem 0 0;
+  margin: 0.55rem 0 0;
   color: var(--news-muted) !important;
   font-size: 0.85rem;
   line-height: 1.5;
@@ -945,15 +998,30 @@
 
 .matrix-editorial-page .mtx-editorial-sections {
   display: block;
-  padding: 0 1.25rem;
+  margin-top: 0.5rem;
+  padding: 0;
 }
 
 .matrix-editorial-page .mtx-card {
   width: 100%;
-  padding: 2.15rem 0 !important;
+  padding: 0.9rem 0 1rem !important;
   border: 0 !important;
-  border-top: 1px solid var(--news-rule) !important;
   background: #fff !important;
+}
+
+.matrix-editorial-page .mtx-card .editorial-reading-heading {
+  margin-bottom: 0.5rem;
+}
+
+.matrix-editorial-page .editorial-reading-prose {
+  gap: 0.5rem;
+}
+
+/* Matrix uses spacing for sections; divider rules add no meaning here. */
+.matrix-editorial-page .editorial-reading-section,
+.matrix-editorial-page .editorial-reading-summary,
+.matrix-editorial-page .editorial-reading-evidence {
+  border: 0 !important;
 }
 
 .matrix-editorial-page .mtx-card-essence {
@@ -961,7 +1029,7 @@
 }
 
 .matrix-editorial-page .mtx-life-head {
-  margin: 2.5rem 1.25rem 0;
+  margin: 1rem 0 0;
   color: var(--news-ink);
   font-size: clamp(1.65rem, 6.5vw, 2rem);
   font-weight: 830;
@@ -971,7 +1039,7 @@
 
 .matrix-editorial-page .mtx-note-toggle {
   display: block;
-  margin: 1.5rem 1.25rem 0;
+  margin: 0.75rem 0 0;
   color: var(--news-ink) !important;
   font-weight: 720;
   text-decoration: underline;
@@ -980,10 +1048,16 @@
 
 .matrix-editorial-page .mtx-note {
   width: auto;
-  margin: 0.8rem 1.25rem 1.5rem;
-  padding: 1rem 1.05rem !important;
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.75rem 0.9rem !important;
   border: 0 !important;
   background: var(--news-paper-soft) !important;
+}
+
+.matrix-editorial-page .mtx-share-hook {
+  margin-top: 0.75rem;
+  margin-right: 0;
+  margin-left: 0;
 }
 
 @media (max-width: 380px) {

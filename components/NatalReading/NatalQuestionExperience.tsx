@@ -39,84 +39,84 @@ const QUESTION_STARTERS: Record<NatalReportCategoryKey, {
   main: {
     ru: [
       'Как я принимаю важные решения?',
-      'Почему я могу резко потерять интерес?',
-      'Что во мне люди понимают не сразу?',
-      'Какая моя сильная сторона чаще всего помогает?',
+      'Почему я могу терять интерес к работе или новым делам?',
+      'Что люди не сразу понимают в моём характере?',
+      'Какая моя сильная сторона помогает в работе?',
     ],
     en: [
-      'How do I make important decisions?',
-      'Why can I suddenly lose interest?',
-      'What do people not understand about me at first?',
-      'Which of my strengths helps me most often?',
+      'What affects my important decisions?',
+      'Why do I lose interest in work or new things?',
+      'What do people not understand about my character at first?',
+      'Which strength helps me at work?',
     ],
   },
   character: {
     ru: [
       'Почему я иногда меняю решение в последний момент?',
-      'Что меня раздражает быстрее всего?',
-      'Почему мне быстро становится скучно?',
-      'Что я делаю, когда план ломается?',
+      'Что меня раздражает в общении?',
+      'Почему мне быстро становится скучно в работе?',
+      'Как я реагирую, когда планы ломаются?',
     ],
     en: [
-      'Why do I sometimes change a decision at the last moment?',
-      'What irritates me fastest?',
-      'Why do I get bored quickly?',
-      'What do I do when a plan falls apart?',
+      'Why do I change a decision at the last moment?',
+      'What irritates me in communication?',
+      'Why do I get bored at work?',
+      'How do I react when a plan falls apart?',
     ],
   },
   love: {
     ru: [
-      'Какие люди мне обычно нравятся?',
-      'Как я показываю, что человек мне интересен?',
-      'Почему я могу быстро отдалиться?',
-      'Какой человек мне действительно подходит?',
+      'Какие люди мне нравятся в отношениях?',
+      'Как я показываю интерес в близких отношениях?',
+      'Почему я могу быстро отдалиться в отношениях?',
+      'На что я обращаю внимание в отношениях?',
     ],
     en: [
-      'Which people do I usually like?',
-      'How do I show that someone interests me?',
-      'Why can I pull away quickly?',
-      'What kind of person really fits me?',
+      'What kind of people do I like in relationships?',
+      'How do I show interest in close relationships?',
+      'Why do I pull away in relationships?',
+      'What do I notice most in relationships?',
     ],
   },
   communication: {
     ru: [
-      'Какое первое впечатление я создаю?',
-      'Почему меня иногда понимают неправильно?',
-      'Как я веду себя в ссоре?',
+      'Как я проявляюсь при знакомстве и в новом общении?',
+      'Почему меня иногда неправильно понимают в общении?',
+      'Как я веду себя в конфликте?',
       'Почему мне бывает трудно попросить о помощи?',
     ],
     en: [
-      'What first impression do I create?',
-      'Why am I sometimes misunderstood?',
-      'How do I act during an argument?',
+      'How do I come across when meeting someone new?',
+      'Why am I misunderstood in conversations?',
+      'What are my patterns in conflict?',
       'Why can asking for help be difficult for me?',
     ],
   },
   work: {
     ru: [
       'Какая работа мне быстро надоедает?',
-      'Мне легче работать одному или с людьми?',
-      'Как я веду себя под давлением сроков?',
-      'Подходит ли мне своё дело?',
+      'Как в работе мне легче: одному или с людьми?',
+      'Как я веду себя под давлением сроков на работе?',
+      'Какие мои сильные стороны помогают в работе?',
     ],
     en: [
       'What kind of work bores me quickly?',
-      'Do I work better alone or with people?',
-      'How do I act under deadline pressure?',
-      'Would running my own business fit me?',
+      'Why do I prefer working alone?',
+      'How do I act under deadline pressure at work?',
+      'Which strengths help me at work?',
     ],
   },
   money: {
     ru: [
-      'Я скорее коплю или трачу?',
-      'Как я принимаю крупные денежные решения?',
-      'Насколько я готов рисковать деньгами?',
+      'Какие привычки влияют на мои траты?',
+      'Как я принимаю денежные решения?',
+      'Почему мне может быть трудно рисковать деньгами?',
       'Почему мне бывает трудно назвать цену своей работе?',
     ],
     en: [
-      'Am I more likely to save or spend?',
-      'How do I make large financial decisions?',
-      'How willing am I to take financial risks?',
+      'Which habits affect how I spend money?',
+      'What influences my money decisions?',
+      'Why can taking financial risks be difficult for me?',
       'Why can naming a price for my work be difficult?',
     ],
   },
@@ -381,13 +381,13 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         <p>{language === 'ru' ? 'Спросить' : 'Ask'}</p>
         <h1 id="natal-v3-question-title">
           {language === 'ru'
-            ? `Что хочешь понять ${contextCategory === 'main' ? 'о себе' : `про ${contextTitle(contextCategory, language)}`}?`
-            : `What do you want to understand about ${contextTitle(contextCategory, language)}?`}
+            ? `Задай вопрос ${contextCategory === 'main' ? 'о себе' : `про ${contextTitle(contextCategory, language)}`}`
+            : `Ask about ${contextTitle(contextCategory, language)}`}
         </h1>
         <span>
           {language === 'ru'
-            ? 'Пиши обычными словами. Ответ строится по сохранённой карте и показывает, почему получился именно такой вывод.'
-            : 'Write in ordinary words. The answer uses the saved chart and shows why that conclusion was made.'}
+            ? 'Напиши вопрос. Разберём его по твоей натальной карте.'
+            : 'Ask a question. We will answer it using your saved birth chart.'}
         </span>
       </header>
 

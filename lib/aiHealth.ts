@@ -1,4 +1,4 @@
-import { getAppSystemVoice } from './appVoice';
+import { getNeboCoreVoice } from './voice/core';
 import { createLunaTextResponse, OPENAI_LUNA_MODEL } from './openaiResponses';
 
 /** Runtime health for the fixed OpenAI Luna route. Zodiac is intentionally separate. */
@@ -68,7 +68,7 @@ export async function pingAiGeneration(): Promise<AiPingResult> {
 
   try {
     const response = await createLunaTextResponse({
-      instructions: getAppSystemVoice('ru'),
+      instructions: getNeboCoreVoice('ru'),
       input: 'Ответь ровно одним словом: работает',
       maxOutputTokens: 16,
     });

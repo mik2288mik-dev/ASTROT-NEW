@@ -47,6 +47,13 @@ function renderContentBlocks(
   );
 }
 
+const ACTION_LABELS: Record<string, { ru: string, en: string }> = {
+  'do': { ru: 'Что делать', en: 'What to do' },
+  'dont': { ru: 'Чего не делать', en: 'What not to do' },
+  'advice': { ru: 'Совет', en: 'Advice' },
+  'wish': { ru: 'Пожелание', en: 'Wish' },
+};
+
 export function ForecastSectionBlock({
   section,
   period,
@@ -139,8 +146,17 @@ export function ForecastSectionBlock({
           </div>
         ) : renderContentBlocks(section, period)}
         {section.actionType && section.actionText && !locked ? (
-          <div className={`forecast-action-card is-${section.actionType}`}>
-            <span className="forecast-action-text">{section.actionText}</span>
+          <div className={[
+            'forecast-feed-section-copy',
+            period !== 'day' ? 'forecast-period-editorial-copy' : '',
+          ].filter(Boolean).join(' ')}>
+            <p className={[
+              'forecast-feed-section-text',
+              'is-body',
+              period !== 'day' ? 'is-story-opening' : '',
+            ].filter(Boolean).join(' ')}>
+              <strong>{ACTION_LABELS[section.actionType]?.[language] || ACTION_LABELS['advice'][language]}:</strong> {section.actionText}
+            </p>
           </div>
         ) : null}
         {showsEndVisual && endVisualAsset ? (

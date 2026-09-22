@@ -1,9 +1,10 @@
 import {
   APP_VOICE_VERSION,
-  getAppSystemVoice,
-  hasAppVoiceViolation,
   withAppVoiceVersion,
+  hasAppVoiceViolation,
+  hasPersonalForecastVoiceViolation,
 } from './appVoice';
+import { getNeboCoreVoice } from './voice/core';
 import { getUnifiedContentModel } from './appSettings';
 import {
   appendAstrologyMessage,
@@ -591,7 +592,7 @@ async function requestWithOpenAI(input: {
 }): Promise<string> {
   void input.model;
   const response = await createLunaStructuredResponse({
-    instructions: getAppSystemVoice(input.language),
+    instructions: getNeboCoreVoice(input.language),
     input: input.prompt,
     maxOutputTokens: 1_400,
     schemaName: 'personal_forecast_question_answer',

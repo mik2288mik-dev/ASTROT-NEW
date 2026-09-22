@@ -6,7 +6,8 @@ import type {
   UserProfile,
 } from '../types';
 import { llmJson } from './anthropic';
-import { APP_VOICE_VERSION, getAppSystemVoice } from './appVoice';
+import { APP_VOICE_VERSION } from './appVoice';
+import { getNeboCoreVoice } from './voice/core';
 import {
   HUMAN_PAID_SECTION_META,
   buildLockedPaidSections,
@@ -266,7 +267,7 @@ export async function generateHumanBaseReport(
   const language: Locale = profile.language === 'en' ? 'en' : 'ru';
   const fallback = directBaseFallback(profile, chart);
   const raw = await llmJson<DirectNatalPayload>({
-    system: getAppSystemVoice(language),
+    system: getNeboCoreVoice(language),
     user: directBasePrompt(language, chart),
     model: {
       accessTier: 'free',
@@ -293,7 +294,7 @@ export async function generateHumanPaidSection(
   if (!plan) throw new Error(`Natal semantic plan is missing section: ${key}`);
   const fallback = sectionFromPlan(plan, 'paid');
   const raw = await llmJson<GeneratedNatalPayload>({
-    system: getAppSystemVoice(language),
+    system: getNeboCoreVoice(language),
     user: writerPrompt(compilation, [plan]),
     model: {
       accessTier: 'premium',

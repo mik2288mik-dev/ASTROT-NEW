@@ -19,13 +19,21 @@ const REGIONS: Record<Exclude<NatalArt, 'plus'>, [number, number, number, number
   points: [648, 792, 141, 34],
 };
 
+const DETAIL_ARTWORKS: Partial<Record<NatalArt, string>> = {
+  planets: '/natal-art/details-planets-v1.png',
+  houses: '/natal-art/details-houses-v1.png',
+  aspects: '/natal-art/details-aspects-v1.png',
+  points: '/natal-art/details-ascendant-v1.png',
+};
+
 /** Decorative still lifes only. They do not encode or replace calculated chart facts. */
 export function NatalArtwork({ art, className = '' }: { art: NatalArt; className?: string }) {
   const [x,y,width,height] = art === 'plus' ? [452,270,60,63] : REGIONS[art];
+  const detailArtwork = DETAIL_ARTWORKS[art];
   return <span aria-hidden="true" data-art={art} className={`${styles.artwork} ${className}`} style={{
-    backgroundImage: `url('/natal-art/${art === 'plus' ? 'render-map-reference' : 'render-reference'}.png')`,
-    backgroundSize: `${1672 / width * 100}% ${941 / height * 100}%`,
-    backgroundPosition: `${x / (1672 - width) * 100}% ${y / (941 - height) * 100}%`,
+    backgroundImage: `url('${detailArtwork || `/natal-art/${art === 'plus' ? 'render-map-reference' : 'render-reference'}.png`}')`,
+    backgroundSize: detailArtwork ? 'cover' : `${1672 / width * 100}% ${941 / height * 100}%`,
+    backgroundPosition: detailArtwork ? 'left center' : `${x / (1672 - width) * 100}% ${y / (941 - height) * 100}%`,
     backgroundRepeat: 'no-repeat',
   }} />;
 }

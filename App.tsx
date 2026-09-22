@@ -49,7 +49,7 @@ import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppEntryAnnouncement } from './components/AppEntryAnnouncement';
-import { AppTopBar } from './components/lumia-ui/AppTopBar';
+import { AppTopBar, AppTopBarSettingsProvider } from './components/lumia-ui/AppTopBar';
 import { NeboLogo } from './components/brand/NeboLogo';
 import {
     LumiaNavigationSheet,
@@ -2724,6 +2724,10 @@ const App: React.FC = () => {
     );
 
     return (
+        <AppTopBarSettingsProvider onOpenSettings={() => {
+            setNavigationSheet(null);
+            if (viewRef.current !== 'settings') navigateTo('settings');
+        }}>
         <div
             className={`lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
                 showsBottomNavigation ? 'has-today-bottom-navigation' : ''
@@ -2777,7 +2781,7 @@ const App: React.FC = () => {
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <MatrixRoom
                             profile={profile}
-                            onBack={() => { void handleBack(); }}
+                            onBack={() => navigateTo('services', { replace: true })}
                             onOpenProfile={openProfileSheet}
                         />
                     </div>
@@ -2881,6 +2885,7 @@ const App: React.FC = () => {
                             activeTab={serviceTab}
                             onTabChange={setServiceTab}
                             onOpenCharts={openProfileCharts}
+                            onOpenMatrix={() => navigateTo('matrix')}
                             premiumStoreContent={(
                                 <Paywall
                                     embedded
@@ -2901,22 +2906,6 @@ const App: React.FC = () => {
                                             eventPayload: paywallEventPayload(serviceStoreContext, { planId }),
                                         });
                                     }}
-                                />
-                            )}
-                            settingsContent={(
-                                <Settings
-                                    embedded
-                                    profile={profile}
-                                    onUpdate={handleProfileUpdate}
-                                    onRequestPremium={openServiceStore}
-                                    onRestorePurchase={() => restorePremiumPurchases()}
-                                    onManageSubscription={managePremiumSubscription}
-                                    onOpenAdmin={() => navigateTo('admin')}
-                                    onOpenCharts={openProfileCharts}
-                                    onLogout={handleLogout}
-                                    onDeleteAccount={handleDeleteAccount}
-                                    recoveryIdentityRequired={pendingPremiumRecovery !== null}
-                                    onRecoveryIdentityReady={completePremiumRecoveryIdentity}
                                 />
                             )}
                         />
@@ -3034,6 +3023,7 @@ const App: React.FC = () => {
                 </>
             ) : null}
         </div>
+        </AppTopBarSettingsProvider>
     );
 };
 

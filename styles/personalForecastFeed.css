@@ -2602,31 +2602,3 @@
     animation: none;
   }
 }
-
-.forecast-action-card {
-  margin-top: 16px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background-color: var(--astro-bg-subtle, rgba(255,255,255,0.05));
-  border: 1px solid var(--astro-border, rgba(255,255,255,0.1));
-}
-
-.forecast-action-card.is-buy {
-  border-color: rgba(255, 215, 0, 0.3);
-}
-.forecast-action-card.is-talk {
-  border-color: rgba(100, 200, 255, 0.3);
-}
-.forecast-action-card.is-move {
-  border-color: rgba(100, 255, 150, 0.3);
-}
-.forecast-action-card.is-stop {
-  border-color: rgba(255, 100, 100, 0.3);
-}
-
-.forecast-action-text {
-  font-size: 15px;
-  line-height: 1.4;
-  color: var(--astro-text-primary, #fff);
-  font-weight: 500;
-}

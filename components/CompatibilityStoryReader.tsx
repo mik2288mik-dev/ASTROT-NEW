@@ -17,6 +17,9 @@ export function CompatibilityStoryReader({ result, language, subjectName, partne
   const minutes = Math.max(1, Math.round((result.summary || '').split(/\s+/u).filter(Boolean).length / 180));
   const titleFor = (topic: CompatibilityStoryTopic) => compatibilityTopicTitle(topic, context, language);
   const evidence = new Map((result.evidence || []).map((item) => [item.id, item]));
+  const allFacts = [...new Set(paragraphs.flatMap((paragraph) => paragraph.evidenceIds))]
+    .map((id) => evidence.get(id))
+    .filter((item): item is NonNullable<typeof item> => item != null);
   const jumpToChapter = (topic: CompatibilityStoryTopic) => {
     const heading = document.getElementById(`compat-story-${topic}`);
     heading?.focus({ preventScroll: true });
@@ -28,25 +31,23 @@ export function CompatibilityStoryReader({ result, language, subjectName, partne
       <span>{subjectName} + {partnerName}</span>
     </div>
     {chapters.length ? <nav className="compat-story-contents" aria-label={ru ? 'Разделы совместимости' : 'Compatibility chapters'}>
-      <p id="compat-story-contents-title" tabIndex={-1}>{ru ? 'Что хочется узнать?' : 'What would you like to know?'}</p>
-      {chapters.map((topic, index) => <button type="button" key={topic} onClick={() => jumpToChapter(topic)}>
-        <span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span><span>{titleFor(topic)}</span><span aria-hidden="true">↗</span>
+      <p id="compat-story-contents-title" tabIndex={-1}>{ru ? 'Разбор по пунктам' : 'Reading by topic'}</p>
+      {chapters.map((topic) => <button type="button" key={topic} onClick={() => jumpToChapter(topic)}>
+        <span>{titleFor(topic)}</span><span aria-hidden="true">↗</span>
       </button>)}
     </nav> : null}
-    {chapters.length ? chapters.map((topic, index) => {
+    {chapters.length ? chapters.map((topic) => {
       const items = paragraphs.filter((paragraph) => paragraph.topic === topic);
-      const facts = [...new Set(items.flatMap((paragraph) => paragraph.evidenceIds))].map((id) => evidence.get(id)).filter((item) => item != null);
       return <section key={topic} className="compat-story-chapter" aria-labelledby={`compat-story-${topic}`}>
-        <header><span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span><h2 id={`compat-story-${topic}`} tabIndex={-1}>{titleFor(topic)}</h2></header>
+        <header><h2 id={`compat-story-${topic}`} tabIndex={-1}>{titleFor(topic)}</h2></header>
         {items.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph.text}</p>)}
-        {facts.length ? <details className="compat-story-why">
-          <summary>{ru ? 'Почему так?' : 'Why?'}</summary>
-          <p>{ru ? 'Эта часть разбора опирается на связи двух карт:' : 'This chapter draws on these connections between the two charts:'}</p>
-          <ul>{facts.map((item) => <li key={item.id}>{item.label}</li>)}</ul>
-        </details> : null}
         <button type="button" className="compat-story-back" onClick={() => { const title = document.getElementById('compat-story-contents-title'); title?.focus({ preventScroll: true }); title?.scrollIntoView({ block: 'start', behavior: 'auto' }); }}>{ru ? 'К разделам ↑' : 'Back to chapters ↑'}</button>
       </section>;
     }) : <div className="compat-story-chapter">{(result.summary || '').split(/\n\s*\n/u).filter(Boolean).map((text, index) => <p key={index}>{text}</p>)}</div>}
-    {result.limitations?.length ? <details className="compat-story-accuracy"><summary>{ru ? 'Что зависит от точности времени' : 'What depends on birth-time accuracy'}</summary><ul>{result.limitations.map((item, index) => <li key={index}>{item}</li>)}</ul></details> : null}
+    {(allFacts.length || result.limitations?.length) ? <details className="compat-story-why compat-story-why--final">
+      <summary>{ru ? 'Почему так?' : 'Why?'}</summary>
+      {allFacts.length ? <><p>{ru ? 'Этот разбор опирается на связи двух карт:' : 'This reading draws on these connections between the two charts:'}</p><ul>{allFacts.map((item) => <li key={item.id}>{item.label}</li>)}</ul></> : null}
+      {result.limitations?.length ? <><p>{ru ? 'Что зависит от точности времени:' : 'What depends on birth-time accuracy:'}</p><ul>{result.limitations.map((item, index) => <li key={index}>{item}</li>)}</ul></> : null}
+    </details> : null}
   </article>;
 }

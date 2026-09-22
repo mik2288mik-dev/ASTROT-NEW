@@ -3062,6 +3062,89 @@
   padding: 0 var(--app-period-rail-padding-x);
 }
 
+.services-menu-link {
+  display: flex;
+  align-items: center;
+  width: min(calc(100% - 32px), var(--app-period-rail-max-width));
+  min-height: 70px;
+  margin: 12px auto 2px;
+  padding: 12px 10px 12px 12px;
+  border: 1px solid var(--editorial-studio-line);
+  border-radius: 16px;
+  background: var(--editorial-studio-paper);
+  color: var(--editorial-studio-ink);
+  text-align: left;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 140ms ease;
+}
+
+.services-menu-link:hover {
+  border-color: rgba(71, 61, 52, 0.32);
+}
+
+.services-menu-link:active {
+  transform: scale(0.96);
+}
+
+.services-menu-link:focus-visible {
+  outline: 2px solid var(--editorial-studio-accent);
+  outline-offset: 3px;
+}
+
+.services-menu-link-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--editorial-studio-accent-soft);
+  color: var(--editorial-studio-accent);
+}
+
+.services-menu-link-icon > svg {
+  width: 20px;
+  height: 20px;
+}
+
+.services-menu-link-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin-left: 12px;
+}
+
+.services-menu-link-copy > strong {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.services-menu-link-copy > small {
+  color: var(--editorial-studio-muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.services-menu-link-chevron {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin-left: auto;
+  color: var(--editorial-studio-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .services-menu-link {
+    transition: none;
+  }
+
+  .services-menu-link:active {
+    transform: none;
+  }
+}
+
 .services-screen-tabs .editorial-tab {
   min-height: var(--app-period-rail-height);
   padding: 0.35rem 0.25rem 0.45rem;
@@ -3082,10 +3165,6 @@
   right: 18%;
   bottom: -1px;
   left: 18%;
-}
-
-.services-settings-content {
-  width: 100%;
 }
 
 .service-premium-content {

@@ -10,7 +10,7 @@ import {
   EditorialChartsButton,
   EditorialTabs,
 } from '../editorial/EditorialScreenChrome';
-import { AppTopBar } from '../lumia-ui/AppTopBar';
+import { AppTopBar, AppTopBarSettingsProvider } from '../lumia-ui/AppTopBar';
 import { NeboLogo } from '../brand/NeboLogo';
 import {
   LumiaBottomTabBar,
@@ -490,7 +490,7 @@ export default function UiPreviewApp() {
   const [serviceTab, setServiceTab] = useState<ServiceTab>('knowledge');
   const [paywallReturnScreen, setPaywallReturnScreen] = useState<UiPreviewScreen>('today');
   const [natalContinuation, setNatalContinuation] = useState<PaywallContext | null>(null);
-  const [settingsReturnScreen] = useState<UiPreviewScreen>('today');
+  const [settingsReturnScreen, setSettingsReturnScreen] = useState<UiPreviewScreen>('today');
   const [chartsReturnScreen, setChartsReturnScreen] = useState<UiPreviewScreen>('menu');
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -558,6 +558,10 @@ export default function UiPreviewApp() {
   const openCharts = () => {
     if (scenario.screen !== 'charts') setChartsReturnScreen(scenario.screen);
     navigate('charts');
+  };
+  const openSettings = () => {
+    setSettingsReturnScreen(scenario.screen);
+    navigate('settings');
   };
   useEffect(() => {
     if (!localHostnameAllowed()) return;
@@ -627,7 +631,7 @@ export default function UiPreviewApp() {
   } else if (scenario.screen === 'encyclopedia') {
     scene = <AstrologyEncyclopedia profile={profile} onOpenCharts={openCharts} />;
   } else if (scenario.screen === 'matrix') {
-    scene = <MatrixRoom profile={profile} onBack={() => navigate('menu')} onOpenProfile={() => navigate('settings')} onOpenCharts={openCharts} />;
+    scene = <MatrixRoom profile={profile} onBack={() => navigate('menu')} onOpenProfile={openSettings} onOpenCharts={openCharts} />;
   } else if (scenario.screen === 'today' || scenario.screen === 'week' || scenario.screen === 'month') {
     scene = <DiaryScene screen={scenario.screen} premium={scenario.access === 'premium'} profile={profile} onNavigate={navigate} onOpenCharts={openCharts} />;
   } else if (scenario.screen === 'horoscope' || scenario.screen === 'zodiac-picker') {
@@ -739,20 +743,12 @@ export default function UiPreviewApp() {
         activeTab={serviceTab}
         onTabChange={setServiceTab}
         onOpenCharts={openCharts}
+        onOpenMatrix={() => navigate('matrix')}
         premiumStoreContent={(
           <PaywallScene
             embedded
             profile={profile}
             onClose={() => undefined}
-          />
-        )}
-        settingsContent={(
-          <SettingsScene
-            profile={profile}
-            embedded
-            onNavigate={navigate}
-            onBack={() => undefined}
-            onOpenCharts={openCharts}
           />
         )}
       />
@@ -764,6 +760,7 @@ export default function UiPreviewApp() {
   const sheetOpen = navigationSheet !== null;
 
   return (
+    <AppTopBarSettingsProvider onOpenSettings={openSettings}>
     <div className={`lumia-app-shell ui-preview-app ${showsBottomNavigation ? 'has-today-bottom-navigation' : ''}`} data-ui-preview="true">
       <main
         className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
@@ -798,5 +795,6 @@ export default function UiPreviewApp() {
 
       {new URLSearchParams(window.location.search).get('controls') !== '0' ? <PreviewControls scenario={scenario} onChange={changeScenario} /> : null}
     </div>
+    </AppTopBarSettingsProvider>
   );
 }

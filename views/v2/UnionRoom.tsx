@@ -23,9 +23,9 @@ import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { ZODIAC_KEYS } from '../../lib/zodiacKeys';
 import { shareToTelegram } from '../../lib/botLink';
 import { ContentActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
-import { MeouLogo } from '../../components/onboarding/MeouLogo';
 import { loadCompatHistory, addCompatHistory, removeCompatHistory, clearCompatHistory, buildCompatHistoryId, type CompatHistoryEntry } from '../../lib/compatHistory';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { CosmicSheet } from '../../components/lumia-ui/CosmicSheet';
 import type { CompatGender } from '../../lib/synastry/localSignText';
 import {
   getRelationshipContextLabel,
@@ -476,93 +476,68 @@ function genderWord(g: CompatGender, ru: boolean): string {
   return ru ? (g === 'male' ? 'Мужчина' : 'Женщина') : (g === 'male' ? 'Male' : 'Female');
 }
 
-function SignSwipePicker({
+function CompatibilitySignCard({
+  sign,
   label,
-  signs,
+  language,
+  onClick,
+}: {
+  sign: string;
+  label: string;
+  language: UserProfile['language'];
+  onClick: () => void;
+}) {
+  const lang: 'ru' | 'en' = language === 'en' ? 'en' : 'ru';
+  const signName = getZodiacSign(lang, sign);
+  return (
+    <button type="button" className="compat-sign-card" onClick={onClick} aria-label={`${label}: ${signName}`}>
+      <ZodiacSymbol sign={sign} size={46} className="compat-sign-card-symbol" />
+      <strong>{signName}</strong>
+      <small>{label}</small>
+    </button>
+  );
+}
+
+function CompatibilitySignPickerSheet({
+  open,
+  onClose,
+  label,
   active,
   language,
   onPick,
 }: {
+  open: boolean;
+  onClose: () => void;
   label: string;
-  signs: readonly string[];
   active: string;
   language: UserProfile['language'];
   onPick: (sign: string) => void;
 }) {
-  const trackRef = useRef<HTMLDivElement | null>(null);
-  const scrollTimerRef = useRef<number | null>(null);
   const lang: 'ru' | 'en' = language === 'en' ? 'en' : 'ru';
-  const activeKey = active.toLowerCase();
-
-  const centerSign = (sign: string, behavior: ScrollBehavior) => {
-    const track = trackRef.current;
-    if (!track) return;
-    const option = Array.from(track.querySelectorAll<HTMLButtonElement>('[data-sign]'))
-      .find((candidate) => candidate.dataset.sign?.toLowerCase() === sign.toLowerCase());
-    if (!option) return;
-    const left = option.offsetLeft - (track.clientWidth - option.offsetWidth) / 2;
-    track.scrollTo({ left, behavior });
-  };
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => centerSign(active, 'auto'));
-    return () => window.cancelAnimationFrame(frame);
-  }, [active]);
-
-  useEffect(() => () => {
-    if (scrollTimerRef.current) window.clearTimeout(scrollTimerRef.current);
-  }, []);
-
-  const selectCenteredSign = () => {
-    const track = trackRef.current;
-    if (!track) return;
-    const trackCenter = track.scrollLeft + track.clientWidth / 2;
-    let nearest: HTMLButtonElement | null = null;
-    let nearestDistance = Number.POSITIVE_INFINITY;
-    for (const option of Array.from(track.querySelectorAll<HTMLButtonElement>('[data-sign]'))) {
-      const optionCenter = option.offsetLeft + option.offsetWidth / 2;
-      const distance = Math.abs(optionCenter - trackCenter);
-      if (distance < nearestDistance) {
-        nearest = option;
-        nearestDistance = distance;
-      }
-    }
-    const sign = nearest?.dataset.sign;
-    if (sign && sign.toLowerCase() !== activeKey) onPick(sign);
-  };
-
   return (
-    <section className="compat-sign-picker" aria-label={label}>
-      <div className="compat-sign-picker-heading">
-        <h2>{label}</h2>
-        <span className="compat-sign-selected" aria-live="polite">
-          <ZodiacSymbol sign={active} size={22} />
-          {getZodiacSign(lang, active)}
-        </span>
-      </div>
-      <div
-        ref={trackRef}
-        className="compat-sign-track scrollbar-hide"
-        role="listbox"
-        aria-label={label}
-        onScroll={() => {
-          if (scrollTimerRef.current) window.clearTimeout(scrollTimerRef.current);
-          scrollTimerRef.current = window.setTimeout(selectCenteredSign, 90);
-        }}
-      >
-        {signs.map((sign) => {
-          const selected = sign.toLowerCase() === activeKey;
+    <CosmicSheet
+      open={open}
+      onClose={onClose}
+      closeLabel={lang === 'ru' ? 'Закрыть' : 'Close'}
+      title={label}
+      subtitle={lang === 'ru' ? 'Выбери знак зодиака.' : 'Choose a zodiac sign.'}
+      className="compat-sign-sheet"
+      contentClassName="compat-sign-sheet-content"
+    >
+      <div className="compat-sign-sheet-grid" role="listbox" aria-label={label}>
+        {ZODIAC_KEYS.map((sign) => {
+          const selected = sign.toLowerCase() === active.toLowerCase();
           return (
             <button
               key={sign}
               type="button"
               role="option"
-              data-sign={sign}
               aria-selected={selected}
-              className={`compat-sign-option${selected ? ' is-selected' : ''}`}
+              className={`compat-sign-sheet-option${selected ? ' is-selected' : ''}`}
               onClick={() => {
+                lumiaSelectionHaptic();
                 onPick(sign);
-                centerSign(sign, 'smooth');
+                onClose();
               }}
             >
               <ZodiacSymbol sign={sign} size={34} />
@@ -571,7 +546,7 @@ function SignSwipePicker({
           );
         })}
       </div>
-    </section>
+    </CosmicSheet>
   );
 }
 
@@ -580,12 +555,17 @@ function RelationshipContextPicker({
   onChange,
   ru,
   compact = false,
+  hideEx = false,
 }: {
   focus: CompatibilityFocus;
   onChange: (focus: CompatibilityFocus, context: RelationshipContext) => void;
   ru: boolean;
   compact?: boolean;
+  hideEx?: boolean;
 }) {
+  const options = hideEx
+    ? COMPATIBILITY_FOCUS_OPTIONS.filter((option) => option.value !== 'ex')
+    : COMPATIBILITY_FOCUS_OPTIONS;
   return (
     <div className={`compat-context-picker ${compact ? 'is-compact' : ''}`}>
       {!compact ? (
@@ -595,7 +575,7 @@ function RelationshipContextPicker({
         </div>
       ) : null}
       <div className="compat-choice-tabs compat-context-options" role="radiogroup" aria-label={ru ? 'Тип отношений' : 'Relationship type'}>
-        {COMPATIBILITY_FOCUS_OPTIONS.map((option) => {
+        {options.map((option) => {
           const active = option.value === focus;
           return (
             <button
@@ -653,6 +633,74 @@ function CompatBlock({ title, index, reduce, children }: {
       <EditorialSectionHeading title={title} className="compat-read-heading" />
       <EditorialProse text={children} className="compat-read-text" />
     </motion.section>
+  );
+}
+
+function CompatibilityPersonCard({
+  tone,
+  title,
+  badge,
+  meta,
+  onClick,
+}: {
+  tone: 'blue' | 'red';
+  title: string;
+  badge: string;
+  meta: string;
+  onClick: () => void;
+}) {
+  const initial = title.trim().charAt(0).toUpperCase() || '•';
+  return (
+    <button type="button" className={`compat-person-card compat-person-card--${tone}`} onClick={onClick}>
+      <span className="compat-person-card-avatar" aria-hidden="true">{initial}</span>
+      <span className="compat-person-card-copy">
+        <span className="compat-person-card-top"><strong>{title}</strong><small>{badge}</small></span>
+        <span className="compat-person-card-meta">{meta}</span>
+      </span>
+      <ChevronRightIcon className="compat-person-card-arrow" size={18} aria-hidden="true" />
+    </button>
+  );
+}
+
+function CompatibilityResultPreviewSheet({
+  open,
+  onClose,
+  ru,
+}: {
+  open: boolean;
+  onClose: () => void;
+  ru: boolean;
+}) {
+  const chapters = ru
+    ? ['Что у вас общего', 'В чём вы разные', 'Как вы общаетесь', 'Из-за чего спорите']
+    : ['What you share', 'Where you differ', 'How you communicate', 'What causes friction'];
+  return (
+    <CosmicSheet
+      open={open}
+      onClose={onClose}
+      closeLabel={ru ? 'Закрыть' : 'Close'}
+      title={ru ? 'Посмотри, как это выглядит' : 'See how it looks'}
+      subtitle={ru ? 'Сразу показываем будущий экран разбора.' : 'A preview of your future reading.'}
+      className="compat-preview-sheet"
+      contentClassName="compat-preview-sheet-content"
+    >
+      <div className="compat-result-miniature" aria-label={ru ? 'Пример экрана результата совместимости' : 'Compatibility result preview'}>
+        <div className="compat-result-miniature-top">{ru ? 'Совместимость' : 'Compatibility'}</div>
+        <div className="compat-result-miniature-cover">
+          <span>{ru ? 'отношения · полный разбор' : 'relationship · full reading'}</span>
+          <strong>{ru ? 'Алина & Максим' : 'Alina & Maxim'}</strong>
+          <small>{ru ? 'Дева · Скорпион' : 'Virgo · Scorpio'}</small>
+        </div>
+        <div className="compat-result-miniature-summary">
+          <strong>{ru ? 'Вы быстро находите общий язык, но по-разному принимаете решения.' : 'You find common ground quickly, but make decisions differently.'}</strong>
+          <span>{ru ? 'Один идёт дальше по ходу дела, второй сначала хочет понять детали.' : 'One moves as they go; the other wants the details first.'}</span>
+        </div>
+        <div className="compat-result-miniature-list">
+          {chapters.map((chapter, index) => <div key={chapter}><span>{String(index + 1).padStart(2, '0')}</span><strong>{chapter}</strong><span>↗</span></div>)}
+        </div>
+      </div>
+      <p className="compat-preview-sheet-note">{ru ? 'Полный разбор строится по данным рождения двух людей.' : 'The full reading is built from both people’s birth details.'}</p>
+    </CosmicSheet>
   );
 }
 
@@ -811,11 +859,26 @@ export function UnionRoom(props: UnionRoomProps) {
   );
   const [deepLoading, setDeepLoading] = useState(previewResultState === 'loading');
   const autoDeepKeyRef = useRef<string | null>(null);
+  const [personSheet, setPersonSheet] = useState<'subject' | 'partner' | null>(null);
+  const [signSheet, setSignSheet] = useState<'subject' | 'partner' | null>(null);
+  const [resultPreviewOpen, setResultPreviewOpen] = useState(false);
   const [error, setError] = useState<string | null>(
     previewResultState === 'error'
       ? (ru ? 'Не удалось собрать подробный разбор. Проверь соединение и попробуй ещё раз.' : 'Could not prepare the detailed reading. Check your connection and try again.')
       : null,
   );
+
+  useEffect(() => {
+    if (previewEnabled || screen !== 'add' || entryMode !== 'birth') return;
+    const key = `nebo:compatibility-result-preview:v2:${profile.id || 'guest'}`;
+    try {
+      if (window.localStorage.getItem(key)) return;
+      window.localStorage.setItem(key, 'seen');
+      setResultPreviewOpen(true);
+    } catch {
+      // The comparison remains usable when local storage is unavailable.
+    }
+  }, [entryMode, previewEnabled, profile.id, screen]);
 
   useEffect(() => {
     if (previewEnabled) return;
@@ -1401,6 +1464,90 @@ export function UnionRoom(props: UnionRoomProps) {
     </>
   );
 
+  const renderPersonEditor = (role: 'subject' | 'partner') => {
+    const isSubject = role === 'subject';
+    const source = isSubject ? subjectSource : partnerSource;
+    const selectedChart = isSubject ? firstChart : secondChart;
+    const selectedChartId = isSubject ? firstChartId : secondChartId;
+    const otherSource = isSubject ? partnerSource : subjectSource;
+    const otherChartId = isSubject ? secondChartId : firstChartId;
+    const setSource = isSubject ? setSubjectSource : setPartnerSource;
+    const setGender = isSubject ? setYouGender : setFGender;
+
+    return (
+      <>
+        <PersonSourcePicker
+          value={source}
+          onChange={(next) => { setSource(next); setGender('unspecified'); }}
+          ru={ru}
+        />
+        {isSubject && ownSavedChart ? (
+          <button
+            type="button"
+            className="compat-use-own-chart"
+            onClick={() => {
+              lumiaSelectionHaptic();
+              setSubjectSource('saved');
+              setFirstChartId(ownSavedChart.id);
+              setYouGender(initialYouGender);
+            }}
+          >
+            <span>{ru ? 'Использовать мою карту' : 'Use my chart'}</span>
+            <small>{ownSavedChart.name}</small>
+          </button>
+        ) : null}
+        {source === 'birth' ? (
+          <PersonBirthFields
+            prefix={isSubject ? 'compat-first-person' : 'compat-second-person'}
+            ru={ru}
+            name={isSubject ? sName : fName}
+            date={isSubject ? sDate : fDate}
+            time={isSubject ? sTime : fTime}
+            place={isSubject ? sPlace : fPlace}
+            gender={isSubject ? youGender : fGender}
+            timePrecision={isSubject ? sTimePrecision : fTimePrecision}
+            onNameChange={(name) => {
+              if (isSubject) { setSName(name); if (name !== sName) setYouGender('unspecified'); }
+              else { setFName(name); if (name !== fName) setFGender('unspecified'); }
+            }}
+            onDateChange={(value) => {
+              if (isSubject) { setSDate(value); const sign = sunSignFromDate(value); if (sign) setYouSign(sign); }
+              else { setFDate(value); const sign = sunSignFromDate(value); if (sign) setPickSign(sign); }
+            }}
+            onTimeChange={isSubject ? setSTime : setFTime}
+            onPlaceChange={isSubject ? setSPlace : setFPlace}
+            onGenderChange={setGender}
+            onTimePrecisionChange={isSubject ? setSTimePrecision : setFTimePrecision}
+          />
+        ) : (
+          <PersonSavedFields
+            prefix={isSubject ? 'compat-first-person' : 'compat-second-person'}
+            ru={ru}
+            charts={availableCharts}
+            value={selectedChartId}
+            disabledChartId={otherSource === 'saved' ? otherChartId : null}
+            gender={isSubject ? youGender : fGender}
+            onChange={(id) => {
+              if (isSubject) { setFirstChartId(id); setYouGender(id === ownSavedChart?.id ? initialYouGender : 'unspecified'); }
+              else { setSecondChartId(id); setFGender(id === ownSavedChart?.id ? initialYouGender : 'unspecified'); }
+            }}
+            onGenderChange={setGender}
+            onOpenCharts={onOpenCharts}
+          />
+        )}
+        {selectedChart ? <p className="compat-person-sheet-selected">{selectedChart.name}</p> : null}
+      </>
+    );
+  };
+
+  const compactPersonMeta = (source: CompatibilityPersonSource, chart: ChartListItem | null, date: string, time: string, place: string) => {
+    if (source === 'saved' && chart) {
+      return [formatDisplayDate(chart.birth_date, lang), chart.birth_place].filter(Boolean).join(' · ');
+    }
+    if (source === 'saved') return ru ? 'Выбери сохранённую карту' : 'Choose a saved chart';
+    return [date ? formatDisplayDate(date, lang) : '', time || (ru ? 'время не указано' : 'time unknown'), place].filter(Boolean).join(' · ') || (ru ? 'Добавь данные рождения' : 'Add birth details');
+  };
+
   /* ── ДОБАВЛЕНИЕ ── */
   if (screen === 'add') {
     return (
@@ -1410,12 +1557,56 @@ export function UnionRoom(props: UnionRoomProps) {
         {entryMode === 'birth' ? (
           <>
             <form
-              className="compat-entry-form"
+              className="compat-entry-form compat-entry-form--date"
               onSubmit={(event) => {
                 event.preventDefault();
                 submitAdd();
               }}
             >
+              <CompatibilityResultPreviewSheet
+                open={resultPreviewOpen}
+                onClose={() => setResultPreviewOpen(false)}
+                ru={ru}
+              />
+
+              <section className="compat-date-hero">
+                <h2>{ru ? 'Какая у вас совместимость?' : 'How compatible are you?'}</h2>
+                <p>{ru ? 'Не ставим отношениям оценку. Смотрим, где вам легко вместе и где обычно начинаются сложности.' : 'This is not a relationship grade. It shows where you feel at ease and where friction may begin.'}</p>
+              </section>
+
+              <section className="compat-entry-context compat-entry-context--date" aria-label={ru ? 'Кто вы друг другу' : 'Relationship type'}>
+                <span className="compat-date-section-label">{ru ? 'Кто вы друг другу' : 'Who are you to each other'}</span>
+                <RelationshipContextPicker
+                  focus={relationshipFocus}
+                  onChange={(focus, context) => {
+                    setRelationshipFocus(focus);
+                    setRelationshipContext(context);
+                  }}
+                  ru={ru}
+                  compact
+                  hideEx
+                />
+              </section>
+
+              <div className="compat-date-pair" aria-label={ru ? 'Люди для сравнения' : 'People to compare'}>
+                <CompatibilityPersonCard
+                  tone="blue"
+                  title={subjectSource === 'saved' ? firstChart?.name || (ru ? 'Выбрать карту' : 'Choose a chart') : sName || (ru ? 'Первый человек' : 'First person')}
+                  badge={subjectSource === 'saved' ? (firstChart?.subject_type === 'self' ? (ru ? 'моя карта' : 'my chart') : (ru ? 'сохранённая' : 'saved')) : (ru ? 'новый' : 'new')}
+                  meta={compactPersonMeta(subjectSource, firstChart, sDate, sTime, sPlace)}
+                  onClick={() => { lumiaSelectionHaptic(); setPersonSheet('subject'); }}
+                />
+                <span className="compat-date-pair-plus" aria-hidden="true">+</span>
+                <CompatibilityPersonCard
+                  tone="red"
+                  title={partnerSource === 'saved' ? secondChart?.name || (ru ? 'Выбрать карту' : 'Choose a chart') : fName || (ru ? 'Второй человек' : 'Second person')}
+                  badge={partnerSource === 'saved' ? (ru ? 'сохранённая' : 'saved') : (ru ? 'новый' : 'new')}
+                  meta={compactPersonMeta(partnerSource, secondChart, fDate, fTime, fPlace)}
+                  onClick={() => { lumiaSelectionHaptic(); setPersonSheet('partner'); }}
+                />
+              </div>
+
+              <div className="compat-legacy-person-editor" aria-hidden="true">
               <details className="compat-entry-disclosure">
                 <summary>
                   <span className="compat-entry-disclosure-icon" aria-hidden="true">
@@ -1601,16 +1792,31 @@ export function UnionRoom(props: UnionRoomProps) {
                   />
                 )}
               </section>
+              </div>
 
               {subjectSource === 'birth' || partnerSource === 'birth' ? (
-                <p className="compat-new-chart-note">{ru ? 'Новый человек сохранится в «Моих картах». Его карту можно будет открыть отдельно.' : 'A new person is saved in My charts. You can open their chart separately.'}</p>
+                <p className="compat-new-chart-note">{ru ? 'Новые карты появятся в «Моих картах».' : 'New charts will appear in My charts.'}</p>
               ) : null}
               {error ? <p className="compat-entry-error" role="alert">{error}</p> : null}
 
               <button type="submit" className="fresh-btn-primary compat-entry-submit">
-                {ru ? 'Сравнить' : 'Compare'}
+                {ru ? 'Сравнить нас' : 'Compare us'}
               </button>
             </form>
+
+            {personSheet ? (
+              <CosmicSheet
+                open
+                onClose={() => setPersonSheet(null)}
+                closeLabel={ru ? 'Закрыть' : 'Close'}
+                title={personSheet === 'subject' ? (ru ? 'Первый человек' : 'First person') : (ru ? 'Второй человек' : 'Second person')}
+                subtitle={ru ? 'Выбери сохранённую карту или добавь нового человека.' : 'Choose a saved chart or add a new person.'}
+                className="compat-person-sheet"
+                contentClassName="compat-person-sheet-content"
+              >
+                {renderPersonEditor(personSheet)}
+              </CosmicSheet>
+            ) : null}
 
             {history.length ? (
               <details className="compat-history-panel">
@@ -1641,8 +1847,9 @@ export function UnionRoom(props: UnionRoomProps) {
             ) : null}
           </>
         ) : (
+          <>
           <form
-            className="compat-sign-form"
+            className="compat-sign-form compat-sign-form--cards"
             onSubmit={(event) => {
               event.preventDefault();
               openResult({
@@ -1658,49 +1865,48 @@ export function UnionRoom(props: UnionRoomProps) {
               });
             }}
           >
-            <h2 className="compat-entry-who-title">
-              {ru ? 'Кого сравниваем?' : 'Who are we comparing?'}
-            </h2>
-            <SignSwipePicker
-              label={ru ? 'Первый человек' : 'First person'}
-              signs={ZODIAC_KEYS}
-              active={youSign}
-              language={profile.language}
-              onPick={(sign) => { lumiaSelectionHaptic(); setYouSign(sign); }}
-            />
+            <header className="compat-sign-hero">
+              <h2>{ru ? 'Сравнить два знака' : 'Compare two signs'}</h2>
+              <p>{ru ? 'Быстрый вариант без даты, времени и места рождения.' : 'A quick option without birth date, time or place.'}</p>
+            </header>
 
-            <div className="compat-person-divider compat-person-divider--signs" aria-hidden="true"><span>+</span></div>
-
-            <SignSwipePicker
-              label={ru ? 'Второй человек' : 'Second person'}
-              signs={ZODIAC_KEYS}
-              active={pickSign}
-              language={profile.language}
-              onPick={(sign) => { lumiaSelectionHaptic(); setPickSign(sign); }}
-            />
-
-            <section className="compat-entry-context" aria-labelledby="compat-sign-context-title">
-              <h2 id="compat-sign-context-title">{ru ? 'Тип отношений' : 'Relationship type'}</h2>
-              <RelationshipContextPicker
-                focus={relationshipFocus}
-                onChange={(focus, context) => {
-                  setRelationshipFocus(focus);
-                  setRelationshipContext(context);
-                }}
-                ru={ru}
-                compact
+            <div className="compat-sign-pair" aria-label={ru ? 'Знаки для сравнения' : 'Signs to compare'}>
+              <CompatibilitySignCard
+                sign={youSign}
+                label={ru ? 'первый знак' : 'first sign'}
+                language={profile.language}
+                onClick={() => { lumiaSelectionHaptic(); setSignSheet('subject'); }}
               />
-            </section>
+              <span className="compat-sign-pair-plus" aria-hidden="true">+</span>
+              <CompatibilitySignCard
+                sign={pickSign}
+                label={ru ? 'второй знак' : 'second sign'}
+                language={profile.language}
+                onClick={() => { lumiaSelectionHaptic(); setSignSheet('partner'); }}
+              />
+            </div>
 
             <button type="submit" className="fresh-btn-primary compat-entry-submit">
-              {ru ? 'Сравнить' : 'Compare'}
+              {ru ? 'Сравнить знаки' : 'Compare signs'}
             </button>
             <p className="compat-entry-note compat-entry-note--centered">
               {ru
-                ? 'Для подробного разбора нужны дата, время и место рождения.'
-                : 'A detailed reading needs the birth date, time and place.'}
+                ? 'Для подробного разбора нужны данные рождения двух людей.'
+                : 'A detailed reading needs both people’s birth details.'}
             </p>
           </form>
+
+          {signSheet ? (
+            <CompatibilitySignPickerSheet
+              open
+              onClose={() => setSignSheet(null)}
+              label={signSheet === 'subject' ? (ru ? 'Первый знак' : 'First sign') : (ru ? 'Второй знак' : 'Second sign')}
+              active={signSheet === 'subject' ? youSign : pickSign}
+              language={profile.language}
+              onPick={signSheet === 'subject' ? setYouSign : setPickSign}
+            />
+          ) : null}
+          </>
         )}
 
         <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} />
@@ -1770,12 +1976,13 @@ export function UnionRoom(props: UnionRoomProps) {
     <div className="fresh-page compat-editorial-page compat-editorial-page--result" aria-busy={isWaitingForResult}>
       {compatibilityHeader(true)}
 
-      <header className="compat-result-heading">
-        <MeouLogo className="compat-result-brand" fullCloud />
-        <span className="compat-result-brand-caption">
-          {ru ? 'Сравниваем совместимость двух человек' : 'Comparing two people’s compatibility'}
-        </span>
-      </header>
+      {!isPerson ? (
+        <header className="compat-result-heading">
+          <span className="compat-result-brand-caption">
+            {ru ? 'Сравниваем совместимость двух человек' : 'Comparing two people’s compatibility'}
+          </span>
+        </header>
+      ) : null}
 
       {resultPercent != null ? (
         <section
@@ -1838,16 +2045,18 @@ export function UnionRoom(props: UnionRoomProps) {
 
       {resultPercent == null ? (
         <header className="compat-story-cover">
-          <p>{resultContextLabel} · Premium</p>
+          <p>{resultContextLabel} · {ru ? 'полный разбор' : 'full reading'}</p>
           <h1><span>{leftName}</span><span className="compat-story-plus" aria-hidden="true">&</span><span>{rightName}</span></h1>
-          <div><span>{leftDetail}</span><span>{rightDetail}</span></div>
-          <small>{ru ? 'Две сохранённые карты. Один разбор о вас.' : 'Two saved charts. One reading about you.'}</small>
+          <div><span>{getZodiacSign(lang, leftSun)}</span><span aria-hidden="true">·</span><span>{getZodiacSign(lang, theirSun)}</span></div>
           <button type="button" className="compat-result-change" onClick={() => { setError(null); setEntryMode('birth'); setScreen('add'); scrollCompatibilityToTop(); }}>{ru ? 'Изменить людей или тип отношений' : 'Change people or relationship type'}</button>
         </header>
       ) : null}
 
       {isPerson && premium && deep ? (
-        <CompatibilityStoryReader result={deep} language={lang} subjectName={leftName} partnerName={rightName} />
+        <>
+          {deep.summary ? <section className="compat-story-summary"><p>{deep.summary}</p></section> : null}
+          <CompatibilityStoryReader result={deep} language={lang} subjectName={leftName} partnerName={rightName} />
+        </>
       ) : !isPerson && score ? (
         <section className="compat-result-summary compat-result-summary--sign">
           <span>{ru ? 'Общий результат' : 'Overall result'}</span>
@@ -1856,8 +2065,7 @@ export function UnionRoom(props: UnionRoomProps) {
         </section>
       ) : null}
 
-      {!isPerson ? <div className="compat-result-meta">
-        <span>{ru ? 'Смотрим' : 'Context'} · <strong>{resultContextLabel}</strong></span>
+      {!isPerson ? <div className="compat-result-meta compat-result-meta--sign">
         <button
           type="button"
           className="compat-result-change"

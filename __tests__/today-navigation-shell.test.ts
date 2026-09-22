@@ -29,31 +29,34 @@ describe('Today minimal navigation shell', () => {
       .forEach((label) => expect(navigation).toContain(`>${label}</span>`));
   });
 
-  it('opens the three consolidated service sections and removes active MoreHub routing', () => {
+  it('opens Matrix from Menu and moves settings into the header', () => {
     const app = read('App.tsx');
     const navigation = read('components/lumia-ui/LumiaBottomTabBar.tsx');
     const services = read('views/v2/ServiceScreen.tsx');
 
     expect(navigation).toContain("export type LumiaNavigationSheetId = 'profile'");
-    ['Хочу знать', 'Premium', 'Настройки']
+    ['Матрица судьбы', 'Хочу знать', 'Магазин']
       .forEach((label) => expect(services).toContain(label));
-    expect(services).toContain("export type ServiceTab = 'knowledge' | 'store' | 'settings'");
+    expect(services).toContain("export type ServiceTab = 'matrix' | 'knowledge' | 'store'");
     expect(services).not.toContain("id: 'subscription'");
     expect(services).not.toContain("id: 'charts'");
     expect(services).toContain('<EditorialTabs');
     expect(services).toContain('className="services-screen-tabs"');
     expect(services).toContain("title={ru ? 'Меню' : 'Menu'}");
     expect(services).toContain('<EditorialChartsButton');
-    expect(services).toContain('{settingsContent}');
+    expect(services).not.toContain('<EditorialSettingsButton');
+    expect(services).toContain("'Матрица судьбы'");
+    expect(services).toContain('onOpenMatrix');
+    expect(app).toContain('<AppTopBarSettingsProvider');
+    expect(app).toContain("navigateTo('settings')");
+    expect(services).not.toContain('settingsContent');
     expect(app).not.toContain("setServiceTab('charts')");
-    expect(app).toContain('settingsContent={(');
     expect(app).toContain('onOpenCharts={openProfileCharts}');
+    expect(app).toContain("onOpenMatrix={() => navigateTo('matrix')}");
+    expect(app).not.toContain("onOpenSettings={() => navigateTo('settings')}");
     expect(app).toContain("navigateTo('services')");
     expect(app).toContain("view === 'services'");
     expect(app).toContain('<ServiceScreen');
-    expect(app).toContain("void requestPremium('settings', undefined, undefined, {");
-    expect(app).toContain('bypassFirstValueGate: true');
-    expect(app).toContain('&& !options?.bypassFirstValueGate');
     expect(app).not.toContain("view === 'more'");
     expect(app).not.toContain("navigateTo('more')");
     expect(app).not.toContain('<MoreHub');
@@ -81,16 +84,17 @@ describe('Today minimal navigation shell', () => {
     expect(app).not.toContain("setNavigationSheet('services')");
   });
 
-  it('keeps Matrix in the Natal shell and switches only the new-design presentation', () => {
+  it('keeps Matrix separate from Natal tabs and uses the standalone screen', () => {
     const natal = read('views/v2/NatalMagazine.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
 
-    const primaryNav = natal.slice(natal.indexOf('className="natal-v3-primary-nav"'), natal.indexOf('</nav>'));
-    ['Карта', 'Разбор', 'Спросить о себе'].forEach((label) => expect(primaryNav).toContain(label));
+    const primaryNav = natal.slice(natal.indexOf('<nav className={styles.navigation}'), natal.indexOf('</nav>'));
+    ['Обзор', 'Карта', 'Подробно', 'Спросить'].forEach((label) => expect(primaryNav).toContain(label));
     expect(primaryNav).not.toContain('Матрица судьбы');
     expect(natal).toContain('<InteractiveNatalMap');
 
-    expect(matrix).toContain('computeMatrix(computedDate, lang)');
+    expect(matrix).toContain('computeMatrix(calculatedDate, lang)');
+    expect(matrix).toContain("import styles from './MatrixRoom.module.css'");
     expect(matrix).not.toContain('useNeboVisualMode');
   });
 

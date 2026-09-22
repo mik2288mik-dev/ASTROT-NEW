@@ -1,7 +1,7 @@
 import { llmJson, llmTagged } from '../anthropic';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
-import { getAppSystemVoice } from '../appVoice';
+import { getNeboCoreVoice } from '../voice/core';
 import { buildCanonicalNatalReport } from '../natal/canonicalReport';
 import { serializeChartForPrompt } from './chartSerializer';
 import {
@@ -47,7 +47,7 @@ export async function generatePortrait(
 ): Promise<NatalReadingPortrait> {
   const serialized = promptSource(profile, chart);
   const raw = await llmTagged({
-    system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
+    system: getNeboCoreVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildPortraitPrompt(serialized, profile.language === 'en' ? 'en' : 'ru'),
     model: {
       accessTier: 'free',
@@ -80,7 +80,7 @@ export async function generateAspects(
 ): Promise<NatalReadingAspects> {
   const serialized = promptSource(profile, chart);
   const result = await llmJson<NatalReadingAspects>({
-    system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
+    system: getNeboCoreVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildAspectsPrompt(serialized, profile.language === 'en' ? 'en' : 'ru'),
     model: {
       accessTier: 'free',
@@ -117,7 +117,7 @@ export async function generateWeek(
   sunday.setDate(monday.getDate() + 6);
   const fmt = (d: Date) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
   const result = await llmJson<NatalReadingWeek>({
-    system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
+    system: getNeboCoreVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildWeekPrompt(serialized, { from: fmt(monday), to: fmt(sunday) }),
     model: {
       accessTier: 'premium',
@@ -145,7 +145,7 @@ export async function generateToday(
     weekday: 'long',
   });
   const result = await llmJson<NatalReadingToday>({
-    system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
+    system: getNeboCoreVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildTodayPrompt(serialized, dateLabel, profile.language === 'en' ? 'en' : 'ru'),
     model: {
       accessTier: 'premium',
@@ -172,7 +172,7 @@ export async function generateDeepDive(
   const topic: DeepDiveTopic = DEEP_DIVE_TOPICS[key];
   const serialized = promptSource(profile, chart);
   const result = await llmJson<NatalReadingDeepDive>({
-    system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
+    system: getNeboCoreVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildDeepDivePrompt(serialized, topic),
     model: {
       accessTier: 'premium',

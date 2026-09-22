@@ -1,6 +1,6 @@
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
-import { getAppSystemVoice } from '../appVoice';
+import { getNeboCoreVoice } from '../voice/core';
 import {
   copiesNatalNarrativeExampleTitle,
   getNatalNarrativeSystemPrompt,
@@ -71,6 +71,7 @@ type RawAnswer = {
 };
 
 export type RawNatalReportCategoryPayload = {
+  story?: RawStatement;
   summary?: RawNarrativeStatement[];
   follow_ups?: RawFollowUp[];
   observations?: RawStatement[];
@@ -346,6 +347,9 @@ export function buildNatalReportCategorySchema(
   return {
     type: 'object',
     properties: {
+      ...(categoryKey === 'main' ? {
+        story: statementSchema(380, 1900),
+      } : {}),
       summary: {
         type: 'array',
         minItems: categoryKey === 'main' ? NATAL_REPORT_MAIN_MIN_PARAGRAPHS : NATAL_REPORT_NARRATIVE_MIN_PARAGRAPHS,
@@ -422,31 +426,23 @@ function promptCatalogDefinition(
 
 export function getNatalReportCatalogSystemPrompt(language: 'ru' | 'en'): string {
   const rules = language === 'ru'
-    ? `ЗАДАЧА
-- Пиши о человеке прямо, живо и обычными словами. Обращайся на «ты».
-- Пиши так, как объясняешь человеку вживую. Выбирай простые глаголы и видимые предметы: что сделать, что купить, какой разговор закончить, какую работу сдать. Большинство предложений короткие или средней длины; длинное нужно только для мысли, которой тесно в коротком. Не заменяй конкретное действие красивым названием качества.
-- Никакого офисного и книжного пересказа: «трезвый отбор», «подвижность», «доводить начатое до формы», «планка качества», «профессиональная позиция», «продолжение в реальном деле». Не маскируй отсутствие конкретики словами «напор», «точка приложения», «держать направление», «зрелость проявляется». У фразы должен быть понятный предмет: кто что делает, чего ждёт, на что соглашается. Если её трудно произнести в обычном разговоре, перепиши.
-- Минипары редактуры показывают ТОЛЬКО ясность языка, а не факты о читателе: «Разговор держится на движении» → «Долгие объяснения тебе быстро надоедают»; «Смотришь на конкретику» → «Красивыми обещаниями тебя не купишь»; «Нужен свой участок ответственности» → «Тебе проще работать без надзора». Это примеры того, как обычный собеседник называет конкретное действие или предпочтение вместо рабочего документа. Не копируй эти выводы: они подходят только там, где их действительно подтверждает карта. Неподтверждённую мысль нужно заменить, а не просто оживить её формулировку.
-- Начни с одного узнаваемого вывода, который отличает именно эту карту. Дальше развивай мысль: как один способ действовать помогает в одной ситуации и усложняет другую. Связывай наблюдения, не составляй перечень качеств.
-- Вместо «в тебе есть», «тебе свойственно», «для тебя важно», «твоя речь устроена интересно» сразу назови действие и условие: что человек начинает, выбирает, отказывается делать или доводит до конца и когда. Не объясняй одно и то же качество новыми словами в соседних абзацах.
-- Пиши связанные, но самостоятельно понятные наблюдения с разным ритмом предложений. Не начинай абзац с «это сочетание», «так складывается» или другой ссылки, смысл которой приходится искать в предыдущем тексте. Не повторяй в каждом абзаце схему «вывод, пример, оговорка». Уверенность, удовольствие, лёгкость и удачные решения столь же важны, как трудности; выбирай их по данным, без обязательного конфликта.
-- Обычные слова «надо», «хочется», «неохота», «скучно» уместны, когда описывают ситуацию или выбор, а не учат жить. Вместо «ясный предмет для действия», «удерживает внимание», «роль главной», «рамки» назови саму задачу, человека, действие или договорённость. Не делай простой разговор похожим на отчёт об эффективности сотрудника.
-- Можно осторожно интерпретировать собственные эмоциональные реакции и предпочтения читателя, если их подтверждают разрешённые данные карты: что радует, раздражает, успокаивает, как хочется сближаться с людьми. Это возможные стороны человека, не обязательный список и не утверждение о его нынешнем состоянии. Говори об этом простыми словами; не своди весь разбор к тому, как человек выполняет задачи.
-- Возможный бытовой пример — иллюстрация вывода, а не случившийся эпизод. Не придумывай конкретно пережитое событие, мысли или чувства другого реального человека, диагноз, скрытую травму, профессию, существующие отношения, детство или тайную причину поведения. При ограниченных данных сужай вывод. Предпочтение или возможная реакция не доказывают, что с человеком что-то уже происходило.
-- Допустима максимум одна точная шутка во всём рассказе, если она вырастает из наблюдения. Шутка необязательна; без насмешки над человеком и без готовых острот для любой карты.
-- Последний абзац заканчивает последнюю мысль, а не повторяет весь разбор. Без «В итоге», «Таким образом», списка качеств и торжественного вывода о личности. Нужный объём даёт новая мысль, а не ещё одно объяснение уже сказанного.
-- Не оценивай зрелость человека и не подводи его к правильному образу жизни. Описывай различие в поведении при разных условиях, без финального «твоя сила в том, чтобы» и без лозунга. Простая законченная мысль сильнее красивого итога.
-- Никакой психологии, коучинга, воспитания, мистики и астрологического языка. Не используй «ресурс», «опора», «границы», «паттерн», «потенциал», «энергия», «предназначение» и похожие слова.
-- Вообще не называй планеты, знаки, дома, аспекты, градусы, углы, асцендент или MC. Не упоминай сегодня, завтра, даты и будущие события.
-- Не используй готовые обороты «это про тебя», «считывается», «проверка фактов», «что стоит заметить», «внутренняя точность» и рекламные недосказанности.
-- Не используй слова «ценность», «ценности» и схему «с одной стороны — с другой стороны». Скажи конкретно, что человек выбирает, проверяет или делает.
-- Не пиши советы, практики, диагнозы, обещания, биографию и будущие события.
-- Не используй универсальные формулы вроде «чувствуешь глубже, чем показываешь», «снаружи один, внутри другой» или «тебя не всегда понимают».
- - Preview — одно короткое законченное предложение с персональным выводом. Полный ответ — 3–5 коротких абзацев, первый абзац самый сильный.
-- Каждый абзац возвращает только те разрешённые evidence_ids, которые обосновывают его конкретный вывод. Объясняй связь между наблюдениями в самом рассказе; отдельная кнопка «Почему» покажет рассчитанные факты. Набор всех фактов под каждым абзацем не считается обоснованием.
-- Верни каждый указанный answer_key ровно один раз, без пропусков и дублей.
-- В полном бесплатном ответе сумма evidence_ids всех абзацев обязана включать каждый required_evidence_id этого ответа.
-- Ответ только JSON, без Markdown.`
+    ? `TASK
+  - Пиши просто, точно и живо. Обращайся к читателю на «ты» (согласуй как для пола READER).
+  - Представь, что объясняешь это человеку лично: простые глаголы, узнаваемые вещи, в основном короткие и средние предложения. Назови само действие, покупку, разговор или законченную работу, а не давай качеству красивый ярлык.
+  - Главное (summary) должно состоять из реальных конкретных фактов карты. НЕ ИСПОЛЬЗУЙ общие универсальные фразы вроде «Ценишь спокойную близость», «Не уступаешь без причины», «Считаешь, но не застываешь», «Меняешь привычное без хаоса». Каждый пункт должен давать узнаваемое наблюдение, а не размытый красивый ярлык.
+  - Начинай абзац с одного конкретного, узнаваемого для этой карты вывода. Раскрой, как один и тот же способ действовать помогает в одной ситуации и мешает в другой. Связывай наблюдения, а не выдавай список статичных черт характера.
+  - Обычные слова вроде «надо», «хочется», «неохота», «скучно» уместны, когда описывают ситуацию или выбор, а не учат жить. Назови саму задачу, человека, действие или договорённость. Не делай простой разговор похожим на отчёт.
+  - Возможный бытовой пример — иллюстрация вывода, а не случившийся эпизод. Не придумывай конкретно пережитое событие, диагноз, профессию. Предпочтение или возможная реакция не доказывают, что с человеком что-то уже происходило.
+  - Последний абзац заканчивает последнюю мысль, а не повторяет весь разбор. Без «В итоге», списка качеств и торжественного вывода о личности.
+  - Не оценивай зрелость человека и не подводи его к правильному образу жизни. Описывай различие в поведении при разных условиях, без финального «твоя сила в том, чтобы» и без лозунга. Простая законченная мысль сильнее красивого итога.
+  - Никакой эзотерической каши, психологии, коучинга, воспитания, мистики и астрологического языка. Не используй «ресурс», «опора», «границы», «паттерн», «потенциал», «энергия», «предназначение» и похожие слова.
+  - Вообще не называй планеты, знаки, дома, аспекты, градусы, углы, асцендент или MC. Не упоминай сегодня, завтра, даты и будущие события.
+  - Не пиши советы, практики, диагнозы, обещания, биографию и будущие события.
+   - Preview — одно короткое законченное предложение с персональным выводом.
+  - Каждый абзац возвращает только те разрешённые evidence_ids, которые обосновывают его конкретный вывод. Объясняй связь между наблюдениями в самом рассказе; отдельная кнопка «Почему» покажет рассчитанные факты.
+  - Верни каждый указанный answer_key ровно один раз, без пропусков и дублей.
+  - В полном бесплатном ответе сумма evidence_ids всех абзацев обязана включать каждый required_evidence_id этого ответа.
+  - Ответ только JSON, без Markdown.`
     : `TASK
 - Write directly, vividly, and in ordinary words. Address the reader as “you”.
 - Write as if explaining this to someone in person: simple verbs, recognizable things, mostly short and medium sentences. Name the action, purchase, conversation, or finished piece of work, rather than giving a quality an impressive label.
@@ -471,7 +467,7 @@ export function getNatalReportCatalogSystemPrompt(language: 'ru' | 'en'): string
 - Return every listed answer_key exactly once, with no omissions or duplicates.
 - Across a full free answer, paragraph evidence_ids must include every required_evidence_id for that answer.
 - Return JSON only, with no Markdown.`;
-  return `${getAppSystemVoice(language)}\n\n${rules}`;
+  return `${getNeboCoreVoice(language)}\n\n${rules}`;
 }
 
 export function buildNatalReportCategoryPrompt(input: {
@@ -493,8 +489,8 @@ export function buildNatalReportCategoryPrompt(input: {
   const isMain = input.categoryKey === 'main';
   const task = input.language === 'ru'
     ? `${isMain
-      ? `Напиши короткую законченную бесплатную базу: summary содержит 6–8 самостоятельных наблюдений, всего ${NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS}–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} слов в text (заголовки в объём не входят). Ориентир — 190–220 слов всего. Минимум указан для совместимости с установленными приложениями. До ответа проверь общий объём: если он меньше минимума, добавь другое подтверждённое наблюдение или содержательное условие, а не повтор, оговорку или совет. Обычно хватает двух-трёх предложений на пункт. Первые три — самые содержательные и разные выводы по этой карте, без вступления. Остальные добавляют другие обоснованные стороны, а не пересказывают первые. Не растягивай ради восьми пунктов или точного числа слов, если шесть говорят больше. Это полноценный полезный разбор, а не тизер Premium. Не назначай заранее темы всем людям: выбери их по фактам именно этой карты.`
-      : `Напиши самостоятельную главу «${localizeNatalReportText(category.title, 'ru')}»: summary содержит 5–8 коротких наблюдений, ориентир 250–${NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS} слов в text. Продолжи главную линию из MAIN READING ANCHOR применительно к этой теме, с новыми выводами и ситуациями. Не пересказывай вступление и не повторяй готовые фразы. Читатель сразу получает главу. Не дописывай общие фразы ради точного числа слов.`}
+      ? `Напиши короткую законченную бесплатную базу: summary содержит 5–7 самостоятельных наблюдений, всего ${NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS}–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} слов в text (заголовки в объём не входят). Ориентир — 190–220 слов всего. Минимум указан для совместимости с установленными приложениями. До ответа проверь общий объём: если он меньше минимума, добавь другое подтверждённое наблюдение или содержательное условие, а не повтор, оговорку или совет. Обычно хватает двух-трёх предложений на пункт. Первые три — самые содержательные и разные выводы по этой карте, без вступления. Остальные добавляют другие обоснованные стороны, а не пересказывают первые. Не растягивай ради точного числа слов. Это полноценный полезный разбор, а не тизер Premium. Не назначай заранее темы всем людям: выбери их по фактам именно этой карты.\n\nstory — отдельный текст для вкладки «Рассказ»: 4–7 связанных предложений, 380–900 знаков. Это не пересказ карточек по порядку, не список и не набор заголовков. Собери их смысл в один короткий читаемый портрет: логично свяжи разные стороны человека, обращайся на «ты», не используй Markdown или названия тем. Укажи evidence_ids, на которых держится весь рассказ.`
+      : `Напиши самостоятельную главу «${localizeNatalReportText(category.title, 'ru')}»: summary содержит 5–7 коротких наблюдений, ориентир 250–${NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS} слов в text. Продолжи главную линию из MAIN READING ANCHOR применительно к этой теме, с новыми выводами и ситуациями. Не пересказывай вступление и не повторяй готовые фразы. Читатель сразу получает главу. Не дописывай общие фразы ради точного числа слов.`}
 Каждый элемент summary — одно наблюдение с title и text. title — короткий человеческий заголовок, обычно 3–8 слов: сразу понятно, что именно ты описываешь. Он формулирует конкретный вывод этого абзаца, который подтверждают те же evidence_ids; не обещает больше, чем объясняет текст. Не используй вопрос, название служебной категории, номер, «Наблюдение 1», «Твой характер» или общий лозунг. Не бери готовые заголовки для всех людей.
 Первая фраза text — самостоятельное, понятное наблюдение. Она не копирует заголовок дословно, а сразу добавляет, когда или как это заметно. Остальной короткий абзац объясняет эту же мысль через конкретное различие, условие или уместный пример. Читатель должен понимать, что ты утверждаешь и почему из этого следует остальное, без разгадки метафор. Каждый абзац читается отдельно, без обязательной ссылки на предыдущий.
 Длину абзаца выбирай по мысли, не выравнивай абзацы. observations верни пустым массивом: все наблюдения уже в summary. Заверши мысль без списка качеств, морали и совета.
@@ -503,8 +499,8 @@ export function buildNatalReportCategoryPrompt(input: {
 Для summary выбирай только narrative_evidence_ids. Копируй ID буквально из этого списка: не сокращай, не переименовывай и не составляй новые ID из названий фактов. Используй несколько разных фактов, но не пытайся охватить весь список или все вопросы каталога. Если основание одно, не делай из него несколько одинаковых выводов.
 Верни ${isMain ? '2–3' : '2'} follow_ups: понятные вопросы, которые естественно возникают после этих наблюдений и ведут в другие существующие главы. label — вопрос о том, как ты действуешь или что предпочитаешь, а не как тебе себя переделать: «Как ты объясняешь…», а не «Как объяснять, чтобы…». Смысл вопроса выбирается из текста, а не копируется из примера. Тема достаточно широкая: все переходы в одну главу открывают её сохранённый текст. Не обещай отдельный ответ на узкую новую ситуацию. category_key выбирает соответствующую главу из разрешённых, evidence_ids берутся только из уже процитированных в summary фактов. Не повторяй уже данный ответ, не придумывай проблему, не обещай предсказать событие и не пиши общие «Хочешь узнать больше?». Каждый вопрос ведёт в отдельную главу, никогда в main или текущую. Это переход к теме, а не новый чат. previews верни пустым объектом, free_answers — пустым массивом.`
     : `${isMain
-      ? `Write a short complete free reading: summary contains 6–8 independent observations, with ${NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS}–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} words of text total, excluding titles. Aim for 190–220 words total. The stated minimum preserves compatibility with installed clients. Check the total before returning: if it is below the minimum, add a different supported observation or a meaningful condition, never repetition, qualifications or advice. Usually two or three sentences per item suffice. Put the three most substantial and distinct conclusions first, without an introduction. The remaining observations add other supported sides instead of retelling the first three. Do not stretch to eight or pad an exact word count when six say more. This is a useful complete reading, not a Premium teaser. Select topics from this chart, never preassign the same topics to every reader.`
-      : `Write a chapter on ${localizeNatalReportText(category.title, 'en')}: summary contains 5–8 short observations, aiming for 250–${NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS} words of text total. Continue MAIN READING ANCHOR in this area with new conclusions and situations, without repeating its opening or sentences. The reader receives the chapter immediately. Do not add generalities just to reach an exact word count.`}
+      ? `Write a short complete free reading: summary contains 5-7 independent observations, with ${NATAL_REPORT_MAIN_SUMMARY_MIN_WORDS}–${NATAL_REPORT_MAIN_SUMMARY_MAX_WORDS} words of text total, excluding titles. Aim for 190–220 words total. The stated minimum preserves compatibility with installed clients. Check the total before returning: if it is below the minimum, add a different supported observation or a meaningful condition, never repetition, qualifications or advice. Usually two or three sentences per item suffice. Put the three most substantial and distinct conclusions first, without an introduction. The remaining observations add other supported sides instead of retelling the first three. Do not stretch or pad an exact word count. This is a useful complete reading, not a Premium teaser. Select topics from this chart, never preassign the same topics to every reader.`
+      : `Write a chapter on ${localizeNatalReportText(category.title, 'en')}: summary contains 5-7 short observations, aiming for 250–${NATAL_REPORT_CATEGORY_SUMMARY_MAX_WORDS} words of text total. Continue MAIN READING ANCHOR in this area with new conclusions and situations, without repeating its opening or sentences. The reader receives the chapter immediately. Do not add generalities just to reach an exact word count.`}
 Each summary item is one observation with title and text. Give it a short, ordinary title, usually 3–8 words, that immediately says what this paragraph describes. The title states its concrete conclusion, grounded in the same evidence_ids, and promises no more than the paragraph explains. No questions, service categories, numbering, “Observation 1”, “Your character”, or generic slogans. Never reuse a fixed headline set for all readers.
 The first sentence of text is a complete, understandable observation. Do not repeat the title verbatim: add when or how it shows up. The rest of the short paragraph explains that same thought through a concrete distinction, condition, or relevant example. Make the claim and how the explanation follows clear without asking the reader to decipher metaphors. Every paragraph stands alone, with no dependence on the previous one.
 Let each thought determine paragraph length. Return observations as an empty array: every observation is already in summary. Close the thought without a trait list, moral, or advice.
@@ -699,6 +695,9 @@ export function getNatalReportCategoryValidationIssues(input: {
   const observations = Array.isArray(input.raw.observations) ? input.raw.observations : [];
   const previews = categoryPreviews(input.raw);
   issues.push(...narrativeValidationIssues(summary, input.built, input.categoryKey));
+  if (input.categoryKey === 'main' && input.raw.story) {
+    appendCopyValidationIssues(issues, 'story', text(input.raw.story.text), input.built);
+  }
   if (!parseFollowUps(input.raw, input.built, input.categoryKey)) issues.push('FOLLOW_UPS_INVALID');
   if (observations.length !== 0) {
     issues.push('OBSERVATION_COUNT_INVALID');
@@ -843,6 +842,9 @@ export function materializeNatalReportCategoryPack(input: {
     });
     return parsed ? { ...parsed, title: text(statement.title) } : null;
   });
+  const story = isMain && input.raw.story
+    ? parseStatement(input.raw.story, allowedAll, input.built, { min: 380, max: 1900 })
+    : null;
   const followUps = parseFollowUps(input.raw, input.built, input.categoryKey);
   const observations = input.raw.observations.map((statement) => (
     parseStatement(statement, allowedAll, input.built, { min: 35, max: 150, maxSentences: 1 })
@@ -889,6 +891,12 @@ export function materializeNatalReportCategoryPack(input: {
     categoryKey: category.key,
     title: localizeNatalReportText(category.title, input.language),
     summary: summary as NatalReportStatement[],
+    ...(isMain ? {
+      story: story || {
+        text: (summary as NatalReportStatement[]).map((item) => item.text).join(' '),
+        evidenceIds: unique((summary as NatalReportStatement[]).flatMap((item) => item.evidenceIds)),
+      },
+    } : {}),
     followUps,
     observations: observations as NatalReportStatement[],
     previews: parsedPreviews,

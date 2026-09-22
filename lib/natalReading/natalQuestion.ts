@@ -1,6 +1,7 @@
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
-import { APP_VOICE_VERSION, getAppSystemVoice, withAppVoiceVersion } from '../appVoice';
+import { APP_VOICE_VERSION, withAppVoiceVersion } from '../appVoice';
+import { getNeboCoreVoice } from '../voice/core';
 import { getNatalStorySystemPrompt } from '../voice/contracts/natal';
 import {
   createLunaStructuredResponse,
@@ -531,7 +532,11 @@ export function buildNatalQuestionPrompt(
   const languageRule = language === 'ru'
     ? 'Answer in Russian and address the reader as «ты».'
     : 'Answer in English and address the reader as “you”.';
-  return `${languageRule}
+  const coreVoice = getNeboCoreVoice(language);
+  return `${coreVoice}
+
+## CONTENT CONTRACT: NATAL QUESTION
+${languageRule}
 
 Answer the user's question from the saved calculated birth chart and, when it is available, the permanent report below.
 
@@ -539,6 +544,8 @@ Rules:
 - Return JSON only: {"answer":"3-5 complete sentences","evidence_ids":["existing evidence id"]}.
 - Give a direct answer first, then connect it to concrete chart factors.
 - Translate those factors into ordinary human language. Do not name planets, signs, houses, aspects, angles, retrograde motion, orbs, or degrees in the answer; keep technical facts only in evidence_ids for the closed “Why?” layer.
+- НЕ ПРЕВРАЩАЙ В ЧАТ. Никаких «Я понимаю твой вопрос», «Спасибо за вопрос», «Сейчас я разберу твою карту», «Привет!». Отвечай сразу по делу.
+- МЯГКИЙ ОТКАЗ НА ОФФТОП. Если вопрос не имеет отношения к астрологии или натальной карте (как сварить борщ, как починить машину), вежливо и коротко откажи, потому что ты астролог, а не википедия.
 - Use previous messages only for conversational continuity. They are not calculation evidence.
 - Every astrological claim must be supported by one or more evidence_ids that exist in chart.evidence.
 - Never recalculate or invent placements, houses, aspects, biography, trauma, diagnoses, relationship history, guaranteed events, financial outcomes, karmic facts, or professional prescriptions.

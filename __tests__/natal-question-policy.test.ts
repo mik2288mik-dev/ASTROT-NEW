@@ -10,6 +10,16 @@ function moderation(question: string, language: 'ru' | 'en' = 'ru') {
   return moderateNatalQuestion({ question, language });
 }
 
+function displayedQuestionStarters(language: 'ru' | 'en'): string[] {
+  const source = read('components/NatalReading/NatalQuestionExperience.tsx');
+  const starterBlock = source.slice(
+    source.indexOf('const QUESTION_STARTERS'),
+    source.indexOf('type Props'),
+  );
+  return [...starterBlock.matchAll(new RegExp(`${language}: \\[([\\s\\S]*?)\\]`, 'g'))]
+    .flatMap((match) => [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1]));
+}
+
 describe('saved natal-chart question policy', () => {
   it.each([
     'Что мой асцендент говорит о том, как я общаюсь?',
@@ -45,6 +55,19 @@ describe('saved natal-chart question policy', () => {
     'Why is it hard for me to ask for and accept help?',
   ])('accepts an in-scope English interpretation: %s', (question) => {
     expect(moderation(question, 'en')).toMatchObject({ status: 'approved' });
+  });
+
+  it('accepts every starter shown in the natal-question interface', () => {
+    (['ru', 'en'] as const).forEach((language) => {
+      const starters = displayedQuestionStarters(language);
+      expect(starters).toHaveLength(24);
+      starters.forEach((question) => {
+        expect(moderation(question, language)).toMatchObject({
+          status: 'approved',
+          reason: 'relevant_natal_question',
+        });
+      });
+    });
   });
 
   it.each([

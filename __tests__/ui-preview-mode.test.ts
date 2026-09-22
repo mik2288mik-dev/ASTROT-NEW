@@ -26,7 +26,7 @@ describe('development-only UI Preview mode', () => {
     expect(document).toContain("process.env.NEXT_PUBLIC_MOBILE_BUILD === '1'");
     expect(document).toContain('const loadTelegramAppDependencies = !publicDocument && !isUiPreviewBuild && !isMobileBuild');
     expect(document).toContain('isPublicRoute(ctx.pathname)');
-    expect(document).toContain('{loadTelegramAppDependencies ? (');
+    expect(document).toContain('{loadTelegramAppDependencies ? <>');
     expect(document).toContain('<script src="https://telegram.org/js/telegram-web-app.js"></script>');
   });
 
@@ -77,7 +77,8 @@ describe('development-only UI Preview mode', () => {
     expect(preview).toContain("scenario.screen === 'menu'");
     expect(preview).toContain('<ServiceScreen');
     expect(preview).not.toContain("setServiceTab('charts')");
-    expect(preview).toContain('settingsContent={(');
+    expect(preview).toContain("onOpenMatrix={() => navigate('matrix')}");
+    expect(preview).toContain('onOpenSettings={openSettings}');
     expect(preview).toContain('<EditorialChartsButton label="Открыть мои карты"');
     expect(preview).toContain('scenario.screen === \'charts\' ? undefined');
     expect(preview).toContain('embedded');

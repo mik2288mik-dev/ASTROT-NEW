@@ -19,12 +19,25 @@
   left: 0;
   display: block;
   padding: 0;
+  background: transparent;
+}
+
+/* Keep every target where it is; trim only the empty white cap above them. */
+.today-bottom-navigation::after {
+  position: absolute;
+  top: 1rem;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
   background: #fff;
+  content: '';
+  pointer-events: none;
 }
 
 .today-bottom-navigation::before {
   position: absolute;
-  top: 0;
+  top: 1rem;
   right: max(
     1.25rem,
     env(safe-area-inset-right, 0px),
@@ -77,7 +90,7 @@
     );
   border: 0;
   border-radius: 0;
-  background: #fff;
+  background: transparent;
   box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;

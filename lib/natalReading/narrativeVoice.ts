@@ -1,4 +1,4 @@
-import { getAppSystemVoice } from '../appVoice';
+import { getNeboCoreVoice } from '../voice/core';
 
 /** Category narratives only: question and forecast identities stay separate. */
 export const NATAL_NARRATIVE_VOICE_VERSION = 'natal-voice-v4';

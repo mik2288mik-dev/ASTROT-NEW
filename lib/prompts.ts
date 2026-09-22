@@ -92,194 +92,20 @@ export interface MonthlyForecastAIResponse {
   content: string;
 }
 
-export const createDailyForecastV2Prompt = (
-  natalData: NatalChartData,
-  profile: UserProfile,
-  currentDate: string,
-  transits?: any
-): string => {
-  const natalDataJson = JSON.stringify(natalData, null, 2);
-  const transitsJson = JSON.stringify(transits || {}, null, 2);
-  const displayName = profile.name || 'the user';
 
-  return `Current date: ${currentDate}
 
-User: ${displayName}
-Language: ${profile.language}
 
-Natal chart:
-${natalDataJson}
 
-Current transits:
-${transitsJson}
 
-Task: create a personal daily forecast.
 
-Rules:
-- Speak to the user as a real person, not as a zodiac sign.
-- Focus on emotions, relationships, money, decisions, pressure, opportunity, and direction.
-- This free daily flow contains two layers inside one response:
-  1) a short daily horoscope layer in headline / summary / chance / risk / focus
-  2) a free daily natal card layer in reading / context / advice
-- This is the free daily layer: one coherent reading for the whole day. Do not split the day into morning/day/evening here — that is reserved for premium.
-- Free layer should already help, not tease. But do not try to map every nuance, every scenario, or every part of the day — richer situational detail belongs to premium.
-- The daily natal card part should mix the user's inner background with a few recognizable moments or triggers the day may bring.
-- No "color of the day", "number of the day", moon gimmicks, or decorative astrology.
-- Base every conclusion on the natal chart or current transits. Present possible situations as possibilities, not known events.
 
-Return strict JSON with these fields:
-- headline: one strong personal line for today, max 90 chars
-- summary: 1-2 sentences explaining the main conclusion for the day
-- chance: one practical opening of the day
-- risk: one practical risk of the day
-- focus: one clear focus for the day
-- reading: 2-4 short paragraphs separated by "\\n\\n" as a free daily natal card for today
-- context: 1-2 sentences explaining what is being activated today through the natal chart and current influences
-- advice: exactly 3 short practical strings
-
-Return only JSON.`;
-};
-
-export const createDaypartForecastPrompt = (
-  natalData: NatalChartData,
-  profile: UserProfile,
-  currentDate: string,
-  slot: 'morning' | 'day' | 'evening',
-  transits?: any
-): string => {
-  const natalDataJson = JSON.stringify(natalData, null, 2);
-  const transitsJson = JSON.stringify(transits || {}, null, 2);
-  const displayName = profile.name || 'the user';
-  const genderNote = profile.gender === 'male'
-    ? 'мужской — пиши в мужском роде'
-    : profile.gender === 'female'
-      ? 'женский — пиши в женском роде'
-      : 'не указан — пиши нейтрально, не выдавай пол';
-
-  return `Current date: ${currentDate}
-Time slot: ${slot}
-
-User: ${displayName}
-Language: ${profile.language}
-Пол пользователя: ${genderNote}.
-
-Natal chart:
-${natalDataJson}
-
-Current transits:
-${transitsJson}
-
-Task: create a personal forecast for this specific part of the day.
-
-Rules:
-- This is the full daily reading used by Premium. Cover more situational detail than the free daily reading.
-- Explicitly differ from a single-day summary: this slice is about this part of the day, including social context, practical risk, and pace.
-- Treat it like a full daily natal card segment: mix the user's inner state with concrete situations, triggers, and moments that may surface in this slot.
-- When relevant, surface one concrete scenario or behavioral pattern the user may actually run into in this slot.
-- Use the slot (${slot}) to change the rhythm and practical emphasis.
-- Base every conclusion on the natal chart or current transits. Present possible situations as possibilities, not known events.
-
-Return strict JSON with these fields:
-- headline: one strong slot-specific line, max 90 chars
-- summary: 1-2 sentences for this part of the day
-- focus: the main thing to hold today in this slot
-- relationships: short guidance for closeness, communication, or emotional contact
-- money: short guidance for work, money, or practical decisions
-- guidance: 1-2 sentences with the action of the day
-- risk: one short concrete risk of the day
-- chartReason: one short plain-language reason based on the natal chart and current transits
-
-Return only JSON.`;
-};
-
-export const createNatalAnchorPrompt = (
-  natalData: NatalChartData,
-  profile: UserProfile
-): string => {
-  const natalDataJson = JSON.stringify(natalData, null, 2);
-  const displayName = profile.name || 'the user';
-
-  return `User: ${displayName}
-Language: ${profile.language}
-
-Natal chart:
-${natalDataJson}
-
-Task: create the user's natal chart reading.
-
-Rules:
-- This is the first complete natal reading a user sees. It must feel valuable on its own.
-- Ground every conclusion in the natal calculation and explain its meaning instead of astrology mechanics.
-- Focus on character, emotional habits, first impression, strengths, decision style, and what is worth noticing.
-- Include recognizable everyday examples inside the reading: choices, closeness, conflict, rhythm, self-perception.
-- No long lists of planets/houses/aspects. Translate the chart into human language.
-- Do not greet the user. Do not write "hello", "hi", "привет", or the user's name as an opener.
-- Do not use user-facing internal words: free, premium, layer, unlock, upsell, sale, trial, "бесплатный", "премиум", "слой", "живой слой", "твоя основа", "опорная карта".
-
-Return strict JSON with these fields:
-- headline: one strong user-facing title, max 80 chars
-- summary: 1-2 sentences explaining the overall conclusion from the chart
-- reading: 5-7 short paragraphs separated by "\\n\\n"; no greeting and no name opener
-- threeAnchors: exactly 3 objects with title/body. Titles must be Sun/Moon/Rising in the response language; bodies explain them as human roles: character, emotions, first impression.
-- perceivedByOthers: 2-3 sentences about how people usually read this person and what they may misunderstand.
-- strengths: exactly 3 short observations with life examples.
-- watchouts: exactly 3 warnings tied to the supplied data.
-- dictionaryTerms: 5-7 objects with term/meaning. Explain simple terms such as Sun, Moon, Rising, Sign, Aspect, House in everyday language.
-
-Return only JSON.`;
-};
-
-export const createNatalLivingPrompt = (
-  natalData: NatalChartData,
-  profile: UserProfile,
-  periodKey: string,
-  transits?: any
-): string => {
-  const natalDataJson = JSON.stringify(natalData, null, 2);
-  const transitsJson = JSON.stringify(transits || {}, null, 2);
-  const displayName = profile.name || 'the user';
-
-  return `Period: ${periodKey}
-User: ${displayName}
-Language: ${profile.language}
-
-Natal chart:
-${natalDataJson}
-
-Current transits and live influences:
-${transitsJson}
-
-Task: create today's personal natal reading.
-
-Rules:
-- This is a fuller daily reading inside the user's natal chart.
-- Explain what is activated right now and how it may show up in real life today.
-- Focus on today's personal rhythm, concrete situations, relationships, work/money state, evening decompression, one repeating pattern, and one question.
-- Show how this period may affect choices, closeness, work rhythm, confidence, or pressure points with recognizable examples.
-- Do not greet the user. Do not open with the user's name.
-- Do not use user-facing internal words: free, premium, layer, unlock, upsell, sale, trial, "бесплатный", "премиум", "слой", "живой слой", "твоя основа", "опорная карта".
-- Do not give medical, legal, or financial instructions. For work/money, speak about state, focus, pressure, and decision hygiene.
-
-Return strict JSON with these fields:
-- headline: one strong title for today, max 80 chars
-- summary: 1-2 sentences with today's main conclusion
-- fullPersonality: 4-6 short paragraphs about how this person lives, reacts, chooses, and builds contact. This is a fuller but still readable personality interpretation.
-- today: 2-4 short paragraphs about what is activated today.
-- daySituations: exactly 3 objects with title/body. Titles should be concrete, e.g. "In conversation", "In work", "Inside yourself" / "В разговоре", "В делах", "Внутри себя".
-- relationshipsToday: 2-3 sentences on how to communicate today, where not to guess, where to ask directly.
-- workMoneyToday: 2-3 sentences about focus, state, decisions, anxiety, and practical rhythm. No financial advice.
-- evening: 2-3 sentences about what to release or understand by evening.
-- repeatingScenario: 2-3 sentences about one pattern especially worth seeing now.
-- questionOfDay: one question for self-observation.
-
-Return only JSON.`;
-};
 
 function natalEvidenceJson(evidence: AstroEvidenceItem[] | undefined) {
   return JSON.stringify((evidence || []).slice(0, 8), null, 2);
 }
 
 import { getNatalAstrologySystemPrompt } from './voice/contracts/natal';
+import { getNatalAstrologyExamples } from './voice/examples';
 
 function natalTaskRules(language: string) {
   const lang: 'ru' | 'en' = language === 'ru' ? 'ru' : 'en';
@@ -479,7 +305,17 @@ export const createPlanetInsightPrompt = (
   const displayName = profile.name || 'the user';
 
   const lang: 'ru' | 'en' = profile.language === 'ru' ? 'ru' : 'en';
+
+  const genderInstruction = profile.gender === 'male' ? (lang === 'ru' ? 'Пол пользователя: мужской (используй мужской род).' : 'User gender: male (use male pronouns).')
+    : profile.gender === 'female' ? (lang === 'ru' ? 'Пол пользователя: женский (используй женский род).' : 'User gender: female (use female pronouns).')
+    : (lang === 'ru' ? 'Пол пользователя: не указан (строй текст нейтрально, чтобы не угадывать род).' : 'User gender: unspecified (write gender-neutrally).');
+
+  const examples = getNatalAstrologyExamples(lang);
+  const examplesBlock = examples ? `\n\n## EXAMPLES\n${examples}` : '';
+
   return `${getNatalAstrologySystemPrompt(lang)}
+${genderInstruction}${examplesBlock}
+
 User: ${displayName}
 
 Core chart anchors:
@@ -576,173 +412,4 @@ export interface PremiumMonthlyForecastV2AIResponse {
   guidance: string;
   reading: string;
 }
-
-export const createFreeWeeklyForecastPrompt = (
-  natalData: NatalChartData,
-  profile: UserProfile,
-  periodKey: string,
-  periodLabel: string,
-  transits?: any
-): string => {
-  const natalDataJson = JSON.stringify(natalData, null, 2);
-  const transitsJson = JSON.stringify(transits || {}, null, 2);
-  const displayName = profile.name || 'the user';
-
-  return `Forecast period (ISO week): ${periodKey}
-Human-readable range: ${periodLabel}
-
-User: ${displayName}
-Language: ${profile.language}
-
-Natal chart:
-${natalDataJson}
-
-Current transits (context):
-${transitsJson}
-
-Task: FREE weekly layer — one compact orientation for this calendar week.
-
-Rules:
-- Short and useful: this is not the premium deep layer.
-- Give one clear emotional pattern for the week and one practical focus that is worth carrying through the week.
-- Make it useful now, but do not try to cover every domain or every scenario. Premium adds more examples and maps more nuance.
-- No color/number/lucky day gimmicks. No moon-sign fluff for entertainment.
-- Connect the weekly conclusion to the chart and transits.
-
-Return strict JSON:
-- headline: max 90 chars, one strong line for the week
-- summary: 1-2 sentences
-- focus: one clear practical focus for the week
-
-Return only JSON.`;
-};
-
-export const createPremiumWeeklyForecastPrompt = (
-  natalData: NatalChartData,
-  profile: UserProfile,
-  periodKey: string,
-  periodLabel: string,
-  transits?: any
-): string => {
-  const natalDataJson = JSON.stringify(natalData, null, 2);
-  const transitsJson = JSON.stringify(transits || {}, null, 2);
-  const displayName = profile.name || 'the user';
-
-  return `Forecast period (ISO week): ${periodKey}
-Human-readable range: ${periodLabel}
-
-User: ${displayName}
-Language: ${profile.language}
-
-Natal chart:
-${natalDataJson}
-
-Current transits:
-${transitsJson}
-
-Task: PREMIUM weekly layer — full-class forecast for the week (stronger than free, not just longer).
-
-Rules:
-- This is the full premium weekly forecast, not a teaser expanded for length.
-- Combine depth, situational precision, and recognizable life scenarios across the week.
-- Cover decisions, relationships, work/money, tension, opportunity, and timing.
-- Clearly richer than the free weekly layer; different class of interpretation.
-- When relevant, show how the week may unfold in actual behavior, conversations, pressure, or momentum.
-- No color/number games.
-
-Return strict JSON:
-- headline: max 90 chars
-- summary: 2-3 sentences
-- focus: one line
-- theme: 2-5 words naming the week
-- opportunities: 2-3 sentences
-- challenges: 2-3 sentences
-- relationships: 2-3 sentences
-- career: 2-3 sentences (work, money, direction)
-- guidance: 3-4 sentences with orientation
-- reading: 4-6 short paragraphs separated by "\\n\\n"
-
-Return only JSON.`;
-};
-
-export const createFreeMonthlyForecastPrompt = (
-  natalData: NatalChartData,
-  profile: UserProfile,
-  periodKey: string,
-  periodLabel: string,
-  transits?: any
-): string => {
-  const natalDataJson = JSON.stringify(natalData, null, 2);
-  const transitsJson = JSON.stringify(transits || {}, null, 2);
-  const displayName = profile.name || 'the user';
-
-  return `Forecast month: ${periodKey} (${periodLabel})
-
-User: ${displayName}
-Language: ${profile.language}
-
-Natal chart:
-${natalDataJson}
-
-Transits context:
-${transitsJson}
-
-Task: FREE monthly layer — compact month orientation.
-
-Rules:
-- Keep the response within the required compact structure.
-- Give one recognizable monthly tension or emphasis and one practical focus.
-- Free layer should already orient the month, but not replace the fuller premium month reading with more nuance, examples, and situational detail.
-
-Return strict JSON:
-- headline: max 90 chars
-- summary: 1-2 sentences
-- focus: one line for the month
-
-Return only JSON.`;
-};
-
-export const createPremiumMonthlyForecastPrompt = (
-  natalData: NatalChartData,
-  profile: UserProfile,
-  periodKey: string,
-  periodLabel: string,
-  transits?: any
-): string => {
-  const natalDataJson = JSON.stringify(natalData, null, 2);
-  const transitsJson = JSON.stringify(transits || {}, null, 2);
-  const displayName = profile.name || 'the user';
-
-  return `Forecast month: ${periodKey} (${periodLabel})
-
-User: ${displayName}
-Language: ${profile.language}
-
-Natal chart:
-${natalDataJson}
-
-Transits:
-${transitsJson}
-
-Task: PREMIUM monthly layer — deep month reading (premium class, not inflated length).
-
-Rules:
-- Cover the month with more detail than the free monthly layer.
-- Combine depth, situational precision, and real-life scenarios across relationships, money/work, energy, and choices.
-- Show tradeoffs, emotional undercurrents, and where momentum may build or stall.
-
-Return strict JSON:
-- headline: max 90 chars
-- summary: 2-3 sentences
-- focus: one line
-- theme: 2-5 words
-- opportunities: 2-3 sentences
-- challenges: 2-3 sentences
-- relationships: 2-4 sentences
-- money: 2-4 sentences
-- guidance: 3-4 sentences
-- reading: 5-7 short paragraphs separated by "\\n\\n"
-
-Return only JSON.`;
-};
 

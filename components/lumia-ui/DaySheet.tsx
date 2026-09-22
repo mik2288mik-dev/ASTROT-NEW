@@ -71,6 +71,7 @@ export function DaySheet({
       title={heading}
       subtitle={dateKey ? formatDisplayDate(dateKey, language) : undefined}
       closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
+      appearance="cosmic"
       className="day-sheet-cosmic"
       contentClassName="day-sheet-cosmic-content"
       onClose={onClose}

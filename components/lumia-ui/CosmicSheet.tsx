@@ -17,6 +17,7 @@ export type CosmicSheetProps = {
   children: ReactNode;
   footer?: ReactNode;
   closeLabel?: string;
+  appearance?: 'standard' | 'cosmic';
   className?: string;
   contentClassName?: string;
   onClose: () => void;
@@ -150,6 +151,7 @@ export function CosmicSheet({
   children,
   footer,
   closeLabel = 'Close',
+  appearance = 'standard',
   className,
   contentClassName,
   onClose,
@@ -285,7 +287,7 @@ export function CosmicSheet({
               aria-modal="true"
               aria-labelledby={titleId}
               aria-describedby={subtitle ? subtitleId : undefined}
-              className={classNames('cosmic-sheet-panel', className)}
+              className={classNames('cosmic-sheet-panel', `cosmic-sheet-panel--${appearance}`, className)}
               planeClassName="cosmic-sheet-plane"
               tabIndex={-1}
               variant="sheet"
