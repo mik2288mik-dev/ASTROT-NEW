@@ -1,0 +1,4 @@
+.content {
+  /* The app scroll host already clears the fixed bottom navigation. */
+  padding-bottom: 24px;
+}

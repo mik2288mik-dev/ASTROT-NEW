@@ -11,6 +11,7 @@ import {
   EditorialTabs,
 } from '../editorial/EditorialScreenChrome';
 import { AppTopBar, AppTopBarSettingsProvider } from '../lumia-ui/AppTopBar';
+import { ActionFeedbackHost } from '../lumia-ui/ActionFeedback';
 import { NeboLogo } from '../brand/NeboLogo';
 import {
   LumiaBottomTabBar,
@@ -762,6 +763,7 @@ export default function UiPreviewApp() {
   return (
     <AppTopBarSettingsProvider onOpenSettings={openSettings}>
     <div className={`lumia-app-shell ui-preview-app ${showsBottomNavigation ? 'has-today-bottom-navigation' : ''}`} data-ui-preview="true">
+      <ActionFeedbackHost />
       <main
         className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
         aria-hidden={sheetOpen ? true : undefined}

@@ -7,7 +7,9 @@ import { toDateInputValue } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { EditorialProfileButton } from '../../components/editorial/EditorialScreenChrome';
+import { ACTION_FEEDBACK, showActionFeedback } from '../../components/lumia-ui/ActionFeedback';
 import styles from './MatrixRoom.module.css';
+import scrollStyles from './MatrixRoomScrollFix.module.css';
 
 type Props = { profile: UserProfile; onBack: () => void; onOpenProfile?: () => void; onOpenCharts?: () => void; embedded?: boolean };
 type Theme = 'character' | 'money' | 'love' | 'age';
@@ -16,11 +18,26 @@ type Screen = { kind: 'home' } | { kind: 'point'; point: Point } | { kind: 'them
 
 const cap = (value: string) => value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 const formula = (values: number[], result: number) => `${values.join(' + ')} → ${result}`;
+const NODE_COLORS: Record<string, { background: string; border: string; ink: string }> = {
+  month: { background: '#fff8ec', border: '#f1c982', ink: '#7a4a0b' },
+  day: { background: '#fff8ec', border: '#f1c982', ink: '#7a4a0b' },
+  personal: { background: '#eff6ff', border: '#aacbed', ink: '#225b8f' },
+  social: { background: '#eff6ff', border: '#aacbed', ink: '#225b8f' },
+  year: { background: '#f6f0ff', border: '#cdb9ee', ink: '#68419c' },
+  money: { background: '#edf9f0', border: '#a7d7b2', ink: '#237346' },
+  love: { background: '#fff0f4', border: '#efb6c6', ink: '#9a3653' },
+  base: { background: '#f5f6f8', border: '#d3d7dc', ink: '#4f5862' },
+  center: { background: '#f4f0ff', border: '#bca9e8', ink: '#513b8c' },
+};
 
 function Diagram({ points, selected, onSelect }: { points: Point[]; selected: string; onSelect: (point: Point) => void }) {
   return <div className={styles.diagram} aria-label="Интерактивная матрица">
     <svg viewBox="0 0 280 280" aria-hidden="true"><circle cx="140" cy="140" r="104" /><path d="M140 36 244 140 140 244 36 140Z" /><path d="M140 36V244M36 140H244M66 66l148 148M214 66 66 214" /></svg>
-    {points.map((point) => <button key={point.id} type="button" aria-label={`${point.label}: ${point.value}`} aria-pressed={selected === point.id} onClick={() => onSelect(point)} className={`${styles.node} ${styles[`node${point.place}`]} ${selected === point.id ? styles.selected : ''}`}>{point.value}</button>)}
+    {points.map((point) => {
+      const color = NODE_COLORS[point.id];
+      const isSelected = selected === point.id;
+      return <button key={point.id} type="button" aria-label={`${point.label}: ${point.value}`} aria-pressed={isSelected} onClick={() => onSelect(point)} className={`${styles.node} ${styles[`node${point.place}`]} ${isSelected ? styles.selected : ''}`} style={{ borderColor: color.border, background: isSelected ? color.ink : color.background, color: isSelected ? '#fff' : color.ink, boxShadow: isSelected ? `0 0 0 4px ${color.background}` : undefined }}>{point.value}</button>;
+    })}
   </div>;
 }
 
@@ -62,35 +79,35 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false }:
   }, [result, ru]);
 
   const goHome = () => { lumiaSelectionHaptic(); setScreen({ kind: 'home' }); window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' })); };
-  const calculate = () => { lumiaSelectionHaptic(); setCalculatedDate(date || null); setSelectedId('center'); setScreen({ kind: 'home' }); };
+  const calculate = () => { lumiaSelectionHaptic(); setCalculatedDate(date || null); setSelectedId('center'); setScreen({ kind: 'home' }); if (date) showActionFeedback(ACTION_FEEDBACK.done); };
   const title = screen.kind === 'point' ? screen.point.label : screen.kind === 'theme' && themes ? themes[screen.theme].title : screen.kind === 'full' ? (ru ? 'Полный разбор' : 'Full reading') : MATRIX_TITLE[lang];
   const internal = screen.kind !== 'home';
 
   if (!result || !selected || !themes) return <div className={`${embedded ? '' : 'fresh-page '} ${styles.page}`}>
     {!embedded && <AppTopBar title={MATRIX_TITLE[lang]} onBack={onBack} rightAction={<EditorialProfileButton label={ru ? 'Открыть мои карты' : 'Open my charts'} onClick={onOpenProfile} />} />}
-    <main className={styles.content}><h1>{MATRIX_TITLE[lang]}</h1><p className={styles.subhead}>{MATRIX_SUBTITLE[lang]}</p><label className={styles.dateField}>{ru ? 'Дата рождения' : 'Birth date'}<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label><button type="button" className={styles.primary} disabled={!date} onClick={calculate}>{ru ? 'Рассчитать матрицу' : 'Calculate matrix'}</button></main>
+    <main className={`${styles.content} ${scrollStyles.content}`}><h1>{MATRIX_TITLE[lang]}</h1><p className={styles.subhead}>{MATRIX_SUBTITLE[lang]}</p><label className={styles.dateField}>{ru ? 'Дата рождения' : 'Birth date'}<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label><button type="button" className={styles.primary} disabled={!date} onClick={calculate}>{ru ? 'Рассчитать матрицу' : 'Calculate matrix'}</button></main>
   </div>;
 
   const theme = screen.kind === 'theme' ? themes[screen.theme] : null;
   const chapters = [
-    ['main', ru ? '01 · главное' : '01 · main', ru ? 'Главный вектор' : 'Main direction', selected.copy, ru ? 'Центр схемы помогает заметить повторяющийся способ действовать. Это не ярлык и не предсказание.' : 'The center helps notice a repeating pattern, not label you.'],
-    ['character', ru ? '02 · характер' : '02 · character', themes.character.title, themes.character.lead, themes.character.blocks[1][1]],
-    ['strengths', ru ? '03 · сильные стороны' : '03 · strengths', ru ? 'На что можно опереться' : 'What you can rely on', themes.character.blocks[1][1], ru ? 'Сильная сторона полезнее всего, когда ты знаешь, где она помогает, а где заставляет делать всё одному.' : 'Strength works best when you know where it helps and where it makes you do everything alone.'],
-    ['money', ru ? '04 · деньги' : '04 · money', themes.money.title, themes.money.lead, themes.money.blocks[1][1]],
-    ['love', ru ? '05 · отношения' : '05 · relationships', themes.love.title, themes.love.lead, themes.love.blocks[1][1]],
-    ['friction', ru ? '06 · что мешает' : '06 · friction', ru ? 'Где бывает непросто' : 'Where it can be hard', themes.character.blocks[2][1], ru ? 'Это место, где полезно заранее заметить привычную реакцию, чтобы у тебя оставался выбор.' : 'Spot the habit early enough to keep a choice.'],
-    ['age', ru ? '07 · по возрастам' : '07 · life stages', themes.age.title, themes.age.lead, themes.age.blocks.map(([age, copy]) => `${age}: ${copy}`).join(' ')],
-    ['result', ru ? '08 · итог' : '08 · takeaway', ru ? 'Если собрать всё вместе' : 'Putting it together', themes.age.blocks[2][1], ru ? 'Матрица не предсказывает события и не решает за тебя. Это способ собрать наблюдения о себе в одну понятную картину.' : 'The matrix does not predict events or decide for you.'],
+    ['main', ru ? 'Главное' : 'Main', ru ? 'Главный вектор' : 'Main direction', selected.copy, ru ? 'Центр схемы помогает заметить повторяющийся способ действовать. Это не ярлык и не предсказание.' : 'The center helps notice a repeating pattern, not label you.'],
+    ['character', ru ? 'Характер' : 'Character', themes.character.title, themes.character.lead, themes.character.blocks[1][1]],
+    ['strengths', ru ? 'Сильные стороны' : 'Strengths', ru ? 'На что можно опереться' : 'What you can rely on', themes.character.blocks[1][1], ru ? 'Сильная сторона полезнее всего, когда ты знаешь, где она помогает, а где заставляет делать всё одному.' : 'Strength works best when you know where it helps and where it makes you do everything alone.'],
+    ['money', ru ? 'Деньги' : 'Money', themes.money.title, themes.money.lead, themes.money.blocks[1][1]],
+    ['love', ru ? 'Отношения' : 'Relationships', themes.love.title, themes.love.lead, themes.love.blocks[1][1]],
+    ['friction', ru ? 'Что мешает' : 'Friction', ru ? 'Где бывает непросто' : 'Where it can be hard', themes.character.blocks[2][1], ru ? 'Это место, где полезно заранее заметить привычную реакцию, чтобы у тебя оставался выбор.' : 'Spot the habit early enough to keep a choice.'],
+    ['age', ru ? 'По возрастам' : 'Life stages', themes.age.title, themes.age.lead, themes.age.blocks.map(([age, copy]) => `${age}: ${copy}`).join(' ')],
+    ['result', ru ? 'Итог' : 'Takeaway', ru ? 'Если собрать всё вместе' : 'Putting it together', themes.age.blocks[2][1], ru ? 'Матрица не предсказывает события и не решает за тебя. Это способ собрать наблюдения о себе в одну понятную картину.' : 'The matrix does not predict events or decide for you.'],
   ];
 
   return <div className={`${embedded ? '' : 'fresh-page '} ${styles.page}`}>
     {!embedded && <AppTopBar title={title} onBack={internal ? goHome : onBack} rightAction={<EditorialProfileButton label={ru ? 'Открыть мои карты' : 'Open my charts'} onClick={onOpenProfile} />} />}
-    <main className={styles.content}>
+    <main className={`${styles.content} ${scrollStyles.content}`}>
       {screen.kind === 'home' && <>
         <p className={styles.dateLine}>{ru ? 'Дата рождения' : 'Birth date'} <strong>{date.split('-').reverse().join('.')}</strong></p>
         <details className={styles.recalculate}><summary>{ru ? 'Изменить дату' : 'Change date'}</summary><div><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /><button type="button" onClick={calculate}>{ru ? 'Пересчитать' : 'Recalculate'}</button></div></details>
-        <section className={styles.matrixBlock}><p className={styles.eyebrow}>{ru ? 'Твоя матрица' : 'Your matrix'}</p><Diagram points={points} selected={selectedId} onSelect={(point) => { lumiaSelectionHaptic(); setSelectedId(point.id); }} /><div className={styles.selection}><b>{selected.value}</b><span><strong>{selected.label}</strong><small>{selected.formula}</small></span><button type="button" onClick={() => { lumiaSelectionHaptic(); setScreen({ kind: 'point', point: selected }); }}>{ru ? 'Разобрать' : 'Open'}</button></div></section>
-        <section className={styles.themes}><h1>{ru ? 'Разбор' : 'Reading'}</h1><p>{ru ? 'Нажми на тему или число — откроем отдельный разбор.' : 'Choose a theme or a number for its own reading.'}</p>{(Object.keys(themes) as Theme[]).map((key, index) => <button type="button" className={styles.themeRow} key={key} onClick={() => { lumiaSelectionHaptic(); setScreen({ kind: 'theme', theme: key }); }}><b>{String(index + 1).padStart(2, '0')}</b><span><strong>{themes[key].title}</strong><small>{themes[key].lead}</small></span><ChevronRight aria-hidden="true" /></button>)}</section>
+        <section className={styles.matrixBlock}><p className={styles.eyebrow}>{ru ? 'Твоя матрица' : 'Your matrix'}</p><Diagram points={points} selected={selectedId} onSelect={(point) => { lumiaSelectionHaptic(); setSelectedId(point.id); }} /><div className={styles.selection}><b>{selected.value}</b><span><strong>{selected.label}</strong><small style={{ fontSize: 13, fontWeight: 600 }}>{selected.formula}</small></span><button type="button" onClick={() => { lumiaSelectionHaptic(); setScreen({ kind: 'point', point: selected }); }}>{ru ? 'Разобрать' : 'Open'}</button></div></section>
+        <section className={styles.themes}><h1>{ru ? 'Разбор' : 'Reading'}</h1><p>{ru ? 'Нажми на тему или число — откроем отдельный разбор.' : 'Choose a theme or a number for its own reading.'}</p>{(Object.keys(themes) as Theme[]).map((key) => <button type="button" className={styles.themeRow} style={{ gridTemplateColumns: 'minmax(0, 1fr) 18px' }} key={key} onClick={() => { lumiaSelectionHaptic(); setScreen({ kind: 'theme', theme: key }); }}><span><strong>{themes[key].title}</strong><small>{themes[key].lead}</small></span><ChevronRight aria-hidden="true" /></button>)}</section>
         <section className={styles.fullCard}><p>{ru ? 'Полный разбор' : 'Full reading'}</p><h2>{ru ? 'Собрать всё вместе' : 'See the whole picture'}</h2><span>{ru ? 'Восемь глав: от главной точки до итога.' : 'Eight chapters, from the main point to the takeaway.'}</span><button type="button" onClick={() => { lumiaSelectionHaptic(); setScreen({ kind: 'full' }); }}>{ru ? 'Открыть полный разбор' : 'Open full reading'}</button></section>
       </>}
       {screen.kind === 'point' && <article className={styles.detail}><p className={styles.eyebrow}>{ru ? 'Точка матрицы' : 'Matrix point'}</p><h1>{screen.point.label}</h1><p className={styles.lead}>{screen.point.hint}</p><section className={styles.formula}><small>{ru ? 'Как посчитано' : 'How it is calculated'}</small><strong>{screen.point.formula}</strong></section><section><h2>{ru ? 'Что здесь видно' : 'What this shows'}</h2><p>{screen.point.copy}</p></section><section><h2>{ru ? 'Как читать эту точку' : 'How to read this point'}</h2><p>{ru ? 'Смотри на неё вместе с соседними числами: тогда схема остаётся понятной и не превращается в набор ярлыков.' : 'Read it with the nearby numbers, not as a label on its own.'}</p></section><button type="button" className={styles.secondary} onClick={goHome}>{ru ? 'Вернуться к матрице' : 'Back to matrix'}</button></article>}

@@ -33,6 +33,7 @@ import {
 import { hasActivePremium } from '../lib/accessMatrix';
 import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
+import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
@@ -515,6 +516,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 onUpdate(fresh);
                 const result = await getLinkedIdentities();
                 setIdentities(result.identities);
+                showActionFeedback(ACTION_FEEDBACK.accountSaved);
             })
             .catch((error) => setIdentityError(readableIdentityError(error, profile.language === 'en' ? 'en' : 'ru')))
             .finally(() => setIdentityBusy(false));
@@ -560,6 +562,7 @@ export const Settings: React.FC<SettingsProps> = ({
         void verifyEmailPasswordRegistration(emailChallengeId, emailCode)
             .then(async (fresh) => {
                 if (fresh) await updateLinkedIdentitiesAfterAuth(fresh);
+                if (fresh) showActionFeedback(ACTION_FEEDBACK.accountSaved);
                 setEmailChallengeId('');
                 setEmailCode('');
                 setEmailPassword('');
@@ -581,6 +584,7 @@ export const Settings: React.FC<SettingsProps> = ({
             setQuietStart(settings.quietStart);
             setQuietEnd(settings.quietEnd);
             setNotificationPermission(settings.permission);
+            showActionFeedback(ACTION_FEEDBACK.settingsUpdated);
         } catch (error) {
             const permissionRequired = error instanceof Error && error.message === 'permission_required';
             if (permissionRequired) setNotificationPermission('denied');
@@ -597,7 +601,7 @@ export const Settings: React.FC<SettingsProps> = ({
             quietHoursEnd: quietEnd,
             timezone: localTimezone(),
             ...patch,
-        });
+        }).then(() => showActionFeedback(ACTION_FEEDBACK.settingsUpdated));
     };
     const toggleNotif = () => {
         const next = !notifEnabled;
@@ -718,7 +722,10 @@ export const Settings: React.FC<SettingsProps> = ({
         setRestoreFailureReason('');
         setRestoreState('running');
         void onRestorePurchase()
-            .then((result) => setRestoreState(result === 'pending' ? 'pending' : 'success'))
+            .then((result) => {
+                setRestoreState(result === 'pending' ? 'pending' : 'success');
+                if (result !== 'pending') showActionFeedback(ACTION_FEEDBACK.premiumRestored);
+            })
             .catch((error) => {
                 setRestoreFailureReason(error instanceof Error ? error.message : '');
                 setRestoreState('error');
@@ -880,6 +887,7 @@ export const Settings: React.FC<SettingsProps> = ({
             // The server is authoritative across devices. Update visible state
             // only after persistence succeeds, so a failed save cannot stick.
             await saveServerAuthoritativeGender(profile, gender, saveProfile, onUpdate);
+            showActionFeedback(ACTION_FEEDBACK.dataUpdated);
         } catch (error) {
             console.error('[Settings] Failed to save gender:', error);
             setGenderSaveError(profile.language === 'en'
@@ -923,6 +931,7 @@ export const Settings: React.FC<SettingsProps> = ({
             setEditsUsed((n) => n + 1);
             setTempName(normalizedName);
             setEditing(false);
+            showActionFeedback(ACTION_FEEDBACK.settingsSaved);
             console.log('[Settings] Profile saved successfully');
         } catch (error) {
             console.error('[Settings] Failed to save profile:', error);

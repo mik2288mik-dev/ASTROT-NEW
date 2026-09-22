@@ -10,6 +10,7 @@ import { cardBackgroundStyle, getUniversalCardBackground } from '../lib/cardBack
 import { shareToTelegram } from '../lib/botLink';
 import { MonoArticleSection, MonoShareBar } from '../components/mono-ui';
 import { FreshTabs } from '../components/fresh-ui';
+import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
 
 type SynastryPrefill = { source: 'saved-chart' | 'manual'; partnerChartId?: number; partnerName?: string; partnerDate?: string; partnerTime?: string; partnerPlace?: string } | null;
 type Props = {
@@ -66,11 +67,11 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
   }, [chartsLoaded, partnerChartId, partners]);
   useEffect(() => { const chart = partners.find((item) => item.id === partnerChartId); if (!chart) return; setPartnerName(chart.name); setPartnerDate(toDateInputValue(chart.birth_date)); setPartnerTime(chart.birth_time || ''); setPartnerPlace(chart.birth_place || ''); }, [partnerChartId, partners]);
 
-  async function runSigns() { setLoading(true); setError(null); try { setSignResult(await getSignCompatibility(signA, signB, language)); } catch { setError(ru ? 'Не удалось загрузить разбор. Попробуй ещё раз.' : 'Could not load the reading. Try again.'); } finally { setLoading(false); } }
+  async function runSigns() { setLoading(true); setError(null); try { setSignResult(await getSignCompatibility(signA, signB, language)); showActionFeedback(ACTION_FEEDBACK.readyToCompare); } catch { setError(ru ? 'Не удалось загрузить разбор. Попробуй ещё раз.' : 'Could not load the reading. Try again.'); } finally { setLoading(false); } }
   async function runPersonal() {
     if (!hasChart) { onCreateNatalChart?.(); return; } if (!premium) { requestPremium(); return; }
     if (!partnerName.trim() || !partnerDate) { setError(ru ? 'Добавь имя и дату рождения человека.' : 'Add the person’s name and birth date.'); return; }
-    setLoading(true); setError(null); try { const output = await calculateExtendedSynastry(profile, partnerName, partnerDate, partnerTime || undefined, partnerPlace || undefined, relationshipType ?? 'отношения', partnerChartId || undefined); setResult(output.result); } catch (e: any) { setError(e?.message || (ru ? 'Не удалось собрать разбор.' : 'Could not create the reading.')); } finally { setLoading(false); }
+    setLoading(true); setError(null); try { const output = await calculateExtendedSynastry(profile, partnerName, partnerDate, partnerTime || undefined, partnerPlace || undefined, relationshipType ?? 'отношения', partnerChartId || undefined); setResult(output.result); showActionFeedback(ACTION_FEEDBACK.readyForReading); } catch (e: any) { setError(e?.message || (ru ? 'Не удалось собрать разбор.' : 'Could not create the reading.')); } finally { setLoading(false); }
   }
   const accuracy = !partnerTime || !partnerPlace ? (ru ? 'Без точного времени или места рождения разбор не учитывает часть домов и может быть менее точным.' : 'Without an exact birth time or place, some chart details are unavailable and the reading may be less precise.') : null;
 

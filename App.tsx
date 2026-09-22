@@ -50,6 +50,7 @@ import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppEntryAnnouncement } from './components/AppEntryAnnouncement';
 import { AppTopBar, AppTopBarSettingsProvider } from './components/lumia-ui/AppTopBar';
+import { ACTION_FEEDBACK, ActionFeedbackHost, showActionFeedback } from './components/lumia-ui/ActionFeedback';
 import { NeboLogo } from './components/brand/NeboLogo';
 import {
     LumiaNavigationSheet,
@@ -1812,6 +1813,7 @@ const App: React.FC = () => {
                 }),
             });
             finishPurchase('purchase_succeeded', 'Premium открыт. Возвращаем туда, где ты остановился.');
+            showActionFeedback(ACTION_FEEDBACK.premiumActive);
             return 'completed' as const;
         };
         void recordUserAppEvent({
@@ -2011,6 +2013,7 @@ const App: React.FC = () => {
         firstValueReachedRef.current = true;
         setFirstValueReached(true);
         clearPersonalForecastSessionCache();
+        showActionFeedback(ACTION_FEEDBACK.premiumRestored);
         void recordUserAppEvent({
             eventType: 'restore_succeeded',
             section: 'premium',
@@ -2737,6 +2740,7 @@ const App: React.FC = () => {
                 view === 'admin' ? 'is-admin-view' : ''
             }`}
         >
+            <ActionFeedbackHost />
             <main
                 className={`lumia-tg-main-gutter relative z-10 flex-1 w-full overflow-hidden min-h-0 bg-white ${
                     view === 'admin' ? 'max-w-none' : 'max-w-reading-wide mx-auto'

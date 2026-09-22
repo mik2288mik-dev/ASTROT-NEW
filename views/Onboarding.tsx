@@ -14,6 +14,7 @@ import {
 import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTime';
 import { validateDate, validateName } from '../lib/validation';
 import { onboardingCalculationStatus } from '../lib/onboardingCalculationStatus';
+import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
 
 type OnboardingStart = 'stories' | 'birth';
 type OnboardingScreen = 'day' | 'self' | 'people' | 'choice' | 'birth' | 'calculating';
@@ -315,6 +316,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
         isPremium: false,
         notificationFrequency: 'quiet',
       });
+      showActionFeedback(ACTION_FEEDBACK.onboardingReady);
     } catch (submitError: any) {
       setScreen('birth');
       setErrorField(null);
