@@ -1,6 +1,6 @@
 /** Public, replaceable store and legal metadata. Never put credentials here. */
-const publicBaseUrl = String(process.env.NEXT_PUBLIC_PUBLIC_BASE_URL || '').replace(/\/+$/, '');
-const fallback = (path: string) => publicBaseUrl ? `${publicBaseUrl}${path}` : path;
+const publicBaseUrl = String(process.env.NEXT_PUBLIC_PUBLIC_BASE_URL || 'https://www.tvoi-goroskop.ru').replace(/\/+$/, '');
+const fallback = (path: string) => `${publicBaseUrl}${path}`;
 
 export const STORE_RELEASE_CONFIG = {
   appName: process.env.NEXT_PUBLIC_APP_NAME || 'NEBO',

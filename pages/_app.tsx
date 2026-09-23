@@ -24,10 +24,8 @@ import '../styles/todayHome.css';
 import '../styles/uiPreview.css';
 import '../styles/sharedShellFinal.css';
 import '../styles/natalMeaningMap.css';
-import '../styles/publicSiteDocument.css';
 import '../styles/admin2/admin.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
-import { PublicAnalytics } from '../components/public-site/PublicAnalytics';
 import { installRuntimeDiagnostics } from '../lib/runtimeDiagnostics';
 
 if (typeof window !== 'undefined') {
@@ -35,11 +33,6 @@ if (typeof window !== 'undefined') {
 }
 
 export default function App({ Component, pageProps, router }: AppProps) {
-  const publicSiteEnabled = process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1';
-  const viewport = publicSiteEnabled
-    ? 'width=device-width, initial-scale=1, viewport-fit=cover'
-    : 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-
   useEffect(() => {
     try {
       const tg = (window as any).Telegram?.WebApp;
@@ -52,23 +45,12 @@ export default function App({ Component, pageProps, router }: AppProps) {
     }
   }, []);
 
-  useEffect(() => {
-    if (!publicSiteEnabled) return;
-    document.documentElement.classList.add('public-site-document');
-    document.body.classList.add('public-site-document');
-    return () => {
-      document.documentElement.classList.remove('public-site-document');
-      document.body.classList.remove('public-site-document');
-    };
-  }, [publicSiteEnabled]);
-
   return (
     <>
       <Head>
-        <meta name="viewport" content={viewport} />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
       </Head>
-      {publicSiteEnabled ? <PublicAnalytics /> : null}
-      {!publicSiteEnabled ? <DoodleDefs /> : null}
+      <DoodleDefs />
       <Component {...pageProps} />
     </>
   );

@@ -65,7 +65,8 @@ Month remain one cohesive story each.
 - The RuStore flavor includes RuStore Pay; other flavors do not.
 - Email, VK ID, Yandex ID, Google, and Telegram identities can map to one
   canonical `users.id`; enabled sign-in buttons depend on the build channel.
-- Railway currently runs the API, PostgreSQL, scheduled jobs, and public site.
+- The application deployment runs the API and scheduled jobs against PostgreSQL.
+- Public website source belongs only in `mik2288mik-dev/NEBO-WEB` and has its own deployment.
 - `/api/health` reports process health. `/api/readiness` checks PostgreSQL and
   Swiss Ephemeris.
 

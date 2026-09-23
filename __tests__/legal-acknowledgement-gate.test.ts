@@ -67,15 +67,4 @@ describe('legal acknowledgement gate integration', () => {
     expect(app).toContain('legalAcknowledgements: profile?.legalAcknowledgements ?? newProfile.legalAcknowledgements ?? null');
     expect(storeConfig).toContain("fallback('/personal-data-consent')");
   });
-
-  it('keeps hosting and infrastructure names out of public legal copy', () => {
-    const legalCopy = [
-      read('pages/privacy.tsx'),
-      read('pages/personal-data-consent.tsx'),
-      read('pages/terms.tsx'),
-      read('pages/support.tsx'),
-    ].join('\n');
-
-    expect(legalCopy).not.toMatch(/Railway|хостинг|hosting|инфраструктур/iu);
-  });
 });
