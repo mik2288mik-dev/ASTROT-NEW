@@ -1,7 +1,7 @@
 import { withAppVoiceCacheKey, withAppVoiceVersion } from '../appVoice';
 import { NATAL_NARRATIVE_VOICE_VERSION } from './narrativeVoice';
 
-export const NATAL_REPORT_CATALOG_CONTRACT_VERSION = 'natal-report-catalog-v3';
+export const NATAL_REPORT_CATALOG_CONTRACT_VERSION = 'natal-report-catalog-v2';
 export const NATAL_REPORT_CATALOG_CATEGORY_PROMPT_VERSION = withAppVoiceVersion(
   `${NATAL_REPORT_CATALOG_CONTRACT_VERSION}.category.narrative.v5.${NATAL_NARRATIVE_VOICE_VERSION}`,
 );

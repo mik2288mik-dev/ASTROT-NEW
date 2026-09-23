@@ -133,6 +133,13 @@ describe('natal report catalog contract', () => {
     expect(schema.properties.summary.items.properties.text.maxLength).toBe(1200);
   });
 
+  it('marks every catalog schema field as required for strict structured output', () => {
+    for (const { key } of NATAL_REPORT_CATEGORIES) {
+      const schema = buildNatalReportCategorySchema(key) as any;
+      expect(new Set(schema.required)).toEqual(new Set(Object.keys(schema.properties)));
+    }
+  });
+
   it('repairs a schema-shaped Main candidate that is too short before returning it', async () => {
     const built = buildNatalReportCatalogContext(profile, chart);
     const valid = natalEditorialCategoryPayload(built);

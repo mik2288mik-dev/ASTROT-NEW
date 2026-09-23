@@ -400,7 +400,10 @@ export function buildNatalReportCategorySchema(
         items: answerSchema(category.answerKeys),
       },
     },
-    required: ['summary', 'observations', 'previews', 'free_answers', 'follow_ups'],
+    required: [
+      ...(categoryKey === 'main' ? ['story'] : []),
+      'summary', 'observations', 'previews', 'free_answers', 'follow_ups',
+    ],
     additionalProperties: false,
   };
 }
