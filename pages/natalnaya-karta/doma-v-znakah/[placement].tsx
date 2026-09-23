@@ -12,7 +12,11 @@ import {
 type Props = { placement: PublicSeoHouseSignPlacement };
 type Params = { placement: string };
 
-export const getStaticPaths: GetStaticPaths<Params> = async () => ({ paths: PUBLIC_SEO_HOUSE_SIGN_PLACEMENTS.map((item) => ({ params: { placement: item.slug } })), fallback: false });
+export const getStaticPaths: GetStaticPaths<Params> = async () => {
+  if (process.env.MOBILE_BUILD !== '1') return { paths: [], fallback: 'blocking' };
+
+  return { paths: PUBLIC_SEO_HOUSE_SIGN_PLACEMENTS.map((item) => ({ params: { placement: item.slug } })), fallback: false };
+};
 export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) => {
   const placement = findPublicSeoHouseSignPlacement(params?.placement || '');
   return placement ? { props: { placement } } : { notFound: true };

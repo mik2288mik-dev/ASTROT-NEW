@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
 
-# Stage 1: install dependencies and compile native modules (swisseph-v2).
+# Stage 1: install dependencies, compile native modules, and build Next.js.
 # Keep the Docker runtime aligned with package.json/.nvmrc and Capacitor 8.
-FROM node:22-alpine AS deps
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -13,24 +13,18 @@ RUN apk add --no-cache python3 make g++ libc6-compat && \
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
-
-# Stage 2: build Next.js app (standalone output).
-FROM node:22-alpine AS builder
-
-WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 # The server deployment is the Telegram WebApp. Native store artifacts always
 # set their own explicit channel in scripts/android-release.mjs.
 ARG DISTRIBUTION_CHANNEL=telegram
 ENV NEXT_PUBLIC_DISTRIBUTION_CHANNEL=${DISTRIBUTION_CHANNEL}
 
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 RUN npm run build
 
 
-# Stage 3: minimal production runtime (no npm install, no compilers).
+# Stage 2: minimal production runtime (no npm install, no compilers).
 FROM node:22-alpine AS runner
 
 WORKDIR /app

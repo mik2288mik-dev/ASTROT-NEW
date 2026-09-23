@@ -12,10 +12,14 @@ import {
 type Props = { placement: PublicSeoAspectPlacement };
 type Params = { aspect: string };
 
-export const getStaticPaths: GetStaticPaths<Params> = async () => ({
-  paths: PUBLIC_SEO_ASPECT_PLACEMENTS.map((item) => ({ params: { aspect: item.slug } })),
-  fallback: false,
-});
+export const getStaticPaths: GetStaticPaths<Params> = async () => {
+  if (process.env.MOBILE_BUILD !== '1') return { paths: [], fallback: 'blocking' };
+
+  return {
+    paths: PUBLIC_SEO_ASPECT_PLACEMENTS.map((item) => ({ params: { aspect: item.slug } })),
+    fallback: false,
+  };
+};
 
 export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) => {
   const placement = findPublicSeoAspectPlacement(params?.aspect || '');
