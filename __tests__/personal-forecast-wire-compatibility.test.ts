@@ -12,6 +12,7 @@ import {
   type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
 import {
+  DIRECT_PROSE_ANDROID_CONTRACT_VERSION,
   LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION,
   RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION,
   projectPersonalForecastForWire,
@@ -54,12 +55,32 @@ function payload(period: PersonalForecastPeriod, premium: boolean): PersonalFore
 describe('released APK personal forecast wire compatibility', () => {
   it('defaults only an absent version to v25 and rejects unknown or ambiguous negotiation', () => {
     expect(resolvePersonalForecastWireVersion(undefined)).toBe(LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION);
-    for (const version of [LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION, RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION, 'personal-forecast-feed-v30-nebo-human-voice', PERSONAL_FORECAST_CONTRACT_VERSION]) {
+    for (const version of [LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION, RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION, 'personal-forecast-feed-v30-nebo-human-voice', DIRECT_PROSE_ANDROID_CONTRACT_VERSION, PERSONAL_FORECAST_CONTRACT_VERSION]) {
       expect(resolvePersonalForecastWireVersion(version)).toBe(version);
     }
     for (const version of ['', null, 'v24', '__proto__', 'constructor', [PERSONAL_FORECAST_CONTRACT_VERSION]]) {
       expect(resolvePersonalForecastWireVersion(version)).toBeNull();
     }
+  });
+
+  it('keeps the vc8 Android reader on its bundled identity while sending the new Today text', () => {
+    const original = payload('day', false);
+    const projected = projectPersonalForecastForWire(original, DIRECT_PROSE_ANDROID_CONTRACT_VERSION);
+    expect(projected.forecast.overview.text).toBe(original.forecast.overview.text);
+    expect(projected.forecast.sections).toBe(original.forecast.sections);
+    expect(projected.lockedSectionIds).toBe(original.lockedSectionIds);
+    expect(projected.forecast.meta).toMatchObject({
+      contractVersion: DIRECT_PROSE_ANDROID_CONTRACT_VERSION,
+      semanticVersion: DIRECT_PROSE_ANDROID_CONTRACT_VERSION,
+      promptVersion: 'personal-forecast-feed.v56-direct-day+week-month+forecast-voice.16',
+      voiceVersion: '16',
+      calculationVersion: 'personal-forecast-swiss-dated-natal-v17',
+      currentGeneration: {
+        contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
+        promptVersion: original.forecast.meta.promptVersion,
+      },
+    });
+    expect(original.forecast.meta.contractVersion).toBe(PERSONAL_FORECAST_CONTRACT_VERSION);
   });
 
   it('uses the unmodified validator shipped in vc7, without silently updating its expectations', () => {

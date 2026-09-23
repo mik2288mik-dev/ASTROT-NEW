@@ -12,6 +12,10 @@ export const LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed
 /** Bundled in the released RuStore 1.0.3/vc6 and 1.0.4/vc7 clients. */
 export const RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v29-period-horoscope';
 
+/** Bundled in the 1.0.4/vc8 Android artifact. Its reader checks these versions exactly. */
+export const DIRECT_PROSE_ANDROID_CONTRACT_VERSION = 'personal-forecast-feed-v33-direct-prose';
+const DIRECT_PROSE_ANDROID_PROMPT_VERSION = 'personal-forecast-feed.v56-direct-day+week-month+forecast-voice.16';
+
 // These readers share the current prose structure, but validate every identity
 // field exactly. Keep their wire identities independent of the generator cache.
 const RELEASED_READING_PROMPTS: Readonly<Record<string, string>> = {
@@ -27,6 +31,7 @@ export function resolvePersonalForecastWireVersion(value: unknown): string | nul
   const normalizedVersion = baseVersion.split('#')[0].trim();
 
   if (normalizedVersion === PERSONAL_FORECAST_CONTRACT_VERSION
+    || normalizedVersion === DIRECT_PROSE_ANDROID_CONTRACT_VERSION
     || normalizedVersion === LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION
     || normalizedVersion === RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION) {
     return normalizedVersion;
@@ -148,6 +153,21 @@ export function projectPersonalForecastForWire(
     throw new Error('PERSONAL_FORECAST_PREMIUM_REQUIRED');
   }
   if (wireVersion === PERSONAL_FORECAST_CONTRACT_VERSION) return payload;
+  if (wireVersion === DIRECT_PROSE_ANDROID_CONTRACT_VERSION) {
+    return {
+      ...payload,
+      forecast: {
+        ...payload.forecast,
+        meta: {
+          ...payload.forecast.meta,
+          contractVersion: DIRECT_PROSE_ANDROID_CONTRACT_VERSION,
+          semanticVersion: DIRECT_PROSE_ANDROID_CONTRACT_VERSION,
+          promptVersion: DIRECT_PROSE_ANDROID_PROMPT_VERSION,
+          currentGeneration: generationIdentity(payload.forecast),
+        },
+      },
+    };
+  }
   if (Object.hasOwn(RELEASED_READING_PROMPTS, wireVersion)) {
     const compatible = sectionedReading(payload.forecast);
     return {

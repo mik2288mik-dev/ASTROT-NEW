@@ -10,7 +10,7 @@ import {
   type PersonalForecastSemanticSignature,
 } from './personalForecastContract';
 
-// History types remain for cache readers. Previous forecasts are never fed to the writer.
+// Only the current reader's recent Today texts are passed to the Today writer.
 export const PERSONAL_FORECAST_CROSS_USER_REPEAT_FRAGMENT_LIMIT = 256;
 export type PersonalForecastRepeatFragment = {
   kind?: 'title' | 'forecast' | 'closing' | 'headline' | 'fragment';
@@ -44,7 +44,54 @@ export interface PersonalForecastGenerationInput {
   retryReason?: string;
 }
 
-/** One provider request. No brief, examples, editorial stages or generated conclusion. */
+function recentDayReadings(input: PersonalForecastGenerationInput) {
+  const targetDate = Date.parse(input.window.periodKey);
+  return (input.history || [])
+    .filter((item) => item.period === 'day')
+    .sort((left, right) => Math.abs(Date.parse(left.periodKey) - targetDate)
+      - Math.abs(Date.parse(right.periodKey) - targetDate))
+    .slice(0, 8)
+    .map((item) => ({
+      date: item.periodKey,
+      title: item.fragments.find((fragment) => fragment.kind === 'title')?.text.slice(0, 120) || '',
+      body: item.fragments.filter((fragment) => fragment.kind === 'forecast')
+        .map((fragment) => fragment.text).join(' ').slice(0, 900),
+      closing: item.fragments.find((fragment) => fragment.kind === 'closing')?.text.slice(0, 220) || '',
+    }));
+}
+
+function repeatsRecentReading(title: string, body: string, history: ReturnType<typeof recentDayReadings>): boolean {
+  const normalize = (value: string) => value.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const words = (value: string) => new Set(normalize(value).split(' ').filter((word) => word.length >= 5));
+  const currentTitle = normalize(title);
+  const currentWords = words(body);
+  return history.some((item) => {
+    if (currentTitle && currentTitle === normalize(item.title)) return true;
+    const previousWords = words(item.body);
+    if (currentWords.size < 8 || previousWords.size < 8) return false;
+    const shared = [...currentWords].filter((word) => previousWords.has(word)).length;
+    return shared >= 8 && shared / Math.min(currentWords.size, previousWords.size) >= 0.6;
+  });
+}
+
+function dayRetryFeedback(reason: string | undefined, language: 'ru' | 'en'): string | undefined {
+  if (!reason?.startsWith('PERSONAL_FORECAST_GENERATION_INVALID:')) return undefined;
+  if (reason.includes(':VOICE:')) {
+    return language === 'ru'
+      ? 'Предыдущий текст отклонён из-за запрещённого штампа, канцелярита, коучинга или мистики. Напиши новый текст обычным разговорным языком.'
+      : 'The previous draft used banned cliches, report language, coaching, or mysticism. Write a new reading in ordinary language.';
+  }
+  if (reason.endsWith(':REPEATED_READING')) {
+    return language === 'ru'
+      ? 'Предыдущий текст повторил недавний прогноз. Найди другое подтверждённое наблюдение в расчёте и напиши новый сюжет и заголовок.'
+      : 'The previous draft repeated a recent reading. Find another supported observation in the calculation and write a new story and title.';
+  }
+  return language === 'ru'
+    ? 'Предыдущий текст не прошёл проверку. Напиши новый цельный прогноз и короткий финал по переданному расчёту.'
+    : 'The previous draft failed validation. Write a new coherent reading and short closing grounded in the calculation.';
+}
+
+/** One provider request using the saved chart and the selected date calculation. */
 export async function generatePersonalForecastPackage(
   input: PersonalForecastGenerationInput,
 ): Promise<PersonalForecastPackage> {
@@ -52,33 +99,27 @@ export async function generatePersonalForecastPackage(
   let systemPrompt: string;
   let writerInput: any;
   let schema: any;
+  const recentReadings = input.period === 'day' ? recentDayReadings(input) : [];
 
   if (input.period === 'day') {
     const formattedDate = input.window.periodStart.substring(0, 10);
-    systemPrompt = `Твоя роль — астролог. По характеру ты весёлый и честный.\n\nГоворишь простым разговорным языком, без астрологических терминов,\nобщих водных фраз и психологического коучинга.\n\nПо подготовленным данным напиши личный гороскоп на ${formattedDate}.\n\nНе дели прогноз на части дня.\nПиши коротко и понятно, без нагнетания негатива.\n\nПридумай короткое колкое название дня.\n\nПосле гороскопа напиши одну короткую финальную мысль:\nэто может быть вывод, совет, наблюдение или шутка — что здесь уместнее.`;
+    systemPrompt = getPersonalForecastSystemPrompt(language, 'today');
 
     const dateCalculation = buildPersonalForecastDateContext(input.natal, input.window);
-    const allAspects = dateCalculation.samples[0]?.aspectsToSavedChart || [];
-    const strongFactors = [];
-    for (const a of allAspects) {
-      if (a.orb <= 2.5 || strongFactors.length === 0) {
-        strongFactors.push({
-          transitPlanet: a.transitPlanet,
-          natalPlanet: a.natalPlanet,
-          type: a.type,
-          orb: a.orb
-        });
-      }
-      if (strongFactors.length >= 3) break;
-    }
-
+    const retryFeedback = dayRetryFeedback(input.retryReason, language);
     writerInput = {
-      person: {
-        name: input.profile.name,
-        gender: input.profile.gender
+      birth: getPersonalForecastRawProfile(input.profile),
+      saved_natal_calculation: {
+        positions: input.natal.positions, houses: input.natal.houses,
+        aspects: input.natal.aspects, quality: input.natal.chartQuality,
       },
-      date: formattedDate,
-      strong_factors: strongFactors
+      selected_date_calculation: dateCalculation,
+      selected_date: {
+        period: input.period, start: formattedDate,
+        end: input.window.periodEnd, timezone: input.window.timezone,
+      },
+      recent_history: recentReadings,
+      ...(retryFeedback ? { retry_feedback: retryFeedback } : {}),
     };
 
     schema = {
@@ -147,13 +188,24 @@ export async function generatePersonalForecastPackage(
   let closingText: string = 'none';
 
   if (input.period === 'day') {
-    closingText = typeof raw.closing === 'string' ? raw.closing.trim() : 'none';
+    if (typeof raw.closing !== 'string' || !raw.closing.trim()) {
+      throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:EMPTY_CLOSING');
+    }
+    closingText = raw.closing.trim();
+    const voiceViolations = [...new Set([title, text, closingText]
+      .flatMap((part) => getPersonalForecastVoiceViolationCodes(part)))];
+    if (voiceViolations.length) {
+      throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:VOICE:${voiceViolations.join(',')}`);
+    }
+    if (repeatsRecentReading(title, text, recentReadings)) {
+      throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:REPEATED_READING');
+    }
   } else {
     actionType = (raw.action_type === 'buy' || raw.action_type === 'talk' || raw.action_type === 'move' || raw.action_type === 'stop') ? raw.action_type as string : null;
     actionText = typeof raw.action_text === 'string' ? raw.action_text.trim() : null;
   }
 
-  if (/(?:гарантирован\p{L}*|точно\s+произойд\p{L}*|диагноз\p{L}*|лечени\p{L}*|лекарств\p{L}*|guaranteed|buy\s+(?:stocks|crypto))/iu.test(`${title} ${text}`)) {
+  if (/(?:гарантирован\p{L}*|точно\s+произойд\p{L}*|диагноз\p{L}*|лечени\p{L}*|лекарств\p{L}*|guaranteed|buy\s+(?:stocks|crypto))/iu.test(`${title} ${text} ${closingText}`)) {
     throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:UNSAFE_CLAIM');
   }
 
@@ -172,7 +224,7 @@ export async function generatePersonalForecastPackage(
     contentBlocks: contentBlocks as any,
     explanationAnchors: [], premiumTeaser: teaser, lockedPreview: buildForecastLockedPreview(visibleText, teaser) };
   result.visual.sectionAssetIds = { overview: null };
-  result.meta = { ...result.meta, model: input.model, generationAttempts: 1,
+  result.meta = { ...result.meta, model: input.model, generationAttempts: input.retryReason ? 2 : 1,
     validationStatus: 'valid', status: 'ready', diagnosticCode: null,
     astrologerBrief: { tone: 'mixed', observations: [], briefSignature: 'direct-v1' },
     semanticSignature: { situation: fingerprint, turn: fingerprint, outcome: fingerprint,

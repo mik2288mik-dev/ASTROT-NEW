@@ -247,12 +247,12 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v56-direct-day+week-month',
+  'personal-forecast-feed.v57-grounded-today+week-month',
 );
-export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v31-direct-prose';
+export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v32-grounded-today';
 /** Input/cache identity, not an astrological calculation version. */
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-swiss-dated-natal-v17';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v33-direct-prose';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v34-direct-prose';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<
