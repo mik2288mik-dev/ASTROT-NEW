@@ -23,6 +23,26 @@ COPY . .
 
 RUN npm run build
 
+# Next standalone already traces the server's runtime dependencies. Railway's
+# pre-deploy migrations also need the TypeScript CLI and PostgreSQL packages;
+# stage only that small dependency closure instead of copying all of npm.
+RUN set -eu; \
+    mkdir -p runtime-deps/node_modules/.bin runtime-deps/node_modules/@next; \
+    for package in \
+      tsx esbuild get-tsconfig resolve-pkg-maps \
+      pg pg-connection-string pg-int8 pg-pool pg-protocol pg-types pgpass \
+      postgres-array postgres-bytea postgres-date postgres-interval split2 xtend; do \
+      cp -a "node_modules/$package" "runtime-deps/node_modules/$package"; \
+    done; \
+    if [ -d node_modules/pg-cloudflare ]; then \
+      cp -a node_modules/pg-cloudflare runtime-deps/node_modules/pg-cloudflare; \
+    fi; \
+    cp -a node_modules/@next/env runtime-deps/node_modules/@next/env; \
+    cp -a node_modules/@esbuild runtime-deps/node_modules/@esbuild; \
+    ln -s ../tsx/dist/cli.mjs runtime-deps/node_modules/.bin/tsx; \
+    (cd runtime-deps && node_modules/.bin/tsx --version && \
+      node -e "require('pg'); require('@next/env')")
+
 
 # Stage 2: minimal production runtime (no npm install, no compilers).
 FROM node:22-alpine AS runner
@@ -57,7 +77,7 @@ RUN mkdir -p .next/standalone && \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Production validation and migrations run in Railway's pre-deploy container.
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/runtime-deps/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 # Ensure Swiss Ephemeris native binary is always present in runtime image.
