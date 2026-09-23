@@ -63,18 +63,10 @@ jobs:
             flavor: Development
             apk_dir: development
             apk_name: development
-          - channel: google_play
-            flavor: GooglePlay
-            apk_dir: googlePlay
-            apk_name: googlePlay
-          - channel: rustore
-            flavor: Rustore
-            apk_dir: rustore
-            apk_name: rustore
     env:
       NEXT_PUBLIC_MOBILE_BUILD: '1'
       MOBILE_BUILD: '1'
-      NEXT_PUBLIC_API_URL: https://api.ci.example.invalid
+      NEXT_PUBLIC_API_URL: https://api.tvoi-goroskop.ru
       NEXT_PUBLIC_DISTRIBUTION_CHANNEL: ${{ matrix.channel }}
       NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH: ci.premium.month
       NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_QUARTER: ci.premium.quarter
@@ -105,11 +97,14 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Confirm preinstalled Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" --version
 
       - name: Install Android platform
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        run: |
+          "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Install dependencies
         run: npm ci
