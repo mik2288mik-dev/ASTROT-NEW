@@ -104,9 +104,9 @@ function validateReaderVoice(paragraphs: CompatibilityWriterResponse['paragraphs
     if (person.subject && input.language === 'ru') names.push('ты');
     if (!names.length) continue;
     if (input.language === 'ru') {
-      const forbidden = RUSSIAN_PERSON_FORMS.flatMap(([male, female]) => person.gender === 'male' ? [female] : person.gender === 'female' ? [male] : [male, female]);
+      const forbidden = RUSSIAN_PERSON_FORMS.flatMap(([male, female]) => person.gender === 'male' ? [female] : [male]);
       const predicate = new RegExp(`(?:^|[^\\p{L}])(?:${names.join('|')})\\s+${RUSSIAN_PREDICATE_MODIFIERS}(?:${forbidden.join('|')})(?=$|[^\\p{L}])`, 'iu');
-      if (predicate.test(text)) fail(person.gender === 'unspecified' ? 'unspecified_gender_inferred' : 'reader_gender_mismatch');
+      if (predicate.test(text)) fail('reader_gender_mismatch');
     }
   }
 }
