@@ -195,12 +195,12 @@ function PersonSourcePicker({
   const options: Array<{ value: CompatibilityPersonSource; label: string; description: string }> = [
     {
       value: 'saved',
-      label: ru ? 'Мои карты' : 'My charts',
+      label: ru ? 'Сохранённые' : 'Saved charts',
       description: ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart',
     },
     {
       value: 'birth',
-      label: ru ? 'Новый' : 'New person',
+      label: ru ? 'Новый человек' : 'New person',
       description: ru ? 'Ввести данные нового человека' : 'Add a new person’s birth details',
     },
   ];
@@ -356,9 +356,7 @@ function PersonSavedFields({
   charts,
   value,
   disabledChartId,
-  gender,
   onChange,
-  onGenderChange,
   onOpenCharts,
 }: {
   prefix: string;
@@ -366,67 +364,47 @@ function PersonSavedFields({
   charts: ChartListItem[];
   value: number | null;
   disabledChartId: number | null;
-  gender: CompatGender;
   onChange: (value: number | null) => void;
-  onGenderChange: (value: CompatGender) => void;
   onOpenCharts?: () => void;
 }) {
-  const selectedChart = charts.find((chart) => chart.id === value) || null;
-  const genderLabelId = `${prefix}-saved-gender-label`;
   return (
     <div className="compat-saved-fields">
-      <label className="compat-air-field" htmlFor={`${prefix}-chart`}>
-        <span className="compat-air-label">{ru ? 'Сохранённая карта' : 'Saved chart'}</span>
-        <select
-          id={`${prefix}-chart`}
-          name={`${prefix}-chart`}
-          className="compat-air-input compat-air-select"
-          value={value ?? ''}
-          onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
-        >
-          <option value="">{ru ? 'Выбрать карту' : 'Choose a chart'}</option>
-          {charts.map((chart) => (
-            <option key={chart.id} value={chart.id} disabled={chart.id === disabledChartId}>
-              {chart.name}{chart.subject_type === 'self' ? (ru ? ' · основная' : ' · primary') : ''}
-            </option>
-          ))}
-        </select>
-      </label>
+      <span id={`${prefix}-saved-label`} className="compat-air-label compat-saved-label">
+        {ru ? 'Выбери карту' : 'Choose a chart'}
+      </span>
       {charts.length ? (
-        <div className="compat-saved-quick" role="list" aria-label={ru ? 'Быстрый выбор сохранённой карты' : 'Quick saved chart selection'}>
+        <div className="compat-saved-chart-list" role="list" aria-labelledby={`${prefix}-saved-label`}>
           {charts.map((chart) => {
             const active = chart.id === value;
             const disabled = chart.id === disabledChartId;
+            const meta = [formatDisplayDate(chart.birth_date, ru ? 'ru' : 'en'), chart.birth_place].filter(Boolean).join(' · ');
             return (
               <button
                 key={chart.id}
                 type="button"
                 role="listitem"
-                className={`compat-saved-quick-option${active ? ' is-active' : ''}`}
+                className={`compat-saved-chart-option${active ? ' is-active' : ''}`}
                 aria-pressed={active}
                 disabled={disabled}
-                title={chart.name}
-                onClick={() => onChange(chart.id)}
+                onClick={() => {
+                  lumiaSelectionHaptic();
+                  onChange(chart.id);
+                }}
               >
-                <span>{chart.name}</span>
-                {chart.subject_type === 'self' ? <small>{ru ? 'моя' : 'mine'}</small> : null}
+                <span className="compat-saved-chart-copy">
+                  <strong>{chart.name}</strong>
+                  {meta ? <small>{meta}</small> : null}
+                </span>
+                {chart.subject_type === 'self' ? <em>{ru ? 'моя карта' : 'my chart'}</em> : null}
+                {active ? <span className="compat-saved-chart-state">{ru ? 'Выбрана' : 'Selected'}</span> : null}
               </button>
             );
           })}
         </div>
-      ) : null}
-      <div className="compat-air-gender-field">
-        <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
-        <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
-      </div>
-      <div className="compat-saved-meta">
-        {selectedChart
-          ? `${formatDisplayDate(selectedChart.birth_date, ru ? 'ru' : 'en')}${selectedChart.birth_place ? ` · ${selectedChart.birth_place}` : ''}`
-          : (ru ? 'Карта не выбрана' : 'No chart selected')}
-      </div>
+      ) : <p className="compat-saved-empty">{ru ? 'Сохранённых карт пока нет.' : 'No saved charts yet.'}</p>}
       {onOpenCharts ? (
-        <button type="button" className="compat-air-add-chart" onClick={onOpenCharts}>
-          {ru ? '+ Добавить карту' : '+ Add chart'}
+        <button type="button" className="compat-saved-manage" onClick={onOpenCharts}>
+          {ru ? 'Открыть мои карты' : 'Open my charts'}
         </button>
       ) : null}
     </div>
@@ -1481,21 +1459,6 @@ export function UnionRoom(props: UnionRoomProps) {
           onChange={(next) => { setSource(next); setGender('unspecified'); }}
           ru={ru}
         />
-        {isSubject && ownSavedChart ? (
-          <button
-            type="button"
-            className="compat-use-own-chart"
-            onClick={() => {
-              lumiaSelectionHaptic();
-              setSubjectSource('saved');
-              setFirstChartId(ownSavedChart.id);
-              setYouGender(initialYouGender);
-            }}
-          >
-            <span>{ru ? 'Использовать мою карту' : 'Use my chart'}</span>
-            <small>{ownSavedChart.name}</small>
-          </button>
-        ) : null}
         {source === 'birth' ? (
           <PersonBirthFields
             prefix={isSubject ? 'compat-first-person' : 'compat-second-person'}
@@ -1526,12 +1489,10 @@ export function UnionRoom(props: UnionRoomProps) {
             charts={availableCharts}
             value={selectedChartId}
             disabledChartId={otherSource === 'saved' ? otherChartId : null}
-            gender={isSubject ? youGender : fGender}
             onChange={(id) => {
               if (isSubject) { setFirstChartId(id); setYouGender(id === ownSavedChart?.id ? initialYouGender : 'unspecified'); }
               else { setSecondChartId(id); setFGender(id === ownSavedChart?.id ? initialYouGender : 'unspecified'); }
             }}
-            onGenderChange={setGender}
             onOpenCharts={onOpenCharts}
           />
         )}
@@ -1716,9 +1677,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     charts={availableCharts}
                     value={firstChartId}
                     disabledChartId={partnerSource === 'saved' ? secondChartId : null}
-                    gender={youGender}
                     onChange={(id) => { setFirstChartId(id); setYouGender(id === ownSavedChart?.id ? initialYouGender : 'unspecified'); }}
-                    onGenderChange={setYouGender}
                     onOpenCharts={onOpenCharts}
                   />
                 ) : (
@@ -1775,9 +1734,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     charts={availableCharts}
                     value={secondChartId}
                     disabledChartId={subjectSource === 'saved' ? firstChartId : null}
-                    gender={fGender}
                     onChange={(id) => { setSecondChartId(id); setFGender(id === ownSavedChart?.id ? initialYouGender : 'unspecified'); }}
-                    onGenderChange={setFGender}
                     onOpenCharts={onOpenCharts}
                   />
                 ) : (
@@ -1795,7 +1752,7 @@ export function UnionRoom(props: UnionRoomProps) {
               </div>
 
               {subjectSource === 'birth' || partnerSource === 'birth' ? (
-                <p className="compat-new-chart-note">{ru ? 'Новые карты появятся в «Моих картах».' : 'New charts will appear in My charts.'}</p>
+                <p className="compat-new-chart-note">{ru ? 'Данные нового человека используются только для этого сравнения.' : 'A new person’s details are used only for this comparison.'}</p>
               ) : null}
               {error ? <p className="compat-entry-error" role="alert">{error}</p> : null}
 
@@ -1809,8 +1766,10 @@ export function UnionRoom(props: UnionRoomProps) {
                 open
                 onClose={() => setPersonSheet(null)}
                 closeLabel={ru ? 'Закрыть' : 'Close'}
-                title={personSheet === 'subject' ? (ru ? 'Первый человек' : 'First person') : (ru ? 'Второй человек' : 'Second person')}
-                subtitle={ru ? 'Выбери сохранённую карту или добавь нового человека.' : 'Choose a saved chart or add a new person.'}
+                title={personSheet === 'subject' ? (ru ? 'Выбери первого человека' : 'Choose the first person') : (ru ? 'Выбери второго человека' : 'Choose the second person')}
+                subtitle={personSheet === 'subject'
+                  ? (ru ? 'Эта карта будет первой в сравнении.' : 'This card will be first in the comparison.')
+                  : (ru ? 'Эта карта будет второй в сравнении.' : 'This card will be second in the comparison.')}
                 className="compat-person-sheet"
                 contentClassName="compat-person-sheet-content"
               >

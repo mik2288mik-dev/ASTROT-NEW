@@ -2,7 +2,7 @@ import type { CompatibilityEvidence, SynastryResult } from '../../types';
 import type { CalculatedCompatibility } from './compatibilityEngine';
 import { COMPATIBILITY_STORY_TOPICS, type CompatibilityStoryTopic } from './storyTopics';
 
-export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-story.v3';
+export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-story.v4';
 
 export type CompatibilityWriterResponse = {
   paragraphs: Array<{
@@ -43,18 +43,22 @@ export function selectCompatibilityWriterEvidence(calculated: CalculatedCompatib
     .slice(0, 36);
 }
 
-const FORBIDDEN_PROSE = [
-  /\d+(?:[.,]\d+)?\s*(?:%|процент|балл|из\s+(?:10|100)\b|out of\s+(?:10|100)\b)/iu,
-  /(?:совместимость|compatibility\s*(?:score|rating))\s*[:=—-]?\s*\d/iu,
-  /(?:он|она|партн[её]р)\s+(?:точно\s+|тайно\s+|всё ещё\s+|по-прежнему\s+)?(?:люб[иы]т|влюбл[её]н|скучает|ревнует|хочет вернуться)/iu,
-  /(?:he|she|your partner)\s+(?:secretly\s+|still\s+)?(?:loves you|misses you|wants you back)/iu,
-  /(?:любит тебя|влюбл[её]н[а]? в тебя|верн[её]тся к тебе|вы поженитесь|вы никогда не расстанетесь|you will get married)/iu,
-  /(?:вы\s+обязательно\s+(?:будете|помиритесь)|(?:он|она)\s+(?:обязательно\s+)?верн[её]тся|суждено быть вместе|кармическ\p{L}*\s+(?:союз|связь|урок)|you are destined|(?:he|she) will (?:definitely )?come back)/iu,
-  /(?:\b(?:ASC|MC|orb|sextile|trine)\b|секстил\p{L}*|квадратур\p{L}*|орбис\p{L}*|\d+(?:[.,]\d+)?\s*°)/iu,
-  /(?:между вами присутствует|в этой связи наблюдается|возникает динамика|считывается|держать фокус|бережно проживать|экологично выстраивать)/iu,
-  /(?<![\p{L}])(?:астролог[\p{L}]*|натальн[\p{L}]*|синастри[\p{L}]*|асцендент[\p{L}]*|десцендент[\p{L}]*|транзит[\p{L}]*|ретроград[\p{L}]*|аспект[\p{L}]*|зодиак[\p{L}]*|венер[аыуеой]+|меркури[йяюем]+|марс[аеуом]*|юпитер[аеуом]*|сатурн[аеуом]*|нептун[аеуом]*|плутон[аеуом]*|astrolog[\p{L}]*|synastry|ascendant|descendant|transits?|retrograde|zodiac|venus|mercury|jupiter|saturn|neptune|pluto)(?![\p{L}])/iu,
-  /(?:солнц[аеу]|лун[аыуеой]+|уран[аеуом]*|sun|moon|uranus)\s+(?:в\s+(?:знак[еау]\s+)?|in\s+(?:the\s+)?)(?:[\p{L}]+\s+)?(?:овн[аеуом]*|тельц[аеуом]*|близнец[аыуеовми]+|рак[аеуом]*|льв[аеуом]*|дев[аеуыой]+|вес[аыуеовми]+|скорпион[аеуом]*|стрельц[аеуом]*|козерог[аеуом]*|водоле[йяюем]+|рыб[аеуой]*|дом[аеуом]*|aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces|house)/iu,
-  /(?<![\p{L}])(?:коуч[\p{L}]*|паттерн[\p{L}]*|проработ[\p{L}]*|ресурс[\p{L}]*|вибрац[\p{L}]*|coach(?:ing)?|patterns?|resources?|vibrations?)(?![\p{L}])/iu,
+/**
+ * These are delivery blockers, not a style linter. A bad stylistic turn of
+ * phrase should not turn a usable reading into a 503 after two model calls.
+ * The prompt carries the broader voice rules; this guard keeps only claims
+ * that would make the result misleading or expose its technical internals.
+ */
+const HARD_FORBIDDEN_PROSE: Array<{ reason: string; pattern: RegExp }> = [
+  { reason: 'score_claim', pattern: /\d+(?:[.,]\d+)?\s*(?:%|процент|балл|из\s+(?:10|100)\b|out of\s+(?:10|100)\b)/iu },
+  { reason: 'score_claim', pattern: /(?:совместимость|compatibility\s*(?:score|rating))\s*[:=—-]?\s*\d/iu },
+  { reason: 'private_feelings_claim', pattern: /(?:он|она|партн[её]р)\s+(?:точно\s+|тайно\s+|всё ещё\s+|по-прежнему\s+)?(?:люб[иы]т|влюбл[её]н|скучает|ревнует|хочет вернуться)/iu },
+  { reason: 'private_feelings_claim', pattern: /(?:he|she|your partner)\s+(?:secretly\s+|still\s+)?(?:loves you|misses you|wants you back)/iu },
+  { reason: 'guaranteed_outcome', pattern: /(?:любит тебя|влюбл[её]н[а]? в тебя|верн[её]тся к тебе|вы поженитесь|вы никогда не расстанетесь|you will get married)/iu },
+  { reason: 'guaranteed_outcome', pattern: /(?:вы\s+обязательно\s+(?:будете|помиритесь)|(?:он|она)\s+(?:обязательно\s+)?верн[её]тся|суждено быть вместе|кармическ\p{L}*\s+(?:союз|связь|урок)|you are destined|(?:he|she) will (?:definitely )?come back)/iu },
+  { reason: 'technical_astrology', pattern: /(?:\b(?:ASC|MC|orb|sextile|trine)\b|секстил\p{L}*|квадратур\p{L}*|орбис\p{L}*|\d+(?:[.,]\d+)?\s*°)/iu },
+  { reason: 'technical_astrology', pattern: /(?<![\p{L}])(?:астролог[\p{L}]*|натальн[\p{L}]*|синастри[\p{L}]*|асцендент[\p{L}]*|десцендент[\p{L}]*|транзит[\p{L}]*|ретроград[\p{L}]*|аспект[\p{L}]*|зодиак[\p{L}]*|венер[аыуеой]+|меркури[йяюем]+|марс[аеуом]*|юпитер[аеуом]*|сатурн[аеуом]*|нептун[аеуом]*|плутон[аеуом]*|astrolog[\p{L}]*|synastry|ascendant|descendant|transits?|retrograde|zodiac|venus|mercury|jupiter|saturn|neptune|pluto)(?![\p{L}])/iu },
+  { reason: 'technical_astrology', pattern: /(?:солнц[аеу]|лун[аыуеой]+|уран[аеуом]*|sun|moon|uranus)\s+(?:в\s+(?:знак[еау]\s+)?|in\s+(?:the\s+)?)(?:[\p{L}]+\s+)?(?:овн[аеуом]*|тельц[аеуом]*|близнец[аыуеовми]+|рак[аеуом]*|льв[аеуом]*|дев[аеуыой]+|вес[аыуеовми]+|скорпион[аеуом]*|стрельц[аеуом]*|козерог[аеуом]*|водоле[йяюем]+|рыб[аеуой]*|дом[аеуом]*|aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces|house)/iu },
 ];
 
 const RELATIONSHIP_CAVEAT = /(?:не\s+(?:(?:автоматически|обязательно)\s+)?(?:подтвержда\p{L}*|доказыва\p{L}*|означа\p{L}*|говор\p{L}*|доказательств\p{L}*)[^.!?]*(?:взаимн|чувств|намерен|романтическ|интерес)|взаимность[^.!?]*(?:предполож|догад|неизвест)|(?:does not|doesn't|not a)\s+(?:prove|confirm|mean|proof)[^.!?]*(?:feeling|intention|interest|reciproc))/iu;
@@ -148,7 +152,9 @@ export function validateCompatibilityNarrative(value: unknown, calculated: Calcu
     const raw = paragraph.text.trim();
     if (/\n|^\s*(?:#{1,6}\s|[-*•]\s|\d+[.)]\s)|\*\*|\?/u.test(raw)) fail('prose_format');
     const text = raw.replace(/\s+/gu, ' ');
-    if (text.length < 100 || FORBIDDEN_PROSE.some((pattern) => pattern.test(text))) fail('prose_content');
+    if (text.length < 100) fail('prose_content');
+    const blockedProse = HARD_FORBIDDEN_PROSE.find(({ pattern }) => pattern.test(text));
+    if (blockedProse) fail(blockedProse.reason);
     const signature = text.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
     if (signatures.has(signature)) fail('repeated_paragraph');
     signatures.add(signature);

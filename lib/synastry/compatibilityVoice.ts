@@ -53,7 +53,7 @@ export function buildCompatibilityStoryPrompt(input: {
 
 ${RELATIONSHIP_BRIEFS[input.calculated.relationshipContext]}
 ${limitedEvidence ? 'Напиши 260–420 слов в 4–7 абзацах.' : 'Напиши 450–650 слов в 7 абзацах.'}${input.revisionReason
-    ? `\n\nPREVIOUS OUTPUT WAS REJECTED: ${input.revisionReason}. Return a corrected JSON response; do not repeat that error.`
+    ? `\n\nPREVIOUS OUTPUT WAS REJECTED for ${input.revisionReason}. Correct that exact issue before returning JSON; do not repeat it.`
     : ''}`;
   
   return {
