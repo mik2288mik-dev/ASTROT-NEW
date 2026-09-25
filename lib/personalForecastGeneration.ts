@@ -81,7 +81,8 @@ function hasUnsafeClaim(text: string): boolean {
 
 type JsonStringToken =
   | { status: 'complete'; value: string; next: number }
-  | { status: 'incomplete' | 'invalid' };
+  | { status: 'incomplete' }
+  | { status: 'invalid' };
 
 function readJsonStringToken(source: string, start: number): JsonStringToken {
   if (source[start] !== '"') return { status: 'invalid' };
