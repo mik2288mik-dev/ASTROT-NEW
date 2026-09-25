@@ -29,6 +29,15 @@ export const COMPATIBILITY_STORY_SCHEMA: StrictJsonSchema = {
 
 type WriterPerson = { name: string; gender: 'male' | 'female' | 'unspecified'; birthTimeQuality: 'exact' | 'approximate' | 'unknown' };
 
+const RELATIONSHIP_BRIEFS: Record<RelationshipContext, string> = {
+  romance: 'Не считай их парой и не приписывай взаимные чувства: речь только о возможном контакте и знакомстве.',
+  relationship: 'Это существующие отношения: говори о повседневном контакте, а не о знакомстве с нуля.',
+  ex: 'Не подталкивай к примирению и не предсказывай возвращение.',
+  friendship: 'Не превращай дружбу в скрытый роман и не ищи романтику там, где её не просили.',
+  family: 'Степень родства и возраст неизвестны: не выдумывай иерархию, заботу родителей или детей.',
+  work: 'Не добавляй романтику: разбирай только совместную работу, решения и договорённости.',
+};
+
 export function buildCompatibilityStoryPrompt(input: {
   language: 'ru' | 'en';
   calculated: CalculatedCompatibility;
@@ -39,7 +48,13 @@ export function buildCompatibilityStoryPrompt(input: {
   const evidence = selectCompatibilityWriterEvidence(input.calculated);
   const availableIds = new Set(evidence.map((item) => item.id));
   
-  const system = getCompatibilitySystemPrompt(input.language);
+  const limitedEvidence = evidence.length < 6;
+  const system = `${getCompatibilitySystemPrompt(input.language)}
+
+${RELATIONSHIP_BRIEFS[input.calculated.relationshipContext]}
+${limitedEvidence ? 'Напиши 260–420 слов в 4–7 абзацах.' : 'Напиши 450–650 слов в 7 абзацах.'}${input.revisionReason
+    ? `\n\nPREVIOUS OUTPUT WAS REJECTED: ${input.revisionReason}. Return a corrected JSON response; do not repeat that error.`
+    : ''}`;
   
   return {
     system,
@@ -48,6 +63,7 @@ export function buildCompatibilityStoryPrompt(input: {
       relationshipContext: input.calculated.relationshipContext,
       chapterGuide: COMPATIBILITY_STORY_TOPICS.map((topic) => ({ topic, title: compatibilityTopicTitle(topic, input.calculated.relationshipContext, input.language) })),
       calculationLevel: input.calculated.calculationLevel,
+      requiredParagraphs: limitedEvidence ? '4-7' : '7',
       themes: input.calculated.dimensions.map((item) => ({
         id: item.id, label: item.label,
         supportedBy: item.supportiveEvidenceIds.filter((id) => availableIds.has(id)),
@@ -62,4 +78,3 @@ export function buildCompatibilityStoryPrompt(input: {
     }),
   };
 }
-

@@ -34,8 +34,11 @@ export function selectCompatibilityWriterEvidence(calculated: CalculatedCompatib
     ...calculated.sectionPlan.flatMap((section) => section.evidenceIds),
     ...calculated.directionalPatterns.flatMap((pattern) => pattern.evidenceIds),
   ]);
-  return calculated.evidence
-    .filter((item) => relevantIds.has(item.id))
+  const selected = calculated.evidence.filter((item) => relevantIds.has(item.id));
+  // A date-only pair can legitimately have a neutral aggregate effect. It still
+  // has one honest input fact, so make that fact available to the writer rather
+  // than failing before a reading can be produced.
+  return (selected.length ? selected : calculated.evidence)
     .sort((first, second) => second.weight - first.weight)
     .slice(0, 36);
 }

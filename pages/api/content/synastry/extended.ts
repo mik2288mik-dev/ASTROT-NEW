@@ -29,10 +29,6 @@ import {
   type CompatibilityPersonSource,
 } from '../../../../lib/synastry/compatibilityInput';
 import { normalizeZodiacKey } from '../../../../lib/zodiacKeys';
-import {
-  createOrReuseCanonicalChart,
-  repairCanonicalChartRecord,
-} from '../../../../lib/natalChartPersistence';
 import { isCanonicalNatalChartDataComplete } from '../../../../lib/natalChartCanonical';
 import {
   calculateCompatibility,
@@ -114,8 +110,10 @@ function validateFlexiblePerson(input: FlexiblePersonInput, fieldPrefix: 'subjec
     const time = validateTime(input.time);
     if (!time.isValid) errors.push({ field: `${fieldPrefix}Time`, message: time.error || 'Invalid birth time' });
   }
-  const place = validateBirthPlace(input.place);
-  if (!place.isValid) errors.push({ field: `${fieldPrefix}Place`, message: place.error || 'Invalid birth place' });
+  if (input.place) {
+    const place = validateBirthPlace(input.place);
+    if (!place.isValid) errors.push({ field: `${fieldPrefix}Place`, message: place.error || 'Invalid birth place' });
+  }
   return errors;
 }
 
@@ -153,16 +151,18 @@ async function loadCachedSynastry(
     }
   }
 
-  const layer = await getContentLayer({
-    userId,
-    chartId: primaryChartId,
-    accessTier: 'premium',
-    contentSurface: 'synastry',
-    contentVariant: 'full',
-    cacheKey: contentCacheKey,
-  });
-  if (layer.interpretation?.content && typeof layer.interpretation.content === 'object') {
-    const payload = layer.interpretation.content as SynastryResult;
+  const interpretation = primaryChartId == null
+    ? await db.content_interpretations.getByUser(userId, 'premium', 'synastry', 'full', contentCacheKey)
+    : (await getContentLayer({
+      userId,
+      chartId: primaryChartId,
+      accessTier: 'premium',
+      contentSurface: 'synastry',
+      contentVariant: 'full',
+      cacheKey: contentCacheKey,
+    })).interpretation;
+  if (interpretation?.content && typeof interpretation.content === 'object') {
+    const payload = interpretation.content as SynastryResult;
     if (payload.schemaVersion === 'compatibility-v2' && payload.engineVersion === COMPATIBILITY_ENGINE_VERSION && payload.narrativeVersion === COMPATIBILITY_NARRATIVE_VERSION) {
       return payload;
     }
@@ -186,47 +186,6 @@ function resolveRelationshipContext(value: unknown, legacyLabel: string): Relati
   if (normalized.includes('сем') || normalized.includes('family')) return 'family';
   if (normalized.includes('существующ') || normalized === 'отношения' || normalized.includes('established')) return 'relationship';
   return 'romance';
-}
-
-async function saveManualNatal(userId: string, input: FlexiblePersonInput, language: string) {
-  const result = await createOrReuseCanonicalChart({
-    userId,
-    name: input.name,
-    birthDate: input.date,
-    birthTime: input.time,
-    birthPlace: input.place,
-    birthTimeMode: input.birthTimeQuality,
-    birthTimeUncertaintyMinutes: input.birthTimeQuality === 'approximate' ? 30 : undefined,
-    language,
-  });
-  return result.chart;
-}
-
-async function repairSavedChartOnDemand(
-  userId: string,
-  chartRecord: any,
-  chartLabel: string,
-) {
-  const needsRepair = !chartRecord?.id || !chartRecord.input_hash || !isCanonicalNatalChartDataComplete(chartRecord.chart_data);
-  if (!needsRepair) return chartRecord;
-  try {
-    const repaired = await repairCanonicalChartRecord(userId, chartRecord.id);
-    return repaired?.chart ?? null;
-  } catch (error) {
-    warnContentApi(
-      { scope: SCOPE, userId, chartId: chartRecord?.id ?? null, surface: 'synastry', variant: 'full' },
-      'repair_failed',
-      {
-        errorCode: 'CHART_REPAIR_FAILED',
-        metadata: {
-          chartLabel,
-          chartId: chartRecord?.id ?? null,
-          message: String(error instanceof Error ? error.message : error),
-        },
-      },
-    );
-    return null;
-  }
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -407,23 +366,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       }
       throw error;
     }
-    const repairedPrimary = await repairSavedChartOnDemand(userId, primaryChartRecord, 'subject');
-    if (!repairedPrimary) {
+    if (!primaryChartRecord.id || !primaryChartRecord.input_hash || !isCanonicalNatalChartDataComplete(primaryChartRecord.chart_data)) {
       return res.status(409).json({
         error: 'Saved natal charts required',
         code: 'CHART_REPAIR_REQUIRED',
         message: langRu ? 'Для сравнения нужны две сохранённые карты с готовым расчётом.' : 'Two saved calculated charts are required.',
       });
     }
-    primaryChartRecord = repairedPrimary;
     userChartData = (primaryChartRecord.chart_data as SynastryChartData) || null;
-    if (!primaryChartRecord.id || !primaryChartRecord.input_hash || !isCanonicalNatalChartDataComplete(userChartData)) {
-      return res.status(409).json({
-        error: 'Natal chart required',
-        code: 'CHART_REPAIR_REQUIRED',
-        message: langRu ? 'В первой карте нет готового расчёта.' : 'The first chart has no calculation.',
-      });
-    }
   } else if (normalizedSubjectSource === 'saved') {
     return res.status(404).json({
       error: 'First chart not found',
@@ -474,16 +424,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         message: langRu ? 'Для сравнения нужны две разные карты.' : 'Choose two different charts.',
       });
     }
-    partnerChartData = (partnerChartRecord.chart_data as SynastryChartData) || null;
-    const repairedPartner = await repairSavedChartOnDemand(userId, partnerChartRecord, 'partner');
-    if (!repairedPartner) {
+    if (!partnerChartRecord.id || !partnerChartRecord.input_hash || !isCanonicalNatalChartDataComplete(partnerChartRecord.chart_data)) {
       return res.status(409).json({
         error: 'Saved natal charts required',
         code: 'CHART_REPAIR_REQUIRED',
         message: langRu ? 'Для сравнения нужны две сохранённые карты с готовым расчётом.' : 'Two saved calculated charts are required.',
       });
     }
-    partnerChartRecord = repairedPartner;
     partnerChartData = (partnerChartRecord.chart_data as SynastryChartData) || null;
   }
 
@@ -538,58 +485,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
-  try {
-    if (normalizedSubjectSource === 'birth') {
-      primaryChartRecord = await saveManualNatal(userId, subjectInput, currentLanguage);
-      userChartData = primaryChartRecord.chart_data || null;
-      subjectInput.source = 'saved';
-      subjectInput.sign = savedSunSign(userChartData);
-      subjectInput.birthTimeQuality = normalizeBirthTimeQuality(
-        (userChartData as NatalChartDataV2 | null)?.birthTimeQuality,
-        subjectInput.time,
-      );
-    }
-    if (normalizedPartnerSource === 'birth') {
-      partnerChartRecord = await saveManualNatal(userId, partnerInput, currentLanguage);
-      partnerChartData = partnerChartRecord.chart_data || null;
-      partnerInput.source = 'saved';
-      partnerInput.sign = savedSunSign(partnerChartData);
-      partnerInput.birthTimeQuality = normalizeBirthTimeQuality(
-        (partnerChartData as NatalChartDataV2 | null)?.birthTimeQuality,
-        partnerInput.time,
-      );
-    }
-  } catch (error: any) {
-    if (error instanceof ChartAccessPolicyError) {
-      return res.status(error.status).json({
-        error: error.message,
-        code: error.code,
-        premiumRequired: error.code === 'PREMIUM_REQUIRED',
-      });
-    }
-    warnContentApi(
-      { scope: SCOPE, userId, chartId: primaryChartRecord?.id ?? null, surface: 'synastry', variant: 'full' },
-      'calculation_failed',
-      { errorCode: 'SYNASTRY_CALCULATION_FAILED', metadata: { message: String(error?.message || 'unknown') } },
-    );
-    return res.status(422).json({
-      error: 'Synastry calculation failed',
-      code: 'SYNASTRY_CALCULATION_FAILED',
-      message: langRu
-        ? 'Не удалось рассчитать одну из карт. Проверь дату, время и место и повтори.'
-        : 'One of the charts could not be calculated. Check the date, time and place and try again.',
-    });
-  }
-
   const primaryChartId = primaryChartRecord?.id ?? null;
-  if (!primaryChartId || !partnerChartRecord?.id || !primaryChartRecord?.input_hash || !partnerChartRecord.input_hash || !isCanonicalNatalChartDataComplete(userChartData) || !isCanonicalNatalChartDataComplete(partnerChartData)) {
-    return res.status(409).json({
-      error: 'Saved natal charts required',
-      code: 'CHART_REPAIR_REQUIRED',
-      message: langRu ? 'Для сравнения нужны две сохранённые карты с готовым расчётом.' : 'Two saved calculated charts are required.',
-    });
-  }
-  if (primaryChartId === partnerChartRecord.id) {
+  if (primaryChartId && partnerChartRecord?.id && primaryChartId === partnerChartRecord.id) {
     return res.status(400).json({
       error: 'Select two different charts',
       code: 'CHART_PAIR_DUPLICATE',
@@ -609,7 +506,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     chartBirthTimeQuality: (partnerChartData as NatalChartDataV2 | null)?.birthTimeQuality,
     birthTimeQuality: partnerInput.birthTimeQuality,
   });
-  const calculationLevel = resolveCompatibilityPairLevel(subjectClassification, partnerClassification);
+  // Manually entered people are intentionally a fast, approximate date-based
+  // reading. Do not create a natal chart or pretend that time/place made it exact.
+  const calculationLevel = normalizedSubjectSource === 'birth' || normalizedPartnerSource === 'birth'
+    ? 'date_only'
+    : resolveCompatibilityPairLevel(subjectClassification, partnerClassification);
 
   if (calculationLevel === 'sign_only') {
     return res.status(400).json({
@@ -623,16 +524,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     userId,
     primaryChartId,
     partnerChartRecord?.id ?? null,
-    partnerChartRecord.name,
-    partnerChartRecord.birth_date,
+    partnerInput.name,
+    partnerInput.date,
     rel,
     currentLanguage,
-    partnerChartRecord.birth_time || '',
-    partnerChartRecord.birth_place,
-    primaryChartRecord.name,
-    primaryChartRecord.birth_date,
-    primaryChartRecord.birth_time || '',
-    primaryChartRecord.birth_place,
+    partnerInput.time,
+    partnerInput.place,
+    subjectInput.name,
+    subjectInput.date,
+    subjectInput.time,
+    subjectInput.place,
     [
       subjectInput.source,
       partnerInput.source,
@@ -646,8 +547,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       partnerInput.birthTimeQuality,
       primaryChartRecord?.input_hash || primaryChartRecord?.calculation_version || '',
       partnerChartRecord?.input_hash || partnerChartRecord?.calculation_version || '',
-      (userChartData as NatalChartDataV2).calculationMetadata?.calculatedAt || primaryChartRecord.calculation_version || '',
-      (partnerChartData as NatalChartDataV2).calculationMetadata?.calculatedAt || partnerChartRecord.calculation_version || '',
+      (userChartData as NatalChartDataV2 | null)?.calculationMetadata?.calculatedAt || primaryChartRecord?.calculation_version || '',
+      (partnerChartData as NatalChartDataV2 | null)?.calculationMetadata?.calculatedAt || partnerChartRecord?.calculation_version || '',
     ].join(':'),
   );
 
@@ -693,15 +594,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       result: cachedResult,
       fromCache: true,
       subjectChartId: primaryChartId,
-      partnerChartId: partnerChartRecord.id,
+      partnerChartId: partnerChartRecord?.id ?? null,
       accessTier: 'premium',
       calculationLevel,
       contentKey: buildDeepCompatibilityReactionKey(contentCacheKey),
     });
   }
 
-  const resolvedSubjectSign = normalizeZodiacKey(subjectInput.sign || userChartData?.sun?.sign);
-  const resolvedPartnerSign = normalizeZodiacKey(partnerInput.sign || partnerChartData?.sun?.sign);
+  const resolvedSubjectSign = subjectClassification.sign;
+  const resolvedPartnerSign = partnerClassification.sign;
   const people = {
     subject: buildWriterPersonContext(subjectInput, normalizedSubjectGender),
     partner: buildWriterPersonContext(partnerInput, normalizedPartnerGender),
@@ -723,6 +624,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const provider = 'openai' as const;
   let modelId = '';
   let generationAttempts: 0 | 1 | 2 = 0;
+  let validationReason: string | undefined;
   let persistenceSucceeded = true;
   logContentApi(
     {
@@ -758,7 +660,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const response = await createLunaStructuredResponse({
         instructions: prompt.system,
         input: prompt.user,
-        maxOutputTokens: 5200,
+        maxOutputTokens: 1600,
+        reasoningEffort: 'low',
+        verbosity: 'low',
         schemaName: 'calculated_compatibility_story',
         schema: COMPATIBILITY_STORY_SCHEMA,
       });
@@ -772,8 +676,21 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         });
         break;
       } catch (error) {
-        if (attempt === 1 || !(error instanceof CompatibilityNarrativeError || error instanceof SyntaxError)) throw error;
-        revisionReason = error instanceof CompatibilityNarrativeError ? error.reason : 'invalid_json';
+        const retryable = error instanceof CompatibilityNarrativeError || error instanceof SyntaxError;
+        validationReason = error instanceof CompatibilityNarrativeError ? error.reason : retryable ? 'invalid_json' : undefined;
+        if (retryable) {
+          warnContentApi(
+            { scope: SCOPE, userId, chartId: primaryChartId, surface: 'synastry', variant: 'full' },
+            'generation_rejected',
+            {
+              accessTier,
+              errorCode: 'SYNASTRY_NARRATIVE_INVALID',
+              metadata: { validationReason, attempt: attempt + 1 },
+            },
+          );
+        }
+        if (attempt === 1 || !retryable) throw error;
+        revisionReason = validationReason;
       }
     }
   } catch (err: any) {
@@ -784,7 +701,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         accessTier,
         errorCode: 'SYNASTRY_READING_UNAVAILABLE',
         durationMs: Date.now() - startedAt,
-        metadata: { message: String(err?.message || 'unknown'), generationAttempts },
+        metadata: { generationAttempts, validationReason: validationReason || 'provider_or_unknown' },
       }
     );
     return res.status(503).json({
@@ -792,7 +709,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       code: 'SYNASTRY_READING_UNAVAILABLE',
       retryable: true,
       subjectChartId: primaryChartId,
-      partnerChartId: partnerChartRecord.id,
+      partnerChartId: partnerChartRecord?.id ?? null,
     });
   }
   try {
@@ -824,6 +741,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         interpretationData,
         userId
       );
+    } else {
+      await db.content_interpretations.upsertByUser(userId, interpretationData);
     }
 
     if (primaryChartId && partnerChartRecord?.id && userChartData && partnerChartData) {
@@ -901,7 +820,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     result: resultPayload,
     fromCache: false,
     subjectChartId: primaryChartId,
-    partnerChartId: partnerChartRecord.id,
+    partnerChartId: partnerChartRecord?.id ?? null,
     accessTier,
     calculationLevel,
     contentKey: buildDeepCompatibilityReactionKey(contentCacheKey),

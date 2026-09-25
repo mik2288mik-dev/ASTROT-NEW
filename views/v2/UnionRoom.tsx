@@ -2094,7 +2094,7 @@ export function UnionRoom(props: UnionRoomProps) {
         <section className="compat-result-status" role="status" aria-live="polite">
           <span className="compat-result-status-mark" aria-hidden="true" />
           <div>
-            <strong>{isPerson ? (ru ? 'Сопоставляем две карты' : 'Comparing two charts') : (ru ? 'Сравниваем знаки' : 'Comparing signs')}</strong>
+            <strong>{isPerson ? (ru ? 'Сверяем данные двух людей' : 'Comparing two people\'s details') : (ru ? 'Сравниваем знаки' : 'Comparing signs')}</strong>
             <p>{isPerson ? (ru ? 'Готовим подробный разбор…' : 'Preparing the detailed reading…') : (ru ? 'Готовим результат…' : 'Preparing the result…')}</p>
           </div>
         </section>
