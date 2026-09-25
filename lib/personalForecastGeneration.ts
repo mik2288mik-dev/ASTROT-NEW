@@ -67,11 +67,100 @@ function repeatsRecentReading(title: string, body: string, history: ReturnType<t
   const currentWords = words(body);
   return history.some((item) => {
     if (currentTitle && currentTitle === normalize(item.title)) return true;
+    if (body && normalize(body) === normalize(item.body)) return true;
     const previousWords = words(item.body);
     if (currentWords.size < 8 || previousWords.size < 8) return false;
     const shared = [...currentWords].filter((word) => previousWords.has(word)).length;
     return shared >= 8 && shared / Math.min(currentWords.size, previousWords.size) >= 0.6;
   });
+}
+
+function hasUnsafeClaim(text: string): boolean {
+  return /(?:гарантирован\p{L}*|точно\s+произойд\p{L}*|диагноз\p{L}*|лечени\p{L}*|лекарств\p{L}*|guaranteed|buy\s+(?:stocks|crypto))/iu.test(text);
+}
+
+type JsonStringToken =
+  | { status: 'complete'; value: string; next: number }
+  | { status: 'incomplete' | 'invalid' };
+
+function readJsonStringToken(source: string, start: number): JsonStringToken {
+  if (source[start] !== '"') return { status: 'invalid' };
+  for (let index = start + 1; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === '\\') {
+      index += 1;
+      if (index >= source.length) return { status: 'incomplete' };
+    } else if (character === '"') {
+      try {
+        const value: unknown = JSON.parse(source.slice(start, index + 1));
+        return typeof value === 'string'
+          ? { status: 'complete', value, next: index + 1 }
+          : { status: 'invalid' };
+      } catch {
+        return { status: 'invalid' };
+      }
+    } else if (character.charCodeAt(0) < 32) {
+      return { status: 'invalid' };
+    }
+  }
+  return { status: 'incomplete' };
+}
+
+/** Read only finished top-level JSON strings from an output-token-limited response. */
+function readIncompleteDayFields(source: string): Record<string, string> | null {
+  const skipSpace = (at: number) => {
+    let index = at;
+    while (index < source.length && /[\x20\t\r\n]/u.test(source[index])) index += 1;
+    return index;
+  };
+  let index = skipSpace(0);
+  if (source[index] !== '{') return null;
+  index += 1;
+  const fields: Record<string, string> = {};
+  let afterComma = false;
+  while (true) {
+    index = skipSpace(index);
+    if (index >= source.length) return fields;
+    if (source[index] === '}') return !afterComma && skipSpace(index + 1) === source.length ? fields : null;
+    const key = readJsonStringToken(source, index);
+    if (key.status === 'incomplete') return fields;
+    if (key.status === 'invalid') return null;
+    if (!['title', 'body', 'closing'].includes(key.value) || key.value in fields) return null;
+    afterComma = false;
+    index = skipSpace(key.next);
+    if (index >= source.length) return fields;
+    if (source[index] !== ':') return null;
+    index = skipSpace(index + 1);
+    if (index >= source.length) return fields;
+    const value = readJsonStringToken(source, index);
+    if (value.status === 'incomplete') return fields;
+    if (value.status === 'invalid') return null;
+    fields[key.value] = value.value;
+    index = skipSpace(value.next);
+    if (index >= source.length) return fields;
+    if (source[index] === '}') return skipSpace(index + 1) === source.length ? fields : null;
+    if (source[index] !== ',') return null;
+    index += 1;
+    afterComma = true;
+  }
+}
+
+function readDayWriterFields(source: string, incomplete: boolean): Record<string, unknown> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(source);
+  } catch {
+    if (!incomplete) throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:INVALID_JSON');
+    parsed = readIncompleteDayFields(source);
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:INVALID_JSON');
+  }
+  return parsed as Record<string, unknown>;
+}
+
+function hasCompleteSentenceEnding(text: string): boolean {
+  return /[.!?…][»”"']*$/u.test(text);
 }
 
 function dayRetryFeedback(reason: string | undefined, language: 'ru' | 'en'): string | undefined {
@@ -159,6 +248,7 @@ export async function generatePersonalForecastPackage(
   }
 
   let content: string;
+  let incompleteOutput = false;
   try {
     const response = await createLunaStructuredResponse({
       instructions: systemPrompt,
@@ -169,43 +259,61 @@ export async function generatePersonalForecastPackage(
       store: false,
       schemaName: 'nebo_direct_horoscope',
       schema,
+      allowIncompleteOutput: input.period === 'day',
     });
     content = response.content;
+    incompleteOutput = response.incompleteReason === 'max_output_tokens';
   } catch (error) {
     throw new Error(`PERSONAL_FORECAST_WRITER_REQUEST_FAILED:${error instanceof Error ? error.message : 'UNKNOWN'}`);
   }
 
-  const raw = JSON.parse(content) as { title?: unknown; body?: unknown; action_type?: unknown; action_text?: unknown; closing?: unknown };
-  if (typeof raw.title !== 'string' || !raw.title.trim() || typeof raw.body !== 'string' || !raw.body.trim()) {
+  const raw = input.period === 'day'
+    ? readDayWriterFields(content, incompleteOutput)
+    : JSON.parse(content) as Record<string, unknown>;
+  if (typeof raw.body !== 'string' || !raw.body.trim()) {
     throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:EMPTY_READING');
   }
 
-  const title = raw.title.trim();
   const text = raw.body.trim();
+  let title = typeof raw.title === 'string' ? raw.title.trim() : '';
+  let partiallyRecovered = incompleteOutput;
   
   let actionType: string | null = null;
   let actionText: string | null = null;
   let closingText: string = 'none';
 
   if (input.period === 'day') {
-    if (typeof raw.closing !== 'string' || !raw.closing.trim()) {
-      throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:EMPTY_CLOSING');
+    const bodyVoiceViolations = getPersonalForecastVoiceViolationCodes(text);
+    if (bodyVoiceViolations.length) {
+      throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:VOICE:${bodyVoiceViolations.join(',')}`);
     }
-    closingText = raw.closing.trim();
-    const voiceViolations = [...new Set([title, text, closingText]
-      .flatMap((part) => getPersonalForecastVoiceViolationCodes(part)))];
-    if (voiceViolations.length) {
-      throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:VOICE:${voiceViolations.join(',')}`);
+    if (hasUnsafeClaim(text)) {
+      throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:UNSAFE_CLAIM');
     }
-    if (repeatsRecentReading(title, text, recentReadings)) {
+    if (repeatsRecentReading('', text, recentReadings)) {
       throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:REPEATED_READING');
     }
+    if (!title || getPersonalForecastVoiceViolationCodes(title).length
+      || hasUnsafeClaim(title) || repeatsRecentReading(title, '', recentReadings)) {
+      title = language === 'ru' ? 'Сегодня' : 'Today';
+      partiallyRecovered = true;
+    }
+    const closing = typeof raw.closing === 'string' ? raw.closing.trim() : '';
+    if (closing && !getPersonalForecastVoiceViolationCodes(closing).length && !hasUnsafeClaim(closing)) {
+      closingText = closing;
+    } else {
+      partiallyRecovered = true;
+    }
+    if (partiallyRecovered && !hasCompleteSentenceEnding(text)) {
+      throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:INCOMPLETE_BODY');
+    }
   } else {
+    if (!title) throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:EMPTY_READING');
     actionType = (raw.action_type === 'buy' || raw.action_type === 'talk' || raw.action_type === 'move' || raw.action_type === 'stop') ? raw.action_type as string : null;
     actionText = typeof raw.action_text === 'string' ? raw.action_text.trim() : null;
   }
 
-  if (/(?:гарантирован\p{L}*|точно\s+произойд\p{L}*|диагноз\p{L}*|лечени\p{L}*|лекарств\p{L}*|guaranteed|buy\s+(?:stocks|crypto))/iu.test(`${title} ${text} ${closingText}`)) {
+  if (hasUnsafeClaim(`${title} ${text} ${closingText}`)) {
     throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:UNSAFE_CLAIM');
   }
 
@@ -225,7 +333,8 @@ export async function generatePersonalForecastPackage(
     explanationAnchors: [], premiumTeaser: teaser, lockedPreview: buildForecastLockedPreview(visibleText, teaser) };
   result.visual.sectionAssetIds = { overview: null };
   result.meta = { ...result.meta, model: input.model, generationAttempts: input.retryReason ? 2 : 1,
-    validationStatus: 'valid', status: 'ready', diagnosticCode: null,
+    validationStatus: 'valid', status: 'ready',
+    diagnosticCode: partiallyRecovered ? 'PERSONAL_FORECAST_PARTIAL_RECOVERY' : null,
     astrologerBrief: { tone: 'mixed', observations: [], briefSignature: 'direct-v1' },
     semanticSignature: { situation: fingerprint, turn: fingerprint, outcome: fingerprint,
       title, forecast: text, closing: closingText } };

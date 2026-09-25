@@ -79,15 +79,37 @@ describe('personal forecast cache miss generation', () => {
     })).rejects.toMatchObject({ code: 'PERSONAL_FORECAST_RESPONSE_INVALID' });
   });
 
+  it('keeps a ready server fallback available when the next request is offline', async () => {
+    const forecast = personalForecastFixture();
+    const profile = {
+      id: 'offline-forecast-user', name: 'Mira', birthDate: '1990-01-01',
+      birthTime: '', birthPlace: '', language: 'en', isPremium: true,
+    } as never;
+    mockedFetch.mockResolvedValueOnce({
+      status: 200, ok: true,
+      json: async () => ({
+        forecast, accessTier: 'premium', lockedSectionIds: [],
+        periodLocked: false, source: 'stale',
+      }),
+    }).mockRejectedValueOnce(new Error('offline'));
+
+    const first = await loadPersonalForecast({ profile, period: 'day', periodKey: forecast.periodKey });
+    const offline = await loadPersonalForecast({ profile, period: 'day', periodKey: forecast.periodKey });
+
+    expect(first.source).toBe('stale');
+    expect(offline.source).toBe('local');
+    expect(offline.forecast.overview.text).toBe(forecast.overview.text);
+  });
+
   it.each([false, true])('primes only accessible prepared dates without POST generation for Premium=%s', async (isPremium) => {
     jest.useFakeTimers().setSystemTime(new Date('2026-09-08T12:00:00Z'));
     try {
       mockedFetch.mockResolvedValue({ status: 404, ok: false, json: async () => ({ code: 'PERSONAL_FORECAST_NOT_READY' }) });
       expect(await primePersonalForecastDayHorizon({ id: 'prime-horizon', name: 'Mira', birthDate: '1990-01-01', birthTime: '', birthPlace: '', birthTimezone: 'Europe/Moscow', language: 'en', isPremium, premiumUntil: isPremium ? '2026-10-01T00:00:00Z' : null } as never)).toEqual([]);
-      expect(mockedFetch).toHaveBeenCalledTimes(isPremium ? 4 : 1);
+      expect(mockedFetch).toHaveBeenCalledTimes(isPremium ? 5 : 1);
       expect(mockedFetch.mock.calls.every(([, options]) => options.method === 'GET')).toBe(true);
       expect(mockedFetch.mock.calls.map(([url]) => new URL(url, 'https://nebo.invalid').searchParams.get('periodKey')))
-        .toEqual(isPremium ? ['2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11'] : ['2026-09-08']);
+        .toEqual(isPremium ? ['2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11', '2026-09-12'] : ['2026-09-08']);
     } finally { jest.useRealTimers(); }
   });
 });

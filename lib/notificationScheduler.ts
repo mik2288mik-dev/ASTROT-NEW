@@ -152,7 +152,9 @@ async function dispatchTick() {
 function plannerTick() {
   const { hour, minute, dateKey } = mskNow();
   const due = (h: number, m: number) => hour > h || (hour === h && minute >= m);
-  void runOnce('personal-forecast-horizon', `${dateKey}-${hour}-${Math.floor(minute / 3)}`,
+  // Reconcile one bounded date-ordered batch each minute, so a missing day
+  // does not wait behind one user generation every three minutes.
+  void runOnce('personal-forecast-horizon', `${dateKey}-${hour}-${minute}`,
     () => prewarmPersonalForecastIncrement());
 
   // «Карта дня» — контент на день, генерим раз в сутки утром по Москве (для пуша есть фолбэк).

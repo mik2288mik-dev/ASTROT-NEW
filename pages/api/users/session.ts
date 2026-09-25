@@ -5,6 +5,8 @@ import { db, getPool } from '../../../lib/db';
 import { getOrCreateMyTrackerUserId } from '../../../lib/myTracker';
 import { readClientRuntimeMetadata } from '../../../lib/clientRuntimeMetadata';
 import { enqueueNeboOpsEvent, isNeboOpsEnabled, wakeNeboOpsDelivery } from '../../../lib/neboOps';
+import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
+import { queuePersonalForecastPrewarmForUser } from '../../../lib/personalForecastPrewarm';
 
 async function recordAppVisit(
   appUser: AppUserContext,
@@ -100,6 +102,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       telegramPlatform: telegramPlatform || (appUser.provider === 'telegram' ? 'telegram' : appUser.provider),
       userAgent,
     }, req.headers);
+    void getPremiumEntitlementState(appUser.userId).then((entitlement)=>{
+      queuePersonalForecastPrewarmForUser({
+        userId:appUser.userId,
+        accessTier:entitlement.isPremium?'premium':'free',reason:'app_open',
+      });
+    }).catch((error)=>console.warn('[API/users/session] forecast prewarm trigger failed',error));
 
     const analyticsUserId = req.body?.analyticsProvider === 'mytracker' && appUser.provider === 'native'
       ? await getOrCreateMyTrackerUserId(appUser.userId).catch(() => null)

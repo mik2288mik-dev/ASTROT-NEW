@@ -26,10 +26,7 @@ import {
   diagnosticTraceHeaders,
   formatDiagnosticFields,
 } from '../lib/diagnosticTrace';
-import {
-  diagnosticLog,
-  showRuntimeDiagnosticsForFailure,
-} from '../lib/runtimeDiagnostics';
+import { diagnosticLog } from '../lib/runtimeDiagnostics';
 
 type LoadOptions = {
   cacheOnly?: boolean;
@@ -240,8 +237,17 @@ function readStored(key: string): PersonalForecastClientResult | null {
   }
 }
 
-function writeStored(key: string, result: PersonalForecastClientResult): void {
-  if (result.source === 'stale') return;
+function writeStored(
+  key: string,
+  result: PersonalForecastClientResult,
+  expected: Pick<PersonalForecastPackage, 'period' | 'periodKey'>,
+): void {
+  if (
+    !isStoredResult(result)
+    || result.forecast.period !== expected.period
+    || result.forecast.periodKey !== expected.periodKey
+    || result.forecast.meta.status !== 'ready'
+  ) return;
   memoryCache.set(key, result);
   if (typeof window === 'undefined') return;
   try {
@@ -258,11 +264,13 @@ function writeStored(key: string, result: PersonalForecastClientResult): void {
 export function selectActiveReadyPersonalForecast(
   period: PersonalForecastPeriod,
   states: Record<PersonalForecastPeriod, PersonalForecastPeriodResultState>,
+  periodKey?: string,
 ): PersonalForecastClientResult | null {
   const candidate = states[period]?.result;
   if (
     !candidate
     || candidate.forecast.period !== period
+    || (periodKey !== undefined && candidate.forecast.periodKey !== periodKey)
     || candidate.forecast.meta.status !== 'ready'
   ) return null;
   return candidate;
@@ -420,7 +428,37 @@ export function readLocalPersonalForecast(input: {
   const timezone = normalizeForecastTimezone(input.profile.birthTimezone);
   const periodKey = input.periodKey
     || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
-  return readStored(contextKey({ ...input, periodKey }));
+  const stored = readStored(contextKey({ ...input, periodKey }));
+  return stored?.forecast.period === input.period
+    && stored.forecast.periodKey === periodKey
+    && stored.forecast.meta.status === 'ready'
+    && stored.accessTier === (hasActivePremium(input.profile) ? 'premium' : 'free')
+    ? stored
+    : null;
+}
+
+/** A dated, current-contract reading for the same account and birth profile. */
+export function readLastSavedPersonalForecast(input: {
+  profile: UserProfile;
+  currentPeriodKey: string;
+}): PersonalForecastClientResult | null {
+  const currentDay = new Date(`${input.currentPeriodKey}T00:00:00.000Z`);
+  if (
+    !Number.isFinite(currentDay.getTime())
+    || currentDay.toISOString().slice(0, 10) !== input.currentPeriodKey
+  ) return null;
+
+  for (let daysAgo = 1; daysAgo <= 30; daysAgo += 1) {
+    const periodKey = new Date(currentDay.getTime() - daysAgo * 86_400_000)
+      .toISOString().slice(0, 10);
+    const saved = readLocalPersonalForecast({
+      profile: input.profile,
+      period: 'day',
+      periodKey,
+    });
+    if (saved) return saved;
+  }
+  return null;
 }
 
 /** Fetch only already prepared readings. Missing dates never start paid generation here. */
@@ -446,7 +484,13 @@ export async function loadPersonalForecast(input: {
     || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
   const resolved = { ...input, periodKey };
   const key = contextKey(resolved);
-  const local = input.options?.force ? null : readStored(key);
+  const stored = input.options?.force ? null : readStored(key);
+  const local = stored?.forecast.period === input.period
+    && stored.forecast.periodKey === periodKey
+    && stored.forecast.meta.status === 'ready'
+    && stored.accessTier === (hasActivePremium(input.profile) ? 'premium' : 'free')
+    ? stored
+    : null;
   logForecastDiagnostic('INFO', traceId, {
     stage: 'load', status: 'start', period: input.period,
   });
@@ -471,12 +515,19 @@ export async function loadPersonalForecast(input: {
 
   const request = (async () => {
     const serverCached = await fetchCached({ ...resolved, traceId }).catch((error: PersonalForecastClientError) => {
-      const retryableCacheFailure = Number(error.status) >= 500;
-      if (input.options?.cacheOnly || !retryableCacheFailure) throw error;
-      return null;
+      const transientCacheFailure = !error.status || error.status === 429 || error.status >= 500;
+      if (!local || !transientCacheFailure) throw error;
+      logForecastDiagnostic('WARN', traceId, {
+        stage: 'local_fallback',
+        status: 'cache_hit',
+        durationMs: Date.now() - startedAt,
+        period: input.period,
+        source: 'local',
+      });
+      return { ...local, source: 'local' as const };
     });
     if (serverCached) {
-      writeStored(key, serverCached);
+      writeStored(key, serverCached, resolved);
       logForecastDiagnostic('INFO', traceId, {
         stage: 'finished',
         status: 'ok',
@@ -492,15 +543,30 @@ export async function loadPersonalForecast(input: {
       error.code = 'PERSONAL_FORECAST_NOT_READY';
       throw error;
     }
-    const generated = await generate({
-      ...resolved,
-      traceId,
-      maxInProgressRetries: Math.min(
-        60,
-        Math.max(0, input.options?.maxInProgressRetries ?? 60),
-      ),
-    });
-    writeStored(key, generated);
+    let generated: PersonalForecastClientResult;
+    try {
+      generated = await generate({
+        ...resolved,
+        traceId,
+        maxInProgressRetries: Math.min(
+          60,
+          Math.max(0, input.options?.maxInProgressRetries ?? 60),
+        ),
+      });
+    } catch (error) {
+      const status = (error as PersonalForecastClientError | null)?.status;
+      const transientFailure = !status || [202, 408, 425, 429].includes(status) || status >= 500;
+      if (!local || !transientFailure) throw error;
+      logForecastDiagnostic('WARN', traceId, {
+        stage: 'local_fallback',
+        status: 'cache_hit',
+        durationMs: Date.now() - startedAt,
+        period: input.period,
+        source: 'local',
+      });
+      return { ...local, source: 'local' as const };
+    }
+    writeStored(key, generated, resolved);
     logForecastDiagnostic('INFO', traceId, {
       stage: 'finished',
       status: 'ok',
@@ -518,7 +584,6 @@ export async function loadPersonalForecast(input: {
       errorCode: diagnosticErrorCode(error, 'PERSONAL_FORECAST_FAILED'),
       period: input.period,
     });
-    showRuntimeDiagnosticsForFailure('personal forecast failed', error);
     throw error;
   }).finally(() => {
     if (inFlight.get(inFlightKey) === request) inFlight.delete(inFlightKey);

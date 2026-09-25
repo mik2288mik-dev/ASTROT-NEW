@@ -103,10 +103,12 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     let refCode:string|null=null;try{refCode=await db.users.ensureReferralCode(userId);}catch(error:any){log.warn('ensureReferralCode failed',error?.message);}
     const premiumEntitlement=await getPremiumEntitlementState(userId);
     const prewarmProfile=buildPersonalForecastPrewarmProfile(userId,{...refreshed,...saved},birthSettings);
-    if(prewarmProfile&&data.isSetup===true){
+    const forecastProfileChanged=hasBirthInput||data.isSetup===true
+      ||['name','language','gender'].some((field)=>Object.prototype.hasOwnProperty.call(data,field));
+    if(prewarmProfile&&forecastProfileChanged){
       const accessTier=premiumEntitlement.isPremium?'premium' as const:'free' as const;
       queuePersonalForecastPrewarm({
-        userId,profile:prewarmProfile,accessTier,reason:'birth_profile_completed',maxMissingGenerations:1,
+        userId,profile:prewarmProfile,accessTier,reason:'birth_profile_completed',
       });
     }
     return res.status(200).json(publicUser({...refreshed,...saved,...birthSettings},userId,premiumEntitlement,await getNotificationFrequency(userId),refCode));

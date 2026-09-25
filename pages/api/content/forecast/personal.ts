@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
-import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
+import {
+  CONTENT_GENERATION_RETRY_AFTER_MS,
+  generationInProgressPayload,
+} from '../../../../lib/contentGenerationLock';
 import {
   ensurePersonalForecast,
   getCompatibleStalePersonalForecast,
@@ -32,6 +35,10 @@ import { startServerOperationalDiagnostic } from '../../../../lib/serverOperatio
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 
 export const config = { maxDuration: 180 };
+
+// Android aborts ordinary API requests after 30 seconds. Give a cold writer
+// time to finish, then let the existing 202/GET polling path take over.
+const FOREGROUND_GENERATION_WAIT_MS = 20_000;
 
 function readSingleQueryValue(value: unknown): string {
   if (typeof value === 'string') return value.trim();
@@ -214,11 +221,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const generated = await ensurePersonalForecast(cacheInput, {
+    const pendingGeneration = ensurePersonalForecast(cacheInput, {
       forceRegenerate: regenerate,
       minimumGeneratedAt: regenerationAfter,
     });
+    let foregroundTimer: ReturnType<typeof setTimeout> | undefined;
+    const generated = await Promise.race([
+      pendingGeneration,
+      new Promise<{ status: 'in_progress'; retryAfterMs: number }>((resolve) => {
+        foregroundTimer = setTimeout(() => resolve({
+          status: 'in_progress',
+          retryAfterMs: CONTENT_GENERATION_RETRY_AFTER_MS,
+        }), FOREGROUND_GENERATION_WAIT_MS);
+      }),
+    ]).finally(() => {
+      if (foregroundTimer) clearTimeout(foregroundTimer);
+    });
     if (generated.status === 'in_progress') {
+      // The request may have timed out of its foreground budget while the
+      // provider is still writing. Record a later failure without leaving an
+      // unhandled rejection after the HTTP response has been sent.
+      void pendingGeneration.catch((error) => {
+        const code = getPersonalForecastGenerationDiagnosticCode(error);
+        diagnostic.error('generation', error, code, {
+          period,
+          errorCode: code,
+        });
+      });
       diagnostic.log('generation', 'in_progress', { period, httpStatus: 202 });
       return res.status(202).json({
         ...generationInProgressPayload(generated.retryAfterMs),

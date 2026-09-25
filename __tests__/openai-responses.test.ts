@@ -99,6 +99,26 @@ describe('OpenAI Luna structured response request', () => {
     } as never)).toThrow('OPENAI_RESPONSE_REFUSAL');
   });
 
+  it('reads max-token output only with explicit opt-in and still rejects refusals', () => {
+    const partial = {
+      status: 'incomplete',
+      incomplete_details: { reason: 'max_output_tokens' },
+      output_text: '{"title":"Today","body":"A complete sentence."',
+      output: [],
+    };
+    expect(() => readLunaResponseContent(partial as never)).toThrow('OPENAI_RESPONSE_INCOMPLETE:max_output_tokens');
+    expect(readLunaResponseContent(partial as never, { allowIncompleteOutput: true }))
+      .toBe('{"title":"Today","body":"A complete sentence."');
+    expect(() => readLunaResponseContent({
+      ...partial,
+      output: [{ type: 'message', content: [{ type: 'refusal', refusal: 'No.' }] }],
+    } as never, { allowIncompleteOutput: true })).toThrow('OPENAI_RESPONSE_REFUSAL');
+    expect(() => readLunaResponseContent({
+      ...partial,
+      incomplete_details: { reason: 'content_filter' },
+    } as never, { allowIncompleteOutput: true })).toThrow('OPENAI_RESPONSE_INCOMPLETE:content_filter');
+  });
+
   it('returns a complete strict response after one provider call', async () => {
     const request = jest.fn().mockResolvedValue({
       content: '{"ok":true}', responseId: 'resp_1', inputTokens: 12, outputTokens: 4, reasoningTokens: 1,

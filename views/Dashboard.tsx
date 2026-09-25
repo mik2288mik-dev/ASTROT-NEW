@@ -20,6 +20,7 @@ import {
 } from '../lib/personalForecastContract';
 import {
   loadPersonalForecast,
+  readLastSavedPersonalForecast,
   readLocalPersonalForecast,
   selectActiveReadyPersonalForecast,
   type PersonalForecastClientError,
@@ -60,9 +61,12 @@ type DashboardProps = {
 };
 
 type PeriodState = {
+  contextKey: string | null;
   result: PersonalForecastClientResult | null;
   phase: 'idle' | 'loading' | 'ready' | 'error';
   errorCode: string | null;
+  errorStatus: number | null;
+  failureCount: number;
 };
 
 type PeriodRequest = {
@@ -70,9 +74,17 @@ type PeriodRequest = {
 };
 
 const FORECAST_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month'];
+const FORECAST_RECOVERY_DELAYS_MS = [3_000, 8_000, 15_000, 30_000, 60_000] as const;
 
 function emptyPeriodState(): PeriodState {
-  return { result: null, phase: 'idle', errorCode: null };
+  return {
+    contextKey: null,
+    result: null,
+    phase: 'idle',
+    errorCode: null,
+    errorStatus: null,
+    failureCount: 0,
+  };
 }
 
 function loadingLabel(
@@ -91,28 +103,6 @@ function loadingLabel(
     week: 'Создаём твой личный прогноз на неделю',
     month: 'Создаём твой личный прогноз на месяц',
   }[period];
-}
-
-function errorMessage(
-  code: string | null,
-  language: 'ru' | 'en',
-): string {
-  if (language === 'en') {
-    if (code === 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED') {
-      return 'We could not finish the forecast. Please try again.';
-    }
-    if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
-      return 'We could not finish the forecast. Please try again.';
-    }
-    return 'Please try loading it again.';
-  }
-  if (code === 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED') {
-    return 'Не удалось закончить прогноз. Попробуй ещё раз.';
-  }
-  if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
-    return 'Не удалось закончить прогноз. Попробуй ещё раз.';
-  }
-  return 'Попробуй загрузить его ещё раз.';
 }
 
 export const Dashboard = memo<DashboardProps>(({
@@ -142,6 +132,10 @@ export const Dashboard = memo<DashboardProps>(({
     week: emptyPeriodState(),
     month: emptyPeriodState(),
   });
+  const [lastSavedDay, setLastSavedDay] = useState<{
+    contextKey: string;
+    result: PersonalForecastClientResult;
+  } | null>(null);
 
   const periodKeys = useMemo<Record<PersonalForecastPeriod, string>>(() => {
     const now = new Date();
@@ -210,6 +204,7 @@ export const Dashboard = memo<DashboardProps>(({
   useEffect(() => {
     requestsRef.current = {};
     if (!profile.name.trim() || !profile.birthDate.trim()) {
+      setLastSavedDay(null);
       setPeriodStates({
         day: emptyPeriodState(),
         week: emptyPeriodState(),
@@ -217,6 +212,11 @@ export const Dashboard = memo<DashboardProps>(({
       });
       return;
     }
+    const savedDay = readLastSavedPersonalForecast({
+      profile,
+      currentPeriodKey: periodKeys.day,
+    });
+    setLastSavedDay(savedDay ? { contextKey: productContextKey, result: savedDay } : null);
     setPeriodStates(Object.fromEntries(
       FORECAST_PERIODS.map((period) => {
         const local = readLocalPersonalForecast({
@@ -225,9 +225,12 @@ export const Dashboard = memo<DashboardProps>(({
           periodKey: periodKeys[period],
         });
         return [period, {
+          contextKey: productContextKey,
           result: local,
           phase: local ? 'ready' : 'idle',
           errorCode: null,
+          errorStatus: null,
+          failureCount: 0,
         }];
       }),
     ) as Record<PersonalForecastPeriod, PeriodState>);
@@ -235,7 +238,7 @@ export const Dashboard = memo<DashboardProps>(({
 
   const loadPeriod = useCallback((
     period: PersonalForecastPeriod,
-    options?: { retry?: boolean },
+    options?: { retry?: boolean; cacheOnly?: boolean },
   ) => {
     if (!profile.name.trim() || !profile.birthDate.trim()) return;
     if (!premium && period !== 'day') {
@@ -251,14 +254,27 @@ export const Dashboard = memo<DashboardProps>(({
     const local = options?.retry
       ? null
       : readLocalPersonalForecast({ profile, period, periodKey });
-    setPeriodStates((current) => ({
-      ...current,
-      [period]: {
-        result: local || current[period]?.result || null,
-        phase: local || current[period]?.result ? 'ready' : 'loading',
-        errorCode: null,
-      },
-    }));
+    setPeriodStates((current) => {
+      const currentResult = current[period]?.contextKey === productContextKey
+        ? current[period].result
+        : null;
+      const result = local || currentResult;
+      const phase: PeriodState['phase'] = result ? 'ready' : 'loading';
+      const failureCount = current[period]?.contextKey === productContextKey
+        ? current[period].failureCount
+        : 0;
+      return {
+        ...current,
+        [period]: {
+          contextKey: productContextKey,
+          result,
+          phase,
+          errorCode: null,
+          errorStatus: null,
+          failureCount,
+        },
+      };
+    });
 
     const requestEntry: PeriodRequest = { promise: Promise.resolve() };
     const request = loadPersonalForecast({
@@ -267,26 +283,44 @@ export const Dashboard = memo<DashboardProps>(({
       periodKey,
       options: {
         force: options?.retry,
-        maxInProgressRetries: 60,
+        cacheOnly: options?.cacheOnly,
+        maxInProgressRetries: 3,
       },
     }).then((result) => {
       if (requestsRef.current[period] !== requestEntry) return;
       setPeriodStates((current) => ({
         ...current,
-        [period]: { result, phase: 'ready', errorCode: null },
+        [period]: {
+          contextKey: productContextKey,
+          result,
+          phase: 'ready',
+          errorCode: null,
+          errorStatus: null,
+          failureCount: 0,
+        },
       }));
     }).catch((error: PersonalForecastClientError) => {
       if (requestsRef.current[period] !== requestEntry) return;
-      setPeriodStates((current) => ({
-        ...current,
-        [period]: {
-          result: current[period]?.result || null,
-          phase: current[period]?.result ? 'ready' : 'error',
-          errorCode: current[period]?.result
-            ? null
-            : error.code || 'PERSONAL_FORECAST_GENERATION_FAILED',
-        },
-      }));
+      setPeriodStates((current) => {
+        const result = current[period]?.contextKey === productContextKey
+          ? current[period].result
+          : null;
+        const phase: PeriodState['phase'] = result ? 'ready' : 'error';
+        const failureCount = current[period]?.contextKey === productContextKey
+          ? current[period].failureCount + 1
+          : 1;
+        return {
+          ...current,
+          [period]: {
+            contextKey: productContextKey,
+            result,
+            phase,
+            errorCode: result ? null : error.code || 'PERSONAL_FORECAST_GENERATION_FAILED',
+            errorStatus: result ? null : error.status || null,
+            failureCount,
+          },
+        };
+      });
     }).finally(() => {
       if (requestsRef.current[period] === requestEntry) {
         delete requestsRef.current[period];
@@ -294,11 +328,45 @@ export const Dashboard = memo<DashboardProps>(({
     });
     requestEntry.promise = request;
     requestsRef.current[period] = requestEntry;
-  }, [periodKeys, premium, profile]);
+  }, [periodKeys, premium, productContextKey, profile]);
 
   useEffect(() => {
     loadPeriod(activePeriod);
   }, [activePeriod, loadPeriod, productContextKey]);
+
+  const activeState = periodStates[activePeriod].contextKey === productContextKey
+    ? periodStates[activePeriod]
+    : emptyPeriodState();
+  useEffect(() => {
+    if (activeState.result || activeState.phase !== 'error') return;
+    const status = activeState.errorStatus;
+    if (status !== null && status < 500 && ![202, 404, 408, 425, 429].includes(status)) return;
+
+    const failures = activeState.failureCount;
+    const delay = FORECAST_RECOVERY_DELAYS_MS[Math.min(
+      Math.max(failures - 1, 0),
+      FORECAST_RECOVERY_DELAYS_MS.length - 1,
+    )];
+    const checkPrepared = () => loadPeriod(activePeriod, { retry: true, cacheOnly: true });
+    const checkWhenVisible = () => {
+      if (document.visibilityState === 'visible') checkPrepared();
+    };
+    const timer = window.setTimeout(() => {
+      loadPeriod(activePeriod, {
+        retry: true,
+        // Recheck the prepared package first; periodically re-trigger generation
+        // for an account that has no package yet.
+        cacheOnly: failures % 4 !== 0,
+      });
+    }, delay);
+    window.addEventListener('online', checkPrepared);
+    document.addEventListener('visibilitychange', checkWhenVisible);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('online', checkPrepared);
+      document.removeEventListener('visibilitychange', checkWhenVisible);
+    };
+  }, [activePeriod, activeState.errorStatus, activeState.failureCount, activeState.phase, activeState.result, loadPeriod]);
 
   useEffect(() => {
     scrollRef?.current?.scrollTo({
@@ -337,9 +405,29 @@ export const Dashboard = memo<DashboardProps>(({
     periodTabRefs.current[nextPeriod]?.focus();
   }, []);
 
-  const state = periodStates[activePeriod];
-  const result = selectActiveReadyPersonalForecast(activePeriod, periodStates);
+  const state = activeState;
+  const result = state.result
+    ? selectActiveReadyPersonalForecast(activePeriod, periodStates, periodKeys[activePeriod])
+    : null;
   const forecast = result?.forecast || null;
+  const savedDayForecast = activePeriod === 'day' && !forecast
+    && lastSavedDay?.contextKey === productContextKey
+    ? lastSavedDay.result.forecast
+    : null;
+  const savedDayDate = savedDayForecast
+    ? new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+      day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+    }).format(new Date(`${savedDayForecast.periodKey}T12:00:00Z`))
+    : null;
+  useEffect(() => {
+    if (forecast?.meta.diagnosticCode !== 'PERSONAL_FORECAST_PARTIAL_RECOVERY') return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadPeriod(activePeriod, { retry: true, cacheOnly: true });
+      }
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, [activePeriod, forecast?.meta.diagnosticCode, forecast?.periodKey, loadPeriod]);
   const storySections = useMemo(
     () => forecast ? [forecast.overview, ...forecast.sections] : [],
     [forecast],
@@ -479,7 +567,11 @@ export const Dashboard = memo<DashboardProps>(({
       </nav>
 
       <p className="today-period-personal-note">
-        {personalForecastNote[activePeriod]}
+        {savedDayForecast
+          ? (language === 'ru'
+            ? 'Готовим твой прогноз на сегодня. Ниже — последний сохранённый.'
+            : 'Preparing today’s forecast. The last saved one is below.')
+          : personalForecastNote[activePeriod]}
       </p>
 
       {activePeriod !== 'day' ? (
@@ -563,21 +655,49 @@ export const Dashboard = memo<DashboardProps>(({
               </p>
             ) : null}
         </article>
-      ) : state.phase === 'error' ? (
-        <section className="forecast-feed-status is-error" aria-live="polite">
-          <h1>{language === 'ru' ? 'Прогноз пока не загрузился' : 'The forecast has not loaded yet'}</h1>
-          <p>{errorMessage(state.errorCode, language)}</p>
-          <button type="button" onClick={() => loadPeriod(activePeriod, { retry: true })}>
-            <RefreshCw size={17} aria-hidden />
-            {language === 'ru' ? 'Повторить' : 'Retry'}
-          </button>
-        </section>
+      ) : savedDayForecast ? (
+        <>
+          <section
+            className="today-minimal-hero today-minimal-loading"
+            aria-label={language === 'ru' ? 'Сегодня' : 'Today'}
+          >
+            <h1 className="sr-only">
+              {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
+            </h1>
+            <div className="today-minimal-composition">
+              <TodayCalendarClock
+                userId={String(profile.id || 'guest')}
+                periodKey={periodKeys.day}
+                timezone={timezone}
+                language={language}
+              />
+            </div>
+          </section>
+          <article
+            className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed"
+            data-forecast-period="day"
+            lang={language}
+          >
+            <p className="today-period-personal-note">
+              {language === 'ru'
+                ? `Последний сохранённый прогноз за ${savedDayDate}`
+                : `Last saved forecast for ${savedDayDate}`}
+            </p>
+            <ForecastSectionBlock
+              section={savedDayForecast.overview}
+              period="day"
+              language={language}
+              locked={false}
+              onRequestPremium={requestPremium}
+            />
+          </article>
+        </>
       ) : activePeriod === 'day' ? (
         <section
           className="today-minimal-hero today-minimal-loading"
           aria-live="polite"
-          aria-busy="true"
-          aria-label={loadingLabel(activePeriod, language)}
+          aria-busy={state.phase === 'loading'}
+          aria-label={language === 'ru' ? 'Сегодня' : 'Today'}
         >
           <h1 className="sr-only">
             {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
@@ -590,15 +710,29 @@ export const Dashboard = memo<DashboardProps>(({
               language={language}
             />
             <div className="today-minimal-loading-copy" role="status">
-              <LoaderCircle
-                className="forecast-feed-loading-spinner"
-                size={23}
-                strokeWidth={1.5}
-                aria-hidden
-              />
-              <p>{loadingLabel(activePeriod, language)}</p>
+              {state.phase === 'error' ? (
+                <p>{language === 'ru' ? 'Готовим твой прогноз' : 'Preparing your forecast'}</p>
+              ) : (
+                <>
+                  <LoaderCircle
+                    className="forecast-feed-loading-spinner"
+                    size={23}
+                    strokeWidth={1.5}
+                    aria-hidden
+                  />
+                  <p>{loadingLabel(activePeriod, language)}</p>
+                </>
+              )}
             </div>
           </div>
+        </section>
+      ) : state.phase === 'error' ? (
+        <section className="forecast-feed-status" aria-live="polite">
+          <h1>{language === 'ru' ? 'Готовим твой прогноз' : 'Preparing your forecast'}</h1>
+          <button type="button" onClick={() => loadPeriod(activePeriod, { retry: true, cacheOnly: true })}>
+            <RefreshCw size={17} aria-hidden />
+            {language === 'ru' ? 'Проверить' : 'Check again'}
+          </button>
         </section>
       ) : (
         <section

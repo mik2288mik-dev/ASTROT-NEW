@@ -144,8 +144,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const slot = `${dateKey}-${hour}-${Math.floor(minute / 30)}`;
   await once('rolling-daily', slot, () => planRetentionNotifications('rolling-daily', now, { limit: PLANNER_LIMIT }), ran);
 
-  // Uses each profile's timezone; fills one missing reading instead of bulk generation.
-  await once('personal-forecast-horizon', `${dateKey}-${hour}-${Math.floor(minute / 3)}`,
+  // The standalone Docker server keeps running after this response. Start the
+  // bounded forecast batch after the critical cron jobs, without holding the
+  // HTTP request open while AI generation runs. once() logs failures.
+  void once('personal-forecast-horizon', `${dateKey}-${hour}-${Math.floor(minute / 3)}`,
     () => prewarmPersonalForecastIncrement({ now }), ran);
 
   return res.status(200).json({

@@ -12,6 +12,7 @@ import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 import { ChartAccessPolicyError, exposeChartAccess, getActiveCharts, getEffectiveChartLimit, getSelfChart, normalizeRelationLabel } from '../../../lib/chartAccessPolicy';
 import { diagnosticErrorCode } from '../../../lib/diagnosticTrace';
 import { startServerOperationalDiagnostic } from '../../../lib/serverOperationalDiagnostics';
+import { queuePersonalForecastPrewarmForUser } from '../../../lib/personalForecastPrewarm';
 
 function missingBirthProfileFields(user:any): string[] {
   return [
@@ -92,6 +93,9 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
       result=await createOrReuseCanonicalChart({...common,relationLabel:normalizeRelationLabel(body.relationLabel)});
     }
     const active=getActiveCharts(await natalChartV2Repository.getAll(userId));
+    if (body.primary===true) queuePersonalForecastPrewarmForUser({
+      userId,accessTier:entitlement.isPremium?'premium':'free',reason:'birth_profile_completed',
+    });
     res.setHeader('X-Chart-Source',result.source);
     diagnostic.log('calculation_result','ok',{httpStatus:200,source:result.source,birthTimeMode:diagnosticTimeMode,hasCoordinates:!!coordinates});
     return res.status(200).json({...exposeChartAccess(result.chart,entitlement.isPremium,active),reused:result.reused});

@@ -404,7 +404,8 @@ export function isCurrentPersonalForecastPeriodKey(
   return periodKey === getPersonalForecastPeriodKey(period, now, timezone);
 }
 
-export const PERSONAL_FORECAST_ROLLING_DAY_COUNT = 4;
+// Keep today's reading and the next four local calendar days ready in advance.
+export const PERSONAL_FORECAST_ROLLING_DAY_COUNT = 5;
 export const MAX_FUTURE_FORECAST_DAYS = 30;
 
 /** Calendar dates, independent of DST and the device's own timezone. */

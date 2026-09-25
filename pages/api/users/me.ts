@@ -5,6 +5,7 @@ import { db } from '../../../lib/db';
 import { birthProfileRepository } from '../../../lib/birthProfileRepository';
 import { handleAdminError } from '../../../lib/adminAuth';
 import { getPremiumEntitlementState, publicPremiumEntitlementSnapshot } from '../../../lib/contentArchitecture';
+import { queuePersonalForecastPrewarmForUser } from '../../../lib/personalForecastPrewarm';
 import {
   CURRENT_LEGAL_DOCUMENT_VERSIONS,
   getLegalDocumentStatusesForUser,
@@ -26,6 +27,14 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     ]);
     const profile=toPublicAppProfile({...user,...birthSettings},auth);
     const publicEntitlement=publicPremiumEntitlementSnapshot(premiumEntitlement);
+    try {
+      queuePersonalForecastPrewarmForUser({
+        userId:auth.userId,
+        accessTier:premiumEntitlement.isPremium?'premium':'free',reason:'app_open',
+      });
+    } catch (error) {
+      console.warn('[API/users/me] forecast prewarm trigger failed',error);
+    }
     return res.status(200).json({
       ...profile,
       isPremium:publicEntitlement.isPremium,

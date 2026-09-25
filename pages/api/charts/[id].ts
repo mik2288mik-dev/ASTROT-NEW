@@ -6,6 +6,8 @@ import { isCanonicalNatalChartDataComplete } from '../../../lib/natalChartCanoni
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
 import { requireAppUser } from '../../../lib/auth/appAuth';
+import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
+import { queuePersonalForecastPrewarmForUser } from '../../../lib/personalForecastPrewarm';
 import {
   ensureCanonicalPrimaryChart,
 } from '../../../lib/natalChartPersistence';
@@ -67,6 +69,11 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
         birthTimeRangeEnd:time?.birth_time_range_end||null,
         birthPlace:user.birth_place,language:user.language||'ru',forceRecalculate:false,
       });
+      void getPremiumEntitlementState(userId).then((entitlement)=>{
+        queuePersonalForecastPrewarmForUser({
+          userId,accessTier:entitlement.isPremium?'premium':'free',reason:'birth_profile_completed',
+        });
+      }).catch((error)=>log.error('Forecast prewarm trigger failed',error));
       return res.status(200).json(result.chart.chart_data);
     }
     return res.status(405).json({error:'Method not allowed'});

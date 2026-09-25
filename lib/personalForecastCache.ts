@@ -304,6 +304,8 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
       const history = allHistory.filter(h => h.period === input.period);
       
       let forecast: PersonalForecastPackage | null = null;
+      let partialBackup: PersonalForecastPackage | null = null;
+      let partialBackupSaved = false;
       let lastError: unknown = null;
       let retryReason: string | undefined = undefined;
 
@@ -317,6 +319,21 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
           if (!isPersonalForecastPackage(generated)) {
             throw new Error(`PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(generated) || 'UNKNOWN'}`);
           }
+          if (generated.meta.diagnosticCode === 'PERSONAL_FORECAST_PARTIAL_RECOVERY') {
+            if (!partialBackup) {
+              partialBackup = generated;
+              try {
+                // Make safe generated text visible to concurrent GET polling while
+                // the same lock is still attempting a complete replacement.
+                await save(input, generated, resolved);
+                partialBackupSaved = true;
+              } catch (error) {
+                lastError = error;
+              }
+            }
+            retryReason = 'PERSONAL_FORECAST_GENERATION_INVALID:PARTIAL_OUTPUT';
+            continue;
+          }
           forecast = generated;
           break;
         } catch (error) {
@@ -325,14 +342,15 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
         }
       }
 
-      if (!forecast) {
-        throw lastError;
-      }
+      if (!forecast) forecast = partialBackup;
+      if (!forecast) throw lastError;
 
       // A generated package is not ready until it is durably stored. Swallowing
       // this error reports a false success and leaves every later GET at 204.
       try {
-        await save(input, forecast, resolved);
+        if (forecast !== partialBackup || !partialBackupSaved) {
+          await save(input, forecast, resolved);
+        }
       } catch (cause) {
         const error = new Error('PERSONAL_FORECAST_CACHE_WRITE_FAILED') as Error & {
           code?: string;

@@ -27,8 +27,8 @@ describe('forecast delivery orchestration contract', () => {
   it('queues profile-completion and app-open prewarm without blocking profile saves', () => {
     expect(userRoute).toContain("reason:'birth_profile_completed'");
     expect(userRoute).toContain("reason:'app_open'");
-    expect(userRoute).toContain('if(prewarmProfile&&data.isSetup===true)');
-    expect(userRoute).toContain('maxMissingGenerations:1');
+    expect(userRoute).toContain('forecastProfileChanged');
+    expect(userRoute).not.toContain('maxMissingGenerations:1');
     expect(userRoute).not.toContain('await prewarmPersonalForecastHorizon');
     expect(cronRoute).toContain('prewarmPersonalForecastIncrement({ now })');
     expect(cronRoute).not.toContain('db.users');

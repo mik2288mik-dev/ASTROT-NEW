@@ -23,6 +23,8 @@ type LunaResponseInput = {
 type LunaStructuredResponseInput = LunaResponseInput & {
   schemaName: string;
   schema: StrictJsonSchema;
+  /** Forecast-only opt-in: the caller must validate any incomplete output. */
+  allowIncompleteOutput?: boolean;
 };
 
 type LunaResponseResult = {
@@ -31,6 +33,7 @@ type LunaResponseResult = {
   inputTokens: number;
   outputTokens: number;
   reasoningTokens: number;
+  incompleteReason?: string;
 };
 
 type LunaStructuredRequester = (
@@ -151,8 +154,14 @@ export function getOpenAIResponsesClient(): OpenAI | null {
   return client;
 }
 
-export function readLunaResponseContent(response: LunaResponseContent): string {
-  if (response.status === 'incomplete') {
+export function readLunaResponseContent(
+  response: LunaResponseContent,
+  options: { allowIncompleteOutput?: boolean } = {},
+): string {
+  if (response.status === 'incomplete' && (
+    !options.allowIncompleteOutput
+    || response.incomplete_details?.reason !== 'max_output_tokens'
+  )) {
     throw new Error(`OPENAI_RESPONSE_INCOMPLETE:${response.incomplete_details?.reason || 'unknown'}`);
   }
 
@@ -185,6 +194,7 @@ export function readLunaResponseContent(response: LunaResponseContent): string {
 
 async function createLunaResponse(
   params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
+  options: { allowIncompleteOutput?: boolean } = {},
 ): Promise<LunaResponseResult> {
   let response: OpenAI.Responses.Response;
 
@@ -196,7 +206,7 @@ async function createLunaResponse(
     response = await createResponseViaRelay(params);
   }
 
-  const content = readLunaResponseContent(response);
+  const content = readLunaResponseContent(response, options);
 
   return {
     content,
@@ -204,13 +214,18 @@ async function createLunaResponse(
     inputTokens: response.usage?.input_tokens || 0,
     outputTokens: response.usage?.output_tokens || 0,
     reasoningTokens: response.usage?.output_tokens_details?.reasoning_tokens || 0,
+    ...(response.status === 'incomplete'
+      ? { incompleteReason: response.incomplete_details?.reason || 'unknown' }
+      : {}),
   };
 }
 
 export async function createLunaStructuredResponse(
   input: LunaStructuredResponseInput,
 ): Promise<LunaResponseResult> {
-  return createLunaResponse(buildLunaStructuredResponseParams(input));
+  return createLunaResponse(buildLunaStructuredResponseParams(input), {
+    allowIncompleteOutput: input.allowIncompleteOutput,
+  });
 }
 
 export async function callStructuredWithBudgetRetry(
