@@ -188,8 +188,8 @@ describe('compatibility chapter writer contract', () => {
     const payload = JSON.parse(prompt.user);
     expect(payload.people.subject).toMatchObject({ name: 'Мария', gender: 'unspecified' });
     expect(payload.people.partner).toMatchObject({ name: 'Пётр', gender: 'unspecified' });
-    expect(prompt.system).toContain('При unspecified пиши нейтрально');
-    expect(prompt.system).toContain('Пол меняет обращение, но не назначает характер');
+    expect(prompt.system).toContain(language === 'ru' ? 'При unspecified пиши нейтрально' : 'When gender is unspecified, use neutral wording');
+    expect(prompt.system).toContain(language === 'ru' ? 'Пол меняет обращение, но не назначает характер' : 'Gender changes grammar only, not personality');
     expect(prompt.system).toContain(language === 'ru' ? 'Пиши по-русски' : 'Write natural, direct English');
     expect(payload.chapterGuide.map((item: { topic: string }) => item.topic)).toEqual(COMPATIBILITY_STORY_TOPICS);
     expect(payload.chapterGuide[1].title).toBe(language === 'ru' ? 'Доверие в деле' : 'Trust at work');

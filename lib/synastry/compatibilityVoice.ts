@@ -49,9 +49,13 @@ export function buildCompatibilityStoryPrompt(input: {
   const availableIds = new Set(evidence.map((item) => item.id));
   
   const limitedEvidence = evidence.length < 6;
+  const readerRules = input.language === 'ru'
+    ? 'Пиши по-русски и обращайся к первому человеку на «ты». При unspecified пиши нейтрально: не приписывай человеку мужской или женский род. Пол меняет обращение, но не назначает характер.'
+    : 'Write natural, direct English and address the first person as “you”. When gender is unspecified, use neutral wording and do not infer a gender. Gender changes grammar only, not personality.';
   const system = `${getCompatibilitySystemPrompt(input.language)}
 
 ${RELATIONSHIP_BRIEFS[input.calculated.relationshipContext]}
+${readerRules}
 ${limitedEvidence ? 'Напиши 260–420 слов в 4–7 абзацах.' : 'Напиши 450–650 слов в 7 абзацах.'}${input.revisionReason
     ? `\n\nPREVIOUS OUTPUT WAS REJECTED for ${input.revisionReason}. Correct that exact issue before returning JSON; do not repeat it.`
     : ''}`;

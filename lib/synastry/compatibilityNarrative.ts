@@ -2,7 +2,7 @@ import type { CompatibilityEvidence, SynastryResult } from '../../types';
 import type { CalculatedCompatibility } from './compatibilityEngine';
 import { COMPATIBILITY_STORY_TOPICS, type CompatibilityStoryTopic } from './storyTopics';
 
-export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-story.v4';
+export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-story.v5';
 
 export type CompatibilityWriterResponse = {
   paragraphs: Array<{
@@ -86,36 +86,20 @@ function firstName(value: string): string {
   return name.split(/\s+/u)[0] || '';
 }
 
-function readerNameForms(name: string, language: 'ru' | 'en'): string[] {
-  const forms = [name];
-  if (language === 'ru' && name.length > 2 && /[ая]$/iu.test(name)) {
-    const stem = name.slice(0, -1);
-    forms.push(...(/а$/iu.test(name) ? ['е', 'у', 'ы', 'и', 'ой'] : ['е', 'ю', 'и', 'ей']).map((ending) => stem + ending));
-  }
-  return forms;
-}
-
 /** Target explicit person predicates, not arbitrary Russian word endings or third parties. */
 function validateReaderVoice(paragraphs: CompatibilityWriterResponse['paragraphs'], input: CompatibilityNarrativeInput): void {
   const text = paragraphs.map((paragraph) => paragraph.text).join(' ');
-  const directAddress = input.language === 'ru'
-    ? /(?:^|[^\p{L}])(?:ты|тебя|тебе|тобой|тобою|твой|твоя|твоё|твое|твои|твоего|твоей|твоих|твоему|твоим|твою|твоими)(?=$|[^\p{L}])/iu
-    : /\b(?:you|your|yours|yourself)\b/iu;
-  if (!directAddress.test(text)) fail('reader_address_missing');
   const subject = firstName(input.subjectName);
   const partner = firstName(input.partnerName);
   const namesDistinct = subject.toLocaleLowerCase() !== partner.toLocaleLowerCase();
-  if (subject && namesDistinct) {
-    const forms = readerNameForms(subject, input.language).map(escapeRegex).join('|');
-    // A single greeting ("Лина, ты…") or quoted mention is fine; a story about Lina is not.
-    const mentions = text.match(new RegExp(`(?:^|[^\\p{L}])(?:${forms})(?=$|[^\\p{L}])(?!\\s*,)`, 'giu')) || [];
-    if (mentions.length >= 3) fail('reader_third_person');
-  }
   for (const person of [
     { name: subject, gender: input.subjectGender, subject: true },
     { name: partner, gender: input.partnerGender, subject: false },
   ]) {
-    if (!person.gender) continue; // Older callers without person metadata retain their existing contract.
+    // A missing gender is a normal user input, not a delivery error. The
+    // prompt asks for neutral wording, but a stylistic lapse must not make
+    // the whole reading unavailable after two expensive model calls.
+    if (!person.gender || person.gender === 'unspecified') continue;
     const names = person.name && namesDistinct ? [escapeRegex(person.name)] : [];
     if (person.subject && input.language === 'ru') names.push('ты');
     if (!names.length) continue;
@@ -123,9 +107,6 @@ function validateReaderVoice(paragraphs: CompatibilityWriterResponse['paragraphs
       const forbidden = RUSSIAN_PERSON_FORMS.flatMap(([male, female]) => person.gender === 'male' ? [female] : person.gender === 'female' ? [male] : [male, female]);
       const predicate = new RegExp(`(?:^|[^\\p{L}])(?:${names.join('|')})\\s+${RUSSIAN_PREDICATE_MODIFIERS}(?:${forbidden.join('|')})(?=$|[^\\p{L}])`, 'iu');
       if (predicate.test(text)) fail(person.gender === 'unspecified' ? 'unspecified_gender_inferred' : 'reader_gender_mismatch');
-    } else if (person.gender === 'unspecified') {
-      const apposition = new RegExp(`\\b(?:${names.join('|')})\\s*[,—-]\\s*(?:he|she|his|her|him)\\b`, 'iu');
-      if (apposition.test(text)) fail('unspecified_gender_inferred');
     }
   }
 }
@@ -150,7 +131,7 @@ export function validateCompatibilityNarrative(value: unknown, calculated: Calcu
     usedTopics.add(paragraph.topic);
     previousTopic = paragraph.topic;
     const raw = paragraph.text.trim();
-    if (/\n|^\s*(?:#{1,6}\s|[-*•]\s|\d+[.)]\s)|\*\*|\?/u.test(raw)) fail('prose_format');
+    if (/\n|^\s*(?:#{1,6}\s|[-*•]\s|\d+[.)]\s)|\*\*/u.test(raw)) fail('prose_format');
     const text = raw.replace(/\s+/gu, ' ');
     if (text.length < 100) fail('prose_content');
     const blockedProse = HARD_FORBIDDEN_PROSE.find(({ pattern }) => pattern.test(text));

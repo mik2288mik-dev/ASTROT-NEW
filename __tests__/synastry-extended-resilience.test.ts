@@ -257,7 +257,7 @@ describe('extended synastry delivery resilience', () => {
     expect(mockCalculateNatalChart).not.toHaveBeenCalled();
   });
 
-  it('repairs inferred gender once using trusted saved names and genders before caching', async () => {
+  it('delivers a complete reading without retry when a saved person has unspecified gender', async () => {
     mockGetById.mockImplementation(async (id) => ({ ...chart(id), name: id === 2 ? 'Саша' : 'Анна' }));
     mockCreateLunaStructuredResponse.mockImplementationOnce(async (request) => {
       const writer = compatibilityStory(JSON.parse(request.input).evidence);
@@ -266,15 +266,14 @@ describe('extended synastry delivery resilience', () => {
     });
     const result = await post({ subjectChartId: 1, partnerChartId: 2, partnerName: 'Имя из запроса', subjectGender: 'female', partnerGender: 'unspecified' });
     expect(result.status).toBe(200);
-    expect(mockCreateLunaStructuredResponse).toHaveBeenCalledTimes(2);
-    expect(mockCreateLunaStructuredResponse.mock.calls[1][0].instructions).toContain('unspecified_gender_inferred');
-    expect(JSON.parse(mockCreateLunaStructuredResponse.mock.calls[1][0].input).people.partner).toMatchObject({ name: 'Саша', gender: 'unspecified' });
-    expect(result.payload.result.summary).not.toContain('Саша тоже способен');
+    expect(mockCreateLunaStructuredResponse).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(mockCreateLunaStructuredResponse.mock.calls[0][0].input).people.partner).toMatchObject({ name: 'Саша', gender: 'unspecified' });
+    expect(result.payload.result.summary).toContain('Саша тоже способен');
     expect(mockSynastrySet).toHaveBeenCalledTimes(1);
     expect(mockCalculateNatalChart).not.toHaveBeenCalled();
   });
 
-  it('never saves a gender-invalid answer after the existing two-attempt repair budget', async () => {
+  it('saves a complete reading when unspecified gender uses gendered wording', async () => {
     mockGetById.mockImplementation(async (id) => ({ ...chart(id), name: id === 2 ? 'Саша' : 'Анна' }));
     mockCreateLunaStructuredResponse.mockImplementation(async (request) => {
       const writer = compatibilityStory(JSON.parse(request.input).evidence);
@@ -282,11 +281,10 @@ describe('extended synastry delivery resilience', () => {
       return { content: JSON.stringify(writer) };
     });
     const result = await post({ subjectChartId: 1, partnerChartId: 2, partnerGender: 'unspecified' });
-    expect(result.status).toBe(503);
-    expect(result.payload.code).toBe('SYNASTRY_READING_UNAVAILABLE');
-    expect(mockCreateLunaStructuredResponse).toHaveBeenCalledTimes(2);
-    expect(mockSynastrySet).not.toHaveBeenCalled();
-    expect(mockUpsertByChart).not.toHaveBeenCalled();
+    expect(result.status).toBe(200);
+    expect(mockCreateLunaStructuredResponse).toHaveBeenCalledTimes(1);
+    expect(result.payload.result.summary).toContain('Саша готова поддержать разговор');
+    expect(mockSynastrySet).toHaveBeenCalledTimes(1);
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
   });
 

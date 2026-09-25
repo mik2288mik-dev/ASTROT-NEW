@@ -31,14 +31,14 @@ describe('evidence-based compatibility story', () => {
     expect(JSON.parse(prompt.user)).not.toHaveProperty('sectionPlan');
   });
 
-  it.each(['Совместимость: 87 баллов.', 'Он тайно любит тебя.', 'Она обязательно вернётся.', 'He still loves you.', 'Что делать дальше?', '**Ваши сильные стороны**', 'Солнце в Тельце помогает вам.', 'Луна в Раке усиливает чувства.', 'Венера определяет близость.', 'Venus in Taurus supports your bond.'])('rejects misleading or technical visible prose: %s', (addition) => {
+  it.each(['Совместимость: 87 баллов.', 'Он тайно любит тебя.', 'Она обязательно вернётся.', 'He still loves you.', '**Ваши сильные стороны**', 'Солнце в Тельце помогает вам.', 'Луна в Раке усиливает чувства.', 'Венера определяет близость.', 'Venus in Taurus supports your bond.'])('rejects misleading or technical visible prose: %s', (addition) => {
     const calculated = calculation();
     const writer = compatibilityStory(selectCompatibilityWriterEvidence(calculated));
     writer.paragraphs[0].text += ` ${addition}`;
     expect(() => buildCompatibilityResult(calculated, writer)).toThrow('SYNASTRY_NARRATIVE_INVALID');
   });
 
-  it.each(['Вам нужно проработать этот паттерн.', 'Берегите свой ресурс.'])('does not turn a style lapse into a failed delivery: %s', (addition) => {
+  it.each(['Вам нужно проработать этот паттерн.', 'Берегите свой ресурс.', 'Что делать дальше?'])('does not turn a style lapse into a failed delivery: %s', (addition) => {
     const calculated = calculation();
     const writer = compatibilityStory(selectCompatibilityWriterEvidence(calculated));
     writer.paragraphs[0].text += ` ${addition}`;
