@@ -28,7 +28,7 @@ describe('compatibility reader perspective and explicit grammatical gender', () 
     'Если Саша первым предлагает конкретный шаг, тебе проще ответить.',
     'Саша в этом сценарии не обязан говорить много.',
   ])('does not discard a complete reading solely for unspecified partner grammar: %s', (addition) => {
-    expect(buildCompatibilityResult(calculated, candidate(addition), context).summary).toContain(addition);
+    expect(buildCompatibilityResult(calculated, candidate(addition), context).storyParagraphs?.[0].text).toContain(addition);
   });
 
   it.each([
@@ -37,21 +37,21 @@ describe('compatibility reader perspective and explicit grammatical gender', () 
     'Саша слушает, пока коллега говорит, что он готов.',
     'Для Саши важен готовый результат, а тебе интересно обсудить детали.',
   ])('keeps neutral grammar and unrelated masculine nouns valid: %s', (addition) => {
-    expect(buildCompatibilityResult(calculated, candidate(addition), context).storyParagraphs).toHaveLength(8);
+    expect(buildCompatibilityResult(calculated, candidate(addition), context).storyParagraphs).toHaveLength(4);
   });
 
   it.each([
     ['male', 'Саша способен ответить.', 'Саша способна ответить.'],
     ['female', 'Саша способна ответить.', 'Саша способен ответить.'],
   ] as const)('accepts the supplied %s gender and rejects its opposite', (partnerGender, valid, invalid) => {
-    expect(buildCompatibilityResult(calculated, candidate(valid), { ...context, partnerGender }).summary).toContain(valid);
+    expect(buildCompatibilityResult(calculated, candidate(valid), { ...context, partnerGender }).storyParagraphs?.[0].text).toContain(valid);
     expect(() => buildCompatibilityResult(calculated, candidate(invalid), { ...context, partnerGender })).toThrow('reader_gender_mismatch');
   });
 
   it('applies the same bounded predicate rule to direct address of the subject', () => {
-    expect(buildCompatibilityResult(calculated, candidate('Ты способна ответить прямо.'), context).summary).toContain('Ты способна');
+    expect(buildCompatibilityResult(calculated, candidate('Ты способна ответить прямо.'), context).storyParagraphs?.[0].text).toContain('Ты способна');
     expect(() => buildCompatibilityResult(calculated, candidate('Ты способен ответить прямо.'), context)).toThrow('reader_gender_mismatch');
-    expect(buildCompatibilityResult(calculated, candidate('Ты готова обсуждать детали.'), { ...context, subjectGender: 'unspecified' }).summary).toContain('Ты готова');
+    expect(buildCompatibilityResult(calculated, candidate('Ты готова обсуждать детали.'), { ...context, subjectGender: 'unspecified' }).storyParagraphs?.[0].text).toContain('Ты готова');
   });
 
   it('does not discard a valid evidence-backed story solely for missing direct address', () => {
@@ -59,7 +59,7 @@ describe('compatibility reader perspective and explicit grammatical gender', () 
     for (const paragraph of writer.paragraphs) {
       paragraph.text = paragraph.text.replace(/(?:^|[^\p{L}])(ты|тебя|тебе|тобой|тобою|твой|твоя|твоё|твое|твои|твоего|твоей|твоих|твоему|твоим|твою|твоими)(?=$|[^\p{L}])/giu, ' Лина');
     }
-    expect(buildCompatibilityResult(calculated, writer, context).storyParagraphs).toHaveLength(8);
+    expect(buildCompatibilityResult(calculated, writer, context).storyParagraphs).toHaveLength(4);
   });
 
   it('keeps third-person phrasing as a voice concern instead of a delivery failure', () => {
@@ -67,29 +67,29 @@ describe('compatibility reader perspective and explicit grammatical gender', () 
     writer.paragraphs[0].text += ' Лина замечает детали.';
     writer.paragraphs[1].text += ' Лине интересно продолжить разговор.';
     writer.paragraphs[2].text += ' С Линой можно обсудить другой вариант.';
-    expect(buildCompatibilityResult(calculated, writer, context).storyParagraphs).toHaveLength(8);
-    expect(buildCompatibilityResult(calculated, candidate('Лина, ты можешь увидеть разницу.'), context).summary).toContain('Лина, ты');
+    expect(buildCompatibilityResult(calculated, writer, context).storyParagraphs).toHaveLength(4);
+    expect(buildCompatibilityResult(calculated, candidate('Лина, ты можешь увидеть разницу.'), context).storyParagraphs?.[0].text).toContain('Лина, ты');
   });
 
   it('does not mistake a partner with the same first name for third-person narration of the reader', () => {
     const writer = candidate('Саша замечает детали. Саша предлагает новый вариант. Саше интересно продолжить разговор.');
-    expect(buildCompatibilityResult(calculated, writer, { ...context, subjectName: 'Саша' }).storyParagraphs).toHaveLength(8);
+    expect(buildCompatibilityResult(calculated, writer, { ...context, subjectName: 'Саша' }).storyParagraphs).toHaveLength(4);
   });
 
   it('does not treat the nameless-person placeholder as a real given name', () => {
     const writer = candidate('Первый вариант можно обсудить. Первый шаг не обязательно заканчивает разговор. Первый ответ бывает коротким.');
-    expect(buildCompatibilityResult(calculated, writer, { ...context, subjectName: 'Первый человек' }).storyParagraphs).toHaveLength(8);
+    expect(buildCompatibilityResult(calculated, writer, { ...context, subjectName: 'Первый человек' }).storyParagraphs).toHaveLength(4);
   });
 
   it('allows English third-person phrasing when the supplied gender is unknown', () => {
     const english = { ...context, language: 'en' as const, subjectName: 'Lina', partnerName: 'Sasha' };
-    expect(buildCompatibilityResult(calculated, candidate(), english).storyParagraphs).toHaveLength(8);
-    expect(buildCompatibilityResult(calculated, candidate('You may enjoy the conversation. Sasha, he can offer another idea.'), { ...english, partnerGender: 'male' }).summary).toContain('he can');
-    expect(buildCompatibilityResult(calculated, candidate('You may enjoy the conversation. Sasha, she can offer another idea.'), { ...english, partnerGender: 'female' }).summary).toContain('she can');
-    expect(buildCompatibilityResult(calculated, candidate('You may enjoy the conversation. Sasha, he can offer another idea.'), english).summary).toContain('he can');
+    expect(buildCompatibilityResult(calculated, candidate(), english).storyParagraphs).toHaveLength(4);
+    expect(buildCompatibilityResult(calculated, candidate('You may enjoy the conversation. Sasha, he can offer another idea.'), { ...english, partnerGender: 'male' }).storyParagraphs?.[0].text).toContain('he can');
+    expect(buildCompatibilityResult(calculated, candidate('You may enjoy the conversation. Sasha, she can offer another idea.'), { ...english, partnerGender: 'female' }).storyParagraphs?.[0].text).toContain('she can');
+    expect(buildCompatibilityResult(calculated, candidate('You may enjoy the conversation. Sasha, he can offer another idea.'), english).storyParagraphs?.[0].text).toContain('he can');
   });
 
   it('preserves the old evidence-only validator contract for callers without reader context', () => {
-    expect(buildCompatibilityResult(calculated, candidate('Саша способен ответить.')).storyParagraphs).toHaveLength(8);
+    expect(buildCompatibilityResult(calculated, candidate('Саша способен ответить.')).storyParagraphs).toHaveLength(4);
   });
 });

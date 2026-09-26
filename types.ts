@@ -248,7 +248,7 @@ export interface SynastryResult {
   narrativeVersion?: string;
   narrativeEvidenceIds?: string[];
   storyParagraphs?: Array<{
-    topic: 'architecture' | 'support' | 'risk' | 'verdict' | 'index' | 'action_do' | 'action_dont';
+    topic: 'what_works' | 'misunderstandings' | 'say_it_early' | 'dont_inflate';
     text: string;
     evidenceIds: string[];
     direction: CompatibilityEvidence['direction'];

@@ -24,7 +24,7 @@ describe('evidence-based compatibility story', () => {
     const calculated = calculation(context);
     const prompt = buildCompatibilityStoryPrompt({ calculated, language: 'ru', subject: { name: 'Анна', gender: 'female', birthTimeQuality: 'exact' }, partner: { name: 'Максим', gender: 'male', birthTimeQuality: 'exact' } });
     expect(prompt.system).toContain(boundary);
-    expect(prompt.system).toContain('450–650 слов');
+    expect(prompt.system).toContain('короткий вывод и 4 коротких раздела');
     expect(JSON.parse(prompt.user).relationshipContext).toBe(context);
     expect(normalizeRelationshipContext(context)).toBe(context);
     expect(JSON.parse(prompt.user)).not.toHaveProperty('overallScore');
@@ -42,7 +42,7 @@ describe('evidence-based compatibility story', () => {
     const calculated = calculation();
     const writer = compatibilityStory(selectCompatibilityWriterEvidence(calculated));
     writer.paragraphs[0].text += ` ${addition}`;
-    expect(buildCompatibilityResult(calculated, writer).summary).toContain(addition);
+    expect(buildCompatibilityResult(calculated, writer).storyParagraphs?.[0].text).toContain(addition);
   });
 
   it('rejects nonexistent evidence and repeated paragraphs instead of filling gaps', () => {
@@ -50,7 +50,7 @@ describe('evidence-based compatibility story', () => {
     const writer = compatibilityStory(selectCompatibilityWriterEvidence(calculated));
     writer.paragraphs[0].evidenceIds = ['made-up-contact'];
     expect(() => buildCompatibilityResult(calculated, writer)).toThrow('unknown_evidence');
-    writer.paragraphs[0] = { ...writer.paragraphs[1] };
+    writer.paragraphs[0] = { ...writer.paragraphs[1], topic: writer.paragraphs[0].topic };
     expect(() => buildCompatibilityResult(calculated, writer)).toThrow('repeated_paragraph');
   });
 

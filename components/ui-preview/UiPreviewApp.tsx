@@ -305,7 +305,7 @@ function CompatibilityScene({
     deepResult: {
       ...compatibilityFixture.deepResult,
       storyParagraphs: createUiPreviewCompatibilityStory(compatibilityFixture.deepResult),
-      summary: createUiPreviewCompatibilityStory(compatibilityFixture.deepResult).map((item) => item.text).join('\n\n'),
+      summary: compatibilityFixture.deepResult.summary,
       overallScore: previewScore,
       compatibilityScore: previewScore,
       verdict: previewCompatibilityVerdict(previewScore),

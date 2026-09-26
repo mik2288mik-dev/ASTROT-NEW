@@ -856,15 +856,16 @@ export const UI_PREVIEW_COMPATIBILITY_STEADY: typeof UI_PREVIEW_COMPATIBILITY = 
 
 export function createUiPreviewCompatibilityStory(result: SynastryResult): NonNullable<SynastryResult['storyParagraphs']> {
   const topics = [
-    ['index', ['between_you']], ['support', ['attraction', 'emotional_closeness']],
-    ['architecture', ['communication']], ['risk', ['tension', 'conflicts']],
-    ['action_do', ['action_do_life', 'stability']],
+    ['what_works', ['between_you', 'brings_closer', 'action_do_life', 'stability']],
+    ['misunderstandings', ['tension', 'conflicts']],
+    ['say_it_early', ['communication']],
+    ['dont_inflate', ['trust_boundaries', 'personal_space']],
   ] as const;
   return topics.flatMap(([topic, ids]) => {
     const section = ids.map((id) => result.sections?.find((item) => item.id === id)).find(Boolean);
-    return section ? section.text.split(/\n\s*\n/u).filter(Boolean).map((text) => ({
-      topic, text, evidenceIds: section.evidenceIds, direction: 'mutual' as const,
-    })) : [];
+    return section ? [{
+      topic, text: section.text.replace(/\s+/gu, ' ').trim(), evidenceIds: section.evidenceIds, direction: 'mutual' as const,
+    }] : [];
   });
 }
 

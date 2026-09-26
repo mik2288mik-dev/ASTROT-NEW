@@ -8,6 +8,7 @@ import { getCompatibilitySystemPrompt } from '../voice/contracts/compatibility';
 export const COMPATIBILITY_STORY_SCHEMA: StrictJsonSchema = {
   type: 'object',
   properties: {
+    summary: { type: 'string' },
     paragraphs: {
       type: 'array',
       items: {
@@ -23,7 +24,7 @@ export const COMPATIBILITY_STORY_SCHEMA: StrictJsonSchema = {
       },
     },
   },
-  required: ['paragraphs'],
+  required: ['summary', 'paragraphs'],
   additionalProperties: false,
 };
 
@@ -56,7 +57,9 @@ export function buildCompatibilityStoryPrompt(input: {
 
 ${RELATIONSHIP_BRIEFS[input.calculated.relationshipContext]}
 ${readerRules}
-${limitedEvidence ? 'Напиши 260–420 слов в 4–7 абзацах.' : 'Напиши 450–650 слов в 7 абзацах.'}${input.revisionReason
+${limitedEvidence
+    ? 'Сделай короткий вывод и 3 коротких раздела.'
+    : 'Сделай короткий вывод и 4 коротких раздела.'}${input.revisionReason
     ? `\n\nPREVIOUS OUTPUT WAS REJECTED for ${input.revisionReason}. Correct that exact issue before returning JSON; do not repeat it.`
     : ''}`;
   
@@ -67,7 +70,7 @@ ${limitedEvidence ? 'Напиши 260–420 слов в 4–7 абзацах.' :
       relationshipContext: input.calculated.relationshipContext,
       chapterGuide: COMPATIBILITY_STORY_TOPICS.map((topic) => ({ topic, title: compatibilityTopicTitle(topic, input.calculated.relationshipContext, input.language) })),
       calculationLevel: input.calculated.calculationLevel,
-      requiredParagraphs: limitedEvidence ? '4-7' : '7',
+      requiredSections: limitedEvidence ? '3' : '4',
       themes: input.calculated.dimensions.map((item) => ({
         id: item.id, label: item.label,
         supportedBy: item.supportiveEvidenceIds.filter((id) => availableIds.has(id)),

@@ -576,25 +576,10 @@ function RelationshipContextPicker({
   );
 }
 
-function readingTitles(context: RelationshipContext, ru: boolean) {
-  if (context === 'friendship') {
-    return ru
-      ? ['Почему вам легко быть своими', 'Где дружба начинает трещать', 'Как не копить недосказанное']
-      : ['Why it feels easy to be yourselves', 'Where friendship starts to crack', 'How to avoid the unsaid'];
-  }
-  if (context === 'work') {
-    return ru
-      ? ['Где вы усиливаете друг друга', 'Что ломает совместную работу', 'Как договариваться без хаоса']
-      : ['Where you improve each other', 'What breaks the work', 'How to agree without chaos'];
-  }
-  if (context === 'family') {
-    return ru
-      ? ['Что держит вашу связь', 'Где включаются старые роли', 'Как говорить без семейного багажа']
-      : ['What holds the bond', 'Where old roles take over', 'How to speak without old baggage'];
-  }
+function readingTitles(_context: RelationshipContext, ru: boolean) {
   return ru
-    ? ['Почему вас тянет друг к другу', 'Что может быть непросто', 'Как лучше понимать друг друга']
-    : ["Why you're drawn to each other", 'What can get tricky', 'How to understand each other'];
+    ? ['Что у вас получается', 'Где можете не понять друг друга', 'О чём лучше сказать сразу']
+    : ['What works between you', 'Where you may miss each other', 'What is worth saying early'];
 }
 
 function CompatBlock({ title, index, reduce, children }: {
@@ -1766,6 +1751,7 @@ export function UnionRoom(props: UnionRoomProps) {
                 open
                 onClose={() => setPersonSheet(null)}
                 closeLabel={ru ? 'Закрыть' : 'Close'}
+                closeButtonText={ru ? 'Выбрать' : 'Choose'}
                 title={personSheet === 'subject' ? (ru ? 'Выбери первого человека' : 'Choose the first person') : (ru ? 'Выбери второго человека' : 'Choose the second person')}
                 subtitle={personSheet === 'subject'
                   ? (ru ? 'Эта карта будет первой в сравнении.' : 'This card will be first in the comparison.')

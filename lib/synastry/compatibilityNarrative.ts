@@ -2,9 +2,10 @@ import type { CompatibilityEvidence, SynastryResult } from '../../types';
 import type { CalculatedCompatibility } from './compatibilityEngine';
 import { COMPATIBILITY_STORY_TOPICS, type CompatibilityStoryTopic } from './storyTopics';
 
-export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-story.v5';
+export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-story.v6';
 
 export type CompatibilityWriterResponse = {
+  summary: string;
   paragraphs: Array<{
     topic: CompatibilityStoryTopic;
     text: string;
@@ -87,8 +88,8 @@ function firstName(value: string): string {
 }
 
 /** Target explicit person predicates, not arbitrary Russian word endings or third parties. */
-function validateReaderVoice(paragraphs: CompatibilityWriterResponse['paragraphs'], input: CompatibilityNarrativeInput): void {
-  const text = paragraphs.map((paragraph) => paragraph.text).join(' ');
+function validateReaderVoice(texts: string[], input: CompatibilityNarrativeInput): void {
+  const text = texts.join(' ');
   const subject = firstName(input.subjectName);
   const partner = firstName(input.partnerName);
   const namesDistinct = subject.toLocaleLowerCase() !== partner.toLocaleLowerCase();
@@ -114,26 +115,31 @@ function validateReaderVoice(paragraphs: CompatibilityWriterResponse['paragraphs
 export function validateCompatibilityNarrative(value: unknown, calculated: CalculatedCompatibility, input?: CompatibilityNarrativeInput): CompatibilityWriterResponse {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('shape');
   const source = value as Partial<CompatibilityWriterResponse>;
+  if (typeof source.summary !== 'string') fail('summary_missing');
   if (!Array.isArray(source.paragraphs)) fail('paragraphs_missing');
   const evidence = selectCompatibilityWriterEvidence(calculated);
   const evidenceById = new Map(evidence.map((item) => [item.id, item]));
   if (!evidence.length) fail('evidence_missing');
-  const sparse = evidence.length < 6;
-  if (source.paragraphs.length < (sparse ? 4 : 7) || source.paragraphs.length > 10) fail('paragraph_count');
+  if (source.paragraphs.length < 3 || source.paragraphs.length > 4) fail('paragraph_count');
+  const summaryRaw = source.summary.trim();
+  if (/\n|^\s*(?:#{1,6}\s|[-*•]\s|\d+[.)]\s)|\*\*/u.test(summaryRaw)) fail('summary_format');
+  const summary = summaryRaw.replace(/\s+/gu, ' ');
+  const summaryWords = summary.match(/[\p{L}\p{N}]+(?:[-’'][\p{L}\p{N}]+)*/gu)?.length || 0;
+  if (summaryWords < 30 || summaryWords > 110) fail('summary_length');
+  const blockedSummary = HARD_FORBIDDEN_PROSE.find(({ pattern }) => pattern.test(summary));
+  if (blockedSummary) fail(blockedSummary.reason);
   const signatures = new Set<string>();
   const usedIds = new Set<string>();
   const usedTopics = new Set<CompatibilityStoryTopic>();
-  let previousTopic: CompatibilityStoryTopic | null = null;
   const paragraphs = source.paragraphs.map((paragraph) => {
     if (!paragraph || typeof paragraph !== 'object' || typeof paragraph.text !== 'string') fail('paragraph_shape');
     if (!COMPATIBILITY_STORY_TOPICS.includes(paragraph.topic)) fail('topic_missing');
-    if (paragraph.topic !== previousTopic && usedTopics.has(paragraph.topic)) fail('topic_repeated');
+    if (usedTopics.has(paragraph.topic)) fail('topic_repeated');
     usedTopics.add(paragraph.topic);
-    previousTopic = paragraph.topic;
     const raw = paragraph.text.trim();
     if (/\n|^\s*(?:#{1,6}\s|[-*•]\s|\d+[.)]\s)|\*\*/u.test(raw)) fail('prose_format');
     const text = raw.replace(/\s+/gu, ' ');
-    if (text.length < 100) fail('prose_content');
+    if (text.length < 75) fail('prose_content');
     const blockedProse = HARD_FORBIDDEN_PROSE.find(({ pattern }) => pattern.test(text));
     if (blockedProse) fail(blockedProse.reason);
     const signature = text.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
@@ -155,13 +161,12 @@ export function validateCompatibilityNarrative(value: unknown, calculated: Calcu
     ids.forEach((id) => usedIds.add(id));
     return { topic: paragraph.topic, text, evidenceIds: [...new Set(ids)], direction: paragraph.direction };
   });
-  const words = paragraphs.map((paragraph) => paragraph.text).join(' ').match(/[\p{L}\p{N}]+(?:[-’'][\p{L}\p{N}]+)*/gu)?.length || 0;
-  if (words < (sparse ? 220 : 360) || words > 800) fail('story_length');
+  const words = [summary, ...paragraphs.map((paragraph) => paragraph.text)].join(' ').match(/[\p{L}\p{N}]+(?:[-’'][\p{L}\p{N}]+)*/gu)?.length || 0;
+  if (words < 140 || words > 430) fail('story_length');
   if (paragraphs.filter((paragraph) => RELATIONSHIP_CAVEAT.test(paragraph.text)).length > 2) fail('repeated_relationship_caveat');
   if (usedIds.size < Math.min(3, evidence.length)) fail('insufficient_evidence_variety');
-  if (usedTopics.size < (sparse ? 3 : 4)) fail('topics_too_narrow');
-  if (input) validateReaderVoice(paragraphs, input);
-  return { paragraphs };
+  if (input) validateReaderVoice([summary, ...paragraphs.map((paragraph) => paragraph.text)], input);
+  return { summary, paragraphs };
 }
 
 export function buildCompatibilityResult(calculated: CalculatedCompatibility, writerValue: unknown, input?: CompatibilityNarrativeInput): SynastryResult {
@@ -185,6 +190,6 @@ export function buildCompatibilityResult(calculated: CalculatedCompatibility, wr
     evidence: calculated.evidence,
     directionalPatterns: calculated.directionalPatterns,
     limitations: calculated.limitations,
-    summary: writer.paragraphs.map((paragraph) => paragraph.text).join('\n\n'),
+    summary: writer.summary,
   };
 }

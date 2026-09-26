@@ -108,18 +108,19 @@ describe('calculated compatibility pipeline', () => {
     expect(result.overallScore).toBe(calculated.overallScore);
     expect(result.compatibilityScore).toBe(calculated.overallScore);
     expect(api).not.toContain('swisseph-calculator');
-    expect(api).toContain("from '../../../../lib/natalChartPersistence'");
+    expect(api).toContain("from '../../../../lib/natalChartCanonical'");
     expect(api).toContain('calculateCompatibility({');
     expect(api).toContain('calculated.aspects.map');
     expect(api).not.toContain("compatibilityScore: { type: 'number' }");
-    expect(COMPATIBILITY_STORY_SCHEMA.required).toEqual(['paragraphs']);
+    expect(COMPATIBILITY_STORY_SCHEMA.required).toEqual(['summary', 'paragraphs']);
     const context = JSON.parse(prompt.user);
     expect(context).not.toHaveProperty('overallScore');
     expect(context).not.toHaveProperty('sectionPlan');
     expect(JSON.stringify(context)).not.toContain('"score"');
     expect(result.sections).toEqual([]);
     expect(result.closing).toBeUndefined();
-    expect(result.summary.split('\n\n')).toHaveLength(8);
+    expect(result.summary).toBe(compatibilityStory(selectCompatibilityWriterEvidence(calculated)).summary);
+    expect(result.storyParagraphs).toHaveLength(4);
     expect(result.narrativeEvidenceIds?.length).toBeGreaterThanOrEqual(3);
   });
 

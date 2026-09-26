@@ -15,7 +15,7 @@ describe('Union product flow', () => {
     expect(policy.cacheScope).toBe('shared');
     // Базовая версия + отпечаток голоса (последний инвалидирует кэш при смене голоса).
     expect(policy.promptVersion).toBe(`sign_compatibility.v3+voice.${APP_VOICE_VERSION}`);
-    expect(read('lib/synastryExtended.ts')).toContain("SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v9'");
+    expect(read('lib/synastryExtended.ts')).toContain("SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v11'");
     expect(read('lib/synastry/compatibilityEngine.ts')).toContain("COMPATIBILITY_ENGINE_VERSION = 'compatibility-engine.v1'");
   });
 
@@ -49,7 +49,7 @@ describe('Union product flow', () => {
       expect(read(file)).not.toContain("headers: { 'Content-Type': 'application/json' }");
     }
     const fullApi = read('pages/api/content/synastry/extended.ts');
-    expect(fullApi).toContain("code: 'NEEDS_CHART'");
+    expect(fullApi).toContain("code: 'PARTNER_CHART_REQUIRED'");
     expect(fullApi.indexOf("code: 'PREMIUM_REQUIRED'")).toBeLessThan(fullApi.indexOf('db.natal_charts.getById(requestedSubjectChartId)'));
   });
 

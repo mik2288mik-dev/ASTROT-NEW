@@ -17,6 +17,8 @@ export type CosmicSheetProps = {
   children: ReactNode;
   footer?: ReactNode;
   closeLabel?: string;
+  /** Replaces the header's close icon with a visible, context-specific action label. */
+  closeButtonText?: string;
   appearance?: 'standard' | 'cosmic';
   className?: string;
   contentClassName?: string;
@@ -151,6 +153,7 @@ export function CosmicSheet({
   children,
   footer,
   closeLabel = 'Close',
+  closeButtonText,
   appearance = 'standard',
   className,
   contentClassName,
@@ -303,18 +306,20 @@ export function CosmicSheet({
                 <button
                   ref={closeButtonRef}
                   type="button"
-                  className="cosmic-sheet-close forecast-bottom-sheet-close"
-                  aria-label={closeLabel}
+                  className={classNames('cosmic-sheet-close', 'forecast-bottom-sheet-close', closeButtonText && 'cosmic-sheet-close--text')}
+                  aria-label={closeButtonText || closeLabel}
                   onClick={() => onCloseRef.current()}
                 >
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                    <path
-                      d="M5 5L15 15M15 5L5 15"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                  </svg>
+                  {closeButtonText ? <span>{closeButtonText}</span> : (
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path
+                        d="M5 5L15 15M15 5L5 15"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  )}
                 </button>
               </header>
               <div className={classNames('cosmic-sheet-content', contentClassName)}>
