@@ -1,0 +1,142 @@
+name: One-time old branch cleanup
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/cleanup-old-branches-once.yml
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete branches older than 2026-09-15
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const cutoff = new Date('2026-09-15T00:00:00Z');
+            const keep = new Set([
+              'main',
+              'backup/pre-repo-cleanup-2026-09-27',
+              'chore/cleanup-old-branches-20260927',
+            ]);
+
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+
+            const deleted = [];
+            const kept = [];
+            const failed = [];
+
+            for (const branch of branches) {
+              if (keep.has(branch.name) || branch.protected) {
+                kept.push({ branch: branch.name, reason: 'protected/explicit keep' });
+                continue;
+              }
+
+              const commit = await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: branch.commit.sha,
+              });
+
+              const dateText =
+                commit.data.commit.committer?.date ||
+                commit.data.commit.author?.date;
+
+              if (!dateText) {
+                kept.push({ branch: branch.name, reason: 'missing commit date' });
+                continue;
+              }
+
+              const headDate = new Date(dateText);
+              if (headDate >= cutoff) {
+                kept.push({ branch: branch.name, reason: 'recent', date: dateText });
+                continue;
+              }
+
+              try {
+                const openPulls = await github.paginate(github.rest.pulls.list, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  state: 'open',
+                  head: `${context.repo.owner}:${branch.name}`,
+                  per_page: 100,
+                });
+
+                for (const pr of openPulls) {
+                  await github.rest.pulls.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pr.number,
+                    state: 'closed',
+                  });
+                }
+
+                await github.rest.git.deleteRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: `heads/${branch.name}`,
+                });
+
+                deleted.push({
+                  branch: branch.name,
+                  date: dateText,
+                  closedPrs: openPulls.map((pr) => pr.number),
+                });
+              } catch (error) {
+                failed.push({
+                  branch: branch.name,
+                  date: dateText,
+                  error: error instanceof Error ? error.message : String(error),
+                });
+              }
+            }
+
+            core.summary
+              .addHeading('Old branch cleanup')
+              .addRaw(`Cutoff: ${cutoff.toISOString()}\n\n`)
+              .addRaw(`Deleted: ${deleted.length}\n\n`)
+              .addCodeBlock(JSON.stringify(deleted, null, 2), 'json')
+              .addRaw(`\nKept: ${kept.length}\n\n`)
+              .addCodeBlock(JSON.stringify(kept, null, 2), 'json')
+              .addRaw(`\nFailures: ${failed.length}\n\n`)
+              .addCodeBlock(JSON.stringify(failed, null, 2), 'json');
+            await core.summary.write();
+
+            for (const item of deleted) {
+              core.info(`DELETED ${item.branch} @ ${item.date}`);
+            }
+            for (const item of failed) {
+              core.error(`FAILED ${item.branch}: ${item.error}`);
+            }
+
+            if (failed.length > 0) {
+              core.setFailed(`Failed to delete ${failed.length} old branch(es)`);
+            }
+
+      - name: Remove cleanup source branch
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'heads/chore/cleanup-old-branches-20260927',
+              });
+              core.info('Removed cleanup source branch');
+            } catch (error) {
+              core.warning(
+                `Could not remove cleanup source branch: ${error instanceof Error ? error.message : String(error)}`
+              );
+            }
