@@ -22,10 +22,6 @@ import {
   ensureDailySignHoroscope,
   ensureMonthlySignHoroscope,
   ensureWeeklySignHoroscope,
-  getCachedDailySignHoroscope,
-  getCachedMonthlySignHoroscope,
-  getCachedWeeklySignHoroscope,
-  prefetchSignHoroscopePeriod,
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
 import { FreshTabs } from '../../components/fresh-ui';
@@ -192,43 +188,23 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   useEffect(() => {
     if (previewFixture || lockedPremiumPeriod) return;
     let active = true;
-    const hydrate = (prefetched: Record<string, SignHoroscopeReadingV2>) => {
-      if (!active) return;
-      setReadings((current) => {
-        const hydrated = { ...current };
-        Object.entries(prefetched).forEach(([prefetchedSign, prefetchedReading]) => {
-          const key = `${prefetchedSign}|${period}|${periodKey}|${language}`;
-          if (!hydrated[key]) hydrated[key] = prefetchedReading;
-        });
-        return hydrated;
-      });
-    };
     const load = async () => {
       try {
-        const cachedReading = period === 'week'
-          ? await getCachedWeeklySignHoroscope(sign, periodKey, language)
-          : period === 'month'
-            ? await getCachedMonthlySignHoroscope(sign, periodKey, language)
-            : await getCachedDailySignHoroscope(sign, periodKey, language);
-        if (active && cachedReading) {
-          setReadings((current) => ({ ...current, [readingKey]: cachedReading }));
-        }
-
         const selectedReading = period === 'week'
           ? await ensureWeeklySignHoroscope(sign, periodKey, language)
           : period === 'month'
             ? await ensureMonthlySignHoroscope(sign, periodKey, language)
             : await ensureDailySignHoroscope(sign, periodKey, language);
-        if (active) setReadings((current) => ({ ...current, [readingKey]: selectedReading }));
+        if (active) {
+          setReadings((current) => current[readingKey] === selectedReading
+            ? current
+            : { ...current, [readingKey]: selectedReading });
+        }
       } catch {
         if (active && !readLocalSignHoroscope(period, sign, periodKey, language)) {
-          setReadings((current) => ({ ...current, [readingKey]: null }));
-        }
-      } finally {
-        if (active) {
-          void prefetchSignHoroscopePeriod(period, periodKey, language)
-            .then(hydrate)
-            .catch(() => undefined);
+          setReadings((current) => current[readingKey] === null
+            ? current
+            : { ...current, [readingKey]: null });
         }
       }
     };

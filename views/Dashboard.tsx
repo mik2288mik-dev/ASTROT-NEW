@@ -87,6 +87,26 @@ function emptyPeriodState(): PeriodState {
   };
 }
 
+/**
+ * Local storage is rendered first so the forecast opens instantly. A later
+ * cache response with the same generated package must not replace that state:
+ * React would rerender the whole reading even though the user-visible content
+ * did not change.
+ */
+function isSameRenderedForecast(
+  current: PersonalForecastClientResult | null,
+  next: PersonalForecastClientResult,
+): boolean {
+  if (!current) return false;
+  return current.accessTier === next.accessTier
+    && current.periodLocked === next.periodLocked
+    && current.forecast.period === next.forecast.period
+    && current.forecast.periodKey === next.forecast.periodKey
+    && current.forecast.meta.generatedAt === next.forecast.meta.generatedAt
+    && current.lockedSectionIds.length === next.lockedSectionIds.length
+    && current.lockedSectionIds.every((id, index) => id === next.lockedSectionIds[index]);
+}
+
 function loadingLabel(
   period: PersonalForecastPeriod,
   language: 'ru' | 'en',
@@ -263,6 +283,15 @@ export const Dashboard = memo<DashboardProps>(({
       const failureCount = current[period]?.contextKey === productContextKey
         ? current[period].failureCount
         : 0;
+      if (
+        current[period]?.contextKey === productContextKey
+        && current[period].phase === phase
+        && current[period].errorCode === null
+        && current[period].errorStatus === null
+        && current[period].failureCount === failureCount
+        && result !== null
+        && isSameRenderedForecast(currentResult, result)
+      ) return current;
       return {
         ...current,
         [period]: {
@@ -288,17 +317,25 @@ export const Dashboard = memo<DashboardProps>(({
       },
     }).then((result) => {
       if (requestsRef.current[period] !== requestEntry) return;
-      setPeriodStates((current) => ({
-        ...current,
-        [period]: {
-          contextKey: productContextKey,
-          result,
-          phase: 'ready',
-          errorCode: null,
-          errorStatus: null,
-          failureCount: 0,
-        },
-      }));
+      setPeriodStates((current) => {
+        const currentState = current[period];
+        if (
+          currentState.contextKey === productContextKey
+          && currentState.phase === 'ready'
+          && isSameRenderedForecast(currentState.result, result)
+        ) return current;
+        return {
+          ...current,
+          [period]: {
+            contextKey: productContextKey,
+            result,
+            phase: 'ready',
+            errorCode: null,
+            errorStatus: null,
+            failureCount: 0,
+          },
+        };
+      });
     }).catch((error: PersonalForecastClientError) => {
       if (requestsRef.current[period] !== requestEntry) return;
       setPeriodStates((current) => {

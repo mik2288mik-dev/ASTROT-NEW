@@ -20,7 +20,6 @@ import { processSupportDeliveryOutbox } from './supportOutbox';
 import { ensureNeboOpsWorker } from './neboOps';
 import { maybeSendScheduledNeboOpsReports } from './neboOpsReports';
 import { processOwnerCriticalAlerts } from './ownerCriticalAlerts';
-import { prewarmPersonalForecastIncrement } from './personalForecastPrewarm';
 
 const MSK_TZ = 'Europe/Moscow';
 const DISPATCH_INTERVAL_MS = 3 * 60 * 1000; // отправка очереди каждые 3 минуты
@@ -152,11 +151,6 @@ async function dispatchTick() {
 function plannerTick() {
   const { hour, minute, dateKey } = mskNow();
   const due = (h: number, m: number) => hour > h || (hour === h && minute >= m);
-  // Reconcile one bounded date-ordered batch each minute, so a missing day
-  // does not wait behind one user generation every three minutes.
-  void runOnce('personal-forecast-horizon', `${dateKey}-${hour}-${minute}`,
-    () => prewarmPersonalForecastIncrement());
-
   // «Карта дня» — контент на день, генерим раз в сутки утром по Москве (для пуша есть фолбэк).
   if (due(6, 30)) void runOnce('daily-card-generator', dateKey, () => generateDailyCards(new Date(), { limit: 250 }));
 

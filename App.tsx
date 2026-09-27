@@ -116,7 +116,6 @@ import {
 import { ensureNatalCatalogCategory } from './services/natalCatalogService';
 import {
     clearPersonalForecastSessionCache,
-    loadPersonalForecast,
 } from './services/personalForecastService';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
 import {
@@ -366,23 +365,6 @@ function millisecondsUntilNextForecastDay(now: Date, timezone: string): number {
     }
 
     return Math.max(250, (upper - start) + 50);
-}
-
-function loadStartupPersonalForecasts(
-    targetProfile: UserProfile,
-): void {
-    const timezone = normalizeForecastTimezone(targetProfile.birthTimezone);
-    const now = new Date();
-    const load = (period: PersonalForecastPeriod) => loadPersonalForecast({
-        profile: targetProfile,
-        period,
-        periodKey: getPersonalForecastPeriodKey(period, now, timezone),
-        options: { maxInProgressRetries: 60 },
-    }).catch((error) => console.warn('[App] Personal forecast background refresh could not start', error));
-    void load('day');
-    if (hasActivePremium(targetProfile)) {
-        void Promise.allSettled(['week', 'month'].map((period) => load(period as PersonalForecastPeriod)));
-    }
 }
 
 const App: React.FC = () => {
@@ -879,11 +861,6 @@ const App: React.FC = () => {
             logStartupMetric('startup_dashboard_visible_ms', startupElapsedMs());
         };
 
-        const prepareStartupPersonalForecasts = (targetProfile: UserProfile) => {
-            if (cancelled) return;
-            loadStartupPersonalForecasts(targetProfile);
-        };
-
         const scheduleStartupBackgroundWork = (
             targetProfile: UserProfile,
             initialChart: NatalChartData,
@@ -1139,7 +1116,6 @@ const App: React.FC = () => {
                         writeLocalNatalChart(updatedProfile, localEntry.chartData, startupChartId);
                     }
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
-                    prepareStartupPersonalForecasts(updatedProfile);
                     if (cancelled) return;
                     // Админ-ссылка из бота обязана сохранить Telegram-контекст и
                     // не теряться из-за локального кэша натальной карты.
@@ -1154,7 +1130,6 @@ const App: React.FC = () => {
                     return;
                 }
 
-                prepareStartupPersonalForecasts(updatedProfile);
                 showStartupDashboard(
                     requestedViewRef.current === 'admin' && !updatedProfile.isAdmin
                         ? 'dashboard'
@@ -1360,7 +1335,6 @@ const App: React.FC = () => {
                     : 'Готовим твой гороскоп',
             );
             setLoadingProgress(82);
-            loadStartupPersonalForecasts(canonicalFullProfile);
             void getPrimaryChartId(String(canonicalFullProfile.id))
                 .then((primaryChartId) => {
                     const isCurrentOnboardingChart = () => (

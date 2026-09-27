@@ -25,7 +25,6 @@ import {
 } from '../../../../lib/personalForecastWireCompatibility';
 import {
   buildPersonalForecastPrewarmProfile,
-  queuePersonalForecastPrewarm,
 } from '../../../../lib/personalForecastPrewarm';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { birthProfileRepository } from '../../../../lib/birthProfileRepository';
@@ -161,13 +160,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       code: 'PERSONAL_FORECAST_PREMIUM_REQUIRED',
     });
   }
-  const queueRollingPrewarm = () => queuePersonalForecastPrewarm({
-    userId,
-    profile,
-    accessTier: cacheInput.accessTier,
-    reason: 'forecast_open',
-  });
-
   try {
     if (!regenerate) {
       const cached = await getCachedPersonalForecast(cacheInput).catch((error) => {
@@ -184,7 +176,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           !Number.isFinite(minimumGeneratedAt)
           || generatedAt > minimumGeneratedAt
         ) {
-          queueRollingPrewarm();
           diagnostic.log('cache_read', 'cache_hit', { period, source: 'cache', httpStatus: 200 });
           return res.status(200).json(
             responsePayload(cached.forecast, entitlement.isPremium, 'cache', wireVersion),
@@ -201,7 +192,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         void ensurePersonalForecast(cacheInput).catch((error) => {
           diagnostic.error('lazy_refresh', error, 'PERSONAL_FORECAST_LAZY_REFRESH_FAILED', { period });
         });
-        queueRollingPrewarm();
         diagnostic.log('stale_read', 'cache_hit', { period, source: 'stale', httpStatus: 200 });
         return res.status(200).json(responsePayload(
           stale.forecast,
@@ -261,7 +251,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ),
       });
     }
-    queueRollingPrewarm();
     diagnostic.log('generation', 'ok', {
       period,
       source: generated.fromCache ? 'cache' : 'generated',

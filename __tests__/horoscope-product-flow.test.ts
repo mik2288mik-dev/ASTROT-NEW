@@ -7,7 +7,7 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('Horoscope product flow', () => {
   it('keeps the 12-sign grid, restores Today/Week/Month, and renders no sticker art in the reading', () => {
-    const source = read('views/v2/HoroscopeReader.tsx');
+    const source = read('views/v2/HoroscopeReaderClassic.tsx');
     const picker = read('components/lumia-ui/v2/LzSignPickerSheet.tsx');
     const service = read('services/astrologyService.ts');
     const styles = read('styles/editorialStudio.css');
@@ -24,9 +24,10 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('ensureDailySignHoroscope');
     expect(source).toContain('ensureWeeklySignHoroscope');
     expect(source).toContain('ensureMonthlySignHoroscope');
-    expect(source).toContain('getCachedDailySignHoroscope');
-    expect(source).toContain('getCachedWeeklySignHoroscope');
-    expect(source).toContain('getCachedMonthlySignHoroscope');
+    expect(source).toContain('readLocalSignHoroscope');
+    expect(source).not.toContain('getCachedDailySignHoroscope');
+    expect(source).not.toContain('getCachedWeeklySignHoroscope');
+    expect(source).not.toContain('getCachedMonthlySignHoroscope');
     expect(source).toContain('getMoscowIsoWeekKey');
     expect(source).toContain('getMoscowMonthKey');
     expect(source).not.toContain('EditorialSticker');
@@ -51,7 +52,7 @@ describe('Horoscope product flow', () => {
     expect(picker).toContain('ZodiacIcon');
     expect(source).toContain('horo-reader-period-date');
     expect(source).toContain('horo-reader-sign-range');
-    expect(source).toContain('ZodiacSymbol');
+    expect(source).toContain('ZodiacIllustration');
     expect(source).toContain('horo-reader-headline');
     expect(source).toContain("title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}");
     expect(source).toContain('{displayedReading.headline}');
@@ -74,20 +75,18 @@ describe('Horoscope product flow', () => {
     expect(service).toContain("'tvoi-goroskop:sign-horoscope-v4'");
   });
 
-  it('loads the selected period before background prefetch and restores engagement', () => {
-    const source = read('views/v2/HoroscopeReader.tsx');
+  it('loads only the selected period and restores engagement', () => {
+    const source = read('views/v2/HoroscopeReaderClassic.tsx');
     const app = read('App.tsx');
     const selectedRequest = source.indexOf('const selectedReading = period');
-    const backgroundPrefetch = source.indexOf('void prefetchSignHoroscopePeriod');
     const horoscopeBranchStart = app.indexOf("view === 'horoscope'");
     const horoscopeBranchEnd = app.indexOf("view === 'chart'", horoscopeBranchStart);
     const horoscopeBranch = app.slice(horoscopeBranchStart, horoscopeBranchEnd);
 
     expect(selectedRequest).toBeGreaterThan(-1);
-    expect(backgroundPrefetch).toBeGreaterThan(selectedRequest);
-    expect(source).not.toContain('const prefetched = await prefetchSignHoroscopePeriod');
+    expect(source).not.toContain('prefetchSignHoroscopePeriod');
     expect(source).toContain('HoroscopeActivityBar');
-    expect(source).toContain('userId={profile.id ? String(profile.id) : undefined}');
+    expect(source).toContain('userId={!previewFixture && profile.id ? String(profile.id) : undefined}');
     expect(source).toContain('date={displayedEngagementDate}');
     expect(source).toContain('period={displayedPeriod}');
     const activity = read('components/Horoscope/HoroscopeActivityBar.tsx');
@@ -99,7 +98,7 @@ describe('Horoscope product flow', () => {
   });
 
   it('keeps browsing signs independent from the saved profile sign', () => {
-    const source = read('views/v2/HoroscopeReader.tsx');
+    const source = read('views/v2/HoroscopeReaderClassic.tsx');
     expect(source).not.toContain('FREE_EXTRA_QUOTA');
     expect(source).not.toContain('PREMIUM_EXTRA_QUOTA');
     expect(source).not.toContain('lumia:horo-extra-signs');

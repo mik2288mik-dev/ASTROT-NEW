@@ -5,6 +5,7 @@ describe('forecast delivery orchestration contract', () => {
   const personalCache = fs.readFileSync('lib/personalForecastCache.ts', 'utf8');
   const userRoute = fs.readFileSync('pages/api/users/[id].ts', 'utf8');
   const cronRoute = fs.readFileSync('pages/api/cron/tick.ts', 'utf8');
+  const inProcessScheduler = fs.readFileSync('lib/notificationScheduler.ts', 'utf8');
   const rustorePayments = fs.readFileSync('lib/rustorePayments.ts', 'utf8');
   const premiumService = fs.readFileSync('services/premiumService.ts', 'utf8');
   const metrics = fs.readFileSync('lib/forecastDeliveryMetrics.ts', 'utf8');
@@ -32,6 +33,8 @@ describe('forecast delivery orchestration contract', () => {
     expect(userRoute).not.toContain('await prewarmPersonalForecastHorizon');
     expect(cronRoute).toContain('prewarmPersonalForecastIncrement({ now })');
     expect(cronRoute).not.toContain('db.users');
+    expect(inProcessScheduler).not.toContain('prewarmPersonalForecastIncrement');
+    expect(personalRoute).not.toContain("reason: 'forecast_open'");
   });
 
   it('starts Premium prewarm only from validated activation and restore paths', () => {
