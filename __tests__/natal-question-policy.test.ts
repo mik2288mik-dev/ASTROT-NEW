@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { moderateNatalQuestion } from '../lib/natalReading/natalQuestion';
 import { NATAL_QUESTION_DAILY_LIMIT } from '../lib/natalReading/natalQuestionStore';
-import { NATAL_QUESTION_STARTERS } from '../lib/natalReading/natalQuestionTopics';
+import { NATAL_QUESTION_STARTERS, NATAL_QUESTION_TOPICS } from '../lib/natalReading/natalQuestionTopics';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -12,7 +12,7 @@ function moderation(question: string, language: 'ru' | 'en' = 'ru') {
 }
 
 function displayedQuestionStarters(language: 'ru' | 'en'): string[] {
-  return Object.values(NATAL_QUESTION_STARTERS).flatMap((topic) => topic[language]);
+  return NATAL_QUESTION_TOPICS.flatMap((topic) => NATAL_QUESTION_STARTERS[topic][language]);
 }
 
 describe('saved natal-chart question policy', () => {
