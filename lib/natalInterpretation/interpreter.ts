@@ -100,11 +100,11 @@ function meaningForEvidence(
       scope: isBackgroundSignBody(evidence.bodyKey) ? 'background' : 'personal',
       text: evidence.retrograde
         ? language === 'ru'
-          ? `В теме «${role}» астрологическая трактовка учитывает ретроградность: часть реакции чаще сначала проходит через внутренний пересмотр, а уже потом выражается наружу.`
-          : `For ${role}, the interpretation includes retrograde motion: part of the response is processed inwardly before it is expressed outwardly.`
+          ? `В теме «${role}» реакция чаще сначала проходит через внутренний пересмотр и только потом выражается наружу.`
+          : `For ${role}, the response is more often processed inwardly before it is expressed outwardly.`
         : language === 'ru'
-          ? `В теме «${role}» дополнительная ретроградная поправка к трактовке не применяется.`
-          : `For ${role}, no additional retrograde modifier is applied.`,
+          ? `В теме «${role}» реакция чаще идёт напрямую, без дополнительного внутреннего пересмотра.`
+          : `For ${role}, the response is more often expressed directly, without an extra inward review.`,
       technicalText: evidence.retrograde
         ? `${label} · ретроградное движение`
         : `${label} · директное движение`,
