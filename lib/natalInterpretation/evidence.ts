@@ -18,10 +18,12 @@ export const NATAL_ANGLE_KEYS: readonly NatalAngleKey[] = [
   'ascendant', 'mc', 'descendant', 'ic',
 ];
 
-function acceptedReliability(
-  value: NatalReliability,
+function fieldReliability(
+  exactTime: boolean,
+  stable: boolean,
 ): Exclude<NatalReliability, 'variable_in_range'> | null {
-  return value === 'exact' || value === 'stable_in_range' ? value : null;
+  if (exactTime) return 'exact';
+  return stable ? 'stable_in_range' : null;
 }
 
 export function extractNatalInterpretationEvidence(chart: NatalChartDataV2): {
@@ -30,35 +32,30 @@ export function extractNatalInterpretationEvidence(chart: NatalChartDataV2): {
 } {
   const evidence: NatalInterpretationEvidence[] = [];
   const rejectedEvidence: RejectedNatalInterpretationEvidence[] = [];
+  const exactTime = chart.chartQuality.exactTime === true;
   const variableAspectIds = new Set(chart.chartQuality.variableAspectIds || []);
 
   for (const bodyKey of NATAL_BODY_KEYS) {
     const position = chart.positions[bodyKey];
-    const reliability = acceptedReliability(position.reliability);
 
-    if (!reliability) {
-      rejectedEvidence.push({
-        id: `position:${bodyKey}:sign`,
-        kind: 'body_sign',
-        reason: 'variable_in_range',
-      });
-    } else if (position.reliability !== 'exact' && position.stable.sign !== true) {
-      rejectedEvidence.push({
-        id: `position:${bodyKey}:sign`,
-        kind: 'body_sign',
-        reason: 'unstable_sign',
-      });
-    } else if (!position.sign) {
+    const signReliability = fieldReliability(exactTime, position.stable.sign === true);
+    if (!position.sign) {
       rejectedEvidence.push({
         id: `position:${bodyKey}:sign`,
         kind: 'body_sign',
         reason: 'missing_value',
       });
+    } else if (!signReliability) {
+      rejectedEvidence.push({
+        id: `position:${bodyKey}:sign`,
+        kind: 'body_sign',
+        reason: 'unstable_sign',
+      });
     } else {
       evidence.push({
         id: `position:${bodyKey}:sign`,
         kind: 'body_sign',
-        reliability,
+        reliability: signReliability,
         bodyKey,
         sign: position.sign,
         degree: Number.isFinite(position.degree) ? position.degree : undefined,
@@ -73,36 +70,31 @@ export function extractNatalInterpretationEvidence(chart: NatalChartDataV2): {
           reason: 'missing_value',
         });
       }
-    } else if (!reliability) {
-      rejectedEvidence.push({
-        id: `position:${bodyKey}:house`,
-        kind: 'body_house',
-        reason: 'variable_in_range',
-      });
-    } else if (position.reliability !== 'exact' && position.stable.house !== true) {
-      rejectedEvidence.push({
-        id: `position:${bodyKey}:house`,
-        kind: 'body_house',
-        reason: 'unstable_house',
-      });
     } else {
-      evidence.push({
-        id: `position:${bodyKey}:house`,
-        kind: 'body_house',
-        reliability,
-        bodyKey,
-        house: position.house,
-      });
+      const houseReliability = fieldReliability(exactTime, position.stable.house === true);
+      if (!houseReliability) {
+        rejectedEvidence.push({
+          id: `position:${bodyKey}:house`,
+          kind: 'body_house',
+          reason: 'unstable_house',
+        });
+      } else {
+        evidence.push({
+          id: `position:${bodyKey}:house`,
+          kind: 'body_house',
+          reliability: houseReliability,
+          bodyKey,
+          house: position.house,
+        });
+      }
     }
 
     if (typeof position.retrograde === 'boolean') {
-      if (!reliability) {
-        rejectedEvidence.push({
-          id: `position:${bodyKey}:retrograde`,
-          kind: 'body_retrograde',
-          reason: 'variable_in_range',
-        });
-      } else if (position.reliability !== 'exact' && position.stable.retrograde !== true) {
+      const retrogradeReliability = fieldReliability(
+        exactTime,
+        position.stable.retrograde === true,
+      );
+      if (!retrogradeReliability) {
         rejectedEvidence.push({
           id: `position:${bodyKey}:retrograde`,
           kind: 'body_retrograde',
@@ -112,7 +104,7 @@ export function extractNatalInterpretationEvidence(chart: NatalChartDataV2): {
         evidence.push({
           id: `position:${bodyKey}:retrograde`,
           kind: 'body_retrograde',
-          reliability,
+          reliability: retrogradeReliability,
           bodyKey,
           retrograde: position.retrograde,
         });
@@ -123,24 +115,18 @@ export function extractNatalInterpretationEvidence(chart: NatalChartDataV2): {
   for (const angleKey of NATAL_ANGLE_KEYS) {
     const angle = chart.angles[angleKey];
     if (!angle) continue;
-    const reliability = acceptedReliability(angle.reliability);
-    if (!reliability) {
-      rejectedEvidence.push({
-        id: `angle:${angleKey}:sign`,
-        kind: 'angle_sign',
-        reason: 'variable_in_range',
-      });
-    } else if (angle.reliability !== 'exact' && angle.stableSign !== true) {
-      rejectedEvidence.push({
-        id: `angle:${angleKey}:sign`,
-        kind: 'angle_sign',
-        reason: 'unstable_sign',
-      });
-    } else if (!angle.sign) {
+    const reliability = fieldReliability(exactTime, angle.stableSign === true);
+    if (!angle.sign) {
       rejectedEvidence.push({
         id: `angle:${angleKey}:sign`,
         kind: 'angle_sign',
         reason: 'missing_value',
+      });
+    } else if (!reliability) {
+      rejectedEvidence.push({
+        id: `angle:${angleKey}:sign`,
+        kind: 'angle_sign',
+        reason: 'unstable_sign',
       });
     } else {
       evidence.push({
@@ -155,14 +141,12 @@ export function extractNatalInterpretationEvidence(chart: NatalChartDataV2): {
   }
 
   for (const house of chart.houses || []) {
-    const reliability = acceptedReliability(house.reliability);
     const id = `house:${house.house}:cusp`;
-    if (!reliability) {
-      rejectedEvidence.push({ id, kind: 'house_cusp', reason: 'variable_in_range' });
-    } else if (house.reliability !== 'exact' && house.stableSign !== true) {
-      rejectedEvidence.push({ id, kind: 'house_cusp', reason: 'unstable_sign' });
-    } else if (!house.sign) {
+    const reliability = fieldReliability(exactTime, house.stableSign === true);
+    if (!house.sign) {
       rejectedEvidence.push({ id, kind: 'house_cusp', reason: 'missing_value' });
+    } else if (!reliability) {
+      rejectedEvidence.push({ id, kind: 'house_cusp', reason: 'unstable_sign' });
     } else {
       evidence.push({
         id,
@@ -184,9 +168,7 @@ export function extractNatalInterpretationEvidence(chart: NatalChartDataV2): {
     evidence.push({
       id,
       kind: 'aspect',
-      reliability: chart.chartQuality.birthTimeQuality === 'exact'
-        ? 'exact'
-        : 'stable_in_range',
+      reliability: exactTime ? 'exact' : 'stable_in_range',
       aspectId: aspect.id,
       aspectType: aspect.type,
       fromKey: aspect.fromKey,
