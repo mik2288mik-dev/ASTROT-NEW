@@ -2,17 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import { moderateNatalQuestion } from '../lib/natalReading/natalQuestion';
 import { NATAL_QUESTION_DAILY_LIMIT } from '../lib/natalReading/natalQuestionStore';
-import { NATAL_QUESTION_STARTERS, NATAL_QUESTION_TOPICS } from '../lib/natalReading/natalQuestionTopics';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 function moderation(question: string, language: 'ru' | 'en' = 'ru') {
   return moderateNatalQuestion({ question, language });
-}
-
-function displayedQuestionStarters(language: 'ru' | 'en'): string[] {
-  return NATAL_QUESTION_TOPICS.flatMap((topic) => NATAL_QUESTION_STARTERS[topic][language]);
 }
 
 describe('saved natal-chart question policy', () => {
@@ -52,16 +47,17 @@ describe('saved natal-chart question policy', () => {
     expect(moderation(question, 'en')).toMatchObject({ status: 'approved' });
   });
 
-  it('accepts every starter shown in the natal-question interface', () => {
-    (['ru', 'en'] as const).forEach((language) => {
-      const starters = displayedQuestionStarters(language);
-      expect(starters).toHaveLength(40);
-      starters.forEach((question) => {
-        expect(moderation(question, language)).toMatchObject({
-          status: 'approved',
-          reason: 'relevant_natal_question',
-        });
-      });
+  it.each([
+    'Как я обычно общаюсь с новыми людьми?',
+    'Мне проще говорить сразу или сначала всё обдумать?',
+    'Как я действую, когда задача становится сложной?',
+    'На что я обычно опираюсь перед крупной покупкой?',
+    'Насколько для меня важен привычный уклад?',
+    'Мне проще сначала разобраться в теории или сразу пробовать?',
+  ])('accepts ordinary personal wording without a topic-button vocabulary: %s', (question) => {
+    expect(moderation(question)).toMatchObject({
+      status: 'approved',
+      reason: 'relevant_natal_question',
     });
   });
 
@@ -162,11 +158,14 @@ describe('saved natal-chart question policy', () => {
   });
 
 
-  it('keeps topic starters fill-only and leaves sending to the composer', () => {
+  it('keeps one free-form composer and no topic or starter-button UI', () => {
     const experience = read('components/NatalReading/NatalQuestionExperience.tsx');
-    expect(experience).toContain('setQuestionText(starter);');
     expect(experience).toContain('<textarea');
     expect(experience).toContain('onSubmit={submitQuestion}');
     expect(experience).toContain('до 5 новых вопросов в день');
+    expect(experience).not.toContain('contextCategory');
+    expect(experience).not.toContain('NATAL_QUESTION_TOPICS');
+    expect(experience).not.toContain('NATAL_QUESTION_STARTERS');
+    expect(experience).not.toContain('setQuestionText(starter);');
   });
 });
