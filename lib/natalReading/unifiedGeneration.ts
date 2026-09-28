@@ -198,7 +198,7 @@ INPUT:
 ${JSON.stringify(payload, null, 2)}${errors.length ? `
 
 PREVIOUS OUTPUT WAS REJECTED:
-${errors.join('\\n')}
+${errors.join('\n')}
 Write a new candidate and fix every listed issue.` : ''}`;
 }
 
