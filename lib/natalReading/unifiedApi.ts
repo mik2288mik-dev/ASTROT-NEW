@@ -62,11 +62,10 @@ function stableChart(chart: NatalChartDataV2) {
   };
 }
 
-function inputHash(ctx: ReadingContext, tier: NatalUnifiedReadingTier): string {
+function inputHash(ctx: ReadingContext): string {
   const chart = canonicalChart(ctx);
   return createHash('sha256').update(JSON.stringify({
     chart: stableChart(chart),
-    tier,
     language: languageOf(ctx),
     contractVersion: NATAL_UNIFIED_READING_CONTRACT_VERSION,
     promptVersion: NATAL_UNIFIED_READING_PROMPT_VERSION,
@@ -75,16 +74,16 @@ function inputHash(ctx: ReadingContext, tier: NatalUnifiedReadingTier): string {
 
 export function natalUnifiedReadingCacheOptions(
   ctx: ReadingContext,
-  tier: NatalUnifiedReadingTier,
+  _tier: NatalUnifiedReadingTier,
 ): CachedReadingOptions {
   const language = languageOf(ctx);
   return {
-    accessTier: tier,
-    contentVariant: tier === 'free' ? 'brief' : 'full',
-    cacheKey: `${NATAL_UNIFIED_READING_CACHE_KEY}.${tier}.${language}`,
-    inputHash: inputHash(ctx, tier),
+    accessTier: 'premium',
+    contentVariant: 'full',
+    cacheKey: `${NATAL_UNIFIED_READING_CACHE_KEY}.canonical.${language}`,
+    inputHash: inputHash(ctx),
     promptVersion: NATAL_UNIFIED_READING_PROMPT_VERSION,
-    modelTier: tier === 'free' ? 'base' : 'premium',
+    modelTier: 'premium',
     isPersistent: true,
   };
 }
@@ -116,7 +115,7 @@ export async function generateNatalUnifiedReadingWithLock(input: {
       cacheKey: options.cacheKey,
       promptVersion: options.promptVersion,
     }),
-    operation: `natal-unified-${input.tier}-generation`,
+    operation: 'natal-unified-generation',
     readCached: async () => {
       const cached = await getCachedNatalUnifiedReading(input.ctx, input.tier);
       return cached
@@ -127,7 +126,7 @@ export async function generateNatalUnifiedReadingWithLock(input: {
       const reading = await generateNatalUnifiedReading({
         chart: canonicalChart(input.ctx),
         language: languageOf(input.ctx),
-        tier: input.tier,
+        tier: 'premium',
       });
       return saveReading(input.ctx, options, reading);
     },
