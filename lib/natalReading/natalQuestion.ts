@@ -283,15 +283,8 @@ function matchesQuestionPolicy(
 }
 
 function hasNatalQuestionContext(value: string): boolean {
-  const hasPersonalSubject = matchesQuestionPolicy(value, PERSONAL_SUBJECT_PATTERNS);
   return matchesQuestionPolicy(value, NATAL_SCOPE_PATTERNS)
-    || (
-      hasPersonalSubject
-      && (
-        matchesQuestionPolicy(value, PERSONAL_PATTERN_DOMAIN_PATTERNS)
-        || matchesQuestionPolicy(value, ASTROLOGY_FACTOR_PATTERNS)
-      )
-    );
+    || matchesQuestionPolicy(value, PERSONAL_SUBJECT_PATTERNS);
 }
 
 function isInScopeNatalRequestPart(value: string, hasPriorNatalContext: boolean): boolean {
@@ -310,7 +303,6 @@ function isInScopeNatalRequestPart(value: string, hasPriorNatalContext: boolean)
       || matchesQuestionPolicy(value, ASTROLOGY_FACTOR_PATTERNS)
     );
   const isPersonalPatternQuestion = hasPersonalSubject
-    && hasPersonalPatternDomain
     && hasInterpretiveIntent;
   const isTimingQuestion = matchesQuestionPolicy(value, TIMING_QUESTION_PATTERNS)
     && matchesQuestionPolicy(value, TIMING_DECISION_PATTERNS)
