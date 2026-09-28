@@ -84,8 +84,8 @@ function meaningForEvidence(
         ? `${label} · ${evidence.house} дом`
         : `${label} · house ${evidence.house}`,
       topics: unique([
-        ...BODY_TOPICS[evidence.bodyKey],
         ...(HOUSE_TOPICS[evidence.house] || []),
+        ...BODY_TOPICS[evidence.bodyKey],
       ]),
       evidenceIds: [evidence.id],
     };
