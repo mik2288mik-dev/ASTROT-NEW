@@ -10,8 +10,8 @@ import { normalizePersonalForecastQuestionInput } from '../../lib/personalForeca
 import {
   askNatalQuestion,
   loadNatalQuestionSnapshot,
-  type HumanReadingError,
-} from '../../services/natalReadingService';
+  type NatalQuestionServiceError,
+} from '../../services/natalQuestionService';
 import { recordUserAppEvent } from '../../services/sessionService';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import {
@@ -58,7 +58,7 @@ function buildQuestionPairs(messages: readonly NatalQuestionStoredMessage[]): Qu
 }
 
 function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
-  const value = error as HumanReadingError;
+  const value = error as NatalQuestionServiceError;
   if (value?.code === 'PREMIUM_REQUIRED') {
     return language === 'ru'
       ? 'Эта часть пока закрыта. Открой вопросы, чтобы продолжить.'
@@ -209,7 +209,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         },
       });
     } catch (submitError) {
-      const code = (submitError as HumanReadingError)?.code;
+      const code = (submitError as NatalQuestionServiceError)?.code;
       if (
         code === 'NATAL_QUESTION_GENERATION_FAILED'
         || code === 'NATAL_QUESTION_VALIDATION_FAILED'
