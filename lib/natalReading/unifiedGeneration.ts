@@ -422,7 +422,7 @@ export async function generateNatalUnifiedReading(input: {
       input: promptPlan(interpretation, plan, input.tier, language, errors),
       maxOutputTokens: input.tier === 'premium' ? 6500 : 3500,
       reasoningEffort: 'medium',
-      verbosity: 'medium',
+      verbosity: 'low',
       store: false,
       schemaName: 'natal_unified_reading',
       schema: WRITER_SCHEMA,
