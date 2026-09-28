@@ -163,16 +163,16 @@ export const ASPECT_DYNAMICS_RU: Record<NatalAspectType, string> = {
 };
 
 export const TOPIC_TITLES_RU: Record<NatalMeaningTopic, string> = {
-  general: 'Общее',
+  general: 'В целом',
   character: 'Характер',
   emotions: 'Эмоции',
   communication: 'Общение',
   relationships: 'Отношения',
   work: 'Работа',
   money: 'Деньги',
-  home: 'Дом и привычный уклад',
-  learning: 'Учёба и новое',
-  rest: 'Нагрузка и восстановление',
+  home: 'Дом',
+  learning: 'Учёба',
+  rest: 'Отдых',
 };
 
 export function signStyle(sign: string, language: 'ru' | 'en'): string | null {
