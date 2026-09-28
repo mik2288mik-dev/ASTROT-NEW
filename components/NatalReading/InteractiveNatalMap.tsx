@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ChevronRight, ChevronDown, X, House, Triangle, Circle, BookOpen } from 'lucide-react';
 import type { NatalChartWheelSource } from '../../lib/natalChartWheelModel';
 import { natalChartWheelHouseLabelLongitude } from '../../lib/natalChartWheelModel';
-import { getPermanentNatalReliability } from '../../lib/natalReading/permanentReport';
 import { buildMapData, explainMapSelection, MAP_SIGNS, MAP_SIGN_NAMES, mapObject, MAP_ASPECTS, type MapSelection } from './mapExplanation';
 import styles from './InteractiveNatalMap.module.css';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
@@ -58,7 +57,7 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
     setSelection(restored); setDetail(true);
     onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
   }, [chart, view, premiumContinuation, onPremiumContinuationHandled]);
-  const quality = getPermanentNatalReliability(chart).quality;
+  const quality = chart.chartQuality?.birthTimeQuality ?? chart.birthTimeQuality ?? 'unknown';
   const rotation = (data.angles.find(p => p.key === 'ascendant')?.longitude ?? -270) + 270;
   const point = (longitude: number, radius: number) => {
     const a = (rotation - longitude - 90) * Math.PI / 180;
@@ -215,7 +214,7 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
       {explanation ? <div className={styles.sheetInner}>
         {detail ? <header className={styles.detailHeader}><button type="button" aria-label="Назад к краткому объяснению" onClick={() => setDetail(false)}><ArrowLeft/></button><h2 id="map-explanation-title">Почему такой вывод<span className={styles.detailObject}>{explanation.title}</span></h2><button type="button" aria-label="Закрыть объяснение" onClick={close}><X/></button></header> : <><div className={styles.handle} onPointerDown={e => { dragStart.current = e.clientY; e.currentTarget.setPointerCapture(e.pointerId); }} onPointerUp={e => { if (dragStart.current !== null && e.clientY - dragStart.current > 55) close(); dragStart.current = null; }}><span/></div><header className={styles.sheetHeader}><span className={styles.symbol} style={{color: explanation.color}}>{selection?.kind === 'point' ? objectIcon(selection.id, 30) : selection?.kind === 'sign' ? <ZodiacIcon sign={selection.id} size={30} stroke={explanation.color}/> : selection?.kind === 'house' ? <House size={30}/> : <Triangle size={30}/>}</span><div className={styles.sheetHeading}><h2 id="map-explanation-title">{explanation.title}</h2><p>{explanation.yours}</p></div><button type="button" aria-label="Закрыть объяснение" onClick={close}><X/></button></header></>}
         <div ref={content} className={styles.sheetContent}>
-          {detail ? fullAccess ? <NatalMapExplanationScreen explanation={explanation}/> : <div data-map-premium-entry><p className={styles.detailIntro}>{explanation.yours}</p><NatalPlusEntry title={`Почему такой вывод: ${explanation.title}`} onOpen={() => {if (selection) {const item=selection; close(); onRequestPremium?.(item,view);}}}>Из каких частей карты получилось это описание — в полном объяснении с NEBO+. Бесплатно можно посмотреть весь путь вывода для Солнца, Луны и Асцендента, если он рассчитан.</NatalPlusEntry></div> : <><p className={styles.selectionIntro}>{explanation.what}</p><button type="button" className={styles.why} onClick={() => setDetail(true)}><BookOpen size={20}/>Почему такой вывод<ChevronRight size={20}/></button></>}
+          {detail ? fullAccess ? <NatalMapExplanationScreen explanation={explanation}/> : <div data-map-premium-entry><p className={styles.detailIntro}>{explanation.yours}</p><NatalPlusEntry title={`Почему такой вывод: ${explanation.title}`} onOpen={() => {if (selection) {const item=selection; close(); onRequestPremium?.(item,view);}}}>Из каких частей карты получилось это описание — в полном объяснении с NEBO+. Бесплатно можно посмотреть весь путь вывода для Солнца, Луны и Асцендента, если он рассчитан.</NatalPlusEntry></div> : <><p className={styles.selectionIntro}>{explanation.meaning}</p><button type="button" className={styles.why} onClick={() => setDetail(true)}><BookOpen size={20}/>На чём основано<ChevronRight size={20}/></button></>}
         </div>
       </div> : null}
     </dialog>
