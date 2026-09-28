@@ -12,7 +12,7 @@ function moderation(question: string, language: 'ru' | 'en' = 'ru') {
 }
 
 function displayedQuestionStarters(language: 'ru' | 'en'): string[] {
-  return Object.values(NATAL_QUESTION_STARTERS[language]).flat();
+  return Object.values(NATAL_QUESTION_STARTERS).flatMap((topic) => topic[language]);
 }
 
 describe('saved natal-chart question policy', () => {
