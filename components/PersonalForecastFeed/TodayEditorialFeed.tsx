@@ -1,9 +1,6 @@
 import { useMemo } from 'react';
 import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
-import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
-import type { DiaryEditorialPause } from '../../lib/personalForecastVisuals';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
-import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';
 import { isRenderableTodaySection } from './editorialLayout';
 import {
   TodayCalendarClock,
@@ -39,7 +36,6 @@ function StoryFragment({
   locked,
   onRequestPremium,
   closing,
-  endVisual,
   personalAttribution,
 }: {
   section: ForecastSection;
@@ -47,7 +43,6 @@ function StoryFragment({
   locked: boolean;
   onRequestPremium: () => void;
   closing: boolean;
-  endVisual?: DiaryEditorialPause['asset'] | null;
   personalAttribution?: string | null;
 }) {
   const untitledSection = {
@@ -65,18 +60,9 @@ function StoryFragment({
   );
 
   return closing ? (
-    <div className={[
-      'today-minimal-closing',
-      endVisual ? 'has-end-visual' : '',
-    ].filter(Boolean).join(' ')}>
+    <div className="today-minimal-closing">
       <div className="today-minimal-closing-content">
         {fragment}
-        {endVisual ? (
-          <ForecastEndEditorialVisual
-            asset={endVisual}
-            className="today-minimal-closing-visual"
-          />
-        ) : null}
       </div>
       {personalAttribution ? (
         <p className="today-period-personal-note forecast-personal-attribution">
@@ -114,12 +100,6 @@ export function TodayEditorialFeed({
       ?.id || null,
     [visibleSections],
   );
-  const endVisual = useMemo(() => selectForecastEndEditorialAsset({
-    userId,
-    period: 'day',
-    periodKey,
-    sections: renderableSections,
-  }), [periodKey, renderableSections, userId]);
   const overview = visibleSections.find((section) => section.kind === 'overview');
   const title = resolveTitle(overview);
   const clockSignal = clockSignalForTone(tone);
@@ -167,7 +147,6 @@ export function TodayEditorialFeed({
               locked={false}
               onRequestPremium={onRequestPremium}
               closing={section.id === closingSectionId}
-              endVisual={section.id === closingSectionId ? endVisual : null}
               personalAttribution={section.id === closingSectionId
                 ? personalAttribution
                 : null}

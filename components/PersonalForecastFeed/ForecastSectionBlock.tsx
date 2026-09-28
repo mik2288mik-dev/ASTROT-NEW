@@ -3,9 +3,7 @@ import type {
   ForecastSection,
   PersonalForecastPeriod,
 } from '../../lib/personalForecastContract';
-import type { DiaryEditorialPause } from '../../lib/personalForecastVisuals';
 import { resolveVisibleForecastTitle } from './editorialLayout';
-import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';
 
 type ForecastSectionBlockProps = {
   section: ForecastSection;
@@ -13,7 +11,6 @@ type ForecastSectionBlockProps = {
   language: 'ru' | 'en';
   locked: boolean;
   onRequestPremium: () => void;
-  endVisualAsset?: DiaryEditorialPause['asset'] | null;
 };
 
 function renderContentBlocks(
@@ -60,7 +57,6 @@ export function ForecastSectionBlock({
   language,
   locked,
   onRequestPremium,
-  endVisualAsset,
 }: ForecastSectionBlockProps) {
   const isOverview = section.kind === 'overview';
   const sectionTitle = resolveVisibleForecastTitle({
@@ -78,9 +74,6 @@ export function ForecastSectionBlock({
   const isBrief = !isOverview && copyLength > 0 && copyLength <= 180;
   const isAdvice = !isOverview
     && section.contentBlocks.some((block) => block.role === 'action');
-  const showsEndVisual = Boolean(
-    endVisualAsset && isAdvice && period !== 'day' && !locked,
-  );
 
   if (section.status !== 'ready') return null;
   if (!locked && !hasReadableCopy) return null;
@@ -96,7 +89,6 @@ export function ForecastSectionBlock({
         isOverview ? 'is-overview' : '',
         isBrief ? 'is-brief' : '',
         isAdvice ? 'is-advice' : '',
-        showsEndVisual ? 'has-end-visual' : '',
         title ? 'has-title' : 'is-untitled',
         locked ? 'is-locked' : '',
       ].filter(Boolean).join(' ')}
@@ -158,12 +150,6 @@ export function ForecastSectionBlock({
               <strong>{ACTION_LABELS[section.actionType]?.[language] || ACTION_LABELS['advice'][language]}:</strong> {section.actionText}
             </p>
           </div>
-        ) : null}
-        {showsEndVisual && endVisualAsset ? (
-          <ForecastEndEditorialVisual
-            asset={endVisualAsset}
-            className="forecast-period-end-visual"
-          />
         ) : null}
       </div>
     </section>
