@@ -1,17 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
 import type { PaywallContext } from '../../lib/paywallContext';
 import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
 import type { NatalQuestionStoredMessage } from '../../lib/natalReading/natalQuestionStore';
-import {
-  NATAL_QUESTION_STARTERS,
-  NATAL_QUESTION_TOPICS,
-  natalQuestionTopicTitle,
-  type NatalQuestionTopic,
-} from '../../lib/natalReading/natalQuestionTopics';
 import { normalizePersonalForecastQuestionInput } from '../../lib/personalForecastQuestionModeration';
 import {
   askNatalQuestion,
@@ -30,8 +24,6 @@ type Props = {
   profile: UserProfile;
   chartData: NatalChartData;
   chartId?: number;
-  contextCategory: NatalQuestionTopic;
-  onContextChange: (categoryKey: NatalQuestionTopic) => void;
   requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
@@ -112,17 +104,10 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
     : 'Unable to load the answers. Check your connection and try again.';
 }
 
-function contextTitle(categoryKey: NatalQuestionTopic, language: 'ru' | 'en'): string {
-  const title = natalQuestionTopicTitle(categoryKey, language);
-  return language === 'ru' ? title.toLocaleLowerCase() : title.toLocaleLowerCase();
-}
-
 export const NatalQuestionExperience: React.FC<Props> = ({
   profile,
   chartData,
   chartId,
-  contextCategory,
-  onContextChange,
   requestPremium,
   premiumContinuation,
   onPremiumContinuationHandled,
@@ -141,11 +126,9 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   const [error, setError] = useState<string | null>(null);
   const [unansweredQuestionText, setUnansweredQuestionText] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState(0);
-  const [contextOpen, setContextOpen] = useState(false);
   const [explanation, setExplanation] = useState<NatalExplanationTarget | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const pairs = useMemo(() => buildQuestionPairs(snapshot?.messages || []), [snapshot?.messages]);
-  const starters = NATAL_QUESTION_STARTERS[contextCategory][language];
 
   useEffect(() => {
     setSnapshot(null);
@@ -219,7 +202,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         section: 'natal',
         source: 'natal_questions',
         eventPayload: {
-          section_key: contextCategory,
+          section_key: 'main',
           scope: 'self',
           source: 'natal_meaning_map',
           is_follow_up: pairs.length > 0,
@@ -281,53 +264,14 @@ export const NatalQuestionExperience: React.FC<Props> = ({
       <header className="natal-v3-page-heading natal-v3-question-heading" hidden={compact}>
         <p>{language === 'ru' ? 'Спросить' : 'Ask'}</p>
         <h1 id="natal-v3-question-title">
-          {language === 'ru'
-            ? `Задай вопрос ${contextCategory === 'main' ? 'о себе' : `про ${contextTitle(contextCategory, language)}`}`
-            : `Ask about ${contextTitle(contextCategory, language)}`}
+          {language === 'ru' ? 'Задай любой вопрос о себе' : 'Ask anything about yourself'}
         </h1>
         <span>
           {language === 'ru'
-            ? 'Напиши вопрос. Разберём его по твоей натальной карте.'
-            : 'Ask a question. We will answer it using your saved birth chart.'}
+            ? 'Напиши вопрос своими словами. Ответ будет только по твоей сохранённой карте.'
+            : 'Write the question in your own words. The answer uses only your saved birth chart.'}
         </span>
       </header>
-
-      <section hidden={compact && contextCategory === 'main'} className="natal-v3-question-context" aria-label={language === 'ru' ? 'Тема вопроса' : 'Question topic'}>
-        <button
-          type="button"
-          aria-expanded={contextOpen}
-          onClick={() => setContextOpen((value) => !value)}
-        >
-          <span>
-            <small>{language === 'ru' ? 'Сейчас спрашиваем' : 'Current topic'}</small>
-            <strong>{contextCategory === 'main'
-              ? (language === 'ru' ? 'Обо всём' : 'Anything about you')
-              : natalQuestionTopicTitle(contextCategory, language)}</strong>
-          </span>
-          <ChevronDown aria-hidden="true" />
-        </button>
-        {contextOpen ? (
-          <ul>
-            {NATAL_QUESTION_TOPICS.filter((topic) => topic !== 'general').map((categoryKey) => (
-              <li key={categoryKey}>
-                <button
-                  type="button"
-                  aria-pressed={contextCategory === categoryKey}
-                  onClick={() => {
-                    onContextChange(categoryKey);
-                    setContextOpen(false);
-                  }}
-                >
-                  <span>{categoryKey === 'main'
-                    ? (language === 'ru' ? 'Обо всём' : 'Anything about you')
-                    : natalQuestionTopicTitle(categoryKey, language)}</span>
-                  {contextCategory === categoryKey ? <span aria-hidden="true">✓</span> : null}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </section>
 
       {!isPremium ? (
         <section className="natal-v3-question-paywall" aria-labelledby="natal-v3-question-paywall-title">
@@ -360,27 +304,9 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         <section className="natal-v3-question-composer" aria-labelledby="natal-v3-question-composer-title">
           <div className="natal-v3-section-heading">
             <h2 id="natal-v3-question-composer-title">
-              {language === 'ru' ? 'Можно начать так' : 'You can start here'}
+              {language === 'ru' ? 'Твой вопрос' : 'Your question'}
             </h2>
           </div>
-          <ul className="natal-v3-question-starters">
-            {starters.map((starter) => (
-              <li key={starter}>
-                <button
-                  type="button"
-                  disabled={inputDisabled || Boolean(unansweredQuestionText)}
-                  onClick={() => {
-                    setQuestionText(starter);
-                    setError(null);
-                    requestAnimationFrame(() => composerRef.current?.focus());
-                  }}
-                >
-                  <span>{starter}</span>
-                  <ChevronRight aria-hidden="true" />
-                </button>
-              </li>
-            ))}
-          </ul>
 
           <form onSubmit={submitQuestion} aria-busy={submitting || undefined}>
             <div className="natal-v3-composer-field">
@@ -466,7 +392,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                           evidenceIds: questionMessageEvidenceIds(answer),
                         })}
                       >
-                        {language === 'ru' ? 'Почему так?' : 'Why?'}
+                        {language === 'ru' ? 'На чём основано' : 'What this is based on'}
                       </button>
                     </div>
                   ) : (
