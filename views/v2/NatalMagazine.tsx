@@ -1,33 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MonoAvatar } from '../../components/mono-ui/MonoAvatar';
-import { NatalOverviewExperience, NatalOverviewMode } from '../../components/NatalReading/NatalOverviewExperience';
 import styles from '../../components/NatalReading/NatalSection.module.css';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { PreloadedNatalReport } from '../../components/NatalReading/HumanReport';
 import type { NatalPermanentPremiumReport } from '../../lib/natalReading/permanentReport';
 import { formatDisplayDate } from '../../lib/date-utils';
-import { HumanReport } from '../../components/NatalReading/HumanReport';
-import {
-  NatalCatalogReport,
-  type NatalCatalogReportUiPreview,
-} from '../../components/NatalReading/NatalCatalogReport';
+import type { NatalCatalogReportUiPreview } from '../../components/NatalReading/NatalCatalogReport';
 import { NatalQuestionExperience } from '../../components/NatalReading/NatalQuestionExperience';
-import type { NatalExperienceView } from '../../components/NatalReading/NatalMeaningExperience';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { InteractiveNatalMap } from '../../components/NatalReading/InteractiveNatalMap';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import { NatalQuestionDemo } from '../../components/NatalReading/NatalQuestionDemo';
 import { NatalArtwork } from '../../components/NatalReading/NatalArtwork';
+import { NatalUnifiedReport } from '../../components/NatalReading/NatalUnifiedReport';
 
 
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
 import type { NatalReportCategoryKey } from '../../lib/natalReading/reportCatalog';
-import {
-  readNatalReadingVariant,
-  resolveNatalReadingRenderer,
-  subscribeNatalReadingVariant,
-  type NatalReadingVariant,
-} from '../../lib/natalReading/readingVariant';
 import type { ChartListItem } from '../../services/storageService';
 import type { PaywallContext } from '../../lib/paywallContext';
 
@@ -97,8 +86,6 @@ export function NatalMagazine({
   chartId,
   chartSubject,
   requestPremium,
-  onUpdateProfile,
-  preloadedReport,
   onCreateChart,
   premiumContinuation,
   onPremiumContinuationHandled,
@@ -119,12 +106,6 @@ export function NatalMagazine({
     && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
       ? uiPreview
       : undefined;
-  const [readingVariant, setReadingVariant] = useState<NatalReadingVariant>(() => (
-    readNatalReadingVariant(profile.id, profile.isAdmin === true)
-  ));
-  const readingRenderer = previewConfig?.catalog
-    ? 'catalog'
-    : resolveNatalReadingRenderer(profile.isAdmin === true ? readingVariant : 'auto', false);
   const [activeTab, setActiveTab] = useState<NatalScreenTab>(() => normalizeNatalScreenTab(
     previewTabToScreen(previewConfig?.initialTab, Boolean(previewConfig?.openQuestion)),
     isSavedPerson,
@@ -145,18 +126,6 @@ export function NatalMagazine({
     if (normalizedActiveTab !== activeTab) setActiveTab(normalizedActiveTab);
   }, [activeTab, normalizedActiveTab]);
 
-  useEffect(() => {
-    if (readingRenderer !== 'classic' || normalizedActiveTab !== 'explore') return;
-    setActiveTab('foundation');
-  }, [normalizedActiveTab, readingRenderer]);
-
-  useEffect(() => {
-    const isAdmin = profile.isAdmin === true;
-    setReadingVariant(readNatalReadingVariant(profile.id, isAdmin));
-    return subscribeNatalReadingVariant(profile.id, isAdmin, (next) => {
-      setReadingVariant(next);
-    });
-  }, [profile.id, profile.isAdmin]);
 
   useEffect(() => {
     if (
@@ -207,12 +176,6 @@ export function NatalMagazine({
     setActiveTab(tab === 'matrix' ? 'map' : tab);
   };
 
-  const openQuestions = (categoryKey: NatalReportCategoryKey) => {
-    if (isSavedPerson) return;
-    setQuestionContext(categoryKey);
-    selectTab('ask');
-    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
-  };
 
   const header = (
     <>
@@ -287,9 +250,6 @@ export function NatalMagazine({
   ].join(':');
   const birthLine = [formatDisplayDate(data.birth?.localDate || subjectBirthDate, language), (data.birth ? data.birth.localTime : subjectBirthTime)?.slice(0, 5) || 'Время не указано', data.birth?.place || subjectBirthPlace].filter(Boolean).join(' · ');
   const person = <header className={styles.person}><h1>{subjectName || 'Моя карта'}</h1><p>{birthLine}</p></header>;
-  const catalogView: NatalExperienceView = normalizedActiveTab === 'explore'
-    ? 'explore'
-    : 'foundation';
 
   return (
     <div ref={sectionRef} className="fresh-page natal-editorial-page natal-mvp-page natal-v3-page">
@@ -313,49 +273,17 @@ export function NatalMagazine({
         <section className={styles.content}>
           {person}
           <div className={styles.mode} role="group" aria-label="Как читать обзор">{(['story','topics'] as const).map(mode => <button type="button" key={mode} aria-pressed={overviewMode === mode} onClick={() => {setOverviewMode(mode); if (mode === 'story') selectTab('foundation');}}>{mode === 'story' ? 'Рассказ' : 'По темам'}</button>)}</div>
-          <NatalOverviewMode.Provider value={{mode:overviewMode,onTopics:() => setOverviewMode('topics')}}>
-          {readingRenderer === 'catalog' ? (
-            <NatalCatalogReport
-              key={`catalog:${reportSubjectKey}`}
-              profile={profile}
-              chartData={data}
-              chartId={chartId}
-              chartSubject={chartSubject}
-              view={catalogView}
-              onViewChange={(view) => { if (view === 'explore') setOverviewMode('topics'); selectTab(view); }}
-              experienceComponent={NatalOverviewExperience}
-              requestPremium={requestPremium}
-              premiumContinuation={premiumContinuation}
-              onPremiumContinuationHandled={onPremiumContinuationHandled}
-              canPromotePremium={canPromotePremium}
-              onOpenQuestions={isSavedPerson ? undefined : openQuestions}
-              hideIntro
-              uiPreview={previewConfig?.catalog}
-            />
-          ) : (
-            <HumanReport
-              key={`classic:${reportSubjectKey}`}
-              profile={profile}
-              chartData={data}
-              chartId={chartId}
-              chartSubject={chartSubject}
-              requestPremium={requestPremium}
-              onUpdateProfile={onUpdateProfile}
-              preloadedReport={preloadedReport}
-              hideIntro
-              surface="reading"
-              overviewMode={overviewMode}
-              premiumContinuation={premiumContinuation}
-              onPremiumContinuationHandled={onPremiumContinuationHandled}
-              canPromotePremium={canPromotePremium}
-              onOpenQuestions={isSavedPerson ? undefined : () => openQuestions('main')}
-              uiPreview={previewConfig ? {
-                state: previewConfig.reportState || 'ready',
-                premiumReport: previewConfig.premiumReport,
-              } : undefined}
-            />
-          )}
-          </NatalOverviewMode.Provider>
+          <NatalUnifiedReport
+            key={`unified:${reportSubjectKey}`}
+            profile={profile}
+            chartData={data}
+            chartId={chartId}
+            mode={overviewMode}
+            isPremium={isPremium}
+            savedPerson={isSavedPerson}
+            canPromotePremium={canPromotePremium}
+            requestPremium={requestPremium}
+          />
         </section>
       ) : null}
 
