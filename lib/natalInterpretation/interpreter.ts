@@ -10,17 +10,30 @@ import {
   HOUSE_TOPICS,
   bodyLabel,
   bodyRole,
+  isBackgroundSignBody,
   signStyle,
 } from './meanings';
 import { extractNatalInterpretationEvidence } from './evidence';
 import type {
   NatalInterpretationEvidence,
   NatalMeaning,
+  NatalMeaningScope,
   NatalMeaningTopic,
 } from './types';
 
 function unique<T>(values: readonly T[]): T[] {
   return [...new Set(values)];
+}
+
+function aspectScope(
+  fromKey: NonNullable<NatalInterpretationEvidence['fromKey']>,
+  toKey: NonNullable<NatalInterpretationEvidence['toKey']>,
+): NatalMeaningScope {
+  const angles = new Set(['ascendant', 'mc', 'descendant', 'ic']);
+  if (angles.has(fromKey) || angles.has(toKey)) return 'personal';
+  const fromBackground = isBackgroundSignBody(fromKey as keyof typeof BODY_TOPICS);
+  const toBackground = isBackgroundSignBody(toKey as keyof typeof BODY_TOPICS);
+  return fromBackground && toBackground ? 'background' : 'personal';
 }
 
 function meaningForEvidence(
@@ -37,12 +50,18 @@ function meaningForEvidence(
     if (!style) return null;
     const label = bodyLabel(evidence.bodyKey, language);
     const role = bodyRole(evidence.bodyKey, language);
+    const background = isBackgroundSignBody(evidence.bodyKey);
     return {
       id: `meaning:${evidence.id}`,
       semanticKey: `body-sign:${evidence.bodyKey}:${evidence.sign}`,
+      scope: background ? 'background' : 'personal',
       text: language === 'ru'
-        ? `В теме «${role}» ${style}.`
-        : `For ${role}, ${style}.`,
+        ? background
+          ? `Это фоновая настройка темы «${role}»: ${style}.`
+          : `В теме «${role}» ${style}.`
+        : background
+          ? `This is a background modifier for ${role}: ${style}.`
+          : `For ${role}, ${style}.`,
       technicalText: `${label} · ${evidence.sign}${evidence.degree == null ? '' : ` · ${evidence.degree.toFixed(1)}°`}`,
       topics: BODY_TOPICS[evidence.bodyKey],
       evidenceIds: [evidence.id],
@@ -57,6 +76,7 @@ function meaningForEvidence(
     return {
       id: `meaning:${evidence.id}`,
       semanticKey: `body-house:${evidence.bodyKey}:${evidence.house}`,
+      scope: 'personal',
       text: language === 'ru'
         ? `Тема «${role}» особенно заметна в сфере: ${area}.`
         : `${role} is especially expressed through house ${evidence.house}.`,
@@ -77,13 +97,14 @@ function meaningForEvidence(
     return {
       id: `meaning:${evidence.id}`,
       semanticKey: `body-retrograde:${evidence.bodyKey}:${evidence.retrograde ? 'r' : 'direct'}`,
+      scope: isBackgroundSignBody(evidence.bodyKey) ? 'background' : 'personal',
       text: evidence.retrograde
         ? language === 'ru'
-          ? `В теме «${role}» чаще появляется дополнительная внутренняя перепроверка перед внешним действием.`
-          : `For ${role}, there is more internal reconsideration before outward action.`
+          ? `В теме «${role}» астрологическая трактовка учитывает ретроградность: часть реакции чаще сначала проходит через внутренний пересмотр, а уже потом выражается наружу.`
+          : `For ${role}, the interpretation includes retrograde motion: part of the response is processed inwardly before it is expressed outwardly.`
         : language === 'ru'
-          ? `В теме «${role}» внутреннее решение и внешнее действие чаще идут без отдельной ретроградной перепроверки.`
-          : `For ${role}, inner decision and outward action are not additionally modified by retrograde motion.`,
+          ? `В теме «${role}» дополнительная ретроградная поправка к трактовке не применяется.`
+          : `For ${role}, no additional retrograde modifier is applied.`,
       technicalText: evidence.retrograde
         ? `${label} · ретроградное движение`
         : `${label} · директное движение`,
@@ -98,6 +119,7 @@ function meaningForEvidence(
     return {
       id: `meaning:${evidence.id}`,
       semanticKey: `angle-sign:${evidence.angleKey}:${evidence.sign}`,
+      scope: 'personal',
       text: language === 'ru'
         ? `Это добавляет свой способ действия ${ANGLE_ROLES_RU[evidence.angleKey]}: ${style}.`
         : `This modifies the angle through the style of ${evidence.sign}.`,
@@ -114,6 +136,7 @@ function meaningForEvidence(
     return {
       id: `meaning:${evidence.id}`,
       semanticKey: `house-cusp:${evidence.house}:${evidence.sign}`,
+      scope: 'structural',
       text: language === 'ru'
         ? `Когда речь про ${area}, ${style}.`
         : `House ${evidence.house} begins in ${evidence.sign}, shaping the approach to that area.`,
@@ -157,6 +180,7 @@ function meaningForEvidence(
     return {
       id: `meaning:${evidence.id}`,
       semanticKey: `aspect:${evidence.fromKey}:${evidence.aspectType}:${evidence.toKey}`,
+      scope: aspectScope(evidence.fromKey, evidence.toKey),
       text: language === 'ru'
         ? `Связь между темами «${fromRole}» и «${toRole}» устроена так: ${ASPECT_DYNAMICS_RU[evidence.aspectType]}.`
         : `The two functions are linked by a ${evidence.aspectType}.`,
