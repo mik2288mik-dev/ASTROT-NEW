@@ -13,8 +13,8 @@ import {
   type NatalUnifiedWriterPlanBlock,
 } from './unifiedReading';
 
-const STORY_CHUNK_SIZE = 7;
-const TOPIC_CHUNK_SIZE = 6;
+const STORY_CHUNK_SIZE = 6;
+const TOPIC_CHUNK_SIZE = 5;
 const MAX_WRITER_ATTEMPTS = 2;
 
 type RawBlock = { id?: unknown; text?: unknown; meaning_ids?: unknown };
@@ -106,6 +106,7 @@ function promptPlan(
   interpretation: NatalInterpretation,
   plan: NatalUnifiedWriterPlan,
   tier: NatalUnifiedReadingTier,
+  language: 'ru' | 'en',
   errors: readonly string[] = [],
 ): string {
   const byId = meaningMap(interpretation);
@@ -119,7 +120,6 @@ function promptPlan(
   });
   const payload = {
     tier,
-    rule: 'Every supplied meaning must be represented. Do not add new meaning.',
     story: plan.story.map(hydrate),
     topics: plan.topics.map((topic) => ({
       key: topic.key,
@@ -127,31 +127,63 @@ function promptPlan(
       blocks: topic.blocks.map(hydrate),
     })),
   };
-  return `TASK:
-Rewrite the approved meanings below into normal NEBO copy.
+
+  const rules = language === 'ru'
+    ? `ЗАДАЧА:
+Перепиши уже готовые смыслы ниже обычным человеческим русским языком для NEBO.
+
+ЖЁСТКИЕ ПРАВИЛА:
+- Ты только редактор. allowed_meanings уже содержат весь разрешённый смысл.
+- Каждый переданный смысл обязан остаться в тексте. Нельзя добавлять новый смысл.
+- Не додумывай характер, причины поведения, прошлое, отношения, страхи, травмы, диагнозы, профессию, деньги, события или мысли других людей.
+- Пиши простыми словами. Без психологических ярлыков, терапевтической лексики, коучинга и абстрактной шелухи.
+- Не пиши служебным языком вроде «в этой теме», «это проявляется», «динамика», «сфера», «функция», «карта показывает», «астрологическая трактовка».
+- Не давай советы и инструкции человеку.
+- Не делай обязательный конфликт, проблему, плюс, минус или вдохновляющий финал.
+- background — только фоновая поправка. Не превращай её в сильное утверждение о характере.
+- structural — описание устройства конкретной области, а не психологический диагноз.
+- В основном тексте не должно быть планет, знаков, домов, аспектов, градусов, орбов или ретроградности.
+- Заголовки тем уже заданы. Не переименовывай их и не придумывай новые разделы.
+- Рассказ и темы используют один и тот же набор смыслов, а не две разные трактовки.
+- Сохрани id и meaning_ids ТОЧНО как во входе и в том же порядке.
+- Не раздувай текст. Один понятный смысл лучше трёх красивых предложений.
+- Верни только JSON.`
+    : `TASK:
+Rewrite the approved meanings below into plain, everyday NEBO English.
 
 STRICT RULES:
-- You are a writer, not an astrologer. The allowed_meanings already contain the interpretation.
-- Do not infer any new trait, cause, motive, biography, event, problem, fear, relationship history, profession, income, or diagnosis.
-- Respect each meaning scope. "background" still must be included, but it must stay a background modifier rather than be inflated into a strong personal claim. "structural" describes how a chart area is organised, not a standalone personality diagnosis.
-- Do not omit meaning IDs and do not move IDs between blocks.
-- Each output block must keep exactly the supplied id and meaning_ids.
-- The story is one coherent portrait. Connect ideas naturally, but preserve every supplied meaning.
-- Topics are the same meanings grouped for navigation, not a second interpretation.
-- Main text contains no astrology terminology.
-- Do not force conflict, negativity, positivity, advice, or a motivational ending.
-- Do not pad to a target word count. Write as much as needed to express every supplied meaning without repetition.
-- Return JSON only.
+- You are only an editor. allowed_meanings already contain the complete allowed interpretation.
+- Every supplied meaning must remain represented. Add no new meaning.
+- Do not invent personality claims, causes, biography, relationship history, fears, trauma, diagnosis, profession, income, events, or other people's thoughts.
+- Use ordinary language. No therapy jargon, coaching language, pseudo-psychology, or abstract filler.
+- Do not use process/report language such as "this theme", "this manifests", "dynamic", "sphere", "function", "the chart shows", or "astrological interpretation".
+- Give no advice or instructions.
+- Do not force conflict, problems, positivity, negativity, or a motivational ending.
+- Keep background meanings as background modifiers. Do not inflate them into strong personality claims.
+- Structural meanings describe a life area, not a psychological diagnosis.
+- No visible astrology terminology in the main copy.
+- Topic titles are fixed. Do not rename them or invent new sections.
+- Story and topics are two views of the same approved meanings, not separate interpretations.
+- Keep id and meaning_ids EXACTLY as supplied and in the same order.
+- Do not pad the copy.
+- Return JSON only.`;
+
+  return `${rules}
 
 INPUT:
 ${JSON.stringify(payload, null, 2)}${errors.length ? `
 
 PREVIOUS OUTPUT WAS REJECTED:
-${errors.join('\n')}
-Write a new candidate and fix every issue.` : ''}`;
+${errors.join('\\n')}
+Write a new candidate and fix every listed issue.` : ''}`;
 }
 
-const VISIBLE_ASTROLOGY = /(?:солнц\p{L}*|лун\p{L}*|меркур\p{L}*|венер\p{L}*|марс\p{L}*|юпитер\p{L}*|сатурн\p{L}*|уран\p{L}*|нептун\p{L}*|плутон\p{L}*|хирон\p{L}*|узел\p{L}*|асцендент|десцендент|\bMC\b|\bIC\b|аспект\p{L}*|трин\p{L}*|секстил\p{L}*|квадрат\p{L}*|оппозиц\p{L}*|соединени\p{L}*|\d{1,2}\s+дом\p{L}*|орб\p{L}*|ретроград\p{L}*)/iu;
+const VISIBLE_ASTROLOGY = /(?:солнц\\p{L}*|лун\\p{L}*|меркур\\p{L}*|венер\\p{L}*|марс\\p{L}*|юпитер\\p{L}*|сатурн\\p{L}*|уран\\p{L}*|нептун\\p{L}*|плутон\\p{L}*|хирон\\p{L}*|узел\\p{L}*|асцендент|десцендент|\\bMC\\b|\\bIC\\b|аспект\\p{L}*|трин\\p{L}*|секстил\\p{L}*|квадрат\\p{L}*|оппозиц\\p{L}*|соединени\\p{L}*|\\d{1,2}\\s+дом\\p{L}*|орб\\p{L}*|ретроград\\p{L}*|\\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|ascendant|descendant|aspect|trine|sextile|square|opposition|conjunction|retrograde)\\b)/iu;
+
+const NATAL_PSEUDO_PSYCHOLOGY = /(?:осознанн\\p{L}*|ресурс\\p{L}*|потенциал\\p{L}*|трансформац\\p{L}*|проработ\\p{L}*|точк\\p{L}*\\s+рост\\p{L}*|личн\\p{L}*\\s+границ\\p{L}*|паттерн\\p{L}*|сценари\\p{L}*|триггер\\p{L}*|травм\\p{L}*|субличност\\p{L}*|внутренн\\p{L}*\\s+(?:опор\\p{L}*|реб[её]н\\p{L}*|мир\\p{L}*|ресурс\\p{L}*)|глубинн\\p{L}*\\s+(?:страх\\p{L}*|потребност\\p{L}*|мотив\\p{L}*)|эмоциональн\\p{L}*\\s+зрел\\p{L}*|\\b(?:inner\\s+child|growth\\s+point|personal\\s+boundar\\w*|trauma|trigger|healing|transformation|potential)\\b)/iu;
+const NATAL_META_LANGUAGE = /(?:карта\\s+(?:показывает|говорит|подсказывает)|астрологическ\\p{L}*\\s+трактовк\\p{L}*|в\\s+этой\\s+тем\\p{L}*|эта\\s+тем\\p{L}*|может\\s+проявляться|проявля\\p{L}*\\s+как|внутренн\\p{L}*\\s+динамик\\p{L}*|психологическ\\p{L}*\\s+портрет\\p{L}*|\\b(?:the\\s+chart\\s+shows|this\\s+theme|may\\s+manifest|inner\\s+dynamic|astrological\\s+interpretation)\\b)/iu;
+const NATAL_ADVICE_LANGUAGE = /(?:тебе\\s+(?:нужно|стоит|следует|важно)|(?:попробуй|старайся|помни|сохраняй|держи|не\\s+бойся|позволь\\s+себе)\\b|\\b(?:you\\s+should|you\\s+need\\s+to|try\\s+to|remember\\s+to|make\\s+sure\\s+to)\\b)/iu;
+const NATAL_ABSOLUTE_LANGUAGE = /(?:ты\\s+(?:всегда|никогда|точно)\\b|у\\s+тебя\\s+точно\\b|на\\s+самом\\s+деле\\s+ты\\b|\\byou\\s+(?:always|never|definitely)\\b)/iu;
 
 function sameIds(raw: unknown, expected: readonly string[]): boolean {
   return Array.isArray(raw)
@@ -159,12 +191,33 @@ function sameIds(raw: unknown, expected: readonly string[]): boolean {
     && raw.every((value, index) => value === expected[index]);
 }
 
-function validateCopy(value: string): boolean {
+function wordCount(value: string): number {
+  return value.match(/[\\p{L}\\p{N}]+/gu)?.length || 0;
+}
+
+function validateCopy(
+  value: string,
+  meaningIds: readonly string[],
+  byId: Map<string, NatalMeaning>,
+): string | null {
   const text = value.trim();
-  return text.length >= 30
-    && text.length <= 2200
-    && !VISIBLE_ASTROLOGY.test(text)
-    && !hasCoreVoiceViolation(text);
+  if (text.length < 24) return 'copy is too short';
+  if (text.length > 2200) return 'copy is too long';
+  if (VISIBLE_ASTROLOGY.test(text)) return 'visible astrology leaked into main copy';
+  if (hasCoreVoiceViolation(text)) return 'core NEBO voice violation';
+  if (NATAL_PSEUDO_PSYCHOLOGY.test(text)) return 'pseudo-psychology/coaching language';
+  if (NATAL_META_LANGUAGE.test(text)) return 'meta/report language';
+  if (NATAL_ADVICE_LANGUAGE.test(text)) return 'advice/instruction language';
+  if (NATAL_ABSOLUTE_LANGUAGE.test(text)) return 'unsupported absolute claim';
+
+  const sourceWords = meaningIds.reduce((total, id) => {
+    const meaning = byId.get(id);
+    return total + (meaning ? wordCount(meaning.text) : 0);
+  }, 0);
+  const maxWords = Math.max(60, Math.ceil(sourceWords * 1.55));
+  if (wordCount(text) > maxWords) return 'copy padded beyond approved material';
+
+  return null;
 }
 
 export function materializeNatalUnifiedReading(input: {
@@ -174,6 +227,7 @@ export function materializeNatalUnifiedReading(input: {
   plan: NatalUnifiedWriterPlan;
 }): { reading: NatalUnifiedReading | null; errors: string[] } {
   const errors: string[] = [];
+  const byId = meaningMap(input.interpretation);
   const storyRaw = Array.isArray(input.raw.story) ? input.raw.story : [];
   if (storyRaw.length !== input.plan.story.length) {
     errors.push('story block count changed');
@@ -187,11 +241,12 @@ export function materializeNatalUnifiedReading(input: {
     if (!sameIds(raw?.meaning_ids, expected.meaningIds)) {
       errors.push(`${expected.id}: meaning ids changed`);
     }
-    if (!validateCopy(text)) errors.push(`${expected.id}: copy failed validation`);
+    const copyError = validateCopy(text, expected.meaningIds, byId);
+    if (copyError) errors.push(`${expected.id}: ${copyError}`);
     if (
       raw?.id === expected.id
       && sameIds(raw?.meaning_ids, expected.meaningIds)
-      && validateCopy(text)
+      && !copyError
     ) {
       story.push({ id: expected.id, text, meaningIds: [...expected.meaningIds] });
     }
@@ -216,11 +271,12 @@ export function materializeNatalUnifiedReading(input: {
       const text = typeof raw?.text === 'string' ? raw.text.trim() : '';
       if (raw?.id !== expected.id) errors.push(`${expected.id}: id changed`);
       if (!sameIds(raw?.meaning_ids, expected.meaningIds)) errors.push(`${expected.id}: meaning ids changed`);
-      if (!validateCopy(text)) errors.push(`${expected.id}: copy failed validation`);
+      const copyError = validateCopy(text, expected.meaningIds, byId);
+      if (copyError) errors.push(`${expected.id}: ${copyError}`);
       if (
         raw?.id === expected.id
         && sameIds(raw?.meaning_ids, expected.meaningIds)
-        && validateCopy(text)
+        && !copyError
       ) {
         blocks.push({ id: expected.id, text, meaningIds: [...expected.meaningIds] });
       }
@@ -251,33 +307,6 @@ export function materializeNatalUnifiedReading(input: {
   };
 }
 
-function deterministicFallback(
-  interpretation: NatalInterpretation,
-  tier: NatalUnifiedReadingTier,
-  plan: NatalUnifiedWriterPlan,
-): NatalUnifiedReading {
-  const byId = meaningMap(interpretation);
-  const render = (block: NatalUnifiedWriterPlanBlock): NatalUnifiedStoryBlock => ({
-    id: block.id,
-    text: block.meaningIds.map((id) => byId.get(id)!.text).join(' '),
-    meaningIds: [...block.meaningIds],
-  });
-  return {
-    schemaVersion: 'natal-unified-reading-v1',
-    contractVersion: NATAL_UNIFIED_READING_CONTRACT_VERSION,
-    interpretationVersion: interpretation.schemaVersion,
-    tier,
-    story: plan.story.map(render),
-    topics: plan.topics.map((topic) => ({
-      key: topic.key,
-      title: topic.title,
-      blocks: topic.blocks.map(render),
-    })),
-    meaningIds: [...interpretation.storyMeaningIds],
-    evidenceIds: interpretation.evidence.map((fact) => fact.id),
-  };
-}
-
 export async function generateNatalUnifiedReading(input: {
   chart: NatalChartDataV2;
   language?: 'ru' | 'en';
@@ -291,7 +320,7 @@ export async function generateNatalUnifiedReading(input: {
   for (let attempt = 0; attempt < MAX_WRITER_ATTEMPTS; attempt += 1) {
     const response = await createLunaStructuredResponse({
       instructions: getNatalStorySystemPrompt(language),
-      input: promptPlan(interpretation, plan, input.tier, errors),
+      input: promptPlan(interpretation, plan, input.tier, language, errors),
       maxOutputTokens: input.tier === 'premium' ? 6500 : 3500,
       reasoningEffort: 'medium',
       verbosity: 'medium',
@@ -315,5 +344,8 @@ export async function generateNatalUnifiedReading(input: {
     errors = materialized.errors;
   }
 
-  return deterministicFallback(interpretation, input.tier, plan);
+  throw Object.assign(
+    new Error(`Natal writer rejected after ${MAX_WRITER_ATTEMPTS} attempts: ${errors.join('; ')}`),
+    { code: 'NATAL_WRITER_REJECTED' },
+  );
 }
