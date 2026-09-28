@@ -341,7 +341,7 @@ export const Settings: React.FC<SettingsProps> = ({
     const [manageSubscriptionError, setManageSubscriptionError] = useState(false);
     const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
     const [previewNotice, setPreviewNotice] = useState('');
-    const [natalDebugEnabled, setNatalDebugEnabled] = useState(() => readNatalInterpretationDebug(profile.isAdmin === true));
+    const [natalDebugEnabled, setNatalDebugEnabled] = useState(false);
     const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>(initialScreen);
     const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('problem');
     const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -363,6 +363,10 @@ export const Settings: React.FC<SettingsProps> = ({
         || feedbackStatus === 'submitting'
         || loggingOut
         || deletingAccount;
+
+    useEffect(() => {
+        setNatalDebugEnabled(readNatalInterpretationDebug(profile.isAdmin === true));
+    }, [profile.isAdmin]);
 
     useEffect(() => {
         const frame = window.requestAnimationFrame(() => {
