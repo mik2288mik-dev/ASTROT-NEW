@@ -165,6 +165,11 @@ function reasonForMeaning(
   };
 }
 
+function conciseMeaning(values: readonly NatalMeaning[], limit: number): string {
+  const unique = [...new Map(values.map((meaning) => [meaning.id, meaning])).values()];
+  return unique.slice(0, limit).map((meaning) => meaning.text).join(' ');
+}
+
 function pointEvidenceIds(
   interpretation: NatalInterpretation,
   pointKey: string,
@@ -231,9 +236,28 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
             : 'Как это проявляется';
       return reasonForMeaning(meaning, tone, subtitle);
     });
-    const meaning = meanings.length
-      ? meanings.map((entry) => entry.meaning.text).join(' ')
-      : 'Для этой точки нет надёжного персонального объяснения в сохранённом расчёте.';
+    const primaryMeanings = meanings
+      .filter(({ id }) => {
+        const fact = interpretation?.evidence.find((candidate) => candidate.id === id);
+        if (!fact || fact.kind === 'aspect') return false;
+        return fact.kind !== 'body_retrograde' || fact.retrograde === true;
+      })
+      .sort((left, right) => {
+        const priority = (id: string) => {
+          const kind = interpretation?.evidence.find((candidate) => candidate.id === id)?.kind;
+          if (kind === 'body_sign' || kind === 'angle_sign') return 0;
+          if (kind === 'body_house') return 1;
+          if (kind === 'body_retrograde') return 2;
+          return 3;
+        };
+        return priority(left.id) - priority(right.id);
+      })
+      .map((entry) => entry.meaning);
+    const meaning = primaryMeanings.length
+      ? conciseMeaning(primaryMeanings, 2)
+      : meanings.length
+        ? conciseMeaning(meanings.map((entry) => entry.meaning), 1)
+        : 'Для этой точки нет надёжного персонального объяснения в сохранённом расчёте.';
     return {
       title: meta.name,
       glyph: meta.glyph,
@@ -265,7 +289,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
       (fact) => fact.kind === 'house_cusp' && fact.house === house,
     );
     const meaning = meanings.length
-      ? meanings.map((item) => item.text).join(' ')
+      ? conciseMeaning(meanings, 2)
       : 'Для этого дома нет надёжного персонального объяснения.';
     return {
       title: `${house} дом`,
@@ -322,7 +346,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
     .map((id) => byEvidence.get(id))
     .filter((meaning): meaning is NatalMeaning => !!meaning);
   const text = meanings.length
-    ? meanings.map((meaning) => meaning.text).join(' ')
+    ? conciseMeaning(meanings, 3)
     : 'В этом знаке нет надёжно рассчитанных точек твоей карты, поэтому отдельный персональный вывод не делается.';
   return {
     title: MAP_SIGN_NAMES[signIndex],
