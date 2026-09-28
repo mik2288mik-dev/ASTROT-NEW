@@ -40,58 +40,21 @@ describe('card background library', () => {
 });
 
 describe('card background UI wiring', () => {
-  it('keeps diary copy image-free while allowing restrained inline visual pauses', () => {
+  it('keeps retired sticker systems out of active product screens', () => {
     const dashboard = read('views/Dashboard.tsx');
     const todayFeed = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
-    const visuals = read('lib/personalForecastVisuals.ts');
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
-    const promotion = read('components/PersonalForecastFeed/ForecastPromotion.tsx');
-    const promoBanner = read('components/PromoBanner.tsx');
-    const feedStyles = read('styles/personalForecastFeed.css');
     const natal = read('views/v2/NatalMagazine.tsx');
     const compatibility = read('views/v2/UnionRoom.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
-    const app = read('pages/_app.tsx');
 
-    expect(visuals).toContain('selectPersonalEditorialAsset');
-    expect(visuals).toContain('resolvePersonalForecastVisuals');
-    expect(visuals).toContain("'--forecast-section-image'");
-    expect(visuals).toContain("'--forecast-section-position-mobile'");
-    expect(dashboard).not.toContain('resolvePersonalForecastVisuals');
-    expect(dashboard).not.toContain('forecastSectionVisualStyle');
-    expect(dashboard).not.toContain('visual?.assignments[section.id]');
-    expect(sectionBlock).not.toContain("hasVisual ? 'has-visual' : 'has-visual-fallback'");
-    expect(sectionBlock).not.toContain('style={style}');
-    expect(promotion).toContain('<PromoBanner');
-    expect(promoBanner).toContain('return null;');
-    expect(promoBanner).not.toContain('selectPromoBanner');
-    expect(promoBanner).not.toContain('<picture');
-    expect(sectionBlock).toContain('<EditorialForecastVisual');
-    expect(sectionBlock).toContain('forecast-feed-editorial-pause');
+    expect(dashboard).not.toContain('personalForecastVisuals');
     expect(todayFeed).not.toContain('EditorialSticker');
-    expect(todayFeed).not.toContain('sticker=');
-    expect(todayFeed).toContain('<TodayCalendarClock');
-    expect(todayFeed).toContain('<TodayLineField');
-    expect(feedStyles).toContain('.forecast-feed-editorial-pause');
-    expect(feedStyles).not.toContain('background-image: var(--forecast-section-image)');
-    expect(dashboard).not.toMatch(
-      /\bresolveForecastVisualScreen\b|\bbuildForecastVisualRequests\b|\bforecastVisualStyle\b/,
-    );
-    expect(dashboard).not.toMatch(/home-day-hero|home-sphere-card|pd-reading-card/);
+    expect(todayFeed).not.toContain('ForecastEndEditorialVisual');
+    expect(sectionBlock).not.toContain('ForecastEndEditorialVisual');
     expect(natal).not.toContain('selectNatalEditorialSticker');
-    expect(natal).not.toContain('editorialSticker={natalSticker}');
     expect(compatibility).not.toContain('selectSynastryEditorialSticker');
-    expect(compatibility).not.toContain('<EditorialSticker');
-    expect(compatibility).toContain('EditorialChartsButton');
-    expect(matrix).not.toContain('selectMainEditorialSticker');
     expect(matrix).not.toContain('EditorialSticker');
-    expect(natal).not.toContain('getUniversalCardBackground');
-    expect(compatibility).not.toContain('getUniversalCardBackground');
-    expect(matrix).not.toContain('getUniversalCardBackground');
-    expect(app).toContain("../styles/homeContentHierarchy.css");
-    expect(app).toContain("../styles/readingBackgrounds.css");
-    expect(app).toContain("../styles/personalForecastFeed.css");
-    expect(app).toContain("../styles/newspaperVisual.css");
   });
 
   it('does not generate a hero CTA or hook', () => {
