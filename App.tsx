@@ -39,7 +39,6 @@ import {
 import { getChartFromDB, getOrCalculateChart, getPrimaryChartId, natalChartMatchesProfile } from './services/chartService';
 import { buildNatalChartCacheKey, clearLocalNatalChart, readLocalNatalChartCache, writeLocalNatalChart } from './lib/localNatalChartCache';
 import { createPrimaryChartRequestGuard } from './lib/primaryChartRequestGuard';
-import { clearLocalHumanBaseReport } from './lib/localHumanBaseReportCache';
 import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
@@ -95,7 +94,7 @@ import {
     type FeatureKey,
 } from './lib/accessMatrix';
 import { captureAppHomeLayout, installAppDebugGlobal, appDebugLog } from './lib/appDebug';
-import { clearHumanReadingSessionCache } from './services/natalReadingService';
+import { clearNatalUnifiedReadingCache } from './services/natalUnifiedReadingService';
 import {
     clearPersonalForecastSessionCache,
 } from './services/personalForecastService';
@@ -1232,8 +1231,7 @@ const App: React.FC = () => {
             const primaryKey = buildNatalChartCacheKey(canonicalFullProfile);
             primaryChartSessionRef.current = { key: primaryKey, data: generatedChart, promise: null };
             primaryChartDataRef.current = generatedChart;
-            clearHumanReadingSessionCache(canonicalFullProfile.id);
-            clearLocalHumanBaseReport(canonicalFullProfile);
+            clearNatalUnifiedReadingCache(canonicalFullProfile.id);
             setChartLoadState('ready');
             setChartData(generatedChart);
             writeLocalNatalChart(canonicalFullProfile, generatedChart);
@@ -1252,7 +1250,6 @@ const App: React.FC = () => {
                     );
                     if (!isCurrentOnboardingChart()) return;
                     if (primaryChartId != null) {
-                        clearLocalHumanBaseReport(canonicalFullProfile, primaryChartId);
                         setPrimaryChartId(primaryChartId);
                         writeLocalNatalChart(canonicalFullProfile, generatedChart, primaryChartId);
                     }
@@ -1315,8 +1312,7 @@ const App: React.FC = () => {
             clearQueuedUserAppEvents();
             void clearNativeNotifications();
             clearLocalNatalChart(profile);
-            clearLocalHumanBaseReport(profile);
-            clearHumanReadingSessionCache(String(profile.id));
+            clearNatalUnifiedReadingCache(String(profile.id));
             clearPersonalForecastSessionCache();
             resetPrimaryChartState();
             primaryChartRequestGuardRef.current.activateAccount(nextAccountKey);
@@ -1331,7 +1327,6 @@ const App: React.FC = () => {
         }
         primaryChartRequestGuardRef.current.activateAccount(nextAccountKey);
         if (profile && buildNatalChartCacheKey(profile) !== buildNatalChartCacheKey(nextProfile)) {
-            clearLocalHumanBaseReport(profile);
         }
         setProfile(nextProfile);
     }, [profile, resetPrimaryChartState]);
@@ -1344,8 +1339,7 @@ const App: React.FC = () => {
         void clearNativeNotifications();
         if (profile) {
             clearLocalNatalChart(profile);
-            clearLocalHumanBaseReport(profile);
-            clearHumanReadingSessionCache(String(profile.id));
+            clearNatalUnifiedReadingCache(String(profile.id));
         }
         clearPersonalForecastSessionCache();
         await Promise.allSettled([
@@ -1408,8 +1402,7 @@ const App: React.FC = () => {
             clearQueuedUserAppEvents();
             void clearNativeNotifications();
             clearLocalNatalChart(profile);
-            clearLocalHumanBaseReport(profile);
-            clearHumanReadingSessionCache(String(profile.id));
+            clearNatalUnifiedReadingCache(String(profile.id));
             clearPersonalForecastSessionCache();
             resetPrimaryChartState();
             restoredRuStoreUserRef.current = null;
@@ -2094,8 +2087,7 @@ const App: React.FC = () => {
             const key = buildNatalChartCacheKey(targetProfile);
             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
             primaryChartDataRef.current = freshChart;
-            clearHumanReadingSessionCache(accountKey);
-            clearLocalHumanBaseReport(targetProfile, primaryChartId ?? undefined);
+            clearNatalUnifiedReadingCache(accountKey);
             if (freshChart) {
                 writeLocalNatalChart(targetProfile, freshChart, freshPrimaryChartId ?? undefined);
             } else {
