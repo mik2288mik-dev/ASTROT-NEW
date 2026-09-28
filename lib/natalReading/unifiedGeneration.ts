@@ -244,7 +244,7 @@ function validateCopy(
     const meaning = byId.get(id);
     return total + (meaning ? wordCount(meaning.text) : 0);
   }, 0);
-  const maxWords = Math.max(60, Math.ceil(sourceWords * 1.55));
+  const maxWords = Math.max(60, Math.ceil(sourceWords * 1.35));
   if (wordCount(text) > maxWords) return 'copy padded beyond approved material';
 
   return null;
