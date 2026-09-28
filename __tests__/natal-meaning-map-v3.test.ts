@@ -9,10 +9,9 @@ describe('current natal product shell', () => {
   it('uses one active reading instead of classic/catalog switching', () => {
     const magazine = source('views/v2/NatalMagazine.tsx');
 
-    expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'details' | 'matrix'");
+    expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix'");
     expect(magazine).toContain("{ id: 'foundation', label: 'Обзор' }");
     expect(magazine).toContain("{ id: 'map', label: 'Карта' }");
-    expect(magazine).toContain("{ id: 'details', label: 'Подробно' }");
     expect(magazine).toContain("{ id: 'ask', label: 'Спросить' }");
     expect(magazine).toContain('<NatalUnifiedReport');
     expect(magazine).not.toContain('readingRenderer');
@@ -31,13 +30,33 @@ describe('current natal product shell', () => {
     expect(unified).toContain('reading.topics.map');
   });
 
-  it('uses one astrology disclosure instead of a why button after every sentence', () => {
+  it('keeps astrology out of the overview and uses local evidence disclosure instead', () => {
     const unified = source('components/NatalReading/NatalUnifiedReport.tsx');
+    const interactive = source('components/NatalReading/InteractiveNatalMap.tsx');
 
-    expect(unified).toContain('showAstrology');
-    expect(unified).toContain('Показать астрологию');
-    expect(unified).toContain('Скрыть астрологию');
-    expect(unified).not.toContain('Почему так?');
+    expect(unified).not.toContain('showAstrology');
+    expect(unified).not.toContain('Показать астрологию');
+    expect(unified).not.toContain('Скрыть астрологию');
+    expect(interactive).toContain('На чём основано');
+  });
+
+  it('keeps only three product tabs and moves the existing details UI under the map', () => {
+    const magazine = source('views/v2/NatalMagazine.tsx');
+    const interactive = source('components/NatalReading/InteractiveNatalMap.tsx');
+
+    expect(magazine).not.toContain("label: 'Подробно'");
+    expect(interactive).toContain('embeddedDetails');
+    expect(interactive).toContain('<NatalDetails');
+  });
+
+  it('keeps Ask as one free-form composer without topic selectors', () => {
+    const questions = source('components/NatalReading/NatalQuestionExperience.tsx');
+
+    expect(questions).toContain('Задай любой вопрос о себе');
+    expect(questions).toContain('<textarea');
+    expect(questions).not.toContain('contextCategory');
+    expect(questions).not.toContain('NATAL_QUESTION_TOPICS');
+    expect(questions).not.toContain('NATAL_QUESTION_STARTERS');
   });
 
   it('uses the same interpretation source for map explanations and shows the meaning on first tap', () => {
