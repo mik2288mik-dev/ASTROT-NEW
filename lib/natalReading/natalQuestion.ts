@@ -197,13 +197,13 @@ const UNIVERSAL_ASSISTANT_TASK_PATTERNS = [
   /(?:^|[^\p{L}])(?:сделай|составь)(?!\s+(?:мне\s+)?гороскоп)(?!\p{L})/iu,
   /(?:приготов|свари|испек|пожарь|рецепт|составь\s+меню|посчитай\s+калори|борщ|суп(?!\p{L}))/iu,
   /(?:(?:купи|закажи|подбери|посоветуй|выбери)(?!\p{L})[^.!?]{0,100}(?:телефон|ноутбук|товар|одежд|подарок|отел|ресторан|курс)|какой\s+(?:телефон|ноутбук|товар)\s+(?:купить|выбрать))/iu,
-  /(?:напиши|сочини|расскажи|придумай|переведи|перевод|исправь|отладь|запрограммируй|реши|сделай)(?!\p{L})[^.!?]{0,100}(?:анекдот|шутк|стих|песн|письм|пост|резюме|код|программ|скрипт|домашн|задач|контрольн|экзамен|презентац)/iu,
+  /(?:напиши|сочини|расскажи|придумай|переведи|перевод|исправь|отладь|запрограммируй|реши|сделай)(?!\p{L})[^.!?]{0,100}(?:анекдот|шутк|истори|стих|песн|письм|пост|резюме|код|программ|скрипт|домашн|задач|контрольн|экзамен|презентац)/iu,
   /(?:прогноз\s+погоды|температура\s+на\s+улице|сч[её]т\s+(?:матча|игры)|новост|курс\s+валют|столица\s+какой|кто\s+(?:президент|выиграл))/iu,
   /(?:нарисуй|создай\s+(?:картин|изображен|видео)|поставь\s+напоминан|отправь\s+(?:письм|сообщен)|забронируй)/iu,
   /(?:составь|построй|проложи|спланируй)(?!\p{L})[^.!?]{0,100}(?:маршрут|поездк|путешеств|расписан|трениров|диет|бюджет)/iu,
   /(?:cook|recipe|boil|bake|fry|make\s+(?:me\s+)?(?:dinner|lunch|breakfast)|calories)/iu,
   /(?:(?:buy|order|pick|recommend|choose)\b[^.!?]{0,100}(?:phone|laptop|product|clothes|gift|hotel|restaurant|course)|which\s+(?:phone|laptop|product)\s+should\s+i\s+buy)/iu,
-  /(?:write|compose|tell|make|translate|fix|debug|program|solve|do)\b[^.!?]{0,100}(?:joke|poem|song|email|post|resume|code|program|script|homework|exam|presentation)/iu,
+  /(?:write|compose|tell|make|translate|fix|debug|program|solve|do)\b[^.!?]{0,100}(?:joke|story|poem|song|email|post|resume|code|program|script|homework|exam|presentation)/iu,
   /(?:weather\s+forecast|temperature\s+outside|match\s+score|game\s+score|news|exchange\s+rate|who\s+(?:is\s+the\s+president|won))/iu,
   /(?:draw|create\s+(?:an?\s+)?(?:image|picture|video)|set\s+(?:a\s+)?reminder|send\s+(?:an?\s+)?(?:email|message)|book\s+(?:a\s+)?(?:hotel|table|flight))/iu,
   /(?:build|make|plan)\b[^.!?]{0,100}(?:route|trip|travel|schedule|workout|diet|budget)/iu,
@@ -212,8 +212,13 @@ const UNIVERSAL_ASSISTANT_TASK_PATTERNS = [
 ] as const;
 
 const FACTUAL_LOOKUP_PATTERNS = [
-  /(?:столиц\p{L}*|в\s+какой\s+стране\s+париж|когда\s+родил\p{L}*\s+(?!я\b))/iu,
-  /(?:capital\s+of|which\s+country\s+is\s+paris\s+in|when\s+was\s+(?!i\b)[^?!.]{1,80}\s+born)/iu,
+  /(?:столиц\p{L}*|в\s+какой\s+стране\s+париж)/iu,
+  /(?:capital\s+of|which\s+country\s+is\s+paris\s+in)/iu,
+] as const;
+
+const GENERIC_FACT_LOOKUP_PATTERNS = [
+  /(?:когда\s+родил\p{L}*\s+(?!я\b))/iu,
+  /(?:when\s+was\s+(?!i\b)[^?!.]{1,80}\s+born)/iu,
 ] as const;
 
 const CONTENT_RECOMMENDATION_PATTERNS = [
@@ -391,6 +396,13 @@ export function moderateNatalQuestion(input: {
     return {
       status: 'rejected',
       reason: 'not_natal_question',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+  if (matchesQuestionPolicy(question, GENERIC_FACT_LOOKUP_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: 'needs_specificity',
       normalizedQuestion: shared.normalizedQuestion,
     };
   }
