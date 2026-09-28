@@ -380,14 +380,6 @@ export function moderateNatalQuestion(input: {
     };
   }
 
-  if (hasOutOfScopeSemanticRequestPart(question)) {
-    return {
-      status: 'rejected',
-      reason: 'not_natal_question',
-      normalizedQuestion: shared.normalizedQuestion,
-    };
-  }
-
   if (matchesQuestionPolicy(question, UNIVERSAL_ASSISTANT_TASK_PATTERNS)) {
     return {
       status: 'rejected',
