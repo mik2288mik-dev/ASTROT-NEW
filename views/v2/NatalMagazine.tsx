@@ -308,7 +308,7 @@ export function NatalMagazine({
             requestPremium={requestPremium}
             premiumContinuation={premiumContinuation}
             onPremiumContinuationHandled={onPremiumContinuationHandled}
-          /></div>
+          /></div>}
         </section>
       ) : null}
 
