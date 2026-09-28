@@ -13,6 +13,11 @@ import { hasActivePremium } from '../../lib/accessMatrix';
 import { NatalQuestionDemo } from '../../components/NatalReading/NatalQuestionDemo';
 import { NatalArtwork } from '../../components/NatalReading/NatalArtwork';
 import { NatalUnifiedReport } from '../../components/NatalReading/NatalUnifiedReport';
+import { NatalInterpretationDebugPanel } from '../../components/NatalReading/NatalInterpretationDebugPanel';
+import {
+  readNatalInterpretationDebug,
+  subscribeNatalInterpretationDebug,
+} from '../../lib/natalReading/natalInterpretationDebug';
 
 
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
@@ -112,8 +117,14 @@ export function NatalMagazine({
   ));
   const [overviewMode, setOverviewMode] = useState<'story' | 'topics'>('story');
   const [questionContext, setQuestionContext] = useState<NatalReportCategoryKey>('main');
+  const [natalDebugEnabled, setNatalDebugEnabled] = useState(() => readNatalInterpretationDebug(profile.isAdmin === true));
 
   const handledExternalQuestionRequestRef = useRef(0);
+  useEffect(() => {
+    setNatalDebugEnabled(readNatalInterpretationDebug(profile.isAdmin === true));
+    return subscribeNatalInterpretationDebug(profile.isAdmin === true, setNatalDebugEnabled);
+  }, [profile.isAdmin]);
+
   const normalizedActiveTab = normalizeNatalScreenTab(activeTab, isSavedPerson);
   const sectionRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -273,6 +284,9 @@ export function NatalMagazine({
         <section className={styles.content}>
           {person}
           <div className={styles.mode} role="group" aria-label="Как читать обзор">{(['story','topics'] as const).map(mode => <button type="button" key={mode} aria-pressed={overviewMode === mode} onClick={() => {setOverviewMode(mode); if (mode === 'story') selectTab('foundation');}}>{mode === 'story' ? 'Рассказ' : 'По темам'}</button>)}</div>
+          {profile.isAdmin === true && natalDebugEnabled ? (
+            <NatalInterpretationDebugPanel chartData={data} />
+          ) : null}
           <NatalUnifiedReport
             key={`unified:${reportSubjectKey}`}
             profile={profile}
