@@ -95,6 +95,8 @@ android {
     productFlavors {
         development {
             dimension 'distribution'
+            applicationIdSuffix '.test'
+            versionNameSuffix '-test'
             buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"development"'
         }
         telegram {
