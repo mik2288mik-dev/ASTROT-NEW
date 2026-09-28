@@ -10,8 +10,6 @@ import { NatalQuestionExperience } from '../../components/NatalReading/NatalQues
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { InteractiveNatalMap } from '../../components/NatalReading/InteractiveNatalMap';
 import { hasActivePremium } from '../../lib/accessMatrix';
-import { NatalQuestionDemo } from '../../components/NatalReading/NatalQuestionDemo';
-import { NatalArtwork } from '../../components/NatalReading/NatalArtwork';
 import { NatalUnifiedReport } from '../../components/NatalReading/NatalUnifiedReport';
 import { NatalInterpretationDebugPanel } from '../../components/NatalReading/NatalInterpretationDebugPanel';
 import {
@@ -21,7 +19,6 @@ import {
 
 
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
-import type { NatalQuestionTopic } from '../../lib/natalReading/natalQuestionTopics';
 import type { ChartListItem } from '../../services/storageService';
 import type { PaywallContext } from '../../lib/paywallContext';
 
@@ -54,7 +51,7 @@ type NatalMagazineProps = {
   };
 };
 
-export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'details' | 'matrix';
+export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix';
 
 export function isSavedPersonChartSubject(
   chartSubject: Pick<ChartListItem, 'subject_type' | 'is_primary'> | null | undefined,
@@ -66,7 +63,7 @@ export function normalizeNatalScreenTab(
   tab: NatalScreenTab,
   _isSavedPerson: boolean,
 ): NatalScreenTab {
-  // Keep the four tabs visible; saved-person questions show the existing API limitation.
+  // Keep the three product tabs visible; saved-person questions show the existing API limitation.
   return tab;
 }
 
@@ -116,7 +113,6 @@ export function NatalMagazine({
     isSavedPerson,
   ));
   const [overviewMode, setOverviewMode] = useState<'story' | 'topics'>('story');
-  const [questionContext, setQuestionContext] = useState<NatalQuestionTopic>('main');
   const [natalDebugEnabled, setNatalDebugEnabled] = useState(() => readNatalInterpretationDebug(profile.isAdmin === true));
 
   const handledExternalQuestionRequestRef = useRef(0);
@@ -150,7 +146,6 @@ export function NatalMagazine({
     if (!data) return;
     handledExternalQuestionRequestRef.current = openQuestionRequest;
     if (!isSavedPerson) {
-      setQuestionContext('main');
       setActiveTab('ask');
     }
     onQuestionRequestHandled?.();
@@ -159,7 +154,7 @@ export function NatalMagazine({
   useEffect(() => {
     if (!premiumContinuation || premiumContinuation.returnView !== 'chart') return;
     if (premiumContinuation.returnAction === 'open_natal_map_element') {
-      setActiveTab(premiumContinuation.returnEntityId?.startsWith('details:') ? 'details' : 'map');
+      setActiveTab('map');
       return;
     }
     if (
@@ -195,7 +190,6 @@ export function NatalMagazine({
         {([
           { id: 'foundation', label: 'Обзор' },
           { id: 'map', label: 'Карта' },
-          { id: 'details', label: 'Подробно' },
           { id: 'ask', label: 'Спросить' },
         ] as const).map(tab => {
           const active = tab.id === normalizedActiveTab || (tab.id === 'foundation' && normalizedActiveTab === 'explore');
@@ -266,11 +260,11 @@ export function NatalMagazine({
     <div ref={sectionRef} className="fresh-page natal-editorial-page natal-mvp-page natal-v3-page">
       {header}
 
-      {normalizedActiveTab === 'map' || normalizedActiveTab === 'details' ? (
+      {normalizedActiveTab === 'map' ? (
         <InteractiveNatalMap
           key={reportSubjectKey}
           chart={data}
-          view={normalizedActiveTab === 'details' ? 'details' : 'map'}
+          view="map"
           name={subjectName || 'Моя карта'}
           birthLine={birthLine}
           isPremium={isPremium}
@@ -305,18 +299,16 @@ export function NatalMagazine({
         <section className={styles.content}>
           {person}
           {isSavedPerson ? <section className={styles.state}><h2>Вопросы по своей карте</h2><p>Сейчас «Спросить о себе» работает только с твоей основной картой. Для вопросов выбери её через аватар в шапке.</p></section> :
-          !isPremium ? <NatalQuestionDemo chart={data} onRequestPremium={() => {void requestPremium('natal_questions',{placement:'natal_questions',featureKey:'natal_questions',triggerType:'locked_feature',returnView:'chart',returnAction:'open_natal_questions'});}}/> : <div className={styles.premiumQuestions}><NatalArtwork art="plus" className={styles.questionArtwork}/><NatalQuestionExperience
+          <div className={styles.premiumQuestions}><NatalQuestionExperience
             key={reportSubjectKey}
             uiPreview={previewConfig?.questions}
             profile={profile}
             chartData={data}
             chartId={chartId}
-            contextCategory={questionContext}
-            onContextChange={setQuestionContext}
             requestPremium={requestPremium}
             premiumContinuation={premiumContinuation}
             onPremiumContinuationHandled={onPremiumContinuationHandled}
-          /></div>}
+          /></div>
         </section>
       ) : null}
 
