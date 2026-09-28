@@ -79,7 +79,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   );
   const [showAstrology, setShowAstrology] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
-  const tier: NatalUnifiedReadingTier = mode === 'topics' && isPremium ? 'premium' : 'free';
+  const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free';
   const identity = useMemo(
     () => JSON.stringify([
       userId,
