@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../../lib/natalChartV2Types';
-import { buildNatalInterpretation, type NatalInterpretation } from '../../lib/natalInterpretation';
+import { buildNatalInterpretation } from '../../lib/natalInterpretation';
 import type {
   NatalUnifiedReading,
   NatalUnifiedReadingTier,
@@ -11,6 +11,7 @@ import {
   getNatalUnifiedReadingCached,
 } from '../../services/natalUnifiedReadingService';
 import styles from './NatalSection.module.css';
+import { NatalPlusEntry } from './NatalPlusEntry';
 
 type Props = {
   profile: UserProfile;
@@ -41,25 +42,6 @@ function errorText(language: 'ru' | 'en'): string {
     : 'The reading did not load. Try again.';
 }
 
-function TechnicalEvidence(props: {
-  interpretation: NatalInterpretation;
-  meaningIds: readonly string[];
-}) {
-  const byId = useMemo(
-    () => new Map(props.interpretation.meanings.map((meaning) => [meaning.id, meaning])),
-    [props.interpretation],
-  );
-  const lines = props.meaningIds
-    .map((id) => byId.get(id)?.technicalText)
-    .filter((value): value is string => !!value);
-  if (!lines.length) return null;
-  return (
-    <div className={styles.astroDetails}>
-      {lines.map((line, index) => <p key={`${line}:${index}`}>{line}</p>)}
-    </div>
-  );
-}
-
 export const NatalUnifiedReport: React.FC<Props> = ({
   profile,
   chartData,
@@ -77,7 +59,6 @@ export const NatalUnifiedReport: React.FC<Props> = ({
     () => v2 ? buildNatalInterpretation(v2, language) : null,
     [language, v2],
   );
-  const [showAstrology, setShowAstrology] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
   const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free';
   const identity = useMemo(
@@ -206,27 +187,28 @@ export const NatalUnifiedReport: React.FC<Props> = ({
 
   return (
     <article className={styles.overview}>
-      <button
-        type="button"
-        className={styles.astroToggle}
-        aria-pressed={showAstrology}
-        onClick={() => setShowAstrology((value) => !value)}
-      >
-        {showAstrology
-          ? (language === 'ru' ? 'Скрыть астрологию' : 'Hide astrology')
-          : (language === 'ru' ? 'Показать астрологию' : 'Show astrology')}
-      </button>
-
       {mode === 'story' ? (
         <div className={styles.story}>
           {reading.story.map((block) => (
             <section key={block.id}>
               <p>{block.text}</p>
-              {showAstrology ? (
-                <TechnicalEvidence interpretation={interpretation} meaningIds={block.meaningIds} />
-              ) : null}
             </section>
           ))}
+          {!isPremium && canPromotePremium ? (
+            <NatalPlusEntry
+              title={language === 'ru' ? 'Продолжение рассказа — с Premium' : 'Continue the full story with Premium'}
+              onOpen={() => void requestPremium('deep_natal', {
+                placement: 'deep_natal',
+                featureKey: 'natal_deep',
+                triggerType: 'locked_feature',
+                returnView: 'chart',
+              })}
+            >
+              {language === 'ru'
+                ? 'Это начало полного рассказа о тебе. Premium открывает продолжение и разбор по темам.'
+                : 'This is the beginning of the same full reading. Premium unlocks the rest and the topic view.'}
+            </NatalPlusEntry>
+          ) : null}
         </div>
       ) : (
         <div className={styles.observations}>
@@ -236,9 +218,6 @@ export const NatalUnifiedReport: React.FC<Props> = ({
               {topic.blocks.map((block) => (
                 <div key={block.id}>
                   <p>{block.text}</p>
-                  {showAstrology ? (
-                    <TechnicalEvidence interpretation={interpretation} meaningIds={block.meaningIds} />
-                  ) : null}
                 </div>
               ))}
             </section>
