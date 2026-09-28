@@ -18,6 +18,7 @@ type Props = {
   chartId?: number;
   mode: 'story' | 'topics';
   isPremium: boolean;
+  savedPerson?: boolean;
   canPromotePremium?: boolean;
   requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
 };
@@ -65,6 +66,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   chartId,
   mode,
   isPremium,
+  savedPerson = false,
   canPromotePremium = true,
   requestPremium,
 }) => {
@@ -124,6 +126,30 @@ export const NatalUnifiedReport: React.FC<Props> = ({
       });
     return () => { cancelled = true; };
   }, [chartData, chartId, identity, language, tier, userId, v2]);
+
+  if (savedPerson && !isPremium) {
+    return (
+      <section className={styles.state}>
+        <h2>{language === 'ru' ? 'Сохранённая карта' : 'Saved chart'}</h2>
+        <p>{language === 'ru'
+          ? 'Разбор сохранённых карт доступен с Premium.'
+          : 'Saved-chart readings require Premium.'}</p>
+        {canPromotePremium ? (
+          <button
+            type="button"
+            onClick={() => void requestPremium('deep_natal', {
+              placement: 'deep_natal',
+              featureKey: 'natal_deep',
+              triggerType: 'locked_feature',
+              returnView: 'chart',
+            })}
+          >
+            {language === 'ru' ? 'Открыть с Premium' : 'Open with Premium'}
+          </button>
+        ) : null}
+      </section>
+    );
+  }
 
   if (!v2 || !interpretation) {
     return <section className={styles.state} role="alert"><p>{errorText(language)}</p></section>;
