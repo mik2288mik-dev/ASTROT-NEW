@@ -61,7 +61,8 @@ describe('natal catalog UI contract', () => {
     expect(experience).toContain("ru ? 'На чём основано' : 'Chart evidence'");
     expect(experience).not.toContain('Почему так?');
     expect(experience).toContain('<NatalEvidenceSheet');
-    expect(evidence).toContain('buildNatalModelContext(profile, chartData)');
+    expect(evidence).toContain('buildNatalInterpretation');
+    expect(evidence).not.toContain('buildNatalModelContext(profile, chartData)');
     expect(evidence).toContain('getPermanentNatalReliability(chartData)');
     expect(evidence).toContain('Данные твоей карты');
     expect(evidence).toContain('className="natal-v3-evidence-summary-list"');
