@@ -174,6 +174,7 @@ export function formatNatalEvidenceLabel(
         degree,
       ].filter(Boolean).join(' · ');
     }
+    return '';
   }
 
   if (fact.kind === 'body_sign' && fact.bodyKey && fact.sign) {
