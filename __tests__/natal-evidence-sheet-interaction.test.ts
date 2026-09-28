@@ -14,7 +14,10 @@ const compiled = ts.transpileModule(readFileSync(filename, 'utf8'), {
   compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 new Function('require', 'exports', compiled)(
-  (name: string) => require(name.startsWith('.') ? path.resolve(path.dirname(filename), name) : name),
+  (name: string) => {
+    if (name.endsWith('.module.css')) return {};
+    return require(name.startsWith('.') ? path.resolve(path.dirname(filename), name) : name);
+  },
   moduleExports,
 );
 const { bindNatalEvidenceSwipe, NatalEvidenceSheet } = moduleExports as typeof import('../components/NatalReading/NatalEvidenceSheet');
