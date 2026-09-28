@@ -76,6 +76,7 @@ export type NatalQuestionValidationCode =
   | 'SENTENCE_COUNT_INVALID'
   | 'MEANING_REQUIRED'
   | 'MEANING_UNKNOWN'
+  | 'MEANING_SELECTION_TOO_BROAD'
   | 'COPY_VIOLATION'
   | 'DIAGNOSTIC_CLAIM'
   | 'PROFESSIONAL_IMPERATIVE'
@@ -551,7 +552,7 @@ export function buildNatalQuestionPrompt(
 ЖЁСТКИЕ ПРАВИЛА:
 - Во входе APPROVED_MEANINGS уже содержится весь разрешённый смысл.
 - Верни только JSON: {"answer":"3-5 законченных предложений","meaning_ids":["существующий meaning id"]}.
-- Сначала ответь на вопрос по делу. Используй только те meaning_ids, которые реально нужны для ответа.
+- Сначала ответь на вопрос по делу. Используй только те meaning_ids, которые реально нужны для ответа: обычно 1–4, максимум 6.
 - Каждое личное утверждение в answer должно быть прямым пересказом выбранных approved meanings. Нельзя добавлять новую причину, мотив, биографию, событие или психологический ярлык.
 - Если готовые смыслы не подтверждают предпосылку вопроса, так и скажи простыми словами. Не подгоняй карту под вопрос.
 - Не называй в answer планеты, знаки, дома, аспекты, углы, ретроградность, орбы или градусы. Технические основания приложение покажет отдельно.
@@ -571,7 +572,7 @@ You answer only from the already approved meanings produced by the unified natal
 STRICT RULES:
 - APPROVED_MEANINGS contains the entire allowed interpretation.
 - Return JSON only: {"answer":"3-5 complete sentences","meaning_ids":["existing meaning id"]}.
-- Answer the question directly. Use only the meaning_ids actually needed for the answer.
+- Answer the question directly. Use only the meaning_ids actually needed for the answer: normally 1–4, maximum 6.
 - Every personal claim in answer must be a direct paraphrase of the selected approved meanings. Add no new cause, motive, biography, event, or psychological label.
 - If the approved meanings do not support the premise of the question, say so plainly. Do not force the chart to fit the question.
 - Do not name planets, signs, houses, aspects, angles, retrograde motion, orbs, or degrees in answer. The app shows technical evidence separately.
@@ -680,6 +681,7 @@ export function getNatalQuestionAnswerValidationErrors(
   if (sentences < 3 || sentences > 5) errors.add('SENTENCE_COUNT_INVALID');
   if (ids.length === 0) errors.add('MEANING_REQUIRED');
   if (ids.some((id) => !allowedMeaningIds.has(id))) errors.add('MEANING_UNKNOWN');
+  if (ids.length > 6) errors.add('MEANING_SELECTION_TOO_BROAD');
   if (
     hasCoreVoiceViolation(answer)
     || QUESTION_VISIBLE_ASTROLOGY.test(answer)
@@ -719,12 +721,14 @@ async function reviewNatalQuestionSemanticFidelity(input: {
   const instructions = input.language === 'ru'
     ? `Проверь только соответствие ответа уже утверждённым смыслам.
 Не трактуй астрологию заново.
-ok=true только если все личные утверждения в candidate прямо поддерживаются selected_meanings и candidate не добавляет новую причину, мотив, биографию, событие, психологический ярлык или совет.
+ok=true только если candidate прямо отвечает на question, выбранные selected_meanings действительно относятся к question, все личные утверждения прямо поддерживаются selected_meanings и candidate не добавляет новую причину, мотив, биографию, событие, психологический ярлык или совет.
+Если selected_meanings не дают прямого ответа на предпосылку вопроса, candidate должен честно ограничить вывод, а не переключиться на случайную черту.
 Короткая фраза о том, что натальная карта не определяет дату или событие по календарю, допустима как граница продукта и не требует отдельного meaning.
 Если вопрос содержит предпосылку, которой нет в selected_meanings, ответ не должен выдавать её за доказанный факт.`
     : `Check only whether the candidate is faithful to the selected approved meanings.
 Do not reinterpret astrology.
-ok=true only if every personal claim is directly supported by selected_meanings and the candidate adds no new cause, motive, biography, event, psychological label, or advice.
+ok=true only if the candidate directly addresses question, the selected_meanings are genuinely relevant to question, every personal claim is directly supported by selected_meanings, and the candidate adds no new cause, motive, biography, event, psychological label, or advice.
+If selected_meanings do not support the premise of the question, the candidate must state that limitation instead of switching to an unrelated trait.
 A brief boundary saying a natal chart cannot determine a calendar date or event is allowed without a separate meaning.`;
 
   const response = await createLunaStructuredResponse({
