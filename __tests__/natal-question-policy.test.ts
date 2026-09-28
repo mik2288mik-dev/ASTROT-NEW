@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { moderateNatalQuestion } from '../lib/natalReading/natalQuestion';
 import { NATAL_QUESTION_DAILY_LIMIT } from '../lib/natalReading/natalQuestionStore';
+import { NATAL_QUESTION_STARTERS } from '../lib/natalReading/natalQuestionTopics';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -11,13 +12,7 @@ function moderation(question: string, language: 'ru' | 'en' = 'ru') {
 }
 
 function displayedQuestionStarters(language: 'ru' | 'en'): string[] {
-  const source = read('components/NatalReading/NatalQuestionExperience.tsx');
-  const starterBlock = source.slice(
-    source.indexOf('const QUESTION_STARTERS'),
-    source.indexOf('type Props'),
-  );
-  return [...starterBlock.matchAll(new RegExp(`${language}: \\[([\\s\\S]*?)\\]`, 'g'))]
-    .flatMap((match) => [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1]));
+  return Object.values(NATAL_QUESTION_STARTERS[language]).flat();
 }
 
 describe('saved natal-chart question policy', () => {
@@ -60,7 +55,7 @@ describe('saved natal-chart question policy', () => {
   it('accepts every starter shown in the natal-question interface', () => {
     (['ru', 'en'] as const).forEach((language) => {
       const starters = displayedQuestionStarters(language);
-      expect(starters).toHaveLength(24);
+      expect(starters).toHaveLength(40);
       starters.forEach((question) => {
         expect(moderation(question, language)).toMatchObject({
           status: 'approved',
@@ -167,17 +162,11 @@ describe('saved natal-chart question policy', () => {
   });
 
 
-  it('offers six fill-only starters and explains the AI chart boundary', () => {
-    const report = read('components/NatalReading/HumanReport.tsx');
-    const starterBlock = report.slice(
-      report.indexOf('const NATAL_QUESTION_STARTERS'),
-      report.indexOf('const ANGLE_NAMES'),
-    );
-
-    expect(starterBlock.match(/\bru:/gu)).toHaveLength(6);
-    expect(report).toContain('type="button"');
-    expect(report).toContain('setQuestionText(suggestion);');
-    expect(report).toContain('ИИ ответит по сохранённой натальной карте');
-    expect(report).toMatch(/до 5 принятых вопросов в день/iu);
+  it('keeps topic starters fill-only and leaves sending to the composer', () => {
+    const experience = read('components/NatalReading/NatalQuestionExperience.tsx');
+    expect(experience).toContain('setQuestionText(starter);');
+    expect(experience).toContain('<textarea');
+    expect(experience).toContain('onSubmit={submitQuestion}');
+    expect(experience).toContain('до 5 новых вопросов в день');
   });
 });
