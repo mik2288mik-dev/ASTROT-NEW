@@ -66,23 +66,18 @@ describe('chart onboarding and lazy sections', () => {
     expect(app).not.toContain('const safeUserId = String(newProfile.id)');
   });
 
-  it('keeps one free basic identity and loads the paid report only for Premium', () => {
-    const shared = read('lib/natalHumanShared.ts');
-    const semantics = read('lib/natalSemanticCompiler.ts');
-    const report = read('components/NatalReading/HumanReport.tsx');
-    const prompt = read('lib/natalHumanInterpretation.ts');
-    expect(semantics).toContain("'base_portrait'");
-    expect(semantics).toContain("'work_money'");
-    expect(shared).toContain('FREE_NATAL_SECTION_KEYS');
-    expect(report).toContain('ensureHumanBaseReport');
-    expect(report).toContain('ensureHumanPremiumReport');
-    expect(report).toContain('getHumanPremiumReportCached');
-    expect(report).toContain('if (!isPremium || !userId || !report)');
-    expect(prompt).toContain('natalPromptPayload({ ...compilation, sections: plans })');
-    expect(semantics).toContain('requiredBlocks');
-    expect(prompt).toContain('validateGeneratedNatalPayload');
-    expect(prompt).not.toContain('raw.freeSections');
-    expect(prompt).toContain("contentVariant: 'full'");
+  it('uses one unified natal reading and exposes topic depth only to Premium', () => {
+    const report = read('components/NatalReading/NatalUnifiedReport.tsx');
+    const contract = read('lib/natalReading/unifiedReading.ts');
+    const api = read('pages/api/content/natal/reading.ts');
+
+    expect(report).toContain("const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free'");
+    expect(report).toContain("mode === 'topics' && !isPremium");
+    expect(report).toContain('ensureNatalUnifiedReading');
+    expect(contract).toContain('projectNatalUnifiedReadingForTier');
+    expect(contract).toContain('freeStoryBlockCount');
+    expect(api).toContain("generateNatalUnifiedReadingWithLock");
+    expect(api).toContain("projectNatalUnifiedReadingForTier(cached.content, tier)");
   });
 
   it('uses direct product names and exposes personal and Zodiac forecasts in navigation', () => {
@@ -107,29 +102,29 @@ describe('chart onboarding and lazy sections', () => {
     expect(navigation).toContain('Гороскоп по знакам');
   });
 
-  it('passes the primary chart ID and report when no saved chart is active', () => {
+  it('passes the active chart identity without a legacy preloaded report', () => {
     const app = read('App.tsx');
     expect(app).toContain("const isSavedPersonChartView = activeChartSubject?.subject_type === 'saved_person'");
     expect(app).toContain('const isPrimaryChartView = !isSavedPersonChartView');
     expect(app).toContain('const effectiveChartId = activeChartId ?? primaryChartId ?? undefined');
     expect(app).toContain('chartId={effectiveChartId}');
     expect(app).toContain('chartSubject={activeChartSubject}');
-    expect(app).toContain('preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}');
+    expect(app).not.toContain('preloadedHumanReport');
+    expect(app).not.toContain('preloadedReport=');
     expect(app).toContain('PRIMARY_CHART_NAVIGATION_VIEWS.has(newView)');
-    expect(app).toContain("'dashboard',");
-    expect(app).toContain("'horoscope',");
-    expect(app).toContain("'synastry',");
-    expect(app).toContain("'chart',");
     expect(app).toContain('setActiveChartId(undefined)');
     expect(app).toContain('setChartData(primaryChartDataRef.current)');
   });
 
-  it('keeps chart content visible while the human-base reading loads or fails', () => {
-    const report = read('components/NatalReading/HumanReport.tsx');
-    expect(report).not.toContain('if (loading) {');
-    expect(report).toContain('data-testid="human-report-loading-area"');
-    expect(report).toContain('<TechnicalDetails chartData={chartData} language={language} />');
-    expect(report).toContain("subjectName || report?.userName || (language === 'ru' ? 'Твоя карта' : 'Your chart')");
-    expect(report).toContain('Интерпретация сейчас недоступна');
+  it('keeps the chart shell independent from unified reading loading or failure', () => {
+    const magazine = read('views/v2/NatalMagazine.tsx');
+    const report = read('components/NatalReading/NatalUnifiedReport.tsx');
+
+    expect(magazine).toContain('<InteractiveNatalMap');
+    expect(magazine).toContain('<NatalUnifiedReport');
+    expect(report).toContain('Preparing your reading');
+    expect(report).toContain('Разбор не загрузился. Попробуй ещё раз.');
+    expect(report).toContain('setRetryToken');
+    expect(report).not.toContain('HumanReport');
   });
 });
