@@ -1,6 +1,5 @@
 import type { ForecastSection, PersonalForecastPeriod } from '../../lib/personalForecastContract';
 import readingSamples from './readingSamples.json';
-import type { PreloadedNatalReport } from '../NatalReading/HumanReport';
 import {
   NATAL_REPORT_CATALOG_CONTRACT_VERSION,
   NATAL_REPORT_CATEGORIES,
@@ -20,6 +19,12 @@ import {
   type NatalPermanentFreeReport,
   type NatalPermanentPremiumReport,
 } from '../../lib/natalReading/permanentReport';
+type PreloadedNatalReport = {
+  report: NatalPermanentFreeReport;
+  chartFingerprint: string;
+  reportVersion: string;
+};
+
 import type {
   BirthTimeQuality,
   NatalChartData,
