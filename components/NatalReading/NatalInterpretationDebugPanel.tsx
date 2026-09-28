@@ -63,6 +63,7 @@ function MeaningRow(props: {
         <div className="natal-debug-row-body">
           <p className="natal-debug-raw">{rawFact(props.fact)}</p>
           <p><strong>Технически:</strong> {props.meaning?.technicalText || '—'}</p>
+          <p><strong>Тип смысла:</strong> {props.meaning?.scope || '—'}</p>
           <p><strong>Наш смысл:</strong> {props.meaning?.text || 'НЕТ ИНТЕРПРЕТАЦИИ'}</p>
           <p className="natal-debug-ids">
             <strong>Связь:</strong> {props.meaning?.semanticKey || '—'}
