@@ -140,7 +140,7 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
   });
   return <section className={view === 'details' ? sectionStyles.content : styles.map} aria-labelledby="interactive-map-name">
     <header className={styles.person}><h1 id="interactive-map-name">{name}</h1><p>{birthLine}</p></header>
-    {view === 'details' ? <NatalDetails key={name + birthLine} chart={chart} onSelect={(item, target) => choose(item.kind, item.id, target)}/> : <>
+    {view === 'details' ? <NatalDetails key={name + birthLine} chart={chart} isPremium={isPremium} onSelect={(item, target) => choose(item.kind, item.id, target)}/> : <>
     <svg viewBox="0 0 400 400" className={styles.wheel} aria-label="Твоя натальная карта. Выбери планету, знак, дом или аспект.">
       <circle cx="200" cy="200" r="184" fill="white"/>
       {MAP_SIGNS.map((sign, i) => {
@@ -179,6 +179,7 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
       <NatalDetails
         key={name + birthLine}
         chart={chart}
+        isPremium={isPremium}
         onSelect={(item, target) => choose(item.kind, item.id, target)}
       />
     </div>
