@@ -6,7 +6,7 @@
 
 - [x] Stage 1 — separate branch, temporary work plan, canonical NEBO voice foundation, first unified natal interpretation/writer/API/UI skeleton.
 - [x] Stage 2 — remove the old admin classic/catalog selector, delete its storage/helper/tests, fix per-field birth-time reliability handling, and align current shell tests with the unified reading.
-- [ ] Stage 3 — audit the actual interpretation meanings on real calculated charts and correct the semantic rules before trusting prose.
+- [x] Stage 3 — add the deterministic Swiss → evidence → meaning audit layer, neutralise the old negative routing, and add the temporary admin inspector for real saved charts. Human review of actual charts continues through the temporary inspector before final release.
 - [ ] Stage 4 — harden the Writer/semantic validation and verify Рассказ / По темам output.
 - [ ] Stage 5 — move Карта and Спросить о себе completely onto the same interpretation source.
 - [ ] Stage 6 — remove unused legacy natal client/server code, caches, tests, and duplicate voice/prompt paths that are no longer needed by the current app.
@@ -231,7 +231,18 @@ After code is final, update:
 
 `AGENTS.md` should only keep coding-agent rules; durable product architecture belongs in the relevant docs.
 
-## 17. Finish and self-delete
+## 17. Remove temporary Stage 3 inspector
+
+Before final release, after semantic review is complete:
+- [ ] remove `components/NatalReading/NatalInterpretationDebugPanel.tsx`;
+- [ ] remove `lib/natalReading/natalInterpretationDebug.ts`;
+- [ ] remove the `Проверка нового натала` toggle/import/state from `views/Settings.tsx`;
+- [ ] remove the debug panel hookup from `views/v2/NatalMagazine.tsx`;
+- [ ] remove `natal-debug-*` CSS;
+- [ ] remove `__tests__/natal-interpretation-debug-ui.test.ts`;
+- [ ] repository-wide search for `natalDebug`, `NatalInterpretationDebug`, and `nebo:admin:natal-interpretation-debug:v1`.
+
+## 18. Finish and self-delete
 
 The task is not complete merely because the new reading works.
 
