@@ -100,4 +100,83 @@ describe('unified natal interpretation', () => {
     expect(sun!.text).not.toContain('дом');
     expect(sun!.evidenceIds).toEqual(['position:sun:sign']);
   });
+  it('keeps every meaning explicitly scoped instead of silently dropping background factors', () => {
+    const result = buildNatalInterpretation(canonicalNatalChart());
+
+    expect(result.meanings.every((meaning) => (
+      meaning.scope === 'personal'
+      || meaning.scope === 'background'
+      || meaning.scope === 'structural'
+    ))).toBe(true);
+
+    const saturnSign = result.meanings.find((meaning) => meaning.semanticKey.startsWith('body-sign:saturn:'));
+    const sunSign = result.meanings.find((meaning) => meaning.semanticKey.startsWith('body-sign:sun:'));
+    expect(saturnSign?.scope).toBe('background');
+    expect(sunSign?.scope).toBe('personal');
+    expect(result.storyMeaningIds).toContain(saturnSign!.id);
+    expect(result.storyMeaningIds).toContain(sunSign!.id);
+  });
+
+  it('does not bring the old negative-routing vocabulary into the new semantic layer', () => {
+    const result = buildNatalInterpretation(canonicalNatalChart());
+    const copy = result.meanings.map((meaning) => meaning.text).join(' ').toLowerCase();
+
+    for (const banned of [
+      'скука',
+      'потеря интереса',
+      'непонимание',
+      'центральное противоречие',
+      'контроль и свобода',
+    ]) {
+      expect(copy).not.toContain(banned);
+    }
+  });
+
+  it('treats aspects as interaction, not automatic good/bad labels', () => {
+    const chart = canonicalNatalChart();
+    chart.aspects = [
+      {
+        id: 'sun-mars-square',
+        from: 'Sun',
+        to: 'Mars',
+        fromKey: 'sun',
+        toKey: 'mars',
+        type: 'square',
+        exactAngle: 90,
+        angle: 90,
+        angularDistance: 89,
+        orb: 1,
+        orbRange: { min: 1, max: 1 },
+        phase: 'applying',
+        reliable: true,
+        sampleCoverage: 1,
+      },
+      {
+        id: 'uranus-neptune-trine',
+        from: 'Uranus',
+        to: 'Neptune',
+        fromKey: 'uranus',
+        toKey: 'neptune',
+        type: 'trine',
+        exactAngle: 120,
+        angle: 120,
+        angularDistance: 120,
+        orb: 0,
+        orbRange: { min: 0, max: 0 },
+        phase: 'exact',
+        reliable: true,
+        sampleCoverage: 1,
+      },
+    ];
+
+    const result = buildNatalInterpretation(chart);
+    const square = result.meanings.find((meaning) => meaning.semanticKey === 'aspect:sun:square:mars');
+    const outerTrine = result.meanings.find((meaning) => meaning.semanticKey === 'aspect:uranus:trine:neptune');
+
+    expect(square?.text.toLowerCase()).not.toContain('плох');
+    expect(square?.text.toLowerCase()).not.toContain('негатив');
+    expect(outerTrine?.scope).toBe('background');
+    expect(result.storyMeaningIds).toContain(outerTrine!.id);
+  });
+
 });
