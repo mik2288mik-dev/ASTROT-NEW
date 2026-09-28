@@ -47,6 +47,30 @@ describe('unified natal interpretation', () => {
     expect(ids.has(`aspect:${chart.aspects[0].id}`)).toBe(false);
   });
 
+  it('keeps a stable sign even when another field of the same body is unstable', () => {
+    const chart = canonicalNatalChart({
+      time: {
+        mode: 'approximate',
+        localTime: '08:15',
+        uncertaintyMinutes: 30,
+        rangeStart: null,
+        rangeEnd: null,
+      },
+    });
+    chart.positions.moon.reliability = 'variable_in_range';
+    chart.positions.moon.stable.sign = true;
+    chart.positions.moon.stable.retrograde = false;
+    chart.positions.moon.retrograde = null;
+    chart.positions.moon.stable.house = true;
+
+    const result = buildNatalInterpretation(chart);
+    const ids = new Set(result.evidence.map((fact) => fact.id));
+
+    expect(ids.has('position:moon:sign')).toBe(true);
+    expect(ids.has('position:moon:house')).toBe(true);
+    expect(ids.has('position:moon:retrograde')).toBe(false);
+  });
+
   it('does not use houses or angles when birth time is unknown', () => {
     const chart = canonicalNatalChart({
       time: {
