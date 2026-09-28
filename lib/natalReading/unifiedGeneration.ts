@@ -241,7 +241,7 @@ export function materializeNatalUnifiedReading(input: {
     reading: {
       schemaVersion: 'natal-unified-reading-v1',
       contractVersion: NATAL_UNIFIED_READING_CONTRACT_VERSION,
-      interpretationVersion: interpretation.schemaVersion,
+      interpretationVersion: input.interpretation.schemaVersion,
       tier: input.tier,
       story,
       topics,
