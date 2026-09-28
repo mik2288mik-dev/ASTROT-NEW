@@ -283,8 +283,15 @@ function matchesQuestionPolicy(
 }
 
 function hasNatalQuestionContext(value: string): boolean {
+  const hasPersonalSubject = matchesQuestionPolicy(value, PERSONAL_SUBJECT_PATTERNS);
   return matchesQuestionPolicy(value, NATAL_SCOPE_PATTERNS)
-    || matchesQuestionPolicy(value, PERSONAL_SUBJECT_PATTERNS);
+    || (
+      hasPersonalSubject
+      && (
+        matchesQuestionPolicy(value, PERSONAL_PATTERN_DOMAIN_PATTERNS)
+        || matchesQuestionPolicy(value, ASTROLOGY_FACTOR_PATTERNS)
+      )
+    );
 }
 
 function isInScopeNatalRequestPart(value: string, hasPriorNatalContext: boolean): boolean {
