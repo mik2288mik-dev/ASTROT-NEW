@@ -23,8 +23,11 @@ import {
 import {
   isNatalReportAnswer,
   isNatalReportCategoryPack,
+  NATAL_REPORT_ANSWER_COUNT,
   NATAL_REPORT_ANSWER_KEYS,
+  NATAL_REPORT_CATEGORIES,
   NATAL_REPORT_CATEGORY_KEYS,
+  isNatalReportAnswerFree,
 } from '../lib/natalReading/reportCatalog';
 import { HUMAN_PAID_SECTION_KEYS } from '../lib/natalHumanShared';
 
@@ -87,6 +90,29 @@ describe('legacy natal compatibility uses the unified reading only', () => {
     expect(free.freeSections.length).toBeGreaterThan(0);
     expect(premium.sections.some((section) => section.id === 'relationships')).toBe(true);
     expect(premium.sections.some((section) => section.id === 'work')).toBe(true);
+  });
+
+  it('keeps the published catalog keyspace stable while generation is retired', () => {
+    expect(NATAL_REPORT_ANSWER_COUNT).toBe(47);
+    expect(NATAL_REPORT_ANSWER_KEYS).toHaveLength(47);
+    expect(new Set(NATAL_REPORT_ANSWER_KEYS).size).toBe(47);
+    expect(NATAL_REPORT_CATEGORIES.map((category) => category.key)).toEqual([
+      'main',
+      'character',
+      'love',
+      'communication',
+      'work',
+      'money',
+    ]);
+    expect(NATAL_REPORT_ANSWER_KEYS.filter(isNatalReportAnswerFree)).toEqual([
+      'main_how_people_see_you',
+      'main_not_seen_at_once',
+      'character_decisions',
+      'love_show_interest',
+      'communication_new_people',
+      'work_start_new',
+      'money_save_or_spend',
+    ]);
   });
 
   it('projects every old catalog category and answer into the old validator shapes', () => {
