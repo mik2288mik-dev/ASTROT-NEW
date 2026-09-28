@@ -114,7 +114,7 @@ function promptPlan(
     meaning_ids: block.meaningIds,
     allowed_meanings: block.meaningIds.map((id) => {
       const meaning = byId.get(id)!;
-      return { id: meaning.id, meaning: meaning.text };
+      return { id: meaning.id, scope: meaning.scope, meaning: meaning.text };
     }),
   });
   const payload = {
@@ -133,6 +133,7 @@ Rewrite the approved meanings below into normal NEBO copy.
 STRICT RULES:
 - You are a writer, not an astrologer. The allowed_meanings already contain the interpretation.
 - Do not infer any new trait, cause, motive, biography, event, problem, fear, relationship history, profession, income, or diagnosis.
+- Respect each meaning scope. "background" still must be included, but it must stay a background modifier rather than be inflated into a strong personal claim. "structural" describes how a chart area is organised, not a standalone personality diagnosis.
 - Do not omit meaning IDs and do not move IDs between blocks.
 - Each output block must keep exactly the supplied id and meaning_ids.
 - The story is one coherent portrait. Connect ideas naturally, but preserve every supplied meaning.
