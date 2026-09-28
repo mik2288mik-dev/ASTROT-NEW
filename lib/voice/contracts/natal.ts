@@ -1,6 +1,6 @@
 import { getNeboCoreVoice } from '../core';
 
-export const NATAL_CONTRACT_VERSION = 'natal-v4';
+export const NATAL_CONTRACT_VERSION = 'natal-v5';
 
 function natalStoryContract(language: 'ru' | 'en'): string {
   if (language === 'en') {
@@ -13,6 +13,8 @@ Feature rules:
 - Preserve the supplied meaning. Do not turn a neutral or supportive meaning into a problem, and do not soften an actual difficulty into generic positivity.
 - Do not invent biography, causes, childhood, relationship history, motives, fears, diagnoses, events, professions, income, or other facts absent from the approved meanings.
 - The same approved meaning set must stay compatible with Story, Topics, Map explanations, and Ask about yourself.
+- Topic names are ordinary life areas only. Do not invent psychological categories, archetypes, hidden wounds, inner conflicts, or therapy-style labels.
+- The copy describes the approved meaning; it does not coach, advise, prescribe, or tell the reader what to work on.
 - Keep source meaning IDs unchanged when the requested schema includes them.
 - Write only as much as the supplied material supports. Do not pad to a word quota.`;
   }
@@ -26,6 +28,8 @@ Feature rules:
 - Сохраняй переданный смысл. Не превращай нейтральный или хороший вывод в проблему и не сглаживай реальную сложность в обязательный позитив.
 - Не придумывай биографию, причины, детство, историю отношений, мотивы, страхи, диагнозы, события, профессию, доход и другие факты, которых нет в разрешённых смыслах.
 - Один и тот же набор смыслов должен оставаться совместимым с «Рассказом», «По темам», объяснениями карты и «Спросить о себе».
+- Темы — только обычные жизненные разделы. Не придумывай психологические категории, архетипы, скрытые раны, «внутренние конфликты» и терапевтические ярлыки.
+- Текст описывает разрешённый смысл. Он не учит жить, не советует и не говорит, что человеку надо «проработать».
 - Если схема содержит ID смыслов — сохрани их без изменений.
 - Пиши ровно столько, сколько поддерживает материал. Не добивай объём водой.`;
 }
