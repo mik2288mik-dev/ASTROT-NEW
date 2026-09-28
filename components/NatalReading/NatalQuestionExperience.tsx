@@ -7,9 +7,11 @@ import type { PaywallContext } from '../../lib/paywallContext';
 import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
 import type { NatalQuestionStoredMessage } from '../../lib/natalReading/natalQuestionStore';
 import {
-  getNatalReportCategory,
-  type NatalReportCategoryKey,
-} from '../../lib/natalReading/reportCatalog';
+  NATAL_QUESTION_STARTERS,
+  NATAL_QUESTION_TOPICS,
+  natalQuestionTopicTitle,
+  type NatalQuestionTopic,
+} from '../../lib/natalReading/natalQuestionTopics';
 import { normalizePersonalForecastQuestionInput } from '../../lib/personalForecastQuestionModeration';
 import {
   askNatalQuestion,
@@ -23,112 +25,13 @@ import {
   type NatalExplanationTarget,
 } from './NatalEvidenceSheet';
 
-const QUESTION_CONTEXTS = [
-  'main',
-  'character',
-  'love',
-  'communication',
-  'work',
-  'money',
-] as const satisfies readonly NatalReportCategoryKey[];
-
-const QUESTION_STARTERS: Record<NatalReportCategoryKey, {
-  ru: readonly string[];
-  en: readonly string[];
-}> = {
-  main: {
-    ru: [
-      'Как я принимаю важные решения?',
-      'Почему я могу терять интерес к работе или новым делам?',
-      'Что люди не сразу понимают в моём характере?',
-      'Какая моя сильная сторона помогает в работе?',
-    ],
-    en: [
-      'What affects my important decisions?',
-      'Why do I lose interest in work or new things?',
-      'What do people not understand about my character at first?',
-      'Which strength helps me at work?',
-    ],
-  },
-  character: {
-    ru: [
-      'Почему я иногда меняю решение в последний момент?',
-      'Что меня раздражает в общении?',
-      'Почему мне быстро становится скучно в работе?',
-      'Как я реагирую, когда планы ломаются?',
-    ],
-    en: [
-      'Why do I change a decision at the last moment?',
-      'What irritates me in communication?',
-      'Why do I get bored at work?',
-      'How do I react when a plan falls apart?',
-    ],
-  },
-  love: {
-    ru: [
-      'Какие люди мне нравятся в отношениях?',
-      'Как я показываю интерес в близких отношениях?',
-      'Почему я могу быстро отдалиться в отношениях?',
-      'На что я обращаю внимание в отношениях?',
-    ],
-    en: [
-      'What kind of people do I like in relationships?',
-      'How do I show interest in close relationships?',
-      'Why do I pull away in relationships?',
-      'What do I notice most in relationships?',
-    ],
-  },
-  communication: {
-    ru: [
-      'Как я проявляюсь при знакомстве и в новом общении?',
-      'Почему меня иногда неправильно понимают в общении?',
-      'Как я веду себя в конфликте?',
-      'Почему мне бывает трудно попросить о помощи?',
-    ],
-    en: [
-      'How do I come across when meeting someone new?',
-      'Why am I misunderstood in conversations?',
-      'What are my patterns in conflict?',
-      'Why can asking for help be difficult for me?',
-    ],
-  },
-  work: {
-    ru: [
-      'Какая работа мне быстро надоедает?',
-      'Как в работе мне легче: одному или с людьми?',
-      'Как я веду себя под давлением сроков на работе?',
-      'Какие мои сильные стороны помогают в работе?',
-    ],
-    en: [
-      'What kind of work bores me quickly?',
-      'Why do I prefer working alone?',
-      'How do I act under deadline pressure at work?',
-      'Which strengths help me at work?',
-    ],
-  },
-  money: {
-    ru: [
-      'Какие привычки влияют на мои траты?',
-      'Как я принимаю денежные решения?',
-      'Почему мне может быть трудно рисковать деньгами?',
-      'Почему мне бывает трудно назвать цену своей работе?',
-    ],
-    en: [
-      'Which habits affect how I spend money?',
-      'What influences my money decisions?',
-      'Why can taking financial risks be difficult for me?',
-      'Why can naming a price for my work be difficult?',
-    ],
-  },
-};
-
 type Props = {
   compact?: boolean;
   profile: UserProfile;
   chartData: NatalChartData;
   chartId?: number;
-  contextCategory: NatalReportCategoryKey;
-  onContextChange: (categoryKey: NatalReportCategoryKey) => void;
+  contextCategory: NatalQuestionTopic;
+  onContextChange: (categoryKey: NatalQuestionTopic) => void;
   requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
@@ -209,10 +112,8 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
     : 'Unable to load the answers. Check your connection and try again.';
 }
 
-function contextTitle(categoryKey: NatalReportCategoryKey, language: 'ru' | 'en'): string {
-  if (categoryKey === 'main') return language === 'ru' ? 'обо всём' : 'anything about you';
-  const title = getNatalReportCategory(categoryKey)?.title[language]
-    || (language === 'ru' ? 'эту часть' : 'this part');
+function contextTitle(categoryKey: NatalQuestionTopic, language: 'ru' | 'en'): string {
+  const title = natalQuestionTopicTitle(categoryKey, language);
   return language === 'ru' ? title.toLocaleLowerCase() : title.toLocaleLowerCase();
 }
 
@@ -244,7 +145,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   const [explanation, setExplanation] = useState<NatalExplanationTarget | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const pairs = useMemo(() => buildQuestionPairs(snapshot?.messages || []), [snapshot?.messages]);
-  const starters = QUESTION_STARTERS[contextCategory][language];
+  const starters = NATAL_QUESTION_STARTERS[contextCategory][language];
 
   useEffect(() => {
     setSnapshot(null);
@@ -401,13 +302,13 @@ export const NatalQuestionExperience: React.FC<Props> = ({
             <small>{language === 'ru' ? 'Сейчас спрашиваем' : 'Current topic'}</small>
             <strong>{contextCategory === 'main'
               ? (language === 'ru' ? 'Обо всём' : 'Anything about you')
-              : getNatalReportCategory(contextCategory)?.title[language]}</strong>
+              : natalQuestionTopicTitle(contextCategory, language)}</strong>
           </span>
           <ChevronDown aria-hidden="true" />
         </button>
         {contextOpen ? (
           <ul>
-            {QUESTION_CONTEXTS.map((categoryKey) => (
+            {NATAL_QUESTION_TOPICS.filter((topic) => topic !== 'general').map((categoryKey) => (
               <li key={categoryKey}>
                 <button
                   type="button"
@@ -419,7 +320,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                 >
                   <span>{categoryKey === 'main'
                     ? (language === 'ru' ? 'Обо всём' : 'Anything about you')
-                    : getNatalReportCategory(categoryKey)?.title[language]}</span>
+                    : natalQuestionTopicTitle(categoryKey, language)}</span>
                   {contextCategory === categoryKey ? <span aria-hidden="true">✓</span> : null}
                 </button>
               </li>
