@@ -97,7 +97,7 @@ describe('unified natal question path', () => {
     }, allowed)).toContain('COPY_VIOLATION');
 
     expect(getNatalQuestionAnswerValidationErrors({
-      answer: 'Завтра ты точно получишь нужный результат. Решение окажется правильным. Сомнений после этого уже не останется.',
+      answer: 'Завтра ты встретишь нового партнёра. Эта встреча изменит привычный ход событий. После неё всё быстро станет другим.',
       meaning_ids: [meaningId],
     }, allowed)).toEqual(expect.arrayContaining([
       'UNSUPPORTED_FUTURE_TIMING',
