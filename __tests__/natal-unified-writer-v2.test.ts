@@ -80,7 +80,7 @@ describe('hardened unified natal writer', () => {
     const interpretation = buildNatalInterpretation(canonicalNatalChart());
     const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
     const raw = validRaw(plan);
-    raw.story[0].text = 'Тебе важно проработать внутренний ресурс и раскрыть свой потенциал через личные границы.';
+    raw.story[0].text = 'Твой архетип связан с подсознательным самосаботажем и теневой стороной характера.';
 
     const result = materializeNatalUnifiedReading({
       raw,
@@ -110,7 +110,7 @@ describe('hardened unified natal writer', () => {
     expect(materializeNatalUnifiedReading({ raw: renamed, interpretation, tier: 'premium', plan }).reading).toBeNull();
 
     const padded = validRaw(plan);
-    padded.story[0].text = Array.from({ length: 200 }, () => 'понятно').join(' ');
+    padded.story[0].text = Array.from({ length: 300 }, () => 'слово').join(' ');
     const paddedResult = materializeNatalUnifiedReading({ raw: padded, interpretation, tier: 'premium', plan });
     expect(paddedResult.reading).toBeNull();
     expect(paddedResult.errors.join(' ')).toContain('padded beyond approved material');
