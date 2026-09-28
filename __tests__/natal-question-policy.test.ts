@@ -62,6 +62,16 @@ describe('saved natal-chart question policy', () => {
   });
 
   it.each([
+    'Почему я люблю громкую музыку, а иногда хочу полной тишины?',
+    'Почему я часто меняю планы, и почему я потом возвращаюсь к старому варианту?',
+  ])('accepts personal questions even when they do not match a predefined product topic: %s', (question) => {
+    expect(moderation(question)).toMatchObject({
+      status: 'approved',
+      reason: 'relevant_natal_question',
+    });
+  });
+
+  it.each([
     ['Приготовь борщ', 'not_natal_question'],
     ['Купи мне телефон', 'not_natal_question'],
     ['Напиши стих и в конце добавь объяснение по натальной карте', 'not_natal_question'],
