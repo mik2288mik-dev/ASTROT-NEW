@@ -228,6 +228,41 @@ async function postServer(
   return readPayload(await response.json());
 }
 
+export function clearNatalUnifiedReadingCache(userId?: string): void {
+  if (!userId) {
+    memory.clear();
+    inFlight.clear();
+  } else {
+    const prefix = `${String(userId).trim()}:`;
+    for (const key of memory.keys()) {
+      if (key.startsWith(prefix)) memory.delete(key);
+    }
+    for (const key of inFlight.keys()) {
+      if (key.startsWith(prefix)) inFlight.delete(key);
+    }
+  }
+
+  const localStorage = storage();
+  if (!localStorage) return;
+  const ownerPrefix = userId ? `${String(userId).trim()}:` : null;
+  const remove: string[] = [];
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (!key?.startsWith(`${LOCAL_CACHE_PREFIX}:`)) continue;
+    if (!ownerPrefix) {
+      remove.push(key);
+      continue;
+    }
+    try {
+      const entry = JSON.parse(localStorage.getItem(key) || '{}') as Partial<CacheEntry>;
+      if (String(entry.scopeKey || '').startsWith(ownerPrefix)) remove.push(key);
+    } catch {
+      remove.push(key);
+    }
+  }
+  remove.forEach((key) => localStorage.removeItem(key));
+}
+
 export function getNatalUnifiedReadingCached(input: {
   userId: string;
   chartData: NatalChartData;
