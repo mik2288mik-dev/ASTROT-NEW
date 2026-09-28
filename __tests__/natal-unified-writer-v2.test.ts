@@ -6,6 +6,7 @@ import {
   buildNatalUnifiedWriterPlan,
   materializeNatalUnifiedReading,
 } from '../lib/natalReading/unifiedGeneration';
+import { projectNatalUnifiedReadingForTier } from '../lib/natalReading/unifiedReading';
 
 function source(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
@@ -116,6 +117,25 @@ describe('hardened unified natal writer', () => {
     expect(paddedResult.errors.join(' ')).toContain('padded beyond approved material');
   });
 
+  it('derives the free story from the same full reading instead of generating a second story', () => {
+    const interpretation = buildNatalInterpretation(canonicalNatalChart());
+    const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+    const raw = validRaw(plan);
+    const result = materializeNatalUnifiedReading({
+      raw,
+      interpretation,
+      tier: 'premium',
+      plan,
+    });
+    expect(result.reading).not.toBeNull();
+
+    const full = result.reading!;
+    const free = projectNatalUnifiedReadingForTier(full, 'free');
+    expect(free.story.length).toBeLessThan(full.story.length);
+    expect(free.story).toEqual(full.story.slice(0, free.story.length));
+    expect(free.topics).toEqual([]);
+  });
+
   it('runs a semantic fidelity review and never falls back to unvalidated meaning prose', () => {
     const generation = source('lib/natalReading/unifiedGeneration.ts');
     const service = source('services/natalUnifiedReadingService.ts');
@@ -125,7 +145,7 @@ describe('hardened unified natal writer', () => {
     expect(generation).toContain('semantic review');
     expect(generation).toContain('NATAL_WRITER_REJECTED');
     expect(generation).not.toContain('function deterministicFallback');
-    expect(service).toContain("nebo:natal-unified-reading:v2");
+    expect(service).toContain("nebo:natal-unified-reading:v3");
     expect(ui).toContain("const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free';");
     expect(ui).not.toContain("mode === 'topics' && isPremium ? 'premium' : 'free'");
   });
