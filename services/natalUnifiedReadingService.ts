@@ -10,7 +10,7 @@ import { apiFetch } from './apiClient';
 import { getTelegramInitDataHeaders } from './sessionService';
 
 const GENERATION_TIMEOUT_MS = 90_000;
-const LOCAL_CACHE_PREFIX = 'nebo:natal-unified-reading:v1';
+const LOCAL_CACHE_PREFIX = 'nebo:natal-unified-reading:v2';
 const LOCAL_CACHE_LIMIT = 24;
 
 type UnifiedReadingError = Error & {
