@@ -7,7 +7,7 @@
 - [x] Stage 1 — separate branch, temporary work plan, canonical NEBO voice foundation, first unified natal interpretation/writer/API/UI skeleton.
 - [x] Stage 2 — remove the old admin classic/catalog selector, delete its storage/helper/tests, fix per-field birth-time reliability handling, and align current shell tests with the unified reading.
 - [x] Stage 3 — add the deterministic Swiss → evidence → meaning audit layer, neutralise the old negative routing, and add the temporary admin inspector for real saved charts. Human review of actual charts continues through the temporary inspector before final release.
-- [ ] Stage 4 — harden the Writer/semantic validation and verify Рассказ / По темам output.
+- [x] Stage 4 — harden the Writer/semantic validation and verify Рассказ / По темам output: plain life-area topics, no duplicate topic meanings, strict anti-filler/pseudo-psychology checks, semantic fidelity review, no unvalidated fallback, one Premium reading for both views.
 - [ ] Stage 5 — move Карта and Спросить о себе completely onto the same interpretation source.
 - [ ] Stage 6 — remove unused legacy natal client/server code, caches, tests, and duplicate voice/prompt paths that are no longer needed by the current app.
 - [ ] Stage 7 — end-to-end test build, old-client compatibility cutoff, final docs cleanup, then delete this temporary work plan.
