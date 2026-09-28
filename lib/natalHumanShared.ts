@@ -4,24 +4,39 @@ import type {
 } from '../types';
 import { withAppVoiceCacheKey, withAppVoiceVersion } from './appVoice';
 import {
-  FREE_NATAL_SECTION_KEYS,
-  NATAL_SEMANTIC_VERSION,
-  PREMIUM_NATAL_SECTION_KEYS,
-} from './natalSemanticCompiler';
-import {
   NATAL_PERMANENT_FREE_CACHE_KEY,
   NATAL_PERMANENT_FREE_PROMPT_VERSION,
 } from './natalReading/permanentReport';
 
+const LEGACY_HUMAN_SECTION_SCHEMA_VERSION = 'legacy-human-section-v1';
+
 export const HUMAN_INTERPRETATION_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v2');
 /** Compatibility alias. The active base-report path is the direct permanent V2 report. */
 export const HUMAN_BASE_PROMPT_VERSION = NATAL_PERMANENT_FREE_PROMPT_VERSION;
-export const HUMAN_PAID_PROMPT_VERSION = withAppVoiceVersion(`lumia-human-v6.${NATAL_SEMANTIC_VERSION}.premium-depth`);
+export const HUMAN_PAID_PROMPT_VERSION = withAppVoiceVersion(`lumia-human-v6.${LEGACY_HUMAN_SECTION_SCHEMA_VERSION}.premium-depth`);
 export const HUMAN_BASE_CACHE_KEY = NATAL_PERMANENT_FREE_CACHE_KEY;
 
-export const HUMAN_FREE_SECTION_KEYS = FREE_NATAL_SECTION_KEYS;
+export const HUMAN_FREE_SECTION_KEYS = [
+  'base_portrait',
+  'thinking',
+  'reactions',
+  'love_relationships',
+  'work_money',
+  'strengths',
+  'difficulties',
+] as const satisfies readonly InterpretationSectionKey[];
 
-export const HUMAN_PAID_SECTION_KEYS = PREMIUM_NATAL_SECTION_KEYS;
+export const HUMAN_PAID_SECTION_KEYS = [
+  'inner_reactions',
+  'communication',
+  'relationships_deep',
+  'conflicts',
+  'work',
+  'money',
+  'abilities',
+  'central_contradictions',
+  'important_aspects',
+] as const satisfies readonly InterpretationSectionKey[];
 
 export type HumanPaidSectionKey = (typeof HUMAN_PAID_SECTION_KEYS)[number];
 
