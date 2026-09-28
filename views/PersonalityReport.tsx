@@ -4,8 +4,8 @@ import type {
   NatalChartData,
   UserProfile,
 } from '../types';
-import { HumanReport, type PreloadedNatalReport } from '../components/NatalReading/HumanReport';
-import type { NatalPermanentPremiumReport } from '../lib/natalReading/permanentReport';
+import { NatalUnifiedReport } from '../components/NatalReading/NatalUnifiedReport';
+import { hasActivePremium } from '../lib/accessMatrix';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { EditorialProfileButton } from '../components/editorial/EditorialScreenChrome';
 import { CosmicSheet } from '../components/lumia-ui/CosmicSheet';
@@ -21,7 +21,7 @@ export type PersonalityReportProps = {
   profile: UserProfile;
   primaryChartData: NatalChartData;
   primaryChartId?: number;
-  preloadedReport?: PreloadedNatalReport | null;
+  preloadedReport?: unknown;
   requestPremium: () => void;
   onBack: () => void;
   onOpenProfile: () => void;
@@ -30,7 +30,7 @@ export type PersonalityReportProps = {
   uiPreview?: {
     charts: ChartListItem[];
     reportState?: 'ready' | 'loading' | 'error';
-    premiumReport?: NatalPermanentPremiumReport | null;
+    premiumReport?: unknown;
   };
 };
 
@@ -40,7 +40,7 @@ export function PersonalityReport({
   profile,
   primaryChartData,
   primaryChartId,
-  preloadedReport,
+  preloadedReport: _preloadedReport,
   requestPremium,
   onBack,
   onOpenProfile,
@@ -210,18 +210,15 @@ export function PersonalityReport({
               {language === 'ru' ? 'Открываем разбор…' : 'Opening the reading…'}
             </div>
           ) : (
-            <HumanReport
+            <NatalUnifiedReport
               key={reportKey}
               profile={profile}
               chartData={chartData}
               chartId={chartId}
-              chartSubject={chartSubject}
-              requestPremium={requestPremium}
-              preloadedReport={isSelf ? preloadedReport : null}
-              uiPreview={previewConfig ? {
-                state: previewConfig.reportState || 'ready',
-                premiumReport: previewConfig.premiumReport,
-              } : undefined}
+              mode="story"
+              isPremium={hasActivePremium(profile)}
+              savedPerson={Boolean(selectedChart)}
+              requestPremium={() => requestPremium()}
             />
           )}
         </div>
