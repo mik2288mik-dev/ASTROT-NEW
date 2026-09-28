@@ -1,13 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NatalChartDataV2 } from '../../../../lib/natalChartV2Types';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
+import { ensureValidContext } from '../../../../lib/natalReading/apiHelper';
 import {
-  ensureValidContext,
-} from '../../../../lib/natalReading/apiHelper';
-import {
-  generateNatalReportAnswerWithLock,
-  getCachedNatalReportAnswer,
-} from '../../../../lib/natalReading/reportCatalogApi';
+  adaptUnifiedToLegacyCatalogAnswer,
+  legacyInterpretationEnvelope,
+} from '../../../../lib/natalReading/legacyCompatibility';
+import { loadUnifiedReadingForLegacyEndpoint } from '../../../../lib/natalReading/legacyCompatibilityApi';
 import {
   getNatalReportAnswer,
   isNatalReportAnswerKey,
@@ -45,8 +45,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const language = ctx.profile.language === 'en' ? 'en' : 'ru';
   const accessTier = definition.categoryKey === 'main' ? definition.access : 'premium';
 
-  // Premium is checked before the first server cache lookup. A stale client flag
-  // can never expose a paid answer from the durable cache.
   if (accessTier === 'premium') {
     const entitlement = await getPremiumEntitlementState(userId);
     if (!entitlement.isPremium) {
@@ -58,46 +56,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  const cached = await getCachedNatalReportAnswer(ctx, answerKey);
-  if (req.method === 'GET') {
-    if (!cached) {
+  try {
+    const unified = await loadUnifiedReadingForLegacyEndpoint({
+      userId,
+      ctx,
+      method: req.method,
+    });
+    if (unified.status === 'not_found') {
       return res.status(404).json({
         error: 'NOT_FOUND',
         code: 'NATAL_REPORT_ANSWER_NOT_READY',
       });
     }
-    return res.status(200).json({
-      interpretation: cached,
-      source: 'natal_report_catalog_answer_v1',
-      accessTier,
-    });
-  }
-
-  if (cached) {
-    return res.status(200).json({
-      interpretation: cached,
-      source: 'natal_report_catalog_answer_v1',
-      accessTier,
-    });
-  }
-
-  try {
-    const lockResult = await generateNatalReportAnswerWithLock({ userId, ctx, answerKey });
-    if (lockResult.status === 'in_progress') {
-      return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+    if (unified.status === 'in_progress') {
+      return res.status(202).json(generationInProgressPayload(unified.retryAfterMs));
     }
+
+    const content = adaptUnifiedToLegacyCatalogAnswer({
+      reading: unified.interpretation.content,
+      chart: ctx.chartData as unknown as NatalChartDataV2,
+      profile: ctx.profile,
+      answerKey,
+    });
     return res.status(200).json({
-      interpretation: lockResult.value,
-      source: lockResult.fromCache
-        ? (lockResult.source || 'natal_report_catalog_answer_v1')
-        : 'generated',
+      interpretation: legacyInterpretationEnvelope(unified.interpretation, content, accessTier),
+      source: 'natal_unified_compat_v1',
       accessTier,
     });
   } catch (error) {
-    console.error(
-      `[natal/catalog-answer] ${answerKey} generation failed:`,
-      error instanceof Error ? error.message : error,
-    );
+    console.error(`[natal/catalog-answer] ${answerKey} compatibility projection failed:`, error instanceof Error ? error.message : error);
     return res.status(503).json({
       error: 'NATAL_REPORT_ANSWER_GENERATION_FAILED',
       code: 'NATAL_REPORT_ANSWER_GENERATION_FAILED',
