@@ -1723,3 +1723,20 @@
   outline: 2px solid #111;
   outline-offset: 3px;
 }
+
+.natal-debug-panel{margin:0 0 24px;padding:16px;border:1px solid #d9dde6;border-radius:18px;background:#fff}
+.natal-debug-head h2{margin:2px 0 6px;font-size:20px;line-height:1.2}
+.natal-debug-head p{margin:0;color:#626773;font-size:13px;line-height:1.45}
+.natal-debug-kicker{font-size:11px!important;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.natal-debug-stats{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.natal-debug-stats span{padding:6px 8px;border-radius:10px;background:#f5f6f8;color:#4e535e;font-size:12px}
+.natal-debug-list{display:grid;gap:8px}
+.natal-debug-row{border:1px solid #eceef2;border-radius:14px;overflow:hidden}
+.natal-debug-row-toggle{display:flex;width:100%;justify-content:space-between;gap:12px;padding:11px 12px;border:0;background:#fafbfc;text-align:left;font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.natal-debug-row-body{padding:11px 12px}
+.natal-debug-row-body p{margin:0 0 8px;font-size:13px;line-height:1.45}
+.natal-debug-row-body p:last-child{margin-bottom:0}
+.natal-debug-raw,.natal-debug-ids{color:#717681;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px!important;overflow-wrap:anywhere}
+.natal-debug-rejected{margin-top:14px;padding-top:14px;border-top:1px solid #eceef2}
+.natal-debug-rejected-toggle{border:0;background:transparent;padding:0;color:#245de7;font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.natal-debug-rejected p{margin:8px 0 0;color:#777d88;font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere}
