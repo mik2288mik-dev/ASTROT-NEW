@@ -21,7 +21,7 @@ import {
 
 
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
-import type { NatalReportCategoryKey } from '../../lib/natalReading/reportCatalog';
+import type { NatalQuestionTopic } from '../../lib/natalReading/natalQuestionTopics';
 import type { ChartListItem } from '../../services/storageService';
 import type { PaywallContext } from '../../lib/paywallContext';
 
@@ -116,7 +116,7 @@ export function NatalMagazine({
     isSavedPerson,
   ));
   const [overviewMode, setOverviewMode] = useState<'story' | 'topics'>('story');
-  const [questionContext, setQuestionContext] = useState<NatalReportCategoryKey>('main');
+  const [questionContext, setQuestionContext] = useState<NatalQuestionTopic>('main');
   const [natalDebugEnabled, setNatalDebugEnabled] = useState(() => readNatalInterpretationDebug(profile.isAdmin === true));
 
   const handledExternalQuestionRequestRef = useRef(0);
