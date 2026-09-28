@@ -58,9 +58,12 @@ export type RejectedNatalInterpretationEvidence = {
     | 'missing_value';
 };
 
+export type NatalMeaningScope = 'personal' | 'background' | 'structural';
+
 export type NatalMeaning = {
   id: string;
   semanticKey: string;
+  scope: NatalMeaningScope;
   text: string;
   technicalText: string;
   topics: NatalMeaningTopic[];
