@@ -66,6 +66,30 @@ const WRITER_SCHEMA: StrictJsonSchema = {
   required: ['story', 'topics'],
   additionalProperties: false,
 };
+type RawSemanticCheck = { id?: unknown; ok?: unknown; issues?: unknown };
+type RawSemanticReview = { checks?: RawSemanticCheck[] };
+
+const SEMANTIC_REVIEW_SCHEMA: StrictJsonSchema = {
+  type: 'object',
+  properties: {
+    checks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          ok: { type: 'boolean' },
+          issues: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['id', 'ok', 'issues'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['checks'],
+  additionalProperties: false,
+};
+
 
 function chunks(values: readonly string[], size: number): string[][] {
   const out: string[][] = [];
@@ -307,6 +331,75 @@ export function materializeNatalUnifiedReading(input: {
   };
 }
 
+async function validateSemanticFidelity(
+  reading: NatalUnifiedReading,
+  interpretation: NatalInterpretation,
+  language: 'ru' | 'en',
+): Promise<string[]> {
+  const byId = meaningMap(interpretation);
+  const candidates = [
+    ...reading.story.map((block) => ({ surface: 'story', block })),
+    ...reading.topics.flatMap((topic) => topic.blocks.map((block) => ({
+      surface: `topic:${topic.key}`,
+      block,
+    }))),
+  ];
+  const payload = candidates.map(({ surface, block }) => ({
+    id: block.id,
+    surface,
+    allowed_meanings: block.meaningIds.map((id) => {
+      const meaning = byId.get(id)!;
+      return { id, scope: meaning.scope, meaning: meaning.text };
+    }),
+    candidate: block.text,
+  }));
+
+  const instructions = language === 'ru'
+    ? `Ты проверяешь только соответствие готового текста уже утверждённым смыслам.
+Не трактуй астрологию и не добавляй собственных выводов.
+Для каждого блока ok=true только если:
+1) все allowed_meanings действительно переданы;
+2) нет нового утверждения, причины, мотива, биографии, события или психологического ярлыка;
+3) background не усилен до твёрдого личного свойства;
+4) structural не превращён в диагноз характера;
+5) описание не превращено в совет.
+Стиль и красоту не оценивай. Верни проверку для каждого id.`
+    : `Check only whether each candidate is semantically faithful to its approved meanings.
+Do not interpret astrology and do not add your own conclusions.
+ok=true only when every allowed meaning is represented, no unsupported claim/cause/motive/biography/event/psychological label is added, background and structural scope are not strengthened, and description is not turned into advice.
+Do not judge style. Return one check for every id.`;
+
+  const response = await createLunaStructuredResponse({
+    instructions,
+    input: JSON.stringify({ blocks: payload }),
+    maxOutputTokens: Math.min(3200, Math.max(1000, candidates.length * 110)),
+    reasoningEffort: 'low',
+    verbosity: 'low',
+    store: false,
+    schemaName: 'natal_unified_semantic_review',
+    schema: SEMANTIC_REVIEW_SCHEMA,
+  });
+
+  let raw: RawSemanticReview;
+  try {
+    raw = JSON.parse(response.content) as RawSemanticReview;
+  } catch {
+    return ['semantic review returned invalid JSON'];
+  }
+  const checks = Array.isArray(raw.checks) ? raw.checks : [];
+  const expectedIds = candidates.map(({ block }) => block.id);
+  const actualIds = checks.map((check) => typeof check.id === 'string' ? check.id : '');
+  if (!sameIds(actualIds, expectedIds)) return ['semantic review changed block ids'];
+
+  return checks.flatMap((check) => {
+    if (check.ok === true) return [];
+    const issues = Array.isArray(check.issues)
+      ? check.issues.filter((issue): issue is string => typeof issue === 'string' && issue.trim().length > 0)
+      : [];
+    return [`${String(check.id)}: ${issues.join('; ') || 'semantic mismatch'}`];
+  });
+}
+
 export async function generateNatalUnifiedReading(input: {
   chart: NatalChartDataV2;
   language?: 'ru' | 'en';
@@ -324,6 +417,7 @@ export async function generateNatalUnifiedReading(input: {
       maxOutputTokens: input.tier === 'premium' ? 6500 : 3500,
       reasoningEffort: 'medium',
       verbosity: 'medium',
+      store: false,
       schemaName: 'natal_unified_reading',
       schema: WRITER_SCHEMA,
     });
@@ -340,7 +434,12 @@ export async function generateNatalUnifiedReading(input: {
       tier: input.tier,
       plan,
     });
-    if (materialized.reading) return materialized.reading;
+    if (materialized.reading) {
+      const semanticErrors = await validateSemanticFidelity(materialized.reading, interpretation, language);
+      if (!semanticErrors.length) return materialized.reading;
+      errors = semanticErrors;
+      continue;
+    }
     errors = materialized.errors;
   }
 
