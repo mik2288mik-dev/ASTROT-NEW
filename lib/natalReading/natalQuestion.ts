@@ -541,11 +541,10 @@ export function buildNatalQuestionPrompt(
   context: NatalQuestionPromptContext,
   repairErrors: readonly NatalQuestionValidationCode[] = [],
 ): string {
-  const languageRule = language === 'ru'
-    ? 'Ответь по-русски и обращайся к человеку на «ты».'
-    : 'Answer in English and address the reader as “you”.';
-  return `## CONTENT CONTRACT: NATAL QUESTION
-${languageRule}
+  const rules = language === 'ru'
+    ? `## КОНТРАКТ ФУНКЦИИ: ВОПРОС ПО НАТАЛЬНОЙ КАРТЕ
+
+Отвечай по-русски и обращайся к человеку на «ты».
 
 Ты отвечаешь только по уже готовым смыслам единого натального интерпретатора. Ты НЕ астрологический интерпретатор и не имеешь права заново трактовать сырые данные карты.
 
@@ -561,15 +560,37 @@ ${languageRule}
 - Не придумывай прошлое, травмы, страхи, диагнозы, отношения, профессию, доход, мысли других людей или гарантированные события.
 - previous messages нужны только для связности разговора. Они не являются доказательством и не расширяют APPROVED_MEANINGS.
 - Натальная карта не даёт календарных прогнозов. Если вопрос про сегодня/завтра/дату/когда случится, коротко обозначь эту границу и отвечай только о повторяющемся способе действия, который действительно есть в APPROVED_MEANINGS.
-- Для русского timing-вопроса допустимая граница: «По натальной карте нельзя определить, лучший ли сегодня день, или назвать подходящую дату».
-- Не приветствуй, не благодари за вопрос и не рассказывай, что сейчас будешь делать.
+- Для timing-вопроса допустимая граница: «По натальной карте нельзя определить, лучший ли сегодня день, или назвать подходящую дату».
+- Не приветствуй, не благодари за вопрос и не рассказывай, что сейчас будешь делать.`
+    : `## CONTENT CONTRACT: NATAL QUESTION
+
+Answer in English and address the reader as “you”.
+
+You answer only from the already approved meanings produced by the unified natal interpreter. You are NOT allowed to reinterpret raw chart data.
+
+STRICT RULES:
+- APPROVED_MEANINGS contains the entire allowed interpretation.
+- Return JSON only: {"answer":"3-5 complete sentences","meaning_ids":["existing meaning id"]}.
+- Answer the question directly. Use only the meaning_ids actually needed for the answer.
+- Every personal claim in answer must be a direct paraphrase of the selected approved meanings. Add no new cause, motive, biography, event, or psychological label.
+- If the approved meanings do not support the premise of the question, say so plainly. Do not force the chart to fit the question.
+- Do not name planets, signs, houses, aspects, angles, retrograde motion, orbs, or degrees in answer. The app shows technical evidence separately.
+- Do not coach, advise, prescribe, or give the reader tasks or a “right path”.
+- Avoid meta/report language such as “this theme”, “dynamic”, “sphere”, “function”, “the chart shows”, or “astrological interpretation”.
+- Do not invent past events, trauma, fears, diagnoses, relationship history, profession, income, third-party thoughts, or guaranteed events.
+- previous messages are only for conversational continuity. They are not evidence and do not expand APPROVED_MEANINGS.
+- A natal chart does not provide calendar forecasts. For today/tomorrow/date/when questions, briefly state that boundary and answer only from a recurring way of acting that is actually present in APPROVED_MEANINGS.
+- A safe timing boundary is: “The natal chart cannot determine whether today is the best day or name a suitable date.”
+- No greeting, thanks, or setup paragraph.`;
+
+  return `${rules}
 
 APPROVED CONTEXT:
 ${JSON.stringify(context, null, 2)}${repairErrors.length ? `
 
 PREVIOUS OUTPUT WAS REJECTED:
 ${repairErrors.join(', ')}
-Напиши новый вариант и исправь все перечисленные нарушения. Верни только JSON.` : ''}`;
+Write a new candidate and fix every listed issue. Return JSON only.` : ''}`;
 }
 
 function sentenceCount(value: string): number {
