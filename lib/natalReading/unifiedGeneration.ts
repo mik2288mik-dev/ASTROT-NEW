@@ -134,21 +134,27 @@ function promptPlan(
   errors: readonly string[] = [],
 ): string {
   const byId = meaningMap(interpretation);
-  const hydrate = (block: NatalUnifiedWriterPlanBlock) => ({
+  const hydrate = (block: NatalUnifiedWriterPlanBlock, surface: string) => ({
     id: block.id,
+    surface,
     meaning_ids: block.meaningIds,
     allowed_meanings: block.meaningIds.map((id) => {
       const meaning = byId.get(id)!;
-      return { id: meaning.id, scope: meaning.scope, meaning: meaning.text };
+      return {
+        id: meaning.id,
+        scope: meaning.scope,
+        evidence_ids: meaning.evidenceIds,
+        meaning: meaning.text,
+      };
     }),
   });
   const payload = {
     tier,
-    story: plan.story.map(hydrate),
+    story: plan.story.map((block) => hydrate(block, 'story')),
     topics: plan.topics.map((topic) => ({
       key: topic.key,
       title: topic.title,
-      blocks: topic.blocks.map(hydrate),
+      blocks: topic.blocks.map((block) => hydrate(block, `topic:${topic.key}`)),
     })),
   };
 
