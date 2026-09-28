@@ -211,6 +211,11 @@ const UNIVERSAL_ASSISTANT_TASK_PATTERNS = [
   /(?:^|[^\p{L}])make(?!\s+(?:me\s+)?a\s+horoscope)(?!\p{L})/iu,
 ] as const;
 
+const CONTENT_RECOMMENDATION_PATTERNS = [
+  /(?:како(?:й|ю|е|ие)\s+(?:фильм|сериал|книг\p{L}*|музык\p{L}*|игр\p{L}*)[^.!?]{0,80}(?:посмотреть|почитать|послушать|выбрать|скачать|купить)|что\s+мне\s+(?:посмотреть|почитать|послушать|поиграть))/iu,
+  /(?:what|which)\s+(?:movie|film|series|show|book|music|game)[^.!?]{0,80}(?:should\s+i|to)\s+(?:watch|read|listen|play|choose|buy)|what\s+should\s+i\s+(?:watch|read|listen\s+to|play)/iu,
+] as const;
+
 const PRESCRIPTIVE_ASSISTANT_REQUEST_PATTERNS = [
   /(?:как|что)\s+мне\s+(?:лучше\s+)?(?:сделать|делать|найти|получить|добиться|заработать|увеличить|выбрать|купить|продать|написать|составить|подготовить|выучить|помириться|вернуть|убедить|заставить|уволиться|устроиться|перейти|переехать|построить|общаться|вести\s+себя|поступить|решить)(?!\p{L})/iu,
   /(?:дай|составь)\s+(?:мне\s+)?(?:совет|план|инструкц|список|стратег)/iu,
@@ -393,6 +398,13 @@ export function moderateNatalQuestion(input: {
       normalizedQuestion: shared.normalizedQuestion,
     };
   }
+  if (matchesQuestionPolicy(question, CONTENT_RECOMMENDATION_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: 'needs_specificity',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
   if (matchesQuestionPolicy(question, PRESCRIPTIVE_ASSISTANT_REQUEST_PATTERNS)) {
     return {
       status: 'rejected',
@@ -431,15 +443,25 @@ export function moderateNatalQuestion(input: {
 
   const hasPersonalSubject = matchesQuestionPolicy(question, PERSONAL_SUBJECT_PATTERNS);
   const hasNatalScope = matchesQuestionPolicy(question, NATAL_SCOPE_PATTERNS);
+  const hasExplicitChartScope = matchesQuestionPolicy(question, EXPLICIT_CHART_SCOPE_PATTERNS);
+  const hasInterpretiveIntent = matchesQuestionPolicy(question, INTERPRETIVE_INTENT_PATTERNS);
+  const hasPersonalPatternDomain = matchesQuestionPolicy(
+    question,
+    PERSONAL_PATTERN_DOMAIN_PATTERNS,
+  );
   const isTimingQuestion = matchesQuestionPolicy(question, TIMING_QUESTION_PATTERNS)
     && matchesQuestionPolicy(question, TIMING_DECISION_PATTERNS)
     && (hasPersonalSubject || hasNatalScope);
+  const isImplicitSelfChartQuestion = hasExplicitChartScope
+    && hasInterpretiveIntent
+    && hasPersonalPatternDomain;
 
-  // The product accepts any concrete question about the user. Topic/domain
-  // buttons are no longer part of the UX, so normal personal wording must not
-  // depend on a brittle list of domain stems. Explicitly out-of-scope,
-  // prescriptive, third-party and vague requests have already been rejected above.
-  if (!hasPersonalSubject && !hasNatalScope && !isTimingQuestion) {
+  // Product rule: one free-form field accepts any concrete question ABOUT the
+  // user. It does not require a topic vocabulary. Generic astrology reference
+  // questions ("what does Saturn mean?") and unrelated recommendations are not
+  // personal questions, while an explicit "my chart" question can still be
+  // accepted when its wording clearly asks for a personal pattern.
+  if (!hasPersonalSubject && !isImplicitSelfChartQuestion && !isTimingQuestion) {
     return {
       status: 'rejected',
       reason: shared.status === 'pending' ? 'needs_specificity' : 'not_natal_question',
