@@ -26,8 +26,8 @@ import type {
 
 const MAX_ANSWER_ATTEMPTS = 2;
 
-export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question-v5');
-export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v7';
+export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question-v6');
+export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v8';
 
 const NATAL_QUESTION_RESPONSE_SCHEMA: StrictJsonSchema = {
   type: 'object',
@@ -429,35 +429,17 @@ export function moderateNatalQuestion(input: {
     };
   }
 
-  const hasInterpretiveIntent = matchesQuestionPolicy(
-    question,
-    INTERPRETIVE_INTENT_PATTERNS,
-  );
-  const hasPersonalPatternDomain = matchesQuestionPolicy(
-    question,
-    PERSONAL_PATTERN_DOMAIN_PATTERNS,
-  );
   const hasPersonalSubject = matchesQuestionPolicy(question, PERSONAL_SUBJECT_PATTERNS);
-  const hasExplicitChartScope = matchesQuestionPolicy(question, EXPLICIT_CHART_SCOPE_PATTERNS);
-  const isExplicitNatalQuestion = matchesQuestionPolicy(question, NATAL_SCOPE_PATTERNS)
-    && hasInterpretiveIntent
-    && (
-      (hasPersonalSubject && (
-        hasPersonalPatternDomain
-        || matchesQuestionPolicy(question, ASTROLOGY_FACTOR_PATTERNS)
-      ))
-      || (hasExplicitChartScope && hasPersonalPatternDomain)
-    );
-  const isPersonalPatternQuestion = hasPersonalSubject && hasPersonalPatternDomain
-    && hasInterpretiveIntent;
+  const hasNatalScope = matchesQuestionPolicy(question, NATAL_SCOPE_PATTERNS);
   const isTimingQuestion = matchesQuestionPolicy(question, TIMING_QUESTION_PATTERNS)
     && matchesQuestionPolicy(question, TIMING_DECISION_PATTERNS)
-    && (
-      hasPersonalSubject
-      || matchesQuestionPolicy(question, NATAL_SCOPE_PATTERNS)
-    );
+    && (hasPersonalSubject || hasNatalScope);
 
-  if (!isExplicitNatalQuestion && !isPersonalPatternQuestion && !isTimingQuestion) {
+  // The product accepts any concrete question about the user. Topic/domain
+  // buttons are no longer part of the UX, so normal personal wording must not
+  // depend on a brittle list of domain stems. Explicitly out-of-scope,
+  // prescriptive, third-party and vague requests have already been rejected above.
+  if (!hasPersonalSubject && !hasNatalScope && !isTimingQuestion) {
     return {
       status: 'rejected',
       reason: shared.status === 'pending' ? 'needs_specificity' : 'not_natal_question',
