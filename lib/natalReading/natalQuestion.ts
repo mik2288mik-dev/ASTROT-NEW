@@ -211,6 +211,11 @@ const UNIVERSAL_ASSISTANT_TASK_PATTERNS = [
   /(?:^|[^\p{L}])make(?!\s+(?:me\s+)?a\s+horoscope)(?!\p{L})/iu,
 ] as const;
 
+const FACTUAL_LOOKUP_PATTERNS = [
+  /(?:столиц\p{L}*|в\s+какой\s+стране\s+париж|когда\s+родил\p{L}*\s+(?!я\b))/iu,
+  /(?:capital\s+of|which\s+country\s+is\s+paris\s+in|when\s+was\s+(?!i\b)[^?!.]{1,80}\s+born)/iu,
+] as const;
+
 const CONTENT_RECOMMENDATION_PATTERNS = [
   /(?:како(?:й|ю|е|ие)\s+(?:фильм|сериал|книг\p{L}*|музык\p{L}*|игр\p{L}*)[^.!?]{0,80}(?:посмотреть|почитать|послушать|выбрать|скачать|купить)|что\s+мне\s+(?:посмотреть|почитать|послушать|поиграть))/iu,
   /(?:what|which)\s+(?:movie|film|series|show|book|music|game)[^.!?]{0,80}(?:should\s+i|to)\s+(?:watch|read|listen|play|choose|buy)|what\s+should\s+i\s+(?:watch|read|listen\s+to|play)/iu,
@@ -283,15 +288,8 @@ function matchesQuestionPolicy(
 }
 
 function hasNatalQuestionContext(value: string): boolean {
-  const hasPersonalSubject = matchesQuestionPolicy(value, PERSONAL_SUBJECT_PATTERNS);
   return matchesQuestionPolicy(value, NATAL_SCOPE_PATTERNS)
-    || (
-      hasPersonalSubject
-      && (
-        matchesQuestionPolicy(value, PERSONAL_PATTERN_DOMAIN_PATTERNS)
-        || matchesQuestionPolicy(value, ASTROLOGY_FACTOR_PATTERNS)
-      )
-    );
+    || matchesQuestionPolicy(value, PERSONAL_SUBJECT_PATTERNS);
 }
 
 function isInScopeNatalRequestPart(value: string, hasPriorNatalContext: boolean): boolean {
@@ -391,6 +389,13 @@ export function moderateNatalQuestion(input: {
   }
 
   if (matchesQuestionPolicy(question, UNIVERSAL_ASSISTANT_TASK_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: 'not_natal_question',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+  if (matchesQuestionPolicy(question, FACTUAL_LOOKUP_PATTERNS)) {
     return {
       status: 'rejected',
       reason: 'not_natal_question',
