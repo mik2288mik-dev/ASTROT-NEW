@@ -40,13 +40,37 @@ describe('current natal product shell', () => {
     expect(unified).not.toContain('Почему так?');
   });
 
-  it('uses the same interpretation source for map explanations', () => {
+  it('uses the same interpretation source for map explanations and shows the meaning on first tap', () => {
     const map = source('components/NatalReading/mapExplanation.ts');
+    const interactive = source('components/NatalReading/InteractiveNatalMap.tsx');
 
     expect(map).toContain('buildNatalInterpretation');
     expect(map).toContain('interpretationFor');
     expect(map).not.toContain('SIGN_WAYS');
     expect(map).not.toContain('OBJECT_THEMES');
+    expect(interactive).toContain('{explanation.meaning}');
+    expect(interactive).toContain('На чём основано');
+    expect(interactive).not.toContain("from '../../lib/natalReading/permanentReport'");
+  });
+
+  it('answers natal questions only from unified meanings and derives technical evidence server-side', () => {
+    const question = source('lib/natalReading/natalQuestion.ts');
+    const endpoint = source('pages/api/content/natal/questions.ts');
+    const evidence = source('components/NatalReading/NatalEvidenceSheet.tsx');
+
+    expect(question).toContain('buildNatalInterpretation');
+    expect(question).toContain('approvedMeanings');
+    expect(question).toContain('meaning_ids');
+    expect(question).toContain('evidenceIdsForMeanings');
+    expect(question).toContain('reviewNatalQuestionSemanticFidelity');
+    expect(question).not.toContain('buildNatalModelContext');
+    expect(question).not.toContain('buildNatalPromptContext');
+    expect(question).not.toContain('getNatalNarrativeEvidenceIds');
+    expect(question).not.toContain('NATAL_PERMANENT_CONTRACT_VERSION');
+    expect(endpoint).not.toContain('getCachedPermanentPremiumReport');
+    expect(endpoint).toContain('meaningIds: answer.meaningIds');
+    expect(evidence).toContain('buildNatalInterpretation');
+    expect(evidence).not.toContain("from '../../lib/natalReading/permanentReport'");
   });
 
   it('does not expose the removed classic/catalog admin selector', () => {
