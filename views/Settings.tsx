@@ -55,7 +55,6 @@ import {
 } from '../services/accountAuthService';
 import { hasTelegramMiniAppContext } from '../services/authSessionIntent';
 import { meetsMinimumPasswordLength } from '../lib/auth/passwordPolicy';
-import { NatalReadingVariantSettings } from '../components/NatalReading/NatalReadingVariantSettings';
 import { isNativeAndroidRuntime } from '../services/nativeRuntime';
 import {
     getNativeNotificationSettings, openNativeNotificationSettings, saveNativeNotificationSettings,
@@ -1780,7 +1779,6 @@ export const Settings: React.FC<SettingsProps> = ({
             case 'developer':
                 return (
                     <section className="settings-detail-panel" aria-label={settingsTitle.developer}>
-                        <NatalReadingVariantSettings profile={profile} />
                         {onOpenAdmin ? (
                             <div className="settings-list">
                                 <SettingsRow
