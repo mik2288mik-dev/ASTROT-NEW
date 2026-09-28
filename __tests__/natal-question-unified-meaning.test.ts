@@ -79,6 +79,16 @@ describe('natal questions use the unified meaning layer', () => {
     expect(errors).toContain('MEANING_UNKNOWN');
   });
 
+  it('rejects an answer that cites an unnecessarily broad slice of the whole chart', () => {
+    const interpretation = buildNatalInterpretation(canonicalNatalChart(), 'ru');
+    const errors = getNatalQuestionAnswerValidationErrors({
+      answer: validAnswer,
+      meaning_ids: interpretation.meanings.slice(0, 7).map((meaning) => meaning.id),
+    }, new Set(interpretation.meanings.map((meaning) => meaning.id)));
+
+    expect(errors).toContain('MEANING_SELECTION_TOO_BROAD');
+  });
+
   it('repairs an answer when semantic review finds a claim outside the selected meanings', async () => {
     const chart = canonicalNatalChart();
     const interpretation = buildNatalInterpretation(chart, 'ru');
