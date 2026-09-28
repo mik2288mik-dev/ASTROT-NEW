@@ -23,6 +23,7 @@ import {
   reserveNatalQuestionMessage,
 } from '../../../../lib/natalReading/natalQuestionStore';
 import { normalizePersonalForecastQuestionInput } from '../../../../lib/personalForecastQuestionModeration';
+import { withLegacyNatalEvidenceAliases } from '../../../../lib/natalReading/legacyCompatibility';
 import { normalizePersonalForecastQuestionSearch } from '../../../../lib/personalForecastQuestionCatalog';
 import {
   generationInProgressPayload,
@@ -199,7 +200,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           payload: {
             questionMessageId: reserved.message.id,
             meaningIds: answer.meaningIds,
-            evidenceIds: answer.evidenceIds,
+            evidenceIds: withLegacyNatalEvidenceAliases(answer.evidenceIds),
             interpretationVersion: NATAL_QUESTION_IDENTITY.interpretationVersion,
             contractVersion: NATAL_QUESTION_IDENTITY.contractVersion,
             promptVersion: NATAL_QUESTION_IDENTITY.promptVersion,
