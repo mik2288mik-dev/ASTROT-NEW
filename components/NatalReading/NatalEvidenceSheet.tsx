@@ -232,7 +232,8 @@ function aspectUsesAngle(fact: EvidenceLabelFact): boolean {
       .map(normalizedObjectKey)
       .some((value) => ['ascendant', 'rising', 'mc', 'descendant', 'ic'].includes(value));
   }
-  return [fact.fromKey, fact.toKey]
+  const modern = fact as NatalInterpretationEvidence;
+  return [modern.fromKey, modern.toKey]
     .map(normalizedObjectKey)
     .some((value) => (
       value === 'ascendant'
