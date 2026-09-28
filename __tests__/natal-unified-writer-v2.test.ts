@@ -93,7 +93,7 @@ describe('hardened unified natal writer', () => {
     expect(materializeNatalUnifiedReading({ raw: renamed, interpretation, tier: 'premium', plan }).reading).toBeNull();
 
     const padded = validRaw(plan);
-    padded.story[0].text = Array.from({ length: 500 }, () => 'понятно').join(' ');
+    padded.story[0].text = Array.from({ length: 200 }, () => 'понятно').join(' ');
     const paddedResult = materializeNatalUnifiedReading({ raw: padded, interpretation, tier: 'premium', plan });
     expect(paddedResult.reading).toBeNull();
     expect(paddedResult.errors.join(' ')).toContain('padded beyond approved material');
@@ -102,11 +102,14 @@ describe('hardened unified natal writer', () => {
   it('runs a semantic fidelity review and never falls back to unvalidated meaning prose', () => {
     const generation = source('lib/natalReading/unifiedGeneration.ts');
     const service = source('services/natalUnifiedReadingService.ts');
+    const ui = source('components/NatalReading/NatalUnifiedReport.tsx');
 
     expect(generation).toContain('validateSemanticFidelity');
     expect(generation).toContain('semantic review');
     expect(generation).toContain('NATAL_WRITER_REJECTED');
     expect(generation).not.toContain('function deterministicFallback');
     expect(service).toContain("nebo:natal-unified-reading:v2");
+    expect(ui).toContain("const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free';");
+    expect(ui).not.toContain("mode === 'topics' && isPremium ? 'premium' : 'free'");
   });
 });
