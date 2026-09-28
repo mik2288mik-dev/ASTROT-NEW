@@ -30,11 +30,6 @@ jest.mock('../lib/natalReading/apiHelper', () => ({
   })),
 }));
 
-jest.mock('../lib/natalReading/permanentApi', () => ({
-  generatePermanentPremiumWithLock: jest.fn(),
-  getCachedPermanentPremiumReport: jest.fn(),
-  waitForPermanentPremiumReport: jest.fn(),
-}));
 
 jest.mock('../lib/natalReading/natalQuestion', () => {
   class NatalQuestionValidationError extends Error {
