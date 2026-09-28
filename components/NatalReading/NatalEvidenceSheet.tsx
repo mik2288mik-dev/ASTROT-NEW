@@ -3,11 +3,11 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import styles from './NatalSection.module.css';
 import type { NatalChartData, UserProfile } from '../../types';
+import type { NatalChartDataV2 } from '../../lib/natalChartV2Types';
 import {
-  buildNatalModelContext,
-  getPermanentNatalReliability,
-  type NatalEvidenceFact,
-} from '../../lib/natalReading/permanentReport';
+  buildNatalInterpretation,
+  type NatalInterpretationEvidence,
+} from '../../lib/natalInterpretation';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
 
 export type NatalExplanationMode = 'meaning' | 'why' | 'accuracy';
@@ -109,86 +109,79 @@ function positiveInteger(value: unknown): number | null {
   return Number.isFinite(number) && number > 0 ? Math.round(number) : null;
 }
 
-function factData(fact: NatalEvidenceFact): Record<string, unknown> {
-  return (fact.data || {}) as Record<string, unknown>;
-}
-
 export function formatNatalEvidenceLabel(
-  fact: NatalEvidenceFact,
+  fact: NatalInterpretationEvidence,
   language: 'ru' | 'en',
 ): string {
-  const data = factData(fact);
-
-  if (fact.kind === 'quality') {
-    const quality = String(data.birthTimeQuality || 'unknown');
-    if (language === 'ru') {
-      if (quality === 'exact') return 'Время рождения указано точно';
-      if (quality === 'approximate') return 'Время рождения указано приблизительно';
-      return 'Время рождения неизвестно';
-    }
-    if (quality === 'exact') return 'Exact birth time';
-    if (quality === 'approximate') return 'Approximate birth time';
-    return 'Unknown birth time';
+  if (fact.kind === 'body_sign' && fact.bodyKey && fact.sign) {
+    const object = objectLabel(fact.bodyKey, language);
+    const signKey = Object.keys(SIGN_IN_RU).find(
+      (key) => key.toLocaleLowerCase('en-US') === fact.sign!.toLocaleLowerCase('en-US'),
+    );
+    const sign = language === 'ru' && signKey ? SIGN_IN_RU[signKey] : signLabel(fact.sign, language);
+    const degree = degreeLabel(fact.degree);
+    return `${object} ${language === 'ru' ? 'в' : 'in'} ${sign}${degree ? `, ${degree}` : ''}`;
   }
 
-  if (fact.kind === 'placement' || fact.kind === 'angle') {
-    const object = objectLabel(data.key || data.object || fact.object, language);
-    const signKey = Object.keys(SIGN_IN_RU).find((key) => key.toLowerCase() === String(data.sign || '').toLowerCase());
-    const sign = language === 'ru' && signKey ? SIGN_IN_RU[signKey] : signLabel(data.sign, language);
-    const degree = degreeLabel(data.degree);
-    const house = positiveInteger(data.house);
-    return [
-      `${object}${sign ? ` ${language === 'ru' ? 'в' : 'in'} ${sign}` : ''}${degree ? `, ${degree}` : ''}`,
-      house != null ? `${house} ${language === 'ru' ? 'дом' : 'house'}` : '',
-      data.retrograde === true ? (language === 'ru' ? 'ретроградный' : 'retrograde') : '',
-    ].filter(Boolean).join(' · ');
+  if (fact.kind === 'body_house' && fact.bodyKey && fact.house) {
+    return `${objectLabel(fact.bodyKey, language)} · ${fact.house} ${language === 'ru' ? 'дом' : 'house'}`;
   }
 
-  if (fact.kind === 'aspect') {
-    const from = objectLabel(data.fromKey || data.from, language);
-    const to = objectLabel(data.toKey || data.to, language);
-    const aspectKey = String(data.type || '').toLocaleLowerCase('en-US');
-    const aspect = ASPECT_LABELS[aspectKey]?.[language] || String(data.type || '').trim();
-    const orb = degreeLabel(data.orb);
+  if (fact.kind === 'body_retrograde' && fact.bodyKey && typeof fact.retrograde === 'boolean') {
+    const motion = fact.retrograde
+      ? (language === 'ru' ? 'ретроградное движение' : 'retrograde')
+      : (language === 'ru' ? 'директное движение' : 'direct');
+    return `${objectLabel(fact.bodyKey, language)} · ${motion}`;
+  }
+
+  if (fact.kind === 'angle_sign' && fact.angleKey && fact.sign) {
+    const signKey = Object.keys(SIGN_IN_RU).find(
+      (key) => key.toLocaleLowerCase('en-US') === fact.sign!.toLocaleLowerCase('en-US'),
+    );
+    const sign = language === 'ru' && signKey ? SIGN_IN_RU[signKey] : signLabel(fact.sign, language);
+    const degree = degreeLabel(fact.degree);
+    return `${objectLabel(fact.angleKey, language)} ${language === 'ru' ? 'в' : 'in'} ${sign}${degree ? `, ${degree}` : ''}`;
+  }
+
+  if (fact.kind === 'aspect' && fact.fromKey && fact.toKey && fact.aspectType) {
+    const from = objectLabel(fact.fromKey, language);
+    const to = objectLabel(fact.toKey, language);
+    const aspect = ASPECT_LABELS[fact.aspectType]?.[language] || fact.aspectType;
+    const orb = degreeLabel(fact.orb);
     return [
       [from, aspect, to].filter(Boolean).join(' '),
       orb ? `${language === 'ru' ? 'орб' : 'orb'} ${orb}` : '',
     ].filter(Boolean).join(' · ');
   }
 
-  if (fact.kind === 'house') {
-    const house = positiveInteger(data.house);
-    const sign = signLabel(data.sign, language);
-    const degree = degreeLabel(data.degree);
+  if (fact.kind === 'house_cusp' && fact.house && fact.sign) {
+    const degree = degreeLabel(fact.degree);
     return [
-      house != null ? `${house} ${language === 'ru' ? 'дом' : 'house'}` : '',
-      sign,
+      `${fact.house} ${language === 'ru' ? 'дом' : 'house'}`,
+      signLabel(fact.sign, language),
       degree,
     ].filter(Boolean).join(' · ');
   }
 
-  return objectLabel(fact.object, language);
+  return '';
 }
 
-function aspectUsesAngle(fact: NatalEvidenceFact): boolean {
+function aspectUsesAngle(fact: NatalInterpretationEvidence): boolean {
   if (fact.kind !== 'aspect') return false;
-  const data = factData(fact);
-  const values = [data.fromKey, data.from, data.toKey, data.to]
-    .map(normalizedObjectKey);
-  return values.some((value) => (
-    value === 'ascendant'
-    || value === 'rising'
-    || value === 'mc'
-    || value === 'descendant'
-    || value === 'ic'
-  ));
+  return [fact.fromKey, fact.toKey]
+    .map(normalizedObjectKey)
+    .some((value) => (
+      value === 'ascendant'
+      || value === 'rising'
+      || value === 'mc'
+      || value === 'descendant'
+      || value === 'ic'
+    ));
 }
 
-function isTimeDependentFact(fact: NatalEvidenceFact): boolean {
-  if (fact.kind === 'angle' || fact.kind === 'house') return true;
-  if (fact.kind === 'aspect') return aspectUsesAngle(fact);
-  if (fact.kind === 'placement') return positiveInteger(factData(fact).house) != null;
-  return false;
+function isTimeDependentFact(fact: NatalInterpretationEvidence): boolean {
+  if (fact.kind === 'angle_sign' || fact.kind === 'house_cusp' || fact.kind === 'body_house') return true;
+  return fact.kind === 'aspect' && aspectUsesAngle(fact);
 }
 
 function reliabilityCopy(
@@ -324,19 +317,21 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
-  const built = useMemo(
-    () => buildNatalModelContext(profile, chartData),
-    [chartData, profile],
-  );
+  const interpretation = useMemo(() => {
+    const value = chartData as unknown as NatalChartDataV2;
+    return value?.schemaVersion === 'natal-chart-data-v2'
+      ? buildNatalInterpretation(value, language)
+      : null;
+  }, [chartData, language]);
   const evidenceById = useMemo(
-    () => new Map(built.context.evidence.map((fact) => [fact.id, fact])),
-    [built],
+    () => new Map((interpretation?.evidence || []).map((fact) => [fact.id, fact])),
+    [interpretation],
   );
   const facts = useMemo(() => {
     const seen = new Set<string>();
     return (target?.evidenceIds || [])
       .map((id) => evidenceById.get(id))
-      .filter((fact): fact is NatalEvidenceFact => {
+      .filter((fact): fact is NatalInterpretationEvidence => {
         if (!fact || seen.has(fact.id)) return false;
         seen.add(fact.id);
         return true;
@@ -346,7 +341,10 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
     () => [...new Set(facts.map((fact) => formatNatalEvidenceLabel(fact, language)).filter(Boolean))],
     [facts, language],
   );
-  const reliability = getPermanentNatalReliability(chartData);
+  const quality = interpretation?.birthTimeQuality
+    ?? chartData.chartQuality?.birthTimeQuality
+    ?? chartData.birthTimeQuality
+    ?? 'unknown';
   const timeDependent = facts.some(isTimeDependentFact);
   const isOpen = target !== null;
 
@@ -419,7 +417,6 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
 
   if (!target) return null;
 
-  const quality = reliability.quality;
   const whyTarget: NatalExplanationTarget = {
     mode: 'why',
     title: target.title,
