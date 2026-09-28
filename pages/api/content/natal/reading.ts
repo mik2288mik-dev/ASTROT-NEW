@@ -6,7 +6,10 @@ import {
   generateNatalUnifiedReadingWithLock,
   getCachedNatalUnifiedReading,
 } from '../../../../lib/natalReading/unifiedApi';
-import type { NatalUnifiedReadingTier } from '../../../../lib/natalReading/unifiedReading';
+import {
+  projectNatalUnifiedReadingForTier,
+  type NatalUnifiedReadingTier,
+} from '../../../../lib/natalReading/unifiedReading';
 
 export const config = { maxDuration: 90 };
 
@@ -51,7 +54,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
     return res.status(200).json({
-      interpretation: cached,
+      interpretation: {
+        ...cached,
+        content: projectNatalUnifiedReadingForTier(cached.content, tier),
+      },
       source: 'natal_unified_v1',
       accessTier: tier,
     });
@@ -59,7 +65,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (cached) {
     return res.status(200).json({
-      interpretation: cached,
+      interpretation: {
+        ...cached,
+        content: projectNatalUnifiedReadingForTier(cached.content, tier),
+      },
       source: 'natal_unified_v1',
       accessTier: tier,
     });
@@ -71,7 +80,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(202).json(generationInProgressPayload(result.retryAfterMs));
     }
     return res.status(200).json({
-      interpretation: result.value,
+      interpretation: {
+        ...result.value,
+        content: projectNatalUnifiedReadingForTier(result.value.content, tier),
+      },
       source: result.fromCache ? (result.source || 'natal_unified_v1') : 'generated',
       accessTier: tier,
     });
