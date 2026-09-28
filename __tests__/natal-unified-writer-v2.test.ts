@@ -59,6 +59,23 @@ describe('hardened unified natal writer', () => {
     expect(new Set(ids)).toEqual(new Set(interpretation.meanings.map((meaning) => meaning.id)));
   });
 
+  it('accepts concise everyday copy when ids and topic structure are unchanged', () => {
+    const interpretation = buildNatalInterpretation(canonicalNatalChart());
+    const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+    const raw = validRaw(plan);
+
+    const result = materializeNatalUnifiedReading({
+      raw,
+      interpretation,
+      tier: 'premium',
+      plan,
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.reading).not.toBeNull();
+    expect(result.reading?.topics.map((topic) => topic.title)).toEqual(plan.topics.map((topic) => topic.title));
+  });
+
   it('rejects pseudo-psychology instead of serving it', () => {
     const interpretation = buildNatalInterpretation(canonicalNatalChart());
     const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
