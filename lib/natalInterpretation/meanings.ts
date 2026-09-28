@@ -20,20 +20,34 @@ export const BODY_LABELS: Record<NatalBodyKey, Localized> = {
 };
 
 export const BODY_ROLES: Record<NatalBodyKey, Localized> = {
-  sun: { ru: 'то, что человек ставит в центр собственных решений и самовыражения', en: 'what the person puts at the center of decisions and self-expression' },
-  moon: { ru: 'привычную эмоциональную реакцию и способ возвращаться в комфортное состояние', en: 'habitual emotional response and the way comfort is restored' },
+  sun: { ru: 'то, как человек выражает себя, выбирает направление и действует от своего имени', en: 'how the person expresses themselves, chooses direction, and acts from their own position' },
+  moon: { ru: 'эмоциональную реакцию, привычки и то, что помогает чувствовать себя в знакомом ритме', en: 'emotional response, habits, and what supports a familiar sense of comfort' },
   mercury: { ru: 'способ думать, разбираться в информации и объяснять свою мысль', en: 'the way the person thinks, processes information, and explains an idea' },
-  venus: { ru: 'то, что нравится, ценится и помогает сближаться с людьми', en: 'what is liked and valued and how closeness is approached' },
-  mars: { ru: 'способ начинать действие, добиваться своего и отвечать на сопротивление', en: 'the way action starts, goals are pursued, and resistance is met' },
-  jupiter: { ru: 'способ расширять круг возможностей, знаний и опыта', en: 'the way opportunities, knowledge, and experience are expanded' },
-  saturn: { ru: 'отношение к правилам, ограничениям, ответственности и длинной работе', en: 'the approach to rules, limits, responsibility, and long-term work' },
+  venus: { ru: 'вкусы, ценности, симпатию и способ сближаться с людьми', en: 'taste, values, attraction, and the way closeness is approached' },
+  mars: { ru: 'способ начинать действие, добиваться результата и реагировать на сопротивление', en: 'the way action starts, results are pursued, and resistance is met' },
+  jupiter: { ru: 'способ расширять знания, опыт и круг возможностей', en: 'the way knowledge, experience, and opportunities are expanded' },
+  saturn: { ru: 'отношение к правилам, ответственности, ограничениям и долгой работе', en: 'the approach to rules, responsibility, limits, and long-term work' },
   uranus: { ru: 'отношение к свободе выбора, переменам и нестандартным решениям', en: 'the approach to freedom of choice, change, and unconventional solutions' },
-  neptune: { ru: 'воображение, впечатлительность и работу с тем, что не сразу можно назвать словами', en: 'imagination, impressionability, and handling what is not immediately easy to name' },
-  pluto: { ru: 'отношение к сильным переменам, влиянию и ситуациям, где ставки ощущаются высокими', en: 'the approach to major change, influence, and situations that feel high-stakes' },
-  chiron: { ru: 'тему, где опыт проб и ошибок особенно заметно меняет понимание себя', en: 'an area where trial-and-error experience particularly changes self-understanding' },
-  northNode: { ru: 'менее привычный способ действовать, который со временем становится более освоенным', en: 'a less familiar way of acting that can become more developed over time' },
-  southNode: { ru: 'привычный способ действовать, к которому легче возвращаться автоматически', en: 'a familiar way of acting that is easier to return to automatically' },
+  neptune: { ru: 'воображение, впечатлительность и способ работать с неоднозначным или неочевидным', en: 'imagination, impressionability, and handling what is ambiguous or not immediately obvious' },
+  pluto: { ru: 'отношение к глубоким переменам, интенсивности и сильному влиянию', en: 'the approach to deep change, intensity, and strong influence' },
+  chiron: { ru: 'тему, где накопленный опыт особенно заметно меняет взгляд на себя и свои действия', en: 'an area where accumulated experience particularly changes self-understanding and action' },
+  northNode: { ru: 'направление, которое в астрологической традиции связывают с менее привычным способом действовать', en: 'a direction astrology traditionally associates with a less familiar way of acting' },
+  southNode: { ru: 'направление, которое в астрологической традиции связывают с более привычным способом действовать', en: 'a direction astrology traditionally associates with a more familiar way of acting' },
 };
+
+export const BACKGROUND_SIGN_BODIES = new Set<NatalBodyKey>([
+  'saturn',
+  'uranus',
+  'neptune',
+  'pluto',
+  'chiron',
+  'northNode',
+  'southNode',
+]);
+
+export function isBackgroundSignBody(key: NatalBodyKey): boolean {
+  return BACKGROUND_SIGN_BODIES.has(key);
+}
 
 export const BODY_TOPICS: Record<NatalBodyKey, NatalMeaningTopic[]> = {
   sun: ['character', 'work', 'general'],
@@ -59,7 +73,7 @@ export const SIGN_STYLE_RU: Record<string, string> = {
   Leo: 'проявляешься заметнее, когда можно действовать от себя, показать результат и получить ясный отклик',
   Virgo: 'разбираешь по частям, замечаешь детали и охотнее доверяешь тому, что можно проверить на практике',
   Libra: 'сравниваешь позиции, учитываешь вторую сторону и ищешь решение, которое можно нормально согласовать',
-  Scorpio: 'не любишь поверхностный подход: дольше проверяешь, глубже вовлекаешься и серьёзнее относишься к доверию',
+  Scorpio: 'предпочитаешь разбираться глубже, не спешишь считать вопрос закрытым и серьёзно относишься к тому, что действительно важно',
   Sagittarius: 'смотришь шире текущей задачи, легче пробуешь новое и быстрее включаешься, когда видишь перспективу',
   Capricorn: 'ориентируешься на результат, порядок и то, что выдержит время, а не только хорошо звучит сейчас',
   Aquarius: 'оставляешь себе свободу решения, легче принимаешь необычный вариант и не любишь делать что-то только потому, что так принято',
