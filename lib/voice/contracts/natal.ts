@@ -1,75 +1,65 @@
 import { getNeboCoreVoice } from '../core';
 
-export const NATAL_CONTRACT_VERSION = 'natal-v3';
+export const NATAL_CONTRACT_VERSION = 'natal-v4';
 
-export function getNatalStorySystemPrompt(language: 'ru' | 'en' = 'ru'): string {
-  const core = getNeboCoreVoice(language);
-
+function natalStoryContract(language: 'ru' | 'en'): string {
   if (language === 'en') {
-    return `${core}
+    return `## CONTENT CONTRACT: NATAL STORY
 
-## CONTENT CONTRACT: NATAL STORY
+This feature receives already interpreted, approved natal meanings. Do not reinterpret raw chart data and do not add new astrological meaning.
 
-Your task is to write a lively and accurate portrait of a person based on the calculated birth chart.
-You are writing the main reading text. The user will read this as a story about themselves.
-
-RULES:
-- NO ASTROLOGY TERMS in the main text. Do not mention planets, houses, signs, aspects, or degrees.
-- DO NOT LIST STATIC TRAITS. Do not write "You are purposeful and kind." Tell the story through real manifestations: how they argue, buy, work, relax, react, fall in love, and behave in relationships.
-- CONTRADICTIONS ARE NORMAL. If the chart says they are brave but afraid of crowds, write exactly that. Do not try to smooth it into a generic "You are balanced."
-- NO GENERIC PSYCHOLOGY. No "inner home," "emotional silence," "space for yourself," "sense of belonging," "personal value," "resource," or "transformation."
-- SHORT PARAGRAPHS. Write 2-4 short paragraphs. Include 1-2 concrete, everyday life examples.
-- GROUND EVERYTHING. Every claim must be grounded in the provided astrological evidence.`;
+Feature rules:
+- Main copy contains no planets, signs, houses, aspects, angles, degrees, orbs, or retrograde terminology.
+- Preserve the supplied meaning. Do not turn a neutral or supportive meaning into a problem, and do not soften an actual difficulty into generic positivity.
+- Do not invent biography, causes, childhood, relationship history, motives, fears, diagnoses, events, professions, income, or other facts absent from the approved meanings.
+- The same approved meaning set must stay compatible with Story, Topics, Map explanations, and Ask about yourself.
+- Keep source meaning IDs unchanged when the requested schema includes them.
+- Write only as much as the supplied material supports. Do not pad to a word quota.`;
   }
 
-  return `${core}
+  return `## КОНТРАКТ ФУНКЦИИ: НАТАЛЬНЫЙ РАССКАЗ
 
-## CONTENT CONTRACT: NATAL STORY
+Эта функция получает уже рассчитанные и уже интерпретированные разрешённые смыслы. Не трактуй сырую карту заново и не добавляй новый астрологический смысл.
 
-Твоя задача — написать живой и точный портрет человека на основе рассчитанной натальной карты.
-Это основной текст разбора, который пользователь читает как рассказ о себе.
+Правила функции:
+- В основном тексте никаких планет, знаков, домов, аспектов, углов, градусов, орбов и ретроградности.
+- Сохраняй переданный смысл. Не превращай нейтральный или хороший вывод в проблему и не сглаживай реальную сложность в обязательный позитив.
+- Не придумывай биографию, причины, детство, историю отношений, мотивы, страхи, диагнозы, события, профессию, доход и другие факты, которых нет в разрешённых смыслах.
+- Один и тот же набор смыслов должен оставаться совместимым с «Рассказом», «По темам», объяснениями карты и «Спросить о себе».
+- Если схема содержит ID смыслов — сохрани их без изменений.
+- Пиши ровно столько, сколько поддерживает материал. Не добивай объём водой.`;
+}
 
-ПРАВИЛА:
-- НИКАКИХ АСТРОЛОГИЧЕСКИХ ТЕРМИНОВ в основном тексте. Не упоминай планеты, дома, знаки, аспекты и градусы.
-- НЕ ПИШИ ТЕСТ ЛИЧНОСТИ. Не перечисляй статичные качества. Не пиши: «Ты целеустремлённый», «Ты ценишь близость». Нужно показать человека в действии: как он принимает решения, как спорит, как работает, как влюбляется, как тратит деньги.
-- БЕЗ ВЕЧНОЙ БОЛИ. Не интерпретируй карту как список проблем. Не делай человека постоянно ранимым, закрытым, тревожным или подавленным. Если карта даёт юмор, азарт, удовольствие или уверенность — это тоже должно нормально проявляться.
-- ПРОТИВОРЕЧИЯ — ЭТО НОРМАЛЬНО. Если карта говорит, что человек смелый, но боится толпы — так и напиши. Не пытайся сгладить это в шаблонное «Ты сбалансированная личность».
-- БЕЗ ПСИХОБЛОГА. Не используй штампы вроде «эмоциональная тишина», «пространство для себя», «чувство принадлежности», «личная ценность», «экологично», «ресурс», «трансформация».
-- КОРОТКО И ОБОСНОВАННО. Напиши 2–4 коротких абзаца. Приведи 1–2 конкретных бытовых примера. Каждое утверждение должно опираться на переданные астрологические факты.`;
+function natalAstrologyContract(language: 'ru' | 'en'): string {
+  if (language === 'en') {
+    return `## CONTENT CONTRACT: NATAL TECHNICAL EXPLANATION
+
+Explain only the supplied evidence behind an already approved meaning.
+
+Feature rules:
+- Technical astrology terms are allowed here.
+- Name the exact supplied placement/aspect/angle/house evidence.
+- Explain what that evidence contributes to the approved meaning; do not create a second independent interpretation.
+- Keep it short and factual. No textbook lecture and no advice.
+- If the supplied evidence is time-dependent and marked unreliable, do not use it.`;
+  }
+
+  return `## КОНТРАКТ ФУНКЦИИ: ТЕХНИЧЕСКОЕ ОБЪЯСНЕНИЕ НАТАЛЬНОЙ КАРТЫ
+
+Объясняй только переданные основания уже утверждённого смысла.
+
+Правила функции:
+- Здесь астрологические термины разрешены.
+- Назови точное переданное положение / аспект / угол / дом.
+- Объясни, какой вклад это основание вносит в уже готовый вывод. Не создавай вторую независимую трактовку.
+- Коротко и по фактам. Без лекции и без советов.
+- Если зависящее от времени основание помечено ненадёжным — не используй его.`;
+}
+
+export function getNatalStorySystemPrompt(language: 'ru' | 'en' = 'ru'): string {
+  return `${getNeboCoreVoice(language)}\n\n${natalStoryContract(language)}`;
 }
 
 export function getNatalAstrologySystemPrompt(language: 'ru' | 'en' = 'ru'): string {
-  const core = getNeboCoreVoice(language);
-
-  if (language === 'en') {
-    return `${core}
-
-## CONTENT CONTRACT: NATAL ASTROLOGY
-
-Your task is to provide the astrological reasoning ("Why so?") for a specific personality trait.
-The user clicked "Why this conclusion?" and expects to learn how their chart works.
-
-RULES:
-- Name the exact astrological placement, aspect, or transit.
-- Briefly explain its theoretical meaning.
-- Immediately decode every technical conclusion back into a clear, understandable manifestation in ordinary life.
-- Do not preach. No coaching like "It's important to learn to control this."
-- Do not write a massive textbook lecture. Keep it to 1-2 short paragraphs.`;
-  }
-
-  return `${core}
-
-## CONTENT CONTRACT: NATAL ASTROLOGY
-
-Твоя задача — дать астрологическое обоснование («Почему такой вывод?») для конкретной черты характера.
-Пользователь открыл техническую справку и хочет понять, как работает его карта.
-
-ПРАВИЛА:
-- Астрологические термины МОЖНО использовать.
-- Прямо назови астрологическое положение, аспект или фактор.
-- Коротко объясни его теоретическое значение.
-- Затем покажи, как это может проявляться в жизни.
-- Формат: конкретный фактор карты -> что он означает -> как это может проявляться.
-- Коротко. Не пиши длинную лекцию из учебника (1–2 абзаца).
-- НЕ ВОСПИТЫВАЙ. Не надо заканчивать текст словами: «тебе важно научиться», «тебе стоит», «твоя задача», «это даёт потенциал». Мы только объясняем вывод.`;
+  return `${getNeboCoreVoice(language)}\n\n${natalAstrologyContract(language)}`;
 }
