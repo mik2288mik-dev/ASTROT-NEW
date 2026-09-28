@@ -35,8 +35,22 @@ export function getNatalInterpretationValidationErrors(
   if (interpretation.storyMeaningIds.length !== interpretation.meanings.length) {
     errors.push('story does not include every approved meaning');
   }
+  if (new Set(interpretation.storyMeaningIds).size !== interpretation.storyMeaningIds.length) {
+    errors.push('story repeats an approved meaning');
+  }
   if (interpretation.storyMeaningIds.some((id) => !meaningIds.has(id))) {
     errors.push('story references unknown meaning');
+  }
+
+  const topicMeaningIds = interpretation.topics.flatMap((topic) => topic.meaningIds);
+  if (topicMeaningIds.length !== interpretation.meanings.length) {
+    errors.push('topics do not include every approved meaning exactly once');
+  }
+  if (new Set(topicMeaningIds).size !== topicMeaningIds.length) {
+    errors.push('topics repeat an approved meaning');
+  }
+  if (topicMeaningIds.some((id) => !meaningIds.has(id))) {
+    errors.push('topics reference unknown meaning');
   }
 
   return errors;
