@@ -9,7 +9,11 @@ import { NatalArtwork, type NatalArt } from './NatalArtwork';
 type Row = MapSelection & { title: string; meaning: string; objectKey?: string };
 const PLANETS = new Set(['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto']);
 
-export function NatalDetails({ chart, onSelect }: { chart: NatalChartWheelSource; onSelect: (selection: MapSelection, target: HTMLElement) => void }) {
+export function NatalDetails({ chart, onSelect, isPremium = false }: {
+  chart: NatalChartWheelSource;
+  onSelect: (selection: MapSelection, target: HTMLElement) => void;
+  isPremium?: boolean;
+}) {
   const data = buildMapData(chart);
   const [expanded, setExpanded] = useState<string[]>([]);
   const points = (planet: boolean): Row[] => (planet ? data.allPoints.filter(p => PLANETS.has(p.key)) : [...data.angles, ...data.bodies.filter(p => !PLANETS.has(p.key))]).map(p => {
@@ -31,10 +35,13 @@ export function NatalDetails({ chart, onSelect }: { chart: NatalChartWheelSource
       <header className={styles.detailsHeading}><NatalArtwork art={art}/><h2>{title}</h2>{rows.length > 3 ? <button type="button" className={styles.detailsMore} aria-expanded={open} onClick={() => setExpanded(current => open ? current.filter(item => item !== title) : [...current,title])}>{open ? 'Свернуть' : `Все ${rows.length}`}<ChevronDown size={17} aria-hidden="true" style={{transform:open?'rotate(180deg)':undefined}}/></button> : <small>{rows.length}</small>}</header>
       <div className={styles.detailsRows}>{shown.map(row => {
         const objectKey = 'objectKey' in row ? row.objectKey : undefined;
+        const freeRow = (row.kind === 'point' && ['sun', 'ascendant'].includes(row.id))
+          || (row.kind === 'house' && row.id === '1');
+        const rowMeaning = isPremium || freeRow ? row.meaning : 'Доступно с Premium';
         const AspectIcon = row.title.startsWith('Квадрат:') ? Square : row.title.startsWith('Секстиль:') ? Asterisk : Icon;
         return <button key={row.id} type="button" onClick={e => onSelect({kind:row.kind,id:row.id},e.currentTarget)}>
         {typeof objectKey === 'string' ? <PlanetIcon planet={objectKey === 'northNode' ? 'north-node' : objectKey === 'southNode' ? 'south-node' : objectKey === 'ascendant' ? 'asc' : objectKey === 'descendant' ? 'desc' : objectKey} size={30} stroke={mapObject(objectKey)?.color}/> : row.kind === 'house' ? <i className={styles.houseNumber} aria-hidden="true">{row.id}</i> : <AspectIcon size={26} color={row.title.startsWith('Квадрат:') ? '#ed3152' : row.title.startsWith('Тригон:') ? '#00a76d' : color} aria-hidden="true"/>}
-        <span><strong>{row.title}</strong><small>{row.meaning}</small></span><ChevronRight size={17} aria-hidden="true"/>
+        <span><strong>{row.title}</strong><small>{rowMeaning}</small></span><ChevronRight size={17} aria-hidden="true"/>
       </button>})}</div>
       {!rows.length ? <p className={styles.detailsEmpty}>В сохранённой карте нет надёжных данных для этой группы.</p> : null}
     </section>;
