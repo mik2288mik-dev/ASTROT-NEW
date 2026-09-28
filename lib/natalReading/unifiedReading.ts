@@ -1,15 +1,22 @@
 import { withCoreVoiceCacheKey, withCoreVoiceVersion } from '../voice/core';
 import { NATAL_INTERPRETATION_VERSION, type NatalMeaningTopic } from '../natalInterpretation';
 
-export const NATAL_UNIFIED_READING_CONTRACT_VERSION = 'natal-unified-reading-v1';
+export const NATAL_UNIFIED_READING_CONTRACT_VERSION = 'natal-unified-reading-v2';
 export const NATAL_UNIFIED_READING_PROMPT_VERSION = withCoreVoiceVersion(
-  `${NATAL_UNIFIED_READING_CONTRACT_VERSION}.writer.v2`,
+  `${NATAL_UNIFIED_READING_CONTRACT_VERSION}.writer.v3`,
 );
 export const NATAL_UNIFIED_READING_CACHE_KEY = withCoreVoiceCacheKey(
-  'natal.unified-reading.v2',
+  'natal.unified-reading.v3',
 );
 
 export type NatalUnifiedReadingTier = 'free' | 'premium';
+
+export const NATAL_UNIFIED_FREE_STORY_RATIO = 0.45;
+
+export function natalUnifiedFreeStoryBlockCount(total: number): number {
+  if (total <= 1) return Math.max(0, total);
+  return Math.max(1, Math.min(total - 1, Math.ceil(total * NATAL_UNIFIED_FREE_STORY_RATIO)));
+}
 
 export type NatalUnifiedStoryBlock = {
   id: string;
@@ -33,6 +40,25 @@ export type NatalUnifiedReading = {
   meaningIds: string[];
   evidenceIds: string[];
 };
+
+export function projectNatalUnifiedReadingForTier(
+  reading: NatalUnifiedReading,
+  tier: NatalUnifiedReadingTier,
+): NatalUnifiedReading {
+  if (tier === 'premium') {
+    return reading.tier === 'premium' ? reading : { ...reading, tier: 'premium' };
+  }
+
+  const story = reading.story.slice(0, natalUnifiedFreeStoryBlockCount(reading.story.length));
+  const meaningIds = [...new Set(story.flatMap((block) => block.meaningIds))];
+  return {
+    ...reading,
+    tier: 'free',
+    story,
+    topics: [],
+    meaningIds,
+  };
+}
 
 export type NatalUnifiedWriterPlanBlock = {
   id: string;
