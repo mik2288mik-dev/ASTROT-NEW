@@ -93,7 +93,7 @@ describe('hardened unified natal writer', () => {
     expect(materializeNatalUnifiedReading({ raw: renamed, interpretation, tier: 'premium', plan }).reading).toBeNull();
 
     const padded = validRaw(plan);
-    padded.story[0].text = Array.from({ length: 90 }, () => 'понятно').join(' ');
+    padded.story[0].text = Array.from({ length: 500 }, () => 'понятно').join(' ');
     const paddedResult = materializeNatalUnifiedReading({ raw: padded, interpretation, tier: 'premium', plan });
     expect(paddedResult.reading).toBeNull();
     expect(paddedResult.errors.join(' ')).toContain('padded beyond approved material');
