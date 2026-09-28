@@ -27,6 +27,7 @@ function loadComponent(filename: string, replacements: Record<string, unknown> =
   }).outputText;
   const localRequire = (specifier: string): unknown => {
     if (specifier in replacements) return replacements[specifier];
+    if (specifier.endsWith('.module.css')) return {};
     if (!specifier.startsWith('.')) return require(specifier);
     const target = path.resolve(path.dirname(filename), specifier);
     return existsSync(`${target}.tsx`) ? loadComponent(`${target}.tsx`) : require(target);
