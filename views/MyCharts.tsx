@@ -13,7 +13,6 @@ import { PlanetIcon } from '../components/icons/PlanetIcon';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
 import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
 import { FREE_SAVED_PERSON_LIMIT, hasActivePremium, PREMIUM_SAVED_PERSON_LIMIT } from '../lib/accessMatrix';
-import { clearLocalHumanBaseReport } from '../lib/localHumanBaseReportCache';
 import { getAccessibleSavedPersonIds, getChartSubjectType, isSelfChart } from '../lib/chartAccessPolicy';
 import type { PaywallContext } from '../lib/paywallContext';
 import type { BirthTimeMode } from '../lib/birthTime';
@@ -305,18 +304,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
     try {
       await deleteChart(chart.id, profile.id);
-      clearLocalHumanBaseReport(profile, chart.id, {
-        subjectType: getChartSubjectType(chart),
-        subjectIdentity: {
-          name: chart.name,
-          birthDate: chart.birth_date,
-          birthTime: chart.birth_time,
-          birthPlace: chart.birth_place,
-        },
-        chartData: chart.chart_data,
-        inputHash: chart.input_hash,
-        calculationVersion: chart.calculation_version,
-      });
       await loadCharts();
       showActionFeedback(ACTION_FEEDBACK.removedFromSaved, 'neutral');
     } catch (err: any) {
