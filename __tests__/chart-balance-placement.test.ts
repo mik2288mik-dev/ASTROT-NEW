@@ -20,17 +20,14 @@ function balance(): ChartBalance {
 }
 
 describe('chart balance placement and copy', () => {
-  it('keeps calculated balance out of the primary reading and technical details behind the explicit toggle', () => {
-    const humanReport = fs.readFileSync(path.join(ROOT, 'components', 'NatalReading', 'HumanReport.tsx'), 'utf8');
+  it('keeps calculated balance out of the active unified reading', () => {
     const natalMagazine = fs.readFileSync(path.join(ROOT, 'views', 'v2', 'NatalMagazine.tsx'), 'utf8');
+    const unifiedReport = fs.readFileSync(path.join(ROOT, 'components', 'NatalReading', 'NatalUnifiedReport.tsx'), 'utf8');
 
     expect(natalMagazine).not.toContain('<ChartBalance');
-    expect(natalMagazine).not.toContain('<TechnicalDetails');
-    expect(humanReport).not.toContain('<ChartBalance');
-    expect(humanReport).toContain('<details className="natal-technical-details');
-    expect(humanReport).toContain('<TechnicalDetails chartData={chartData} language={language} />');
-    expect(humanReport).toContain('buildNatalReportTopics');
-    expect(humanReport).toContain('<NatalReportHub');
+    expect(unifiedReport).not.toContain('<ChartBalance');
+    expect(natalMagazine).toContain('<NatalUnifiedReport');
+    expect(natalMagazine).toContain('<InteractiveNatalMap');
   });
 
   it('does not use deficit wording in element summaries', () => {
