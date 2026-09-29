@@ -156,11 +156,12 @@ describe('Premium-only product model', () => {
     expect(fs.existsSync(path.join(ROOT, 'pages', 'api', 'content', 'question', 'history.ts'))).toBe(false);
   });
 
-  it('Natal unlock sheets are Premium-only', () => {
-    const humanReport = fs.readFileSync(path.join(ROOT, 'components', 'NatalReading', 'HumanReport.tsx'), 'utf8');
-    const storyDeck = fs.readFileSync(path.join(ROOT, 'components', 'NatalReading', 'NatalStoryDeck.tsx'), 'utf8');
-    expect(humanReport).not.toContain('onStarsOpen');
-    expect(storyDeck).not.toContain('onStarsOpen');
-    expect(storyDeck).not.toMatch(/loadPaid\([^,]+,\s*true\)/);
+  it('Natal Premium gates use the subscription flow only', () => {
+    const unifiedReport = fs.readFileSync(path.join(ROOT, 'components', 'NatalReading', 'NatalUnifiedReport.tsx'), 'utf8');
+    const questions = fs.readFileSync(path.join(ROOT, 'components', 'NatalReading', 'NatalQuestionExperience.tsx'), 'utf8');
+    expect(unifiedReport).toContain("requestPremium('deep_natal'");
+    expect(questions).toContain("requestPremium('natal_questions'");
+    expect(`${unifiedReport}\n${questions}`).not.toContain('onStarsOpen');
+    expect(`${unifiedReport}\n${questions}`).not.toContain('requestStarsOneOffPayment');
   });
 });
