@@ -52,6 +52,45 @@ export type NatalPermanentPremiumReport = {
   evidenceIds: string[];
 };
 
+function validStatement(value: unknown): value is NatalReadingStatement {
+  if (!value || typeof value !== 'object') return false;
+  const statement = value as Partial<NatalReadingStatement>;
+  return typeof statement.text === 'string'
+    && statement.text.trim().length > 0
+    && Array.isArray(statement.evidenceIds)
+    && statement.evidenceIds.every((id) => typeof id === 'string');
+}
+
+export function isNatalPermanentFreeReport(value: unknown): value is NatalPermanentFreeReport {
+  if (!value || typeof value !== 'object') return false;
+  const report = value as Partial<NatalPermanentFreeReport>;
+  return report.schemaVersion === 'natal-permanent-free-v3'
+    && report.contractVersion === NATAL_PERMANENT_CONTRACT_VERSION
+    && report.tier === 'free'
+    && validStatement(report.hook)
+    && Array.isArray(report.evidenceIds)
+    && Array.isArray(report.freeSections);
+}
+
+export function isNatalPermanentPremiumReport(value: unknown): value is NatalPermanentPremiumReport {
+  if (!value || typeof value !== 'object') return false;
+  const report = value as Partial<NatalPermanentPremiumReport>;
+  return report.schemaVersion === 'natal-permanent-premium-v2'
+    && report.contractVersion === NATAL_PERMANENT_CONTRACT_VERSION
+    && report.tier === 'premium'
+    && validStatement(report.lead)
+    && validStatement(report.conclusion)
+    && Array.isArray(report.sections)
+    && report.sections.every((section) => (
+      !!section
+      && typeof section.id === 'string'
+      && typeof section.title === 'string'
+      && Array.isArray(section.paragraphs)
+      && section.paragraphs.every(validStatement)
+    ))
+    && Array.isArray(report.evidenceIds);
+}
+
 function isV2(chart: NatalChartData | NatalChartDataV2): chart is NatalChartDataV2 {
   return chart.schemaVersion === 'natal-chart-data-v2'
     && !!chart.positions
