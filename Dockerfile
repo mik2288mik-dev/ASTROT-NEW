@@ -88,8 +88,9 @@ USER nextjs
 
 EXPOSE 3000
 
-# Health checks are owned by the hosting platform.
-# Railway uses railway.json -> /api/health. Timeweb App Platform should use
-# its configured health path. Keeping HEALTHCHECK out of the image avoids
-# platform-specific port/env discovery conflicts during container recreation.
+# Keep one liveness contract inside the image so every Docker host checks the
+# same dependency-free endpoint. Timeweb gives Dockerfile HEALTHCHECK priority.
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=6 \
+  CMD node -e "const http=require('node:http');const port=Number(process.env.PORT||3000);const r=http.get({host:'127.0.0.1',port,path:'/api/health',timeout:2000},res=>{res.resume();process.exit(res.statusCode>=200&&res.statusCode<300?0:1)});r.on('timeout',()=>{r.destroy();process.exit(1)});r.on('error',()=>process.exit(1))"
+
 CMD ["node", "server.js"]
