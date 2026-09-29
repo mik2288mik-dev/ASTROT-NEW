@@ -88,9 +88,8 @@ USER nextjs
 
 EXPOSE 3000
 
-# Healthcheck hits /api/health: this endpoint also idempotently ensures the
-# in-process notification scheduler is running.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD node -e "const port=process.env.PORT||3000;require('node:http').get({host:'127.0.0.1',port,path:'/api/health'},(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
-
+# Health checks are owned by the hosting platform.
+# Railway uses railway.json -> /api/health. Timeweb App Platform should use
+# its configured health path. Keeping HEALTHCHECK out of the image avoids
+# platform-specific port/env discovery conflicts during container recreation.
 CMD ["node", "server.js"]
