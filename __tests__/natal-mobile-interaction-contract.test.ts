@@ -35,7 +35,8 @@ describe('natal mobile interaction contract', () => {
     expect(sheetStyles).toContain('position: fixed;');
     expect(sheetStyles).toContain('max-height: min(91dvh, 880px);');
     expect(sheetStyles).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(globals).toContain('.lumia-app-shell {\n  height:');
+    expect(globals).toContain('.lumia-app-shell {\n  --lumia-side-drawer-width:');
+    expect(globals).toContain('height: var(--tg-viewport-stable-height, 100dvh);');
     expect(globals).toContain('touch-action: pan-x pan-y;');
     expect(app).toContain('const viewport = publicSiteEnabled');
     expect(app).toContain(": router.pathname === '/'");
