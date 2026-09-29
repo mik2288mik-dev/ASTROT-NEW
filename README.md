@@ -44,7 +44,7 @@ npm run build
 - Premium subscriptions through RuStore Pay.
 - Account linking, recovery, support, and account deletion.
 
-The persistent bottom navigation is: `Сегодня`, `Зодиак`, `Натальная карта`,
+The persistent bottom navigation is: `Сегодня`, `Гороскоп`, `Натальная карта`,
 `Сравнить`, `Меню`.
 
 ## Canonical documentation

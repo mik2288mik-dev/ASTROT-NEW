@@ -32,21 +32,16 @@ describe('long-form v2 editorial reading structure', () => {
     expect(source).toContain("variant=\"editorial\"");
   });
 
-  it('puts the natal hook first, keeps full report fields unnumbered, and keeps chart data technical', () => {
-    const source = read('components/NatalReading/HumanReport.tsx');
-    const topicModel = read('lib/natalReading/reportTopics.ts');
-    const topicScreen = read('components/NatalReading/NatalReportHub.tsx');
+  it('keeps the natal story and topic views on one unnumbered unified reading', () => {
+    const source = read('components/NatalReading/NatalUnifiedReport.tsx');
+    const evidence = read('components/NatalReading/NatalEvidenceSheet.tsx');
 
-    expect(source.indexOf('natal-reading-hook')).toBeLessThan(source.indexOf('<NatalReportHub'));
+    expect(source).toContain('reading.story.map');
+    expect(source).toContain('reading.topics.map');
+    expect(source).toContain('buildNatalInterpretation');
     expect(source).not.toContain('number={index + 1}');
-    expect(source).toContain('report.hook.text');
-    expect(topicModel).toContain('section.content');
-    expect(topicModel).toContain('premiumReport?.sections');
-    expect(topicScreen).toContain('selectedTopic.paragraphs.map');
-    expect(source).toContain('<NatalEvidenceDetails');
-    expect(source).toContain('Как это связано с картой');
-    expect(source).toContain('<NatalReportHub');
-    expect(source).toContain('natal-technical-details');
+    expect(source).not.toContain('HumanReport');
+    expect(evidence).toContain('buildNatalInterpretation');
   });
 
   it('separates compatibility conclusions, technical scores, unnumbered reading, and the deep summary', () => {

@@ -13,7 +13,7 @@ export function NatalMapExplanationScreen({ explanation }: { explanation: MapExp
   const artFor = (title: string, tone: string): NatalArt => tone === 'house'
     ? /5 дом|твор/i.test(title) ? 'work' : /7 дом|отнош/i.test(title) ? 'love' : 'home'
     : /Овен|Лев|Стрелец/.test(title) ? 'character' : /Близнецы|Весы|Водолей/.test(title) ? 'communication' : /Рак|Скорпион|Рыбы/.test(title) ? 'emotions' : 'home';
-  return <article data-map-explanation-screen aria-label={`Почему такой вывод: ${explanation.title}`}>
+  return <article data-map-explanation-screen aria-label={`На чём основано: ${explanation.title}`}>
     <p className={styles.detailIntro}>{explanation.yours}</p>
     <section className={`${styles.reason} ${styles.objectIntro}`}><span className={styles.explanationGlyph} style={{color:explanation.color,fontSize:explanation.glyph.length > 2 ? 22 : undefined}} aria-hidden="true">{explanation.glyph}</span><div><h3>Что это</h3><p>{explanation.what}</p></div></section>
     {explanation.reasons.map((reason, index) => reason.tone === 'aspect' ? index === firstAspect ? <section key="aspects" className={`${styles.reason} ${styles.aspect}`}>

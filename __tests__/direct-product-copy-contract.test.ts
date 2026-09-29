@@ -10,15 +10,14 @@ const ACTIVE_COPY_FILES = [
   'views/Paywall.tsx',
   'views/v2/HoroscopeReader.tsx',
   'views/v2/NatalMagazine.tsx',
-  'components/NatalReading/NatalCatalogReport.tsx',
-  'components/NatalReading/NatalReportHub.tsx',
   'components/PremiumPreview.tsx',
   'components/Horoscope/HoroscopeContent.tsx',
   'components/Dashboard/CosmicPassport.tsx',
   'lib/natalHumanShared.ts',
-  'lib/natalHumanInterpretation.ts',
-  'lib/natalReading/fallbacks.ts',
-  'lib/natalReading/reportCatalog.ts',
+  'components/NatalReading/NatalUnifiedReport.tsx',
+  'components/NatalReading/NatalQuestionExperience.tsx',
+  'lib/natalReading/unifiedGeneration.ts',
+  'lib/natalReading/natalQuestion.ts',
   'lib/retentionNotificationCatalog.ts',
 ];
 
@@ -59,15 +58,16 @@ describe('active product copy contract', () => {
 
   it('keeps the runtime voice versioned and enforced', () => {
     const voice = read('lib/appVoice.ts');
-    const natal = read('lib/natalHumanInterpretation.ts');
-    const natalSemantics = read('lib/natalSemanticCompiler.ts');
+    const natal = read('lib/natalReading/unifiedGeneration.ts');
+    const natalQuestions = read('lib/natalReading/natalQuestion.ts');
     const questions = read('lib/personalForecastQuestionGeneration.ts');
     const forecast = read('lib/personalForecastGeneration.ts');
 
     expect(voice).toContain("APP_VOICE_VERSION = '5'");
     expect(voice).toContain('hasAppVoiceViolation');
-    expect(natal).toContain('validateGeneratedNatalPayload');
-    expect(natalSemantics).toContain('hasAppVoiceViolation');
+    expect(natal).toContain('hasCoreVoiceViolation');
+    expect(natal).toContain('semanticReview');
+    expect(natalQuestions).toContain('getNatalStorySystemPrompt');
     expect(questions).toContain('hasAppVoiceViolation');
     expect(forecast).toContain('hasAppVoiceViolation');
   });

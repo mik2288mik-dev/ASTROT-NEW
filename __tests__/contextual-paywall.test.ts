@@ -245,9 +245,10 @@ describe('contextual paywall return contract', () => {
     expect(app).not.toContain('source: paywallContext.placement');
     expect(app).not.toContain('source: serviceStoreContext.placement');
     expect(app).toContain('target?.focus({ preventScroll: true })');
-    expect(read('components/NatalReading/HumanReport.tsx')).toContain(
-      'returnScrollAnchor: `natal-topic-premium-${topicKey}`',
-    );
+    const natal = read('components/NatalReading/NatalUnifiedReport.tsx');
+    expect(natal).toContain("requestPremium('deep_natal'");
+    expect(natal).toContain("placement: 'deep_natal'");
+    expect(natal).toContain("featureKey: 'natal_deep'");
   });
 
   it('places the offer only after overview and one readable fragment', () => {

@@ -5,83 +5,98 @@ function source(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }
 
-describe('natal meaning map v3', () => {
-  it('uses one clear product hierarchy instead of nested natal and category tabs', () => {
+describe('current natal product shell', () => {
+  it('uses one active reading instead of classic/catalog switching', () => {
     const magazine = source('views/v2/NatalMagazine.tsx');
-    const catalog = source('components/NatalReading/NatalCatalogReport.tsx');
 
     expect(magazine).toContain("export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix'");
-    const primaryNav = magazine.slice(magazine.indexOf('className="natal-v3-primary-nav"'), magazine.indexOf('</nav>'));
-    const labels = ["'Карта'", "'Разбор'", "'Спросить о себе'", "'Матрица судьбы'"];
-    for (const label of labels) expect(primaryNav).toContain(label);
-    expect(labels.map((label) => primaryNav.indexOf(label))).toEqual([...labels.map((label) => primaryNav.indexOf(label))].sort((a, b) => a - b));
-    expect(magazine).toContain("'Круг карты'");
-    expect(magazine).toContain("import { MatrixRoom } from './MatrixRoom'");
-    expect(magazine).toContain("'Матрица судьбы'");
-    expect(magazine).not.toContain('<EditorialTabs');
-    expect(magazine).toContain("readingRenderer === 'catalog'");
-    expect(magazine).toContain("tab === 'explore' && readingRenderer === 'classic'");
-    expect(magazine).toContain("data-items={primaryNavItemCount}");
-    expect(catalog).toContain('experienceComponent: Experience = NatalMeaningExperience');
-    expect(catalog).toContain('<Experience');
-    expect(catalog).not.toContain('natal-catalog-tabs');
+    expect(magazine).toContain("{ id: 'foundation', label: 'Обзор' }");
+    expect(magazine).toContain("{ id: 'map', label: 'Карта' }");
+    expect(magazine).toContain("{ id: 'ask', label: 'Спросить' }");
+    expect(magazine).toContain('<NatalUnifiedReport');
+    expect(magazine).not.toContain('readingRenderer');
+    expect(magazine).not.toContain('<HumanReport');
+    expect(magazine).not.toContain('<NatalCatalogReport');
   });
 
-  it('keeps the complete foundation and five narrative continuations', () => {
-    const experience = source('components/NatalReading/NatalMeaningExperience.tsx');
+  it('keeps Рассказ and По темам as two views of the unified reading', () => {
+    const magazine = source('views/v2/NatalMagazine.tsx');
+    const unified = source('components/NatalReading/NatalUnifiedReport.tsx');
 
-    expect(experience).toContain("'character'");
-    expect(experience).toContain("'love'");
-    expect(experience).toContain("'communication'");
-    expect(experience).toContain("'work'");
-    expect(experience).toContain("'money'");
-    expect(experience).toContain('natal-narrative-chapters');
-    expect(experience).toContain('natal-v3-premium-section');
-    expect(experience).toContain('natal-narrative-copy');
-    expect(experience).toContain('natal-reading-observation-heading');
-    expect(experience).toContain('<CircleHelp aria-hidden="true" />');
-    expect(experience).toContain("ru ? 'На чём основано' : 'Chart evidence'");
-    expect(experience).toContain('<NatalEvidenceSheet');
+    expect(magazine).toContain("'story','topics'");
+    expect(magazine).toContain("mode === 'story' ? 'Рассказ' : 'По темам'");
+    expect(unified).toContain("mode === 'story'");
+    expect(unified).toContain('reading.story.map');
+    expect(unified).toContain('reading.topics.map');
   });
 
-  it('uses real chart evidence and explains birth-time accuracy without changing calculation', () => {
-    const evidence = source('components/NatalReading/NatalEvidenceSheet.tsx');
+  it('keeps astrology out of the overview and uses local evidence disclosure instead', () => {
+    const unified = source('components/NatalReading/NatalUnifiedReport.tsx');
+    const interactive = source('components/NatalReading/InteractiveNatalMap.tsx');
 
-    expect(evidence).toContain('buildNatalModelContext(profile, chartData)');
-    expect(evidence).toContain('getPermanentNatalReliability(chartData)');
-    expect(evidence).toContain('Данные твоей карты');
-    expect(evidence).toContain('className="natal-v3-evidence-summary-list"');
-    expect(evidence).toContain('labels.map((label) => <li key={label}>{label}</li>)');
-    expect(evidence).toContain('Время рождения неизвестно. Дома, Асцендент и MC не используются.');
-    expect(evidence).not.toContain('Насколько это зависит от времени рождения');
-    expect(evidence).not.toContain('Показать данные карты');
-    expect(evidence).not.toContain('natal-v3-technical-disclosure');
-    expect(evidence).not.toContain('calculateNatalChart(');
+    expect(unified).not.toContain('showAstrology');
+    expect(unified).not.toContain('Показать астрологию');
+    expect(unified).not.toContain('Скрыть астрологию');
+    expect(interactive).toContain('На чём основано');
   });
 
-  it('makes custom questions contextual and keeps answers tied to evidence', () => {
+  it('keeps only three product tabs and moves the existing details UI under the map', () => {
+    const magazine = source('views/v2/NatalMagazine.tsx');
+    const interactive = source('components/NatalReading/InteractiveNatalMap.tsx');
+
+    expect(magazine).not.toContain("label: 'Подробно'");
+    expect(interactive).toContain('embeddedDetails');
+    expect(interactive).toContain('<NatalDetails');
+  });
+
+  it('keeps Ask as one free-form composer without topic selectors', () => {
     const questions = source('components/NatalReading/NatalQuestionExperience.tsx');
 
-    expect(questions).toContain('QUESTION_STARTERS');
-    expect(questions).toContain('contextCategory');
-    expect(questions).toContain('askNatalQuestion(userId, value, chartId)');
-    expect(questions).toContain('questionMessageEvidenceIds(answer)');
-    expect(questions).toContain('<NatalEvidenceSheet');
-    expect(questions).toContain('Почему так?');
+    expect(questions).toContain('Задай любой вопрос о себе');
+    expect(questions).toContain('<textarea');
+    expect(questions).not.toContain('contextCategory');
+    expect(questions).not.toContain('NATAL_QUESTION_TOPICS');
+    expect(questions).not.toContain('NATAL_QUESTION_STARTERS');
   });
 
-  it('keeps the UI monochrome except for the six navigation circles', () => {
-    const styles = source('styles/natalMeaningMap.css');
-    const app = source('pages/_app.tsx');
+  it('uses the same interpretation source for map explanations and shows the meaning on first tap', () => {
+    const map = source('components/NatalReading/mapExplanation.ts');
+    const interactive = source('components/NatalReading/InteractiveNatalMap.tsx');
 
-    expect(app).toContain("import '../styles/natalMeaningMap.css'");
-    expect(styles).toContain('.natal-v3-map-node.is-foundation .natal-v3-map-node-circle');
-    expect(styles).toContain('.natal-v3-map-node.is-character .natal-v3-map-node-circle');
-    expect(styles).toContain('.natal-v3-map-node.is-love .natal-v3-map-node-circle');
-    expect(styles).toContain('.natal-v3-map-node.is-communication .natal-v3-map-node-circle');
-    expect(styles).toContain('.natal-v3-map-node.is-work .natal-v3-map-node-circle');
-    expect(styles).toContain('.natal-v3-map-node.is-money .natal-v3-map-node-circle');
-    expect(styles).not.toContain('linear-gradient');
-    expect(styles).not.toContain('radial-gradient');
+    expect(map).toContain('buildNatalInterpretation');
+    expect(map).toContain('interpretationFor');
+    expect(map).not.toContain('SIGN_WAYS');
+    expect(map).not.toContain('OBJECT_THEMES');
+    expect(interactive).toContain('{explanation.meaning}');
+    expect(interactive).toContain('На чём основано');
+    expect(interactive).not.toContain("from '../../lib/natalReading/permanentReport'");
+  });
+
+  it('answers natal questions only from unified meanings and derives technical evidence server-side', () => {
+    const question = source('lib/natalReading/natalQuestion.ts');
+    const endpoint = source('pages/api/content/natal/questions.ts');
+    const evidence = source('components/NatalReading/NatalEvidenceSheet.tsx');
+
+    expect(question).toContain('buildNatalInterpretation');
+    expect(question).toContain('approvedMeanings');
+    expect(question).toContain('meaning_ids');
+    expect(question).toContain('evidenceIdsForMeanings');
+    expect(question).toContain('reviewNatalQuestionSemanticFidelity');
+    expect(question).not.toContain('buildNatalModelContext');
+    expect(question).not.toContain('buildNatalPromptContext');
+    expect(question).not.toContain('getNatalNarrativeEvidenceIds');
+    expect(question).not.toContain('NATAL_PERMANENT_CONTRACT_VERSION');
+    expect(endpoint).not.toContain('getCachedPermanentPremiumReport');
+    expect(endpoint).toContain('meaningIds: answer.meaningIds');
+    expect(evidence).toContain('buildNatalInterpretation');
+    expect(evidence).not.toContain("from '../../lib/natalReading/permanentReport'");
+  });
+
+  it('does not expose the removed classic/catalog admin selector', () => {
+    const settings = source('views/Settings.tsx');
+
+    expect(settings).not.toContain('NatalReadingVariantSettings');
+    expect(settings).not.toContain('Версия разбора натальной карты');
+    expect(settings).not.toContain('Старый разбор');
   });
 });

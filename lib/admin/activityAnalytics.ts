@@ -18,7 +18,7 @@ export const INTERACTIVE_EVENT_TYPES = [
   'natal_checkin_cta_tap', 'natal_save_tap', 'natal_share_tap', 'natal_paywall_open', 'natal_paywall_dismiss',
 ];
 const SCREENS: Record<string, string> = {
-  dashboard: 'Сегодня', horoscope: 'Зодиак', chart: 'Натальная карта', synastry: 'Сравнить',
+  dashboard: 'Сегодня', horoscope: 'Гороскоп', chart: 'Натальная карта', synastry: 'Сравнить',
   menu: 'Меню', settings: 'Настройки', charts: 'Сохранённые карты', people: 'Люди', future: 'Будущее',
   matrix: 'Матрица судьбы', questions: 'Вопросы', premium: 'Premium', paywall: 'Premium',
   onboarding: 'Знакомство', encyclopedia: 'Энциклопедия', support: 'Поддержка', saved: 'Сохранённое',

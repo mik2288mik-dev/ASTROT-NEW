@@ -1,13 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
+import type { NatalChartDataV2 } from '../../../../lib/natalChartV2Types';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
+import { ensureValidContext } from '../../../../lib/natalReading/apiHelper';
 import {
-  ensureValidContext,
-} from '../../../../lib/natalReading/apiHelper';
-import {
-  generateNatalReportCategoryWithLock,
-  getCachedNatalReportCategory,
-} from '../../../../lib/natalReading/reportCatalogApi';
+  adaptUnifiedToLegacyCatalogCategory,
+  legacyInterpretationEnvelope,
+} from '../../../../lib/natalReading/legacyCompatibility';
+import { loadUnifiedReadingForLegacyEndpoint } from '../../../../lib/natalReading/legacyCompatibilityApi';
 import {
   isNatalReportCategoryKey,
   type NatalReportCategoryKey,
@@ -45,54 +45,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (accessTier === 'premium') {
     const entitlement = await getPremiumEntitlementState(userId);
     if (!entitlement.isPremium) {
-      return res.status(403).json({ error: 'Premium required', code: 'PREMIUM_REQUIRED', premiumRequired: true });
+      return res.status(403).json({
+        error: 'Premium required',
+        code: 'PREMIUM_REQUIRED',
+        premiumRequired: true,
+      });
     }
   }
-  const cached = await getCachedNatalReportCategory(ctx, categoryKey);
 
-  if (req.method === 'GET') {
-    if (!cached) {
+  try {
+    const unified = await loadUnifiedReadingForLegacyEndpoint({
+      userId,
+      ctx,
+      method: req.method,
+    });
+    if (unified.status === 'not_found') {
       return res.status(404).json({
         error: 'NOT_FOUND',
         code: 'NATAL_REPORT_CATEGORY_NOT_READY',
       });
     }
-    return res.status(200).json({
-      interpretation: cached,
-      source: 'natal_report_catalog_v1',
-      accessTier,
-    });
-  }
+    if (unified.status === 'in_progress') {
+      return res.status(202).json(generationInProgressPayload(unified.retryAfterMs));
+    }
 
-  if (cached) {
-    return res.status(200).json({
-      interpretation: cached,
-      source: 'natal_report_catalog_v1',
-      accessTier,
-    });
-  }
-
-  try {
-    const lockResult = await generateNatalReportCategoryWithLock({
-      userId,
-      ctx,
+    const content = adaptUnifiedToLegacyCatalogCategory({
+      reading: unified.interpretation.content,
+      chart: ctx.chartData as unknown as NatalChartDataV2,
+      profile: ctx.profile,
       categoryKey,
     });
-    if (lockResult.status === 'in_progress') {
-      return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
-    }
     return res.status(200).json({
-      interpretation: lockResult.value,
-      source: lockResult.fromCache
-        ? (lockResult.source || 'natal_report_catalog_v1')
-        : 'generated',
+      interpretation: legacyInterpretationEnvelope(unified.interpretation, content, accessTier),
+      source: 'natal_unified_compat_v1',
       accessTier,
     });
   } catch (error) {
-    console.error(
-      `[natal/catalog] ${categoryKey} generation failed:`,
-      error instanceof Error ? error.message : error,
-    );
+    console.error(`[natal/catalog] ${categoryKey} compatibility projection failed:`, error instanceof Error ? error.message : error);
     return res.status(503).json({
       error: 'NATAL_REPORT_CATEGORY_GENERATION_FAILED',
       code: 'NATAL_REPORT_CATEGORY_GENERATION_FAILED',

@@ -24,7 +24,6 @@ const EXCLUDED_PATH_SNIPPETS = [
   'pages/api/admin/',
   'pages/api/astrology/',
   'views/admin/',
-  'pages/api/content/natal/dive.ts',
   'services/astrologyService.ts',
   // «Матрица судьбы» — отдельная эзотерическая фича: «судьба/аркан/карма» здесь легитимны.
   'lib/matrixOfDestiny.ts',

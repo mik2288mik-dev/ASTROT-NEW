@@ -5,7 +5,7 @@ import { HOME_CARD_INTERNAL_TARGETS, parseHomeCard, safeHomeCardUrl, type HomeCa
 import { invalidateHomeCards } from '../../services/homeCardsService';
 import styles from '../../styles/admin2/HomeCardsEditor.module.css';
 
-const TARGET_LABELS: Record<HomeCardInternalTarget, string> = { today: 'Сегодня', zodiac: 'Зодиак', natal: 'Натальная карта', compatibility: 'Совместимость', matrix: 'Матрица судьбы', saved: 'Сохранённое', premium: 'Premium', encyclopedia: 'Энциклопедия', settings: 'Настройки', support: 'Поддержка' };
+const TARGET_LABELS: Record<HomeCardInternalTarget, string> = { today: 'Сегодня', zodiac: 'Гороскоп', natal: 'Натальная карта', compatibility: 'Совместимость', matrix: 'Матрица судьбы', saved: 'Сохранённое', premium: 'Premium', encyclopedia: 'Энциклопедия', settings: 'Настройки', support: 'Поддержка' };
 const IMAGES = [
   { label: 'Солнце', url: '/assets/nebo-refined/today.png' },
   { label: 'Натальная карта', url: '/assets/nebo-refined/natal-chart.png' },

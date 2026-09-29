@@ -78,7 +78,7 @@ const DISTRIBUTION_CHANNELS: Record<string, string> = {
 };
 const SCREENS: Record<string, string> = {
   dashboard: 'Сегодня', today: 'Сегодня', personal_forecast: 'Личный прогноз',
-  horoscope: 'Зодиак', zodiac: 'Зодиак', chart: 'Натальная карта',
+  horoscope: 'Гороскоп', zodiac: 'Гороскоп', chart: 'Натальная карта',
   natal_map: 'Натальная карта · Карта', natal_reading: 'Натальная карта · Разбор',
   natal_questions: 'Натальная карта · Спросить о себе', natal_matrix: 'Матрица судьбы',
   synastry: 'Сравнить', compatibility: 'Сравнить', settings: 'Настройки',

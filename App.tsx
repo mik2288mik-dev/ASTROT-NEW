@@ -9,7 +9,6 @@ import {
     setNativeNotificationContext, setNativeNotificationForeground,
 } from './services/nativeNotifications';
 import { UserProfile, NatalChartData, ViewState } from './types';
-import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
 import { ServiceScreen } from './views/v2/ServiceScreen';
 import type { ServiceTab } from './views/v2/ServiceScreen';
 import { Settings } from './views/Settings';
@@ -40,11 +39,6 @@ import {
 import { getChartFromDB, getOrCalculateChart, getPrimaryChartId, natalChartMatchesProfile } from './services/chartService';
 import { buildNatalChartCacheKey, clearLocalNatalChart, readLocalNatalChartCache, writeLocalNatalChart } from './lib/localNatalChartCache';
 import { createPrimaryChartRequestGuard } from './lib/primaryChartRequestGuard';
-import {
-    clearLocalHumanBaseReport,
-    readLocalHumanBaseReportWithFallback,
-    writeLocalHumanBaseReport,
-} from './lib/localHumanBaseReportCache';
 import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
@@ -62,14 +56,6 @@ import {
     normalizeForecastTimezone,
     type PersonalForecastPeriod,
 } from './lib/personalForecastContract';
-import {
-    NATAL_PERMANENT_CONTRACT_VERSION,
-    buildPermanentNatalChartFingerprint,
-} from './lib/natalReading/permanentReport';
-import {
-    NATAL_REPORT_CATALOG_CONTRACT_VERSION,
-} from './lib/natalReading/reportCatalog';
-import { buildNatalChartFingerprint } from './lib/natalChartFingerprint';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
 import {
@@ -108,12 +94,7 @@ import {
     type FeatureKey,
 } from './lib/accessMatrix';
 import { captureAppHomeLayout, installAppDebugGlobal, appDebugLog } from './lib/appDebug';
-import {
-    clearHumanReadingSessionCache,
-    getCachedHumanBaseReport,
-    getHumanBaseReportCached,
-} from './services/natalReadingService';
-import { ensureNatalCatalogCategory } from './services/natalCatalogService';
+import { clearNatalUnifiedReadingCache } from './services/natalUnifiedReadingService';
 import {
     clearPersonalForecastSessionCache,
 } from './services/personalForecastService';
@@ -375,7 +356,6 @@ const App: React.FC = () => {
     const [nativeReadyDay, setNativeReadyDay] = useState<{ accountId: string; periodKey: string } | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
     const [chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
-    const [preloadedHumanReport, setPreloadedHumanReport] = useState<PreloadedNatalReport | null>(null);
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [activeChartSubject, setActiveChartSubject] = useState<ChartListItem | null>(null);
     const [primaryChartId, setPrimaryChartId] = useState<number | null>(null);
@@ -572,40 +552,6 @@ const App: React.FC = () => {
         }
     }, [getFallbackAdminStatus]);
 
-    const prefetchBaseReportForChart = useCallback(async (
-        targetProfile: UserProfile,
-        targetChartId?: number,
-        targetChartData?: NatalChartData | null,
-        isCurrent: () => boolean = () => true,
-    ) => {
-        const userId = targetProfile.id ? String(targetProfile.id) : '';
-        if (!userId || !targetChartData || !isCurrent()) return null;
-        const cacheContext = { chartData: targetChartData || null };
-        const reportCacheIdentity = {
-            chartFingerprint: buildPermanentNatalChartFingerprint(targetProfile, targetChartData),
-            reportVersion: NATAL_PERMANENT_CONTRACT_VERSION,
-        };
-
-        const cached = getHumanBaseReportCached(userId, targetChartId, targetProfile.language, reportCacheIdentity)
-            || readLocalHumanBaseReportWithFallback(targetProfile, targetChartId, cacheContext);
-        if (cached) {
-            if (!isCurrent()) return null;
-            setPreloadedHumanReport({ report: cached, ...reportCacheIdentity });
-            return cached;
-        }
-        const dbCached = await getCachedHumanBaseReport(userId, targetChartId, targetProfile.language, reportCacheIdentity).catch((error: any) => {
-            console.warn('[App] Human base report cache read failed:', error?.message || error);
-            return null;
-        });
-        if (dbCached) {
-            if (!isCurrent()) return null;
-            writeLocalHumanBaseReport(targetProfile, dbCached, targetChartId, cacheContext);
-            setPreloadedHumanReport({ report: dbCached, ...reportCacheIdentity });
-            return dbCached;
-        }
-        return null;
-    }, []);
-
 
     const loadPrimaryChartOnce = useCallback(async (targetProfile: UserProfile): Promise<NatalChartData | null> => {
         const accountKey = String(targetProfile.id || '');
@@ -625,7 +571,6 @@ const App: React.FC = () => {
 
         const requestToken = primaryChartRequestGuardRef.current.begin(accountKey);
         if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return null;
-        setPreloadedHumanReport(null);
         const localEntry = readLocalNatalChartCache(targetProfile);
         if (localEntry) {
             const cachedChart = localEntry.chartData;
@@ -702,7 +647,6 @@ const App: React.FC = () => {
         setPrimaryChartId(null);
         setActiveChartId(undefined);
         setActiveChartSubject(null);
-        setPreloadedHumanReport(null);
     }, []);
 
     useEffect(() => {
@@ -870,32 +814,6 @@ const App: React.FC = () => {
             const userId = String(targetProfile.id);
             const requestToken = primaryChartRequestGuardRef.current.begin(userId);
             if (!primaryChartRequestGuardRef.current.isCurrent(requestToken)) return;
-            const startNatalCatalogPrefetch = (
-                chartId: number,
-                reportChartData: NatalChartData,
-                isCurrentSnapshot: () => boolean,
-            ) => {
-                if (!isCurrentSnapshot()) return;
-                const catalogCacheIdentity = {
-                    chartFingerprint: buildNatalChartFingerprint(reportChartData),
-                    reportVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
-                };
-                void ensureNatalCatalogCategory(
-                    userId,
-                    'main',
-                    chartId,
-                    targetProfile.language,
-                    catalogCacheIdentity,
-                )
-                    .catch((error: any) => {
-                        console.warn('[App] Natal catalog background prefetch failed:', error?.message || error);
-                    });
-            };
-            if (initialChartId != null) {
-                startNatalCatalogPrefetch(initialChartId, initialChart, () => (
-                    primaryChartDataRef.current === initialChart
-                ));
-            }
 
             void (async () => {
                 let chart = initialChart;
@@ -912,10 +830,6 @@ const App: React.FC = () => {
                             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
                             primaryChartDataRef.current = freshChart;
                             writeLocalNatalChart(targetProfile, freshChart, chartId ?? undefined);
-                            const freshFingerprint = buildPermanentNatalChartFingerprint(targetProfile, freshChart);
-                            setPreloadedHumanReport((current) => (
-                                current?.chartFingerprint === freshFingerprint ? current : null
-                            ));
                             setChartData(freshChart);
                             setChartLoadState('ready');
                         })
@@ -930,12 +844,6 @@ const App: React.FC = () => {
                         if (freshPrimaryChartId == null) return;
                         chartId = freshPrimaryChartId;
                         writeLocalNatalChart(targetProfile, chart, freshPrimaryChartId);
-                        if (initialChartId == null) {
-                            const reportChart = chart;
-                            startNatalCatalogPrefetch(freshPrimaryChartId, reportChart, () => (
-                                primaryChartDataRef.current === reportChart
-                            ));
-                        }
                         setPrimaryChartId(freshPrimaryChartId);
                     })
                     .catch((error: any) => {
@@ -1323,8 +1231,7 @@ const App: React.FC = () => {
             const primaryKey = buildNatalChartCacheKey(canonicalFullProfile);
             primaryChartSessionRef.current = { key: primaryKey, data: generatedChart, promise: null };
             primaryChartDataRef.current = generatedChart;
-            clearHumanReadingSessionCache(canonicalFullProfile.id);
-            clearLocalHumanBaseReport(canonicalFullProfile);
+            clearNatalUnifiedReadingCache(canonicalFullProfile.id);
             setChartLoadState('ready');
             setChartData(generatedChart);
             writeLocalNatalChart(canonicalFullProfile, generatedChart);
@@ -1343,23 +1250,8 @@ const App: React.FC = () => {
                     );
                     if (!isCurrentOnboardingChart()) return;
                     if (primaryChartId != null) {
-                        clearLocalHumanBaseReport(canonicalFullProfile, primaryChartId);
                         setPrimaryChartId(primaryChartId);
                         writeLocalNatalChart(canonicalFullProfile, generatedChart, primaryChartId);
-                        const catalogCacheIdentity = {
-                            chartFingerprint: buildNatalChartFingerprint(generatedChart),
-                            reportVersion: NATAL_REPORT_CATALOG_CONTRACT_VERSION,
-                        };
-                        void ensureNatalCatalogCategory(
-                            safeUserId,
-                            'main',
-                            primaryChartId,
-                            canonicalFullProfile.language,
-                            catalogCacheIdentity,
-                        ).catch((catalogError: any) => {
-                            if (!isCurrentOnboardingChart()) return;
-                            console.warn('[App] Onboarding natal catalog prefetch failed:', catalogError?.message || catalogError);
-                        });
                     }
                     return undefined;
                 })
@@ -1420,8 +1312,7 @@ const App: React.FC = () => {
             clearQueuedUserAppEvents();
             void clearNativeNotifications();
             clearLocalNatalChart(profile);
-            clearLocalHumanBaseReport(profile);
-            clearHumanReadingSessionCache(String(profile.id));
+            clearNatalUnifiedReadingCache(String(profile.id));
             clearPersonalForecastSessionCache();
             resetPrimaryChartState();
             primaryChartRequestGuardRef.current.activateAccount(nextAccountKey);
@@ -1436,7 +1327,6 @@ const App: React.FC = () => {
         }
         primaryChartRequestGuardRef.current.activateAccount(nextAccountKey);
         if (profile && buildNatalChartCacheKey(profile) !== buildNatalChartCacheKey(nextProfile)) {
-            clearLocalHumanBaseReport(profile);
         }
         setProfile(nextProfile);
     }, [profile, resetPrimaryChartState]);
@@ -1449,8 +1339,7 @@ const App: React.FC = () => {
         void clearNativeNotifications();
         if (profile) {
             clearLocalNatalChart(profile);
-            clearLocalHumanBaseReport(profile);
-            clearHumanReadingSessionCache(String(profile.id));
+            clearNatalUnifiedReadingCache(String(profile.id));
         }
         clearPersonalForecastSessionCache();
         await Promise.allSettled([
@@ -1513,8 +1402,7 @@ const App: React.FC = () => {
             clearQueuedUserAppEvents();
             void clearNativeNotifications();
             clearLocalNatalChart(profile);
-            clearLocalHumanBaseReport(profile);
-            clearHumanReadingSessionCache(String(profile.id));
+            clearNatalUnifiedReadingCache(String(profile.id));
             clearPersonalForecastSessionCache();
             resetPrimaryChartState();
             restoredRuStoreUserRef.current = null;
@@ -2199,17 +2087,9 @@ const App: React.FC = () => {
             const key = buildNatalChartCacheKey(targetProfile);
             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
             primaryChartDataRef.current = freshChart;
-            clearHumanReadingSessionCache(accountKey);
-            clearLocalHumanBaseReport(targetProfile, primaryChartId ?? undefined);
-            setPreloadedHumanReport(null);
+            clearNatalUnifiedReadingCache(accountKey);
             if (freshChart) {
                 writeLocalNatalChart(targetProfile, freshChart, freshPrimaryChartId ?? undefined);
-                void prefetchBaseReportForChart(
-                    targetProfile,
-                    freshPrimaryChartId ?? undefined,
-                    freshChart,
-                    () => primaryChartRequestGuardRef.current.isCurrent(requestToken),
-                );
             } else {
                 clearLocalNatalChart(targetProfile);
             }
@@ -2222,7 +2102,7 @@ const App: React.FC = () => {
             console.error('[App] Failed to refresh primary chart state:', error);
             // Keep the existing local/session chart on transient DB errors.
         }
-    }, [prefetchBaseReportForChart, primaryChartId, profile]);
+    }, [primaryChartId, profile]);
 
     const handleBack = useCallback(async () => {
         if (navigationSheet) {
@@ -2791,7 +2671,6 @@ const App: React.FC = () => {
                             profile={profile}
                             primaryChartData={primaryChartDataRef.current || chartData}
                             primaryChartId={primaryChartId ?? undefined}
-                            preloadedReport={preloadedHumanReport}
                             requestPremium={() => { void requestPremium('personality'); }}
                             onBack={() => { void handleBack(); }}
                             onOpenProfile={openProfileSheet}
@@ -2836,7 +2715,6 @@ const App: React.FC = () => {
                             chartSubject={activeChartSubject}
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
-                            preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}
                             onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}
                             onOpenPersonalityReport={openPersonalityReport}
                             premiumContinuation={premiumContinuation}

@@ -1,13 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import {
-  ensureValidContext,
-} from '../../../../lib/natalReading/apiHelper';
-import {
-  generatePermanentPremiumWithLock,
-  getCachedPermanentPremiumReport,
-} from '../../../../lib/natalReading/permanentApi';
+import type { NatalChartDataV2 } from '../../../../lib/natalChartV2Types';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
+import { ensureValidContext } from '../../../../lib/natalReading/apiHelper';
+import {
+  adaptUnifiedToLegacyPremiumReport,
+  legacyInterpretationEnvelope,
+} from '../../../../lib/natalReading/legacyCompatibility';
+import { loadUnifiedReadingForLegacyEndpoint } from '../../../../lib/natalReading/legacyCompatibilityApi';
 
 export const config = { maxDuration: 90 };
 
@@ -32,38 +32,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const cached = await getCachedPermanentPremiumReport(ctx);
-  if (cached) {
-    return res.status(200).json({
-      interpretation: cached,
-      source: 'natal_permanent_premium_v2',
-      accessTier: 'premium',
-    });
-  }
-  if (req.method === 'GET') {
-    return res.status(404).json({
-      error: 'NOT_FOUND',
-      code: 'NATAL_PREMIUM_NOT_READY',
-    });
-  }
-
   try {
-    const lockResult = await generatePermanentPremiumWithLock({ userId, ctx });
-    if (lockResult.status === 'in_progress') {
-      return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+    const unified = await loadUnifiedReadingForLegacyEndpoint({
+      userId,
+      ctx,
+      method: req.method,
+    });
+    if (unified.status === 'not_found') {
+      return res.status(404).json({
+        error: 'NOT_FOUND',
+        code: 'NATAL_PREMIUM_NOT_READY',
+      });
     }
+    if (unified.status === 'in_progress') {
+      return res.status(202).json(generationInProgressPayload(unified.retryAfterMs));
+    }
+
+    const content = adaptUnifiedToLegacyPremiumReport({
+      reading: unified.interpretation.content,
+      chart: ctx.chartData as unknown as NatalChartDataV2,
+      profile: ctx.profile,
+    });
     return res.status(200).json({
-      interpretation: lockResult.value,
-      source: lockResult.fromCache
-        ? (lockResult.source || 'natal_permanent_premium_v2')
-        : 'generated',
+      interpretation: legacyInterpretationEnvelope(unified.interpretation, content, 'premium'),
+      source: 'natal_unified_compat_v1',
       accessTier: 'premium',
     });
   } catch (error) {
-    console.error(
-      '[natal/human-premium] generation failed:',
-      error instanceof Error ? error.message : error,
-    );
+    console.error('[natal/human-premium] compatibility projection failed:', error instanceof Error ? error.message : error);
     return res.status(503).json({
       error: 'NATAL_PREMIUM_GENERATION_FAILED',
       code: 'NATAL_PREMIUM_GENERATION_FAILED',

@@ -11,14 +11,13 @@ import { createRequire } from 'node:module';
 import type { UserProfile } from '../types';
 import type { NatalChartDataV2 } from '../lib/natalChartV2Types';
 import type { PersonalForecastPackage } from '../lib/personalForecastContract';
-import type { NatalReportCategoryKey, NatalReportCategoryPack } from '../lib/natalReading/reportCatalog';
 import type { PersonalMicroForecast } from '../lib/personalMicroForecastContract';
 import type { PersonalFutureForecast } from '../lib/personalFutureForecastContract';
 import type { SignFutureReading } from '../lib/horoscope/signFutureContract';
 
 loadEnvConfig(process.cwd(), true);
 const destination = path.resolve('components/ui-preview/readingSamples.json');
-type Sample = { id: string; profile: UserProfile; chart: NatalChartDataV2; forecasts: Partial<Record<'day' | 'week' | 'month', PersonalForecastPackage>>; categoryPacks: Partial<Record<NatalReportCategoryKey, NatalReportCategoryPack>>; microForecasts?: Partial<Record<'day' | 'week' | 'month', PersonalMicroForecast>>; futureForecasts?: PersonalFutureForecast[]; errors: Record<string, string> };
+type Sample = { id: string; profile: UserProfile; chart: NatalChartDataV2; forecasts: Partial<Record<'day' | 'week' | 'month', PersonalForecastPackage>>; microForecasts?: Partial<Record<'day' | 'week' | 'month', PersonalMicroForecast>>; futureForecasts?: PersonalFutureForecast[]; errors: Record<string, string> };
 const saved = fs.existsSync(destination) ? JSON.parse(fs.readFileSync(destination, 'utf8')) : { people: [] };
 const result: { generatedAt: string; source: string; people: Sample[]; zodiacFuture?: SignFutureReading[] } = {
   generatedAt: new Date().toISOString(), source: saved.people.length ? saved.source : 'Current Luna writers; fictitious profiles; Swiss Ephemeris natal charts', people: saved.people,
@@ -71,16 +70,11 @@ print(json.dumps(r))`, ephemerisPath, method, JSON.stringify(args)], { encoding:
   const { calculateNatalChart } = await import('../lib/swisseph-calculator');
   const { generatePersonalForecastPackage } = await import('../lib/personalForecastGeneration');
   const { getPersonalForecastPeriodKey, resolvePersonalForecastWindow } = await import('../lib/personalForecastContract');
-  const { generateNatalReportCategoryPack } = await import('../lib/natalReading/reportCatalogGeneration');
   const { OPENAI_LUNA_MODEL } = await import('../lib/openai-models');
   if (process.argv.includes('--refresh-texts')) {
     const previous = destination.replace('.json', '.previous.json');
     fs.copyFileSync(destination, previous);
-    for (const person of result.people) { person.forecasts = {}; person.categoryPacks = {}; person.errors = {}; }
-    save();
-  }
-  if (process.argv.includes('--refresh-natal')) {
-    for (const person of result.people) { person.categoryPacks = {}; person.errors = {}; }
+    for (const person of result.people) { person.forecasts = {}; person.errors = {}; }
     save();
   }
   if (process.argv.includes('--refresh-extras')) {
@@ -101,7 +95,7 @@ print(json.dumps(r))`, ephemerisPath, method, JSON.stringify(args)], { encoding:
     if (result.people.some(person => person.id === definition.id)) continue;
     const profile: UserProfile = { ...definition, id: `ui-review-${definition.id}`, birthPlace: 'Москва, Россия', birthLatitude: 55.7558, birthLongitude: 37.6173, birthTimezone: 'Europe/Moscow', language: 'ru', theme: 'light', isSetup: true, isPremium: true, premiumUntil: '2099-12-31T23:59:59.000Z' };
     const chart = await calculateNatalChart(profile.name, profile.birthDate, profile.birthTime, profile.birthPlace, { coordinates: { lat: 55.7558, lon: 37.6173, timezone: 'Europe/Moscow' }, birthTimeMode: definition.birthTimeMode });
-    result.people.push({ id: definition.id, profile, chart, forecasts: {}, categoryPacks: {}, errors: {} });
+    result.people.push({ id: definition.id, profile, chart, forecasts: {}, errors: {} });
     save();
   }
   if (!extrasOnly) await Promise.all(result.people.map(async person => {
@@ -111,7 +105,6 @@ print(json.dumps(r))`, ephemerisPath, method, JSON.stringify(args)], { encoding:
       catch (error) { person.errors[key] = error instanceof Error ? error.message.slice(0, 400) : 'Generation failed'; console.log(`${person.id}: ${key} failed: ${person.errors[key]}`); }
       save();
     };
-    if (!person.categoryPacks.main) await run('main', async () => { person.categoryPacks.main = await generateNatalReportCategoryPack({ profile: person.profile, chart: person.chart, categoryKey: 'main' }); });
     for (const period of ['day', 'week', 'month'] as const) {
       if (process.argv.includes('--day-only') && period !== 'day') continue;
       if (person.forecasts[period]) continue;
@@ -119,10 +112,6 @@ print(json.dumps(r))`, ephemerisPath, method, JSON.stringify(args)], { encoding:
         const periodKey = getPersonalForecastPeriodKey(period, new Date('2026-09-08T12:00:00+03:00'), person.profile.birthTimezone || 'Europe/Moscow');
         person.forecasts[period] = await generatePersonalForecastPackage({ natal: person.chart, profile: person.profile, model: OPENAI_LUNA_MODEL, period, window: resolvePersonalForecastWindow(period, periodKey, person.profile.birthTimezone || 'Europe/Moscow') });
       });
-    }
-    if (person.categoryPacks.main) for (const categoryKey of ['character', 'love', 'communication', 'work', 'money'] as const) {
-      if (person.categoryPacks[categoryKey]) continue;
-      await run(categoryKey, async () => { person.categoryPacks[categoryKey] = await generateNatalReportCategoryPack({ profile: person.profile, chart: person.chart, categoryKey, mainAnchor: person.categoryPacks.main }); });
     }
   }));
   if (extrasOnly) {
@@ -183,7 +172,7 @@ print(json.dumps(r))`, ephemerisPath, method, JSON.stringify(args)], { encoding:
     }));
     else console.log('DeepSeek samples unavailable: DEEPSEEK_API_KEY is not configured locally.');
   }
-  console.log(JSON.stringify(result.people.map(p => ({ id: p.id, forecasts: Object.keys(p.forecasts), chapters: Object.keys(p.categoryPacks), errors: p.errors }))));
+  console.log(JSON.stringify(result.people.map(p => ({ id: p.id, forecasts: Object.keys(p.forecasts), errors: p.errors }))));
   const lines = ['# NEBO — три примера чтения', '', 'Вымышленные люди. Тексты получены через текущие генераторы Luna, без ручной подмены ответов. Прогнозы относятся к 8 сентября 2026 года, неделе и сентябрю. Натальные схемы рассчитаны Swiss Ephemeris; на этой Windows-машине для примеров использован Python-модуль, а не отсутствующий нативный Node-модуль. Приложение при обычном чтении использует сохранённые данные.', ''];
   for (const person of result.people) {
     lines.push(`## ${person.profile.name}`, '', `${person.profile.birthDate} · ${person.profile.birthTime || 'время неизвестно'} · ${person.profile.birthPlace}`, '');
@@ -192,13 +181,6 @@ print(json.dumps(r))`, ephemerisPath, method, JSON.stringify(args)], { encoding:
       lines.push(`### ${{ day: 'Сегодня', week: 'Неделя', month: 'Месяц' }[period]}`, '');
       if (forecast) lines.push(`**${forecast.overview.title}**`, '', forecast.overview.text, '', ...forecast.sections.flatMap(section => [section.text, '']));
       else lines.push('Генерация не завершена.', '');
-    }
-    for (const categoryKey of ['main', 'character', 'love', 'communication', 'work', 'money'] as const) {
-      const pack = person.categoryPacks[categoryKey];
-      lines.push(`### ${{ main: 'Коротко о тебе', character: 'Характер', love: 'Любовь', communication: 'Общение', work: 'Работа', money: 'Деньги' }[categoryKey]}`, '');
-      if (pack) for (const paragraph of pack.summary) lines.push(`**${paragraph.title || ''}**`, '', paragraph.text, '', `Основания: ${paragraph.evidenceIds.join(', ')}`, '');
-      else lines.push('Генерация не завершена.', '');
-      if (pack?.followUps) lines.push(...pack.followUps.map(item => `- ${item.label} → ${item.categoryKey}`), '');
     }
     lines.push('### Дополнительные карточки', '');
     for (const [period, pack] of Object.entries(person.microForecasts || {})) for (const topic of pack.topics) lines.push(`**${period} · ${topic.id} — ${topic.teaser}**`, '', topic.text, '');

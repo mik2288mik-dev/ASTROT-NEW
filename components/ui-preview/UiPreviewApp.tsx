@@ -21,7 +21,6 @@ import { HoroscopeReader } from '../../views/v2/HoroscopeReader';
 import { NatalMagazine } from '../../views/v2/NatalMagazine';
 import { MatrixRoom } from '../../views/v2/MatrixRoom';
 import readingSamples from './readingSamples.json';
-import type { NatalCatalogReportUiPreview } from '../NatalReading/NatalCatalogReport';
 import { UnionRoom } from '../../views/v2/UnionRoom';
 import { AstrologyEncyclopedia } from '../../views/v2/AstrologyEncyclopedia';
 import { ServiceScreen, type ServiceTab } from '../../views/v2/ServiceScreen';
@@ -49,9 +48,6 @@ import {
   createUiPreviewChart,
   createUiPreviewCharts,
   createUiPreviewCompatibilityStory,
-  createUiPreviewNatalCatalog,
-  createUiPreviewNatalReport,
-  createUiPreviewNatalPremiumReport,
   createUiPreviewProfile,
   parseUiPreviewScenario,
   previewViewForScreen,
@@ -500,15 +496,6 @@ export default function UiPreviewApp() {
     ? samplePerson.chart as unknown as ReturnType<typeof createUiPreviewChart>
     : createUiPreviewChart(scenario.birthTime), [scenario.birthTime, samplePerson]);
   const natalProfile = useMemo(() => ({ ...profile, id: '', gender: samplePerson ? samplePerson.profile.gender as typeof profile.gender : profile.gender }), [profile,samplePerson]);
-  const natalReport = useMemo(
-    () => createUiPreviewNatalReport(natalProfile, chart),
-    [chart, natalProfile],
-  );
-  const natalPremiumReport = useMemo(
-    () => createUiPreviewNatalPremiumReport(natalProfile, chart),
-    [chart, natalProfile],
-  );
-  const natalCatalog = useMemo(() => ({ ...createUiPreviewNatalCatalog(), ...(samplePerson ? {categoryPacks: samplePerson.categoryPacks as unknown as NatalCatalogReportUiPreview['categoryPacks']} : {}) }), [samplePerson]);
   const natalPreviewCharts = useMemo(() => samplePerson ? readingSamples.people.map((sample, index) => ({ ...createUiPreviewCharts({...profile, name:sample.profile.name, birthDate:sample.profile.birthDate, birthTime:sample.profile.birthTime, birthPlace:sample.profile.birthPlace}, sample.chart as unknown as typeof chart)[0], id:index + 1, is_primary:index === 0, subject_type:index === 0 ? 'self' as const : 'saved_person' as const, input_hash:`ui-preview-${sample.id}` })) : createUiPreviewCharts(profile,chart), [samplePerson,profile,chart]);
   const selectedNatalSubject = samplePerson ? natalPreviewCharts[readingSamples.people.indexOf(samplePerson)] : undefined;
   const view = previewViewForScreen(scenario.screen);
@@ -653,7 +640,6 @@ export default function UiPreviewApp() {
         }}
         premiumContinuation={natalContinuation}
         onPremiumContinuationHandled={() => setNatalContinuation(null)}
-        preloadedReport={natalReport}
         onCreateChart={() => navigate('onboarding')}
         onOpenPersonalityReport={() => navigate('natal-reading')}
         canPromotePremium={scenario.access !== 'premium'}
@@ -669,15 +655,7 @@ export default function UiPreviewApp() {
           reportState: scenario.state === 'loading' || scenario.state === 'error'
             ? scenario.state
             : 'ready',
-          premiumReport: scenario.access === 'premium' ? natalPremiumReport : null,
-          questions: {snapshot:{chartId:selectedNatalSubject?.id || 1,messages:[],usage:{usageDate:'2026-09-13',used:0,limit:5,remaining:5},promptVersion:'local-preview',voiceVersion:'local-preview'},onAsk:async () => {throw new Error('Local preview does not generate answers');}},
-          catalog: {
-            ...natalCatalog,
-            state: scenario.state === 'loading' || scenario.state === 'error'
-              ? scenario.state
-              : 'ready',
-          },
-        }}
+          questions: {snapshot:{chartId:selectedNatalSubject?.id || 1,messages:[],usage:{usageDate:'2026-09-13',used:0,limit:5,remaining:5},promptVersion:'local-preview',voiceVersion:'local-preview'},onAsk:async () => {throw new Error('Local preview does not generate answers');}},        }}
       />
     );
   } else if (scenario.screen.startsWith('compatibility-')) {

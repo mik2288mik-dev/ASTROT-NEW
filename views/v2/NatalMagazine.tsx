@@ -1,33 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MonoAvatar } from '../../components/mono-ui/MonoAvatar';
-import { NatalOverviewExperience, NatalOverviewMode } from '../../components/NatalReading/NatalOverviewExperience';
 import styles from '../../components/NatalReading/NatalSection.module.css';
 import type { NatalChartData, UserProfile } from '../../types';
-import type { PreloadedNatalReport } from '../../components/NatalReading/HumanReport';
-import type { NatalPermanentPremiumReport } from '../../lib/natalReading/permanentReport';
 import { formatDisplayDate } from '../../lib/date-utils';
-import { HumanReport } from '../../components/NatalReading/HumanReport';
-import {
-  NatalCatalogReport,
-  type NatalCatalogReportUiPreview,
-} from '../../components/NatalReading/NatalCatalogReport';
 import { NatalQuestionExperience } from '../../components/NatalReading/NatalQuestionExperience';
-import type { NatalExperienceView } from '../../components/NatalReading/NatalMeaningExperience';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { InteractiveNatalMap } from '../../components/NatalReading/InteractiveNatalMap';
 import { hasActivePremium } from '../../lib/accessMatrix';
-import { NatalQuestionDemo } from '../../components/NatalReading/NatalQuestionDemo';
-import { NatalArtwork } from '../../components/NatalReading/NatalArtwork';
+import { NatalUnifiedReport } from '../../components/NatalReading/NatalUnifiedReport';
 
 
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
-import type { NatalReportCategoryKey } from '../../lib/natalReading/reportCatalog';
-import {
-  readNatalReadingVariant,
-  resolveNatalReadingRenderer,
-  subscribeNatalReadingVariant,
-  type NatalReadingVariant,
-} from '../../lib/natalReading/readingVariant';
 import type { ChartListItem } from '../../services/storageService';
 import type { PaywallContext } from '../../lib/paywallContext';
 
@@ -40,7 +23,7 @@ type NatalMagazineProps = {
   chartSubject?: ChartListItem | null;
   requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
   onUpdateProfile?: (profile: UserProfile) => void;
-  preloadedReport?: PreloadedNatalReport | null;
+  preloadedReport?: unknown;
   onCreateChart?: () => void;
   onOpenPersonalityReport: () => void;
   premiumContinuation?: PaywallContext | null;
@@ -54,13 +37,13 @@ type NatalMagazineProps = {
     initialTab?: 'map' | 'reading' | 'questions' | 'foundation' | 'explore' | 'ask' | 'matrix';
     openQuestion?: boolean;
     reportState?: 'ready' | 'loading' | 'error';
-    premiumReport?: NatalPermanentPremiumReport | null;
-    catalog?: NatalCatalogReportUiPreview;
+    premiumReport?: unknown;
+    catalog?: unknown;
     questions?: React.ComponentProps<typeof NatalQuestionExperience>['uiPreview'];
   };
 };
 
-export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'details' | 'matrix';
+export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix';
 
 export function isSavedPersonChartSubject(
   chartSubject: Pick<ChartListItem, 'subject_type' | 'is_primary'> | null | undefined,
@@ -72,7 +55,7 @@ export function normalizeNatalScreenTab(
   tab: NatalScreenTab,
   _isSavedPerson: boolean,
 ): NatalScreenTab {
-  // Keep the four tabs visible; saved-person questions show the existing API limitation.
+  // Keep the three product tabs visible; saved-person questions show the existing API limitation.
   return tab;
 }
 
@@ -97,8 +80,6 @@ export function NatalMagazine({
   chartId,
   chartSubject,
   requestPremium,
-  onUpdateProfile,
-  preloadedReport,
   onCreateChart,
   premiumContinuation,
   onPremiumContinuationHandled,
@@ -119,18 +100,11 @@ export function NatalMagazine({
     && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
       ? uiPreview
       : undefined;
-  const [readingVariant, setReadingVariant] = useState<NatalReadingVariant>(() => (
-    readNatalReadingVariant(profile.id, profile.isAdmin === true)
-  ));
-  const readingRenderer = previewConfig?.catalog
-    ? 'catalog'
-    : resolveNatalReadingRenderer(profile.isAdmin === true ? readingVariant : 'auto', false);
   const [activeTab, setActiveTab] = useState<NatalScreenTab>(() => normalizeNatalScreenTab(
     previewTabToScreen(previewConfig?.initialTab, Boolean(previewConfig?.openQuestion)),
     isSavedPerson,
   ));
   const [overviewMode, setOverviewMode] = useState<'story' | 'topics'>('story');
-  const [questionContext, setQuestionContext] = useState<NatalReportCategoryKey>('main');
 
   const handledExternalQuestionRequestRef = useRef(0);
   const normalizedActiveTab = normalizeNatalScreenTab(activeTab, isSavedPerson);
@@ -145,18 +119,6 @@ export function NatalMagazine({
     if (normalizedActiveTab !== activeTab) setActiveTab(normalizedActiveTab);
   }, [activeTab, normalizedActiveTab]);
 
-  useEffect(() => {
-    if (readingRenderer !== 'classic' || normalizedActiveTab !== 'explore') return;
-    setActiveTab('foundation');
-  }, [normalizedActiveTab, readingRenderer]);
-
-  useEffect(() => {
-    const isAdmin = profile.isAdmin === true;
-    setReadingVariant(readNatalReadingVariant(profile.id, isAdmin));
-    return subscribeNatalReadingVariant(profile.id, isAdmin, (next) => {
-      setReadingVariant(next);
-    });
-  }, [profile.id, profile.isAdmin]);
 
   useEffect(() => {
     if (
@@ -170,7 +132,6 @@ export function NatalMagazine({
     if (!data) return;
     handledExternalQuestionRequestRef.current = openQuestionRequest;
     if (!isSavedPerson) {
-      setQuestionContext('main');
       setActiveTab('ask');
     }
     onQuestionRequestHandled?.();
@@ -179,7 +140,7 @@ export function NatalMagazine({
   useEffect(() => {
     if (!premiumContinuation || premiumContinuation.returnView !== 'chart') return;
     if (premiumContinuation.returnAction === 'open_natal_map_element') {
-      setActiveTab(premiumContinuation.returnEntityId?.startsWith('details:') ? 'details' : 'map');
+      setActiveTab('map');
       return;
     }
     if (
@@ -207,12 +168,6 @@ export function NatalMagazine({
     setActiveTab(tab === 'matrix' ? 'map' : tab);
   };
 
-  const openQuestions = (categoryKey: NatalReportCategoryKey) => {
-    if (isSavedPerson) return;
-    setQuestionContext(categoryKey);
-    selectTab('ask');
-    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
-  };
 
   const header = (
     <>
@@ -221,7 +176,6 @@ export function NatalMagazine({
         {([
           { id: 'foundation', label: 'Обзор' },
           { id: 'map', label: 'Карта' },
-          { id: 'details', label: 'Подробно' },
           { id: 'ask', label: 'Спросить' },
         ] as const).map(tab => {
           const active = tab.id === normalizedActiveTab || (tab.id === 'foundation' && normalizedActiveTab === 'explore');
@@ -287,19 +241,16 @@ export function NatalMagazine({
   ].join(':');
   const birthLine = [formatDisplayDate(data.birth?.localDate || subjectBirthDate, language), (data.birth ? data.birth.localTime : subjectBirthTime)?.slice(0, 5) || 'Время не указано', data.birth?.place || subjectBirthPlace].filter(Boolean).join(' · ');
   const person = <header className={styles.person}><h1>{subjectName || 'Моя карта'}</h1><p>{birthLine}</p></header>;
-  const catalogView: NatalExperienceView = normalizedActiveTab === 'explore'
-    ? 'explore'
-    : 'foundation';
 
   return (
     <div ref={sectionRef} className="fresh-page natal-editorial-page natal-mvp-page natal-v3-page">
       {header}
 
-      {normalizedActiveTab === 'map' || normalizedActiveTab === 'details' ? (
+      {normalizedActiveTab === 'map' ? (
         <InteractiveNatalMap
           key={reportSubjectKey}
           chart={data}
-          view={normalizedActiveTab === 'details' ? 'details' : 'map'}
+          view="map"
           name={subjectName || 'Моя карта'}
           birthLine={birthLine}
           isPremium={isPremium}
@@ -313,49 +264,17 @@ export function NatalMagazine({
         <section className={styles.content}>
           {person}
           <div className={styles.mode} role="group" aria-label="Как читать обзор">{(['story','topics'] as const).map(mode => <button type="button" key={mode} aria-pressed={overviewMode === mode} onClick={() => {setOverviewMode(mode); if (mode === 'story') selectTab('foundation');}}>{mode === 'story' ? 'Рассказ' : 'По темам'}</button>)}</div>
-          <NatalOverviewMode.Provider value={{mode:overviewMode,onTopics:() => setOverviewMode('topics')}}>
-          {readingRenderer === 'catalog' ? (
-            <NatalCatalogReport
-              key={`catalog:${reportSubjectKey}`}
-              profile={profile}
-              chartData={data}
-              chartId={chartId}
-              chartSubject={chartSubject}
-              view={catalogView}
-              onViewChange={(view) => { if (view === 'explore') setOverviewMode('topics'); selectTab(view); }}
-              experienceComponent={NatalOverviewExperience}
-              requestPremium={requestPremium}
-              premiumContinuation={premiumContinuation}
-              onPremiumContinuationHandled={onPremiumContinuationHandled}
-              canPromotePremium={canPromotePremium}
-              onOpenQuestions={isSavedPerson ? undefined : openQuestions}
-              hideIntro
-              uiPreview={previewConfig?.catalog}
-            />
-          ) : (
-            <HumanReport
-              key={`classic:${reportSubjectKey}`}
-              profile={profile}
-              chartData={data}
-              chartId={chartId}
-              chartSubject={chartSubject}
-              requestPremium={requestPremium}
-              onUpdateProfile={onUpdateProfile}
-              preloadedReport={preloadedReport}
-              hideIntro
-              surface="reading"
-              overviewMode={overviewMode}
-              premiumContinuation={premiumContinuation}
-              onPremiumContinuationHandled={onPremiumContinuationHandled}
-              canPromotePremium={canPromotePremium}
-              onOpenQuestions={isSavedPerson ? undefined : () => openQuestions('main')}
-              uiPreview={previewConfig ? {
-                state: previewConfig.reportState || 'ready',
-                premiumReport: previewConfig.premiumReport,
-              } : undefined}
-            />
-          )}
-          </NatalOverviewMode.Provider>
+          <NatalUnifiedReport
+            key={`unified:${reportSubjectKey}`}
+            profile={profile}
+            chartData={data}
+            chartId={chartId}
+            mode={overviewMode}
+            isPremium={isPremium}
+            savedPerson={isSavedPerson}
+            canPromotePremium={canPromotePremium}
+            requestPremium={requestPremium}
+          />
         </section>
       ) : null}
 
@@ -363,14 +282,12 @@ export function NatalMagazine({
         <section className={styles.content}>
           {person}
           {isSavedPerson ? <section className={styles.state}><h2>Вопросы по своей карте</h2><p>Сейчас «Спросить о себе» работает только с твоей основной картой. Для вопросов выбери её через аватар в шапке.</p></section> :
-          !isPremium ? <NatalQuestionDemo chart={data} onRequestPremium={() => {void requestPremium('natal_questions',{placement:'natal_questions',featureKey:'natal_questions',triggerType:'locked_feature',returnView:'chart',returnAction:'open_natal_questions'});}}/> : <div className={styles.premiumQuestions}><NatalArtwork art="plus" className={styles.questionArtwork}/><NatalQuestionExperience
+          <div className={styles.premiumQuestions}><NatalQuestionExperience
             key={reportSubjectKey}
             uiPreview={previewConfig?.questions}
             profile={profile}
             chartData={data}
             chartId={chartId}
-            contextCategory={questionContext}
-            onContextChange={setQuestionContext}
             requestPremium={requestPremium}
             premiumContinuation={premiumContinuation}
             onPremiumContinuationHandled={onPremiumContinuationHandled}

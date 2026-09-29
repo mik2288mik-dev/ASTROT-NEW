@@ -7,12 +7,6 @@ import {
   resolveReadingContext,
 } from '../../../../lib/natalReading/apiHelper';
 import {
-  type NatalPermanentPremiumReport,
-} from '../../../../lib/natalReading/permanentReport';
-import {
-  getCachedPermanentPremiumReport,
-} from '../../../../lib/natalReading/permanentApi';
-import {
   generateNatalQuestionAnswer,
   moderateNatalQuestion,
   NATAL_QUESTION_IDENTITY,
@@ -29,6 +23,7 @@ import {
   reserveNatalQuestionMessage,
 } from '../../../../lib/natalReading/natalQuestionStore';
 import { normalizePersonalForecastQuestionInput } from '../../../../lib/personalForecastQuestionModeration';
+import { withLegacyNatalEvidenceAliases } from '../../../../lib/natalReading/legacyCompatibility';
 import { normalizePersonalForecastQuestionSearch } from '../../../../lib/personalForecastQuestionCatalog';
 import {
   generationInProgressPayload,
@@ -38,17 +33,6 @@ import { diagnosticErrorCode } from '../../../../lib/diagnosticTrace';
 import { startServerOperationalDiagnostic } from '../../../../lib/serverOperationalDiagnostics';
 
 export const config = { maxDuration: 90 };
-
-async function readPermanentReport(
-  ctx: NonNullable<Awaited<ReturnType<typeof ensureValidContext>>>['ctx'],
-): Promise<NatalPermanentPremiumReport | null> {
-  const cached = await getCachedPermanentPremiumReport(ctx);
-  if (cached?.content) return cached.content;
-  // A question must not wait for the large Premium report to be generated.
-  // The saved chart remains the source of truth, and a later report simply
-  // enriches the same answer context when it is already available.
-  return null;
-}
 
 async function snapshot(input: {
   userId: string;
@@ -199,13 +183,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       generate: async () => {
         diagnostic.log('generation', 'start', { source: 'selected_chart_context' });
-        const permanentReport = await readPermanentReport(ctx);
         const currentHistory = await listNatalQuestionMessages({ userId, chartId, pairLimit: 8 });
         const answer = await generateNatalQuestionAnswer({
           chartId,
           profile: ctx.profile,
           chartData: ctx.chartData!,
-          permanentReport,
           history: currentHistory,
           question,
         });
@@ -217,7 +199,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           text: answer.text,
           payload: {
             questionMessageId: reserved.message.id,
-            evidenceIds: answer.evidenceIds,
+            meaningIds: answer.meaningIds,
+            evidenceIds: withLegacyNatalEvidenceAliases(answer.evidenceIds),
+            interpretationVersion: NATAL_QUESTION_IDENTITY.interpretationVersion,
             contractVersion: NATAL_QUESTION_IDENTITY.contractVersion,
             promptVersion: NATAL_QUESTION_IDENTITY.promptVersion,
             voiceVersion: NATAL_QUESTION_IDENTITY.voiceVersion,

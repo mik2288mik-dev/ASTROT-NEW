@@ -1,21 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
 import type { PaywallContext } from '../../lib/paywallContext';
 import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
 import type { NatalQuestionStoredMessage } from '../../lib/natalReading/natalQuestionStore';
-import {
-  getNatalReportCategory,
-  type NatalReportCategoryKey,
-} from '../../lib/natalReading/reportCatalog';
 import { normalizePersonalForecastQuestionInput } from '../../lib/personalForecastQuestionModeration';
 import {
   askNatalQuestion,
   loadNatalQuestionSnapshot,
-  type HumanReadingError,
-} from '../../services/natalReadingService';
+  type NatalQuestionServiceError,
+} from '../../services/natalQuestionService';
 import { recordUserAppEvent } from '../../services/sessionService';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import {
@@ -23,112 +19,11 @@ import {
   type NatalExplanationTarget,
 } from './NatalEvidenceSheet';
 
-const QUESTION_CONTEXTS = [
-  'main',
-  'character',
-  'love',
-  'communication',
-  'work',
-  'money',
-] as const satisfies readonly NatalReportCategoryKey[];
-
-const QUESTION_STARTERS: Record<NatalReportCategoryKey, {
-  ru: readonly string[];
-  en: readonly string[];
-}> = {
-  main: {
-    ru: [
-      'Как я принимаю важные решения?',
-      'Почему я могу терять интерес к работе или новым делам?',
-      'Что люди не сразу понимают в моём характере?',
-      'Какая моя сильная сторона помогает в работе?',
-    ],
-    en: [
-      'What affects my important decisions?',
-      'Why do I lose interest in work or new things?',
-      'What do people not understand about my character at first?',
-      'Which strength helps me at work?',
-    ],
-  },
-  character: {
-    ru: [
-      'Почему я иногда меняю решение в последний момент?',
-      'Что меня раздражает в общении?',
-      'Почему мне быстро становится скучно в работе?',
-      'Как я реагирую, когда планы ломаются?',
-    ],
-    en: [
-      'Why do I change a decision at the last moment?',
-      'What irritates me in communication?',
-      'Why do I get bored at work?',
-      'How do I react when a plan falls apart?',
-    ],
-  },
-  love: {
-    ru: [
-      'Какие люди мне нравятся в отношениях?',
-      'Как я показываю интерес в близких отношениях?',
-      'Почему я могу быстро отдалиться в отношениях?',
-      'На что я обращаю внимание в отношениях?',
-    ],
-    en: [
-      'What kind of people do I like in relationships?',
-      'How do I show interest in close relationships?',
-      'Why do I pull away in relationships?',
-      'What do I notice most in relationships?',
-    ],
-  },
-  communication: {
-    ru: [
-      'Как я проявляюсь при знакомстве и в новом общении?',
-      'Почему меня иногда неправильно понимают в общении?',
-      'Как я веду себя в конфликте?',
-      'Почему мне бывает трудно попросить о помощи?',
-    ],
-    en: [
-      'How do I come across when meeting someone new?',
-      'Why am I misunderstood in conversations?',
-      'What are my patterns in conflict?',
-      'Why can asking for help be difficult for me?',
-    ],
-  },
-  work: {
-    ru: [
-      'Какая работа мне быстро надоедает?',
-      'Как в работе мне легче: одному или с людьми?',
-      'Как я веду себя под давлением сроков на работе?',
-      'Какие мои сильные стороны помогают в работе?',
-    ],
-    en: [
-      'What kind of work bores me quickly?',
-      'Why do I prefer working alone?',
-      'How do I act under deadline pressure at work?',
-      'Which strengths help me at work?',
-    ],
-  },
-  money: {
-    ru: [
-      'Какие привычки влияют на мои траты?',
-      'Как я принимаю денежные решения?',
-      'Почему мне может быть трудно рисковать деньгами?',
-      'Почему мне бывает трудно назвать цену своей работе?',
-    ],
-    en: [
-      'Which habits affect how I spend money?',
-      'What influences my money decisions?',
-      'Why can taking financial risks be difficult for me?',
-      'Why can naming a price for my work be difficult?',
-    ],
-  },
-};
-
 type Props = {
   compact?: boolean;
   profile: UserProfile;
   chartData: NatalChartData;
   chartId?: number;
-  contextCategory: NatalReportCategoryKey;
-  onContextChange: (categoryKey: NatalReportCategoryKey) => void;
   requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
@@ -163,7 +58,7 @@ function buildQuestionPairs(messages: readonly NatalQuestionStoredMessage[]): Qu
 }
 
 function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
-  const value = error as HumanReadingError;
+  const value = error as NatalQuestionServiceError;
   if (value?.code === 'PREMIUM_REQUIRED') {
     return language === 'ru'
       ? 'Эта часть пока закрыта. Открой вопросы, чтобы продолжить.'
@@ -209,19 +104,10 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
     : 'Unable to load the answers. Check your connection and try again.';
 }
 
-function contextTitle(categoryKey: NatalReportCategoryKey, language: 'ru' | 'en'): string {
-  if (categoryKey === 'main') return language === 'ru' ? 'обо всём' : 'anything about you';
-  const title = getNatalReportCategory(categoryKey)?.title[language]
-    || (language === 'ru' ? 'эту часть' : 'this part');
-  return language === 'ru' ? title.toLocaleLowerCase() : title.toLocaleLowerCase();
-}
-
 export const NatalQuestionExperience: React.FC<Props> = ({
   profile,
   chartData,
   chartId,
-  contextCategory,
-  onContextChange,
   requestPremium,
   premiumContinuation,
   onPremiumContinuationHandled,
@@ -240,11 +126,9 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   const [error, setError] = useState<string | null>(null);
   const [unansweredQuestionText, setUnansweredQuestionText] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState(0);
-  const [contextOpen, setContextOpen] = useState(false);
   const [explanation, setExplanation] = useState<NatalExplanationTarget | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const pairs = useMemo(() => buildQuestionPairs(snapshot?.messages || []), [snapshot?.messages]);
-  const starters = QUESTION_STARTERS[contextCategory][language];
 
   useEffect(() => {
     setSnapshot(null);
@@ -318,14 +202,14 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         section: 'natal',
         source: 'natal_questions',
         eventPayload: {
-          section_key: contextCategory,
+          section_key: 'main',
           scope: 'self',
           source: 'natal_meaning_map',
           is_follow_up: pairs.length > 0,
         },
       });
     } catch (submitError) {
-      const code = (submitError as HumanReadingError)?.code;
+      const code = (submitError as NatalQuestionServiceError)?.code;
       if (
         code === 'NATAL_QUESTION_GENERATION_FAILED'
         || code === 'NATAL_QUESTION_VALIDATION_FAILED'
@@ -380,53 +264,14 @@ export const NatalQuestionExperience: React.FC<Props> = ({
       <header className="natal-v3-page-heading natal-v3-question-heading" hidden={compact}>
         <p>{language === 'ru' ? 'Спросить' : 'Ask'}</p>
         <h1 id="natal-v3-question-title">
-          {language === 'ru'
-            ? `Задай вопрос ${contextCategory === 'main' ? 'о себе' : `про ${contextTitle(contextCategory, language)}`}`
-            : `Ask about ${contextTitle(contextCategory, language)}`}
+          {language === 'ru' ? 'Задай любой вопрос о себе' : 'Ask anything about yourself'}
         </h1>
         <span>
           {language === 'ru'
-            ? 'Напиши вопрос. Разберём его по твоей натальной карте.'
-            : 'Ask a question. We will answer it using your saved birth chart.'}
+            ? 'Напиши вопрос своими словами. Ответ будет только по твоей сохранённой карте.'
+            : 'Write the question in your own words. The answer uses only your saved birth chart.'}
         </span>
       </header>
-
-      <section hidden={compact && contextCategory === 'main'} className="natal-v3-question-context" aria-label={language === 'ru' ? 'Тема вопроса' : 'Question topic'}>
-        <button
-          type="button"
-          aria-expanded={contextOpen}
-          onClick={() => setContextOpen((value) => !value)}
-        >
-          <span>
-            <small>{language === 'ru' ? 'Сейчас спрашиваем' : 'Current topic'}</small>
-            <strong>{contextCategory === 'main'
-              ? (language === 'ru' ? 'Обо всём' : 'Anything about you')
-              : getNatalReportCategory(contextCategory)?.title[language]}</strong>
-          </span>
-          <ChevronDown aria-hidden="true" />
-        </button>
-        {contextOpen ? (
-          <ul>
-            {QUESTION_CONTEXTS.map((categoryKey) => (
-              <li key={categoryKey}>
-                <button
-                  type="button"
-                  aria-pressed={contextCategory === categoryKey}
-                  onClick={() => {
-                    onContextChange(categoryKey);
-                    setContextOpen(false);
-                  }}
-                >
-                  <span>{categoryKey === 'main'
-                    ? (language === 'ru' ? 'Обо всём' : 'Anything about you')
-                    : getNatalReportCategory(categoryKey)?.title[language]}</span>
-                  {contextCategory === categoryKey ? <span aria-hidden="true">✓</span> : null}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </section>
 
       {!isPremium ? (
         <section className="natal-v3-question-paywall" aria-labelledby="natal-v3-question-paywall-title">
@@ -459,27 +304,9 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         <section className="natal-v3-question-composer" aria-labelledby="natal-v3-question-composer-title">
           <div className="natal-v3-section-heading">
             <h2 id="natal-v3-question-composer-title">
-              {language === 'ru' ? 'Можно начать так' : 'You can start here'}
+              {language === 'ru' ? 'Твой вопрос' : 'Your question'}
             </h2>
           </div>
-          <ul className="natal-v3-question-starters">
-            {starters.map((starter) => (
-              <li key={starter}>
-                <button
-                  type="button"
-                  disabled={inputDisabled || Boolean(unansweredQuestionText)}
-                  onClick={() => {
-                    setQuestionText(starter);
-                    setError(null);
-                    requestAnimationFrame(() => composerRef.current?.focus());
-                  }}
-                >
-                  <span>{starter}</span>
-                  <ChevronRight aria-hidden="true" />
-                </button>
-              </li>
-            ))}
-          </ul>
 
           <form onSubmit={submitQuestion} aria-busy={submitting || undefined}>
             <div className="natal-v3-composer-field">
@@ -565,7 +392,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                           evidenceIds: questionMessageEvidenceIds(answer),
                         })}
                       >
-                        {language === 'ru' ? 'Почему так?' : 'Why?'}
+                        {language === 'ru' ? 'На чём основано' : 'What this is based on'}
                       </button>
                     </div>
                   ) : (

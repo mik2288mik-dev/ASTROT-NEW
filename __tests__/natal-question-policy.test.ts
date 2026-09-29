@@ -10,16 +10,6 @@ function moderation(question: string, language: 'ru' | 'en' = 'ru') {
   return moderateNatalQuestion({ question, language });
 }
 
-function displayedQuestionStarters(language: 'ru' | 'en'): string[] {
-  const source = read('components/NatalReading/NatalQuestionExperience.tsx');
-  const starterBlock = source.slice(
-    source.indexOf('const QUESTION_STARTERS'),
-    source.indexOf('type Props'),
-  );
-  return [...starterBlock.matchAll(new RegExp(`${language}: \\[([\\s\\S]*?)\\]`, 'g'))]
-    .flatMap((match) => [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1]));
-}
-
 describe('saved natal-chart question policy', () => {
   it.each([
     'Что мой асцендент говорит о том, как я общаюсь?',
@@ -57,16 +47,27 @@ describe('saved natal-chart question policy', () => {
     expect(moderation(question, 'en')).toMatchObject({ status: 'approved' });
   });
 
-  it('accepts every starter shown in the natal-question interface', () => {
-    (['ru', 'en'] as const).forEach((language) => {
-      const starters = displayedQuestionStarters(language);
-      expect(starters).toHaveLength(24);
-      starters.forEach((question) => {
-        expect(moderation(question, language)).toMatchObject({
-          status: 'approved',
-          reason: 'relevant_natal_question',
-        });
-      });
+  it.each([
+    'Как я обычно общаюсь с новыми людьми?',
+    'Мне проще говорить сразу или сначала всё обдумать?',
+    'Как я действую, когда задача становится сложной?',
+    'На что я обычно опираюсь перед крупной покупкой?',
+    'Насколько для меня важен привычный уклад?',
+    'Мне проще сначала разобраться в теории или сразу пробовать?',
+  ])('accepts ordinary personal wording without a topic-button vocabulary: %s', (question) => {
+    expect(moderation(question)).toMatchObject({
+      status: 'approved',
+      reason: 'relevant_natal_question',
+    });
+  });
+
+  it.each([
+    'Почему я люблю громкую музыку, а иногда хочу полной тишины?',
+    'Почему я часто меняю планы, и почему я потом возвращаюсь к старому варианту?',
+  ])('accepts personal questions even when they do not match a predefined product topic: %s', (question) => {
+    expect(moderation(question)).toMatchObject({
+      status: 'approved',
+      reason: 'relevant_natal_question',
     });
   });
 
@@ -167,17 +168,14 @@ describe('saved natal-chart question policy', () => {
   });
 
 
-  it('offers six fill-only starters and explains the AI chart boundary', () => {
-    const report = read('components/NatalReading/HumanReport.tsx');
-    const starterBlock = report.slice(
-      report.indexOf('const NATAL_QUESTION_STARTERS'),
-      report.indexOf('const ANGLE_NAMES'),
-    );
-
-    expect(starterBlock.match(/\bru:/gu)).toHaveLength(6);
-    expect(report).toContain('type="button"');
-    expect(report).toContain('setQuestionText(suggestion);');
-    expect(report).toContain('ИИ ответит по сохранённой натальной карте');
-    expect(report).toMatch(/до 5 принятых вопросов в день/iu);
+  it('keeps one free-form composer and no topic or starter-button UI', () => {
+    const experience = read('components/NatalReading/NatalQuestionExperience.tsx');
+    expect(experience).toContain('<textarea');
+    expect(experience).toContain('onSubmit={submitQuestion}');
+    expect(experience).toContain('до 5 новых вопросов в день');
+    expect(experience).not.toContain('contextCategory');
+    expect(experience).not.toContain('NATAL_QUESTION_TOPICS');
+    expect(experience).not.toContain('NATAL_QUESTION_STARTERS');
+    expect(experience).not.toContain('setQuestionText(starter);');
   });
 });

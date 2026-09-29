@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ChevronRight, ChevronDown, X, House, Triangle, Circle, BookOpen } from 'lucide-react';
 import type { NatalChartWheelSource } from '../../lib/natalChartWheelModel';
 import { natalChartWheelHouseLabelLongitude } from '../../lib/natalChartWheelModel';
-import { getPermanentNatalReliability } from '../../lib/natalReading/permanentReport';
 import { buildMapData, explainMapSelection, MAP_SIGNS, MAP_SIGN_NAMES, mapObject, MAP_ASPECTS, type MapSelection } from './mapExplanation';
 import styles from './InteractiveNatalMap.module.css';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
@@ -15,15 +14,6 @@ import { NatalPlusEntry } from './NatalPlusEntry';
 import type { PaywallContext } from '../../lib/paywallContext';
 
 const SIGN_COLORS = ['#cf403b','#087d5e','#076aa6','#6542c5','#d25923','#567423','#a33a89','#275dc5','#d1681b','#168478','#6841c6','#1374bc'];
-const PLANET_KEYS = new Set(['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']);
-const ASPECT_GROUPS = [
-  { type: 'conjunction', title: 'Соединения' },
-  { type: 'sextile', title: 'Секстили' },
-  { type: 'trine', title: 'Тригоны' },
-  { type: 'square', title: 'Квадраты' },
-  { type: 'opposition', title: 'Оппозиции' },
-] as const;
-type ElementItem = MapSelection & { label: string };
 const HELP = [
   { Icon: Circle, title: 'Планета — что именно', text: 'Показывает, о какой части человека идёт речь.' },
   { Icon: BookOpen, title: 'Знак — как проявляется', text: 'Показывает, каким образом это выражается.' },
@@ -46,19 +36,24 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
   const backAction = useRef(() => {});
   const explanation = selection ? explainMapSelection(chart, selection) : null;
   const isOpen = Boolean(selection && explanation);
-  const fullAccess = isPremium || (selection?.kind === 'point' && ['sun','moon','ascendant'].includes(selection.id));
+  const freeSelection = Boolean(selection && (
+    (selection.kind === 'point' && ['sun', 'ascendant'].includes(selection.id))
+    || (selection.kind === 'house' && selection.id === '1')
+  ));
+  const fullAccess = isPremium || freeSelection;
   useEffect(() => {
     if (premiumContinuation?.returnAction !== 'open_natal_map_element' || premiumContinuation.returnView !== 'chart') return;
     const [fromView,kind,...idParts] = (premiumContinuation.returnEntityId || '').split(':');
     const id = idParts.join(':');
-    if (fromView !== view) return;
+    const normalizedFromView = fromView === 'details' ? 'map' : fromView;
+    if (normalizedFromView !== view) return;
     if (!['point','house','aspect','sign'].includes(kind) || !id) return;
     const restored = {kind:kind as MapSelection['kind'],id};
     if (!explainMapSelection(chart,restored)) return;
     setSelection(restored); setDetail(true);
     onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
   }, [chart, view, premiumContinuation, onPremiumContinuationHandled]);
-  const quality = getPermanentNatalReliability(chart).quality;
+  const quality = chart.chartQuality?.birthTimeQuality ?? chart.birthTimeQuality ?? 'unknown';
   const rotation = (data.angles.find(p => p.key === 'ascendant')?.longitude ?? -270) + 270;
   const point = (longitude: number, radius: number) => {
     const a = (rotation - longitude - 90) * Math.PI / 180;
@@ -143,19 +138,9 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
     },
     onKeyDown: (e: React.KeyboardEvent<SVGElement>) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(kind, id, e.currentTarget); } },
   });
-  const pointItems = (points: typeof data.allPoints): ElementItem[] => points.map(p => ({ kind: 'point', id: p.key, label: mapObject(p.key)?.name || p.name }));
-  const angleKeys = new Set(data.angles.map(p => p.key));
-  const elementGroups = [
-    { title: 'Планеты', items: pointItems(data.allPoints.filter(p => PLANET_KEYS.has(p.key))) },
-    { title: 'Дома', items: data.houses.map(h => ({ kind: 'house', id: String(h.house), label: `${h.house} дом` } satisfies ElementItem)) },
-    { title: 'Угловые точки', items: pointItems(data.angles) },
-    { title: 'Другие точки', items: pointItems(data.allPoints.filter(p => !PLANET_KEYS.has(p.key) && !angleKeys.has(p.key))) },
-  ];
-  const elementList = (items: ElementItem[]) => <div className={styles.elementList}>{items.map(item => <button key={`${item.kind}:${item.id}`} type="button" onClick={e => choose(item.kind, item.id, e.currentTarget)}><span>{item.label}</span><ChevronRight size={16} aria-hidden="true"/></button>)}</div>;
-  const groupSummary = (title: string, count: number) => <summary><span>{title}</span><span className={styles.elementCount} aria-label={`Элементов: ${count}`}>{count}</span><ChevronDown size={18} className={styles.groupArrow} aria-hidden="true"/></summary>;
   return <section className={view === 'details' ? sectionStyles.content : styles.map} aria-labelledby="interactive-map-name">
     <header className={styles.person}><h1 id="interactive-map-name">{name}</h1><p>{birthLine}</p></header>
-    {view === 'details' ? <NatalDetails key={name + birthLine} chart={chart} onSelect={(item, target) => choose(item.kind, item.id, target)}/> : <>
+    {view === 'details' ? <NatalDetails key={name + birthLine} chart={chart} isPremium={isPremium} onSelect={(item, target) => choose(item.kind, item.id, target)}/> : <>
     <svg viewBox="0 0 400 400" className={styles.wheel} aria-label="Твоя натальная карта. Выбери планету, знак, дом или аспект.">
       <circle cx="200" cy="200" r="184" fill="white"/>
       {MAP_SIGNS.map((sign, i) => {
@@ -190,32 +175,30 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
     </svg>
     {quality !== 'exact' ? <p className={styles.precision}>{quality === 'unknown' ? 'Время рождения не указано.' : 'Время рождения указано примерно.'} Показаны только надёжные положения. Меняющиеся точки и дома не используются в объяснениях.</p> : null}
     <details className={styles.help}><summary><BookOpen size={20} aria-hidden="true"/>Как читать карту<ChevronDown size={18} aria-hidden="true"/></summary><div className={styles.helpGrid}>{HELP.map(({Icon,title,text}) => <div key={title} className={styles.helpItem}><Icon aria-hidden="true"/><div><h3>{title}</h3><p>{text}</p></div></div>)}</div><p className={styles.hint}>Нажми на планету, номер дома или линию внутри круга, чтобы узнать больше.</p></details>
-    <details className={styles.elements}>
-      <summary>Все элементы твоей карты</summary>
-      <div className={styles.elementGroups}>
-        {elementGroups.filter(group => group.items.length > 0).map(group => <details key={group.title} className={styles.elementGroup}>
-          {groupSummary(group.title, group.items.length)}
-          {elementList(group.items)}
-        </details>)}
-        {data.aspects.length > 0 ? <details className={styles.elementGroup}>
-          {groupSummary('Аспекты', data.aspects.length)}
-          <div className={styles.aspectGroups}>{ASPECT_GROUPS.map(group => {
-            const aspects = data.aspects.filter(a => a.type === group.type);
-            if (!aspects.length) return null;
-            return <details key={group.type} className={styles.elementGroup}>
-              {groupSummary(group.title, aspects.length)}
-              {elementList(aspects.map(a => ({ kind: 'aspect', id: a.id, label: `${mapObject(a.fromKey)?.name || a.fromKey} — ${mapObject(a.toKey)?.name || a.toKey}` })))}
-            </details>;
-          })}</div>
-        </details> : null}
-      </div>
-    </details>
+    <div className={sectionStyles.embeddedDetails}>
+      <NatalDetails
+        key={name + birthLine}
+        chart={chart}
+        isPremium={isPremium}
+        onSelect={(item, target) => choose(item.kind, item.id, target)}
+      />
+    </div>
     </>}
     <dialog ref={dialog} className={`${styles.sheet} ${detail ? styles.detail : ''}`} aria-labelledby="map-explanation-title" onCancel={e => { e.preventDefault(); if (detail) setDetail(false); else close(); }} onClick={e => { if (e.target === e.currentTarget) close(); }}>
       {explanation ? <div className={styles.sheetInner}>
-        {detail ? <header className={styles.detailHeader}><button type="button" aria-label="Назад к краткому объяснению" onClick={() => setDetail(false)}><ArrowLeft/></button><h2 id="map-explanation-title">Почему такой вывод<span className={styles.detailObject}>{explanation.title}</span></h2><button type="button" aria-label="Закрыть объяснение" onClick={close}><X/></button></header> : <><div className={styles.handle} onPointerDown={e => { dragStart.current = e.clientY; e.currentTarget.setPointerCapture(e.pointerId); }} onPointerUp={e => { if (dragStart.current !== null && e.clientY - dragStart.current > 55) close(); dragStart.current = null; }}><span/></div><header className={styles.sheetHeader}><span className={styles.symbol} style={{color: explanation.color}}>{selection?.kind === 'point' ? objectIcon(selection.id, 30) : selection?.kind === 'sign' ? <ZodiacIcon sign={selection.id} size={30} stroke={explanation.color}/> : selection?.kind === 'house' ? <House size={30}/> : <Triangle size={30}/>}</span><div className={styles.sheetHeading}><h2 id="map-explanation-title">{explanation.title}</h2><p>{explanation.yours}</p></div><button type="button" aria-label="Закрыть объяснение" onClick={close}><X/></button></header></>}
+        {detail ? <header className={styles.detailHeader}><button type="button" aria-label="Назад к краткому объяснению" onClick={() => setDetail(false)}><ArrowLeft/></button><h2 id="map-explanation-title">На чём основано<span className={styles.detailObject}>{explanation.title}</span></h2><button type="button" aria-label="Закрыть объяснение" onClick={close}><X/></button></header> : <><div className={styles.handle} onPointerDown={e => { dragStart.current = e.clientY; e.currentTarget.setPointerCapture(e.pointerId); }} onPointerUp={e => { if (dragStart.current !== null && e.clientY - dragStart.current > 55) close(); dragStart.current = null; }}><span/></div><header className={styles.sheetHeader}><span className={styles.symbol} style={{color: explanation.color}}>{selection?.kind === 'point' ? objectIcon(selection.id, 30) : selection?.kind === 'sign' ? <ZodiacIcon sign={selection.id} size={30} stroke={explanation.color}/> : selection?.kind === 'house' ? <House size={30}/> : <Triangle size={30}/>}</span><div className={styles.sheetHeading}><h2 id="map-explanation-title">{explanation.title}</h2><p>{explanation.yours}</p></div><button type="button" aria-label="Закрыть объяснение" onClick={close}><X/></button></header></>}
         <div ref={content} className={styles.sheetContent}>
-          {detail ? fullAccess ? <NatalMapExplanationScreen explanation={explanation}/> : <div data-map-premium-entry><p className={styles.detailIntro}>{explanation.yours}</p><NatalPlusEntry title={`Почему такой вывод: ${explanation.title}`} onOpen={() => {if (selection) {const item=selection; close(); onRequestPremium?.(item,view);}}}>Из каких частей карты получилось это описание — в полном объяснении с NEBO+. Бесплатно можно посмотреть весь путь вывода для Солнца, Луны и Асцендента, если он рассчитан.</NatalPlusEntry></div> : <><p className={styles.selectionIntro}>{explanation.what}</p><button type="button" className={styles.why} onClick={() => setDetail(true)}><BookOpen size={20}/>Почему такой вывод<ChevronRight size={20}/></button></>}
+          {fullAccess ? (
+            detail
+              ? <NatalMapExplanationScreen explanation={explanation}/>
+              : <><p className={styles.selectionIntro}>{explanation.meaning}</p><button type="button" className={styles.why} onClick={() => setDetail(true)}><BookOpen size={20}/>На чём основано<ChevronRight size={20}/></button></>
+          ) : (
+            <div data-map-premium-entry>
+              <NatalPlusEntry title={`Открыть: ${explanation.title}`} onOpen={() => {if (selection) {const item=selection; close(); onRequestPremium?.(item,'map');}}}>
+                Полная интерактивная карта доступна с Premium. Бесплатно открыты Солнце, Асцендент и 1 дом.
+              </NatalPlusEntry>
+            </div>
+          )}
         </div>
       </div> : null}
     </dialog>

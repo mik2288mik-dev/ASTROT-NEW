@@ -1,8 +1,14 @@
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
 import { APP_VOICE_VERSION, withAppVoiceVersion } from '../appVoice';
-import { getNeboCoreVoice } from '../voice/core';
+import {
+  buildNatalInterpretation,
+  NATAL_INTERPRETATION_VERSION,
+  type NatalInterpretation,
+  type NatalMeaning,
+} from '../natalInterpretation';
 import { getNatalStorySystemPrompt } from '../voice/contracts/natal';
+import { hasCoreVoiceViolation } from '../voice/validators';
 import {
   createLunaStructuredResponse,
   OPENAI_LUNA_MODEL,
@@ -13,17 +19,6 @@ import {
   normalizePersonalForecastQuestionInput,
   type PersonalForecastQuestionModerationReason,
 } from '../personalForecastQuestionModeration';
-import {
-  buildNatalModelContext,
-  buildNatalPromptContext,
-  getNatalNarrativeEvidenceIds,
-  hasNatalPersonalityCopyViolation,
-  isNatalReliabilityTextAllowed,
-  NATAL_PERMANENT_CONTRACT_VERSION,
-  type BuiltNatalModelContext,
-  type NatalPermanentPremiumReport,
-  type NatalReadingLanguage,
-} from './permanentReport';
 import type {
   NatalQuestionStoredMessage,
   NatalQuestionUsage,
@@ -31,16 +26,26 @@ import type {
 
 const MAX_ANSWER_ATTEMPTS = 2;
 
-export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question-v4');
-export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v6';
+export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question-v6');
+export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v8';
 
 const NATAL_QUESTION_RESPONSE_SCHEMA: StrictJsonSchema = {
   type: 'object',
   properties: {
     answer: { type: 'string' },
-    evidence_ids: { type: 'array', items: { type: 'string' } },
+    meaning_ids: { type: 'array', items: { type: 'string' } },
   },
-  required: ['answer', 'evidence_ids'],
+  required: ['answer', 'meaning_ids'],
+  additionalProperties: false,
+};
+
+const NATAL_QUESTION_SEMANTIC_REVIEW_SCHEMA: StrictJsonSchema = {
+  type: 'object',
+  properties: {
+    ok: { type: 'boolean' },
+    issues: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['ok', 'issues'],
   additionalProperties: false,
 };
 
@@ -59,6 +64,7 @@ export type NatalQuestionModeration = {
 
 export type NatalQuestionAnswer = {
   text: string;
+  meaningIds: string[];
   evidenceIds: string[];
   model?: string;
   generationAttempts?: 1 | 2;
@@ -68,8 +74,9 @@ export type NatalQuestionValidationCode =
   | 'ANSWER_TOO_SHORT'
   | 'ANSWER_TOO_LONG'
   | 'SENTENCE_COUNT_INVALID'
-  | 'EVIDENCE_REQUIRED'
-  | 'EVIDENCE_UNKNOWN'
+  | 'MEANING_REQUIRED'
+  | 'MEANING_UNKNOWN'
+  | 'MEANING_SELECTION_TOO_BROAD'
   | 'COPY_VIOLATION'
   | 'DIAGNOSTIC_CLAIM'
   | 'PROFESSIONAL_IMPERATIVE'
@@ -79,7 +86,7 @@ export type NatalQuestionValidationCode =
   | 'HIGH_STAKES_PRESCRIPTION'
   | 'UNSUPPORTED_FUTURE_TIMING'
   | 'UNSUPPORTED_FUTURE_EVENT'
-  | 'RELIABILITY_VIOLATION';
+  | 'SEMANTIC_MISMATCH';
 
 export class NatalQuestionValidationError extends Error {
   readonly code = 'NATAL_QUESTION_VALIDATION_FAILED';
@@ -103,35 +110,46 @@ export type NatalQuestionSnapshot = {
 
 export type NatalQuestionPromptContext = {
   chartId: number;
-  chart: ReturnType<typeof buildNatalPromptContext>;
-  permanentReport: NatalPermanentPremiumReport | null;
+  interpretationVersion: string;
+  approvedMeanings: Array<{
+    id: string;
+    scope: NatalMeaning['scope'];
+    topics: NatalMeaning['topics'];
+    meaning: string;
+  }>;
   recentMessages: Array<{
     role: 'user' | 'assistant';
     text: string;
-    evidenceIds: string[];
   }>;
   question: string;
 };
 
 type RawNatalQuestionAnswer = {
   answer?: unknown;
-  evidence_ids?: unknown;
+  meaning_ids?: unknown;
 };
+
+type RawNatalQuestionSemanticReview = {
+  ok?: unknown;
+  issues?: unknown;
+};
+
+type NatalReadingLanguage = 'ru' | 'en';
 
 type NatalQuestionAnswerRequester = (input: {
   language: NatalReadingLanguage;
   prompt: string;
 }) => Promise<RawNatalQuestionAnswer>;
 
+type NatalQuestionSemanticReviewer = (input: {
+  language: NatalReadingLanguage;
+  question: string;
+  answer: string;
+  meanings: Array<Pick<NatalMeaning, 'id' | 'scope' | 'text'>>;
+}) => Promise<string[]>;
+
 function text(value: unknown): string {
   return String(value ?? '').trim();
-}
-
-function evidenceIdsFromPayload(payload: Record<string, unknown> | null): string[] {
-  const value = payload?.evidenceIds || payload?.evidence_ids;
-  return Array.isArray(value)
-    ? [...new Set(value.map(text).filter(Boolean))]
-    : [];
 }
 
 const NATAL_SCOPE_PATTERNS = [
@@ -160,8 +178,8 @@ const INTERPRETIVE_INTENT_PATTERNS = [
 ] as const;
 
 const PERSONAL_PATTERN_DOMAIN_PATTERNS = [
-  /(?:характер|черт[\p{L}-]*|сильн[\p{L}-]*\s+сторон|слаб[\p{L}-]*\s+сторон|талант|способност|реакц|реагир|эмоц|чувств|привыч|поведен|решен|выбор|сомнен|риск|общен|разговор|конфликт|спор|границ|довер|помощ|отношен|любов|близост|семь|родител|друз|муж|жен|супруг|работ|карьер|профес|коллег|руковод|деньг|доход|трат|накоп|самооцен|уверен|страх|контрол|ответствен|мотивац|цел[ьи]|темп|инициатив|лидер|партн[её]р|прокраст|откладыв|дисциплин|организ|довож|начина)/iu,
-  /(?:character|trait|strength|weakness|talent|abilit|reaction|react|emotion|feeling|habit|behavio|decision|choice|doubt|risk|communicat|conversation|conflict|argument|boundar|trust|help|relationship|love|intimacy|family|parent|friend|husband|wife|spouse|work|career|profession|colleague|manager|money|income|spend|saving|confidence|fear|control|responsibilit|motivation|goal|pace|initiative|leader|partner|procrastinat|put\w*\s+off|disciplin|organi[sz]|follow\w*\s+through|start\w*)/iu,
+  /(?:характер|черт[\p{L}-]*|сильн[\p{L}-]*\s+сторон|слаб[\p{L}-]*\s+сторон|талант|способност|реакц|реагир|эмоц|чувств|привыч|поведен|решен|выбор|сомнен|риск|общен|разговор|говор|конфликт|спор|границ|довер|помощ|отношен|любов|близост|симпати|семь|родител|друз|муж|жен|супруг|работ|карьер|профес|коллег|руковод|деньг|доход|трат|накоп|самооцен|уверен|страх|контрол|ответствен|мотивац|цел[ьи]|темп|ритм|инициатив|лидер|партн[её]р|прокраст|откладыв|дисциплин|организ|довож|начина|заметн|веду\s+себя|настаив|насто|мысл|разноглас|прийти\s+в\s+себя|комфорт|пространств|домашн|уклад|восстанав|восстанов|уч[её]б|учусь|учиться|обучен|разбира|понять|теори|отдых|нагруз|рутин|пауз|переключ)/iu,
+  /(?:character|trait|strength|weakness|talent|abilit|reaction|react|emotion|feeling|habit|behavio|decision|choice|doubt|risk|communicat|conversation|speak|conflict|argument|boundar|trust|help|relationship|love|intimacy|attraction|interest|family|parent|friend|husband|wife|spouse|work|career|profession|colleague|manager|money|income|spend|saving|confidence|fear|control|responsibilit|motivation|goal|pace|rhythm|initiative|leader|partner|procrastinat|put\w*\s+off|disciplin|organi[sz]|follow\w*\s+through|start\w*|notice|stand\s+my\s+ground|explain|thought|what\s+i\s+mean|disagreement|comfort|personal\s+space|home|recover|routine|learn|understand|theory|rest|workload|break|switch\w*\s+off)/iu,
 ] as const;
 
 const TIMING_QUESTION_PATTERNS = [
@@ -179,18 +197,33 @@ const UNIVERSAL_ASSISTANT_TASK_PATTERNS = [
   /(?:^|[^\p{L}])(?:сделай|составь)(?!\s+(?:мне\s+)?гороскоп)(?!\p{L})/iu,
   /(?:приготов|свари|испек|пожарь|рецепт|составь\s+меню|посчитай\s+калори|борщ|суп(?!\p{L}))/iu,
   /(?:(?:купи|закажи|подбери|посоветуй|выбери)(?!\p{L})[^.!?]{0,100}(?:телефон|ноутбук|товар|одежд|подарок|отел|ресторан|курс)|какой\s+(?:телефон|ноутбук|товар)\s+(?:купить|выбрать))/iu,
-  /(?:напиши|сочини|расскажи|придумай|переведи|перевод|исправь|отладь|запрограммируй|реши|сделай)(?!\p{L})[^.!?]{0,100}(?:анекдот|шутк|стих|песн|письм|пост|резюме|код|программ|скрипт|домашн|задач|контрольн|экзамен|презентац)/iu,
+  /(?:напиши|сочини|расскажи|придумай|переведи|перевод|исправь|отладь|запрограммируй|реши|сделай)(?!\p{L})[^.!?]{0,100}(?:анекдот|шутк|истори|стих|песн|письм|пост|резюме|код|программ|скрипт|домашн|задач|контрольн|экзамен|презентац)/iu,
   /(?:прогноз\s+погоды|температура\s+на\s+улице|сч[её]т\s+(?:матча|игры)|новост|курс\s+валют|столица\s+какой|кто\s+(?:президент|выиграл))/iu,
   /(?:нарисуй|создай\s+(?:картин|изображен|видео)|поставь\s+напоминан|отправь\s+(?:письм|сообщен)|забронируй)/iu,
   /(?:составь|построй|проложи|спланируй)(?!\p{L})[^.!?]{0,100}(?:маршрут|поездк|путешеств|расписан|трениров|диет|бюджет)/iu,
   /(?:cook|recipe|boil|bake|fry|make\s+(?:me\s+)?(?:dinner|lunch|breakfast)|calories)/iu,
   /(?:(?:buy|order|pick|recommend|choose)\b[^.!?]{0,100}(?:phone|laptop|product|clothes|gift|hotel|restaurant|course)|which\s+(?:phone|laptop|product)\s+should\s+i\s+buy)/iu,
-  /(?:write|compose|tell|make|translate|fix|debug|program|solve|do)\b[^.!?]{0,100}(?:joke|poem|song|email|post|resume|code|program|script|homework|exam|presentation)/iu,
+  /(?:write|compose|tell|make|translate|fix|debug|program|solve|do)\b[^.!?]{0,100}(?:joke|story|poem|song|email|post|resume|code|program|script|homework|exam|presentation)/iu,
   /(?:weather\s+forecast|temperature\s+outside|match\s+score|game\s+score|news|exchange\s+rate|who\s+(?:is\s+the\s+president|won))/iu,
   /(?:draw|create\s+(?:an?\s+)?(?:image|picture|video)|set\s+(?:a\s+)?reminder|send\s+(?:an?\s+)?(?:email|message)|book\s+(?:a\s+)?(?:hotel|table|flight))/iu,
   /(?:build|make|plan)\b[^.!?]{0,100}(?:route|trip|travel|schedule|workout|diet|budget)/iu,
   /(?:^|[^\p{L}])(?:cook|boil|bake|fry|buy|order|pick|recommend|choose|write|compose|translate|fix|debug|program|solve|draw|create|set|send|book)(?!\p{L})/iu,
   /(?:^|[^\p{L}])make(?!\s+(?:me\s+)?a\s+horoscope)(?!\p{L})/iu,
+] as const;
+
+const FACTUAL_LOOKUP_PATTERNS = [
+  /(?:столиц\p{L}*|в\s+какой\s+стране\s+париж)/iu,
+  /(?:capital\s+of|which\s+country\s+is\s+paris\s+in)/iu,
+] as const;
+
+const GENERIC_FACT_LOOKUP_PATTERNS = [
+  /(?:когда\s+родил\p{L}*\s+(?!я\b))/iu,
+  /(?:when\s+was\s+(?!i\b)[^?!.]{1,80}\s+born)/iu,
+] as const;
+
+const CONTENT_RECOMMENDATION_PATTERNS = [
+  /(?:како(?:й|ю|е|ие)\s+(?:фильм|сериал|книг\p{L}*|музык\p{L}*|игр\p{L}*)[^.!?]{0,80}(?:посмотреть|почитать|послушать|выбрать|скачать|купить)|что\s+мне\s+(?:посмотреть|почитать|послушать|поиграть))/iu,
+  /(?:what|which)\s+(?:movie|film|series|show|book|music|game)[^.!?]{0,80}(?:should\s+i|to)\s+(?:watch|read|listen|play|choose|buy)|what\s+should\s+i\s+(?:watch|read|listen\s+to|play)/iu,
 ] as const;
 
 const PRESCRIPTIVE_ASSISTANT_REQUEST_PATTERNS = [
@@ -260,15 +293,8 @@ function matchesQuestionPolicy(
 }
 
 function hasNatalQuestionContext(value: string): boolean {
-  const hasPersonalSubject = matchesQuestionPolicy(value, PERSONAL_SUBJECT_PATTERNS);
   return matchesQuestionPolicy(value, NATAL_SCOPE_PATTERNS)
-    || (
-      hasPersonalSubject
-      && (
-        matchesQuestionPolicy(value, PERSONAL_PATTERN_DOMAIN_PATTERNS)
-        || matchesQuestionPolicy(value, ASTROLOGY_FACTOR_PATTERNS)
-      )
-    );
+    || matchesQuestionPolicy(value, PERSONAL_SUBJECT_PATTERNS);
 }
 
 function isInScopeNatalRequestPart(value: string, hasPriorNatalContext: boolean): boolean {
@@ -287,7 +313,6 @@ function isInScopeNatalRequestPart(value: string, hasPriorNatalContext: boolean)
       || matchesQuestionPolicy(value, ASTROLOGY_FACTOR_PATTERNS)
     );
   const isPersonalPatternQuestion = hasPersonalSubject
-    && hasPersonalPatternDomain
     && hasInterpretiveIntent;
   const isTimingQuestion = matchesQuestionPolicy(value, TIMING_QUESTION_PATTERNS)
     && matchesQuestionPolicy(value, TIMING_DECISION_PATTERNS)
@@ -360,18 +385,31 @@ export function moderateNatalQuestion(input: {
     };
   }
 
-  if (hasOutOfScopeSemanticRequestPart(question)) {
+  if (matchesQuestionPolicy(question, UNIVERSAL_ASSISTANT_TASK_PATTERNS)) {
     return {
       status: 'rejected',
       reason: 'not_natal_question',
       normalizedQuestion: shared.normalizedQuestion,
     };
   }
-
-  if (matchesQuestionPolicy(question, UNIVERSAL_ASSISTANT_TASK_PATTERNS)) {
+  if (matchesQuestionPolicy(question, FACTUAL_LOOKUP_PATTERNS)) {
     return {
       status: 'rejected',
       reason: 'not_natal_question',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+  if (matchesQuestionPolicy(question, GENERIC_FACT_LOOKUP_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: 'needs_specificity',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+  if (matchesQuestionPolicy(question, CONTENT_RECOMMENDATION_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: 'needs_specificity',
       normalizedQuestion: shared.normalizedQuestion,
     };
   }
@@ -411,35 +449,27 @@ export function moderateNatalQuestion(input: {
     };
   }
 
-  const hasInterpretiveIntent = matchesQuestionPolicy(
-    question,
-    INTERPRETIVE_INTENT_PATTERNS,
-  );
+  const hasPersonalSubject = matchesQuestionPolicy(question, PERSONAL_SUBJECT_PATTERNS);
+  const hasNatalScope = matchesQuestionPolicy(question, NATAL_SCOPE_PATTERNS);
+  const hasExplicitChartScope = matchesQuestionPolicy(question, EXPLICIT_CHART_SCOPE_PATTERNS);
+  const hasInterpretiveIntent = matchesQuestionPolicy(question, INTERPRETIVE_INTENT_PATTERNS);
   const hasPersonalPatternDomain = matchesQuestionPolicy(
     question,
     PERSONAL_PATTERN_DOMAIN_PATTERNS,
   );
-  const hasPersonalSubject = matchesQuestionPolicy(question, PERSONAL_SUBJECT_PATTERNS);
-  const hasExplicitChartScope = matchesQuestionPolicy(question, EXPLICIT_CHART_SCOPE_PATTERNS);
-  const isExplicitNatalQuestion = matchesQuestionPolicy(question, NATAL_SCOPE_PATTERNS)
-    && hasInterpretiveIntent
-    && (
-      (hasPersonalSubject && (
-        hasPersonalPatternDomain
-        || matchesQuestionPolicy(question, ASTROLOGY_FACTOR_PATTERNS)
-      ))
-      || (hasExplicitChartScope && hasPersonalPatternDomain)
-    );
-  const isPersonalPatternQuestion = hasPersonalSubject && hasPersonalPatternDomain
-    && hasInterpretiveIntent;
   const isTimingQuestion = matchesQuestionPolicy(question, TIMING_QUESTION_PATTERNS)
     && matchesQuestionPolicy(question, TIMING_DECISION_PATTERNS)
-    && (
-      hasPersonalSubject
-      || matchesQuestionPolicy(question, NATAL_SCOPE_PATTERNS)
-    );
+    && (hasPersonalSubject || hasNatalScope);
+  const isImplicitSelfChartQuestion = hasExplicitChartScope
+    && hasInterpretiveIntent
+    && hasPersonalPatternDomain;
 
-  if (!isExplicitNatalQuestion && !isPersonalPatternQuestion && !isTimingQuestion) {
+  // Product rule: one free-form field accepts any concrete question ABOUT the
+  // user. It does not require a topic vocabulary. Generic astrology reference
+  // questions ("what does Saturn mean?") and unrelated recommendations are not
+  // personal questions, while an explicit "my chart" question can still be
+  // accepted when its wording clearly asks for a personal pattern.
+  if (!hasPersonalSubject && !isImplicitSelfChartQuestion && !isTimingQuestion) {
     return {
       status: 'rejected',
       reason: shared.status === 'pending' ? 'needs_specificity' : 'not_natal_question',
@@ -454,41 +484,23 @@ export function moderateNatalQuestion(input: {
   };
 }
 
-export function buildNatalQuestionPromptContext(input: {
-  chartId: number;
-  profile: UserProfile;
-  chartData: NatalChartData | NatalChartDataV2;
-  permanentReport: NatalPermanentPremiumReport | null;
-  history: readonly NatalQuestionStoredMessage[];
-  question: string;
-}): { built: BuiltNatalModelContext; context: NatalQuestionPromptContext } {
-  const built = buildNatalModelContext(input.profile, input.chartData);
-  const promptChart = buildNatalPromptContext(built);
-  const narrativeEvidenceIds = getNatalNarrativeEvidenceIds(built);
-  const hasNarrativeEvidence = (value: Record<string, unknown>) => (
-    narrativeEvidenceIds.has(text(value.evidenceId))
-  );
-  const { angles: allAngles, houses: allHouses, ...chartWithoutTimeDependentFacts } = promptChart.chart;
-  const positions = Object.fromEntries(
-    Object.entries(promptChart.chart.positions).filter(([, value]) => hasNarrativeEvidence(value)),
-  );
-  const aspects = promptChart.chart.aspects.filter(hasNarrativeEvidence);
-  const angles = allAngles
-    ? Object.fromEntries(Object.entries(allAngles).filter(([, value]) => hasNarrativeEvidence(value)))
-    : {};
-  const houses = allHouses?.filter(hasNarrativeEvidence) || [];
-  const questionChart: ReturnType<typeof buildNatalPromptContext> = {
-    ...promptChart,
-    chart: {
-      ...chartWithoutTimeDependentFacts,
-      positions,
-      aspects,
-      ...(Object.keys(angles).length > 0 ? { angles } : {}),
-      ...(houses.length > 0 ? { houses } : {}),
-    },
-    evidence: promptChart.evidence.filter((fact) => narrativeEvidenceIds.has(fact.id)),
-  };
-  const chartMessages = input.history.filter((message) => message.chartId === input.chartId);
+function canonicalNatalQuestionChart(
+  chartData: NatalChartData | NatalChartDataV2,
+): NatalChartDataV2 {
+  const chart = chartData as unknown as NatalChartDataV2;
+  if (chart?.schemaVersion !== 'natal-chart-data-v2') {
+    const error = new Error('NATAL_QUESTION_CANONICAL_CHART_REQUIRED') as Error & { code?: string };
+    error.code = 'NATAL_QUESTION_CANONICAL_CHART_REQUIRED';
+    throw error;
+  }
+  return chart;
+}
+
+function pairedRecentMessages(
+  chartId: number,
+  history: readonly NatalQuestionStoredMessage[],
+): NatalQuestionPromptContext['recentMessages'] {
+  const chartMessages = history.filter((message) => message.chartId === chartId);
   const answersByQuestionId = new Map<number, NatalQuestionStoredMessage>();
   for (const message of chartMessages) {
     if (message.role !== 'assistant') continue;
@@ -499,7 +511,7 @@ export function buildNatalQuestionPromptContext(input: {
       answersByQuestionId.set(questionMessageId, message);
     }
   }
-  const recentMessages = chartMessages
+  return chartMessages
     .filter((message) => message.role === 'user' && answersByQuestionId.has(message.id))
     .map((question) => [question, answersByQuestionId.get(question.id)!] as const)
     .sort(([left], [right]) => (
@@ -507,18 +519,31 @@ export function buildNatalQuestionPromptContext(input: {
     ))
     .slice(-8)
     .flatMap(([question, answer]) => [question, answer])
-    .map((message) => ({
-      role: message.role,
-      text: message.text,
-      evidenceIds: evidenceIdsFromPayload(message.payload),
-    }));
+    .map((message) => ({ role: message.role, text: message.text }));
+}
+
+export function buildNatalQuestionPromptContext(input: {
+  chartId: number;
+  profile: UserProfile;
+  chartData: NatalChartData | NatalChartDataV2;
+  history: readonly NatalQuestionStoredMessage[];
+  question: string;
+}): { interpretation: NatalInterpretation; context: NatalQuestionPromptContext } {
+  const language: NatalReadingLanguage = input.profile.language === 'en' ? 'en' : 'ru';
+  const chart = canonicalNatalQuestionChart(input.chartData);
+  const interpretation = buildNatalInterpretation(chart, language);
   return {
-    built,
+    interpretation,
     context: {
       chartId: input.chartId,
-      chart: questionChart,
-      permanentReport: input.permanentReport,
-      recentMessages,
+      interpretationVersion: interpretation.schemaVersion,
+      approvedMeanings: interpretation.meanings.map((meaning) => ({
+        id: meaning.id,
+        scope: meaning.scope,
+        topics: meaning.topics,
+        meaning: meaning.text,
+      })),
+      recentMessages: pairedRecentMessages(input.chartId, input.history),
       question: normalizePersonalForecastQuestionInput(input.question),
     },
   };
@@ -529,37 +554,56 @@ export function buildNatalQuestionPrompt(
   context: NatalQuestionPromptContext,
   repairErrors: readonly NatalQuestionValidationCode[] = [],
 ): string {
-  const languageRule = language === 'ru'
-    ? 'Answer in Russian and address the reader as «ты».'
-    : 'Answer in English and address the reader as “you”.';
-  const coreVoice = getNeboCoreVoice(language);
-  return `${coreVoice}
+  const rules = language === 'ru'
+    ? `## КОНТРАКТ ФУНКЦИИ: ВОПРОС ПО НАТАЛЬНОЙ КАРТЕ
 
-## CONTENT CONTRACT: NATAL QUESTION
-${languageRule}
+Отвечай по-русски и обращайся к человеку на «ты».
 
-Answer the user's question from the saved calculated birth chart and, when it is available, the permanent report below.
+Ты отвечаешь только по уже готовым смыслам единого натального интерпретатора. Ты НЕ астрологический интерпретатор и не имеешь права заново трактовать сырые данные карты.
 
-Rules:
-- Return JSON only: {"answer":"3-5 complete sentences","evidence_ids":["existing evidence id"]}.
-- Give a direct answer first, then connect it to concrete chart factors.
-- Translate those factors into ordinary human language. Do not name planets, signs, houses, aspects, angles, retrograde motion, orbs, or degrees in the answer; keep technical facts only in evidence_ids for the closed “Why?” layer.
-- НЕ ПРЕВРАЩАЙ В ЧАТ. Никаких «Я понимаю твой вопрос», «Спасибо за вопрос», «Сейчас я разберу твою карту», «Привет!». Отвечай сразу по делу.
-- МЯГКИЙ ОТКАЗ НА ОФФТОП. Если вопрос не имеет отношения к астрологии или натальной карте (как сварить борщ, как починить машину), вежливо и коротко откажи, потому что ты астролог, а не википедия.
-- Use previous messages only for conversational continuity. They are not calculation evidence.
-- Every astrological claim must be supported by one or more evidence_ids that exist in chart.evidence.
-- Never recalculate or invent placements, houses, aspects, biography, trauma, diagnoses, relationship history, guaranteed events, financial outcomes, karmic facts, or professional prescriptions.
-- This context is a permanent birth-chart portrait. If the user asks when something will happen, whether today/tomorrow is favorable, or requests a dated forecast, say that the natal chart alone cannot supply a date. Do not fabricate or endorse a calendar answer.
-- For a Russian timing question, a safe natural boundary is: «По натальной карте нельзя определить, лучший ли сегодня день, или назвать подходящую дату». For English: “The natal chart cannot determine whether today is the best day or name a suitable date.” Then answer only what the permanent chart supports about the reader's recurring way of making this kind of choice.
-- Do not change or rewrite the permanent report.
+ЖЁСТКИЕ ПРАВИЛА:
+- Во входе APPROVED_MEANINGS уже содержится весь разрешённый смысл.
+- Верни только JSON: {"answer":"3-5 законченных предложений","meaning_ids":["существующий meaning id"]}.
+- Сначала ответь на вопрос по делу. Используй только те meaning_ids, которые реально нужны для ответа: обычно 1–4, максимум 6.
+- Каждое личное утверждение в answer должно быть прямым пересказом выбранных approved meanings. Нельзя добавлять новую причину, мотив, биографию, событие или психологический ярлык.
+- Если готовые смыслы не подтверждают предпосылку вопроса, так и скажи простыми словами. Не подгоняй карту под вопрос.
+- Не называй в answer планеты, знаки, дома, аспекты, углы, ретроградность, орбы или градусы. Технические основания приложение покажет отдельно.
+- Не превращай ответ в коучинг: не давай человеку советы, инструкции, задания или «правильный путь».
+- Не пиши служебным языком вроде «в этой теме», «динамика», «сфера», «функция», «карта показывает», «астрологическая трактовка».
+- Не придумывай прошлое, травмы, страхи, диагнозы, отношения, профессию, доход, мысли других людей или гарантированные события.
+- previous messages нужны только для связности разговора. Они не являются доказательством и не расширяют APPROVED_MEANINGS.
+- Натальная карта не даёт календарных прогнозов. Если вопрос про сегодня/завтра/дату/когда случится, коротко обозначь эту границу и отвечай только о повторяющемся способе действия, который действительно есть в APPROVED_MEANINGS.
+- Для timing-вопроса допустимая граница: «По натальной карте нельзя определить, лучший ли сегодня день, или назвать подходящую дату».
+- Не приветствуй, не благодари за вопрос и не рассказывай, что сейчас будешь делать.`
+    : `## CONTENT CONTRACT: NATAL QUESTION
 
-QUESTION CONTEXT:
+Answer in English and address the reader as “you”.
+
+You answer only from the already approved meanings produced by the unified natal interpreter. You are NOT allowed to reinterpret raw chart data.
+
+STRICT RULES:
+- APPROVED_MEANINGS contains the entire allowed interpretation.
+- Return JSON only: {"answer":"3-5 complete sentences","meaning_ids":["existing meaning id"]}.
+- Answer the question directly. Use only the meaning_ids actually needed for the answer: normally 1–4, maximum 6.
+- Every personal claim in answer must be a direct paraphrase of the selected approved meanings. Add no new cause, motive, biography, event, or psychological label.
+- If the approved meanings do not support the premise of the question, say so plainly. Do not force the chart to fit the question.
+- Do not name planets, signs, houses, aspects, angles, retrograde motion, orbs, or degrees in answer. The app shows technical evidence separately.
+- Do not coach, advise, prescribe, or give the reader tasks or a “right path”.
+- Avoid meta/report language such as “this theme”, “dynamic”, “sphere”, “function”, “the chart shows”, or “astrological interpretation”.
+- Do not invent past events, trauma, fears, diagnoses, relationship history, profession, income, third-party thoughts, or guaranteed events.
+- previous messages are only for conversational continuity. They are not evidence and do not expand APPROVED_MEANINGS.
+- A natal chart does not provide calendar forecasts. For today/tomorrow/date/when questions, briefly state that boundary and answer only from a recurring way of acting that is actually present in APPROVED_MEANINGS.
+- A safe timing boundary is: “The natal chart cannot determine whether today is the best day or name a suitable date.”
+- No greeting, thanks, or setup paragraph.`;
+
+  return `${rules}
+
+APPROVED CONTEXT:
 ${JSON.stringify(context, null, 2)}${repairErrors.length ? `
 
-REPAIR REQUIRED:
-- The previous candidate was rejected by server validation: ${JSON.stringify(repairErrors)}.
-- Write a completely new candidate. Correct every listed issue while keeping the same chart evidence and question.
-- Return only the required JSON object.` : ''}`;
+PREVIOUS OUTPUT WAS REJECTED:
+${repairErrors.join(', ')}
+Write a new candidate and fix every listed issue. Return JSON only.` : ''}`;
 }
 
 function sentenceCount(value: string): number {
@@ -568,6 +612,11 @@ function sentenceCount(value: string): number {
     .map((part) => part.trim())
     .filter(Boolean).length;
 }
+
+const QUESTION_VISIBLE_ASTROLOGY = /(?:солнц\p{L}*|лун\p{L}*|меркур\p{L}*|венер\p{L}*|марс\p{L}*|юпитер\p{L}*|сатурн\p{L}*|уран\p{L}*|нептун\p{L}*|плутон\p{L}*|хирон\p{L}*|узел\p{L}*|асцендент|десцендент|аспект\p{L}*|трин\p{L}*|секстил\p{L}*|квадрат\p{L}*|оппозиц\p{L}*|соединени\p{L}*|\d{1,2}\s+дом\p{L}*|орб\p{L}*|ретроград\p{L}*|\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|ascendant|descendant|aspect|trine|sextile|square|opposition|conjunction|retrograde)\b)/iu;
+const QUESTION_PSEUDO_PSYCHOLOGY = /(?:осознанн\p{L}*|ресурс\p{L}*|потенциал\p{L}*|трансформац\p{L}*|проработ\p{L}*|точк\p{L}*\s+рост\p{L}*|паттерн\p{L}*|сценари\p{L}*|триггер\p{L}*|травм\p{L}*|архетип\p{L}*|подсозн\p{L}*|самосаботаж\p{L}*|тенев\p{L}*\s+сторон\p{L}*|внутренн\p{L}*\s+(?:реб[её]н\p{L}*|ресурс\p{L}*|конфликт\p{L}*)|глубинн\p{L}*\s+(?:страх\p{L}*|потребност\p{L}*|мотив\p{L}*)|\b(?:inner\s+child|growth\s+point|trauma|trigger|healing|transformation|potential|archetype|shadow\s+self|self[- ]sabotage)\b)/iu;
+const QUESTION_META_LANGUAGE = /(?:карта\s+(?:показывает|говорит|подсказывает)|астрологическ\p{L}*\s+трактовк\p{L}*|в\s+этой\s+тем\p{L}*|эта\s+тем\p{L}*|может\s+проявляться|проявля\p{L}*\s+как|внутренн\p{L}*\s+динамик\p{L}*|\b(?:the\s+chart\s+shows|this\s+theme|may\s+manifest|inner\s+dynamic|astrological\s+interpretation)\b)/iu;
+const QUESTION_ADVICE_LANGUAGE = /(?:тебе\s+(?:нужно|стоит|следует|важно)(?!\p{L})|(?:попробуй|старайся|помни|сохраняй|проверь|сверь|выбирай|держи|не\s+бойся|позволь\s+себе)(?!\p{L})|\b(?:you\s+should|you\s+need\s+to|try\s+to|remember\s+to|make\s+sure\s+to|check\s+that|choose\s+based)\b)/iu;
 
 const DIAGNOSTIC_ANSWER_EN = /\b(?:diagnos(?:e|ed|es|ing|is|tic)|disorders?|diseases?|illness(?:es)?)\b/iu;
 const DIAGNOSTIC_ANSWER_RU = /(?:диагноз\w*|диагностир\w*|расстройств\w*|болезн\w*)/iu;
@@ -602,44 +651,56 @@ function hasUnsupportedFutureTiming(value: string): boolean {
     });
 }
 
+function answerMeaningIds(raw: RawNatalQuestionAnswer): string[] {
+  return Array.isArray(raw?.meaning_ids)
+    ? [...new Set(raw.meaning_ids.map(text).filter(Boolean))]
+    : [];
+}
+
+function evidenceIdsForMeanings(
+  interpretation: NatalInterpretation,
+  meaningIds: readonly string[],
+): string[] {
+  const byId = new Map(interpretation.meanings.map((meaning) => [meaning.id, meaning]));
+  return [...new Set(meaningIds.flatMap((id) => byId.get(id)?.evidenceIds || []))];
+}
+
 export function validateNatalQuestionAnswer(
   raw: RawNatalQuestionAnswer,
-  allowedEvidenceIds: Set<string>,
-  reliability?: BuiltNatalModelContext,
+  allowedMeaningIds: Set<string>,
+  interpretation?: NatalInterpretation,
 ): NatalQuestionAnswer | null {
-  if (getNatalQuestionAnswerValidationErrors(raw, allowedEvidenceIds, reliability).length > 0) {
-    return null;
-  }
-  const answer = text(raw?.answer);
-  const ids = Array.isArray(raw?.evidence_ids)
-    ? [...new Set(raw.evidence_ids.map(text).filter(Boolean))]
-    : [];
-  return { text: answer, evidenceIds: ids };
+  if (getNatalQuestionAnswerValidationErrors(raw, allowedMeaningIds).length > 0) return null;
+  const meaningIds = answerMeaningIds(raw);
+  return {
+    text: text(raw?.answer),
+    meaningIds,
+    evidenceIds: interpretation ? evidenceIdsForMeanings(interpretation, meaningIds) : [],
+  };
 }
 
 export function getNatalQuestionAnswerValidationErrors(
   raw: RawNatalQuestionAnswer,
-  allowedEvidenceIds: Set<string>,
-  reliability?: BuiltNatalModelContext,
+  allowedMeaningIds: Set<string>,
 ): NatalQuestionValidationCode[] {
   const answer = text(raw?.answer);
-  const narrativeEvidenceIds = reliability
-    ? getNatalNarrativeEvidenceIds(reliability)
-    : allowedEvidenceIds;
-  const ids = Array.isArray(raw?.evidence_ids)
-    ? [...new Set(raw.evidence_ids.map(text).filter(Boolean))]
-    : [];
+  const ids = answerMeaningIds(raw);
   const errors = new Set<NatalQuestionValidationCode>();
   const sentences = sentenceCount(answer);
 
   if (answer.length < 40) errors.add('ANSWER_TOO_SHORT');
   if (answer.length > 1600) errors.add('ANSWER_TOO_LONG');
   if (sentences < 3 || sentences > 5) errors.add('SENTENCE_COUNT_INVALID');
-  if (ids.length === 0) errors.add('EVIDENCE_REQUIRED');
-  if (ids.some((id) => !allowedEvidenceIds.has(id) || !narrativeEvidenceIds.has(id))) {
-    errors.add('EVIDENCE_UNKNOWN');
-  }
-  if (hasNatalPersonalityCopyViolation(answer)) errors.add('COPY_VIOLATION');
+  if (ids.length === 0) errors.add('MEANING_REQUIRED');
+  if (ids.some((id) => !allowedMeaningIds.has(id))) errors.add('MEANING_UNKNOWN');
+  if (ids.length > 6) errors.add('MEANING_SELECTION_TOO_BROAD');
+  if (
+    hasCoreVoiceViolation(answer)
+    || QUESTION_VISIBLE_ASTROLOGY.test(answer)
+    || QUESTION_PSEUDO_PSYCHOLOGY.test(answer)
+    || QUESTION_META_LANGUAGE.test(answer)
+    || QUESTION_ADVICE_LANGUAGE.test(answer)
+  ) errors.add('COPY_VIOLATION');
   if (DIAGNOSTIC_ANSWER_EN.test(answer) || DIAGNOSTIC_ANSWER_RU.test(answer)) {
     errors.add('DIAGNOSTIC_CLAIM');
   }
@@ -660,10 +721,56 @@ export function getNatalQuestionAnswerValidationErrors(
   if (SPECIFIC_FUTURE_EVENT_EN.test(answer) || SPECIFIC_FUTURE_EVENT_RU.test(answer)) {
     errors.add('UNSUPPORTED_FUTURE_EVENT');
   }
-  if (reliability != null && !isNatalReliabilityTextAllowed(answer, reliability)) {
-    errors.add('RELIABILITY_VIOLATION');
-  }
   return [...errors];
+}
+
+async function reviewNatalQuestionSemanticFidelity(input: {
+  language: NatalReadingLanguage;
+  question: string;
+  answer: string;
+  meanings: Array<Pick<NatalMeaning, 'id' | 'scope' | 'text'>>;
+}): Promise<string[]> {
+  const instructions = input.language === 'ru'
+    ? `Проверь только соответствие ответа уже утверждённым смыслам.
+Не трактуй астрологию заново.
+ok=true только если candidate прямо отвечает на question, выбранные selected_meanings действительно относятся к question, все личные утверждения прямо поддерживаются selected_meanings и candidate не добавляет новую причину, мотив, биографию, событие, психологический ярлык или совет.
+Если selected_meanings не дают прямого ответа на предпосылку вопроса, candidate должен честно ограничить вывод, а не переключиться на случайную черту.
+Короткая фраза о том, что натальная карта не определяет дату или событие по календарю, допустима как граница продукта и не требует отдельного meaning.
+Если вопрос содержит предпосылку, которой нет в selected_meanings, ответ не должен выдавать её за доказанный факт.`
+    : `Check only whether the candidate is faithful to the selected approved meanings.
+Do not reinterpret astrology.
+ok=true only if the candidate directly addresses question, the selected_meanings are genuinely relevant to question, every personal claim is directly supported by selected_meanings, and the candidate adds no new cause, motive, biography, event, psychological label, or advice.
+If selected_meanings do not support the premise of the question, the candidate must state that limitation instead of switching to an unrelated trait.
+A brief boundary saying a natal chart cannot determine a calendar date or event is allowed without a separate meaning.`;
+
+  const response = await createLunaStructuredResponse({
+    instructions,
+    input: JSON.stringify({
+      question: input.question,
+      selected_meanings: input.meanings.map((meaning) => ({
+        id: meaning.id,
+        scope: meaning.scope,
+        meaning: meaning.text,
+      })),
+      candidate: input.answer,
+    }),
+    maxOutputTokens: 500,
+    reasoningEffort: 'low',
+    verbosity: 'low',
+    store: false,
+    schemaName: 'natal_question_semantic_review',
+    schema: NATAL_QUESTION_SEMANTIC_REVIEW_SCHEMA,
+  });
+  let raw: RawNatalQuestionSemanticReview;
+  try {
+    raw = JSON.parse(response.content) as RawNatalQuestionSemanticReview;
+  } catch {
+    return ['semantic review returned invalid JSON'];
+  }
+  if (raw.ok === true) return [];
+  return Array.isArray(raw.issues)
+    ? raw.issues.map(text).filter(Boolean)
+    : ['semantic mismatch'];
 }
 
 async function requestStructuredNatalQuestionAnswer(input: {
@@ -690,15 +797,17 @@ export async function generateNatalQuestionAnswer(input: {
   chartId: number;
   profile: UserProfile;
   chartData: NatalChartData | NatalChartDataV2;
-  permanentReport: NatalPermanentPremiumReport | null;
   history: readonly NatalQuestionStoredMessage[];
   question: string;
   requestAnswer?: NatalQuestionAnswerRequester;
+  reviewAnswer?: NatalQuestionSemanticReviewer;
 }): Promise<NatalQuestionAnswer> {
   const language: NatalReadingLanguage = input.profile.language === 'en' ? 'en' : 'ru';
-  const { built, context } = buildNatalQuestionPromptContext(input);
-  const allowedEvidenceIds = getNatalNarrativeEvidenceIds(built);
+  const { interpretation, context } = buildNatalQuestionPromptContext(input);
+  const byId = new Map(interpretation.meanings.map((meaning) => [meaning.id, meaning]));
+  const allowedMeaningIds = new Set(byId.keys());
   const requestAnswer = input.requestAnswer || requestStructuredNatalQuestionAnswer;
+  const reviewAnswer = input.reviewAnswer || reviewNatalQuestionSemanticFidelity;
   let validationCodes: NatalQuestionValidationCode[] = [];
 
   for (let attempt = 1; attempt <= MAX_ANSWER_ATTEMPTS; attempt += 1) {
@@ -706,25 +815,36 @@ export async function generateNatalQuestionAnswer(input: {
       language,
       prompt: buildNatalQuestionPrompt(language, context, validationCodes),
     });
-    validationCodes = getNatalQuestionAnswerValidationErrors(
-      raw,
-      allowedEvidenceIds,
-      built,
-    );
-    if (validationCodes.length === 0) {
-      return {
-        ...validateNatalQuestionAnswer(raw, allowedEvidenceIds, built)!,
-        model: OPENAI_LUNA_MODEL,
-        generationAttempts: attempt as 1 | 2,
-      };
+    validationCodes = getNatalQuestionAnswerValidationErrors(raw, allowedMeaningIds);
+    if (validationCodes.length > 0) continue;
+
+    const meaningIds = answerMeaningIds(raw);
+    const selectedMeanings = meaningIds
+      .map((id) => byId.get(id))
+      .filter((meaning): meaning is NatalMeaning => !!meaning);
+    const semanticIssues = await reviewAnswer({
+      language,
+      question: context.question,
+      answer: text(raw.answer),
+      meanings: selectedMeanings,
+    });
+    if (semanticIssues.length > 0) {
+      validationCodes = ['SEMANTIC_MISMATCH'];
+      continue;
     }
+
+    return {
+      ...validateNatalQuestionAnswer(raw, allowedMeaningIds, interpretation)!,
+      model: OPENAI_LUNA_MODEL,
+      generationAttempts: attempt as 1 | 2,
+    };
   }
   throw new NatalQuestionValidationError(validationCodes, MAX_ANSWER_ATTEMPTS);
 }
 
 export const NATAL_QUESTION_IDENTITY = {
   contractVersion: NATAL_QUESTION_CONTRACT_VERSION,
-  permanentReportContractVersion: NATAL_PERMANENT_CONTRACT_VERSION,
+  interpretationVersion: NATAL_INTERPRETATION_VERSION,
   promptVersion: NATAL_QUESTION_PROMPT_VERSION,
   voiceVersion: APP_VOICE_VERSION,
 } as const;

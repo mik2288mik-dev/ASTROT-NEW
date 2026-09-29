@@ -1,114 +1,49 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { ContentAccessTier, InterpretationSection } from '../../../../types';
+import type { NatalChartDataV2 } from '../../../../lib/natalChartV2Types';
+import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
 import {
-  ensureValidContext,
-  getCachedReading,
-  saveReading,
-} from '../../../../lib/natalReading/apiHelper';
-import {
-  buildHumanInputHash,
-  buildHumanPaidFallback,
-  generateHumanPaidSection,
-} from '../../../../lib/natalHumanInterpretation';
-import {
-  HUMAN_PAID_PROMPT_VERSION,
-  humanPaidCacheKey,
   isHumanPaidSectionKey,
   type HumanPaidSectionKey,
 } from '../../../../lib/natalHumanShared';
-import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
-import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { ensureValidContext } from '../../../../lib/natalReading/apiHelper';
 import {
-  buildContentGenerationLockKey,
-  generationInProgressPayload,
-  withContentGenerationLock,
-} from '../../../../lib/contentGenerationLock';
+  adaptUnifiedToLegacyHumanSection,
+  legacyInterpretationEnvelope,
+} from '../../../../lib/natalReading/legacyCompatibility';
+import { loadUnifiedReadingForLegacyEndpoint } from '../../../../lib/natalReading/legacyCompatibilityApi';
 
 export const config = { maxDuration: 90 };
 
-const SCOPE = 'natal-human-section';
-
-type ResolvedAccess = {
-  accessTier: Extract<ContentAccessTier, 'premium'>;
-};
-
 function readSectionKey(req: NextApiRequest): HumanPaidSectionKey | null {
-  const raw = (req.method === 'GET' ? req.query.sectionKey : req.body?.sectionKey) as string | undefined;
-  const value = String(raw || '').trim();
-  return isHumanPaidSectionKey(value) ? value : null;
-}
-
-async function resolvePaidAccess(userId: string, _profile?: { isPremium?: boolean }): Promise<ResolvedAccess | null> {
-  const entitlement = await getPremiumEntitlementState(userId);
-  if (entitlement.isPremium) {
-    return { accessTier: 'premium' };
-  }
-  return null;
+  const raw = req.method === 'GET' ? req.query.sectionKey : req.body?.sectionKey;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return isHumanPaidSectionKey(String(value || '').trim())
+    ? String(value || '').trim() as HumanPaidSectionKey
+    : null;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const startedAt = Date.now();
-  const ready = await ensureValidContext(req, res);
-  if (!ready) return;
-  const { userId, ctx } = ready;
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+  }
   const sectionKey = readSectionKey(req);
-
-  logContentApi(
-    {
-      scope: SCOPE,
-      userId,
-      chartId: ctx.chartId,
-      surface: 'natal',
-      variant: 'living',
-    },
-    'request_start',
-    { metadata: { sectionKey, method: req.method } }
-  );
-
   if (!sectionKey) {
     return res.status(400).json({
       error: 'BAD_REQUEST',
       message: 'sectionKey must be a paid human interpretation section key',
     });
   }
-
-  const cacheKey = humanPaidCacheKey(sectionKey);
-  const inputHash = buildHumanInputHash({
-    profile: ctx.profile,
-    chartData: ctx.chartData!,
-    sectionKey,
-    promptVersion: HUMAN_PAID_PROMPT_VERSION,
+  const ready = await ensureValidContext(req, res, {
+    requireCanonicalSnapshot: true,
+    repairCanonicalSnapshot: false,
   });
+  if (!ready) return;
+  const { userId, ctx } = ready;
 
-  const access = await resolvePaidAccess(userId, ctx.profile);
-
-  logContentApi(
-    {
-      scope: SCOPE,
-      userId,
-      chartId: ctx.chartId,
-      surface: 'natal',
-      variant: 'living',
-    },
-    'access_check',
-    {
-      accessTier: access?.accessTier ?? 'locked',
-      metadata: { sectionKey, isPremium: !!access },
-    }
-  );
-
-  if (!access) {
-    warnContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: ctx.chartId,
-        surface: 'natal',
-        variant: 'living',
-      },
-      'premium_required',
-      { errorCode: 'PREMIUM_REQUIRED', metadata: { sectionKey } }
-    );
+  const entitlement = await getPremiumEntitlementState(userId);
+  if (!entitlement.isPremium) {
     return res.status(403).json({
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
@@ -117,135 +52,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const cacheOpts = {
-    accessTier: access.accessTier,
-    contentVariant: 'full' as const,
-    cacheKey,
-    inputHash,
-    promptVersion: HUMAN_PAID_PROMPT_VERSION,
-    isPersistent: true,
-  };
-  const cached = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
-
-  if (cached) {
-    logContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: ctx.chartId,
-        surface: 'natal',
-        variant: 'living',
-      },
-      'cache_hit',
-      {
-        accessTier: access.accessTier,
-        status: 'ready',
-        durationMs: Date.now() - startedAt,
-        metadata: { sectionKey },
-      }
-    );
-    return res.status(200).json({
-      interpretation: cached,
-      source: 'human_v3_semantic',
-      accessTier: access.accessTier,
-    });
-  }
-
-  if (req.method === 'GET') {
-    return res.status(404).json({ error: 'NOT_FOUND', code: 'HUMAN_SECTION_NOT_READY' });
-  }
-
   try {
-    logContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: ctx.chartId,
-        surface: 'natal',
-        variant: 'living',
-      },
-      'generation_start',
-      { accessTier: access.accessTier, metadata: { sectionKey } }
-    );
-    const lockResult = await withContentGenerationLock({
-      lockKey: buildContentGenerationLockKey({
-        userId,
-        chartId: ctx.chartId,
-        accessTier: access.accessTier,
-        contentSurface: 'natal',
-        contentVariant: 'full',
-        cacheKey,
-        promptVersion: HUMAN_PAID_PROMPT_VERSION,
-      }),
-      operation: `human-section-${sectionKey}`,
-      readCached: async () => {
-        const again = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
-        return again ? { value: again, source: 'human_v3_semantic' } : null;
-      },
-      generate: async () => {
-        const section = await generateHumanPaidSection(ctx.profile, ctx.chartData!, sectionKey);
-        return saveReading(ctx, cacheOpts, section);
-      },
+    const unified = await loadUnifiedReadingForLegacyEndpoint({
+      userId,
+      ctx,
+      method: req.method,
     });
-
-    if (lockResult.status === 'in_progress') {
-      return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+    if (unified.status === 'not_found') {
+      return res.status(404).json({ error: 'NOT_FOUND', code: 'HUMAN_SECTION_NOT_READY' });
+    }
+    if (unified.status === 'in_progress') {
+      return res.status(202).json(generationInProgressPayload(unified.retryAfterMs));
     }
 
-    logContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: ctx.chartId,
-        surface: 'natal',
-        variant: 'living',
-      },
-      'generation_success',
-      {
-        accessTier: access.accessTier,
-        status: 'ready',
-        durationMs: Date.now() - startedAt,
-        metadata: { sectionKey },
-      }
-    );
+    const content = adaptUnifiedToLegacyHumanSection({
+      reading: unified.interpretation.content,
+      chart: ctx.chartData as unknown as NatalChartDataV2,
+      profile: ctx.profile,
+      sectionKey,
+    });
     return res.status(200).json({
-      interpretation: lockResult.value,
-      source: lockResult.fromCache ? (lockResult.source || 'human_v3_semantic') : 'generated',
-      accessTier: access.accessTier,
+      interpretation: legacyInterpretationEnvelope(unified.interpretation, content, 'premium'),
+      source: 'natal_unified_compat_v1',
+      accessTier: 'premium',
     });
   } catch (error) {
-    warnContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: ctx.chartId,
-        surface: 'natal',
-        variant: 'living',
-      },
-      'generation_failed',
-      {
-        accessTier: access.accessTier,
-        errorCode: 'HUMAN_SECTION_GENERATION_FAILED',
-        durationMs: Date.now() - startedAt,
-        metadata: { sectionKey },
-      }
-    );
-    console.error(`[natal/human-section:${sectionKey}] generation failed:`, error instanceof Error ? error.message : error);
-    const fallback = buildHumanPaidFallback(ctx.profile, ctx.chartData!, sectionKey);
-    const saved = await saveReading(
-      ctx,
-      {
-        ...cacheOpts,
-        isPersistent: false,
-        validTo: new Date(Date.now() + 6 * 60 * 60 * 1000),
-        history: { source: 'deterministic_fallback', generationAttempts: 0 },
-      },
-      fallback
-    ).catch(() => null);
-    return res.status(200).json({
-      interpretation: saved || { content: fallback, promptVersion: cacheOpts.promptVersion },
-      source: saved ? 'fallback' : 'fallback-inline',
-      accessTier: access.accessTier,
+    console.error(`[natal/human-section:${sectionKey}] compatibility projection failed:`, error instanceof Error ? error.message : error);
+    return res.status(503).json({
+      error: 'HUMAN_SECTION_GENERATION_FAILED',
+      code: 'HUMAN_SECTION_GENERATION_FAILED',
+      retryable: true,
     });
   }
 }
