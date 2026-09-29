@@ -93,4 +93,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=6 \
   CMD node -e "const http=require('node:http');const port=Number(process.env.PORT||3000);const r=http.get({host:'127.0.0.1',port,path:'/api/health',timeout:2000},res=>{res.resume();process.exit(res.statusCode>=200&&res.statusCode<300?0:1)});r.on('timeout',()=>{r.destroy();process.exit(1)});r.on('error',()=>process.exit(1))"
 
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "HOSTNAME=0.0.0.0 exec node .next/standalone/server.js"]
