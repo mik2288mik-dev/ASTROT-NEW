@@ -27,7 +27,7 @@ describe('database migration deployment runner', () => {
     expect(railway.deploy?.preDeployCommand).toEqual(['sh scripts/railway-predeploy.sh']);
     expect(railway.deploy?.startCommand).toBe('node server.js');
     expect(railway.deploy?.healthcheckPath).toBe('/api/health');
-    expect(dockerfile).toContain('CMD ["node", "server.js"]');
+    expect(dockerfile).toContain('CMD ["sh", "-c", "HOSTNAME=0.0.0.0 exec node .next/standalone/server.js"]');
     expect(dockerfile).toContain('HEALTHCHECK --interval=10s');
     expect(dockerfile).toContain("path:'/api/health'");
     expect(dockerfile).toContain('/app/scripts ./scripts');
