@@ -33,41 +33,45 @@ describe('natal personality product flow', () => {
     expect(app).toContain('partnerChartId: selected.id');
   });
 
-  it('keeps evidence and professional chart facts closed by default', () => {
-    const report = read('components/NatalReading/HumanReport.tsx');
+  it('renders personality through the unified interpretation path instead of HumanReport', () => {
+    const view = read('views/PersonalityReport.tsx');
+    const unified = read('components/NatalReading/NatalUnifiedReport.tsx');
 
-    expect(report).toContain('<details className="natal-evidence-disclosure">');
-    expect(report).not.toContain('Почему так?');
-    expect(report).toContain('Как это связано с картой');
-    expect(report).toContain('<details className="natal-technical-details');
-    expect(report).toContain('Как это видно в карте');
-    expect(report).not.toContain('<details open');
+    expect(view).toContain("import { NatalUnifiedReport } from '../components/NatalReading/NatalUnifiedReport';");
+    expect(view).toContain('<NatalUnifiedReport');
+    expect(view).not.toContain('HumanReport');
+    expect(unified).toContain('buildNatalInterpretation');
+    expect(unified).toContain('ensureNatalUnifiedReading');
+    expect(unified).toContain('getNatalUnifiedReadingCached');
+    expect(unified).not.toContain('ensureHumanBaseReport');
+    expect(unified).not.toContain('ensureHumanPremiumReport');
   });
 
-  it('shows the current subject name even when a chart-stable cached report has an older name', () => {
-    const report = read('components/NatalReading/HumanReport.tsx');
+  it('lets every finished grounded assistant answer reveal its evidence', () => {
+    const questions = read('components/NatalReading/NatalQuestionExperience.tsx');
 
-    expect(report).toContain("subjectName || report?.userName || (language === 'ru' ? 'Твоя карта' : 'Your chart')");
-  });
-
-  it('lets every grounded assistant answer reveal its evidence', () => {
-    const report = read('components/NatalReading/HumanReport.tsx');
-
-    expect(report).toContain('function questionMessageEvidenceIds');
-    expect(report).toContain("message.role === 'assistant'");
-    expect(report).toContain('evidenceIds={questionMessageEvidenceIds(answer)}');
+    expect(questions).toContain('function questionMessageEvidenceIds');
+    expect(questions).toContain("if (message.role !== 'assistant') continue;");
+    expect(questions).toContain('evidenceIds: questionMessageEvidenceIds(answer)');
+    expect(questions).toContain('На чём основано');
+    expect(questions).toContain('<NatalEvidenceSheet');
   });
 
   it('keeps natal-question failures localized and recoverable', () => {
-    const report = read('components/NatalReading/HumanReport.tsx');
+    const questions = read('components/NatalReading/NatalQuestionExperience.tsx');
 
-    expect(report).toContain("value?.code === 'NATAL_QUESTION_GENERATION_FAILED'");
-    expect(report).toContain('Не удалось подготовить ответ по карте. Попробуй отправить вопрос ещё раз.');
-    expect(report).not.toContain("return value?.message || (language === 'ru'");
-    expect(report).toContain('setQuestionError(formatQuestionError(submitError, language))');
-    expect(report).not.toContain('void loadNatalQuestionSnapshot(userId, chartId)\n        .then(setQuestionSnapshot)');
-    expect(report).toContain('setUnansweredQuestionText(pendingText)');
-    expect(report).toContain('Предыдущий вопрос остался без ответа. Отправь его ещё раз — лимит не спишется.');
-    expect(report).toContain('Boolean(unansweredQuestionText && !canRetryUnanswered)');
+    expect(questions).toContain("value?.code === 'NATAL_QUESTION_GENERATION_FAILED'");
+    expect(questions).toContain('Не удалось закончить ответ. Отправь этот же вопрос ещё раз — лимит не спишется.');
+    expect(questions).toContain('setError(formatQuestionError(submitError, language))');
+    expect(questions).toContain('setUnansweredQuestionText(value)');
+    expect(questions).toContain('Предыдущий вопрос остался без ответа. Отправь его ещё раз — лимит не спишется.');
+    expect(questions).toContain('Boolean(unansweredQuestionText && !canRetryUnanswered)');
+  });
+
+  it('builds evidence disclosure from the unified interpretation layer', () => {
+    const evidence = read('components/NatalReading/NatalEvidenceSheet.tsx');
+
+    expect(evidence).toContain('buildNatalInterpretation');
+    expect(evidence).not.toContain('buildNatalModelContext');
   });
 });
