@@ -202,10 +202,10 @@ export function isSchedulerAllowedByEnv(): boolean {
 }
 
 /**
- * Идемпотентный «гарантированный старт» из ЛЮБОЙ горячей точки: instrumentation.register() на буте
- * И первый заход на /api/health (Railway дёргает healthcheck каждые ~30с). Так планировщик поднимется
- * даже если instrumentation по какой-то причине не выполнится в standalone-рантайме. Безопасно
- * вызывать многократно — реальный старт произойдёт один раз (флаг started).
+ * Идемпотентный старт фонового планировщика из Node instrumentation.
+ * Liveness /api/health намеренно не запускает фоновые задачи: healthcheck должен
+ * проверять только способность HTTP-процесса отвечать. Безопасно вызывать
+ * многократно — реальный старт произойдёт один раз (флаг started).
  */
 export function ensureNotificationScheduler(source = 'unknown'): void {
   ensureNeboOpsWorker();
