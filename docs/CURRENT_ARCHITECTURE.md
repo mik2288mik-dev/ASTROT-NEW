@@ -18,7 +18,7 @@ Natal reading uses one deterministic interpretation layer. A saved `NatalChartDa
 
 `Рассказ` and `По темам` are two views of one `NatalUnifiedReading`. The map and natal questions rebuild the same meanings from the same saved chart; they do not use independent semantic tables or free-form chart prompts. Unknown and approximate birth time exclude unstable time-dependent evidence.
 
-`pages/api/content/natal/human-base.ts`, `human-premium.ts`, `human-section.ts`, `catalog.ts`, `catalog-answer.ts`, `portrait.ts`, `aspects.ts`, `today.ts`, `week.ts`, and `dive.ts` remain compatibility adapters for published clients. They project the unified reading into legacy JSON contracts and do not generate a second reading.
+`pages/api/content/natal/human-base.ts`, `human-premium.ts`, `human-section.ts`, `catalog.ts`, and `catalog-answer.ts` remain compatibility adapters for published clients. They project the unified reading into legacy JSON contracts and do not generate a second reading.
 
 ## Personal forecast generation
 

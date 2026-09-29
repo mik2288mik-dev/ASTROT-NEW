@@ -38,7 +38,7 @@ birth data
 
 `pages/api/content/natal/reading.ts` и `lib/natalReading/unifiedApi.ts` работают с canonical snapshot, cache и generation lock. Ошибки возвращаются как retryable состояния; не сохраняй пустой или выдуманный успех.
 
-`/human-base`, `/human-premium`, `/human-section`, `/catalog`, `/catalog-answer`, `/portrait`, `/aspects`, `/today`, `/week` и `/dive` остаются только compatibility endpoints для опубликованных APK. Они получают unified reading через `loadUnifiedReadingForLegacyEndpoint()` и проецируют его в старую JSON-форму через `legacyCompatibility.ts`; long-scroll URL используют общий thin adapter в `legacyLongScrollApi.ts`. Не добавляй в них генерацию, cache или meaning engine.
+`/human-base`, `/human-premium`, `/human-section`, `/catalog` и `/catalog-answer` остаются только compatibility endpoints для опубликованных APK. Они получают unified reading через `loadUnifiedReadingForLegacyEndpoint()` и проецируют его в старую JSON-форму через `legacyCompatibility.ts`. Не добавляй в них генерацию, cache или meaning engine.
 
 ## Голос
 
