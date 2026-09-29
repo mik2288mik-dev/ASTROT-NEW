@@ -28,8 +28,8 @@ describe('database migration deployment runner', () => {
     expect(railway.deploy?.startCommand).toBe('node server.js');
     expect(railway.deploy?.healthcheckPath).toBe('/api/health');
     expect(dockerfile).toContain('CMD ["node", "server.js"]');
-    expect(dockerfile).toContain('process.env.PORT||3000');
-    expect(dockerfile).toContain('r.statusCode===200');
+    expect(dockerfile).not.toContain('HEALTHCHECK');
+    expect(dockerfile).toContain('Health checks are owned by the hosting platform');
     expect(dockerfile).toContain('/app/scripts ./scripts');
     expect(dockerfile).toContain('/app/lib ./lib');
     expect(preDeployScript).toContain('npm run validate:production-env');
