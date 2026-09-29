@@ -88,9 +88,7 @@ USER nextjs
 
 EXPOSE 3000
 
-# Keep one liveness contract inside the image so every Docker host checks the
-# same dependency-free endpoint. Timeweb gives Dockerfile HEALTHCHECK priority.
-HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=6 \
-  CMD node -e "const http=require('node:http');const port=Number(process.env.PORT||3000);const r=http.get({host:'127.0.0.1',port,path:'/api/health',timeout:2000},res=>{res.resume();process.exit(res.statusCode>=200&&res.statusCode<300?0:1)});r.on('timeout',()=>{r.destroy();process.exit(1)});r.on('error',()=>process.exit(1))"
-
+# Timeweb App Platform owns deploy readiness. Do not define Docker HEALTHCHECK
+# here: Timeweb was marking a fully started Next.js container unhealthy even
+# though the server was listening on 0.0.0.0 and ready in milliseconds.
 CMD ["sh", "-c", "HOSTNAME=0.0.0.0 exec node .next/standalone/server.js"]
