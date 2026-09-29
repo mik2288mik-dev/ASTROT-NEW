@@ -73,5 +73,7 @@ describe('database migration deployment runner', () => {
     expect(health).not.toContain('getSwissEphemerisHealth');
     expect(health).not.toContain("health.status === 'error' ? 503 : 200");
     expect(health).not.toContain('return res.status(503).json');
+    expect(health).not.toContain('notificationScheduler');
+    expect(health).not.toContain('ensureNotificationScheduler');
   });
 });
