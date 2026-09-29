@@ -3,7 +3,6 @@ import { CircleAlert, LoaderCircle, LockKeyhole, MoonStar, WifiOff } from 'lucid
 import { ForecastSectionBlock } from '../PersonalForecastFeed/ForecastSectionBlock';
 import { PersonalForecastPremiumGate } from '../PersonalForecastFeed/PersonalForecastPremiumGate';
 import { TodayEditorialFeed } from '../PersonalForecastFeed/TodayEditorialFeed';
-import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
 import { formatPersonalForecastAttribution } from '../../lib/personalForecastPresentation';
 import { resolvePersonalForecastWindow } from '../../lib/personalForecastContract';
 import {
@@ -165,14 +164,6 @@ function DiaryScene({
     language: 'ru',
   });
   const longSections = screen === 'week' ? UI_PREVIEW_WEEK_SECTIONS : UI_PREVIEW_MONTH_SECTIONS;
-  const periodEndVisual = screen === 'today'
-    ? null
-    : selectForecastEndEditorialAsset({
-        userId: 'ui-preview-user',
-        period,
-        periodKey,
-        sections: longSections,
-      });
   const periodAdviceSectionId = [...longSections]
     .reverse()
     .find((section) => section.contentBlocks.some((block) => block.role === 'action'))
@@ -231,7 +222,6 @@ function DiaryScene({
               language="ru"
               locked={false}
               onRequestPremium={() => onNavigate('paywall')}
-              endVisualAsset={section.id === periodAdviceSectionId ? periodEndVisual : null}
             />
           ))}
           {periodAdviceSectionId && personalForecastAttribution ? (

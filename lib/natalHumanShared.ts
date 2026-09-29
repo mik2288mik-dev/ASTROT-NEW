@@ -84,4 +84,3 @@ const paidSet = new Set<InterpretationSectionKey>(HUMAN_PAID_SECTION_KEYS);
 export function isHumanPaidSectionKey(value: string): value is HumanPaidSectionKey {
   return paidSet.has(value as InterpretationSectionKey);
 }
-
