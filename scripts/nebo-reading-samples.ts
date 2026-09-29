@@ -172,7 +172,7 @@ print(json.dumps(r))`, ephemerisPath, method, JSON.stringify(args)], { encoding:
     }));
     else console.log('DeepSeek samples unavailable: DEEPSEEK_API_KEY is not configured locally.');
   }
-  console.log(JSON.stringify(result.people.map(p => ({ id: p.id, forecasts: Object.keys(p.forecasts), chapters: Object.keys(p.categoryPacks), errors: p.errors }))));
+  console.log(JSON.stringify(result.people.map(p => ({ id: p.id, forecasts: Object.keys(p.forecasts), errors: p.errors }))));
   const lines = ['# NEBO — три примера чтения', '', 'Вымышленные люди. Тексты получены через текущие генераторы Luna, без ручной подмены ответов. Прогнозы относятся к 8 сентября 2026 года, неделе и сентябрю. Натальные схемы рассчитаны Swiss Ephemeris; на этой Windows-машине для примеров использован Python-модуль, а не отсутствующий нативный Node-модуль. Приложение при обычном чтении использует сохранённые данные.', ''];
   for (const person of result.people) {
     lines.push(`## ${person.profile.name}`, '', `${person.profile.birthDate} · ${person.profile.birthTime || 'время неизвестно'} · ${person.profile.birthPlace}`, '');
@@ -181,13 +181,6 @@ print(json.dumps(r))`, ephemerisPath, method, JSON.stringify(args)], { encoding:
       lines.push(`### ${{ day: 'Сегодня', week: 'Неделя', month: 'Месяц' }[period]}`, '');
       if (forecast) lines.push(`**${forecast.overview.title}**`, '', forecast.overview.text, '', ...forecast.sections.flatMap(section => [section.text, '']));
       else lines.push('Генерация не завершена.', '');
-    }
-    for (const categoryKey of ['main', 'character', 'love', 'communication', 'work', 'money'] as const) {
-      const pack = person.categoryPacks[categoryKey];
-      lines.push(`### ${{ main: 'Коротко о тебе', character: 'Характер', love: 'Любовь', communication: 'Общение', work: 'Работа', money: 'Деньги' }[categoryKey]}`, '');
-      if (pack) for (const paragraph of pack.summary) lines.push(`**${paragraph.title || ''}**`, '', paragraph.text, '', `Основания: ${paragraph.evidenceIds.join(', ')}`, '');
-      else lines.push('Генерация не завершена.', '');
-      if (pack?.followUps) lines.push(...pack.followUps.map(item => `- ${item.label} → ${item.categoryKey}`), '');
     }
     lines.push('### Дополнительные карточки', '');
     for (const [period, pack] of Object.entries(person.microForecasts || {})) for (const topic of pack.topics) lines.push(`**${period} · ${topic.id} — ${topic.teaser}**`, '', topic.text, '');
