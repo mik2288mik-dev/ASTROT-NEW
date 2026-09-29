@@ -1,30 +1,4 @@
-import type {
-  InterpretationSection,
-  InterpretationSectionKey,
-} from '../types';
-import { withAppVoiceCacheKey, withAppVoiceVersion } from './appVoice';
-import {
-  NATAL_PERMANENT_FREE_CACHE_KEY,
-  NATAL_PERMANENT_FREE_PROMPT_VERSION,
-} from './natalReading/permanentReport';
-
-const LEGACY_HUMAN_SECTION_SCHEMA_VERSION = 'legacy-human-section-v1';
-
-export const HUMAN_INTERPRETATION_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v2');
-/** Compatibility alias. The active base-report path is the direct permanent V2 report. */
-export const HUMAN_BASE_PROMPT_VERSION = NATAL_PERMANENT_FREE_PROMPT_VERSION;
-export const HUMAN_PAID_PROMPT_VERSION = withAppVoiceVersion(`lumia-human-v6.${LEGACY_HUMAN_SECTION_SCHEMA_VERSION}.premium-depth`);
-export const HUMAN_BASE_CACHE_KEY = NATAL_PERMANENT_FREE_CACHE_KEY;
-
-export const HUMAN_FREE_SECTION_KEYS = [
-  'base_portrait',
-  'thinking',
-  'reactions',
-  'love_relationships',
-  'work_money',
-  'strengths',
-  'difficulties',
-] as const satisfies readonly InterpretationSectionKey[];
+import type { InterpretationSectionKey } from '../types';
 
 export const HUMAN_PAID_SECTION_KEYS = [
   'inner_reactions',
@@ -39,18 +13,6 @@ export const HUMAN_PAID_SECTION_KEYS = [
 ] as const satisfies readonly InterpretationSectionKey[];
 
 export type HumanPaidSectionKey = (typeof HUMAN_PAID_SECTION_KEYS)[number];
-
-export const HUMAN_MAP_SECTION_KEYS = [
-  'inner_reactions',
-  'communication',
-  'relationships_deep',
-  'conflicts',
-  'work',
-  'money',
-  'abilities',
-  'central_contradictions',
-  'important_aspects',
-] as const satisfies readonly HumanPaidSectionKey[];
 
 export type HumanSectionMeta = {
   key: InterpretationSectionKey;
@@ -123,22 +85,3 @@ export function isHumanPaidSectionKey(value: string): value is HumanPaidSectionK
   return paidSet.has(value as InterpretationSectionKey);
 }
 
-export function humanPaidCacheKey(sectionKey: HumanPaidSectionKey): string {
-  return withAppVoiceCacheKey(`human_v3.semantic.paid.${sectionKey}`);
-}
-
-export function buildLockedPaidSections(): InterpretationSection[] {
-  return HUMAN_PAID_SECTION_KEYS.map((key) => {
-    const meta = HUMAN_PAID_SECTION_META[key];
-    return {
-      key,
-      title: meta.title,
-      subtitle: meta.subtitle,
-      access: 'paid',
-      isLocked: true,
-      teaser: meta.teaser,
-      content: '',
-      ctaLabel: 'Открыть подробный разбор',
-    };
-  });
-}
