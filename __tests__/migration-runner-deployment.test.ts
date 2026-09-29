@@ -28,8 +28,8 @@ describe('database migration deployment runner', () => {
     expect(railway.deploy?.startCommand).toBe('node server.js');
     expect(railway.deploy?.healthcheckPath).toBe('/api/health');
     expect(dockerfile).toContain('CMD ["sh", "-c", "HOSTNAME=0.0.0.0 exec node .next/standalone/server.js"]');
-    expect(dockerfile).toContain('HEALTHCHECK --interval=10s');
-    expect(dockerfile).toContain("path:'/api/health'");
+    expect(dockerfile).not.toContain('HEALTHCHECK ');
+    expect(dockerfile).toContain('Timeweb App Platform owns deploy readiness');
     expect(dockerfile).toContain('/app/scripts ./scripts');
     expect(dockerfile).toContain('/app/lib ./lib');
     expect(preDeployScript).toContain('npm run validate:production-env');
