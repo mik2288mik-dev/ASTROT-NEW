@@ -24,7 +24,7 @@ calendar stages.
 
 ## 3. Navigation
 
-The persistent bottom bar is `Сегодня`, `Зодиак`, `Натальная карта`,
+The persistent bottom bar is `Сегодня`, `Гороскоп`, `Натальная карта`,
 `Сравнить`, `Меню`.
 
 Inside `Натальная карта`, keep `Карта`, `Разбор`, `Спросить о себе`,

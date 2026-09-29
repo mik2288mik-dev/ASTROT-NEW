@@ -6,7 +6,7 @@ This reference describes active NEBO paths.
 
 - `App.tsx` restores the app session, profile, saved charts, and current screen.
 - `LumiaBottomTabBar` renders the production navigation in this order:
-  `Сегодня`, `Зодиак`, `Натальная карта`, `Сравнить`, `Меню`.
+  `Сегодня`, `Гороскоп`, `Натальная карта`, `Сравнить`, `Меню`.
 - Today, Week, and Month are period tabs inside the personal forecast.
 - `Меню` opens the full menu screen.
 - The active natal flow is `App.tsx` to `views/v2/NatalMagazine.tsx` and its
