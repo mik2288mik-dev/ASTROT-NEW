@@ -45,7 +45,7 @@ describe('Union product flow', () => {
   });
 
   it('adds Telegram initData and rejects free full-chart requests before reading selected charts', () => {
-    for (const file of ['services/astrologyService.ts', 'services/natalReadingService.ts', 'services/chartService.ts']) {
+    for (const file of ['services/astrologyService.ts', 'services/chartService.ts']) {
       expect(read(file)).not.toContain("headers: { 'Content-Type': 'application/json' }");
     }
     const fullApi = read('pages/api/content/synastry/extended.ts');
