@@ -75,7 +75,7 @@ describe('chart onboarding and lazy sections', () => {
     expect(report).toContain("mode === 'topics' && !isPremium");
     expect(report).toContain('ensureNatalUnifiedReading');
     expect(contract).toContain('projectNatalUnifiedReadingForTier');
-    expect(contract).toContain('freeStoryBlockCount');
+    expect(contract).toContain('natalUnifiedFreeStoryBlockCount');
     expect(api).toContain("generateNatalUnifiedReadingWithLock");
     expect(api).toContain("projectNatalUnifiedReadingForTier(cached.content, tier)");
   });
