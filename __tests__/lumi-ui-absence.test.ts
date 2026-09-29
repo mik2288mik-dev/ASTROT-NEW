@@ -9,8 +9,6 @@ const USER_FACING_RUNTIME_FILES = [
   'views/Horoscope.tsx',
   'views/Synastry.tsx',
   'views/NatalChart.tsx',
-  'components/NatalReading/HumanReport.tsx',
-  'components/NatalReading/NatalStoryDeck.tsx',
   'components/lumia-ui/LumiaBottomTabBar.tsx',
 ];
 
