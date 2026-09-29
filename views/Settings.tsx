@@ -60,10 +60,6 @@ import {
     getNativeNotificationSettings, openNativeNotificationSettings, saveNativeNotificationSettings,
 } from '../services/nativeNotifications';
 import type { NativeNotificationSettings } from '../lib/nativeNotificationPolicy';
-import {
-    readNatalInterpretationDebug,
-    writeNatalInterpretationDebug,
-} from '../lib/natalReading/natalInterpretationDebug';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
 function notificationFlagsFor(frequency: NotificationFrequency) {
@@ -341,7 +337,6 @@ export const Settings: React.FC<SettingsProps> = ({
     const [manageSubscriptionError, setManageSubscriptionError] = useState(false);
     const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
     const [previewNotice, setPreviewNotice] = useState('');
-    const [natalDebugEnabled, setNatalDebugEnabled] = useState(false);
     const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>(initialScreen);
     const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('problem');
     const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -363,10 +358,6 @@ export const Settings: React.FC<SettingsProps> = ({
         || feedbackStatus === 'submitting'
         || loggingOut
         || deletingAccount;
-
-    useEffect(() => {
-        setNatalDebugEnabled(readNatalInterpretationDebug(profile.isAdmin === true));
-    }, [profile.isAdmin]);
 
     useEffect(() => {
         const frame = window.requestAnimationFrame(() => {
@@ -1788,27 +1779,6 @@ export const Settings: React.FC<SettingsProps> = ({
             case 'developer':
                 return (
                     <section className="settings-detail-panel" aria-label={settingsTitle.developer}>
-                        <div className="settings-detail-section">
-                            <h2>{profile.language === 'en' ? 'Natal interpretation check' : 'Проверка нового натала'}</h2>
-                            <p className="settings-helper-text">
-                                {profile.language === 'en'
-                                    ? 'Shows Swiss data and the new interpretation side by side on the natal screen. AI copy is not involved.'
-                                    : 'Показывает на экране натальной карты рядом: что посчитал Swiss и как это объясняет новый интерпретатор. AI-текст тут не участвует.'}
-                            </p>
-                            <button
-                                type="button"
-                                className="fresh-btn-ghost"
-                                aria-pressed={natalDebugEnabled}
-                                onClick={() => {
-                                    const next = !natalDebugEnabled;
-                                    setNatalDebugEnabled(writeNatalInterpretationDebug(profile.isAdmin === true, next));
-                                }}
-                            >
-                                {natalDebugEnabled
-                                    ? (profile.language === 'en' ? 'Disable natal check' : 'Выключить проверку')
-                                    : (profile.language === 'en' ? 'Enable natal check' : 'Включить проверку')}
-                            </button>
-                        </div>
                         {onOpenAdmin ? (
                             <div className="settings-list">
                                 <SettingsRow

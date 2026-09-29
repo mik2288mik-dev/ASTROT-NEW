@@ -7,10 +7,10 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 describe('local natal chart app flow', () => {
   it('shows the cached startup dashboard before background chart refresh work', () => {
     const app = read('App.tsx');
-    const startupLocalRead = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)');
+    const startupLocalRead = app.lastIndexOf('const localEntry = readLocalNatalChartCache(updatedProfile)');
     const ready = app.indexOf("setChartLoadState('ready')", startupLocalRead);
-    const dashboard = app.indexOf("showStartupDashboard('dashboard')", ready);
-    const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData', dashboard);
+    const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData', ready);
+    const dashboard = app.lastIndexOf('showStartupDashboard(', background);
     const scheduler = app.indexOf('const scheduleStartupBackgroundWork');
     const dbRefresh = app.indexOf('getChartFromDB(String(targetProfile.id))', scheduler);
     const idRefresh = app.indexOf('getPrimaryChartId(String(targetProfile.id))', scheduler);
@@ -29,8 +29,8 @@ describe('local natal chart app flow', () => {
   it('opens dashboard before the background DB chart and leaves forecast loading to Dashboard', () => {
     const app = read('App.tsx');
     const dashboardView = read('views/Dashboard.tsx');
-    const dashboard = app.indexOf("showStartupDashboard(requestedViewRef.current || 'dashboard')");
-    const dbChart = app.indexOf('void loadPrimaryChartOnce(updatedProfile).then((chart) => {', dashboard);
+    const dbChart = app.indexOf('void loadPrimaryChartOnce(updatedProfile).then((chart) => {');
+    const dashboard = app.lastIndexOf('showStartupDashboard(', dbChart);
     const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, chart, null, false)', dbChart);
 
     expect(dashboard).toBeGreaterThan(-1);

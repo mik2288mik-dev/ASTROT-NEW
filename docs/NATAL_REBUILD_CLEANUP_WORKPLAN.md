@@ -182,7 +182,7 @@ Repository-wide search first, then remove unused legacy pieces such as:
 - `lib/natalReading/prompts.ts`
 - `lib/natalReading/fallbacks.ts`
 - `lib/natalReading/chartSerializer.ts`
-- legacy portrait/aspects/today/week/dive endpoints and components.
+- legacy portrait/aspects/today/week/dive components and their second-generation runtime. Keep the published long-scroll URLs only as thin adapters to unified reading while legacy APKs may call them.
 
 ## 13. Old semantic engines
 
@@ -234,13 +234,13 @@ After code is final, update:
 ## 17. Remove temporary Stage 3 inspector
 
 Before final release, after semantic review is complete:
-- [ ] remove `components/NatalReading/NatalInterpretationDebugPanel.tsx`;
-- [ ] remove `lib/natalReading/natalInterpretationDebug.ts`;
-- [ ] remove the `Проверка нового натала` toggle/import/state from `views/Settings.tsx`;
-- [ ] remove the debug panel hookup from `views/v2/NatalMagazine.tsx`;
-- [ ] remove `natal-debug-*` CSS;
-- [ ] remove `__tests__/natal-interpretation-debug-ui.test.ts`;
-- [ ] repository-wide search for `natalDebug`, `NatalInterpretationDebug`, and `nebo:admin:natal-interpretation-debug:v1`.
+- [x] remove `components/NatalReading/NatalInterpretationDebugPanel.tsx`;
+- [x] remove `lib/natalReading/natalInterpretationDebug.ts`;
+- [x] remove the `Проверка нового натала` toggle/import/state from `views/Settings.tsx`;
+- [x] remove the debug panel hookup from `views/v2/NatalMagazine.tsx`;
+- [x] remove `natal-debug-*` CSS;
+- [x] remove `__tests__/natal-interpretation-debug-ui.test.ts`;
+- [x] repository-wide search for `natalDebug`, `NatalInterpretationDebug`, and `nebo:admin:natal-interpretation-debug:v1`.
 
 ## 18. Finish and self-delete
 

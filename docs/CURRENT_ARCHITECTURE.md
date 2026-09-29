@@ -10,7 +10,15 @@ This reference describes active NEBO paths.
 - Today, Week, and Month are period tabs inside the personal forecast.
 - `Меню` opens the full menu screen.
 - The active natal flow is `App.tsx` to `views/v2/NatalMagazine.tsx` and its
-  `Карта`, `Разбор`, `Спросить о себе`, and `Матрица судьбы` tabs.
+  `Карта`, `Рассказ` / `По темам`, and `Спросить о себе` surfaces.
+
+## Natal interpretation
+
+Natal reading uses one deterministic interpretation layer. A saved `NatalChartDataV2` passes through `lib/natalInterpretation/`, validated meanings, and the unified writer before it reaches the reading UI.
+
+`Рассказ` and `По темам` are two views of one `NatalUnifiedReading`. The map and natal questions rebuild the same meanings from the same saved chart; they do not use independent semantic tables or free-form chart prompts. Unknown and approximate birth time exclude unstable time-dependent evidence.
+
+`pages/api/content/natal/human-base.ts`, `human-premium.ts`, `human-section.ts`, `catalog.ts`, `catalog-answer.ts`, `portrait.ts`, `aspects.ts`, `today.ts`, `week.ts`, and `dive.ts` remain compatibility adapters for published clients. They project the unified reading into legacy JSON contracts and do not generate a second reading.
 
 ## Personal forecast generation
 
