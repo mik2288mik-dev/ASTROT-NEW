@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 # Stage 1: install dependencies, compile native modules, and build Next.js.
 # Keep the Docker runtime aligned with package.json/.nvmrc and Capacitor 8.
 FROM node:22-alpine AS builder
