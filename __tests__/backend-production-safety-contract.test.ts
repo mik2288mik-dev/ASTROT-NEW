@@ -119,6 +119,13 @@ describe('backend production safety contract', () => {
     expect(health).not.toContain('getPool');
     expect(health).not.toContain('getProductionObservabilitySnapshot');
     expect(health).not.toContain('getSwissEphemerisHealth');
+    expect(health).not.toContain('notificationScheduler');
+    expect(health).not.toContain('ensureNotificationScheduler');
+    expect(health).not.toContain('getSchedulerStatus');
     expect(health).toContain('Dependency checks live at /api/readiness');
+
+    const instrumentation = read('instrumentation.ts');
+    expect(instrumentation).toContain("await import('./instrumentation.node')");
+    expect(instrumentation).toContain('HTTP startup continues');
   });
 });

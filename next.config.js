@@ -22,11 +22,8 @@ const nextConfig = {
   // Нативные/серверные пакеты не бандлим в серверный билд (в т.ч. instrumentation),
   // иначе webpack пытается разрешить нативный .node и падает.
   serverExternalPackages: isMobileBuild ? [] : ['swisseph-v2', 'pg', 'pg-native', 'tz-lookup'],
-  // Кладём файлы эфемерид (.se1) в standalone-сборку, иначе в проде их не найти
-  // и расчёт уходит в Moshier-фолбэк. С ними — высокая точность Swiss Ephemeris.
-  outputFileTracingIncludes: {
-    '/api/**/*': ['./ephe/**/*'],
-  },
+  // Server Docker images copy ./ephe explicitly to /app/ephe. Do not attach
+  // the same ephemeris tree to every API route during Next output tracing.
   images: {
     domains: ['cdn.telegram.org'],
     formats: ['image/avif', 'image/webp'],

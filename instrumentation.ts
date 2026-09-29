@@ -6,6 +6,14 @@
 export async function register() {
   if (process.env.NEXT_PUBLIC_MOBILE_BUILD === '1') return;
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    await import('./instrumentation.node');
+    try {
+      await import('./instrumentation.node');
+    } catch (error) {
+      // Background workers must never prevent the HTTP server from becoming live.
+      console.warn(
+        '[instrumentation] optional Node bootstrap failed; HTTP startup continues:',
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 }
