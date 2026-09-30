@@ -1,6 +1,5 @@
 import type { Language, SignHoroscopePeriod } from '../../types';
 import { buildContentGenerationLockKey } from '../contentGenerationLock';
-import { signHoroscopePromptVersion } from './signCache';
 
 export function buildSignHoroscopeLockKey(
   period: SignHoroscopePeriod,
@@ -13,6 +12,6 @@ export function buildSignHoroscopeLockKey(
     contentSurface: 'forecast',
     contentVariant: period === 'day' ? 'daily' : period === 'week' ? 'weekly' : 'monthly',
     cacheKey: `${period}:${periodKey}:${language}`,
-    promptVersion: signHoroscopePromptVersion(period),
+    promptVersion: 'sign-period-immutable',
   });
 }

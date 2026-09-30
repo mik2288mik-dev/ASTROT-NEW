@@ -7,11 +7,10 @@ import { ZODIAC_KEYS, type ZodiacKey } from '../zodiacKeys';
 import { logForecastDeliveryMetric } from '../forecastDeliveryMetrics';
 import {
   generateSignHoroscopeBatch,
-  SignHoroscopeGenerationError,
   type SignHoroscopeBatchFailure,
   type SignHoroscopeBatchGenerationResult,
 } from './signGeneration';
-import { getCachedSignHoroscope, getCachedSignHoroscopes, storeSignHoroscope } from './signCache';
+import { getCachedSignHoroscopes, storeSignHoroscope } from './signCache';
 import { buildSignSkyBatchDigest, type SignSkyBatchDigest } from './signSkyDigest';
 
 const digestCache = new Map<string, SignSkyBatchDigest>();
@@ -31,12 +30,6 @@ function readOrBuildDigest(period: SignHoroscopePeriod, periodKey: string): Sign
 }
 
 export interface SignHoroscopeRuntime {
-  readCached: (
-    period: SignHoroscopePeriod,
-    sign: ZodiacKey,
-    periodKey: string,
-    language: Language,
-  ) => Promise<SignHoroscopeReadingV2 | null>;
   readCachedBatch: (
     period: SignHoroscopePeriod,
     periodKey: string,
@@ -65,7 +58,6 @@ export type SignHoroscopeFillResult = {
 };
 
 const DEFAULT_RUNTIME: SignHoroscopeRuntime = {
-  readCached: getCachedSignHoroscope,
   readCachedBatch: getCachedSignHoroscopes,
   buildDigest: readOrBuildDigest,
   generate: generateSignHoroscopeBatch,
@@ -129,26 +121,4 @@ export async function fillMissingSignHoroscopes(
   });
 
   return { readings, cachedSigns, generatedSigns, failures };
-}
-
-export async function getOrGenerateSignHoroscope(
-  period: SignHoroscopePeriod,
-  sign: ZodiacKey,
-  periodKey: string,
-  language: Language,
-  runtime: SignHoroscopeRuntime = DEFAULT_RUNTIME,
-): Promise<SignHoroscopeReadingV2> {
-  const cached = await runtime.readCached(period, sign, periodKey, language);
-  if (cached) return cached;
-
-  const filled = await fillMissingSignHoroscopes(period, periodKey, language, runtime);
-  const reading = filled.readings[sign];
-  if (reading) return reading;
-
-  const failure = filled.failures.find((item) => item.sign === sign);
-  throw new SignHoroscopeGenerationError(
-    'SIGN_HOROSCOPE_VALIDATION_FAILED',
-    `Sign horoscope is still missing for ${sign}`,
-    failure?.issues || ['requested sign was not generated'],
-  );
 }

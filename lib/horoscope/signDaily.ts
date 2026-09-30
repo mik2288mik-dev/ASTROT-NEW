@@ -9,7 +9,6 @@ import {
   getSignHoroscopeCacheSnapshot,
   type SignHoroscopeCacheSnapshot,
 } from './signCache';
-import { getOrGenerateSignHoroscope } from './signOrchestrator';
 export { normalizeEngagementKey } from './signEngagement';
 
 export { ZODIAC_KEYS, normalizeZodiacKey };
@@ -29,12 +28,4 @@ export async function getSignDailyHoroscopeSnapshot(
   language: Language,
 ): Promise<SignHoroscopeCacheSnapshot | null> {
   return getSignHoroscopeCacheSnapshot('day', sign, date, language);
-}
-
-export async function getOrGenerateSignDailyHoroscope(
-  sign: ZodiacKey,
-  date: string,
-  language: Language,
-): Promise<SignHoroscopeReadingV2> {
-  return getOrGenerateSignHoroscope('day', sign, date, language);
 }
