@@ -61,6 +61,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   );
   const [retryToken, setRetryToken] = useState(0);
   const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free';
+  const shouldLoadReading = mode === 'story' || isPremium;
   const identity = useMemo(
     () => JSON.stringify([
       userId,
@@ -80,6 +81,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   });
 
   useEffect(() => {
+    if (!shouldLoadReading) return;
     if (!v2 || !userId) {
       setState({ identity, reading: null, loading: false, error: errorText(language) });
       return;
@@ -106,7 +108,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
         }));
       });
     return () => { cancelled = true; };
-  }, [chartData, chartId, identity, language, tier, userId, v2]);
+  }, [chartData, chartId, identity, language, shouldLoadReading, tier, userId, v2]);
 
   if (savedPerson && !isPremium) {
     return (
