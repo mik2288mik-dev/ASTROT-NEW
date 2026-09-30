@@ -14,7 +14,7 @@ function score(meaning: NatalMeaning): number {
 function ranked(meanings: readonly NatalMeaning[]): NatalMeaning[] {
   return meanings.filter(meaning => score(meaning) > 0)
     .map((meaning, index) => ({ meaning, index }))
-    .sort((a, b) => score(b.meaning) - score(a.meaning) || a.index - b.index)
+    .sort((a, b) => score(b.meaning) - score(a.meaning) || (b.meaning.relevance || 0) - (a.meaning.relevance || 0) || a.index - b.index)
     .map(entry => entry.meaning);
 }
 export function buildNatalStoryMeaningIds(meanings: readonly NatalMeaning[]): string[] {
@@ -28,7 +28,10 @@ export function buildNatalTopicPlans(meanings: readonly NatalMeaning[]): NatalTo
   const available = ranked(meanings);
   return TOPIC_ORDER.flatMap(key => {
     if (key === 'general') return [];
-    const selected = available.filter(meaning => meaning.topics.includes(key)).slice(0, 3);
+    const selected = available.filter(meaning => (meaning.scope === 'personal'
+      || (key === 'money' && /^house-cusp:(?:2|8):/.test(meaning.semanticKey))) && meaning.topics.includes(key))
+      .sort((a, b) => Number(Boolean(b.topicText?.[key])) - Number(Boolean(a.topicText?.[key])))
+      .slice(0, 8);
     if (!selected.length) return [];
     return [{ key, title: TOPIC_TITLES_RU[key], meaningIds: selected.map(meaning => meaning.id),
       evidenceIds: [...new Set(selected.flatMap(meaning => meaning.evidenceIds))] }];

@@ -39,6 +39,8 @@ describe('natal preparation preserves completed work', () => {
     const repairInput = mockResponse.mock.calls[2][0].input;
     expect(repairInput).toContain(raw.story[0].id);
     expect(repairInput).not.toContain(`"id": "${raw.story[1].id}"`);
+    const context = JSON.parse(repairInput.split('INPUT:\n')[1].split('\n\nPREVIOUS OUTPUT')[0]).preserved_context;
+    expect(context.story[0]).toEqual({ text: raw.story[1].text, meaning_ids: raw.story[1].meaning_ids });
     expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_reading')).toHaveLength(1);
   });
   it('resumes a stored draft after a review transport failure without writing it again', async () => {

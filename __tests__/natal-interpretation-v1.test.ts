@@ -1,6 +1,7 @@
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 import { buildNatalInterpretation } from '../lib/natalInterpretation';
 import { natalPlainLanguageError } from '../lib/natalInterpretation/plainLanguage';
+import { buildMapData, explainMapSelection } from '../components/NatalReading/mapExplanation';
 
 describe('unified natal interpretation', () => {
   it('retains reliable calculator data but selects relevant observations for reading', () => {
@@ -192,8 +193,59 @@ describe('unified natal interpretation', () => {
 
     expect(square?.text.toLowerCase()).not.toContain('плох');
     expect(square?.text.toLowerCase()).not.toContain('негатив');
-    expect(outerTrine?.scope).toBe('background');
-    expect(result.storyMeaningIds).not.toContain(outerTrine!.id);
+    expect(outerTrine).toBeUndefined();
+    expect(result.evidence.some(fact => fact.id === 'aspect:uranus-neptune-trine')).toBe(true);
   });
 
+  it('shows one technical title and the approved explanation without duplicating an ending', () => {
+    const chart = canonicalNatalChart();
+    const explanation = explainMapSelection(chart, { kind: 'point', id: 'sun' })!;
+    const reading = buildNatalInterpretation(chart);
+    const sun = reading.meanings.find(item => item.semanticKey.startsWith('body-sign:sun:'))!;
+    expect(explanation.reasons.filter(reason => reason.text === sun.text)).toHaveLength(1);
+    expect(explanation.reasons.every(reason => !reason.facts)).toBe(true);
+    expect(explanation.summary).toBe('');
+    expect(explanation.reasons[0].title).not.toMatch(/Aries|Taurus|Cancer/);
+    expect(explanation.what).not.toContain('описывает как');
+  });
+
+  it('does not turn opposite ends of one calculated axis into a personal difficulty', () => {
+    const chart = canonicalNatalChart();
+    const aspect = { ...chart.aspects[0], id: 'asc-dsc-axis', from: 'Ascendant', to: 'Descendant',
+      fromKey: 'ascendant' as const, toKey: 'descendant' as const, type: 'opposition' as const,
+      exactAngle: 180 as const, angle: 180, angularDistance: 180, orb: 0 };
+    chart.aspects = [aspect];
+    const before = JSON.stringify(chart);
+    const reading = buildNatalInterpretation(chart);
+    expect(reading.evidence.some(item => item.id === 'aspect:asc-dsc-axis')).toBe(true);
+    expect(reading.meanings.some(item => item.evidenceIds.includes('aspect:asc-dsc-axis'))).toBe(false);
+    const wheelAspect = buildMapData(chart).aspects.find(item => item.fromKey === 'ascendant')!;
+    const explanation = explainMapSelection(chart, { kind: 'aspect', id: wheelAspect.id })!;
+    expect(explanation.meaning).toContain('всегда 180°');
+    expect(explanation.meaning).not.toMatch(/тебе|ты выбираешь|иногда|трудно/);
+    expect(JSON.stringify(chart)).toBe(before);
+  });
+
+  it('localizes house facts and gives a calculation explanation instead of a fabricated minor-point trait', () => {
+    const chart = canonicalNatalChart();
+    const house = explainMapSelection(chart, { kind: 'house', id: '2' })!;
+    expect(house.yours).toContain('Телец');
+    expect(house.yours).not.toContain('Taurus');
+    const minor = explainMapSelection(chart, { kind: 'point', id: 'chiron' })!;
+    expect(minor.meaning).not.toContain('недостаточно');
+    expect(minor.meaning).not.toContain('ты');
+    expect(minor.meaning).not.toContain(minor.what);
+    expect(minor.reasons).toHaveLength(1);
+    expect(minor.summary).toBe('');
+  });
+
+  it('does not repeat a general character observation as money or work without relevant evidence', () => {
+    const chart = canonicalNatalChart();
+    chart.positions.sun.house = 1;
+    const reading = buildNatalInterpretation(chart);
+    const sun = reading.meanings.find(item => item.semanticKey.startsWith('body-sign:sun:'))!;
+    expect(reading.topics.find(topic => topic.key === 'work')?.meaningIds || []).not.toContain(sun.id);
+    expect(reading.topics.find(topic => topic.key === 'money')?.meaningIds || []).not.toContain(sun.id);
+    expect(reading.topics.find(topic => topic.key === 'character')!.meaningIds).toContain(sun.id);
+  });
 });

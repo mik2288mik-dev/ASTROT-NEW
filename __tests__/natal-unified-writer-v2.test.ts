@@ -40,7 +40,7 @@ describe('hardened unified natal writer', () => {
     expect(titles).not.toContain('Нагрузка и восстановление');
 
     expect(ids.every(id => interpretation.meanings.some(meaning => meaning.id === id))).toBe(true);
-    expect(interpretation.topics.every(topic => topic.meaningIds.length <= 3
+    expect(interpretation.topics.every(topic => topic.meaningIds.length <= 8
       && new Set(topic.meaningIds).size === topic.meaningIds.length)).toBe(true);
   });
 
@@ -164,5 +164,40 @@ describe('hardened unified natal writer', () => {
     const raw = validRaw(plan);
     raw.topics[1].blocks[0].text = raw.topics[0].blocks[0].text;
     expect(materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan }).errors.join(' ')).toContain('repeated paragraph');
+  });
+
+  it('lets the author connect paragraphs using the whole story material', () => {
+    const interpretation = buildNatalInterpretation(canonicalNatalChart());
+    const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+    expect(plan.story.length).toBeGreaterThan(1);
+    expect(plan.story.every(block => block.meaningIds.length === interpretation.storyMeaningIds.length)).toBe(true);
+    expect(plan.story[0].focusMeaningIds).not.toEqual(plan.story[1].focusMeaningIds);
+    const raw = validRaw(plan);
+    const id = plan.story[0].focusMeaningIds![1];
+    raw.story[1] = { ...raw.story[1], text: interpretation.meanings.find(meaning => meaning.id === id)!.text, meaning_ids: [id] };
+    expect(materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan }).errors).toEqual([]);
+  });
+
+  it('rejects copying the story into a topic and restating an observation in the next paragraph', () => {
+    const interpretation = buildNatalInterpretation(canonicalNatalChart());
+    const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+    const raw = validRaw(plan);
+    raw.topics[0].blocks[0].text = raw.story[0].text;
+    expect(materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan }).errors.join(' ')).toContain('repeated paragraph');
+    const repeated = validRaw(plan);
+    repeated.story[1].meaning_ids = repeated.story[0].meaning_ids;
+    repeated.story[1].text = 'Первый шаг тебе даётся проще, когда уже понятно, за какое дело хочется взяться.';
+    expect(materializeNatalUnifiedReading({ raw: repeated, interpretation, tier: 'premium', plan }).errors.join(' ')).toContain('paragraph adds no new observation');
+  });
+
+  it.each([
+    'Ты выбираешь дело. Тебе нравится начать сразу. Для тебя имеет значение первый шаг.',
+    'В отношениях складываются договорённости и сочетание настойчивости и чувствительности.',
+  ])('rejects robotic openings and the rejected tone: %s', text => {
+    const interpretation = buildNatalInterpretation(canonicalNatalChart());
+    const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+    const raw = validRaw(plan);
+    raw.story[0].text = text;
+    expect(materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan }).reading).toBeNull();
   });
 });

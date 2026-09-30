@@ -7,8 +7,8 @@ export function natalWriterPayload(interpretation: NatalInterpretation, plan: Na
   const byId = new Map(interpretation.meanings.map(meaning => [meaning.id, meaning]));
   const block = (item: NatalUnifiedWriterPlan['story'][number], title = '') => ({
     id: item.id,
-    text: `${title ? `${title}: ` : ''}${byId.get(item.meaningIds[0])!.text}`,
-    meaning_ids: [item.meaningIds[0]],
+    text: `${title ? `${title}: ` : ''}${byId.get((item.focusMeaningIds || item.meaningIds)[0])!.text}`,
+    meaning_ids: [(item.focusMeaningIds || item.meaningIds)[0]],
   });
   return { story: plan.story.map(item => block(item)), topics: plan.topics.map(topic => ({
     key: topic.key, title: topic.title, blocks: topic.blocks.map(item => block(item, topic.title)),
