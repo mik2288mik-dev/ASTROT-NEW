@@ -6,6 +6,7 @@ import {
 } from '../../../services/notificationRetentionService';
 import { processPendingRuStoreEvents } from '../../../lib/rustorePayments';
 import { prewarmPersonalForecastIncrement } from '../../../lib/personalForecastPrewarm';
+import { prewarmNatalUnifiedReadingBackfillIncrement } from '../../../lib/natalReading/precompute';
 import {
   prewarmNextSignMonthIncrement,
   prewarmUpcomingSignHoroscopes,
@@ -143,6 +144,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   //    Runs at most once per 30-minute slot regardless of external cron frequency.
   const slot = `${dateKey}-${hour}-${Math.floor(minute / 30)}`;
   await once('rolling-daily', slot, () => planRetentionNotifications('rolling-daily', now, { limit: PLANNER_LIMIT }), ran);
+
+  // Existing charts are migrated independently of page loads. One missing natal
+  // reading per slot keeps provider/DB pressure bounded; active primary charts are
+  // selected first by the backfill query.
+  void once('natal-unified-backfill', `${dateKey}-${hour}-${Math.floor(minute / 3)}`,
+    () => prewarmNatalUnifiedReadingBackfillIncrement(), ran);
 
   // The standalone Docker server keeps running after this response. Start the
   // bounded forecast batch after the critical cron jobs, without holding the
