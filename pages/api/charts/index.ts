@@ -13,6 +13,7 @@ import { ChartAccessPolicyError, exposeChartAccess, getActiveCharts, getEffectiv
 import { diagnosticErrorCode } from '../../../lib/diagnosticTrace';
 import { startServerOperationalDiagnostic } from '../../../lib/serverOperationalDiagnostics';
 import { queuePersonalForecastPrewarmForUser } from '../../../lib/personalForecastPrewarm';
+import { precomputeNatalUnifiedReadingForChart } from '../../../lib/natalReading/precompute';
 
 function missingBirthProfileFields(user:any): string[] {
   return [
@@ -92,6 +93,11 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
     } else {
       result=await createOrReuseCanonicalChart({...common,relationLabel:normalizeRelationLabel(body.relationLabel)});
     }
+
+    // First-generation work belongs to the write path. Once this request returns,
+    // the natal page only reads the persisted canonical report from the database.
+    await precomputeNatalUnifiedReadingForChart({ userId, chartId: result.chart.id });
+
     const active=getActiveCharts(await natalChartV2Repository.getAll(userId));
     if (body.primary===true) queuePersonalForecastPrewarmForUser({
       userId,accessTier:entitlement.isPremium?'premium':'free',reason:'birth_profile_completed',

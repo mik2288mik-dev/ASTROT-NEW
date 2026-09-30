@@ -34,6 +34,7 @@ describe('chart onboarding and lazy sections', () => {
     expect(service).toContain('const requestKey=buildNatalChartCacheKey(profile)');
     expect(service).toContain('natalChartMatchesProfile(stored,profile)');
     expect(route).toContain('await ensureCanonicalPrimaryChart(common)');
+    expect(route).toContain('await precomputeNatalUnifiedReadingForChart');
     expect(route).not.toContain('tryAcquireLock');
   });
 
@@ -66,17 +67,22 @@ describe('chart onboarding and lazy sections', () => {
     expect(app).not.toContain('const safeUserId = String(newProfile.id)');
   });
 
-  it('uses one unified natal reading and exposes topic depth only to Premium', () => {
+  it('uses one persisted unified natal reading and exposes topic depth only to Premium', () => {
     const report = read('components/NatalReading/NatalUnifiedReport.tsx');
     const contract = read('lib/natalReading/unifiedReading.ts');
     const api = read('pages/api/content/natal/reading.ts');
+    const service = read('services/natalUnifiedReadingService.ts');
 
     expect(report).toContain("const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free'");
     expect(report).toContain("mode === 'topics' && !isPremium");
-    expect(report).toContain('ensureNatalUnifiedReading');
+    expect(report).toContain('loadNatalUnifiedReading');
+    expect(report).not.toContain('ensureNatalUnifiedReading');
     expect(contract).toContain('projectNatalUnifiedReadingForTier');
     expect(contract).toContain('natalUnifiedFreeStoryBlockCount');
-    expect(api).toContain("generateNatalUnifiedReadingWithLock");
+    expect(api).toContain("if (req.method !== 'GET')");
+    expect(api).toContain('getCachedNatalUnifiedReading');
+    expect(api).not.toContain('generateNatalUnifiedReadingWithLock');
+    expect(service).not.toContain("method: 'POST'");
     expect(api).toContain("projectNatalUnifiedReadingForTier(cached.content, tier)");
   });
 
@@ -122,7 +128,7 @@ describe('chart onboarding and lazy sections', () => {
 
     expect(magazine).toContain('<InteractiveNatalMap');
     expect(magazine).toContain('<NatalUnifiedReport');
-    expect(report).toContain('Preparing your reading');
+    expect(report).toContain('Loading your saved reading');
     expect(report).toContain('Разбор не загрузился. Попробуй ещё раз.');
     expect(report).toContain('setRetryToken');
     expect(report).not.toContain('HumanReport');

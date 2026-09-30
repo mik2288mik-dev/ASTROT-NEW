@@ -8,6 +8,7 @@ import { toDateInputValue } from '../../../lib/date-utils';
 import { normalizeBirthClockTime, normalizeBirthTimeInput } from '../../../lib/birthTime';
 import { normalizeBirthTimeInput as normalizeLegacyBirthTime } from '../../../lib/natalChartCanonical';
 import { ensureCanonicalPrimaryChart } from '../../../lib/natalChartPersistence';
+import { precomputeNatalUnifiedReadingForChart } from '../../../lib/natalReading/precompute';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { getPremiumEntitlementState, publicPremiumEntitlementSnapshot } from '../../../lib/contentArchitecture';
 import {
@@ -80,10 +81,12 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     if(hasBirthInput&&(!birthDate||!birthPlace)&&(data.isSetup===true||(current.birth_date&&current.birth_place))){
       return res.status(400).json({error:'Invalid birth data',message:'Birth date and place are required.'});
     }
+
+    let natalChartIdToPrecompute:number|null=null;
     if(hasBirthInput&&birthDate&&birthPlace){
       // The canonical writer commits the snapshot and birth profile together.
       // Do not write birth fields again below: another edit may already be next.
-      await ensureCanonicalPrimaryChart({
+      const chartResult=await ensureCanonicalPrimaryChart({
         userId,name:dbUser.name||current.name||'',birthDate,birthPlace,
         birthTime:time.localTime||undefined,birthTimeMode:time.mode,
         birthTimeUncertaintyMinutes:time.uncertaintyMinutes,
@@ -91,6 +94,7 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
         language:dbUser.language,
         coordinates:{lat:data.birthLatitude,lon:data.birthLongitude,timezone:data.birthTimezone},
       });
+      natalChartIdToPrecompute=chartResult.chart.id;
     }
     if(data.isSetup!==undefined)dbUser.is_setup=data.isSetup===true;
     if(data.selectedZodiacSign!==undefined||data.selected_zodiac_sign!==undefined)dbUser.selected_zodiac_sign=normalizeNullableString(data.selectedZodiacSign??data.selected_zodiac_sign);
@@ -98,6 +102,19 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     const saved=await db.users.updateExisting(userId,dbUser);
     if(!saved)return res.status(401).json({error:'APP_SESSION_REVOKED',message:'This account no longer exists'});
     await saveNotificationFrequency(userId,data.notificationFrequency);
+
+    // The report language is part of its persistent identity. Birth-data and
+    // language changes must prepare the new version here, never when the page opens.
+    const languageChanged=Object.prototype.hasOwnProperty.call(data,'language')
+      && String(data.language||'ru')!==String(current.language||'ru');
+    if(languageChanged&&natalChartIdToPrecompute==null){
+      const primary=await db.natal_charts.getPrimary(userId);
+      natalChartIdToPrecompute=primary?.id??null;
+    }
+    if(natalChartIdToPrecompute!=null){
+      await precomputeNatalUnifiedReadingForChart({userId,chartId:natalChartIdToPrecompute});
+    }
+
     const refreshed=await db.users.get(userId);
     const birthSettings=await birthProfileRepository.get(userId);
     let refCode:string|null=null;try{refCode=await db.users.ensureReferralCode(userId);}catch(error:any){log.warn('ensureReferralCode failed',error?.message);}

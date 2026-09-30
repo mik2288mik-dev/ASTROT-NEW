@@ -7,8 +7,8 @@ import type {
   NatalUnifiedReadingTier,
 } from '../../lib/natalReading/unifiedReading';
 import {
-  ensureNatalUnifiedReading,
   getNatalUnifiedReadingCached,
+  loadNatalUnifiedReading,
 } from '../../services/natalUnifiedReadingService';
 import styles from './NatalSection.module.css';
 import { NatalPlusEntry } from './NatalPlusEntry';
@@ -61,6 +61,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   );
   const [retryToken, setRetryToken] = useState(0);
   const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free';
+  const shouldLoadReading = mode === 'story' || isPremium;
   const identity = useMemo(
     () => JSON.stringify([
       userId,
@@ -80,6 +81,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   });
 
   useEffect(() => {
+    if (!shouldLoadReading) return;
     if (!v2 || !userId) {
       setState({ identity, reading: null, loading: false, error: errorText(language) });
       return;
@@ -93,7 +95,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
       loading: !cached,
       error: null,
     });
-    void ensureNatalUnifiedReading(input)
+    void loadNatalUnifiedReading(input)
       .then((reading) => {
         if (!cancelled) setState({ identity, reading, loading: false, error: null });
       })
@@ -106,7 +108,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
         }));
       });
     return () => { cancelled = true; };
-  }, [chartData, chartId, identity, language, tier, userId, v2]);
+  }, [chartData, chartId, identity, language, shouldLoadReading, tier, userId, v2]);
 
   if (savedPerson && !isPremium) {
     return (
@@ -172,7 +174,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
 
   const reading = state.identity === identity ? state.reading : null;
   if (!reading && state.loading) {
-    return <section className={styles.state} role="status"><p>{language === 'ru' ? 'Готовим разбор карты…' : 'Preparing your reading…'}</p></section>;
+    return <section className={styles.state} role="status"><p>{language === 'ru' ? 'Загружаем готовый разбор…' : 'Loading your saved reading…'}</p></section>;
   }
   if (!reading) {
     return (

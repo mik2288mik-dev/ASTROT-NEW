@@ -136,17 +136,38 @@ describe('hardened unified natal writer', () => {
     expect(free.topics).toEqual([]);
   });
 
-  it('runs a semantic fidelity review and never falls back to unvalidated meaning prose', () => {
+  it('keeps objective validation in generation and keeps page reads completely generation-free', () => {
     const generation = source('lib/natalReading/unifiedGeneration.ts');
     const service = source('services/natalUnifiedReadingService.ts');
+    const api = source('pages/api/content/natal/reading.ts');
+    const precompute = source('lib/natalReading/precompute.ts');
+    const chartWrite = source('pages/api/charts/index.ts');
     const ui = source('components/NatalReading/NatalUnifiedReport.tsx');
 
-    expect(generation).toContain('validateSemanticFidelity');
-    expect(generation).toContain('semantic review');
+    expect(generation).toContain('materializeNatalUnifiedReading');
+    expect(generation).toContain('hasCoreVoiceViolation');
     expect(generation).toContain('NATAL_WRITER_REJECTED');
+    expect(generation).not.toContain('validateSemanticFidelity');
+    expect(generation).not.toContain('natal_unified_semantic_review');
     expect(generation).not.toContain('function deterministicFallback');
-    expect(service).toContain("nebo:natal-unified-reading:v3");
+
+    expect(api).toContain("if (req.method !== 'GET')");
+    expect(api).toContain('getCachedNatalUnifiedReading');
+    expect(api).not.toContain('generateNatalUnifiedReadingWithLock');
+    expect(api).not.toContain('generationInProgressPayload');
+
+    expect(service).toContain('loadNatalUnifiedReading');
+    expect(service).toContain("method: 'GET'");
+    expect(service).not.toContain("method: 'POST'");
+    expect(service).not.toContain('GENERATION_TIMEOUT_MS');
+
+    expect(precompute).toContain('generateNatalUnifiedReadingWithLock');
+    expect(precompute).toContain('Generation belongs to chart creation / birth-data change / explicit backfill');
+    expect(chartWrite).toContain('await precomputeNatalUnifiedReadingForChart');
+
     expect(ui).toContain("const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free';");
+    expect(ui).toContain('loadNatalUnifiedReading');
+    expect(ui).not.toContain('ensureNatalUnifiedReading');
     expect(ui).not.toContain("mode === 'topics' && isPremium ? 'premium' : 'free'");
   });
 });
