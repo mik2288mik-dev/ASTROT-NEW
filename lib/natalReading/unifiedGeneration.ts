@@ -66,30 +66,6 @@ const WRITER_SCHEMA: StrictJsonSchema = {
   required: ['story', 'topics'],
   additionalProperties: false,
 };
-type RawSemanticCheck = { id?: unknown; ok?: unknown; issues?: unknown };
-type RawSemanticReview = { checks?: RawSemanticCheck[] };
-
-const SEMANTIC_REVIEW_SCHEMA: StrictJsonSchema = {
-  type: 'object',
-  properties: {
-    checks: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          ok: { type: 'boolean' },
-          issues: { type: 'array', items: { type: 'string' } },
-        },
-        required: ['id', 'ok', 'issues'],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ['checks'],
-  additionalProperties: false,
-};
-
 
 function chunks(values: readonly string[], size: number): string[][] {
   const out: string[][] = [];
@@ -198,18 +174,10 @@ STRICT RULES:
 - Do not pad the copy.
 - Return JSON only.`;
 
-  return `${rules}
-
-INPUT:
-${JSON.stringify(payload, null, 2)}${errors.length ? `
-
-PREVIOUS OUTPUT WAS REJECTED:
-${errors.join('\n')}
-Write a new candidate and fix every listed issue.` : ''}`;
+  return `${rules}\n\nINPUT:\n${JSON.stringify(payload, null, 2)}${errors.length ? `\n\nPREVIOUS OUTPUT WAS REJECTED:\n${errors.join('\n')}\nWrite a new candidate and fix every listed issue.` : ''}`;
 }
 
 const VISIBLE_ASTROLOGY = /(?:солнц\p{L}*|лун\p{L}*|меркур\p{L}*|венер\p{L}*|марс\p{L}*|юпитер\p{L}*|сатурн\p{L}*|уран\p{L}*|нептун\p{L}*|плутон\p{L}*|хирон\p{L}*|узел\p{L}*|асцендент|десцендент|\bMC\b|\bIC\b|аспект\p{L}*|трин\p{L}*|секстил\p{L}*|квадрат\p{L}*|оппозиц\p{L}*|соединени\p{L}*|\d{1,2}\s+дом\p{L}*|орб\p{L}*|ретроград\p{L}*|\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|ascendant|descendant|aspect|trine|sextile|square|opposition|conjunction|retrograde)\b)/iu;
-
 const NATAL_PSEUDO_PSYCHOLOGY = /(?:осознанн\p{L}*|ресурс\p{L}*|потенциал\p{L}*|трансформац\p{L}*|проработ\p{L}*|точк\p{L}*\s+рост\p{L}*|личн\p{L}*\s+границ\p{L}*|паттерн\p{L}*|сценари\p{L}*|триггер\p{L}*|травм\p{L}*|субличност\p{L}*|архетип\p{L}*|подсозн\p{L}*|самооценк\p{L}*|самосаботаж\p{L}*|тенев\p{L}*\s+сторон\p{L}*|защитн\p{L}*\s+механизм\p{L}*|внутренн\p{L}*\s+(?:опор\p{L}*|реб[её]н\p{L}*|мир\p{L}*|ресурс\p{L}*|конфликт\p{L}*)|глубинн\p{L}*\s+(?:страх\p{L}*|потребност\p{L}*|мотив\p{L}*)|эмоциональн\p{L}*\s+зрел\p{L}*|\b(?:inner\s+child|growth\s+point|personal\s+boundar\w*|trauma|trigger|healing|transformation|potential|archetype|shadow\s+self|self[- ]sabotage)\b)/iu;
 const NATAL_META_LANGUAGE = /(?:карта\s+(?:показывает|говорит|подсказывает)|астрологическ\p{L}*\s+трактовк\p{L}*|в\s+этой\s+тем\p{L}*|эта\s+тем\p{L}*|может\s+проявляться|проявля\p{L}*\s+как|внутренн\p{L}*\s+динамик\p{L}*|психологическ\p{L}*\s+портрет\p{L}*|\b(?:the\s+chart\s+shows|this\s+theme|may\s+manifest|inner\s+dynamic|astrological\s+interpretation)\b)/iu;
 const NATAL_ADVICE_LANGUAGE = /(?:тебе\s+(?:нужно|стоит|следует|важно)|(?:попробуй|старайся|помни|сохраняй|держи|не\s+бойся|позволь\s+себе)\b|\b(?:you\s+should|you\s+need\s+to|try\s+to|remember\s+to|make\s+sure\s+to)\b)/iu;
@@ -246,7 +214,6 @@ function validateCopy(
   }, 0);
   const maxWords = Math.max(60, Math.ceil(sourceWords * 1.35));
   if (wordCount(text) > maxWords) return 'copy padded beyond approved material';
-
   return null;
 }
 
@@ -259,42 +226,30 @@ export function materializeNatalUnifiedReading(input: {
   const errors: string[] = [];
   const byId = meaningMap(input.interpretation);
   const storyRaw = Array.isArray(input.raw.story) ? input.raw.story : [];
-  if (storyRaw.length !== input.plan.story.length) {
-    errors.push('story block count changed');
-  }
+  if (storyRaw.length !== input.plan.story.length) errors.push('story block count changed');
 
   const story: NatalUnifiedStoryBlock[] = [];
   for (const [index, expected] of input.plan.story.entries()) {
     const raw = storyRaw[index];
     const text = typeof raw?.text === 'string' ? raw.text.trim() : '';
     if (raw?.id !== expected.id) errors.push(`${expected.id}: id changed`);
-    if (!sameIds(raw?.meaning_ids, expected.meaningIds)) {
-      errors.push(`${expected.id}: meaning ids changed`);
-    }
+    if (!sameIds(raw?.meaning_ids, expected.meaningIds)) errors.push(`${expected.id}: meaning ids changed`);
     const copyError = validateCopy(text, expected.meaningIds, byId);
     if (copyError) errors.push(`${expected.id}: ${copyError}`);
-    if (
-      raw?.id === expected.id
-      && sameIds(raw?.meaning_ids, expected.meaningIds)
-      && !copyError
-    ) {
+    if (raw?.id === expected.id && sameIds(raw?.meaning_ids, expected.meaningIds) && !copyError) {
       story.push({ id: expected.id, text, meaningIds: [...expected.meaningIds] });
     }
   }
 
   const rawTopics = Array.isArray(input.raw.topics) ? input.raw.topics : [];
-  if (rawTopics.length !== input.plan.topics.length) {
-    errors.push('topic count changed');
-  }
+  if (rawTopics.length !== input.plan.topics.length) errors.push('topic count changed');
   const topics: NatalUnifiedTopicSection[] = [];
   for (const [topicIndex, expectedTopic] of input.plan.topics.entries()) {
     const rawTopic = rawTopics[topicIndex];
     if (rawTopic?.key !== expectedTopic.key) errors.push(`${expectedTopic.key}: topic key changed`);
     if (rawTopic?.title !== expectedTopic.title) errors.push(`${expectedTopic.key}: topic title changed`);
     const rawBlocks = Array.isArray(rawTopic?.blocks) ? rawTopic!.blocks! : [];
-    if (rawBlocks.length !== expectedTopic.blocks.length) {
-      errors.push(`${expectedTopic.key}: block count changed`);
-    }
+    if (rawBlocks.length !== expectedTopic.blocks.length) errors.push(`${expectedTopic.key}: block count changed`);
     const blocks: NatalUnifiedStoryBlock[] = [];
     for (const [blockIndex, expected] of expectedTopic.blocks.entries()) {
       const raw = rawBlocks[blockIndex];
@@ -303,11 +258,7 @@ export function materializeNatalUnifiedReading(input: {
       if (!sameIds(raw?.meaning_ids, expected.meaningIds)) errors.push(`${expected.id}: meaning ids changed`);
       const copyError = validateCopy(text, expected.meaningIds, byId);
       if (copyError) errors.push(`${expected.id}: ${copyError}`);
-      if (
-        raw?.id === expected.id
-        && sameIds(raw?.meaning_ids, expected.meaningIds)
-        && !copyError
-      ) {
+      if (raw?.id === expected.id && sameIds(raw?.meaning_ids, expected.meaningIds) && !copyError) {
         blocks.push({ id: expected.id, text, meaningIds: [...expected.meaningIds] });
       }
     }
@@ -321,7 +272,6 @@ export function materializeNatalUnifiedReading(input: {
   }
 
   if (errors.length) return { reading: null, errors };
-
   return {
     errors: [],
     reading: {
@@ -337,75 +287,12 @@ export function materializeNatalUnifiedReading(input: {
   };
 }
 
-async function validateSemanticFidelity(
-  reading: NatalUnifiedReading,
-  interpretation: NatalInterpretation,
-  language: 'ru' | 'en',
-): Promise<string[]> {
-  const byId = meaningMap(interpretation);
-  const candidates = [
-    ...reading.story.map((block) => ({ surface: 'story', block })),
-    ...reading.topics.flatMap((topic) => topic.blocks.map((block) => ({
-      surface: `topic:${topic.key}`,
-      block,
-    }))),
-  ];
-  const payload = candidates.map(({ surface, block }) => ({
-    id: block.id,
-    surface,
-    allowed_meanings: block.meaningIds.map((id) => {
-      const meaning = byId.get(id)!;
-      return { id, scope: meaning.scope, meaning: meaning.text };
-    }),
-    candidate: block.text,
-  }));
-
-  const instructions = language === 'ru'
-    ? `Ты проверяешь только соответствие готового текста уже утверждённым смыслам.
-Не трактуй астрологию и не добавляй собственных выводов.
-Для каждого блока ok=true только если:
-1) все allowed_meanings действительно переданы;
-2) нет нового утверждения, причины, мотива, биографии, события или психологического ярлыка;
-3) background не усилен до твёрдого личного свойства;
-4) structural не превращён в диагноз характера;
-5) описание не превращено в совет.
-Стиль и красоту не оценивай. Верни проверку для каждого id.`
-    : `Check only whether each candidate is semantically faithful to its approved meanings.
-Do not interpret astrology and do not add your own conclusions.
-ok=true only when every allowed meaning is represented, no unsupported claim/cause/motive/biography/event/psychological label is added, background and structural scope are not strengthened, and description is not turned into advice.
-Do not judge style. Return one check for every id.`;
-
-  const response = await createLunaStructuredResponse({
-    instructions,
-    input: JSON.stringify({ blocks: payload }),
-    maxOutputTokens: Math.min(3200, Math.max(1000, candidates.length * 110)),
-    reasoningEffort: 'low',
-    verbosity: 'low',
-    store: false,
-    schemaName: 'natal_unified_semantic_review',
-    schema: SEMANTIC_REVIEW_SCHEMA,
-  });
-
-  let raw: RawSemanticReview;
-  try {
-    raw = JSON.parse(response.content) as RawSemanticReview;
-  } catch {
-    return ['semantic review returned invalid JSON'];
-  }
-  const checks = Array.isArray(raw.checks) ? raw.checks : [];
-  const expectedIds = candidates.map(({ block }) => block.id);
-  const actualIds = checks.map((check) => typeof check.id === 'string' ? check.id : '');
-  if (!sameIds(actualIds, expectedIds)) return ['semantic review changed block ids'];
-
-  return checks.flatMap((check) => {
-    if (check.ok === true) return [];
-    const issues = Array.isArray(check.issues)
-      ? check.issues.filter((issue): issue is string => typeof issue === 'string' && issue.trim().length > 0)
-      : [];
-    return [`${String(check.id)}: ${issues.join('; ') || 'semantic mismatch'}`];
-  });
-}
-
+/**
+ * Request-critical validation is deterministic on purpose. The writer already receives
+ * the approved meaning set and exact meaning_ids. A second LLM acting as a blocking
+ * reviewer made otherwise valid readings fail nondeterministically and doubled latency.
+ * Deeper semantic QA belongs in offline/admin sampling, never in the user request path.
+ */
 export async function generateNatalUnifiedReading(input: {
   chart: NatalChartDataV2;
   language?: 'ru' | 'en';
@@ -440,12 +327,7 @@ export async function generateNatalUnifiedReading(input: {
       tier: input.tier,
       plan,
     });
-    if (materialized.reading) {
-      const semanticErrors = await validateSemanticFidelity(materialized.reading, interpretation, language);
-      if (!semanticErrors.length) return materialized.reading;
-      errors = semanticErrors;
-      continue;
-    }
+    if (materialized.reading) return materialized.reading;
     errors = materialized.errors;
   }
 
