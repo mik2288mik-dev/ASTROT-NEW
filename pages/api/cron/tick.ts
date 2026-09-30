@@ -7,10 +7,6 @@ import {
 import { processPendingRuStoreEvents } from '../../../lib/rustorePayments';
 import { prewarmPersonalForecastIncrement } from '../../../lib/personalForecastPrewarm';
 import { prewarmNatalUnifiedReadingBackfillIncrement } from '../../../lib/natalReading/precompute';
-import {
-  prewarmNextSignMonthIncrement,
-  prewarmUpcomingSignHoroscopes,
-} from '../../../lib/horoscope/signPrewarm';
 
 export const config = { maxDuration: 120 };
 
@@ -98,44 +94,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.warn('[cron/tick] RuStore payment queue failed:', error instanceof Error ? error.message : error);
   }
 
-  // One RU DeepSeek request fills every missing sign for a period. Rows are
-  // still validated and stored independently; retries include only gaps.
-  let signCurrentProviderWorkUsed = false;
-  const runCurrentSignPrewarm = async () => {
-    try {
-      const result = await prewarmUpcomingSignHoroscopes(now);
-      if (result.results.some((item) => item.status !== 'cached')) {
-        signCurrentProviderWorkUsed = true;
-      }
-      return result;
-    } catch (error) {
-      signCurrentProviderWorkUsed = true;
-      throw error;
-    }
-  };
-  await once(
-    'sign-horoscope-current',
-    dateKey,
-    runCurrentSignPrewarm,
-    ran,
-  );
-  if (hour >= 18) {
-    await once(
-      'sign-horoscope-upcoming',
-      dateKey,
-      runCurrentSignPrewarm,
-      ran,
-    );
-  }
-  let signMonthPrewarm = null;
-  if (!signCurrentProviderWorkUsed) {
-    try {
-      signMonthPrewarm = await prewarmNextSignMonthIncrement();
-    } catch (error) {
-      console.warn('[cron/tick] next-month sign prewarm failed:', error instanceof Error ? error.message : error);
-    }
-  }
-
   // 3) Daily card content — once per day (morning MSK). Fallback exists for the push itself.
   if (hour === 6 && minute >= 30) await once('daily-card-generator', dateKey, () => generateDailyCards(now, { limit: 250 }), ran);
 
@@ -145,9 +103,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const slot = `${dateKey}-${hour}-${Math.floor(minute / 30)}`;
   await once('rolling-daily', slot, () => planRetentionNotifications('rolling-daily', now, { limit: PLANNER_LIMIT }), ran);
 
-  // Existing charts are migrated independently of page loads. One missing natal
-  // reading per slot keeps provider/DB pressure bounded; active primary charts are
-  // selected first by the backfill query.
+  // Existing natal charts are migrated independently of page loads. One missing
+  // canonical reading per 3-minute slot keeps provider/DB pressure bounded.
   void once('natal-unified-backfill', `${dateKey}-${hour}-${Math.floor(minute / 3)}`,
     () => prewarmNatalUnifiedReadingBackfillIncrement(), ran);
 
@@ -162,7 +119,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     msk: `${dateKey} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
     dispatched,
     rustorePayments,
-    signMonthPrewarm,
     planners: ran,
   });
 }
