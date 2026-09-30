@@ -1,4 +1,5 @@
-import { NATAL_COPY_REVISION } from '../lib/natalReading/unifiedReading';
+import { NATAL_COPY_REVISION, NATAL_PREVIOUS_COPY_REVISION } from '../lib/natalReading/unifiedReading';
+import { NATAL_MAX_BLOCK_REPAIRS } from '../lib/natalReading/unifiedGeneration';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 import type { ReadingContext } from '../lib/natalReading/apiHelper';
 const mockQuery = jest.fn(); const mockConnect = jest.fn(); const mockResolve = jest.fn(); const mockGenerate = jest.fn();
@@ -26,8 +27,14 @@ function query(sql: string, params: unknown[] = []) {
     }
   }
   if (sql.includes('INSERT INTO natal_reading_jobs')) {
-    const [user_id, chart_id, input_hash, language, priority] = params;
-    if (!jobs.some((job) => job.chart_id === chart_id && job.input_hash === input_hash && job.language === language)) jobs.push({ id: jobs.length + 1, user_id: String(user_id), chart_id: Number(chart_id), input_hash: String(input_hash), language: String(language), status: 'pending', attempts: 0, priority: Number(priority) });
+    const [user_id, chart_id, input_hash, language, priority, previous_hash] = params;
+    const previous = jobs.find(job => job.chart_id === chart_id && job.user_id === user_id
+      && job.input_hash === previous_hash && job.language === language)?.progress as { raw?: { story?: unknown[] }; reading?: unknown } | undefined;
+    let progress: unknown;
+    if (Array.isArray(previous?.raw?.story)) {
+      const resumed = JSON.parse(JSON.stringify(previous)); delete resumed.reading; progress = resumed;
+    }
+    if (!jobs.some((job) => job.chart_id === chart_id && job.input_hash === input_hash && job.language === language)) jobs.push({ id: jobs.length + 1, user_id: String(user_id), chart_id: Number(chart_id), input_hash: String(input_hash), language: String(language), status: 'pending', attempts: 0, priority: Number(priority), progress });
   }
   if (sql.includes('SELECT * FROM natal_reading_jobs')) return { rows: jobs.filter((job) => job.status === 'pending' && job.attempts < 2).slice(0, 1) };
   if (sql.includes('UPDATE natal_reading_jobs')) {
@@ -74,6 +81,20 @@ describe('durable autonomous natal preparation', () => {
     await processNatalReadingPreparations();
     expect(mockGenerate).not.toHaveBeenCalled(); expect(mockRelease).toHaveBeenCalledTimes(1);
   });
+  it('resumes the previous editorial draft once without treating its finished reading as current', async () => {
+    const raw = { story: [{ id: 'story:1', text: 'Уже написанный рассказ.' }], topics: [] };
+    const previousProgress = { writerStarted: true, repairs: 2, raw, reading: { copyRevision: NATAL_PREVIOUS_COPY_REVISION } };
+    jobs = [{ ...pending(), input_hash: `birth-ru:${NATAL_PREVIOUS_COPY_REVISION}`, status: 'ready', progress: previousProgress }];
+    const chart = { id: 9, user_id: '42', chart_data: canonicalNatalChart() };
+    await enqueueNatalReadingPreparation(chart);
+    await processNatalReadingPreparations();
+    await enqueueNatalReadingPreparation(chart);
+    await processNatalReadingPreparations();
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    expect(mockGenerate.mock.calls[0][0].progress).toEqual({ writerStarted: true, repairs: 2, raw });
+    expect(jobs[0].progress).toEqual(previousProgress);
+    expect(jobs.map(job => job.status)).toEqual(['ready', 'ready']);
+  });
   it('rejects an obsolete birth revision before invoking AI', async () => {
     jobs = [pending()]; mockHash.mockReturnValue('new-birth-ru');
     await processNatalReadingPreparations();
@@ -100,7 +121,7 @@ describe('durable autonomous natal preparation', () => {
     jobs = [
       { ...pending(), status: 'failed', attempts: 1, progress: draft },
       { ...pending(), id: 2, chart_id: 10, status: 'ready', progress: draft },
-      { ...pending(), id: 3, chart_id: 11, status: 'failed', progress: { ...draft, repairs: 2 } },
+      { ...pending(), id: 3, chart_id: 11, status: 'failed', progress: { ...draft, repairs: NATAL_MAX_BLOCK_REPAIRS } },
       { ...pending(), id: 4, chart_id: 12, input_hash: 'birth-ru:older-copy', status: 'failed', progress: draft },
     ];
     mockGenerate.mockRejectedValue(Object.assign(new Error('Still invalid'), { code: 'NATAL_WRITER_REJECTED' }));
@@ -109,7 +130,7 @@ describe('durable autonomous natal preparation', () => {
     expect(mockGenerate).toHaveBeenCalledTimes(1);
     expect(mockGenerate.mock.calls[0][0].progress).toMatchObject({ ...draft, recoveryRevision: 'validated-draft-recovery-20260930' });
     expect(jobs.map(job => job.status)).toEqual(['failed', 'ready', 'failed', 'failed']);
-    expect(jobs[2].progress).toEqual({ ...draft, repairs: 2 });
+    expect(jobs[2].progress).toEqual({ ...draft, repairs: NATAL_MAX_BLOCK_REPAIRS });
   });
   it('allows one review of an exhausted draft stopped only by a redundant continuation', async () => {
     jobs = [{ ...pending(), status: 'failed', attempts: 1,

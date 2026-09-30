@@ -5,7 +5,8 @@ export const NATAL_UNIFIED_READING_CONTRACT_VERSION = 'natal-unified-reading-v2'
 export const NATAL_UNIFIED_READING_PROMPT_VERSION = `${NATAL_UNIFIED_READING_CONTRACT_VERSION}.writer.v6`;
 // One explicitly requested editorial replacement. Never derive this from the
 // global voice version: routine deployments must not rewrite saved reports.
-export const NATAL_COPY_REVISION = 'conversational-reading-20260930';
+export const NATAL_PREVIOUS_COPY_REVISION = 'conversational-reading-20260930';
+export const NATAL_COPY_REVISION = 'conversational-reading-20260930-r2';
 export const NATAL_UNIFIED_READING_CACHE_KEY = 'natal.unified-reading.v3';
 
 export type NatalUnifiedReadingTier = 'free' | 'premium';

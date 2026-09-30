@@ -3,7 +3,7 @@ import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 import { buildNatalInterpretation } from '../lib/natalInterpretation';
 const mockResponse = jest.fn();
 jest.mock('../lib/openaiResponses', () => ({ createLunaStructuredResponse: (...args: unknown[]) => mockResponse(...args) }));
-import { buildNatalUnifiedWriterPlan, generateNatalUnifiedReading, type NatalWriterProgress } from '../lib/natalReading/unifiedGeneration';
+import { buildNatalUnifiedWriterPlan, generateNatalUnifiedReading, NATAL_MAX_BLOCK_REPAIRS, type NatalWriterProgress } from '../lib/natalReading/unifiedGeneration';
 
 function fixture() {
   const chart = canonicalNatalChart();
@@ -103,12 +103,30 @@ describe('natal preparation preserves completed work', () => {
   it('resumes a rejected stored draft within its remaining budget and stops at the limit', async () => {
     const { chart, raw, checks } = fixture();
     const rejection = { ...checks[0], issues: [{ kind: 'unsupported_claim', detail: 'Новый мотив' }] };
-    const progress = { writerStarted: true, repairs: 1, raw };
+    const progress = { writerStarted: true, repairs: NATAL_MAX_BLOCK_REPAIRS - 1, raw };
     mockResponse.mockResolvedValueOnce(reply({ checks: [rejection, ...checks.slice(1)] }))
       .mockResolvedValueOnce(reply({ story: [raw.story[0]], topics: [] }))
       .mockResolvedValueOnce(reply({ checks: [rejection] }));
     await expect(generateNatalUnifiedReading({ chart, tier: 'premium', progress })).rejects.toMatchObject({ code: 'NATAL_WRITER_REJECTED' });
     expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_reading')).toHaveLength(0);
     expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_block_repair')).toHaveLength(1);
+  });
+  it('corrects only an outdated rest block in a saved draft and retains the story', async () => {
+    const { chart, raw, checks } = fixture();
+    chart.positions.sun.house = 6;
+    const saved = JSON.parse(JSON.stringify(raw));
+    const rest = saved.topics.find((topic: { key: string }) => topic.key === 'rest');
+    rest.blocks[0].meaning_ids = ['meaning:position:sun:sign'];
+    rest.blocks[0].text = 'В ежедневных делах хочется сначала разобраться и сделать работу основательно.';
+    mockResponse.mockResolvedValueOnce(reply({ story: [], topics: [raw.topics.find(topic => topic.key === 'rest')] }))
+      .mockResolvedValueOnce(reply({ checks }));
+    const reading = await generateNatalUnifiedReading({ chart, tier: 'premium',
+      progress: { writerStarted: true, repairs: 2, raw: saved } });
+    expect(reading.story.map(block => block.text)).toEqual(raw.story.map(block => block.text));
+    expect(mockResponse.mock.calls[0][0].schemaName).toBe('natal_unified_block_repair');
+    const request = JSON.parse(mockResponse.mock.calls[0][0].input.split('INPUT:\n')[1].split('\n\nPREVIOUS OUTPUT')[0]);
+    expect(request.story).toEqual([]);
+    expect(request.topics.map((topic: { key: string }) => topic.key)).toEqual(['rest']);
+    expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_reading')).toHaveLength(0);
   });
 });

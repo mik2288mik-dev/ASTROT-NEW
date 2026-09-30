@@ -6,7 +6,7 @@ import { resolveReadingContext, type ReadingContext } from './apiHelper';
 import { generateNatalUnifiedReadingWithLock, natalUnifiedReadingInputHash } from './unifiedApi';
 import { NATAL_MAX_BLOCK_REPAIRS, type NatalWriterProgress } from './unifiedGeneration';
 import { NATAL_READING_JOBS_SCHEMA } from './jobSchema';
-import { NATAL_COPY_REVISION } from './unifiedReading';
+import { NATAL_COPY_REVISION, NATAL_PREVIOUS_COPY_REVISION } from './unifiedReading';
 
 export function natalReadingPreparationInputHash(ctx: ReadingContext): string {
   return `${natalUnifiedReadingInputHash(ctx)}:${NATAL_COPY_REVISION}`;
@@ -35,12 +35,18 @@ export async function enqueueNatalReadingPreparation(chart: {
   await ensureNatalReadingJobSchema();
   const ctx = { chartData: chart.chart_data, profile: { id: String(chart.user_id), language } } as ReadingContext;
   await getPool().query(
-    `INSERT INTO natal_reading_jobs(user_id,chart_id,input_hash,language,priority)
-     VALUES($1,$2,$3,$4,$5) ON CONFLICT(chart_id,input_hash,language)
+    `INSERT INTO natal_reading_jobs(user_id,chart_id,input_hash,language,priority,progress)
+     VALUES($1,$2,$3,$4,$5,COALESCE((
+       SELECT progress-'reading' FROM natal_reading_jobs
+       WHERE chart_id=$2 AND user_id=$1 AND input_hash=$6 AND language=$4
+         AND jsonb_typeof(progress->'raw'->'story')='array'
+       LIMIT 1
+     ),'{}'::jsonb)) ON CONFLICT(chart_id,input_hash,language)
      DO UPDATE SET priority=GREATEST(natal_reading_jobs.priority,EXCLUDED.priority),
        status='pending',attempts=CASE WHEN natal_reading_jobs.status='obsolete' THEN 0 ELSE natal_reading_jobs.attempts END
      WHERE natal_reading_jobs.status IN ('pending','obsolete')`,
-    [chart.user_id, chart.id, natalReadingPreparationInputHash(ctx), language, priority],
+    [chart.user_id, chart.id, natalReadingPreparationInputHash(ctx), language, priority,
+      `${natalUnifiedReadingInputHash(ctx)}:${NATAL_PREVIOUS_COPY_REVISION}`],
   );
   ensureNatalReadingPreparationWorker();
 }

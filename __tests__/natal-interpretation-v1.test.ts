@@ -4,6 +4,17 @@ import { natalPlainLanguageError } from '../lib/natalInterpretation/plainLanguag
 import { buildMapData, explainMapSelection } from '../components/NatalReading/mapExplanation';
 
 describe('unified natal interpretation', () => {
+  it('does not use daily work observations as rest material', () => {
+    const chart = canonicalNatalChart();
+    chart.positions.sun.house = 6;
+    chart.positions.mercury.house = 6;
+    const reading = buildNatalInterpretation(chart);
+    const rest = reading.topics.find(topic => topic.key === 'rest')!;
+    expect(rest.meaningIds).not.toContain('meaning:position:sun:sign');
+    expect(rest.meaningIds).not.toContain('meaning:position:mercury:sign');
+    expect(rest.meaningIds).toContain('meaning:position:moon:sign');
+    expect(reading.topics.find(topic => topic.key === 'work')!.meaningIds).toContain('meaning:position:sun:sign');
+  });
   it('retains reliable calculator data but selects relevant observations for reading', () => {
     const chart = canonicalNatalChart();
     const result = buildNatalInterpretation(chart);
