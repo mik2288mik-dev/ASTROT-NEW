@@ -74,28 +74,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  try {
-    const result = await generateNatalUnifiedReadingWithLock({ userId, ctx, tier });
-    if (result.status === 'in_progress') {
-      return res.status(202).json(generationInProgressPayload(result.retryAfterMs));
-    }
-    return res.status(200).json({
-      interpretation: {
-        ...result.value,
-        content: projectNatalUnifiedReadingForTier(result.value.content, tier),
-      },
-      source: result.fromCache ? (result.source || 'natal_unified_v1') : 'generated',
-      accessTier: tier,
+  // The app runs as a long-lived standalone Docker server. Do not hold the user's
+  // HTTP request open while the canonical report is written. The client already
+  // understands 202 and polls GET until the persisted reading is available.
+  void generateNatalUnifiedReadingWithLock({ userId, ctx, tier })
+    .then((result) => {
+      if (result.status === 'in_progress') return;
+      console.info('[natal/unified] generation completed', {
+        userId,
+        chartId: ctx.chartId,
+        source: result.fromCache ? (result.source || 'cache') : 'generated',
+      });
+    })
+    .catch((error) => {
+      console.error(
+        `[natal/unified] ${tier} background generation failed:`,
+        error instanceof Error ? error.message : error,
+      );
     });
-  } catch (error) {
-    console.error(
-      `[natal/unified] ${tier} generation failed:`,
-      error instanceof Error ? error.message : error,
-    );
-    return res.status(503).json({
-      error: 'NATAL_UNIFIED_READING_GENERATION_FAILED',
-      code: 'NATAL_UNIFIED_READING_GENERATION_FAILED',
-      retryable: true,
-    });
-  }
+
+  return res.status(202).json(generationInProgressPayload(750));
 }
