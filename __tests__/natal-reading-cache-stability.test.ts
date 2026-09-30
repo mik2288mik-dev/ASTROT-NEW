@@ -5,7 +5,7 @@ const mockQuery = jest.fn(); const mockGet = jest.fn();
 jest.mock('../lib/db', () => ({ getPool: () => ({ query: (...args: unknown[]) => mockQuery(...args) }), db: { content_interpretations: { getByChart: (...args: unknown[]) => mockGet(...args) } } }));
 jest.mock('../lib/natalReading/apiHelper', () => ({ saveReading: jest.fn() }));
 import { getCachedNatalUnifiedReading, natalUnifiedReadingCacheOptions, natalUnifiedReadingInputHash } from '../lib/natalReading/unifiedApi';
-import { NATAL_UNIFIED_READING_CONTRACT_VERSION } from '../lib/natalReading/unifiedReading';
+import { NATAL_UNIFIED_READING_CONTRACT_VERSION, NATAL_COPY_REVISION } from '../lib/natalReading/unifiedReading';
 import { NATAL_INTERPRETATION_VERSION } from '../lib/natalInterpretation';
 
 function ctx(): ReadingContext { return { user: { id: '42' }, chartId: 9, chartData: canonicalNatalChart(), profile: { id: '42', language: 'ru' } } as unknown as ReadingContext; }
@@ -44,5 +44,21 @@ describe('saved natal text is independent of editorial versions', () => {
     expect(natalUnifiedReadingInputHash(copy)).toBe(original.inputHash);
     copy.chartData.birth.localDate = '2001-01-01';
     expect(natalUnifiedReadingCacheOptions(copy, 'free').cacheKey).not.toBe(original.cacheKey);
+  });
+  it('serves the old report while a replacement is absent, but never treats it as completed new copy', async () => {
+    const context = ctx();
+    const old = { content: content(), inputHash: natalUnifiedReadingInputHash(context) };
+    mockGet.mockResolvedValue(old);
+    expect(await getCachedNatalUnifiedReading(context, 'premium')).toBe(old);
+    expect(await getCachedNatalUnifiedReading(context, 'premium', NATAL_COPY_REVISION)).toBeNull();
+  });
+  it('prefers the completed replacement even when an older matching row comes first', async () => {
+    const context = ctx();
+    const old = { content: content(), inputHash: natalUnifiedReadingInputHash(context) };
+    const next = { ...old, content: { ...content(), copyRevision: NATAL_COPY_REVISION } };
+    mockQuery.mockResolvedValue({ rows: [{ cache_key: 'old' }, { cache_key: 'new' }] });
+    mockGet.mockImplementation(async (_chart, _tier, _surface, _variant, key) => key === 'old' ? old : next);
+    expect(await getCachedNatalUnifiedReading(context, 'premium')).toBe(next);
+    expect(await getCachedNatalUnifiedReading(context, 'premium', NATAL_COPY_REVISION)).toBe(next);
   });
 });

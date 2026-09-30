@@ -10,6 +10,8 @@ import {
   type NatalPlanetKey,
 } from './natalPlanetMeta';
 import { getElementForSign, type ZodiacSign } from './zodiac-utils';
+import { buildNatalInterpretation } from './natalInterpretation';
+import type { NatalChartDataV2 } from './natalChartV2Types';
 
 function compact(value?: string | null): string {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -42,17 +44,18 @@ function buildPlanetInsightTags(
   ];
 }
 
-function buildFallbackBody(
-  planetLabel: string,
-  sign: string,
-  house: number | null,
-  language: Language
-): string {
-  if (language === 'en') {
-    return `${planetLabel} in ${sign}${house ? ` in house ${house}` : ''} shows how this part of you naturally moves through life. It tends to reveal itself in your habits, emotional tone, and the situations you return to when something truly matters.`;
+function buildFallbackBody(chart: NatalChartData, planetId: NatalPlanetKey, language: Language): string {
+  if (chart.schemaVersion === 'natal-chart-data-v2') {
+    const key = planetId === 'rising' ? 'ascendant' : planetId;
+    const interpretation = buildNatalInterpretation(chart as unknown as NatalChartDataV2, language === 'en' ? 'en' : 'ru');
+    const meanings = interpretation.meanings.filter(meaning => meaning.evidenceIds.some(id => (
+      id === `position:${key}:sign` || id === `angle:${key}:sign`
+    )));
+    if (meanings.length) return meanings.map(meaning => meaning.text).join(' ');
   }
-
-  return `${planetLabel} в знаке ${sign}${house ? ` и ${house} доме` : ''} показывает, как эта часть тебя естественно проявляется в жизни. Обычно она слышна в привычных реакциях, внутреннем тоне и в тех ситуациях, к которым ты возвращаешься, когда для тебя что-то по-настоящему важно.`;
+  return language === 'en'
+    ? 'This placement alone is not enough to make a personal claim about you.'
+    : 'Одного положения этой точки недостаточно, чтобы сделать вывод о тебе.';
 }
 
 function buildFallbackTitle(planetLabel: string, sign: string, language: Language): string {
@@ -87,7 +90,7 @@ export function buildPlanetInsight(
     sign,
     degree,
     house,
-    body: compact(content?.body) || buildFallbackBody(planetLabel, sign, house, language),
+    body: compact(content?.body) || buildFallbackBody(chartData, planetId, language),
     tags: buildPlanetInsightTags(sign, house, language),
   };
 }

@@ -1,37 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { ContentInterpretation, NatalChartData, PlanetInsight, UserProfile } from '../../../../types';
-import { getOpenAIModelForContent } from '../../../../lib/appSettings';
-import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
-import {
-  buildContentGenerationLockKey,
-  generationInProgressPayload,
-  withContentGenerationLock,
-} from '../../../../lib/contentGenerationLock';
-import { db } from '../../../../lib/db';
+import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { resolveNatalContentChartContext, natalContentChartErrorStatus } from '../../../../lib/natalContentChartContext';
-import {
-  PLANET_INSIGHT_PROMPT_VERSION,
-  generatePlanetInsight,
-  resolvePlanetInsightRequest,
-} from '../../../../lib/planetInsights';
+import { resolvePlanetInsightRequest } from '../../../../lib/planetInsights';
 import { buildPlanetInsight } from '../../../../lib/planetInsightContent';
-import { type NatalPlanetKey } from '../../../../lib/natalPlanetMeta';
+import type { NatalPlanetKey } from '../../../../lib/natalPlanetMeta';
+import { getCachedNatalUnifiedReading } from '../../../../lib/natalReading/unifiedApi';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
-import { persistNatalReadingHistory } from '../../../../lib/astrologyHistoryPersistence';
-
-function normalizeInsight(
-  interpretation: ContentInterpretation | null | undefined,
-  chartData: NatalChartData,
-  planetId: NatalPlanetKey,
-  language: 'ru' | 'en'
-): ContentInterpretation<PlanetInsight> | null {
-  if (!interpretation) return null;
-  return {
-    ...interpretation,
-    content: buildPlanetInsight(chartData, planetId, language, interpretation.content as PlanetInsight),
-  };
-}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const userId = (req.method === 'GET' ? req.query.userId : req.body?.userId) as string | undefined;
@@ -118,136 +93,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const existing = await getContentLayer({
-    userId: safeUserId,
-    chartId: context.chartId,
-    accessTier,
-    contentSurface: 'natal',
-    contentVariant: 'planet_insight',
-    cacheKey: planetRequest.cacheKey,
-  });
-
-  if (existing.interpretation) {
-    return res.status(200).json({
-      interpretation: normalizeInsight(existing.interpretation, context.chartData, planetRequest.planetId, language),
-      source: existing.source,
-      chartId: existing.chartId,
-      cacheKey: existing.cacheKey,
-    });
-  }
-
-  if (req.method === 'GET') {
-    return res.status(404).json({
-      error: 'NOT_FOUND',
-      code: 'PLANET_INSIGHT_NOT_FOUND',
-      message: language === 'ru'
-        ? 'Инсайт для этой планеты пока не готов.'
-        : 'This planet insight is not ready yet.',
-    });
-  }
-
-  let lockResult;
-  try {
-    lockResult = await withContentGenerationLock({
-    lockKey: buildContentGenerationLockKey({
-      userId: safeUserId,
-      chartId: context.chartId,
-      accessTier,
-      contentSurface: 'natal',
-      contentVariant: 'planet_insight',
-      cacheKey: planetRequest.cacheKey,
-      promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
-    }),
-    operation: 'natal-planet-insight-generation',
-    readCached: async () => {
-      const layer = await getContentLayer({
-        userId: safeUserId,
-        chartId: context.chartId,
-        accessTier,
-        contentSurface: 'natal',
-        contentVariant: 'planet_insight',
-        cacheKey: planetRequest.cacheKey,
-      });
-      return layer.interpretation
-        ? { value: layer.interpretation, source: layer.source }
-        : null;
-    },
-    generate: async () => {
-      const profileForGeneration: UserProfile = { ...context.profile, isPremium };
-      const reading = await generatePlanetInsight(profileForGeneration, chartData, planetRequest.planetId);
-      const { model, modelTier } = await getOpenAIModelForContent({
-        accessTier,
-        contentSurface: 'natal',
-        contentVariant: 'planet_insight',
-      });
-
-      if (context.chartId == null) {
-        return db.content_interpretations.upsertByUser(safeUserId, {
-          accessTier,
-          contentSurface: 'natal',
-          contentVariant: 'planet_insight',
-          cacheKey: planetRequest.cacheKey,
-          inputHash: planetRequest.cacheKey,
-          content: reading,
-          modelTier,
-          promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
-          calculationVersion: chartData.calculationVersion || null,
-          isPersistent: false,
-          legacySource: 'natal_v2.planet_insight',
-        });
-      }
-
-      const saved = await db.content_interpretations.upsertByChart(context.chartId, {
-            accessTier,
-            contentSurface: 'natal',
-            contentVariant: 'planet_insight',
-            cacheKey: planetRequest.cacheKey,
-            inputHash: planetRequest.cacheKey,
-            content: reading,
-            modelTier,
-            promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
-            calculationVersion: chartData.calculationVersion || null,
-            isPersistent: false,
-            legacySource: 'natal_v2.planet_insight',
-          }, safeUserId);
-      await persistNatalReadingHistory({
-        userId: safeUserId,
-        chartId: context.chartId,
-        chart: chartData,
-        rawBirthTime: context.profile.birthTime,
-        language,
-        accessTier,
-        contentVariant: 'planet_insight',
-        cacheKey: planetRequest.cacheKey,
-        inputHash: planetRequest.cacheKey,
-        promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
-        content: reading,
-        generation: { modelId: model },
-      }).catch((error) => {
-        console.error('[natal/history] planet insight history append failed:', error);
-      });
-      return saved;
-    },
-    });
-  } catch {
-    return res.status(200).json({
-      interpretation: {
-        content: buildPlanetInsight(context.chartData, planetRequest.planetId, language),
-      },
-      source: 'fallback',
-      chartId: context.chartId,
-      cacheKey: planetRequest.cacheKey,
-    });
-  }
-
-  if (lockResult.status === 'in_progress') {
-    return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
-  }
-
+  const cached = await getCachedNatalUnifiedReading({ user: null, profile: context.profile, chartId: context.chartId, chartData }, 'premium');
+  if (!cached) return res.status(404).json({ error: 'NOT_FOUND', code: 'NATAL_UNIFIED_READING_NOT_READY' });
   return res.status(200).json({
-    interpretation: normalizeInsight(lockResult.value, context.chartData, planetRequest.planetId, language),
-    source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
-    chartId: context.chartId,
-    cacheKey: planetRequest.cacheKey,
+    interpretation: { ...cached, content: buildPlanetInsight(chartData, planetRequest.planetId, language) },
+    source: 'natal_unified_compat_v1', chartId: context.chartId, cacheKey: cached.cacheKey,
   });
 }

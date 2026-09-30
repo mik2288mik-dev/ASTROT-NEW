@@ -2,7 +2,10 @@ import { NATAL_INTERPRETATION_VERSION, type NatalMeaningTopic } from '../natalIn
 
 export const NATAL_UNIFIED_READING_CONTRACT_VERSION = 'natal-unified-reading-v2';
 // Provenance for new writing, never an expiry rule for a saved reading.
-export const NATAL_UNIFIED_READING_PROMPT_VERSION = `${NATAL_UNIFIED_READING_CONTRACT_VERSION}.writer.v4`;
+export const NATAL_UNIFIED_READING_PROMPT_VERSION = `${NATAL_UNIFIED_READING_CONTRACT_VERSION}.writer.v5`;
+// One explicitly requested editorial replacement. Never derive this from the
+// global voice version: routine deployments must not rewrite saved reports.
+export const NATAL_COPY_REVISION = 'plain-language-20260930';
 export const NATAL_UNIFIED_READING_CACHE_KEY = 'natal.unified-reading.v3';
 
 export type NatalUnifiedReadingTier = 'free' | 'premium';
@@ -31,6 +34,7 @@ export type NatalUnifiedReading = {
   contractVersion: typeof NATAL_UNIFIED_READING_CONTRACT_VERSION;
   interpretationVersion: typeof NATAL_INTERPRETATION_VERSION;
   tier: NatalUnifiedReadingTier;
+  copyRevision?: string;
   story: NatalUnifiedStoryBlock[];
   topics: NatalUnifiedTopicSection[];
   meaningIds: string[];

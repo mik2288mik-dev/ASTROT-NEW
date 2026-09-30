@@ -1,3 +1,4 @@
+import { natalWriterPayload } from './fixtures/natalWriterPayload';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { NatalChartData } from '../types';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
@@ -23,11 +24,7 @@ import { clearNatalUnifiedReadingCache, ensureNatalUnifiedReading, waitForPrepar
 function reading(): NatalUnifiedReading {
   const interpretation = buildNatalInterpretation(canonicalNatalChart());
   const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
-  const block = (item: { id: string; meaningIds: string[] }) => ({ id: item.id, meaning_ids: item.meaningIds,
-    text: 'Обычно ты сначала разбираешься в деталях, а потом выбираешь понятный способ действовать без лишней суеты.' });
-  return materializeNatalUnifiedReading({ interpretation, plan, tier: 'premium', raw: {
-    story: plan.story.map(block), topics: plan.topics.map((topic) => ({ ...topic, blocks: topic.blocks.map(block) })),
-  } }).reading!;
+  return materializeNatalUnifiedReading({ interpretation, plan, tier: 'premium', raw: natalWriterPayload(interpretation, plan) }).reading!;
 }
 async function request(method: string, tier: string) {
   const res = { status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis(), setHeader: jest.fn() };
@@ -65,6 +62,17 @@ describe('natal visits only read saved content', () => {
     for (let i = 0; i < 3; i++) await expect(ensureNatalUnifiedReading(input)).rejects.toMatchObject({ code: 'NATAL_UNIFIED_READING_NOT_READY' });
     expect(mockFetch).toHaveBeenCalledTimes(3);
     expect(mockFetch.mock.calls.every(([, options]) => options.method === 'GET')).toBe(true);
+  });
+  it('keeps showing a previous report but fetches the replacement on the next open', async () => {
+    const next = reading();
+    const previous = { ...next, copyRevision: undefined };
+    mockFetch.mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({ interpretation: { content: previous } }) })
+      .mockResolvedValue({ status: 200, ok: true, json: async () => ({ interpretation: { content: next } }) });
+    const input = { userId: '42', chartData: canonicalNatalChart() as unknown as NatalChartData, tier: 'free' as const };
+    expect(await ensureNatalUnifiedReading(input)).toBe(previous);
+    expect(await ensureNatalUnifiedReading(input)).toBe(next);
+    expect(await ensureNatalUnifiedReading(input)).toBe(next);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
   it('waits for server preparation only during creation, using GET', async () => {
     jest.useFakeTimers();

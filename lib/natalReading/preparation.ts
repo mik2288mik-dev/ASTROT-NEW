@@ -6,6 +6,11 @@ import { resolveReadingContext, type ReadingContext } from './apiHelper';
 import { generateNatalUnifiedReadingWithLock, natalUnifiedReadingInputHash } from './unifiedApi';
 import type { NatalWriterProgress } from './unifiedGeneration';
 import { NATAL_READING_JOBS_SCHEMA } from './jobSchema';
+import { NATAL_COPY_REVISION } from './unifiedReading';
+
+export function natalReadingPreparationInputHash(ctx: ReadingContext): string {
+  return `${natalUnifiedReadingInputHash(ctx)}:${NATAL_COPY_REVISION}`;
+}
 
 const WORKER_LOCK = 'natal-reading-preparation-v1';
 let schema: Promise<void> | undefined;
@@ -34,7 +39,7 @@ export async function enqueueNatalReadingPreparation(chart: {
      DO UPDATE SET priority=GREATEST(natal_reading_jobs.priority,EXCLUDED.priority),
        status='pending',attempts=CASE WHEN natal_reading_jobs.status='obsolete' THEN 0 ELSE natal_reading_jobs.attempts END
      WHERE natal_reading_jobs.status IN ('pending','obsolete')`,
-    [chart.user_id, chart.id, natalUnifiedReadingInputHash(ctx), language, priority],
+    [chart.user_id, chart.id, natalReadingPreparationInputHash(ctx), language, priority],
   );
   ensureNatalReadingPreparationWorker();
 }
@@ -57,7 +62,7 @@ export async function hasFailedNatalReadingPreparation(ctx: ReadingContext): Pro
   await ensureNatalReadingJobSchema();
   const result = await getPool().query(
     `SELECT status FROM natal_reading_jobs WHERE chart_id=$1 AND input_hash=$2 AND language=$3`,
-    [ctx.chartId, natalUnifiedReadingInputHash(ctx), ctx.profile.language === 'en' ? 'en' : 'ru'],
+    [ctx.chartId, natalReadingPreparationInputHash(ctx), ctx.profile.language === 'en' ? 'en' : 'ru'],
   );
   return result.rows[0]?.status === 'failed';
 }
@@ -87,7 +92,7 @@ export async function processNatalReadingPreparations(): Promise<void> {
         return;
       }
       ctx.profile = { ...ctx.profile, language: job.language };
-      if (natalUnifiedReadingInputHash(ctx) !== job.input_hash) {
+      if (natalReadingPreparationInputHash(ctx) !== job.input_hash) {
         await client.query("UPDATE natal_reading_jobs SET status='obsolete',updated_at=NOW() WHERE id=$1", [job.id]);
         return;
       }

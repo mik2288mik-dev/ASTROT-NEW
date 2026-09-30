@@ -2,9 +2,11 @@ import type { NatalChartDataV2 } from '../natalChartV2Types';
 import { buildNatalInterpretation, type NatalInterpretation, type NatalMeaning } from '../natalInterpretation';
 import { getNatalStorySystemPrompt } from '../voice/contracts/natal';
 import { hasCoreVoiceViolation } from '../voice/validators';
+import { natalPlainLanguageError } from '../natalInterpretation/plainLanguage';
 import { createLunaStructuredResponse, type StrictJsonSchema } from '../openaiResponses';
 import {
   NATAL_UNIFIED_READING_CONTRACT_VERSION,
+  NATAL_COPY_REVISION,
   type NatalUnifiedReading,
   type NatalUnifiedReadingTier,
   type NatalUnifiedStoryBlock,
@@ -13,8 +15,8 @@ import {
   type NatalUnifiedWriterPlanBlock,
 } from './unifiedReading';
 
-const STORY_CHUNK_SIZE = 6;
-const TOPIC_CHUNK_SIZE = 5;
+const STORY_CHUNK_SIZE = 4;
+const TOPIC_CHUNK_SIZE = 3;
 const MAX_BLOCK_REPAIRS = 2;
 
 type RawBlock = { id?: unknown; text?: unknown; meaning_ids?: unknown };
@@ -156,6 +158,7 @@ function promptPlan(
         scope: meaning.scope,
         evidence_ids: meaning.evidenceIds,
         meaning: meaning.text,
+        ...(meaning.area ? { area: meaning.area } : {}),
       };
     }),
   });
@@ -175,7 +178,7 @@ function promptPlan(
 
 ЖЁСТКИЕ ПРАВИЛА:
 - Ты только редактор. allowed_meanings уже содержат весь разрешённый смысл.
-- Каждый переданный смысл обязан остаться в тексте. Нельзя добавлять новый смысл.
+- Выбери главное из allowed_meanings. Объединяй близкие наблюдения; необязательно перечислять каждую деталь. Нельзя добавлять новый смысл.
 - Не додумывай характер, причины поведения, прошлое, отношения, страхи, травмы, диагнозы, профессию, деньги, события или мысли других людей.
 - Пиши простыми словами. Без психологических ярлыков, терапевтической лексики, коучинга и абстрактной шелухи.
 - Не пиши служебным языком вроде «в этой теме», «это проявляется», «динамика», «сфера», «функция», «карта показывает», «астрологическая трактовка».
@@ -185,8 +188,10 @@ function promptPlan(
 - structural — описание устройства конкретной области, а не психологический диагноз.
 - В основном тексте не должно быть планет, знаков, домов, аспектов, градусов, орбов или ретроградности.
 - Заголовки тем уже заданы. Не переименовывай их и не придумывай новые разделы.
-- Рассказ и темы используют один и тот же набор смыслов, а не две разные трактовки.
-- Сохрани id и meaning_ids ТОЧНО как во входе и в том же порядке.
+- Рассказ — связное чтение о человеке, а не перечень трактовок. В темах раскрой только то, что относится к названной теме; не копируй абзацы рассказа.
+- area уточняет, где относится наблюдение. Используй её, если это помогает объяснению, без перечисления сфер.
+- Сохрани id. В meaning_ids укажи только использованные ID из allowed_meanings; каждый вывод должен иметь основание.
+- На блок достаточно 2–4 простых предложений. Это предел, не требование добрать объём. Не более 90 слов в блоке.
 - Не раздувай текст. Один понятный смысл лучше трёх красивых предложений.
 - Верни только JSON.`
     : `TASK:
@@ -194,7 +199,7 @@ Rewrite the approved meanings below into plain, everyday NEBO English.
 
 STRICT RULES:
 - You are only an editor. allowed_meanings already contain the complete allowed interpretation.
-- Every supplied meaning must remain represented. Add no new meaning.
+- Select the relevant observations. Combine related observations and omit minor details. Add no new meaning.
 - Do not invent personality claims, causes, biography, relationship history, fears, trauma, diagnosis, profession, income, events, or other people's thoughts.
 - Use ordinary language. No therapy jargon, coaching language, pseudo-psychology, or abstract filler.
 - Do not use process/report language such as "this theme", "this manifests", "dynamic", "sphere", "function", "the chart shows", or "astrological interpretation".
@@ -204,8 +209,10 @@ STRICT RULES:
 - Structural meanings describe a life area, not a psychological diagnosis.
 - No visible astrology terminology in the main copy.
 - Topic titles are fixed. Do not rename them or invent new sections.
-- Story and topics are two views of the same approved meanings, not separate interpretations.
-- Keep id and meaning_ids EXACTLY as supplied and in the same order.
+- Story is a connected reading about a person, not a list. Topics explain only the named area. Do not copy story paragraphs into topics.
+- Use area to explain where an observation belongs when helpful.
+- Keep id unchanged. In meaning_ids cite only the supplied IDs actually used. Every claim needs an approved basis.
+- Use at most 90 words per block. Two to four simple sentences are enough; do not add sentences just to reach a count.
 - Do not pad the copy.
 - Return JSON only.`;
 
@@ -223,13 +230,14 @@ const VISIBLE_ASTROLOGY = /(?:солнц\p{L}*|лун\p{L}*|меркур\p{L}*|�
 
 const NATAL_PSEUDO_PSYCHOLOGY = /(?:осознанн\p{L}*|ресурс\p{L}*|потенциал\p{L}*|трансформац\p{L}*|проработ\p{L}*|точк\p{L}*\s+рост\p{L}*|личн\p{L}*\s+границ\p{L}*|паттерн\p{L}*|сценари\p{L}*|триггер\p{L}*|травм\p{L}*|субличност\p{L}*|архетип\p{L}*|подсозн\p{L}*|самооценк\p{L}*|самосаботаж\p{L}*|тенев\p{L}*\s+сторон\p{L}*|защитн\p{L}*\s+механизм\p{L}*|внутренн\p{L}*\s+(?:опор\p{L}*|реб[её]н\p{L}*|мир\p{L}*|ресурс\p{L}*|конфликт\p{L}*)|глубинн\p{L}*\s+(?:страх\p{L}*|потребност\p{L}*|мотив\p{L}*)|эмоциональн\p{L}*\s+зрел\p{L}*|\b(?:inner\s+child|growth\s+point|personal\s+boundar\w*|trauma|trigger|healing|transformation|potential|archetype|shadow\s+self|self[- ]sabotage)\b)/iu;
 const NATAL_META_LANGUAGE = /(?:карта\s+(?:показывает|говорит|подсказывает)|астрологическ\p{L}*\s+трактовк\p{L}*|в\s+этой\s+тем\p{L}*|эта\s+тем\p{L}*|может\s+проявляться|проявля\p{L}*\s+как|внутренн\p{L}*\s+динамик\p{L}*|психологическ\p{L}*\s+портрет\p{L}*|\b(?:the\s+chart\s+shows|this\s+theme|may\s+manifest|inner\s+dynamic|astrological\s+interpretation)\b)/iu;
-const NATAL_ADVICE_LANGUAGE = /(?:тебе\s+(?:нужно|стоит|следует|важно)|(?:попробуй|старайся|помни|сохраняй|держи|не\s+бойся|позволь\s+себе)\b|\b(?:you\s+should|you\s+need\s+to|try\s+to|remember\s+to|make\s+sure\s+to)\b)/iu;
+const NATAL_ADVICE_LANGUAGE = /(?:тебе\s+(?:нужно|стоит|следует)|(?:попробуй|старайся|помни|сохраняй|держи|не\s+бойся|позволь\s+себе)(?!\p{L})|\b(?:you\s+should|you\s+need\s+to|try\s+to|remember\s+to|make\s+sure\s+to)\b)/iu;
 const NATAL_ABSOLUTE_LANGUAGE = /(?:ты\s+(?:всегда|никогда|точно)\b|у\s+тебя\s+точно\b|на\s+самом\s+деле\s+ты\b|\byou\s+(?:always|never|definitely)\b)/iu;
 
-function sameIds(raw: unknown, expected: readonly string[]): boolean {
+function approvedIds(raw: unknown, expected: readonly string[]): raw is string[] {
   return Array.isArray(raw)
-    && raw.length === expected.length
-    && raw.every((value, index) => value === expected[index]);
+    && raw.length > 0
+    && new Set(raw).size === raw.length
+    && raw.every(value => typeof value === 'string' && expected.includes(value));
 }
 
 function wordCount(value: string): number {
@@ -250,12 +258,14 @@ function validateCopy(
   if (NATAL_META_LANGUAGE.test(text)) return 'meta/report language';
   if (NATAL_ADVICE_LANGUAGE.test(text)) return 'advice/instruction language';
   if (NATAL_ABSOLUTE_LANGUAGE.test(text)) return 'unsupported absolute claim';
+  const plainError = natalPlainLanguageError(text);
+  if (plainError) return plainError;
 
   const sourceWords = meaningIds.reduce((total, id) => {
     const meaning = byId.get(id);
     return total + (meaning ? wordCount(meaning.text) : 0);
   }, 0);
-  const maxWords = Math.max(60, Math.ceil(sourceWords * 1.35));
+  const maxWords = Math.min(90, Math.max(40, Math.ceil(sourceWords * 1.35)));
   if (wordCount(text) > maxWords) return 'copy padded beyond approved material';
 
   return null;
@@ -279,17 +289,17 @@ export function materializeNatalUnifiedReading(input: {
     const raw = storyRaw[index];
     const text = typeof raw?.text === 'string' ? raw.text.trim() : '';
     if (raw?.id !== expected.id) errors.push(`${expected.id}: id changed`);
-    if (!sameIds(raw?.meaning_ids, expected.meaningIds)) {
+    if (!approvedIds(raw?.meaning_ids, expected.meaningIds)) {
       errors.push(`${expected.id}: meaning ids changed`);
     }
-    const copyError = validateCopy(text, expected.meaningIds, byId);
+    const copyError = validateCopy(text, approvedIds(raw?.meaning_ids, expected.meaningIds) ? raw.meaning_ids : [], byId);
     if (copyError) errors.push(`${expected.id}: ${copyError}`);
     if (
       raw?.id === expected.id
-      && sameIds(raw?.meaning_ids, expected.meaningIds)
+      && approvedIds(raw?.meaning_ids, expected.meaningIds)
       && !copyError
     ) {
-      story.push({ id: expected.id, text, meaningIds: [...expected.meaningIds] });
+      story.push({ id: expected.id, text, meaningIds: [...raw.meaning_ids] });
     }
   }
 
@@ -311,15 +321,15 @@ export function materializeNatalUnifiedReading(input: {
       const raw = rawBlocks[blockIndex];
       const text = typeof raw?.text === 'string' ? raw.text.trim() : '';
       if (raw?.id !== expected.id) errors.push(`${expected.id}: id changed`);
-      if (!sameIds(raw?.meaning_ids, expected.meaningIds)) errors.push(`${expected.id}: meaning ids changed`);
-      const copyError = validateCopy(text, expected.meaningIds, byId);
+      if (!approvedIds(raw?.meaning_ids, expected.meaningIds)) errors.push(`${expected.id}: meaning ids changed`);
+      const copyError = validateCopy(text, approvedIds(raw?.meaning_ids, expected.meaningIds) ? raw.meaning_ids : [], byId);
       if (copyError) errors.push(`${expected.id}: ${copyError}`);
       if (
         raw?.id === expected.id
-        && sameIds(raw?.meaning_ids, expected.meaningIds)
+        && approvedIds(raw?.meaning_ids, expected.meaningIds)
         && !copyError
       ) {
-        blocks.push({ id: expected.id, text, meaningIds: [...expected.meaningIds] });
+        blocks.push({ id: expected.id, text, meaningIds: [...raw.meaning_ids] });
       }
     }
     if (
@@ -331,6 +341,14 @@ export function materializeNatalUnifiedReading(input: {
     }
   }
 
+  for (const surface of [story, topics.flatMap(topic => topic.blocks)]) {
+    const seen = new Set<string>();
+    for (const block of surface) {
+      const normalized = block.text.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+      if (seen.has(normalized)) errors.push(`${block.id}: repeated paragraph`);
+      seen.add(normalized);
+    }
+  }
   if (errors.length) return { reading: null, errors };
 
   return {
@@ -340,10 +358,11 @@ export function materializeNatalUnifiedReading(input: {
       contractVersion: NATAL_UNIFIED_READING_CONTRACT_VERSION,
       interpretationVersion: input.interpretation.schemaVersion,
       tier: input.tier,
+      copyRevision: NATAL_COPY_REVISION,
       story,
       topics,
-      meaningIds: [...input.interpretation.storyMeaningIds],
-      evidenceIds: input.interpretation.evidence.map((fact) => fact.id),
+      meaningIds: [...new Set([...story, ...topics.flatMap(topic => topic.blocks)].flatMap(block => block.meaningIds))],
+      evidenceIds: [...new Set([...story, ...topics.flatMap(topic => topic.blocks)].flatMap(block => block.meaningIds.flatMap(id => byId.get(id)!.evidenceIds)))],
     },
   };
 }
@@ -366,7 +385,7 @@ async function validateSemanticFidelity(
     surface,
     allowed_meanings: block.meaningIds.map((id) => {
       const meaning = byId.get(id)!;
-      return { id, scope: meaning.scope, meaning: meaning.text };
+      return { id, scope: meaning.scope, meaning: meaning.text, ...(meaning.area ? { area: meaning.area } : {}) };
     }),
     candidate: block.text,
   }));
@@ -411,7 +430,7 @@ Do not judge style. Return one check for every id.`;
   const checks = Array.isArray(raw.checks) ? raw.checks : [];
   const expectedIds = candidates.map(({ block }) => block.id);
   const actualIds = checks.map((check) => typeof check.id === 'string' ? check.id : '');
-  if (!sameIds(actualIds, expectedIds)) return ['semantic review changed block ids'];
+  if (actualIds.length !== expectedIds.length || actualIds.some((id, index) => id !== expectedIds[index])) return ['semantic review changed block ids'];
 
   const blockingKinds = ['unsupported_claim', 'contradiction', 'scope_strengthening', 'advice'];
   const errors: string[] = [];

@@ -671,7 +671,7 @@ export function isNatalReportAnswer(value: unknown): value is NatalReportAnswer 
     && typeof answer.title === 'string'
     && answer.title.length > 0
     && Array.isArray(answer.paragraphs)
-    && answer.paragraphs.length >= 3
+    && answer.paragraphs.length >= 1
     && answer.paragraphs.length <= 5
     && answer.paragraphs.every((paragraph) => (
       !!paragraph
@@ -707,14 +707,14 @@ export function isNatalReportCategoryPack(value: unknown): value is NatalReportC
     || !Array.isArray(pack.freeAnswers)
   ) return false;
   if (
-    pack.summary.length < 5 || pack.summary.length > 8
+    pack.summary.length < 1 || pack.summary.length > 8
     || pack.observations.length !== 0 || pack.freeAnswers.length !== 0
     || !pack.summary.every((paragraph) => (
       !!paragraph && typeof paragraph === 'object'
       && (paragraph.title === undefined || (typeof paragraph.title === 'string'
         && paragraph.title.trim().length >= 3 && paragraph.title.trim().length <= 96))
       && typeof paragraph.text === 'string'
-      && paragraph.text.trim().length >= 80 && paragraph.text.trim().length <= 1200
+      && paragraph.text.trim().length >= 24 && paragraph.text.trim().length <= 1200
       && Array.isArray(paragraph.evidenceIds) && paragraph.evidenceIds.length > 0
       && paragraph.evidenceIds.every((id) => typeof id === 'string' && id.trim().length > 0)
     ))
@@ -722,12 +722,8 @@ export function isNatalReportCategoryPack(value: unknown): value is NatalReportC
   const words = pack.summary.reduce((total, paragraph) => (
     total + (paragraph.text.match(/[\p{L}\p{N}]+(?:[-’'][\p{L}\p{N}]+)*/gu)?.length || 0)
   ), 0);
-  const hasObservationTitles = pack.summary.every((paragraph) => typeof paragraph.title === 'string');
-  const [minWords, maxWords] = category.key === 'main'
-    ? hasObservationTitles ? [180, 300] : [350, 500]
-    : hasObservationTitles ? [220, 350] : [300, 450];
-  if (words < minWords || words > maxWords) return false;
-  if (hasObservationTitles && category.key === 'main' && pack.summary.length < 6) return false;
+  if (words > 720) return false;
+  if (new Set(pack.summary.map(paragraph => paragraph.text.trim())).size !== pack.summary.length) return false;
   if (pack.followUps !== undefined) {
     if (!Array.isArray(pack.followUps) || pack.followUps.length < 2
       || pack.followUps.length > (category.key === 'main' ? 3 : 2)) return false;

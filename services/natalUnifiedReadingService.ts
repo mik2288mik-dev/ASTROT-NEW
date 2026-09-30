@@ -2,13 +2,14 @@ import type { NatalChartData } from '../types';
 import {
   isNatalUnifiedReading,
   NATAL_UNIFIED_READING_CONTRACT_VERSION,
+  NATAL_COPY_REVISION,
   type NatalUnifiedReading,
   type NatalUnifiedReadingTier,
 } from '../lib/natalReading/unifiedReading';
 import { apiFetch } from './apiClient';
 import { getTelegramInitDataHeaders } from './sessionService';
 
-const LOCAL_CACHE_PREFIX = 'nebo:natal-unified-reading:v3';
+const LOCAL_CACHE_PREFIX = 'nebo:natal-unified-reading:v4';
 const LOCAL_CACHE_LIMIT = 24;
 
 type UnifiedReadingError = Error & {
@@ -100,6 +101,7 @@ function readLocal(scope: string): NatalUnifiedReading | null {
       entry.schemaVersion !== 1
       || entry.scopeKey !== scope
       || !isNatalUnifiedReading(entry.content)
+      || entry.content.copyRevision !== NATAL_COPY_REVISION
     ) {
       localStorage.removeItem(key);
       return null;
@@ -112,6 +114,7 @@ function readLocal(scope: string): NatalUnifiedReading | null {
 }
 
 function writeLocal(scope: string, content: NatalUnifiedReading): void {
+  if (content.copyRevision !== NATAL_COPY_REVISION) return;
   const localStorage = storage();
   if (!localStorage) return;
   try {
@@ -261,7 +264,7 @@ export async function ensureNatalUnifiedReading(input: {
       throw error;
     }
     const content = serverCached;
-    memory.set(scope, content);
+    if (content.copyRevision === NATAL_COPY_REVISION) memory.set(scope, content);
     writeLocal(scope, content);
     return content;
   })().finally(() => {

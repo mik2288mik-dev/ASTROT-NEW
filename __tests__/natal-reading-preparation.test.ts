@@ -1,3 +1,4 @@
+import { NATAL_COPY_REVISION } from '../lib/natalReading/unifiedReading';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 import type { ReadingContext } from '../lib/natalReading/apiHelper';
 const mockQuery = jest.fn(); const mockConnect = jest.fn(); const mockResolve = jest.fn(); const mockGenerate = jest.fn();
@@ -26,7 +27,7 @@ function query(sql: string, params: unknown[] = []) {
   }
   return { rows: [] };
 }
-function pending(): Job { return { id: 1, user_id: '42', chart_id: 9, input_hash: 'birth-ru', language: 'ru', status: 'pending', attempts: 0, priority: 10 }; }
+function pending(): Job { return { id: 1, user_id: '42', chart_id: 9, input_hash: `birth-ru:${NATAL_COPY_REVISION}`, language: 'ru', status: 'pending', attempts: 0, priority: 10 }; }
 describe('durable autonomous natal preparation', () => {
   beforeEach(() => {
     jest.resetAllMocks(); jobs = []; acquired = true;
@@ -44,6 +45,17 @@ describe('durable autonomous natal preparation', () => {
     await processNatalReadingPreparations();
     expect(mockGenerate).toHaveBeenCalledTimes(1);
     expect(jobs[0].status).toBe('ready');
+  });
+  it('queues one editorial replacement without resetting a previously completed job', async () => {
+    jobs = [{ ...pending(), input_hash: 'birth-ru', status: 'ready' }];
+    const chart = { id: 9, user_id: '42', chart_data: canonicalNatalChart() };
+    for (let i = 0; i < 3; i++) await enqueueNatalReadingPreparation(chart);
+    expect(jobs).toHaveLength(2);
+    await processNatalReadingPreparations();
+    await enqueueNatalReadingPreparation(chart);
+    await processNatalReadingPreparations();
+    expect(jobs.map(job => job.status)).toEqual(['ready', 'ready']);
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
   });
   it('does no work when another instance holds the database lock', async () => {
     jobs = [pending()]; acquired = false;

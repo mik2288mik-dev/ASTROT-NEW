@@ -1,17 +1,20 @@
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 import { buildNatalInterpretation } from '../lib/natalInterpretation';
+import { natalPlainLanguageError } from '../lib/natalInterpretation/plainLanguage';
 
 describe('unified natal interpretation', () => {
-  it('interprets every reliable extracted fact instead of selecting only important ones', () => {
+  it('retains reliable calculator data but selects relevant observations for reading', () => {
     const chart = canonicalNatalChart();
     const result = buildNatalInterpretation(chart);
 
     expect(result.evidence.length).toBeGreaterThan(20);
-    expect(result.meanings).toHaveLength(result.evidence.length);
-    expect(result.storyMeaningIds).toHaveLength(result.meanings.length);
+    expect(result.meanings.length).toBeLessThan(result.evidence.length);
+    expect(result.storyMeaningIds.length).toBeLessThanOrEqual(16);
 
     const covered = new Set(result.meanings.flatMap((meaning) => meaning.evidenceIds));
-    expect([...result.evidence.map((fact) => fact.id).filter((id) => !covered.has(id))]).toEqual([]);
+    expect([...covered].every(id => result.evidence.some(fact => fact.id === id))).toBe(true);
+    expect(result.meanings.some(meaning => meaning.semanticKey.startsWith('body-retrograde:'))).toBe(false);
+    expect(result.meanings.some(meaning => meaning.semanticKey.startsWith('body-house:'))).toBe(false);
   });
 
   it('does not invent conflict/control/boredom categories', () => {
@@ -22,6 +25,19 @@ describe('unified natal interpretation', () => {
     expect(payload).not.toContain('character_boredom');
     expect(payload).not.toContain('lose_interest');
     expect(payload).not.toContain('"conflict"');
+  });
+  it('keeps source observations plain across all signs and never modifies the saved calculation', () => {
+    const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+    for (const sign of signs) {
+      const chart = canonicalNatalChart();
+      Object.values(chart.positions).forEach(position => { position.sign = sign; });
+      const before = JSON.stringify(chart);
+      for (const language of ['ru', 'en'] as const) {
+        const reading = buildNatalInterpretation(chart, language);
+        expect(reading.meanings.every(meaning => natalPlainLanguageError(meaning.text) === null)).toBe(true);
+      }
+      expect(JSON.stringify(chart)).toBe(before);
+    }
   });
 
   it('uses stable approximate houses and angles but rejects individually unstable ones', () => {
@@ -98,7 +114,8 @@ describe('unified natal interpretation', () => {
     expect(sun!.technicalText).toContain('Солнце');
     expect(sun!.text).not.toContain('Солнце');
     expect(sun!.text).not.toContain('дом');
-    expect(sun!.evidenceIds).toEqual(['position:sun:sign']);
+    expect(sun!.evidenceIds).toEqual(['position:sun:sign', 'position:sun:house']);
+    expect(sun!.area).toBeTruthy();
   });
   it('keeps every meaning explicitly scoped instead of silently dropping background factors', () => {
     const result = buildNatalInterpretation(canonicalNatalChart());
@@ -113,7 +130,7 @@ describe('unified natal interpretation', () => {
     const sunSign = result.meanings.find((meaning) => meaning.semanticKey.startsWith('body-sign:sun:'));
     expect(saturnSign?.scope).toBe('background');
     expect(sunSign?.scope).toBe('personal');
-    expect(result.storyMeaningIds).toContain(saturnSign!.id);
+    expect(result.storyMeaningIds).not.toContain(saturnSign!.id);
     expect(result.storyMeaningIds).toContain(sunSign!.id);
   });
 
@@ -176,7 +193,7 @@ describe('unified natal interpretation', () => {
     expect(square?.text.toLowerCase()).not.toContain('плох');
     expect(square?.text.toLowerCase()).not.toContain('негатив');
     expect(outerTrine?.scope).toBe('background');
-    expect(result.storyMeaningIds).toContain(outerTrine!.id);
+    expect(result.storyMeaningIds).not.toContain(outerTrine!.id);
   });
 
 });

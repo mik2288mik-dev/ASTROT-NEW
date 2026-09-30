@@ -65,6 +65,7 @@ export type NatalMeaning = {
   semanticKey: string;
   scope: NatalMeaningScope;
   text: string;
+  area?: string;
   technicalText: string;
   topics: NatalMeaningTopic[];
   evidenceIds: string[];
