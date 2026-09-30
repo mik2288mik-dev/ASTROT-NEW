@@ -9,7 +9,6 @@ import {
 import { apiFetch } from './apiClient';
 import { getTelegramInitDataHeaders } from './sessionService';
 
-const GENERATION_TIMEOUT_MS = 90_000;
 const LOCAL_CACHE_PREFIX = 'nebo:natal-unified-reading:v3';
 const LOCAL_CACHE_LIMIT = 24;
 
@@ -17,7 +16,6 @@ type UnifiedReadingError = Error & {
   status?: number;
   code?: string;
   premiumAvailable?: boolean;
-  retryAfterMs?: number;
 };
 
 type CacheEntry = {
@@ -163,7 +161,6 @@ async function responseError(response: Response): Promise<UnifiedReadingError> {
   error.status = response.status;
   error.code = payload.code || payload.error;
   error.premiumAvailable = payload.premiumRequired === true;
-  error.retryAfterMs = Number(payload.retryAfterMs) || undefined;
   return error;
 }
 
@@ -180,50 +177,12 @@ async function getServer(
   userId: string,
   tier: NatalUnifiedReadingTier,
   chartId?: number,
-): Promise<NatalUnifiedReading | null> {
+): Promise<NatalUnifiedReading> {
   const response = await apiFetch(endpoint(userId, tier, chartId), {
     method: 'GET',
     headers: getTelegramInitDataHeaders(),
     cache: 'no-store',
   });
-  if (response.status === 404) return null;
-  if (!response.ok) throw await responseError(response);
-  return readPayload(await response.json());
-}
-
-async function postServer(
-  userId: string,
-  tier: NatalUnifiedReadingTier,
-  chartId?: number,
-): Promise<NatalUnifiedReading> {
-  const startedAt = Date.now();
-  const response = await apiFetch(
-    endpoint(userId, tier, chartId),
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getTelegramInitDataHeaders(),
-      },
-      body: JSON.stringify({ userId, chartId, tier }),
-    },
-    GENERATION_TIMEOUT_MS,
-  );
-  if (response.status === 202) {
-    const pending = await response.json().catch(() => ({}));
-    let retryAfterMs = Math.max(250, Math.min(Number(pending.retryAfterMs) || 1000, 5000));
-    while (Date.now() - startedAt < GENERATION_TIMEOUT_MS) {
-      await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
-      const cached = await getServer(userId, tier, chartId);
-      if (cached) return cached;
-      retryAfterMs = Math.min(Math.round(retryAfterMs * 1.35), 5000);
-    }
-    const error = new Error('Unified natal reading is still in progress') as UnifiedReadingError;
-    error.status = 504;
-    error.code = 'CONTENT_GENERATION_TIMEOUT';
-    error.retryAfterMs = retryAfterMs;
-    throw error;
-  }
   if (!response.ok) throw await responseError(response);
   return readPayload(await response.json());
 }
@@ -279,7 +238,11 @@ export function getNatalUnifiedReadingCached(input: {
   return local;
 }
 
-export async function ensureNatalUnifiedReading(input: {
+/**
+ * Read-only loader. It never starts AI generation.
+ * Missing server content is a provisioning/backfill problem, not a page-load job.
+ */
+export async function loadNatalUnifiedReading(input: {
   userId: string;
   chartData: NatalChartData;
   chartId?: number;
@@ -292,15 +255,15 @@ export async function ensureNatalUnifiedReading(input: {
   const active = inFlight.get(scope);
   if (active) return active;
 
-  const request = (async () => {
-    const serverCached = await getServer(input.userId, input.tier, input.chartId);
-    const content = serverCached || await postServer(input.userId, input.tier, input.chartId);
-    memory.set(scope, content);
-    writeLocal(scope, content);
-    return content;
-  })().finally(() => {
-    if (inFlight.get(scope) === request) inFlight.delete(scope);
-  });
+  const request = getServer(input.userId, input.tier, input.chartId)
+    .then((content) => {
+      memory.set(scope, content);
+      writeLocal(scope, content);
+      return content;
+    })
+    .finally(() => {
+      if (inFlight.get(scope) === request) inFlight.delete(scope);
+    });
 
   inFlight.set(scope, request);
   return request;
