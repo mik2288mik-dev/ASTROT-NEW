@@ -8,6 +8,7 @@ import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 import { queuePersonalForecastPrewarmForUser } from '../../../lib/personalForecastPrewarm';
+import { precomputeNatalUnifiedReadingForChart } from '../../../lib/natalReading/precompute';
 import {
   ensureCanonicalPrimaryChart,
 } from '../../../lib/natalChartPersistence';
@@ -69,6 +70,7 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
         birthTimeRangeEnd:time?.birth_time_range_end||null,
         birthPlace:user.birth_place,language:user.language||'ru',forceRecalculate:false,
       });
+      await precomputeNatalUnifiedReadingForChart({ userId, chartId: result.chart.id });
       void getPremiumEntitlementState(userId).then((entitlement)=>{
         queuePersonalForecastPrewarmForUser({
           userId,accessTier:entitlement.isPremium?'premium':'free',reason:'birth_profile_completed',
