@@ -65,13 +65,7 @@ describe('hardened unified natal writer', () => {
     const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
     const raw = validRaw(plan);
 
-    const result = materializeNatalUnifiedReading({
-      raw,
-      interpretation,
-      tier: 'premium',
-      plan,
-    });
-
+    const result = materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan });
     expect(result.errors).toEqual([]);
     expect(result.reading).not.toBeNull();
     expect(result.reading?.topics.map((topic) => topic.title)).toEqual(plan.topics.map((topic) => topic.title));
@@ -82,14 +76,7 @@ describe('hardened unified natal writer', () => {
     const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
     const raw = validRaw(plan);
     raw.story[0].text = 'Твой архетип связан с подсознательным самосаботажем и теневой стороной характера.';
-
-    const result = materializeNatalUnifiedReading({
-      raw,
-      interpretation,
-      tier: 'premium',
-      plan,
-    });
-
+    const result = materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan });
     expect(result.reading).toBeNull();
     expect(result.errors.join(' ')).toContain('pseudo-psychology/coaching language');
   });
@@ -121,12 +108,7 @@ describe('hardened unified natal writer', () => {
     const interpretation = buildNatalInterpretation(canonicalNatalChart());
     const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
     const raw = validRaw(plan);
-    const result = materializeNatalUnifiedReading({
-      raw,
-      interpretation,
-      tier: 'premium',
-      plan,
-    });
+    const result = materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan });
     expect(result.reading).not.toBeNull();
 
     const full = result.reading!;
@@ -142,6 +124,8 @@ describe('hardened unified natal writer', () => {
     const api = source('pages/api/content/natal/reading.ts');
     const precompute = source('lib/natalReading/precompute.ts');
     const chartWrite = source('pages/api/charts/index.ts');
+    const profileWrite = source('pages/api/users/[id].ts');
+    const cron = source('pages/api/cron/tick.ts');
     const ui = source('components/NatalReading/NatalUnifiedReport.tsx');
 
     expect(generation).toContain('materializeNatalUnifiedReading');
@@ -162,8 +146,12 @@ describe('hardened unified natal writer', () => {
     expect(service).not.toContain('GENERATION_TIMEOUT_MS');
 
     expect(precompute).toContain('generateNatalUnifiedReadingWithLock');
+    expect(precompute).toContain('prewarmNatalUnifiedReadingBackfillIncrement');
     expect(precompute).toContain('Generation belongs to chart creation / birth-data change / explicit backfill');
     expect(chartWrite).toContain('await precomputeNatalUnifiedReadingForChart');
+    expect(profileWrite).toContain('await precomputeNatalUnifiedReadingForChart');
+    expect(cron).toContain("'natal-unified-backfill'");
+    expect(cron).toContain('prewarmNatalUnifiedReadingBackfillIncrement');
 
     expect(ui).toContain("const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free';");
     expect(ui).toContain('loadNatalUnifiedReading');
