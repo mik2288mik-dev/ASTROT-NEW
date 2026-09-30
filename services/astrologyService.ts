@@ -132,8 +132,6 @@ const signMonthlyClientCache = new Map<string, SignHoroscopeReadingV2>();
 const signHoroscopeInFlight = new Map<string, Promise<SignHoroscopeReadingV2>>();
 const signPeriodPrefetchInFlight = new Map<string, Promise<Record<string, SignHoroscopeReadingV2>>>();
 const SIGN_HOROSCOPE_LOCAL_CACHE_PREFIX = 'tvoi-goroskop:sign-horoscope-v4';
-const SIGN_HOROSCOPE_REQUEST_TIMEOUT_MS = 95_000;
-const SIGN_HOROSCOPE_POLL_TIMEOUT_MS = 90_000;
 const SYNASTRY_EXTENDED_REQUEST_TIMEOUT_MS = 90_000;
 
 export type SignHoroscopeClientPeriod = 'today' | 'week' | 'month';
@@ -247,21 +245,6 @@ function dedupeSignHoroscopeRequest(
   return pending;
 }
 
-async function waitForCurrentSignHoroscope(
-  loadCached: () => Promise<SignHoroscopeReadingV2 | null>,
-  retryAfterMs = 1500,
-  maxWaitMs = SIGN_HOROSCOPE_POLL_TIMEOUT_MS,
-): Promise<SignHoroscopeReadingV2> {
-  const deadline = Date.now() + maxWaitMs;
-  const delay = Math.max(500, Math.min(2500, retryAfterMs));
-  while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, delay));
-    const reading = await loadCached().catch(() => null);
-    if (reading) return reading;
-  }
-  throw buildApiError('Generation in progress', 202, 'GENERATION_IN_PROGRESS', { retryAfterMs: delay });
-}
-
 async function throwSignApiError(response: Response, fallback: string): Promise<never> {
   const payload = await response.json().catch(() => ({}));
   throw buildApiError(
@@ -270,18 +253,6 @@ async function throwSignApiError(response: Response, fallback: string): Promise<
     payload.code || payload.error,
     payload.details,
   );
-}
-
-async function withStaleSignFallback(
-  stale: SignHoroscopeReadingV2 | null,
-  request: () => Promise<SignHoroscopeReadingV2>,
-): Promise<SignHoroscopeReadingV2> {
-  try {
-    return await request();
-  } catch (error) {
-    if (stale) return stale;
-    throw error;
-  }
 }
 
 export const loadDailySignHoroscope = async (
@@ -299,14 +270,14 @@ export const getCachedDailySignHoroscope = async (
   currentOnly = false,
 ): Promise<SignHoroscopeReadingV2 | null> => {
   const local = readLocalSignHoroscope('today', sign, date, language);
-  if (local && (!currentOnly || local.periodKey === date)) return local;
+  if (local?.periodKey === date) return local;
 
   const params = new URLSearchParams({ sign, date, language });
   const url = `${API_BASE_URL}/api/content/horoscope/sign-daily?${params.toString()}`;
   log.info('[getCachedDailySignHoroscope] Starting request', { sign, date, language });
 
   const response = await apiFetch(url, { method: 'GET', cache: 'no-store' }, 4500);
-  if (response.status === 404) return null;
+  if (response.status === 404) return currentOnly ? null : local;
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -336,47 +307,8 @@ export const ensureDailySignHoroscope = async (
 ): Promise<SignHoroscopeReadingV2> => {
   return dedupeSignHoroscopeRequest('today', sign, date, language, async () => {
     const cached = await getCachedDailySignHoroscope(sign, date, language);
-    if (cached?.periodKey === date) return cached;
-
-    log.info('[ensureDailySignHoroscope] Generating missing sign horoscope', { sign, date, language });
-    return withStaleSignFallback(cached, async () => {
-    const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-daily`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-      body: JSON.stringify({ sign, date, language }),
-    }, SIGN_HOROSCOPE_REQUEST_TIMEOUT_MS);
-
-    if (response.status === 202) {
-      const payload = await response.json().catch(() => ({}));
-      const reading = await waitForCurrentSignHoroscope(
-        () => getCachedDailySignHoroscope(sign, date, language, true),
-        Number(payload.retryAfterMs) || 1500,
-      );
-      return storeLocalSignHoroscope('today', sign, date, language, reading);
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      if (cached) return cached;
-      throw buildApiError(
-        errorData.message || `Sign horoscope failed: ${response.status} ${response.statusText}`,
-        response.status,
-        errorData.code || errorData.error
-      );
-    }
-
-    const payload = await response.json();
-    if (!payload?.reading) {
-      if (cached) return cached;
-      throw buildApiError('Sign horoscope content is missing');
-    }
-
-    if (!isSignHoroscopeReading(payload.reading)) {
-      if (cached) return cached;
-      throw buildApiError('Sign horoscope content is invalid');
-    }
-    return storeLocalSignHoroscope('today', sign, date, language, payload.reading);
-    });
+    if (cached) return cached;
+    throw buildApiError('Sign horoscope is not ready', 404, 'SIGN_HOROSCOPE_NOT_READY');
   });
 };
 
@@ -387,7 +319,7 @@ export const getCachedWeeklySignHoroscope = async (
   currentOnly = false,
 ): Promise<SignHoroscopeReadingV2 | null> => {
   const local = readLocalSignHoroscope('week', sign, periodKey, language);
-  if (local && (!currentOnly || local.periodKey === periodKey)) return local;
+  if (local?.periodKey === periodKey) return local;
   const params = new URLSearchParams({ sign, periodKey, language });
   const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-weekly?${params}`, {
     method: 'GET',
@@ -395,7 +327,7 @@ export const getCachedWeeklySignHoroscope = async (
     headers: getTelegramInitDataHeaders(),
     cache: 'no-store',
   }, 4500);
-  if (response.status === 404) return null;
+  if (response.status === 404) return currentOnly ? null : local;
   if (!response.ok) return throwSignApiError(response, 'Weekly sign horoscope failed');
   const payload = await response.json();
   if (!payload?.reading) throw buildApiError('Weekly sign horoscope content is missing');
@@ -411,34 +343,8 @@ export const ensureWeeklySignHoroscope = async (
 ): Promise<SignHoroscopeReadingV2> => {
   return dedupeSignHoroscopeRequest('week', sign, periodKey, language, async () => {
     const cached = await getCachedWeeklySignHoroscope(sign, periodKey, language);
-    if (cached?.periodKey === periodKey) return cached;
-    return withStaleSignFallback(cached, async () => {
-    const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-weekly`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }, body: JSON.stringify({ sign, periodKey, language }),
-    }, SIGN_HOROSCOPE_REQUEST_TIMEOUT_MS);
-    if (response.status === 202) {
-      const payload = await response.json().catch(() => ({}));
-      const reading = await waitForCurrentSignHoroscope(
-        () => getCachedWeeklySignHoroscope(sign, periodKey, language, true),
-        Number(payload.retryAfterMs) || 1500,
-      );
-      return storeLocalSignHoroscope('week', sign, periodKey, language, reading);
-    }
-    if (!response.ok) {
-      if (cached) return cached;
-      return throwSignApiError(response, 'Weekly sign horoscope failed');
-    }
-    const payload = await response.json();
-    if (!payload?.reading) {
-      if (cached) return cached;
-      throw buildApiError('Weekly sign horoscope content is missing');
-    }
-    if (!isSignHoroscopeReading(payload.reading)) {
-      if (cached) return cached;
-      throw buildApiError('Weekly sign horoscope content is invalid');
-    }
-    return storeLocalSignHoroscope('week', sign, periodKey, language, payload.reading);
-    });
+    if (cached) return cached;
+    throw buildApiError('Sign horoscope is not ready', 404, 'SIGN_WEEKLY_NOT_READY');
   });
 };
 
@@ -449,7 +355,7 @@ export const getCachedMonthlySignHoroscope = async (
   currentOnly = false,
 ): Promise<SignHoroscopeReadingV2 | null> => {
   const local = readLocalSignHoroscope('month', sign, periodKey, language);
-  if (local && (!currentOnly || local.periodKey === periodKey)) return local;
+  if (local?.periodKey === periodKey) return local;
   const params = new URLSearchParams({ sign, periodKey, language });
   const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-monthly?${params}`, {
     method: 'GET',
@@ -457,7 +363,7 @@ export const getCachedMonthlySignHoroscope = async (
     headers: getTelegramInitDataHeaders(),
     cache: 'no-store',
   }, 4500);
-  if (response.status === 404) return null;
+  if (response.status === 404) return currentOnly ? null : local;
   if (!response.ok) return throwSignApiError(response, 'Monthly sign horoscope failed');
   const payload = await response.json();
   if (!payload?.reading) throw buildApiError('Monthly sign horoscope content is missing');
@@ -473,34 +379,8 @@ export const ensureMonthlySignHoroscope = async (
 ): Promise<SignHoroscopeReadingV2> => {
   return dedupeSignHoroscopeRequest('month', sign, periodKey, language, async () => {
     const cached = await getCachedMonthlySignHoroscope(sign, periodKey, language);
-    if (cached?.periodKey === periodKey) return cached;
-    return withStaleSignFallback(cached, async () => {
-    const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-monthly`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }, body: JSON.stringify({ sign, periodKey, language }),
-    }, SIGN_HOROSCOPE_REQUEST_TIMEOUT_MS);
-    if (response.status === 202) {
-      const payload = await response.json().catch(() => ({}));
-      const reading = await waitForCurrentSignHoroscope(
-        () => getCachedMonthlySignHoroscope(sign, periodKey, language, true),
-        Number(payload.retryAfterMs) || 1500,
-      );
-      return storeLocalSignHoroscope('month', sign, periodKey, language, reading);
-    }
-    if (!response.ok) {
-      if (cached) return cached;
-      return throwSignApiError(response, 'Monthly sign horoscope failed');
-    }
-    const payload = await response.json();
-    if (!payload?.reading) {
-      if (cached) return cached;
-      throw buildApiError('Monthly sign horoscope content is missing');
-    }
-    if (!isSignHoroscopeReading(payload.reading)) {
-      if (cached) return cached;
-      throw buildApiError('Monthly sign horoscope content is invalid');
-    }
-    return storeLocalSignHoroscope('month', sign, periodKey, language, payload.reading);
-    });
+    if (cached) return cached;
+    throw buildApiError('Sign horoscope is not ready', 404, 'SIGN_MONTHLY_NOT_READY');
   });
 };
 

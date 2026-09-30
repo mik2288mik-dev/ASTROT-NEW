@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey } from '../lib/date-utils';
 import { getContentPolicy } from '../lib/contentMatrix';
+import { ZODIAC_KEYS } from '../lib/zodiacKeys';
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -25,9 +26,48 @@ afterEach(() => {
   jest.dontMock('../lib/auth/appAuth');
   jest.dontMock('../lib/contentArchitecture');
   jest.dontMock('../lib/contentGenerationLock');
+  jest.dontMock('../lib/horoscope/signGeneration');
+  jest.dontMock('../lib/horoscope/signPrewarm');
+  jest.dontMock('../lib/horoscope/signCache');
 });
 
 describe('sign horoscope API access and cache contract', () => {
+  it.each([
+    ['daily', 'day', getMoscowTodayKey(), 'SIGN_HOROSCOPE_NOT_READY'],
+    ['weekly', 'week', getMoscowIsoWeekKey(), 'SIGN_WEEKLY_NOT_READY'],
+    ['monthly', 'month', getMoscowMonthKey(), 'SIGN_MONTHLY_NOT_READY'],
+  ])('all 12 signs support repeated GET/POST %s reads without generation, including an empty cache', async (route, period, periodKey, code) => {
+    const reading = {
+      schemaVersion: 'sign-horoscope-reading-v5', sign: 'Aries', period, periodKey,
+      headline: 'Choose the useful answer', text: 'Ask plainly and agree on the meeting time.',
+    };
+    const query = jest.fn().mockResolvedValue({ rows: [{ payload: reading }] });
+    const generate = jest.fn();
+    const requireAppUser = jest.fn().mockResolvedValue({ userId: '42' });
+    jest.doMock('../lib/db', () => ({ getPool: () => ({ query }) }));
+    jest.doMock('../lib/horoscope/signGeneration', () => ({ generateSignHoroscopeBatch: generate }));
+    jest.doMock('../lib/auth/appAuth', () => ({ requireAppUser }));
+    jest.doMock('../lib/contentArchitecture', () => ({ getPremiumEntitlementState: jest.fn().mockResolvedValue({ isPremium: true }) }));
+    const handler = require(`../pages/api/content/horoscope/sign-${route}`).default;
+    const source = { sign: 'Aries', date: periodKey, periodKey, language: 'ru' };
+    for (const sign of ZODIAC_KEYS) {
+      const signReading = { ...reading, sign };
+      query.mockResolvedValue({ rows: [{ payload: signReading }] });
+      for (const method of ['GET', 'POST', 'POST', 'GET']) {
+        const result = responseMock();
+        await handler({ method, query: { ...source, sign }, body: { ...source, sign } } as any, result.response);
+        expect(result.result).toMatchObject({ statusCode: 200, body: { reading: signReading, source: 'cache', stale: false } });
+      }
+    }
+    if (route === 'daily') expect(requireAppUser).not.toHaveBeenCalled();
+    query.mockResolvedValue({ rows: [] });
+    const missing = responseMock();
+    await handler({ method: 'POST', body: source } as any, missing.response);
+    expect(missing.result).toMatchObject({ statusCode: 404, body: { code } });
+    expect(generate).not.toHaveBeenCalled();
+    expect(query.mock.calls.every(([sql]) => sql.startsWith('SELECT'))).toBe(true);
+  });
+
   it('keeps each shared cache on its natural generation cadence', () => {
     expect(getContentPolicy('sign_daily_horoscope').generationPolicy).toBe('once_per_day');
     expect(getContentPolicy('sign_weekly_horoscope').generationPolicy).toBe('once_per_week');
@@ -150,38 +190,36 @@ describe('sign horoscope API access and cache contract', () => {
     expect(source).not.toContain('chart_id =');
   });
 
-  it('uses one period-language batch lock in cron prewarm and every sign API', () => {
-    for (const file of [
-      'lib/horoscope/signPrewarm.ts',
-      'pages/api/content/horoscope/sign-daily.ts',
-      'pages/api/content/horoscope/sign-weekly.ts',
-      'pages/api/content/horoscope/sign-monthly.ts',
-    ]) {
-      expect(fs.readFileSync(path.join(ROOT, file), 'utf8')).toContain('buildSignHoroscopeLockKey');
-    }
+  it('keeps stable period locks in the monthly job and removes generation from ordinary cron and APIs', () => {
+    const prewarm = fs.readFileSync(path.join(ROOT, 'lib/horoscope/signPrewarm.ts'), 'utf8');
+    expect(prewarm).toContain('buildSignHoroscopeLockKey');
     const lock = fs.readFileSync(path.join(ROOT, 'lib/horoscope/signGenerationLock.ts'), 'utf8');
     expect(lock).not.toContain('sign: ZodiacKey');
-    expect(lock).toContain('sign-batch:');
-  });
-
-  it('releases a failed cron slot so partial prewarm can retry', () => {
+    expect(lock).not.toContain('signHoroscopePromptVersion');
     const cron = fs.readFileSync(path.join(ROOT, 'pages/api/cron/tick.ts'), 'utf8');
-    const prewarm = fs.readFileSync(path.join(ROOT, 'lib/horoscope/signPrewarm.ts'), 'utf8');
-    expect(cron).toContain('lastRun.delete(job)');
-    expect(prewarm).toContain('SIGN_HOROSCOPE_PREWARM_PARTIAL_FAILURE');
-    expect(prewarm).toContain("result.status.startsWith('failed:')");
-    expect(prewarm).toContain("const PREWARM_LANGUAGES = ['ru'] as const");
-    expect(prewarm).not.toContain("['ru', 'en'] as const");
+    expect(cron).not.toContain('signPrewarm');
+    for (const period of ['Daily', 'Weekly', 'Monthly']) {
+      const reader = fs.readFileSync(path.join(ROOT, `lib/horoscope/sign${period}.ts`), 'utf8');
+      expect(reader).not.toContain('getOrGenerate');
+      expect(reader).not.toContain('signOrchestrator');
+    }
+    const orchestrator = fs.readFileSync(path.join(ROOT, 'lib/horoscope/signOrchestrator.ts'), 'utf8');
+    expect(orchestrator).not.toContain('getOrGenerateSignHoroscope');
+    for (const period of ['daily', 'weekly', 'monthly']) {
+      const api = fs.readFileSync(path.join(ROOT, `pages/api/content/horoscope/sign-${period}.ts`), 'utf8');
+      expect(api).not.toContain('getOrGenerate');
+      expect(api).not.toContain('withContentGenerationLock');
+    }
   });
 
   it('refreshes sign period keys after midnight and when the app becomes visible', () => {
-    const reader = fs.readFileSync(path.join(ROOT, 'views/v2/HoroscopeReader.tsx'), 'utf8');
+    const reader = fs.readFileSync(path.join(ROOT, 'views/v2/HoroscopeReaderClassic.tsx'), 'utf8');
     expect(reader).toContain('window.setInterval(refreshPeriodKeys, 60_000)');
     expect(reader).toContain("document.addEventListener('visibilitychange'");
     expect(reader).toContain('setToday(getMoscowTodayKey())');
   });
 
-  it('keeps Telegram authentication on Premium cache polling after a 202', () => {
+  it('keeps Telegram authentication on Premium cache reads and removes client generation/polling', () => {
     const service = fs.readFileSync(path.join(ROOT, 'services/astrologyService.ts'), 'utf8');
     for (const marker of ['getCachedWeeklySignHoroscope', 'getCachedMonthlySignHoroscope']) {
       const start = service.indexOf(`export const ${marker}`);
@@ -190,8 +228,66 @@ describe('sign horoscope API access and cache contract', () => {
       expect(implementation).toContain("credentials: 'include'");
       expect(implementation).toContain('headers: getTelegramInitDataHeaders()');
     }
-    expect(service).toContain('SIGN_HOROSCOPE_REQUEST_TIMEOUT_MS = 95_000');
-    expect(service).toContain('SIGN_HOROSCOPE_POLL_TIMEOUT_MS = 90_000');
+    expect(service).not.toContain('waitForCurrentSignHoroscope');
+    expect(service).not.toContain('SIGN_HOROSCOPE_POLL_TIMEOUT_MS');
     expect(service).toContain("payload.code || payload.error");
+  });
+});
+
+describe('dedicated monthly sign job', () => {
+  const previousSecret = process.env.CRON_SECRET;
+  afterEach(() => {
+    if (previousSecret === undefined) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = previousSecret;
+  });
+
+  function setup() {
+    process.env.CRON_SECRET = 'monthly-test-secret';
+    const prewarmSignMonth = jest.fn().mockResolvedValue({ failed: 0, generated: 36 });
+    const getCachedSignHoroscopes = jest.fn().mockResolvedValue({});
+    jest.doMock('../lib/horoscope/signPrewarm', () => ({
+      prewarmSignMonth,
+      buildSignMonthPrewarmTargets: () => [{ period: 'day', periodKey: '2026-09-30' }],
+    }));
+    jest.doMock('../lib/horoscope/signCache', () => ({ getCachedSignHoroscopes }));
+    const handler = require('../pages/api/cron/sign-month').default;
+    return { handler, prewarmSignMonth, getCachedSignHoroscopes };
+  }
+
+  it('rejects unauthorized generation and invalid month keys', async () => {
+    const { handler, prewarmSignMonth } = setup();
+    const unauthorized = responseMock();
+    await handler({ method: 'POST', headers: {}, body: {} }, unauthorized.response);
+    expect(unauthorized.result.statusCode).toBe(401);
+    const invalid = responseMock();
+    await handler({ method: 'POST', headers: { authorization: 'Bearer monthly-test-secret' }, body: { month: '1900-01' } }, invalid.response);
+    expect(invalid.result.statusCode).toBe(400);
+    expect(prewarmSignMonth).not.toHaveBeenCalled();
+  });
+
+  it('lets monitoring read month readiness without starting the provider', async () => {
+    const { handler, prewarmSignMonth, getCachedSignHoroscopes } = setup();
+    const result = responseMock();
+    await handler({ method: 'GET', headers: { authorization: 'Bearer monthly-test-secret' }, query: {} }, result.response);
+    expect(result.result).toMatchObject({ statusCode: 200, body: { totalTargets: 1, completeTargets: 0, complete: false } });
+    expect(getCachedSignHoroscopes).toHaveBeenCalled();
+    expect(prewarmSignMonth).not.toHaveBeenCalled();
+  });
+
+  it('starts one full month job and deduplicates another POST while it is running', async () => {
+    const { handler, prewarmSignMonth } = setup();
+    let finish!: (value: unknown) => void;
+    prewarmSignMonth.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+    const request = { method: 'POST', headers: { authorization: 'Bearer monthly-test-secret' }, body: { month: getMoscowMonthKey() } };
+    const first = responseMock();
+    const second = responseMock();
+    await handler(request, first.response);
+    await handler(request, second.response);
+    expect(first.result.statusCode).toBe(202);
+    expect(second.result.statusCode).toBe(202);
+    expect(prewarmSignMonth).toHaveBeenCalledTimes(1);
+    expect(prewarmSignMonth).toHaveBeenCalledWith({ targetMonthKey: getMoscowMonthKey() });
+    finish({ failed: 0 });
+    await Promise.resolve();
   });
 });

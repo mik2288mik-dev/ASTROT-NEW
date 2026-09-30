@@ -1,10 +1,6 @@
 import type { Language, SignHoroscopePeriod } from '../../types';
 import { withContentGenerationLock } from '../contentGenerationLock';
-import {
-  getMoscowIsoWeekKey,
-  getMoscowMonthKey,
-  getMoscowTodayKey,
-} from '../date-utils';
+import { getMoscowIsoWeekKey, getMoscowMonthKey } from '../date-utils';
 import { ZODIAC_KEYS } from '../zodiacKeys';
 import { logForecastDeliveryMetric } from '../forecastDeliveryMetrics';
 import { getCachedSignHoroscopes } from './signCache';
@@ -16,18 +12,9 @@ export interface SignPrewarmTarget {
   periodKey: string;
 }
 
-const PREWARM_LANGUAGES = ['ru'] as const;
-export const SIGN_MONTH_PREWARM_WORK_LIMIT = 1;
-
 function parseDateKey(key: string): Date {
   const [year, month, day] = key.split('-').map(Number);
   return new Date(Date.UTC(year, month - 1, day, 12));
-}
-
-function nextDateKey(key: string): string {
-  const value = parseDateKey(key);
-  value.setUTCDate(value.getUTCDate() + 1);
-  return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`;
 }
 
 function nextMonthKey(key: string): string {
@@ -56,43 +43,6 @@ export function buildSignMonthPrewarmTargets(targetMonthKey: string): SignPrewar
 
 export function getNextSignMonthPrewarmTargets(now = new Date()): SignPrewarmTarget[] {
   return buildSignMonthPrewarmTargets(nextMonthKey(getMoscowMonthKey(now)));
-}
-
-function moscowHour(now: Date): number {
-  return Number(new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/Moscow',
-    hour: '2-digit',
-    hour12: false,
-  }).format(now)) % 24;
-}
-
-function moscowWeekday(now: Date): number {
-  const value = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Moscow',
-    weekday: 'short',
-  }).format(now);
-  return ({ Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 } as Record<string, number>)[value] ?? 0;
-}
-
-export function getSignPrewarmTargets(now: Date): SignPrewarmTarget[] {
-  const today = getMoscowTodayKey(now);
-  const targets: SignPrewarmTarget[] = [
-    { period: 'day', periodKey: today },
-    { period: 'week', periodKey: getMoscowIsoWeekKey(now) },
-    { period: 'month', periodKey: getMoscowMonthKey(now) },
-  ];
-  if (moscowHour(now) >= 18) {
-    targets.push({ period: 'day', periodKey: nextDateKey(today) });
-  }
-  if (moscowWeekday(now) === 0) {
-    const nextWeekDate = new Date(now.getTime() + 7 * 86_400_000);
-    targets.push({ period: 'week', periodKey: getMoscowIsoWeekKey(nextWeekDate) });
-  }
-  const tomorrow = parseDateKey(nextDateKey(today));
-  if (getMoscowMonthKey(tomorrow) !== getMoscowMonthKey(now)) {
-    targets.push({ period: 'month', periodKey: nextMonthKey(getMoscowMonthKey(now)) });
-  }
-  return targets;
 }
 
 async function isTargetComplete(target: SignPrewarmTarget, language: Language): Promise<boolean> {
@@ -152,100 +102,48 @@ export async function prewarmSignHoroscopeTarget(
   }
 }
 
-export async function prewarmNextSignMonthIncrement(input: {
+/** Explicit monthly job. Ordinary cron and app requests never call this. */
+export async function prewarmSignMonth(input: {
+  targetMonthKey?: string;
   now?: Date;
-  workLimit?: number;
-  language?: Language;
   prewarmTarget?: typeof prewarmSignHoroscopeTarget;
 } = {}): Promise<{
   targetMonthKey: string;
   totalTargets: number;
   scannedTargets: number;
-  workUsed: number;
   cached: number;
   generated: number;
   inProgress: number;
   failed: number;
 }> {
-  const now = input.now || new Date();
-  const targetMonthKey = nextMonthKey(getMoscowMonthKey(now));
+  const targetMonthKey = input.targetMonthKey || nextMonthKey(getMoscowMonthKey(input.now || new Date()));
   const targets = buildSignMonthPrewarmTargets(targetMonthKey);
-  const language = input.language || 'ru';
   const prewarmTarget = input.prewarmTarget || prewarmSignHoroscopeTarget;
-  const workLimit = Math.max(0, Math.floor(input.workLimit ?? SIGN_MONTH_PREWARM_WORK_LIMIT));
   const result = {
     targetMonthKey,
     totalTargets: targets.length,
     scannedTargets: 0,
-    workUsed: 0,
     cached: 0,
     generated: 0,
     inProgress: 0,
     failed: 0,
   };
   for (const target of targets) {
-    if (result.workUsed >= workLimit) break;
     result.scannedTargets += 1;
     try {
-      const status = await prewarmTarget(target, language);
-      if (status === 'cached') {
-        result.cached += 1;
-        continue;
+      const status = await prewarmTarget(target, 'ru');
+      if (status === 'cached') result.cached += 1;
+      else if (status === 'generated') result.generated += 1;
+      else {
+        result.inProgress += 1;
+        break;
       }
-      result.workUsed += 1;
-      if (status === 'generated') result.generated += 1;
-      else result.inProgress += 1;
-    } catch {
-      result.workUsed += 1;
+    } catch (error) {
       result.failed += 1;
+      console.warn('[sign-month-prewarm] target failed:', target.period, target.periodKey,
+        error instanceof Error ? error.message : String(error));
+      break;
     }
   }
   return result;
-}
-
-export async function prewarmUpcomingSignHoroscopes(now = new Date()): Promise<{
-  targets: SignPrewarmTarget[];
-  results: Array<{ period: SignHoroscopePeriod; periodKey: string; language: Language; status: string }>;
-}> {
-  const targets = getSignPrewarmTargets(now);
-  const jobs = targets.flatMap((target) => (
-    PREWARM_LANGUAGES.map((language) => ({ target, language }))
-  ));
-  const results: Array<{
-    period: SignHoroscopePeriod;
-    periodKey: string;
-    language: Language;
-    status: string;
-  }> = new Array(jobs.length);
-  let cursor = 0;
-  const worker = async () => {
-    while (cursor < jobs.length) {
-      const index = cursor;
-      cursor += 1;
-      const { target, language } = jobs[index];
-      try {
-        results[index] = {
-          period: target.period,
-          periodKey: target.periodKey,
-          language,
-          status: await prewarmSignHoroscopeTarget(target, language),
-        };
-      } catch (error) {
-        results[index] = {
-          period: target.period,
-          periodKey: target.periodKey,
-          language,
-          status: `failed:${error instanceof Error ? error.message : String(error)}`,
-        };
-      }
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(2, jobs.length) }, () => worker()));
-  const failures = results.filter((result) => result.status.startsWith('failed:'));
-  if (failures.length > 0) {
-    throw new Error(`SIGN_HOROSCOPE_PREWARM_PARTIAL_FAILURE:${failures
-      .map((failure) => `${failure.period}:${failure.periodKey}:${failure.language}`)
-      .join(',')}`);
-  }
-  return { targets, results };
 }

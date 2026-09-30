@@ -11,7 +11,6 @@ import {
   MAX_SIGN_HOROSCOPE_WORDS,
   SIGN_HOROSCOPE_CACHE_VERSION,
   SIGN_HOROSCOPE_MODEL,
-  SIGN_HOROSCOPE_READING_SCHEMA_VERSION,
   cleanSignHoroscopeText,
   countSignHoroscopeWords,
   validateSignHoroscopeReading,
@@ -29,7 +28,8 @@ function policyType(period: SignHoroscopePeriod): GeneratedContentType {
 }
 
 export function signHoroscopePromptVersion(period: SignHoroscopePeriod): string {
-  return `${getContentPolicy(policyType(period)).promptVersion}:${SIGN_HOROSCOPE_CACHE_VERSION}`;
+  // Metadata for new rows only. Ready periods survive voice/prompt changes.
+  return `${policyType(period)}:${SIGN_HOROSCOPE_CACHE_VERSION}`;
 }
 
 function parseJson(value: unknown): unknown {
@@ -73,10 +73,10 @@ function coerceCachedSignReading(
   const periodKey = cleanSignHoroscopeText(input.periodKey) || cleanSignHoroscopeText(fallbackPeriodKey);
   if (!periodKey) return null;
 
-  if (input.schemaVersion === SIGN_HOROSCOPE_READING_SCHEMA_VERSION) {
+  if (typeof input.text === 'string') {
     const validated = validateSignHoroscopeReading(
       { headline: input.headline, text: input.text },
-      { ...expected, periodKey },
+      { ...expected, periodKey, enforceVoice: false },
     );
     return validated.ok ? validated.reading : null;
   }
@@ -114,11 +114,15 @@ async function readCurrentSignHoroscope(
   const result = await getPool().query(
     `SELECT payload FROM content_cache
      WHERE content_type = $1 AND period_key = $2 AND zodiac_sign = $3
-       AND content_key = $4 AND prompt_version = $5
-     LIMIT 1`,
-    [policyType(period), periodKey, sign, language, signHoroscopePromptVersion(period)],
+       AND content_key = $4
+     ORDER BY created_at ASC, prompt_version ASC`,
+    [policyType(period), periodKey, sign, language],
   );
-  return parseCachedSignReading(result.rows[0]?.payload, { sign, period, periodKey });
+  for (const row of result.rows) {
+    const reading = parseCachedSignReading(row.payload, { sign, period, periodKey });
+    if (reading) return reading;
+  }
+  return null;
 }
 
 async function readLatestContentCacheForecast(
@@ -130,7 +134,7 @@ async function readLatestContentCacheForecast(
   const result = await getPool().query(
     `SELECT payload, period_key
      FROM content_cache
-     WHERE content_type = $1 AND zodiac_sign = $2 AND content_key = $3
+     WHERE content_type = $1 AND zodiac_sign = $2 AND content_key = $3 AND period_key <= $4
      ORDER BY (period_key = $4) DESC, updated_at DESC, created_at DESC
      LIMIT 24`,
     [policyType(period), sign, language, currentPeriodKey],
@@ -145,14 +149,15 @@ async function readLatestContentCacheForecast(
 async function readLatestLegacyDailyForecast(
   sign: ZodiacKey,
   language: Language,
+  currentPeriodKey: string,
 ): Promise<SignHoroscopeReadingV2 | null> {
   const result = await getPool().query(
     `SELECT content, date::text AS period_key
      FROM daily_horoscopes
-     WHERE zodiac_sign LIKE $1
+     WHERE zodiac_sign LIKE $1 AND date <= $2::date
      ORDER BY date DESC
      LIMIT 24`,
-    [`${sign.toLowerCase()}:${language}:%`],
+    [`${sign.toLowerCase()}:${language}:%`, currentPeriodKey],
   );
   for (const row of result.rows) {
     const reading = coerceCachedSignReading(row.content, { sign, period: 'day' }, String(row.period_key || ''));
@@ -180,14 +185,15 @@ export async function getCachedSignHoroscopes(
   const result = await getPool().query(
     `SELECT zodiac_sign, payload FROM content_cache
      WHERE content_type = $1 AND period_key = $2 AND content_key = $3
-       AND prompt_version = $4 AND zodiac_sign = ANY($5::text[])`,
-    [policyType(period), periodKey, language, signHoroscopePromptVersion(period), signs],
+       AND zodiac_sign = ANY($4::text[])
+     ORDER BY created_at ASC, prompt_version ASC`,
+    [policyType(period), periodKey, language, signs],
   );
   const requested = new Set(signs);
   const readings: Partial<Record<ZodiacKey, SignHoroscopeReadingV2>> = {};
   result.rows.forEach((row) => {
     const sign = normalizeZodiacKey(String(row.zodiac_sign || ''));
-    if (!sign || !requested.has(sign)) return;
+    if (!sign || !requested.has(sign) || readings[sign]) return;
     const reading = parseCachedSignReading(row.payload, { sign, period, periodKey });
     if (reading) readings[sign] = reading;
   });
@@ -204,7 +210,7 @@ export async function getSignHoroscopeCacheSnapshot(
   if (current) return { reading: current, stale: false };
 
   const cached = await readLatestContentCacheForecast(period, sign, periodKey, language)
-    || (period === 'day' ? await readLatestLegacyDailyForecast(sign, language) : null);
+    || (period === 'day' ? await readLatestLegacyDailyForecast(sign, language, periodKey) : null);
   return cached ? { reading: cached, stale: true } : null;
 }
 
