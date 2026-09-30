@@ -128,7 +128,7 @@ describe('durable autonomous natal preparation', () => {
     await processNatalReadingPreparations();
     await processNatalReadingPreparations();
     expect(mockGenerate).toHaveBeenCalledTimes(1);
-    expect(mockGenerate.mock.calls[0][0].progress).toMatchObject({ ...draft, recoveryRevision: 'validated-draft-recovery-20260930' });
+    expect(mockGenerate.mock.calls[0][0].progress).toMatchObject({ ...draft, recoveryRevision: 'validated-draft-recovery-20260930-r2' });
     expect(jobs.map(job => job.status)).toEqual(['failed', 'ready', 'failed', 'failed']);
     expect(jobs[2].progress).toEqual({ ...draft, repairs: NATAL_MAX_BLOCK_REPAIRS });
   });
@@ -145,7 +145,7 @@ describe('durable autonomous natal preparation', () => {
   });
   it('recovers a carried old budget once and respects the persisted current budget thereafter', async () => {
     const draft = { writerStarted: true, raw: { story: [] }, repairs: 3,
-      recoveryRevision: 'validated-draft-recovery-20260930' };
+      recoveryRevision: 'validated-draft-recovery-20260930-r2' };
     jobs = [{ ...pending(), status: 'failed', attempts: 1, progress: draft }];
     mockGenerate.mockImplementationOnce(async ({ onProgress }) => {
       await onProgress({ ...draft, repairRevision: NATAL_COPY_REVISION });
