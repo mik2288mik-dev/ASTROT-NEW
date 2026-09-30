@@ -16,11 +16,11 @@ function query(sql: string, params: unknown[] = []) {
   if (sql.includes('pg_try_advisory_lock')) return { rows: [{ acquired }] };
   if (sql.includes("progress=jsonb_set(progress,'{recoveryRevision}'")) {
     for (const job of jobs) {
-      const progress = job.progress as { raw?: { story?: unknown[] }; repairs?: number; recoveryRevision?: string } | undefined;
+      const progress = job.progress as { raw?: { story?: unknown[] }; repairs?: number; recoveryRevision?: string; repairRevision?: string } | undefined;
       if (job.status === 'failed' && job.input_hash.endsWith(String(params[0]).slice(1))
         && Array.isArray(progress?.raw?.story) && Number(progress?.repairs) > 0
-        && (Number(progress?.repairs) < Number(params[2]) || job.last_error?.includes('paragraph adds no new observation'))
-        && progress?.recoveryRevision !== params[1]) {
+        && (Number(progress?.repairs) < Number(params[2]) || progress?.repairRevision !== params[3] || job.last_error?.includes('paragraph adds no new observation'))
+        && (progress?.recoveryRevision !== params[1] || progress?.repairRevision !== params[3])) {
         job.status = 'pending'; job.attempts = 0;
         job.progress = { ...progress, recoveryRevision: params[1] };
       }
@@ -117,7 +117,7 @@ describe('durable autonomous natal preparation', () => {
     expect(jobs[0].status).toBe('failed'); expect(mockGenerate).toHaveBeenCalledTimes(1);
   });
   it('recovers a prematurely rejected draft once and preserves completed or exhausted jobs', async () => {
-    const draft = { writerStarted: true, raw: { story: [{ id: 'story:1', text: 'Сохранённый текст.' }] }, repairs: 1 };
+    const draft = { writerStarted: true, raw: { story: [{ id: 'story:1', text: 'Сохранённый текст.' }] }, repairs: 1, repairRevision: NATAL_COPY_REVISION };
     jobs = [
       { ...pending(), status: 'failed', attempts: 1, progress: draft },
       { ...pending(), id: 2, chart_id: 10, status: 'ready', progress: draft },
@@ -142,6 +142,19 @@ describe('durable autonomous natal preparation', () => {
     expect(mockGenerate).toHaveBeenCalledTimes(1);
     expect(mockGenerate.mock.calls[0][0].progress.repairs).toBe(2);
     expect(jobs[0].status).toBe('ready');
+  });
+  it('recovers a carried old budget once and respects the persisted current budget thereafter', async () => {
+    const draft = { writerStarted: true, raw: { story: [] }, repairs: 3,
+      recoveryRevision: 'validated-draft-recovery-20260930' };
+    jobs = [{ ...pending(), status: 'failed', attempts: 1, progress: draft }];
+    mockGenerate.mockImplementationOnce(async ({ onProgress }) => {
+      await onProgress({ ...draft, repairRevision: NATAL_COPY_REVISION });
+      throw Object.assign(new Error('Still invalid'), { code: 'NATAL_WRITER_REJECTED' });
+    });
+    await processNatalReadingPreparations();
+    await processNatalReadingPreparations();
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    expect(jobs[0].status).toBe('failed');
   });
   it('limits transport retries and never creates an endless regeneration loop', async () => {
     jobs = [pending()]; mockGenerate.mockRejectedValue(new Error('DB unavailable'));

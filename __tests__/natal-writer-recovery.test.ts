@@ -4,6 +4,7 @@ import { buildNatalInterpretation } from '../lib/natalInterpretation';
 const mockResponse = jest.fn();
 jest.mock('../lib/openaiResponses', () => ({ createLunaStructuredResponse: (...args: unknown[]) => mockResponse(...args) }));
 import { buildNatalUnifiedWriterPlan, generateNatalUnifiedReading, NATAL_MAX_BLOCK_REPAIRS, type NatalWriterProgress } from '../lib/natalReading/unifiedGeneration';
+import { NATAL_COPY_REVISION } from '../lib/natalReading/unifiedReading';
 
 function fixture() {
   const chart = canonicalNatalChart();
@@ -42,6 +43,8 @@ describe('natal preparation preserves completed work', () => {
     const context = JSON.parse(repairInput.split('INPUT:\n')[1].split('\n\nPREVIOUS OUTPUT')[0]).preserved_context;
     expect(context.story[0]).toEqual({ text: raw.story[1].text, meaning_ids: raw.story[1].meaning_ids });
     expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_reading')).toHaveLength(1);
+    expect(repairInput).toContain('rejected_candidate');
+    expect(repairInput).toContain('Remove unsupported causes');
   });
   it('resumes a stored draft after a review transport failure without writing it again', async () => {
     const { chart, raw, checks } = fixture();
@@ -103,13 +106,28 @@ describe('natal preparation preserves completed work', () => {
   it('resumes a rejected stored draft within its remaining budget and stops at the limit', async () => {
     const { chart, raw, checks } = fixture();
     const rejection = { ...checks[0], issues: [{ kind: 'unsupported_claim', detail: 'Новый мотив' }] };
-    const progress = { writerStarted: true, repairs: NATAL_MAX_BLOCK_REPAIRS - 1, raw };
+    const progress = { writerStarted: true, repairs: NATAL_MAX_BLOCK_REPAIRS - 1, repairRevision: NATAL_COPY_REVISION, raw };
     mockResponse.mockResolvedValueOnce(reply({ checks: [rejection, ...checks.slice(1)] }))
       .mockResolvedValueOnce(reply({ story: [raw.story[0]], topics: [] }))
       .mockResolvedValueOnce(reply({ checks: [rejection] }));
     await expect(generateNatalUnifiedReading({ chart, tier: 'premium', progress })).rejects.toMatchObject({ code: 'NATAL_WRITER_REJECTED' });
     expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_reading')).toHaveLength(0);
     expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_block_repair')).toHaveLength(1);
+  });
+  it('assigns an inherited draft a finite current-revision edit budget and never replenishes it on restart', async () => {
+    const { chart, raw, checks } = fixture();
+    const rejected = checks.map((item, index) => index === 0 ? { ...item, issues: [{ kind: 'unsupported_claim', detail: 'Added cause' }] } : item);
+    let saved: NatalWriterProgress | undefined;
+    const onProgress = async (progress: NatalWriterProgress) => { saved = JSON.parse(JSON.stringify(progress)); };
+    mockResponse.mockResolvedValueOnce(reply({ checks: rejected })).mockRejectedValueOnce(new Error('repair connection closed'));
+    await expect(generateNatalUnifiedReading({ chart, tier: 'premium', progress: { writerStarted: true, repairs: 3, raw }, onProgress })).rejects.toThrow('repair connection closed');
+    expect(saved).toMatchObject({ repairRevision: NATAL_COPY_REVISION, repairs: 1 });
+    mockResponse.mockResolvedValueOnce(reply({ checks: rejected }))
+      .mockResolvedValueOnce(reply({ story: [raw.story[0]], topics: [] }))
+      .mockResolvedValueOnce(reply({ checks: [checks[0]] }));
+    await generateNatalUnifiedReading({ chart, tier: 'premium', progress: saved, onProgress });
+    expect(saved?.repairs).toBe(2);
+    expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_reading')).toHaveLength(0);
   });
   it('corrects only an outdated rest block in a saved draft and retains the story', async () => {
     const { chart, raw, checks } = fixture();

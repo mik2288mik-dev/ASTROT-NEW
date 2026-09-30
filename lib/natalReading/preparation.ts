@@ -94,9 +94,11 @@ export async function processNatalReadingPreparations(): Promise<void> {
          AND jsonb_typeof(progress->'raw'->'story')='array'
          AND COALESCE((progress->>'repairs')::int,0)>0
          AND (COALESCE((progress->>'repairs')::int,0)<$3
+              OR COALESCE(progress->>'repairRevision','')<>$4
               OR last_error LIKE '%paragraph adds no new observation%')
-         AND COALESCE(progress->>'recoveryRevision','')<>$2`,
-      [`%:${NATAL_COPY_REVISION}`, REJECTED_DRAFT_RECOVERY, NATAL_MAX_BLOCK_REPAIRS],
+         AND (COALESCE(progress->>'recoveryRevision','')<>$2
+              OR COALESCE(progress->>'repairRevision','')<>$4)`,
+      [`%:${NATAL_COPY_REVISION}`, REJECTED_DRAFT_RECOVERY, NATAL_MAX_BLOCK_REPAIRS, NATAL_COPY_REVISION],
     );
     await reconcileSavedCharts();
     const pending = await client.query(
