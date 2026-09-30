@@ -24,6 +24,8 @@ describe('chart onboarding and lazy sections', () => {
     expect(app).toContain('isSetup: true');
     expect(app).toContain('await saveProfile(canonicalFullProfile)');
     expect(app).toContain('buildNatalChartCacheKey(canonicalFullProfile)');
+    expect(app.indexOf('await waitForPreparedNatalReading({'))
+      .toBeLessThan(app.indexOf('await saveProfile(canonicalFullProfile)'));
   });
 
   it('coalesces the full chart read/calculate flow and never returns a stale lock-loser chart', () => {
@@ -76,7 +78,7 @@ describe('chart onboarding and lazy sections', () => {
     expect(report).toContain('ensureNatalUnifiedReading');
     expect(contract).toContain('projectNatalUnifiedReadingForTier');
     expect(contract).toContain('natalUnifiedFreeStoryBlockCount');
-    expect(api).toContain("generateNatalUnifiedReadingWithLock");
+    expect(api).not.toContain("generateNatalUnifiedReadingWithLock");
     expect(api).toContain("projectNatalUnifiedReadingForTier(cached.content, tier)");
   });
 
@@ -122,7 +124,7 @@ describe('chart onboarding and lazy sections', () => {
 
     expect(magazine).toContain('<InteractiveNatalMap');
     expect(magazine).toContain('<NatalUnifiedReport');
-    expect(report).toContain('Preparing your reading');
+    expect(report).toContain('Loading your reading');
     expect(report).toContain('Разбор не загрузился. Попробуй ещё раз.');
     expect(report).toContain('setRetryToken');
     expect(report).not.toContain('HumanReport');

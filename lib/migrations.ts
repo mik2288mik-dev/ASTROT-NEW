@@ -3,6 +3,7 @@
 
 import { Pool, type PoolClient } from 'pg';
 import { resolveDatabaseUrl } from './database-url';
+import { NATAL_READING_JOBS_SCHEMA } from './natalReading/jobSchema';
 import { NOTIFICATION_SCENARIO_SEEDS } from './notificationScenarioCatalog';
 import { RETENTION_NOTIFICATION_SCENARIO_SEEDS } from './retentionNotificationCatalog';
 
@@ -4221,6 +4222,10 @@ export async function runMigrations(): Promise<void> {
     await mvp057AdminObservabilityFoundation(migrationDb);
     await mvp058NeboOpsPreferences(migrationDb);
     await mvp059UserAcquisitionKeys(migrationDb);
+    if (!await isMigrationApplied(migrationDb, 'mvp060_natal_reading_preparation')) {
+      await migrationDb.query(NATAL_READING_JOBS_SCHEMA);
+      await markMigrationApplied(migrationDb, 'mvp060_natal_reading_preparation');
+    }
     await mvp044PremiumEntitlementLifecycle(migrationDb);
     await mvp045RuStoreCallbackOrdering(migrationDb);
     await mvp046RuStoreProviderOverlay(migrationDb);

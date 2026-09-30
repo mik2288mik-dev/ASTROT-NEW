@@ -564,6 +564,11 @@ export const createChart = async (
     throw new Error(err.message || err.error || `Failed to create chart: ${res.status}`);
   }
   const chart = await res.json() as ChartListItem;
+  const { waitForPreparedNatalReading } = await import('./natalUnifiedReadingService');
+  await waitForPreparedNatalReading({
+    userId, chartId: chart.id, chartData: chart.chart_data,
+    language: data.language === 'en' ? 'en' : 'ru', tier: 'premium',
+  });
   return normalizeChartListItem(chart);
 };
 

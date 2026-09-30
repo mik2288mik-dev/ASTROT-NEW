@@ -1,12 +1,12 @@
 import { createHash } from 'crypto';
 import type { ContentInterpretation } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
+import { db, getPool } from '../db';
 import {
   buildContentGenerationLockKey,
   withContentGenerationLock,
 } from '../contentGenerationLock';
 import {
-  getCachedReading,
   saveReading,
   type CachedReadingOptions,
   type ReadingContext,
@@ -15,7 +15,6 @@ import { generateNatalUnifiedReading } from './unifiedGeneration';
 import {
   isNatalUnifiedReading,
   NATAL_UNIFIED_READING_CACHE_KEY,
-  NATAL_UNIFIED_READING_CONTRACT_VERSION,
   NATAL_UNIFIED_READING_PROMPT_VERSION,
   type NatalUnifiedReading,
   type NatalUnifiedReadingTier,
@@ -62,13 +61,20 @@ function stableChart(chart: NatalChartDataV2) {
   };
 }
 
-function inputHash(ctx: ReadingContext): string {
+export function natalUnifiedReadingInputHash(ctx: ReadingContext): string {
+  return createHash('sha256').update(JSON.stringify({
+    birth: canonicalChart(ctx).birth,
+    language: languageOf(ctx),
+  })).digest('hex');
+}
+
+function legacyInputHash(ctx: ReadingContext, promptVersion: string, contractVersion: string): string {
   const chart = canonicalChart(ctx);
   return createHash('sha256').update(JSON.stringify({
     chart: stableChart(chart),
     language: languageOf(ctx),
-    contractVersion: NATAL_UNIFIED_READING_CONTRACT_VERSION,
-    promptVersion: NATAL_UNIFIED_READING_PROMPT_VERSION,
+    contractVersion,
+    promptVersion,
   })).digest('hex');
 }
 
@@ -80,8 +86,8 @@ export function natalUnifiedReadingCacheOptions(
   return {
     accessTier: 'premium',
     contentVariant: 'full',
-    cacheKey: `${NATAL_UNIFIED_READING_CACHE_KEY}.canonical.${language}`,
-    inputHash: inputHash(ctx),
+    cacheKey: `${NATAL_UNIFIED_READING_CACHE_KEY}.canonical.${language}.${natalUnifiedReadingInputHash(ctx)}`,
+    inputHash: natalUnifiedReadingInputHash(ctx),
     promptVersion: NATAL_UNIFIED_READING_PROMPT_VERSION,
     modelTier: 'premium',
     isPersistent: true,
@@ -92,17 +98,37 @@ export async function getCachedNatalUnifiedReading(
   ctx: ReadingContext,
   tier: NatalUnifiedReadingTier,
 ): Promise<ContentInterpretation<NatalUnifiedReading> | null> {
-  const cached = await getCachedReading<NatalUnifiedReading>(
-    ctx,
-    natalUnifiedReadingCacheOptions(ctx, tier),
+  if (ctx.chartId == null) return null;
+  const options = natalUnifiedReadingCacheOptions(ctx, tier);
+  // Old voice versions remain readable. Verify the actual chart and language,
+  // rather than treating editorial version changes as missing natal content.
+  const candidates = await getPool().query<{ cache_key: string }>(
+    `SELECT cache_key FROM content_interpretations
+     WHERE chart_id=$1 AND user_id=$2 AND access_tier='premium'
+       AND content_surface='natal' AND content_variant='full'
+       AND cache_key LIKE 'natal.unified-reading.v3%'
+     ORDER BY created_at ASC, id ASC`,
+    [ctx.chartId, String(ctx.profile.id)],
   );
-  return cached && isNatalUnifiedReading(cached.content) ? cached : null;
+  for (const row of candidates.rows) {
+    const cached = await db.content_interpretations.getByChart(
+      ctx.chartId, 'premium', 'natal', 'full', row.cache_key, true,
+    ) as ContentInterpretation<NatalUnifiedReading> | null;
+    if (!cached || !isNatalUnifiedReading(cached.content) || cached.content.tier !== 'premium') continue;
+    const matches = cached.inputHash === options.inputHash || cached.inputHash === legacyInputHash(
+      ctx, String(cached.promptVersion || ''), cached.content.contractVersion,
+    );
+    if (matches) return cached;
+  }
+  return null;
 }
 
 export async function generateNatalUnifiedReadingWithLock(input: {
   userId: string;
   ctx: ReadingContext;
   tier: NatalUnifiedReadingTier;
+  progress?: Parameters<typeof generateNatalUnifiedReading>[0]['progress'];
+  onProgress?: Parameters<typeof generateNatalUnifiedReading>[0]['onProgress'];
 }) {
   const options = natalUnifiedReadingCacheOptions(input.ctx, input.tier);
   return withContentGenerationLock({
@@ -113,7 +139,7 @@ export async function generateNatalUnifiedReadingWithLock(input: {
       contentSurface: 'natal',
       contentVariant: options.contentVariant,
       cacheKey: options.cacheKey,
-      promptVersion: options.promptVersion,
+      promptVersion: options.inputHash,
     }),
     operation: 'natal-unified-generation',
     readCached: async () => {
@@ -127,6 +153,8 @@ export async function generateNatalUnifiedReadingWithLock(input: {
         chart: canonicalChart(input.ctx),
         language: languageOf(input.ctx),
         tier: 'premium',
+        progress: input.progress,
+        onProgress: input.onProgress,
       });
       return saveReading(input.ctx, options, reading);
     },

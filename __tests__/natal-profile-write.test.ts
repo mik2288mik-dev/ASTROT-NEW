@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 const mockGetUser = jest.fn();
 const mockUpdateUser = jest.fn();
 const mockEnsureChart = jest.fn();
+const mockEnqueueReading = jest.fn();
 const mockBirthGet = jest.fn();
 const mockBirthSet = jest.fn();
 jest.mock('../lib/db', () => ({
@@ -13,6 +14,7 @@ jest.mock('../lib/birthProfileRepository', () => ({ birthProfileRepository: {
   get: (...args: unknown[]) => mockBirthGet(...args), set: (...args: unknown[]) => mockBirthSet(...args),
 } }));
 jest.mock('../lib/natalChartPersistence', () => ({ ensureCanonicalPrimaryChart: (...args: unknown[]) => mockEnsureChart(...args) }));
+jest.mock('../lib/natalReading/preparation', () => ({ enqueueNatalReadingPreparation: (...args: unknown[]) => mockEnqueueReading(...args) }));
 jest.mock('../lib/auth/appAuth', () => ({ requireAppUser: async () => ({ userId: '42' }) }));
 jest.mock('../lib/adminAuth', () => ({ AdminAuthError: class extends Error {}, getConfiguredOwnerId: () => null, handleAdminError: jest.fn() }));
 jest.mock('../lib/database-url', () => ({ hasDatabaseUrl: () => true }));
@@ -44,6 +46,8 @@ describe('birth profile writes use the canonical snapshot transaction', () => {
       coordinates: { lat: 55.79, lon: 49.12, timezone: 'Europe/Moscow' },
     }));
     expect(mockEnsureChart.mock.invocationCallOrder[0]).toBeLessThan(mockUpdateUser.mock.invocationCallOrder[0]);
+    expect(mockEnqueueReading).toHaveBeenCalledWith({ id: 1 }, 'ru');
+    expect(mockEnsureChart.mock.invocationCallOrder[0]).toBeLessThan(mockEnqueueReading.mock.invocationCallOrder[0]);
     expect(mockUpdateUser.mock.calls[0][1]).not.toHaveProperty('birth_date');
     expect(mockUpdateUser.mock.calls[0][1]).not.toHaveProperty('birth_time');
     expect(mockUpdateUser.mock.calls[0][1]).not.toHaveProperty('birth_place');
@@ -62,6 +66,7 @@ describe('birth profile writes use the canonical snapshot transaction', () => {
     expect((await request({}, 'GET')).status).toHaveBeenCalledWith(200);
     expect((await request({ theme: 'dark', name: 'Maria' })).status).toHaveBeenCalledWith(200);
     expect(mockEnsureChart).not.toHaveBeenCalled();
+    expect(mockEnqueueReading).not.toHaveBeenCalled();
   });
 
   it('preserves unknown-time accuracy when the user explicitly changes it', async () => {

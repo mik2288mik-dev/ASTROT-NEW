@@ -16,7 +16,7 @@ birth data
 → Рассказ / По темам / Карта / Спросить о себе
 ```
 
-Расчёт и сохранение не входят в scope текстового слоя: `lib/swisseph-calculator.ts`, `lib/birthTime.ts`, `lib/natalChartV2Types.ts`, `lib/natalChartCanonical.ts`, `lib/natalChartPersistence.ts`, `lib/natalChartV2Repository.ts`, `lib/natalChartRead.ts`, `pages/api/charts/index.ts` и `services/chartService.ts` не меняются при работе над разбором.
+Расчёт и сохранение не входят в scope текстового слоя: `lib/swisseph-calculator.ts`, `lib/birthTime.ts`, `lib/natalChartV2Types.ts`, `lib/natalChartCanonical.ts`, `lib/natalChartPersistence.ts`, `lib/natalChartV2Repository.ts`, `lib/natalChartRead.ts` и `services/chartService.ts` не меняются при работе над разбором. Обработчики сохранения карты и профиля ставят задачу подготовки текста только после успешного сохранения canonical snapshot; этот вызов не меняет расчёт карты.
 
 ## Meanings и writer
 
@@ -34,9 +34,11 @@ birth data
 
 ## Cache, retry и compatibility
 
-`NATAL_UNIFIED_READING_CONTRACT_VERSION`, `NATAL_UNIFIED_READING_PROMPT_VERSION` и `NATAL_UNIFIED_READING_CACHE_KEY` из `lib/natalReading/unifiedReading.ts` определяют identity единого reading. Смена voice, contract или prompt не вызывает Swiss recalculation.
+Identity сохранённого reading определяется картой, исходными данными рождения и языком. Версии writer и voice описывают происхождение текста и не сбрасывают готовый разбор. Смена подписки также не создаёт новый reading: Free и Premium получают разные проекции одного полного текста.
 
-`pages/api/content/natal/reading.ts` и `lib/natalReading/unifiedApi.ts` работают с canonical snapshot, cache и generation lock. Ошибки возвращаются как retryable состояния; не сохраняй пустой или выдуманный успех.
+`lib/natalReading/preparation.ts` самостоятельно обрабатывает сохранённые в `natal_reading_jobs` задачи и восстанавливает отсутствующие разборы уже созданных карт. Задача записывает результат writer до проверки и продолжает с него после сбоя; исправления ограничены отклонёнными блоками. Неполное перечисление деталей не отклоняет готовый текст, но новые утверждения, противоречия и советы требуют исправления. Не сохраняй пустой или непроверенный успех.
+
+`pages/api/content/natal/reading.ts` и compatibility endpoints только читают сохранённый reading, включая POST от опубликованных клиентов. Открытие раздела, переключение представлений и повторная загрузка не запускают writer. Первый сценарий создания карты ждёт готовности серверной задачи до завершения; последующие открытия читают результат. Раздел «Спросить» сохраняет отдельную генерацию ответа на каждый вопрос.
 
 `/human-base`, `/human-premium`, `/human-section`, `/catalog` и `/catalog-answer` остаются только compatibility endpoints для опубликованных APK. Они получают unified reading через `loadUnifiedReadingForLegacyEndpoint()` и проецируют его в старую JSON-форму через `legacyCompatibility.ts`. Не добавляй в них генерацию, cache или meaning engine.
 

@@ -94,7 +94,7 @@ import {
     type FeatureKey,
 } from './lib/accessMatrix';
 import { captureAppHomeLayout, installAppDebugGlobal, appDebugLog } from './lib/appDebug';
-import { clearNatalUnifiedReadingCache } from './services/natalUnifiedReadingService';
+import { clearNatalUnifiedReadingCache, waitForPreparedNatalReading } from './services/natalUnifiedReadingService';
 import {
     clearPersonalForecastSessionCache,
 } from './services/personalForecastService';
@@ -1211,6 +1211,14 @@ const App: React.FC = () => {
             };
             
             console.log('[App] Chart calculated');
+            clearNatalUnifiedReadingCache(safeUserId);
+            const preparedChartId = await getPrimaryChartId(safeUserId);
+            await waitForPreparedNatalReading({
+                userId: safeUserId, chartData: generatedChart,
+                chartId: preparedChartId ?? undefined,
+                language: canonicalFullProfile.language, tier: 'free',
+            }, { isCurrent: () => primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken) });
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
 
             // Завершение фиксируется только после готовой карты. Повтор после сбоя
             // безопасен: профиль обновляется по тому же ID, а chartService читает
@@ -1231,7 +1239,6 @@ const App: React.FC = () => {
             const primaryKey = buildNatalChartCacheKey(canonicalFullProfile);
             primaryChartSessionRef.current = { key: primaryKey, data: generatedChart, promise: null };
             primaryChartDataRef.current = generatedChart;
-            clearNatalUnifiedReadingCache(canonicalFullProfile.id);
             setChartLoadState('ready');
             setChartData(generatedChart);
             writeLocalNatalChart(canonicalFullProfile, generatedChart);

@@ -1,7 +1,6 @@
 import type { ContentInterpretation } from '../../types';
 import type { ReadingContext } from './apiHelper';
 import {
-  generateNatalUnifiedReadingWithLock,
   getCachedNatalUnifiedReading,
 } from './unifiedApi';
 import type { NatalUnifiedReading } from './unifiedReading';
@@ -36,23 +35,5 @@ export async function loadUnifiedReadingForLegacyEndpoint(input: {
     };
   }
 
-  if (input.method === 'GET') return { status: 'not_found' };
-
-  const generated = await generateNatalUnifiedReadingWithLock({
-    userId: input.userId,
-    ctx: input.ctx,
-    tier: 'premium',
-  });
-  if (generated.status === 'in_progress') {
-    return {
-      status: 'in_progress',
-      retryAfterMs: generated.retryAfterMs,
-    };
-  }
-  return {
-    status: 'ready',
-    interpretation: generated.value,
-    source: generated.fromCache ? (generated.source || 'natal_unified_v1') : 'generated',
-    fromCache: generated.fromCache,
-  };
+  return { status: 'not_found' };
 }

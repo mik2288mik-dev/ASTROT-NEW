@@ -1,4 +1,7 @@
 import { ensureNotificationScheduler } from './lib/notificationScheduler';
+import { ensureNatalReadingPreparationWorker } from './lib/natalReading/preparation';
+
+ensureNatalReadingPreparationWorker();
 
 try {
   ensureNotificationScheduler('instrumentation');

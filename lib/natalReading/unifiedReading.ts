@@ -1,13 +1,9 @@
-import { withCoreVoiceCacheKey, withCoreVoiceVersion } from '../voice/core';
 import { NATAL_INTERPRETATION_VERSION, type NatalMeaningTopic } from '../natalInterpretation';
 
 export const NATAL_UNIFIED_READING_CONTRACT_VERSION = 'natal-unified-reading-v2';
-export const NATAL_UNIFIED_READING_PROMPT_VERSION = withCoreVoiceVersion(
-  `${NATAL_UNIFIED_READING_CONTRACT_VERSION}.writer.v3`,
-);
-export const NATAL_UNIFIED_READING_CACHE_KEY = withCoreVoiceCacheKey(
-  'natal.unified-reading.v3',
-);
+// Provenance for new writing, never an expiry rule for a saved reading.
+export const NATAL_UNIFIED_READING_PROMPT_VERSION = `${NATAL_UNIFIED_READING_CONTRACT_VERSION}.writer.v4`;
+export const NATAL_UNIFIED_READING_CACHE_KEY = 'natal.unified-reading.v3';
 
 export type NatalUnifiedReadingTier = 'free' | 'premium';
 

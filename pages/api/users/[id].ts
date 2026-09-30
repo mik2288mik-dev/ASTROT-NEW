@@ -8,6 +8,7 @@ import { toDateInputValue } from '../../../lib/date-utils';
 import { normalizeBirthClockTime, normalizeBirthTimeInput } from '../../../lib/birthTime';
 import { normalizeBirthTimeInput as normalizeLegacyBirthTime } from '../../../lib/natalChartCanonical';
 import { ensureCanonicalPrimaryChart } from '../../../lib/natalChartPersistence';
+import { enqueueNatalReadingPreparation } from '../../../lib/natalReading/preparation';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { getPremiumEntitlementState, publicPremiumEntitlementSnapshot } from '../../../lib/contentArchitecture';
 import {
@@ -80,10 +81,11 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     if(hasBirthInput&&(!birthDate||!birthPlace)&&(data.isSetup===true||(current.birth_date&&current.birth_place))){
       return res.status(400).json({error:'Invalid birth data',message:'Birth date and place are required.'});
     }
+    let natalChartForPreparation;
     if(hasBirthInput&&birthDate&&birthPlace){
       // The canonical writer commits the snapshot and birth profile together.
       // Do not write birth fields again below: another edit may already be next.
-      await ensureCanonicalPrimaryChart({
+      const preparedChart = await ensureCanonicalPrimaryChart({
         userId,name:dbUser.name||current.name||'',birthDate,birthPlace,
         birthTime:time.localTime||undefined,birthTimeMode:time.mode,
         birthTimeUncertaintyMinutes:time.uncertaintyMinutes,
@@ -91,12 +93,16 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
         language:dbUser.language,
         coordinates:{lat:data.birthLatitude,lon:data.birthLongitude,timezone:data.birthTimezone},
       });
+      natalChartForPreparation = preparedChart.chart;
     }
     if(data.isSetup!==undefined)dbUser.is_setup=data.isSetup===true;
     if(data.selectedZodiacSign!==undefined||data.selected_zodiac_sign!==undefined)dbUser.selected_zodiac_sign=normalizeNullableString(data.selectedZodiacSign??data.selected_zodiac_sign);
     if(data.gender!==undefined){const gender=String(data.gender??'');dbUser.gender=['male','female','unspecified'].includes(gender)?gender:null;}
     const saved=await db.users.updateExisting(userId,dbUser);
     if(!saved)return res.status(401).json({error:'APP_SESSION_REVOKED',message:'This account no longer exists'});
+    if(natalChartForPreparation) await enqueueNatalReadingPreparation(
+      natalChartForPreparation, dbUser.language === 'en' ? 'en' : 'ru',
+    );
     await saveNotificationFrequency(userId,data.notificationFrequency);
     const refreshed=await db.users.get(userId);
     const birthSettings=await birthProfileRepository.get(userId);
