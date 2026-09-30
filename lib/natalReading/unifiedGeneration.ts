@@ -377,20 +377,16 @@ export function materializeNatalUnifiedReading(input: {
   }
 
   // The author may cover the chapter's whole material in its first paragraph.
-  // A planned continuation is then unnecessary, not a reason to reject the
-  // report or order more writing. Retained paragraphs still undergo review.
-  for (const [section, allowed] of [
-    [story, input.plan.story[0]?.meaningIds || []],
-    ...topics.map(topic => [topic.blocks, input.plan.topics.find(item => item.key === topic.key)!.blocks[0].meaningIds]),
-  ] as [NatalUnifiedStoryBlock[], readonly string[]][]) {
+  // A continuation that adds no observation is unnecessary even when minor
+  // source details were omitted. Retained paragraphs still undergo review.
+  for (const section of [story, ...topics.map(topic => topic.blocks)]) {
     const used = new Set<string>();
     for (let index = 0; index < section.length; index += 1) {
       const block = section[index];
-      if (block.meaningIds.every(id => used.has(id)) && allowed.every(id => used.has(id))) {
+      if (block.meaningIds.every(id => used.has(id))) {
         section.splice(index--, 1);
         continue;
       }
-      if (block.meaningIds.every(id => used.has(id))) errors.push(`${block.id}: paragraph adds no new observation`);
       block.meaningIds.forEach(id => used.add(id));
     }
   }

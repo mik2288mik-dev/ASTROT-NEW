@@ -13,7 +13,7 @@ export function natalReadingPreparationInputHash(ctx: ReadingContext): string {
 }
 
 const WORKER_LOCK = 'natal-reading-preparation-v1';
-const REJECTED_DRAFT_RECOVERY = 'validated-draft-recovery-20260930';
+const REJECTED_DRAFT_RECOVERY = 'validated-draft-recovery-20260930-r2';
 let schema: Promise<void> | undefined;
 let timer: ReturnType<typeof setInterval> | undefined;
 let processing = false;

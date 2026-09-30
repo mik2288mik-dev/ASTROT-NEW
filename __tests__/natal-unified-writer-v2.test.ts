@@ -178,7 +178,7 @@ describe('hardened unified natal writer', () => {
     expect(materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan }).errors).toEqual([]);
   });
 
-  it('rejects copying the story into a topic and restating an observation in the next paragraph', () => {
+  it('rejects copying the story into a topic and removes a redundant continuation', () => {
     const interpretation = buildNatalInterpretation(canonicalNatalChart());
     const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
     const raw = validRaw(plan);
@@ -187,7 +187,9 @@ describe('hardened unified natal writer', () => {
     const repeated = validRaw(plan);
     repeated.story[1].meaning_ids = repeated.story[0].meaning_ids;
     repeated.story[1].text = 'Первый шаг тебе даётся проще, когда уже понятно, за какое дело хочется взяться.';
-    expect(materializeNatalUnifiedReading({ raw: repeated, interpretation, tier: 'premium', plan }).errors.join(' ')).toContain('paragraph adds no new observation');
+    const result = materializeNatalUnifiedReading({ raw: repeated, interpretation, tier: 'premium', plan });
+    expect(result.errors).toEqual([]);
+    expect(result.reading!.story.some(block => block.id === repeated.story[1].id)).toBe(false);
   });
 
   it.each([
@@ -214,5 +216,18 @@ describe('hardened unified natal writer', () => {
     expect(result.reading!.topics[topicIndex].blocks).toEqual([
       { id: topic.blocks[0].id, text: topic.blocks[0].text, meaningIds: topic.blocks[0].meaning_ids },
     ]);
+  });
+  it('drops a repeated topic observation without forcing omitted minor details into new prose', () => {
+    const interpretation = buildNatalInterpretation(canonicalNatalChart());
+    const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+    const raw = validRaw(plan);
+    const topicIndex = plan.topics.findIndex(topic => topic.blocks.length > 1);
+    const topic = raw.topics[topicIndex];
+    expect(topic.blocks[0].meaning_ids.length).toBeLessThan(plan.topics[topicIndex].blocks[0].meaningIds.length);
+    topic.blocks[1].meaning_ids = [...topic.blocks[0].meaning_ids];
+    const result = materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan });
+    expect(result.errors).toEqual([]);
+    expect(result.reading!.topics[topicIndex].blocks).toHaveLength(1);
+    expect(result.reading!.topics[topicIndex].blocks[0].text).toBe(topic.blocks[0].text);
   });
 });
