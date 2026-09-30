@@ -28,6 +28,7 @@ export type NatalWriterProgress = {
   recoveryRevision?: string;
   raw?: RawPayload;
   repairs: number;
+  repairRevision?: string;
   reading?: NatalUnifiedReading;
 };
 
@@ -161,6 +162,9 @@ function promptPlan(
     surface,
     meaning_ids: block.meaningIds,
     paragraph_focus: block.focusMeaningIds || block.meaningIds,
+    ...(errors.length && current ? { rejected_candidate: surface === 'story'
+      ? current.story?.find(candidate => candidate.id === block.id)
+      : current.topics?.find(topic => topic.key === surface.slice(6))?.blocks?.find(candidate => candidate.id === block.id) } : {}),
     allowed_meanings: block.meaningIds.map((id) => {
       const meaning = byId.get(id)!;
       return {
@@ -254,7 +258,7 @@ ${JSON.stringify(payload, null, 2)}${errors.length ? `
 
 PREVIOUS OUTPUT WAS REJECTED:
 ${errors.join('\n')}
-Write a new candidate and fix every listed issue.` : ''}`;
+Edit rejected_candidate only as much as necessary to fix the listed issues. Keep its grounded sentences and neighbouring continuity. Remove unsupported causes, conditions or claims instead of replacing them with new explanations. Do not introduce new claims while repairing. Use only supplied meaning IDs.` : ''}`;
 }
 
 const VISIBLE_ASTROLOGY = /(?:солнц\p{L}*|лун\p{L}*|меркур\p{L}*|венер\p{L}*|марс\p{L}*|юпитер\p{L}*|сатурн\p{L}*|уран\p{L}*|нептун\p{L}*|плутон\p{L}*|хирон\p{L}*|узел\p{L}*|асцендент|десцендент|\bMC\b|\bIC\b|аспект\p{L}*|трин\p{L}*|секстил\p{L}*|квадрат\p{L}*|оппозиц\p{L}*|соединени\p{L}*|\d{1,2}\s+дом\p{L}*|орб\p{L}*|ретроград\p{L}*|\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|ascendant|descendant|aspect|trine|sextile|square|opposition|conjunction|retrograde)\b)/iu;
@@ -556,6 +560,14 @@ export async function generateNatalUnifiedReading(input: {
   const progress: NatalWriterProgress = { ...input.progress, repairs: input.progress?.repairs || 0 };
   if (progress.reading) return progress.reading;
   const checkpoint = async () => { await input.onProgress?.(progress); };
+  // A previous editorial revision's spent repairs do not consume this revision's
+  // finite block-edit budget. Persist the revision before any AI request so a
+  // restart cannot replenish that budget. The original writer is never repeated.
+  if (progress.repairRevision !== NATAL_COPY_REVISION) {
+    progress.repairs = 0;
+    progress.repairRevision = NATAL_COPY_REVISION;
+    await checkpoint();
+  }
   // A topic source correction can change its paragraph plan. Resume the saved
   // text by stable block IDs; only missing or invalid blocks need editing.
   if (progress.raw) progress.raw = alignRaw(progress.raw, plan);
