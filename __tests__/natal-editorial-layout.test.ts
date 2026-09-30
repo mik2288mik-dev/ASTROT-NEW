@@ -21,7 +21,8 @@ describe('natal chart editorial layout', () => {
     expect(magazine).not.toContain('<NatalCatalogReport');
 
     expect(unified).toContain('buildNatalInterpretation');
-    expect(unified).toContain('ensureNatalUnifiedReading');
+    expect(unified).toContain('loadNatalUnifiedReading');
+    expect(unified).not.toContain('ensureNatalUnifiedReading');
     expect(questions).toContain('askNatalQuestion');
     expect(questions).toContain('<NatalEvidenceSheet');
     expect(map).toContain('explainMapSelection');
