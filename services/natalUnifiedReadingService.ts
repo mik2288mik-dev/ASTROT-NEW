@@ -2,14 +2,12 @@ import type { NatalChartData } from '../types';
 import {
   isNatalUnifiedReading,
   NATAL_UNIFIED_READING_CONTRACT_VERSION,
-  NATAL_UNIFIED_READING_PROMPT_VERSION,
   type NatalUnifiedReading,
   type NatalUnifiedReadingTier,
 } from '../lib/natalReading/unifiedReading';
 import { apiFetch } from './apiClient';
 import { getTelegramInitDataHeaders } from './sessionService';
 
-const GENERATION_TIMEOUT_MS = 90_000;
 const LOCAL_CACHE_PREFIX = 'nebo:natal-unified-reading:v3';
 const LOCAL_CACHE_LIMIT = 24;
 
@@ -75,7 +73,6 @@ function scopeKey(input: {
     chartFingerprint(input.chartData),
     input.tier,
     NATAL_UNIFIED_READING_CONTRACT_VERSION,
-    NATAL_UNIFIED_READING_PROMPT_VERSION,
   ].join(':');
 }
 
@@ -191,43 +188,6 @@ async function getServer(
   return readPayload(await response.json());
 }
 
-async function postServer(
-  userId: string,
-  tier: NatalUnifiedReadingTier,
-  chartId?: number,
-): Promise<NatalUnifiedReading> {
-  const startedAt = Date.now();
-  const response = await apiFetch(
-    endpoint(userId, tier, chartId),
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getTelegramInitDataHeaders(),
-      },
-      body: JSON.stringify({ userId, chartId, tier }),
-    },
-    GENERATION_TIMEOUT_MS,
-  );
-  if (response.status === 202) {
-    const pending = await response.json().catch(() => ({}));
-    let retryAfterMs = Math.max(250, Math.min(Number(pending.retryAfterMs) || 1000, 5000));
-    while (Date.now() - startedAt < GENERATION_TIMEOUT_MS) {
-      await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
-      const cached = await getServer(userId, tier, chartId);
-      if (cached) return cached;
-      retryAfterMs = Math.min(Math.round(retryAfterMs * 1.35), 5000);
-    }
-    const error = new Error('Unified natal reading is still in progress') as UnifiedReadingError;
-    error.status = 504;
-    error.code = 'CONTENT_GENERATION_TIMEOUT';
-    error.retryAfterMs = retryAfterMs;
-    throw error;
-  }
-  if (!response.ok) throw await responseError(response);
-  return readPayload(await response.json());
-}
-
 export function clearNatalUnifiedReadingCache(userId?: string): void {
   if (!userId) {
     memory.clear();
@@ -294,7 +254,13 @@ export async function ensureNatalUnifiedReading(input: {
 
   const request = (async () => {
     const serverCached = await getServer(input.userId, input.tier, input.chartId);
-    const content = serverCached || await postServer(input.userId, input.tier, input.chartId);
+    if (!serverCached) {
+      const error = new Error('Saved natal reading is not ready') as UnifiedReadingError;
+      error.code = 'NATAL_UNIFIED_READING_NOT_READY';
+      error.status = 404;
+      throw error;
+    }
+    const content = serverCached;
     memory.set(scope, content);
     writeLocal(scope, content);
     return content;
@@ -304,4 +270,21 @@ export async function ensureNatalUnifiedReading(input: {
 
   inFlight.set(scope, request);
   return request;
+}
+
+/** Only the first-create flow waits for the autonomous server job. Never POST. */
+export async function waitForPreparedNatalReading(
+  input: Parameters<typeof ensureNatalUnifiedReading>[0],
+  options: { timeoutMs?: number; isCurrent?: () => boolean } = {},
+): Promise<NatalUnifiedReading> {
+  const deadline = Date.now() + (options.timeoutMs ?? 300_000);
+  while (Date.now() < deadline) {
+    if (options.isCurrent && !options.isCurrent()) throw new Error('Natal preparation cancelled');
+    try { return await ensureNatalUnifiedReading(input); }
+    catch (error) {
+      if ((error as UnifiedReadingError).code !== 'NATAL_UNIFIED_READING_NOT_READY') throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+  throw Object.assign(new Error('Saved natal reading is not ready'), { code: 'NATAL_PREPARATION_TIMEOUT' });
 }

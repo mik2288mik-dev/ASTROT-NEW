@@ -172,7 +172,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
 
   const reading = state.identity === identity ? state.reading : null;
   if (!reading && state.loading) {
-    return <section className={styles.state} role="status"><p>{language === 'ru' ? 'Готовим разбор карты…' : 'Preparing your reading…'}</p></section>;
+    return <section className={styles.state} role="status"><p>{language === 'ru' ? 'Загружаем разбор карты…' : 'Loading your reading…'}</p></section>;
   }
   if (!reading) {
     return (

@@ -13,6 +13,7 @@ import { ChartAccessPolicyError, exposeChartAccess, getActiveCharts, getEffectiv
 import { diagnosticErrorCode } from '../../../lib/diagnosticTrace';
 import { startServerOperationalDiagnostic } from '../../../lib/serverOperationalDiagnostics';
 import { queuePersonalForecastPrewarmForUser } from '../../../lib/personalForecastPrewarm';
+import { enqueueNatalReadingPreparation } from '../../../lib/natalReading/preparation';
 
 function missingBirthProfileFields(user:any): string[] {
   return [
@@ -93,6 +94,8 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
       result=await createOrReuseCanonicalChart({...common,relationLabel:normalizeRelationLabel(body.relationLabel)});
     }
     const active=getActiveCharts(await natalChartV2Repository.getAll(userId));
+    const readingOwner = await db.users.get(userId, { hydratePrimaryChart: false });
+    await enqueueNatalReadingPreparation(result.chart, readingOwner?.language === 'en' ? 'en' : 'ru');
     if (body.primary===true) queuePersonalForecastPrewarmForUser({
       userId,accessTier:entitlement.isPremium?'premium':'free',reason:'birth_profile_completed',
     });

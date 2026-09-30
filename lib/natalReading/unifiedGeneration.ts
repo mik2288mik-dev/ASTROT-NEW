@@ -15,11 +15,18 @@ import {
 
 const STORY_CHUNK_SIZE = 6;
 const TOPIC_CHUNK_SIZE = 5;
-const MAX_WRITER_ATTEMPTS = 2;
+const MAX_BLOCK_REPAIRS = 2;
 
 type RawBlock = { id?: unknown; text?: unknown; meaning_ids?: unknown };
 type RawTopic = { key?: unknown; title?: unknown; blocks?: RawBlock[] };
 type RawPayload = { story?: RawBlock[]; topics?: RawTopic[] };
+
+export type NatalWriterProgress = {
+  writerStarted?: boolean;
+  raw?: RawPayload;
+  repairs: number;
+  reading?: NatalUnifiedReading;
+};
 
 const WRITER_SCHEMA: StrictJsonSchema = {
   type: 'object',
@@ -66,7 +73,7 @@ const WRITER_SCHEMA: StrictJsonSchema = {
   required: ['story', 'topics'],
   additionalProperties: false,
 };
-type RawSemanticCheck = { id?: unknown; ok?: unknown; issues?: unknown };
+type RawSemanticCheck = { id?: unknown; issues?: { kind?: unknown; detail?: unknown }[] };
 type RawSemanticReview = { checks?: RawSemanticCheck[] };
 
 const SEMANTIC_REVIEW_SCHEMA: StrictJsonSchema = {
@@ -78,10 +85,14 @@ const SEMANTIC_REVIEW_SCHEMA: StrictJsonSchema = {
         type: 'object',
         properties: {
           id: { type: 'string' },
-          ok: { type: 'boolean' },
-          issues: { type: 'array', items: { type: 'string' } },
+          issues: { type: 'array', items: {
+            type: 'object', properties: {
+              kind: { type: 'string', enum: ['missing_detail', 'unsupported_claim', 'contradiction', 'scope_strengthening', 'advice'] },
+              detail: { type: 'string' },
+            }, required: ['kind', 'detail'], additionalProperties: false,
+          } },
         },
-        required: ['id', 'ok', 'issues'],
+        required: ['id', 'issues'],
         additionalProperties: false,
       },
     },
@@ -363,16 +374,21 @@ async function validateSemanticFidelity(
   const instructions = language === 'ru'
     ? `Ты проверяешь только соответствие готового текста уже утверждённым смыслам.
 Не трактуй астрологию и не добавляй собственных выводов.
-Для каждого блока ok=true только если:
-1) все allowed_meanings действительно переданы;
+Для каждого блока проверь:
+1) текст сохраняет смысл allowed_meanings; сжатие, перефразирование и неполное перечисление деталей допустимы;
 2) нет нового утверждения, причины, мотива, биографии, события или психологического ярлыка;
 3) background не усилен до твёрдого личного свойства;
 4) structural не превращён в диагноз характера;
 5) описание не превращено в совет.
+Не отклоняй текст за отсутствующую деталь или другое словоупотребление.
+Замечания о полноте перечисляй только с kind=missing_detail.
+kind=unsupported_claim — конкретное новое утверждение; contradiction — противоречие;
+scope_strengthening — усиление фонового смысла; advice — совет вместо описания.
 Стиль и красоту не оценивай. Верни проверку для каждого id.`
     : `Check only whether each candidate is semantically faithful to its approved meanings.
 Do not interpret astrology and do not add your own conclusions.
-ok=true only when every allowed meaning is represented, no unsupported claim/cause/motive/biography/event/psychological label is added, background and structural scope are not strengthened, and description is not turned into advice.
+Condensing, paraphrasing and omitting details are acceptable. Completeness notes must use kind=missing_detail.
+Other kinds: unsupported_claim for a specific new assertion, contradiction, scope_strengthening, and advice.
 Do not judge style. Return one check for every id.`;
 
   const response = await createLunaStructuredResponse({
@@ -397,29 +413,82 @@ Do not judge style. Return one check for every id.`;
   const actualIds = checks.map((check) => typeof check.id === 'string' ? check.id : '');
   if (!sameIds(actualIds, expectedIds)) return ['semantic review changed block ids'];
 
-  return checks.flatMap((check) => {
-    if (check.ok === true) return [];
-    const issues = Array.isArray(check.issues)
-      ? check.issues.filter((issue): issue is string => typeof issue === 'string' && issue.trim().length > 0)
-      : [];
-    return [`${String(check.id)}: ${issues.join('; ') || 'semantic mismatch'}`];
-  });
+  const blockingKinds = ['unsupported_claim', 'contradiction', 'scope_strengthening', 'advice'];
+  const errors: string[] = [];
+  for (const check of checks) {
+    if (!Array.isArray(check.issues)) return ['semantic review returned invalid issues'];
+    for (const issue of check.issues) {
+      if (issue.kind === 'missing_detail') continue;
+      if (!blockingKinds.includes(String(issue.kind)) || typeof issue.detail !== 'string') {
+        return ['semantic review returned invalid issue kind'];
+      }
+      errors.push(`${String(check.id)}: ${issue.detail}`);
+    }
+  }
+  return errors;
+}
+
+function alignRaw(raw: RawPayload, plan: NatalUnifiedWriterPlan): RawPayload {
+  const find = (blocks: RawBlock[] | undefined, expected: NatalUnifiedWriterPlanBlock): RawBlock => {
+    const matches = (blocks || []).filter((block) => block.id === expected.id);
+    return matches.length === 1 ? matches[0] : { id: expected.id };
+  };
+  return {
+    story: plan.story.map((block) => find(raw.story, block)),
+    topics: plan.topics.map((topic) => ({
+      key: topic.key,
+      title: topic.title,
+      blocks: topic.blocks.map((block) => find(
+        raw.topics?.find((candidate) => candidate.key === topic.key)?.blocks, block,
+      )),
+    })),
+  };
+}
+
+function repairPlan(plan: NatalUnifiedWriterPlan, errors: string[]): NatalUnifiedWriterPlan {
+  const rejected = (block: NatalUnifiedWriterPlanBlock) => errors.some((error) => error.startsWith(`${block.id}:`));
+  return {
+    story: plan.story.filter(rejected),
+    topics: plan.topics.map((topic) => ({ ...topic, blocks: topic.blocks.filter(rejected) }))
+      .filter((topic) => topic.blocks.length > 0),
+  };
+}
+
+function mergeRepairs(raw: RawPayload, replacement: RawPayload): RawPayload {
+  const replace = (blocks: RawBlock[] = [], next: RawBlock[] = []) => blocks.map(
+    (block) => next.find((candidate) => candidate.id === block.id) || block,
+  );
+  return {
+    story: replace(raw.story, replacement.story),
+    topics: raw.topics?.map((topic) => ({
+      ...topic,
+      blocks: replace(topic.blocks, replacement.topics?.find((next) => next.key === topic.key)?.blocks),
+    })),
+  };
 }
 
 export async function generateNatalUnifiedReading(input: {
   chart: NatalChartDataV2;
   language?: 'ru' | 'en';
   tier: NatalUnifiedReadingTier;
+  progress?: NatalWriterProgress;
+  onProgress?: (progress: NatalWriterProgress) => Promise<void>;
 }): Promise<NatalUnifiedReading> {
   const language = input.language === 'en' ? 'en' : 'ru';
   const interpretation = buildNatalInterpretation(input.chart, language);
   const plan = buildNatalUnifiedWriterPlan(interpretation, input.tier);
-  let errors: string[] = [];
-
-  for (let attempt = 0; attempt < MAX_WRITER_ATTEMPTS; attempt += 1) {
+  const progress: NatalWriterProgress = { ...input.progress, repairs: input.progress?.repairs || 0 };
+  if (progress.reading) return progress.reading;
+  const checkpoint = async () => { await input.onProgress?.(progress); };
+  if (!progress.raw) {
+    if (progress.writerStarted) {
+      throw Object.assign(new Error('Natal draft was not returned; full writing will not be repeated automatically'), { code: 'NATAL_WRITER_REJECTED' });
+    }
+    progress.writerStarted = true;
+    await checkpoint();
     const response = await createLunaStructuredResponse({
       instructions: getNatalStorySystemPrompt(language),
-      input: promptPlan(interpretation, plan, input.tier, language, errors),
+      input: promptPlan(interpretation, plan, input.tier, language),
       maxOutputTokens: input.tier === 'premium' ? 6500 : 3500,
       reasoningEffort: 'medium',
       verbosity: 'low',
@@ -427,30 +496,58 @@ export async function generateNatalUnifiedReading(input: {
       schemaName: 'natal_unified_reading',
       schema: WRITER_SCHEMA,
     });
-    let raw: RawPayload;
     try {
-      raw = JSON.parse(response.content) as RawPayload;
+      progress.raw = alignRaw(JSON.parse(response.content) as RawPayload, plan);
     } catch {
-      errors = ['invalid JSON'];
-      continue;
+      throw Object.assign(new Error('Natal writer returned invalid JSON'), { code: 'NATAL_WRITER_REJECTED' });
     }
-    const materialized = materializeNatalUnifiedReading({
-      raw,
-      interpretation,
-      tier: input.tier,
-      plan,
-    });
-    if (materialized.reading) {
-      const semanticErrors = await validateSemanticFidelity(materialized.reading, interpretation, language);
-      if (!semanticErrors.length) return materialized.reading;
-      errors = semanticErrors;
-      continue;
-    }
-    errors = materialized.errors;
+    // Keep the expensive draft across a review failure, DB failure or restart.
+    await checkpoint();
   }
-
-  throw Object.assign(
-    new Error(`Natal writer rejected after ${MAX_WRITER_ATTEMPTS} attempts: ${errors.join('; ')}`),
-    { code: 'NATAL_WRITER_REJECTED' },
-  );
+  const repair = async (errors: string[]) => {
+    const partial = repairPlan(plan, errors);
+    if (progress.repairs >= MAX_BLOCK_REPAIRS || (!partial.story.length && !partial.topics.length)) {
+      throw Object.assign(new Error(`Natal writer rejected blocks: ${errors.join('; ')}`), { code: 'NATAL_WRITER_REJECTED' });
+    }
+    progress.repairs += 1;
+    await checkpoint();
+    const response = await createLunaStructuredResponse({
+      instructions: getNatalStorySystemPrompt(language),
+      input: promptPlan(interpretation, partial, input.tier, language, errors),
+      maxOutputTokens: Math.min(6500, Math.max(1000,
+        (partial.story.length + partial.topics.reduce((sum, topic) => sum + topic.blocks.length, 0)) * 240)),
+      reasoningEffort: 'low', verbosity: 'low', store: false,
+      schemaName: 'natal_unified_block_repair', schema: WRITER_SCHEMA,
+    });
+    progress.raw = mergeRepairs(progress.raw!, JSON.parse(response.content) as RawPayload);
+    await checkpoint();
+  };
+  let materialized = materializeNatalUnifiedReading({
+    raw: progress.raw!, interpretation, tier: input.tier, plan,
+  });
+  if (!materialized.reading) {
+    await repair(materialized.errors);
+    materialized = materializeNatalUnifiedReading({ raw: progress.raw!, interpretation, tier: input.tier, plan });
+  }
+  if (!materialized.reading) throw Object.assign(new Error(materialized.errors.join('; ')), { code: 'NATAL_WRITER_REJECTED' });
+  const semanticErrors = await validateSemanticFidelity(materialized.reading, interpretation, language);
+  if (semanticErrors.length) {
+    await repair(semanticErrors);
+    materialized = materializeNatalUnifiedReading({ raw: progress.raw!, interpretation, tier: input.tier, plan });
+    if (!materialized.reading) throw Object.assign(new Error(materialized.errors.join('; ')), { code: 'NATAL_WRITER_REJECTED' });
+    // Review just the changed blocks, preserving approved blocks and their text.
+    const partial = repairPlan(plan, semanticErrors);
+    const repairedReading = {
+      ...materialized.reading,
+      story: materialized.reading.story.filter((block) => partial.story.some((item) => item.id === block.id)),
+      topics: materialized.reading.topics.map((topic) => ({ ...topic,
+        blocks: topic.blocks.filter((block) => partial.topics.some((item) => item.blocks.some((entry) => entry.id === block.id))),
+      })).filter((topic) => topic.blocks.length > 0),
+    };
+    const errors = await validateSemanticFidelity(repairedReading, interpretation, language);
+    if (errors.length) throw Object.assign(new Error(errors.join('; ')), { code: 'NATAL_WRITER_REJECTED' });
+  }
+  progress.reading = materialized.reading;
+  await checkpoint();
+  return materialized.reading;
 }

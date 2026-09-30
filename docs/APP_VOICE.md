@@ -2,7 +2,7 @@
 
 Единый рабочий источник общего голоса — `lib/voice/core.ts`. Все AI-функции получают его через `getNeboCoreVoice(language)`. `lib/voice/contracts/*` добавляет только правила конкретной функции и не создаёт второй общий голос. `lib/appVoice.ts` временно сохраняет совместимые exports и проксирует их в core.
 
-`NEBO_CORE_VOICE_VERSION` входит в prompt и cache identity через `withCoreVoiceVersion()` и `withCoreVoiceCacheKey()`. После изменения общих правил старый сгенерированный текст не должен возвращаться как новый.
+`NEBO_CORE_VOICE_VERSION` входит в prompt и cache identity через `withCoreVoiceVersion()` и `withCoreVoiceCacheKey()` там, где текст обновляется по версии голоса. Для постоянного натального разбора действует lifecycle из [натального справочника](agents/natal-reading.md#cache-retry-и-compatibility): версия голоса не сбрасывает уже сохранённый текст.
 
 Глобальные проверки лежат в `lib/voice/validators.ts`: `hasCoreVoiceViolation(text)` объединяет проверки мистики и клише. Проверки конкретных функций дополнительно проверяют структуру, расчёт и допустимые даты.
 
