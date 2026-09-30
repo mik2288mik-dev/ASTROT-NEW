@@ -73,4 +73,42 @@ describe('natal preparation preserves completed work', () => {
     expect(mockResponse.mock.calls[1][0].schemaName).toBe('natal_unified_block_repair');
     expect(mockResponse.mock.calls[1][0].input).not.toContain(`"id": "${raw.story[1].id}"`);
   });
+  it('uses the second repair when the first still fails copy validation', async () => {
+    const { chart, raw, checks } = fixture();
+    const bad = { ...raw.story[0], text: 'Самоподача и самовыражение могут требовать разных действий и решений.' };
+    mockResponse.mockResolvedValueOnce(reply({ ...raw, story: [bad, ...raw.story.slice(1)] }))
+      .mockResolvedValueOnce(reply({ story: [bad], topics: [] }))
+      .mockResolvedValueOnce(reply({ story: [raw.story[0]], topics: [] }))
+      .mockResolvedValueOnce(reply({ checks }));
+    const result = await generateNatalUnifiedReading({ chart, tier: 'premium' });
+    expect(result.story).toEqual(raw.story.map(block => ({ id: block.id, text: block.text, meaningIds: block.meaning_ids })));
+    expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_reading')).toHaveLength(1);
+    expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_block_repair')).toHaveLength(2);
+  });
+  it('uses the remaining repair for a rejected semantic repair and reviews only that block', async () => {
+    const { chart, raw, checks } = fixture();
+    const rejection = { ...checks[0], issues: [{ kind: 'unsupported_claim', detail: 'Не добавляй мотив результата' }] };
+    mockResponse.mockResolvedValueOnce(reply(raw))
+      .mockResolvedValueOnce(reply({ checks: [rejection, ...checks.slice(1)] }))
+      .mockResolvedValueOnce(reply({ story: [raw.story[0]], topics: [] }))
+      .mockResolvedValueOnce(reply({ checks: [rejection] }))
+      .mockResolvedValueOnce(reply({ story: [raw.story[0]], topics: [] }))
+      .mockResolvedValueOnce(reply({ checks: [checks[0]] }));
+    await expect(generateNatalUnifiedReading({ chart, tier: 'premium' })).resolves.toMatchObject({ tier: 'premium' });
+    const reviews = mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_semantic_review');
+    expect(reviews.slice(1).map(([input]) => JSON.parse(input.input).blocks.map((block: { id: string }) => block.id)))
+      .toEqual([[raw.story[0].id], [raw.story[0].id]]);
+    expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_reading')).toHaveLength(1);
+  });
+  it('resumes a rejected stored draft within its remaining budget and stops at the limit', async () => {
+    const { chart, raw, checks } = fixture();
+    const rejection = { ...checks[0], issues: [{ kind: 'unsupported_claim', detail: 'Новый мотив' }] };
+    const progress = { writerStarted: true, repairs: 1, raw };
+    mockResponse.mockResolvedValueOnce(reply({ checks: [rejection, ...checks.slice(1)] }))
+      .mockResolvedValueOnce(reply({ story: [raw.story[0]], topics: [] }))
+      .mockResolvedValueOnce(reply({ checks: [rejection] }));
+    await expect(generateNatalUnifiedReading({ chart, tier: 'premium', progress })).rejects.toMatchObject({ code: 'NATAL_WRITER_REJECTED' });
+    expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_reading')).toHaveLength(0);
+    expect(mockResponse.mock.calls.filter(([input]) => input.schemaName === 'natal_unified_block_repair')).toHaveLength(1);
+  });
 });

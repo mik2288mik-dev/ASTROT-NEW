@@ -109,7 +109,7 @@ export async function getCachedNatalUnifiedReading(
      WHERE chart_id=$1 AND user_id=$2 AND access_tier='premium'
        AND content_surface='natal' AND content_variant='full'
        AND cache_key LIKE 'natal.unified-reading.v3%'
-     ORDER BY created_at ASC, id ASC`,
+     ORDER BY updated_at DESC, id DESC`,
     [ctx.chartId, String(ctx.profile.id)],
   );
   let previous: ContentInterpretation<NatalUnifiedReading> | null = null;
