@@ -61,4 +61,16 @@ describe('saved natal text is independent of editorial versions', () => {
     expect(await getCachedNatalUnifiedReading(context, 'premium')).toBe(next);
     expect(await getCachedNatalUnifiedReading(context, 'premium', NATAL_COPY_REVISION)).toBe(next);
   });
+  it('keeps the latest saved text when the current replacement is absent', async () => {
+    const context = ctx();
+    const earliest = { content: content(), inputHash: natalUnifiedReadingInputHash(context) };
+    const latest = { ...earliest, content: { ...content(), copyRevision: 'previous-approved-copy' } };
+    mockQuery.mockImplementation(async (sql: string) => ({ rows: /ORDER BY updated_at DESC, id DESC/.test(sql)
+      ? [{ cache_key: 'latest' }, { cache_key: 'earliest' }]
+      : [{ cache_key: 'earliest' }, { cache_key: 'latest' }] }));
+    mockGet.mockImplementation(async (_chart, _tier, _surface, _variant, key) => key === 'latest' ? latest : earliest);
+    expect(await getCachedNatalUnifiedReading(context, 'premium')).toBe(latest);
+    expect(await getCachedNatalUnifiedReading(context, 'free')).toBe(latest);
+    expect(await getCachedNatalUnifiedReading(context, 'premium', NATAL_COPY_REVISION)).toBeNull();
+  });
 });

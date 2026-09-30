@@ -17,7 +17,7 @@ import {
 
 const STORY_CHUNK_SIZE = 3;
 const TOPIC_CHUNK_SIZE = 4;
-const MAX_BLOCK_REPAIRS = 2;
+export const NATAL_MAX_BLOCK_REPAIRS = 2;
 
 type RawBlock = { id?: unknown; text?: unknown; meaning_ids?: unknown };
 type RawTopic = { key?: unknown; title?: unknown; blocks?: RawBlock[] };
@@ -25,6 +25,7 @@ type RawPayload = { story?: RawBlock[]; topics?: RawTopic[] };
 
 export type NatalWriterProgress = {
   writerStarted?: boolean;
+  recoveryRevision?: string;
   raw?: RawPayload;
   repairs: number;
   reading?: NatalUnifiedReading;
@@ -367,18 +368,29 @@ export function materializeNatalUnifiedReading(input: {
     }
   }
 
+  // The author may cover the chapter's whole material in its first paragraph.
+  // A planned continuation is then unnecessary, not a reason to reject the
+  // report or order more writing. Retained paragraphs still undergo review.
+  for (const [section, allowed] of [
+    [story, input.plan.story[0]?.meaningIds || []],
+    ...topics.map(topic => [topic.blocks, input.plan.topics.find(item => item.key === topic.key)!.blocks[0].meaningIds]),
+  ] as [NatalUnifiedStoryBlock[], readonly string[]][]) {
+    const used = new Set<string>();
+    for (let index = 0; index < section.length; index += 1) {
+      const block = section[index];
+      if (block.meaningIds.every(id => used.has(id)) && allowed.every(id => used.has(id))) {
+        section.splice(index--, 1);
+        continue;
+      }
+      if (block.meaningIds.every(id => used.has(id))) errors.push(`${block.id}: paragraph adds no new observation`);
+      block.meaningIds.forEach(id => used.add(id));
+    }
+  }
   const seen = new Set<string>();
   for (const block of [...story, ...topics.flatMap(topic => topic.blocks)]) {
     const normalized = block.text.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
     if (seen.has(normalized)) errors.push(`${block.id}: repeated paragraph`);
     seen.add(normalized);
-  }
-  for (const section of [story, ...topics.map(topic => topic.blocks)]) {
-    const used = new Set<string>();
-    for (const block of section) {
-      if (block.meaningIds.every(id => used.has(id))) errors.push(`${block.id}: paragraph adds no new observation`);
-      block.meaningIds.forEach(id => used.add(id));
-    }
   }
   if (errors.length) return { reading: null, errors };
 
@@ -557,7 +569,7 @@ export async function generateNatalUnifiedReading(input: {
   }
   const repair = async (errors: string[]) => {
     const partial = repairPlan(plan, errors);
-    if (progress.repairs >= MAX_BLOCK_REPAIRS || (!partial.story.length && !partial.topics.length)) {
+    if (progress.repairs >= NATAL_MAX_BLOCK_REPAIRS || (!partial.story.length && !partial.topics.length)) {
       throw Object.assign(new Error(`Natal writer rejected blocks: ${errors.join('; ')}`), { code: 'NATAL_WRITER_REJECTED' });
     }
     progress.repairs += 1;
@@ -573,32 +585,39 @@ export async function generateNatalUnifiedReading(input: {
     progress.raw = mergeRepairs(progress.raw!, JSON.parse(response.content) as RawPayload);
     await checkpoint();
   };
-  let materialized = materializeNatalUnifiedReading({
-    raw: progress.raw!, interpretation, tier: input.tier, plan,
-  });
-  if (!materialized.reading) {
-    await repair(materialized.errors);
-    materialized = materializeNatalUnifiedReading({ raw: progress.raw!, interpretation, tier: input.tier, plan });
-  }
-  if (!materialized.reading) throw Object.assign(new Error(materialized.errors.join('; ')), { code: 'NATAL_WRITER_REJECTED' });
-  const semanticErrors = await validateSemanticFidelity(materialized.reading, interpretation, language);
-  if (semanticErrors.length) {
-    await repair(semanticErrors);
-    materialized = materializeNatalUnifiedReading({ raw: progress.raw!, interpretation, tier: input.tier, plan });
-    if (!materialized.reading) throw Object.assign(new Error(materialized.errors.join('; ')), { code: 'NATAL_WRITER_REJECTED' });
-    // Review just the changed blocks, preserving approved blocks and their text.
-    const partial = repairPlan(plan, semanticErrors);
-    const repairedReading = {
+  const approved = new Set<string>();
+  // Both validation stages share the same persisted repair budget. A failed
+  // repair can use the remaining slot without ordering another full report.
+  while (true) {
+    const materialized = materializeNatalUnifiedReading({
+      raw: progress.raw!, interpretation, tier: input.tier, plan,
+    });
+    if (!materialized.reading) {
+      const partial = repairPlan(plan, materialized.errors);
+      [...partial.story, ...partial.topics.flatMap(topic => topic.blocks)]
+        .forEach(block => approved.delete(block.id));
+      await repair(materialized.errors);
+      continue;
+    }
+    const pendingReview = {
       ...materialized.reading,
-      story: materialized.reading.story.filter((block) => partial.story.some((item) => item.id === block.id)),
-      topics: materialized.reading.topics.map((topic) => ({ ...topic,
-        blocks: topic.blocks.filter((block) => partial.topics.some((item) => item.blocks.some((entry) => entry.id === block.id))),
-      })).filter((topic) => topic.blocks.length > 0),
+      story: materialized.reading.story.filter(block => !approved.has(block.id)),
+      topics: materialized.reading.topics.map(topic => ({ ...topic,
+        blocks: topic.blocks.filter(block => !approved.has(block.id)),
+      })).filter(topic => topic.blocks.length > 0),
     };
-    const errors = await validateSemanticFidelity(repairedReading, interpretation, language);
-    if (errors.length) throw Object.assign(new Error(errors.join('; ')), { code: 'NATAL_WRITER_REJECTED' });
+    const errors = await validateSemanticFidelity(pendingReview, interpretation, language);
+    if (errors.length) {
+      const partial = repairPlan(plan, errors);
+      const rejected = new Set([...partial.story, ...partial.topics.flatMap(topic => topic.blocks)]
+        .map(block => block.id));
+      [...pendingReview.story, ...pendingReview.topics.flatMap(topic => topic.blocks)]
+        .filter(block => !rejected.has(block.id)).forEach(block => approved.add(block.id));
+      await repair(errors);
+      continue;
+    }
+    progress.reading = materialized.reading;
+    await checkpoint();
+    return materialized.reading;
   }
-  progress.reading = materialized.reading;
-  await checkpoint();
-  return materialized.reading;
 }

@@ -200,4 +200,19 @@ describe('hardened unified natal writer', () => {
     raw.story[0].text = text;
     expect(materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan }).reading).toBeNull();
   });
+
+  it('omits an unnecessary continuation when the chapter material is already covered', () => {
+    const interpretation = buildNatalInterpretation(canonicalNatalChart());
+    const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+    const raw = validRaw(plan);
+    const topicIndex = plan.topics.findIndex(topic => topic.blocks.length > 1);
+    expect(topicIndex).toBeGreaterThanOrEqual(0);
+    const topic = raw.topics[topicIndex];
+    topic.blocks[0].meaning_ids = [...plan.topics[topicIndex].blocks[0].meaningIds];
+    const result = materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan });
+    expect(result.errors).toEqual([]);
+    expect(result.reading!.topics[topicIndex].blocks).toEqual([
+      { id: topic.blocks[0].id, text: topic.blocks[0].text, meaningIds: topic.blocks[0].meaning_ids },
+    ]);
+  });
 });

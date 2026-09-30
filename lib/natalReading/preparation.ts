@@ -4,7 +4,7 @@ import { resolveDatabaseUrl } from '../database-url';
 import { isCanonicalNatalChartDataComplete } from '../natalChartCanonical';
 import { resolveReadingContext, type ReadingContext } from './apiHelper';
 import { generateNatalUnifiedReadingWithLock, natalUnifiedReadingInputHash } from './unifiedApi';
-import type { NatalWriterProgress } from './unifiedGeneration';
+import { NATAL_MAX_BLOCK_REPAIRS, type NatalWriterProgress } from './unifiedGeneration';
 import { NATAL_READING_JOBS_SCHEMA } from './jobSchema';
 import { NATAL_COPY_REVISION } from './unifiedReading';
 
@@ -13,6 +13,7 @@ export function natalReadingPreparationInputHash(ctx: ReadingContext): string {
 }
 
 const WORKER_LOCK = 'natal-reading-preparation-v1';
+const REJECTED_DRAFT_RECOVERY = 'validated-draft-recovery-20260930';
 let schema: Promise<void> | undefined;
 let timer: ReturnType<typeof setInterval> | undefined;
 let processing = false;
@@ -78,6 +79,19 @@ export async function processNatalReadingPreparations(): Promise<void> {
     const lock = await client.query('SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS acquired', [WORKER_LOCK]);
     acquired = lock.rows[0]?.acquired === true;
     if (!acquired) return;
+    // One release-specific recovery for premature rejection or an unnecessary
+    // continuation. Keep the draft and its budget; never reset a ready reading.
+    await client.query(
+      `UPDATE natal_reading_jobs SET status='pending',attempts=0,available_at=NOW(),updated_at=NOW(),
+         progress=jsonb_set(progress,'{recoveryRevision}',to_jsonb($2::text))
+       WHERE status='failed' AND input_hash LIKE $1
+         AND jsonb_typeof(progress->'raw'->'story')='array'
+         AND COALESCE((progress->>'repairs')::int,0)>0
+         AND (COALESCE((progress->>'repairs')::int,0)<$3
+              OR last_error LIKE '%paragraph adds no new observation%')
+         AND COALESCE(progress->>'recoveryRevision','')<>$2`,
+      [`%:${NATAL_COPY_REVISION}`, REJECTED_DRAFT_RECOVERY, NATAL_MAX_BLOCK_REPAIRS],
+    );
     await reconcileSavedCharts();
     const pending = await client.query(
       `SELECT * FROM natal_reading_jobs WHERE status='pending' AND attempts<2
