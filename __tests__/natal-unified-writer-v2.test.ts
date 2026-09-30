@@ -136,16 +136,25 @@ describe('hardened unified natal writer', () => {
     expect(free.topics).toEqual([]);
   });
 
-  it('runs a semantic fidelity review and never falls back to unvalidated meaning prose', () => {
+  it('keeps objective local validation in the hot path and never blocks delivery on a second AI reviewer', () => {
     const generation = source('lib/natalReading/unifiedGeneration.ts');
     const service = source('services/natalUnifiedReadingService.ts');
+    const api = source('pages/api/content/natal/reading.ts');
     const ui = source('components/NatalReading/NatalUnifiedReport.tsx');
 
-    expect(generation).toContain('validateSemanticFidelity');
-    expect(generation).toContain('semantic review');
+    expect(generation).toContain('materializeNatalUnifiedReading');
+    expect(generation).toContain('hasCoreVoiceViolation');
     expect(generation).toContain('NATAL_WRITER_REJECTED');
+    expect(generation).not.toContain('validateSemanticFidelity');
+    expect(generation).not.toContain('natal_unified_semantic_review');
     expect(generation).not.toContain('function deterministicFallback');
+
+    expect(api).toContain('void generateNatalUnifiedReadingWithLock');
+    expect(api).toContain('res.status(202).json(generationInProgressPayload(750))');
+    expect(service).toContain('if (response.status === 202)');
+    expect(service).toContain('await getServer(userId, tier, chartId)');
     expect(service).toContain("nebo:natal-unified-reading:v3");
+
     expect(ui).toContain("const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free';");
     expect(ui).not.toContain("mode === 'topics' && isPremium ? 'premium' : 'free'");
   });
