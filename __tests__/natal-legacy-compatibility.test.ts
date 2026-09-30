@@ -1,3 +1,4 @@
+import { natalWriterPayload } from './fixtures/natalWriterPayload';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { UserProfile } from '../types';
@@ -39,23 +40,7 @@ function fixture() {
   const chart = canonicalNatalChart();
   const interpretation = buildNatalInterpretation(chart, 'ru');
   const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
-  const text = 'Обычно ты сначала разбираешься в деталях, сравниваешь варианты и только потом выбираешь понятный способ действовать без лишней суеты.';
-  const raw = {
-    story: plan.story.map((block) => ({
-      id: block.id,
-      text,
-      meaning_ids: [...block.meaningIds],
-    })),
-    topics: plan.topics.map((topic) => ({
-      key: topic.key,
-      title: topic.title,
-      blocks: topic.blocks.map((block) => ({
-        id: block.id,
-        text,
-        meaning_ids: [...block.meaningIds],
-      })),
-    })),
-  };
+  const raw = natalWriterPayload(interpretation, plan);
   const materialized = materializeNatalUnifiedReading({
     raw,
     interpretation,

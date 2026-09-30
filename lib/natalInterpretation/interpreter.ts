@@ -1,212 +1,123 @@
-import type { NatalChartDataV2 } from '../natalChartV2Types';
+import type { NatalChartDataV2, NatalBodyKey } from '../natalChartV2Types';
 import {
-  ANGLE_LABELS,
-  ANGLE_ROLES_RU,
-  ANGLE_TOPICS,
-  ASPECT_DYNAMICS_RU,
-  ASPECT_LABELS_RU,
-  BODY_TOPICS,
-  HOUSE_AREAS_RU,
-  HOUSE_TOPICS,
-  bodyLabel,
-  bodyRole,
-  isBackgroundSignBody,
-  signStyle,
+  ANGLE_LABELS, ANGLE_TOPICS, ASPECT_LABELS_RU, BODY_TOPICS,
+  HOUSE_AREAS_RU, HOUSE_OPENINGS_RU, HOUSE_TOPICS, POINT_ACTIONS_RU,
+  bodyLabel, bodySignMeaning, isBackgroundSignBody, signStyle,
 } from './meanings';
 import { extractNatalInterpretationEvidence } from './evidence';
-import type {
-  NatalInterpretationEvidence,
-  NatalMeaning,
-  NatalMeaningScope,
-  NatalMeaningTopic,
-} from './types';
+import type { NatalInterpretationEvidence, NatalMeaning, NatalMeaningScope, NatalMeaningTopic } from './types';
 
-function unique<T>(values: readonly T[]): T[] {
-  return [...new Set(values)];
+function unique<T>(values: readonly T[]): T[] { return [...new Set(values)]; }
+const angles = new Set(['ascendant', 'mc', 'descendant', 'ic']);
+const angleOpenings = {
+  ascendant: { ru: 'В новой компании', en: 'When meeting people' },
+  mc: { ru: 'В работе', en: 'At work' },
+  descendant: { ru: 'В близких отношениях', en: 'In close relationships' },
+  ic: { ru: 'Дома и в семье', en: 'At home and with family' },
+};
+const houseOpeningsEn: Record<number, string> = {
+  1: 'When meeting people', 2: 'When spending money', 3: 'When talking and learning',
+  4: 'At home and with family', 5: 'In hobbies and dating', 6: 'In everyday tasks',
+  7: 'In close relationships', 8: 'When sharing money and responsibilities',
+  9: 'When learning or travelling', 10: 'At work', 11: 'With friends and shared plans',
+  12: 'When spending time alone',
+};
+function aspectScope(from: string, to: string): NatalMeaningScope {
+  if (angles.has(from) || angles.has(to)) return 'personal';
+  return isBackgroundSignBody(from as NatalBodyKey) && isBackgroundSignBody(to as NatalBodyKey)
+    ? 'background' : 'personal';
 }
-
-function aspectScope(
-  fromKey: NonNullable<NatalInterpretationEvidence['fromKey']>,
-  toKey: NonNullable<NatalInterpretationEvidence['toKey']>,
-): NatalMeaningScope {
-  const angles = new Set(['ascendant', 'mc', 'descendant', 'ic']);
-  if (angles.has(fromKey) || angles.has(toKey)) return 'personal';
-  const fromBackground = isBackgroundSignBody(fromKey as keyof typeof BODY_TOPICS);
-  const toBackground = isBackgroundSignBody(toKey as keyof typeof BODY_TOPICS);
-  return fromBackground && toBackground ? 'background' : 'personal';
+function pointTopics(key: NonNullable<NatalInterpretationEvidence['fromKey']>): NatalMeaningTopic[] {
+  return key in ANGLE_TOPICS ? ANGLE_TOPICS[key as keyof typeof ANGLE_TOPICS] : BODY_TOPICS[key as NatalBodyKey];
 }
-
-function meaningForEvidence(
-  evidence: NatalInterpretationEvidence,
-  language: 'ru' | 'en',
-): NatalMeaning | null {
-  if (language !== 'ru') {
-    // English keeps the same deterministic architecture. Russian is the
-    // production language; English copy can be expanded without changing IDs.
+function pointLabel(key: NonNullable<NatalInterpretationEvidence['fromKey']>, language: 'ru' | 'en'): string {
+  return key in ANGLE_LABELS ? ANGLE_LABELS[key as keyof typeof ANGLE_LABELS] : bodyLabel(key as NatalBodyKey, language);
+}
+function aspectText(fact: NatalInterpretationEvidence, language: 'ru' | 'en'): string {
+  const left = POINT_ACTIONS_RU[fact.fromKey!];
+  const right = POINT_ACTIONS_RU[fact.toKey!];
+  if (language === 'en') {
+    const actions: Partial<Record<NatalBodyKey, string>> = {
+      sun: 'deciding what you want', moon: 'taking your feelings into account', mercury: 'thinking and explaining your ideas',
+      venus: 'getting along with someone close to you', mars: 'getting started', jupiter: 'trying something new',
+      saturn: 'keeping a promise and finishing a task', uranus: 'changing a familiar way of doing things',
+      neptune: 'imagining how things might turn out', pluto: 'making a major change',
+    };
+    const role = (key: NonNullable<NatalInterpretationEvidence['fromKey']>) => angles.has(key)
+      ? { ascendant: 'meeting people', mc: 'working towards a goal', descendant: 'getting along with someone', ic: 'looking after your home and family' }[key as keyof typeof angleOpenings]!
+      : actions[key as NatalBodyKey]!;
+    const a = role(fact.fromKey!), b = role(fact.toKey!);
+    switch (fact.aspectType) {
+      case 'square': return `You may find it hard to combine ${a} with ${b}.`;
+      case 'opposition': return `Sometimes you have to choose between ${a} and ${b}.`;
+      case 'trine': return `You usually find it easy to combine ${a} with ${b}.`;
+      case 'sextile': return `${a} may help you with ${b}.`;
+      default: return `${a} is closely connected with ${b}.`;
+    }
   }
-
-  if (evidence.kind === 'body_sign' && evidence.bodyKey && evidence.sign) {
-    const style = signStyle(evidence.sign, language);
+  switch (fact.aspectType) {
+    case 'square': return `Тебе бывает трудно одновременно ${left.infinitive} и ${right.infinitive}.`;
+    case 'opposition': return `Иногда ты выбираешь между тем, чтобы ${left.infinitive}, и тем, чтобы ${right.infinitive}.`;
+    case 'trine': return `Тебе обычно легко ${left.infinitive}, когда ты ${right.present}.`;
+    case 'sextile': return `Тебе может быть проще ${left.infinitive}, когда ты ${right.present}.`;
+    default: return `Когда ты ${left.present}, это тесно связано с тем, как ты ${right.present}.`;
+  }
+}
+function meaningForEvidence(fact: NatalInterpretationEvidence, language: 'ru' | 'en'): NatalMeaning | null {
+  const base = { id: `meaning:${fact.id}`, evidenceIds: [fact.id] };
+  if (fact.kind === 'body_sign' && fact.bodyKey && fact.sign) {
+    const text = bodySignMeaning(fact.bodyKey, fact.sign, language);
+    if (!text) return null;
+    return { ...base, semanticKey: `body-sign:${fact.bodyKey}:${fact.sign}`,
+      scope: isBackgroundSignBody(fact.bodyKey) ? 'background' : 'personal', text,
+      technicalText: `${bodyLabel(fact.bodyKey, language)} · ${fact.sign}${fact.degree == null ? '' : ` · ${fact.degree.toFixed(1)}°`}`,
+      topics: BODY_TOPICS[fact.bodyKey] };
+  }
+  // Motion is calculator data, not proof of a person's response or habits.
+  // A body's house is attached to its observation below rather than narrated twice.
+  if (fact.kind === 'body_house' || fact.kind === 'body_retrograde') return null;
+  if (fact.kind === 'angle_sign' && fact.angleKey && fact.sign) {
+    const style = signStyle(fact.sign, language);
     if (!style) return null;
-    const label = bodyLabel(evidence.bodyKey, language);
-    const role = bodyRole(evidence.bodyKey, language);
-    const background = isBackgroundSignBody(evidence.bodyKey);
-    return {
-      id: `meaning:${evidence.id}`,
-      semanticKey: `body-sign:${evidence.bodyKey}:${evidence.sign}`,
-      scope: background ? 'background' : 'personal',
-      text: language === 'ru'
-        ? background
-          ? `Это фоновая настройка темы «${role}»: ${style}.`
-          : `В теме «${role}» ${style}.`
-        : background
-          ? `This is a background modifier for ${role}: ${style}.`
-          : `For ${role}, ${style}.`,
-      technicalText: `${label} · ${evidence.sign}${evidence.degree == null ? '' : ` · ${evidence.degree.toFixed(1)}°`}`,
-      topics: BODY_TOPICS[evidence.bodyKey],
-      evidenceIds: [evidence.id],
-    };
+    return { ...base, semanticKey: `angle-sign:${fact.angleKey}:${fact.sign}`, scope: 'personal',
+      text: `${angleOpenings[fact.angleKey][language]} ${language === 'ru' ? 'ты' : ''} ${style}.`.replace(/\s+/g, ' '),
+      technicalText: `${ANGLE_LABELS[fact.angleKey]} · ${fact.sign}${fact.degree == null ? '' : ` · ${fact.degree.toFixed(1)}°`}`,
+      topics: ANGLE_TOPICS[fact.angleKey] };
   }
-
-  if (evidence.kind === 'body_house' && evidence.bodyKey && evidence.house) {
-    const area = HOUSE_AREAS_RU[evidence.house];
-    if (!area) return null;
-    const label = bodyLabel(evidence.bodyKey, language);
-    const role = bodyRole(evidence.bodyKey, language);
-    return {
-      id: `meaning:${evidence.id}`,
-      semanticKey: `body-house:${evidence.bodyKey}:${evidence.house}`,
-      scope: 'personal',
-      text: language === 'ru'
-        ? `Тема «${role}» особенно заметна в сфере: ${area}.`
-        : `${role} is especially expressed through house ${evidence.house}.`,
-      technicalText: language === 'ru'
-        ? `${label} · ${evidence.house} дом`
-        : `${label} · house ${evidence.house}`,
-      topics: unique([
-        ...(HOUSE_TOPICS[evidence.house] || []),
-        ...BODY_TOPICS[evidence.bodyKey],
-      ]),
-      evidenceIds: [evidence.id],
-    };
+  if (fact.kind === 'house_cusp' && fact.house && fact.sign) {
+    const style = signStyle(fact.sign, language);
+    const opening = language === 'ru' ? HOUSE_OPENINGS_RU[fact.house] : houseOpeningsEn[fact.house];
+    if (!style || !opening) return null;
+    return { ...base, semanticKey: `house-cusp:${fact.house}:${fact.sign}`, scope: 'structural',
+      text: `${opening} ${language === 'ru' ? 'ты' : ''} ${style}.`.replace(/\s+/g, ' '),
+      technicalText: `${fact.house} ${language === 'ru' ? 'дом' : 'house'} · ${fact.sign}${fact.degree == null ? '' : ` · ${fact.degree.toFixed(1)}°`}`,
+      topics: HOUSE_TOPICS[fact.house] || ['general'] };
   }
-
-  if (evidence.kind === 'body_retrograde' && evidence.bodyKey && typeof evidence.retrograde === 'boolean') {
-    const label = bodyLabel(evidence.bodyKey, language);
-    const role = bodyRole(evidence.bodyKey, language);
-    return {
-      id: `meaning:${evidence.id}`,
-      semanticKey: `body-retrograde:${evidence.bodyKey}:${evidence.retrograde ? 'r' : 'direct'}`,
-      scope: isBackgroundSignBody(evidence.bodyKey) ? 'background' : 'personal',
-      text: evidence.retrograde
-        ? language === 'ru'
-          ? `В теме «${role}» реакция чаще сначала проходит через внутренний пересмотр и только потом выражается наружу.`
-          : `For ${role}, the response is more often processed inwardly before it is expressed outwardly.`
-        : language === 'ru'
-          ? `В теме «${role}» реакция чаще идёт напрямую, без дополнительного внутреннего пересмотра.`
-          : `For ${role}, the response is more often expressed directly, without an extra inward review.`,
-      technicalText: evidence.retrograde
-        ? `${label} · ретроградное движение`
-        : `${label} · директное движение`,
-      topics: BODY_TOPICS[evidence.bodyKey],
-      evidenceIds: [evidence.id],
-    };
+  if (fact.kind === 'aspect' && fact.fromKey && fact.toKey && fact.aspectType) {
+    // These calculated points stay on the map; a generic pair of roles is not
+    // enough to turn them into a personal claim in the reading.
+    if ([fact.fromKey, fact.toKey].some(key => ['chiron', 'northNode', 'southNode'].includes(key))) return null;
+    return { ...base, semanticKey: `aspect:${fact.fromKey}:${fact.aspectType}:${fact.toKey}`,
+      scope: aspectScope(fact.fromKey, fact.toKey), text: aspectText(fact, language),
+      technicalText: `${pointLabel(fact.fromKey, language)} · ${language === 'ru' ? ASPECT_LABELS_RU[fact.aspectType] : fact.aspectType} · ${pointLabel(fact.toKey, language)}${fact.orb == null ? '' : ` · ${fact.orb.toFixed(1)}°`}`,
+      topics: unique([...pointTopics(fact.fromKey), ...pointTopics(fact.toKey)]) };
   }
-
-  if (evidence.kind === 'angle_sign' && evidence.angleKey && evidence.sign) {
-    const style = signStyle(evidence.sign, language);
-    if (!style) return null;
-    return {
-      id: `meaning:${evidence.id}`,
-      semanticKey: `angle-sign:${evidence.angleKey}:${evidence.sign}`,
-      scope: 'personal',
-      text: language === 'ru'
-        ? `Это добавляет свой способ действия ${ANGLE_ROLES_RU[evidence.angleKey]}: ${style}.`
-        : `This modifies the angle through the style of ${evidence.sign}.`,
-      technicalText: `${ANGLE_LABELS[evidence.angleKey]} · ${evidence.sign}${evidence.degree == null ? '' : ` · ${evidence.degree.toFixed(1)}°`}`,
-      topics: ANGLE_TOPICS[evidence.angleKey],
-      evidenceIds: [evidence.id],
-    };
-  }
-
-  if (evidence.kind === 'house_cusp' && evidence.house && evidence.sign) {
-    const area = HOUSE_AREAS_RU[evidence.house];
-    const style = signStyle(evidence.sign, language);
-    if (!area || !style) return null;
-    return {
-      id: `meaning:${evidence.id}`,
-      semanticKey: `house-cusp:${evidence.house}:${evidence.sign}`,
-      scope: 'structural',
-      text: language === 'ru'
-        ? `Когда речь про ${area}, ${style}.`
-        : `House ${evidence.house} begins in ${evidence.sign}, shaping the approach to that area.`,
-      technicalText: language === 'ru'
-        ? `${evidence.house} дом · начало в ${evidence.sign}${evidence.degree == null ? '' : ` · ${evidence.degree.toFixed(1)}°`}`
-        : `House ${evidence.house} · ${evidence.sign}`,
-      topics: HOUSE_TOPICS[evidence.house] || ['general'],
-      evidenceIds: [evidence.id],
-    };
-  }
-
-  if (
-    evidence.kind === 'aspect'
-    && evidence.aspectType
-    && evidence.fromKey
-    && evidence.toKey
-  ) {
-    const fromIsBody = !['ascendant', 'mc', 'descendant', 'ic'].includes(evidence.fromKey);
-    const toIsBody = !['ascendant', 'mc', 'descendant', 'ic'].includes(evidence.toKey);
-    const fromLabel = fromIsBody
-      ? bodyLabel(evidence.fromKey as keyof typeof BODY_TOPICS, language)
-      : ANGLE_LABELS[evidence.fromKey as keyof typeof ANGLE_LABELS];
-    const toLabel = toIsBody
-      ? bodyLabel(evidence.toKey as keyof typeof BODY_TOPICS, language)
-      : ANGLE_LABELS[evidence.toKey as keyof typeof ANGLE_LABELS];
-    const fromRole = fromIsBody
-      ? bodyRole(evidence.fromKey as keyof typeof BODY_TOPICS, language)
-      : ANGLE_ROLES_RU[evidence.fromKey as keyof typeof ANGLE_ROLES_RU];
-    const toRole = toIsBody
-      ? bodyRole(evidence.toKey as keyof typeof BODY_TOPICS, language)
-      : ANGLE_ROLES_RU[evidence.toKey as keyof typeof ANGLE_ROLES_RU];
-    const topics: NatalMeaningTopic[] = unique([
-      ...(fromIsBody
-        ? BODY_TOPICS[evidence.fromKey as keyof typeof BODY_TOPICS]
-        : ANGLE_TOPICS[evidence.fromKey as keyof typeof ANGLE_TOPICS]),
-      ...(toIsBody
-        ? BODY_TOPICS[evidence.toKey as keyof typeof BODY_TOPICS]
-        : ANGLE_TOPICS[evidence.toKey as keyof typeof ANGLE_TOPICS]),
-    ]);
-
-    return {
-      id: `meaning:${evidence.id}`,
-      semanticKey: `aspect:${evidence.fromKey}:${evidence.aspectType}:${evidence.toKey}`,
-      scope: aspectScope(evidence.fromKey, evidence.toKey),
-      text: language === 'ru'
-        ? `Связь между темами «${fromRole}» и «${toRole}» устроена так: ${ASPECT_DYNAMICS_RU[evidence.aspectType]}.`
-        : `The two functions are linked by a ${evidence.aspectType}.`,
-      technicalText: language === 'ru'
-        ? `${fromLabel} · ${ASPECT_LABELS_RU[evidence.aspectType]} · ${toLabel}${evidence.orb == null ? '' : ` · орб ${evidence.orb.toFixed(1)}°`}`
-        : `${fromLabel} · ${evidence.aspectType} · ${toLabel}`,
-      topics,
-      evidenceIds: [evidence.id],
-    };
-  }
-
   return null;
 }
-
-export function interpretNatalChart(
-  chart: NatalChartDataV2,
-  language: 'ru' | 'en' = 'ru',
-): {
-  evidence: ReturnType<typeof extractNatalInterpretationEvidence>['evidence'];
-  rejectedEvidence: ReturnType<typeof extractNatalInterpretationEvidence>['rejectedEvidence'];
-  meanings: NatalMeaning[];
-} {
+export function interpretNatalChart(chart: NatalChartDataV2, language: 'ru' | 'en' = 'ru') {
   const extracted = extractNatalInterpretationEvidence(chart);
-  const meanings = extracted.evidence
-    .map((fact) => meaningForEvidence(fact, language))
-    .filter((meaning): meaning is NatalMeaning => !!meaning);
-
+  const meanings = extracted.evidence.map(fact => {
+    const meaning = meaningForEvidence(fact, language);
+    if (meaning && fact.kind === 'body_sign') {
+      const house = extracted.evidence.find(candidate => candidate.kind === 'body_house' && candidate.bodyKey === fact.bodyKey);
+      if (house?.house) {
+        meaning.area = language === 'ru' ? HOUSE_AREAS_RU[house.house] : houseOpeningsEn[house.house];
+        meaning.evidenceIds.push(house.id);
+        meaning.technicalText += ` · ${house.house} ${language === 'ru' ? 'дом' : 'house'}`;
+        meaning.topics = unique([...meaning.topics, ...(HOUSE_TOPICS[house.house] || [])]);
+      }
+    }
+    return meaning;
+  }).filter((meaning): meaning is NatalMeaning => !!meaning);
   return { ...extracted, meanings };
 }

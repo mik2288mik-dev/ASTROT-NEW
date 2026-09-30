@@ -20,19 +20,19 @@ export const BODY_LABELS: Record<NatalBodyKey, Localized> = {
 };
 
 export const BODY_ROLES: Record<NatalBodyKey, Localized> = {
-  sun: { ru: 'то, как человек выражает себя, выбирает направление и действует от своего имени', en: 'how the person expresses themselves, chooses direction, and acts from their own position' },
-  moon: { ru: 'эмоциональную реакцию, привычки и то, что помогает чувствовать себя в знакомом ритме', en: 'emotional response, habits, and what supports a familiar sense of comfort' },
-  mercury: { ru: 'способ думать, разбираться в информации и объяснять свою мысль', en: 'the way the person thinks, processes information, and explains an idea' },
-  venus: { ru: 'вкусы, ценности, симпатию и способ сближаться с людьми', en: 'taste, values, attraction, and the way closeness is approached' },
-  mars: { ru: 'способ начинать действие, добиваться результата и реагировать на сопротивление', en: 'the way action starts, results are pursued, and resistance is met' },
-  jupiter: { ru: 'способ расширять знания, опыт и круг возможностей', en: 'the way knowledge, experience, and opportunities are expanded' },
-  saturn: { ru: 'отношение к правилам, ответственности, ограничениям и долгой работе', en: 'the approach to rules, responsibility, limits, and long-term work' },
-  uranus: { ru: 'отношение к свободе выбора, переменам и нестандартным решениям', en: 'the approach to freedom of choice, change, and unconventional solutions' },
-  neptune: { ru: 'воображение, впечатлительность и способ работать с неоднозначным или неочевидным', en: 'imagination, impressionability, and handling what is ambiguous or not immediately obvious' },
-  pluto: { ru: 'отношение к глубоким переменам, интенсивности и сильному влиянию', en: 'the approach to deep change, intensity, and strong influence' },
-  chiron: { ru: 'тему, где накопленный опыт особенно заметно меняет взгляд на себя и свои действия', en: 'an area where accumulated experience particularly changes self-understanding and action' },
-  northNode: { ru: 'направление, которое в астрологической традиции связывают с менее привычным способом действовать', en: 'a direction astrology traditionally associates with a less familiar way of acting' },
-  southNode: { ru: 'направление, которое в астрологической традиции связывают с более привычным способом действовать', en: 'a direction astrology traditionally associates with a more familiar way of acting' },
+  sun: { ru: 'как ты выбираешь, чего хочешь, и берёшься за дело', en: 'how you choose what you want and get started' },
+  moon: { ru: 'что ты чувствуешь и что помогает тебе успокоиться', en: 'what you feel and what helps you settle down' },
+  mercury: { ru: 'как ты думаешь, учишься и объясняешь свои мысли', en: 'how you think, learn, and explain yourself' },
+  venus: { ru: 'что тебе нравится и как ты сближаешься с людьми', en: 'what you like and how you get close to people' },
+  mars: { ru: 'как ты берёшься за дело и добиваешься своего', en: 'how you get started and pursue what you want' },
+  jupiter: { ru: 'как ты учишься новому и пробуешь то, чего раньше не делал', en: 'how you learn and try something new' },
+  saturn: { ru: 'как ты выполняешь обещания и доводишь начатое до конца', en: 'how you keep promises and finish what you start' },
+  uranus: { ru: 'как ты решаешь что-то изменить', en: 'how you decide to change something' },
+  neptune: { ru: 'как ты представляешь то, чего пока не знаешь', en: 'how you imagine what you do not yet know' },
+  pluto: { ru: 'как ты относишься к серьёзным переменам', en: 'how you approach major changes' },
+  chiron: { ru: 'что ты учишься делать, пробуя и ошибаясь', en: 'what you learn by trying and making mistakes' },
+  northNode: { ru: 'что ты пробуешь делать по-новому', en: 'what you try doing differently' },
+  southNode: { ru: 'что ты привык делать', en: 'what you are used to doing' },
 };
 
 export const BACKGROUND_SIGN_BODIES = new Set<NatalBodyKey>([
@@ -53,7 +53,7 @@ export const BODY_TOPICS: Record<NatalBodyKey, NatalMeaningTopic[]> = {
   sun: ['character', 'work', 'general'],
   moon: ['emotions', 'home', 'relationships'],
   mercury: ['communication', 'learning', 'work'],
-  venus: ['relationships', 'money'],
+  venus: ['relationships'],
   mars: ['character', 'work'],
   jupiter: ['learning', 'work', 'general'],
   saturn: ['work', 'money', 'general'],
@@ -66,48 +66,48 @@ export const BODY_TOPICS: Record<NatalBodyKey, NatalMeaningTopic[]> = {
 };
 
 export const SIGN_STYLE_RU: Record<string, string> = {
-  Aries: 'быстрее идёшь в прямое действие, чем долго готовишься, и яснее реагируешь на понятную цель',
-  Taurus: 'предпочитаешь устойчивый темп, проверяемую опору и не меняешь выбранное без причины',
+  Aries: 'охотнее сразу берёшься за дело, чем долго готовишься',
+  Taurus: 'не любишь спешить и менять то, что уже хорошо работает',
   Gemini: 'быстрее понимаешь через сравнение, вопросы, разговор и несколько вариантов одновременно',
-  Cancer: 'сильнее учитываешь чувство надёжности, знакомую обстановку и реакцию близкого круга',
-  Leo: 'проявляешься заметнее, когда можно действовать от себя, показать результат и получить ясный отклик',
+  Cancer: 'предпочитаешь знакомую обстановку и учитываешь, как себя чувствуют близкие',
+  Leo: 'охотнее берёшься за дело, когда можешь показать, что умеешь, и видишь, что это ценят',
   Virgo: 'разбираешь по частям, замечаешь детали и охотнее доверяешь тому, что можно проверить на практике',
-  Libra: 'сравниваешь позиции, учитываешь вторую сторону и ищешь решение, которое можно нормально согласовать',
+  Libra: 'выслушиваешь обе стороны и ищешь вариант, который устроит каждого',
   Scorpio: 'предпочитаешь разбираться глубже, не спешишь считать вопрос закрытым и серьёзно относишься к тому, что действительно важно',
-  Sagittarius: 'смотришь шире текущей задачи, легче пробуешь новое и быстрее включаешься, когда видишь перспективу',
-  Capricorn: 'ориентируешься на результат, порядок и то, что выдержит время, а не только хорошо звучит сейчас',
+  Sagittarius: 'охотно пробуешь новое и хочешь понимать, зачем тебе это нужно',
+  Capricorn: 'ценишь понятный порядок и результат, которому можно доверять',
   Aquarius: 'оставляешь себе свободу решения, легче принимаешь необычный вариант и не любишь делать что-то только потому, что так принято',
-  Pisces: 'сильнее считываешь настроение и контекст, легче работаешь через образ и интуитивное ощущение целого',
+  Pisces: 'замечаешь настроение людей и легче понимаешь через примеры, чем через сухие объяснения',
 };
 
 export const SIGN_STYLE_EN: Record<string, string> = {
-  Aries: 'you move into direct action faster than into long preparation and respond best to a clear target',
-  Taurus: 'you prefer a steady pace and tangible support and do not change course without a reason',
-  Gemini: 'you understand faster through comparison, questions, conversation, and several options at once',
-  Cancer: 'you give more weight to security, familiar surroundings, and the response of close people',
-  Leo: 'you show yourself more clearly when you can act from your own position, show a result, and receive clear feedback',
-  Virgo: 'you break things into parts, notice details, and trust what can be checked in practice',
-  Libra: 'you compare positions, account for the other side, and look for a solution that can be agreed clearly',
-  Scorpio: 'you dislike a superficial approach, test longer, engage more deeply, and take trust seriously',
-  Sagittarius: 'you look beyond the immediate task, try new things more easily, and engage faster when you see perspective',
-  Capricorn: 'you orient toward results, order, and what will hold up over time rather than what only sounds good now',
-  Aquarius: 'you keep room for independent choice, accept unusual options more easily, and dislike doing something only because it is customary',
-  Pisces: 'you read mood and context strongly and work more easily through imagery and an intuitive sense of the whole',
+  Aries: 'you prefer to get started rather than prepare for a long time',
+  Taurus: 'you dislike rushing or changing something that already works',
+  Gemini: 'you learn through questions, comparisons and conversation',
+  Cancer: 'you prefer familiar surroundings and consider how people close to you feel',
+  Leo: 'you like to show what you can do and see that people appreciate it',
+  Virgo: 'you notice details and prefer to check things in practice',
+  Libra: 'you listen to both sides and look for an agreement',
+  Scorpio: 'you prefer to look closely and take important things seriously',
+  Sagittarius: 'you like trying something new and knowing why it matters to you',
+  Capricorn: 'you value clear plans and results you can trust',
+  Aquarius: 'you prefer to decide for yourself rather than follow a rule just because it is familiar',
+  Pisces: 'you notice how people feel and find examples easier to understand than a dry list of rules',
 };
 
 export const HOUSE_AREAS_RU: Record<number, string> = {
-  1: 'самоподача, первые реакции и самостоятельные начинания',
-  2: 'личные деньги, вещи, устойчивость и то, что человек считает ценным',
+  1: 'знакомства и то, как ты берёшься за новое дело',
+  2: 'деньги, покупки и вещи, которыми ты дорожишь',
   3: 'повседневное общение, обучение, короткие поездки и обмен информацией',
   4: 'дом, личное пространство, семья и привычный уклад',
-  5: 'увлечения, творчество, удовольствие, романтический интерес и самовыражение',
-  6: 'повседневные обязанности, рабочие привычки, порядок и нагрузка',
-  7: 'партнёрство, близкие отношения и договорённости один на один',
-  8: 'общие деньги, обязательства, доверие и ситуации высокой вовлечённости',
-  9: 'дальнее обучение, мировоззрение, путешествия и расширение опыта',
-  10: 'работа, ответственность, репутация и заметный результат',
+  5: 'увлечения, творчество, свидания и то, что тебе нравится',
+  6: 'ежедневная работа, дела и привычки',
+  7: 'близкие отношения и совместные решения',
+  8: 'общие деньги, обязательства и доверие',
+  9: 'учёба, путешествия и знакомство с новым',
+  10: 'работа, цели и то, как тебя знают в твоём деле',
   11: 'друзья, команды, сообщества и общие планы',
-  12: 'уединение, восстановление, закрытая часть жизни и то, что не хочется выставлять наружу',
+  12: 'отдых наедине с собой и личные дела',
 };
 
 export const HOUSE_TOPICS: Record<number, NatalMeaningTopic[]> = {
@@ -133,10 +133,10 @@ export const ANGLE_LABELS: Record<NatalAngleKey, string> = {
 };
 
 export const ANGLE_ROLES_RU: Record<NatalAngleKey, string> = {
-  ascendant: 'в том, как человек входит в новую обстановку и проявляет себя в первом контакте',
-  mc: 'в том, как человек подходит к заметным целям, работе и внешнему результату',
-  descendant: 'в том, как человек подходит к сотрудничеству и отношениям один на один',
-  ic: 'в том, как человек устраивает личное пространство и привычный домашний уклад',
+  ascendant: 'как ты знакомишься и ведёшь себя в новой компании',
+  mc: 'как ты работаешь и чего хочешь добиться',
+  descendant: 'как ты договариваешься с близким человеком',
+  ic: 'как ты устраиваешь свой дом и семейную жизнь',
 };
 
 export const ANGLE_TOPICS: Record<NatalAngleKey, NatalMeaningTopic[]> = {
@@ -155,11 +155,11 @@ export const ASPECT_LABELS_RU: Record<NatalAspectType, string> = {
 };
 
 export const ASPECT_DYNAMICS_RU: Record<NatalAspectType, string> = {
-  conjunction: 'две функции обычно включаются вместе и заметно влияют друг на друга',
-  sextile: 'две функции могут довольно легко сотрудничать, когда обе действительно задействованы',
-  square: 'две функции могут одновременно требовать разных действий, поэтому их приходится сознательно координировать',
-  trine: 'две функции обычно сочетаются без большого внутреннего трения и легко поддерживают друг друга',
-  opposition: 'две функции чаще ощущаются как два полюса, между которыми приходится распределять внимание',
+  conjunction: 'Показывает, какие поступки и желания тесно связаны между собой',
+  sextile: 'Показывает, что может помочь в конкретном деле',
+  square: 'Показывает, что бывает трудно совместить',
+  trine: 'Показывает, что обычно получается совместить без лишних усилий',
+  opposition: 'Показывает, между какими желаниями приходится выбирать',
 };
 
 export const TOPIC_TITLES_RU: Record<NatalMeaningTopic, string> = {
@@ -186,3 +186,147 @@ export function bodyLabel(key: NatalBodyKey, language: 'ru' | 'en'): string {
 export function bodyRole(key: NatalBodyKey, language: 'ru' | 'en'): string {
   return BODY_ROLES[key][language];
 }
+
+// Short observations for the shared interpreter. These are not paragraphs or
+// a quota of sentences: the writer selects and combines the relevant ones.
+const PERSONAL_SIGN_COPY_RU: Partial<Record<NatalBodyKey, readonly string[]>> = {
+  sun: [
+    'Тебе проще начать дело сразу, когда понятно, чего ты хочешь.',
+    'Ты не любишь спешить и охотнее продолжаешь то, что уже хорошо получается.',
+    'Тебе интересно сравнивать варианты и пробовать несколько способов.',
+    'Тебе легче заняться своим делом, когда рядом знакомые люди и обстановка.',
+    'Тебе нравится делать что-то по-своему и видеть, что другие это ценят.',
+    'Ты замечаешь детали и хочешь понимать, что можно сделать лучше.',
+    'При выборе ты учитываешь и своё желание, и мнение другого человека.',
+    'Ты серьёзно берёшься за то, что считаешь важным, и не довольствуешься поверхностным ответом.',
+    'Ты охотно пробуешь новое, когда понимаешь, зачем тебе это нужно.',
+    'Ты ценишь результат, которому можно доверять, и готов работать над ним долго.',
+    'Ты предпочитаешь решать сам и не следовать правилу только потому, что так принято.',
+    'Ты замечаешь настроение людей и часто понимаешь ситуацию через впечатление от неё.',
+  ],
+  moon: [
+    'Если тебя что-то задело, ты обычно отвечаешь быстро и прямо.',
+    'Тебе спокойнее, когда день идёт привычно и никто не торопит.',
+    'Разговор и возможность сравнить разные мысли помогают тебе разобраться в чувствах.',
+    'Тебе важны близкие люди и ощущение, что дома тебя понимают.',
+    'Тебе приятно, когда близкие замечают твои старания и отвечают тепло.',
+    'Тебе легче успокоиться, когда понятно, что происходит и что осталось сделать.',
+    'В разногласии ты стараешься понять обе стороны, прежде чем выбрать свою.',
+    'Ты не спешишь рассказывать о важном для тебя и серьёзно относишься к доверию.',
+    'Новые впечатления помогают тебе отвлечься и посмотреть на случившееся шире.',
+    'Тебе спокойнее, когда есть понятный порядок и ты можешь рассчитывать на результат.',
+    'Тебе легче разобраться в чувствах, когда можно немного побыть самостоятельно.',
+    'Ты хорошо замечаешь чужое настроение и принимаешь его близко к сердцу.',
+  ],
+  mercury: [
+    'Когда мысль сложилась, ты скорее скажешь её сразу, чем будешь долго подбирать слова.',
+    'Ты предпочитаешь разбираться без спешки и опираться на понятные факты.',
+    'Ты быстрее понимаешь новое через вопросы, сравнения и разговор.',
+    'В разговоре ты учитываешь, как человек себя чувствует и что ему знакомо.',
+    'Тебе нравится объяснять так, чтобы мысль заметили и запомнили.',
+    'Ты замечаешь неточности и любишь разбирать задачу по шагам.',
+    'Ты выслушиваешь разные мнения и стараешься подобрать понятную обоим формулировку.',
+    'Ты задаёшь дополнительные вопросы и не спешишь принимать первое объяснение.',
+    'Тебе интересно понять общую идею, а не только отдельные подробности.',
+    'Ты предпочитаешь разговор, из которого понятно, что решено и что делать дальше.',
+    'Ты охотно рассматриваешь необычное объяснение и не принимаешь привычное на веру.',
+    'Ты легче понимаешь через пример или образ, чем через сухое перечисление правил.',
+  ],
+  venus: [
+    'Если человек тебе нравится, ты скорее покажешь это прямо, чем будешь долго скрывать.',
+    'Тебе нравятся надёжность, спокойное общение и простые приятные вещи.',
+    'Тебе важно, чтобы с человеком было интересно разговаривать.',
+    'Ты сближаешься через заботу, знакомые привычки и чувство, что тебя понимают.',
+    'Тебе приятно открыто показывать симпатию и видеть тёплый ответ.',
+    'Ты замечаешь небольшие знаки внимания и ценишь заботу в обычных делах.',
+    'Тебе важно, чтобы оба человека могли высказаться и договориться.',
+    'В близких отношениях ты ценишь доверие и серьёзное отношение друг к другу.',
+    'Тебе нравится вместе пробовать новое и делиться впечатлениями.',
+    'Ты ценишь обещания, которые человек выполняет, и отношения, проверенные временем.',
+    'Тебе важно оставаться собой и оставлять другому человеку свободу выбора.',
+    'Ты чутко замечаешь настроение человека и ценишь мягкое обращение.',
+  ],
+  mars: [
+    'Тебе проще сразу взяться за дело, чем долго готовиться.',
+    'Ты предпочитаешь работать без спешки и не менять способ, который уже приносит результат.',
+    'Ты охотно пробуешь разные способы, прежде чем остановиться на одном.',
+    'Тебе легче действовать, когда понимаешь, как это затронет близких и привычную жизнь.',
+    'Ты охотнее берёшься за дело, в котором можешь показать, что умеешь.',
+    'Ты замечаешь, что именно нужно сделать, и разбираешь работу на шаги.',
+    'Перед действием ты стараешься учесть обе стороны и договориться.',
+    'Если дело для тебя важно, ты готов разбираться глубоко и долго.',
+    'Тебе легче начать, когда впереди есть что-то новое и интересное.',
+    'Ты готов долго работать ради понятного результата.',
+    'Ты ищешь свой способ и не любишь действовать только по привычному правилу.',
+    'Ты легче начинаешь, когда можешь представить результат и почувствовать, что тебе это подходит.',
+  ],
+  jupiter: [
+    'Ты охотно учишься новому, сразу пробуя это на деле.',
+    'Ты предпочитаешь постепенно осваивать то, что можно применить в жизни.',
+    'Ты учишься через вопросы, сравнения и обмен мнениями.',
+    'Тебе легче пробовать новое, когда есть поддержка знакомых людей.',
+    'Тебе нравится учиться тому, в чём можно показать свои умения.',
+    'Ты охотнее доверяешь новому, когда можешь проверить его на практике.',
+    'Ты расширяешь свои знания, выслушивая людей с разными взглядами.',
+    'Ты предпочитаешь подробно разобраться в интересующем вопросе.',
+    'Тебе интересны новые знания, места и непривычные взгляды.',
+    'Ты ценишь знания, которые помогают получить конкретный результат.',
+    'Ты охотно знакомишься с необычными идеями и ищешь свой подход.',
+    'Тебе легче понять новое через примеры и воображение.',
+  ],
+  saturn: [
+    'Сложную задачу тебе проще начать с конкретного действия.',
+    'В долгой работе тебе подходит спокойный, привычный темп.',
+    'Ты стараешься понять и обсудить правила, прежде чем им следовать.',
+    'Ты серьёзно относишься к обещаниям близким людям.',
+    'Тебе важно, чтобы твои старания и ответственность замечали.',
+    'Ты внимательно относишься к деталям и выполнению договорённостей.',
+    'Ты стараешься учитывать обе стороны, когда договариваешься об обязанностях.',
+    'Ты серьёзно берёшься за сложное дело и хочешь разобраться до конца.',
+    'Тебе проще следовать правилу, когда понятно, зачем оно нужно.',
+    'Ты ценишь порядок, выполненные обещания и результат долгой работы.',
+    'Ты готов пересмотреть правило, если видишь другой разумный способ.',
+    'Тебе легче понять требование через пример, чем через сухую формулировку.',
+  ],
+};
+
+export function bodySignMeaning(key: NatalBodyKey, sign: string, language: 'ru' | 'en'): string | null {
+  const index = Object.keys(SIGN_STYLE_RU).indexOf(sign);
+  if (index < 0 || !PERSONAL_SIGN_COPY_RU[key]) return null;
+  if (language === 'ru') return PERSONAL_SIGN_COPY_RU[key]![index];
+  const contexts: Partial<Record<NatalBodyKey, string>> = {
+    sun: 'When deciding what you want to do', moon: 'When dealing with your feelings',
+    mercury: 'When thinking or talking', venus: 'When getting close to someone',
+    mars: 'When getting started', jupiter: 'When learning something new',
+    saturn: 'When keeping promises and finishing a task',
+  };
+  return `${contexts[key]}, ${SIGN_STYLE_EN[sign]}.`;
+}
+
+export const HOUSE_OPENINGS_RU: Record<number, string> = {
+  1: 'В новой компании', 2: 'В покупках и денежных решениях', 3: 'В разговорах и учёбе',
+  4: 'Дома и в семье', 5: 'В увлечениях и свиданиях', 6: 'В ежедневных делах',
+  7: 'В близких отношениях', 8: 'В вопросах общих денег и обязательств',
+  9: 'В учёбе и путешествиях', 10: 'В работе', 11: 'С друзьями и в общих планах',
+  12: 'Когда ты остаёшься наедине с собой',
+};
+
+export const POINT_ACTIONS_RU: Record<NatalBodyKey | NatalAngleKey, { infinitive: string; present: string }> = {
+  sun: { infinitive: 'решить, чего ты хочешь', present: 'выбираешь, чего хочешь' },
+  moon: { infinitive: 'учесть свои чувства', present: 'учитываешь свои чувства' },
+  mercury: { infinitive: 'обдумать и объяснить свою мысль', present: 'обдумываешь и объясняешь свою мысль' },
+  venus: { infinitive: 'договориться с близким человеком', present: 'договариваешься с близким человеком' },
+  mars: { infinitive: 'взяться за дело', present: 'берёшься за дело' },
+  jupiter: { infinitive: 'попробовать что-то новое', present: 'пробуешь что-то новое' },
+  saturn: { infinitive: 'выполнить обещание и довести дело до конца', present: 'выполняешь обещание и доводишь дело до конца' },
+  uranus: { infinitive: 'изменить привычный способ', present: 'меняешь привычный способ' },
+  neptune: { infinitive: 'представить, как всё может быть', present: 'представляешь, как всё может быть' },
+  pluto: { infinitive: 'решиться на серьёзные перемены', present: 'решаешься на серьёзные перемены' },
+  chiron: { infinitive: 'попробовать ещё раз после ошибки', present: 'пробуешь ещё раз после ошибки' },
+  northNode: { infinitive: 'попробовать непривычный способ', present: 'пробуешь непривычный способ' },
+  southNode: { infinitive: 'поступить привычным способом', present: 'поступаешь привычным способом' },
+  ascendant: { infinitive: 'освоиться в новой компании', present: 'осваиваешься в новой компании' },
+  descendant: { infinitive: 'найти общий язык с другим человеком', present: 'ищешь общий язык с другим человеком' },
+  mc: { infinitive: 'добиться результата в работе', present: 'добиваешься результата в работе' },
+  ic: { infinitive: 'устроить свой дом и семейную жизнь', present: 'устраиваешь свой дом и семейную жизнь' },
+};

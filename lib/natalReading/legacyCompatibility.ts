@@ -4,6 +4,10 @@ import type {
   InterpretationSection,
   InterpretationSectionKey,
   UserProfile,
+  NatalAnchorReading,
+  NatalFullReading,
+  NatalLivingReading,
+  AstroEvidenceItem,
 } from '../../types';
 import {
   buildNatalInterpretation,
@@ -76,11 +80,11 @@ const PREMIUM_CHAPTERS: ReadonlyArray<{
   title: Record<Language, string>;
   topics: readonly NatalMeaningTopic[];
 }> = [
-  { id: 'inner_world', title: { ru: 'Что у тебя внутри', en: 'What is going on inside you' }, topics: ['character', 'emotions', 'rest'] },
-  { id: 'new_people', title: { ru: 'Как ты ведёшь себя с новыми людьми', en: 'How you act around new people' }, topics: ['communication', 'character'] },
-  { id: 'decisions', title: { ru: 'Как ты принимаешь решения', en: 'How you make decisions' }, topics: ['character', 'money', 'general'] },
-  { id: 'communication', title: { ru: 'Как ты общаешься', en: 'How you communicate' }, topics: ['communication', 'learning'] },
-  { id: 'strengths', title: { ru: 'Где у тебя получается лучше всего', en: 'Where you do your best' }, topics: ['work', 'learning', 'general'] },
+  { id: 'inner_world', title: { ru: 'Что ты чувствуешь', en: 'How you feel' }, topics: ['emotions', 'rest'] },
+  { id: 'new_people', title: { ru: 'Как ты ведёшь себя с новыми людьми', en: 'How you act around new people' }, topics: ['character'] },
+  { id: 'decisions', title: { ru: 'Как ты принимаешь решения', en: 'How you make decisions' }, topics: ['money'] },
+  { id: 'communication', title: { ru: 'Как ты общаешься', en: 'How you communicate' }, topics: ['communication'] },
+  { id: 'strengths', title: { ru: 'Как ты учишься новому', en: 'How you learn' }, topics: ['learning'] },
   { id: 'relationships', title: { ru: 'Отношения и семья', en: 'Relationships and family' }, topics: ['relationships', 'home', 'emotions'] },
   { id: 'work', title: { ru: 'Работа и своё дело', en: 'Work and your own business' }, topics: ['work', 'money', 'learning'] },
   { id: 'challenges', title: { ru: 'Когда всё идёт не по плану', en: 'When things do not go to plan' }, topics: ['character', 'communication', 'general'] },
@@ -141,7 +145,8 @@ function evidenceForMeaningIds(
   const byId = new Map(
     interpretation.meanings.map((meaning) => [meaning.id, meaning.evidenceIds]),
   );
-  return unique(meaningIds.flatMap((id) => byId.get(id) || []));
+  const reliable = new Set(interpretation.evidence.map(fact => fact.id));
+  return unique(meaningIds.flatMap(id => byId.get(id) || (reliable.has(id.replace(/^meaning:/, '')) ? [id.replace(/^meaning:/, '')] : [])));
 }
 
 function legacyEvidenceForBlocks(
@@ -213,98 +218,16 @@ function ensureBlocks(
   return preferred.length ? [...preferred] : [...fallback];
 }
 
-function wordTokens(value: string): string[] {
-  return value.match(/[\p{L}\p{N}]+(?:[-’'][\p{L}\p{N}]+)*/gu) || [];
-}
-
-function buildWordBudgetText(
-  sourceText: string,
-  targetWords: number,
-): string {
-  const sourceWords = wordTokens(sourceText);
-  if (!sourceWords.length) return '';
-  const words: string[] = [];
-  for (let index = 0; words.length < targetWords; index += 1) {
-    words.push(sourceWords[index % sourceWords.length]);
-  }
-  return `${words.join(' ')}.`;
-}
-
-/**
- * Old catalog APKs validate fairly rigid paragraph/word-count ranges. This
- * adapter only reshapes words already written by the unified writer; it never
- * creates a second interpretation or asks another model for legacy prose.
- */
 function legacyCatalogSummary(input: {
   blocks: readonly NatalUnifiedStoryBlock[];
   interpretation: NatalInterpretation;
   categoryKey: NatalReportCategoryKey;
   language: Language;
 }): NatalReportStatement[] {
-  const count = input.categoryKey === 'main' ? 6 : 5;
-  const totalTargetWords = input.categoryKey === 'main' ? 216 : 240;
-  const perParagraph = Math.ceil(totalTargetWords / count);
-  const sourceText = input.blocks.map((block) => block.text.trim()).filter(Boolean).join(' ');
-  const fallbackText = input.language === 'ru'
-    ? 'Разбор собран по сохранённой карте и использует только подтверждённые детали.'
-    : 'This reading uses only confirmed details from the saved chart.';
-  const text = sourceText || fallbackText;
-  const evidenceIds = legacyEvidenceForBlocks(input.blocks, input.interpretation);
-  const safeEvidenceIds = evidenceIds.length
-    ? evidenceIds
-    : legacyOnlyEvidenceIds(input.interpretation.evidence.slice(0, 1).map((fact) => fact.id));
-  const category = getNatalReportCategory(input.categoryKey);
-  const baseTitle = category
-    ? localizeNatalReportText(category.title, input.language)
-    : input.language === 'ru' ? 'Разбор' : 'Reading';
-
-  return Array.from({ length: count }, (_, index) => ({
-    title: `${baseTitle} · ${index + 1}`,
-    text: buildWordBudgetText(text, perParagraph),
-    evidenceIds: safeEvidenceIds,
-  }));
+  return input.blocks.slice(0, 8).map(block => statementForBlock(block, input.interpretation));
 }
-
-function previewText(value: string): string {
-  const compact = value.replace(/\s+/g, ' ').trim();
-  if (compact.length >= 55 && compact.length <= 150) return compact;
-  if (compact.length > 150) {
-    const slice = compact.slice(0, 147);
-    const boundary = slice.lastIndexOf(' ');
-    return `${slice.slice(0, boundary > 80 ? boundary : 147).trim()}…`;
-  }
-  const suffix = ' Здесь собраны только подтверждённые детали сохранённой карты.';
-  return `${compact}${suffix}`.slice(0, 150).trim();
-}
-
-function answerParagraphs(
-  blocks: readonly NatalUnifiedStoryBlock[],
-  interpretation: NatalInterpretation,
-): NatalReportStatement[] {
-  const selected = blocks.length ? blocks.slice(0, 5) : [];
-  const source = selected.length ? selected : blocks;
-  const fallbackEvidenceIds = legacyOnlyEvidenceIds(
-    interpretation.evidence.slice(0, 1).map((fact) => fact.id),
-  );
-  if (!source.length) {
-    return Array.from({ length: 3 }, () => ({
-      text: 'Разбор по сохранённой карте сейчас содержит только подтверждённые данные.',
-      evidenceIds: fallbackEvidenceIds,
-    }));
-  }
-
-  const out = source.map((block) => ({
-    text: block.text.trim(),
-    evidenceIds: legacyEvidenceForBlocks([block], interpretation),
-  }));
-  while (out.length < 3) {
-    const original = out[out.length % source.length] || out[0];
-    out.push({
-      text: original.text,
-      evidenceIds: [...original.evidenceIds],
-    });
-  }
-  return out.slice(0, 5);
+function answerParagraphs(blocks: readonly NatalUnifiedStoryBlock[], interpretation: NatalInterpretation): NatalReportStatement[] {
+  return blocks.slice(0, 5).map(block => statementForBlock(block, interpretation));
 }
 
 export function adaptUnifiedToLegacyFreeReport(input: {
@@ -367,20 +290,24 @@ export function adaptUnifiedToLegacyPremiumReport(input: {
 }): NatalPermanentPremiumReport {
   const language = languageOf(input.profile);
   const interpretation = interpretationFor(input.chart, language);
-  const fallback = input.reading.story;
-  const sections: NatalPermanentPremiumSection[] = PREMIUM_CHAPTERS.map((chapter) => {
-    const blocks = ensureBlocks(
-      blocksForTopics(input.reading, chapter.topics),
-      fallback,
-    );
-    return {
+  const seen = new Set<string>();
+  const sections: NatalPermanentPremiumSection[] = PREMIUM_CHAPTERS.flatMap((chapter) => {
+    const blocks = blocksForTopics(input.reading, chapter.topics).filter(block => {
+      const text = block.text.trim();
+      if (seen.has(text)) return false;
+      seen.add(text);
+      return true;
+    });
+    if (!blocks.length) return [];
+    return [{
       id: chapter.id,
       title: chapter.title[language],
       paragraphs: blocks.slice(0, Math.max(1, Math.min(4, blocks.length))).map(
         (block) => statementForBlock(block, interpretation),
       ),
-    };
+    }];
   });
+  if (!sections.length) throw new Error('NATAL_LEGACY_SECTION_UNAVAILABLE');
   const firstSection = sections[0];
   const lead = firstSection.paragraphs[0];
   const lastSection = sections[sections.length - 1];
@@ -504,3 +431,40 @@ export function legacyInterpretationEnvelope<T>(
 
 /** Used by tests and compatibility diagnostics to prove no second writer exists. */
 export const NATAL_LEGACY_COMPATIBILITY_SOURCE = 'natal-unified-compat-v1';
+
+function legacyTechnicalEvidence(chart: NatalChartDataV2, language: Language): AstroEvidenceItem[] {
+  const interpretation = interpretationFor(chart, language);
+  return interpretation.meanings.map(meaning => {
+    const fact = interpretation.evidence.find(item => item.id === meaning.evidenceIds[0])!;
+    return { id: fact.id, type: fact.kind === 'aspect' ? 'aspect' : fact.kind === 'house_cusp' ? 'house' : 'placement',
+      label: meaning.technicalText, detail: meaning.technicalText, humanMeaning: meaning.text };
+  });
+}
+
+export function adaptUnifiedToLegacyAnchor(reading: NatalUnifiedReading, language: Language, chart: NatalChartDataV2): NatalAnchorReading {
+  const story = projectNatalUnifiedReadingForTier(reading, 'free').story;
+  const lead = story[0].text;
+  const sections = story.slice(1).map(block => ({
+    id: block.id, title: '', subtitle: '', body: block.text, examples: [], astroSource: '',
+    evidenceIds: evidenceForMeaningIds(block.meaningIds, interpretationFor(chart, language)),
+  }));
+  return { headline: language === 'ru' ? 'О тебе' : 'About you', lead, sections,
+    dictionaryTerms: [], astroEvidence: legacyTechnicalEvidence(chart, language), summary: lead, reading: story.map(block => block.text).join('\n\n') };
+}
+
+export function adaptUnifiedToLegacyFull(reading: NatalUnifiedReading, language: Language, chart: NatalChartDataV2): NatalFullReading {
+  const sections = reading.topics.map(topic => ({ id: topic.key, title: topic.title, subtitle: '',
+    body: topic.blocks.map(block => block.text).join('\n\n'), examples: [], astroSource: '',
+    evidenceIds: evidenceForMeaningIds(topic.blocks.flatMap(block => block.meaningIds), interpretationFor(chart, language)),
+  }));
+  return { headline: language === 'ru' ? 'Разбор карты' : 'Your reading', lead: reading.story[0].text,
+    sections, synthesis: reading.story.slice(1).map(block => block.text).join('\n\n'), astroEvidence: legacyTechnicalEvidence(chart, language) };
+}
+
+export function adaptUnifiedToLegacyLiving(reading: NatalUnifiedReading, language: Language, periodKey: string, chart: NatalChartDataV2): NatalLivingReading {
+  const topicText = (keys: NatalMeaningTopic[]) => blocksForTopics(reading, keys).map(block => block.text).join('\n\n');
+  return { periodKey, headline: language === 'ru' ? 'О тебе' : 'About you', summary: reading.story[0].text,
+    whyToday: '', situations: reading.story.slice(1).map(block => ({ title: '', body: block.text })),
+    relationships: topicText(['relationships', 'home']), workMoney: topicText(['work', 'money']),
+    evening: '', questionOfDay: '', astroEvidence: legacyTechnicalEvidence(chart, language) };
+}

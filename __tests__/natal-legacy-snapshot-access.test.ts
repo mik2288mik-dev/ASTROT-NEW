@@ -1,20 +1,24 @@
+import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
+import { natalWriterPayload } from './fixtures/natalWriterPayload';
+import { buildNatalInterpretation } from '../lib/natalInterpretation';
+import { buildNatalUnifiedWriterPlan, materializeNatalUnifiedReading } from '../lib/natalReading/unifiedGeneration';
 import type { NextApiRequest, NextApiResponse } from 'next';
 const mockUser = { id: '42', name: 'Owner', birth_date: '1980-01-01', birth_place: 'Owner city', language: 'ru' };
-const mockChartData = { complete: true, birth: {
+const mockChartData = { ...canonicalNatalChart(), complete: true, birth: {
   localDate: '1990-05-01', place: 'Saved city', timezone: 'Europe/Moscow', latitude: 55.7, longitude: 37.6,
   time: { mode: 'unknown', localTime: null, uncertaintyMinutes: null, rangeStart: null, rangeEnd: null },
 }, calculationMetadata: { calculatedAt: '2026-09-04T10:00:00Z' }, calculationVersion: 'version' };
 let mockChart: Record<string, any>;
-const mockGetContentLayer = jest.fn();
+const mockCached = jest.fn();
+jest.mock('../lib/natalReading/unifiedApi', () => ({ getCachedNatalUnifiedReading: (...args: unknown[]) => mockCached(...args) }));
 const mockReadChart = jest.fn();
 const mockGenerate = jest.fn();
 jest.mock('../lib/db', () => ({ db: { users: { get: async () => mockUser } } }));
 jest.mock('../lib/natalChartRead', () => ({ getCanonicalNatalChart: (...args: unknown[]) => mockReadChart(...args) }));
-jest.mock('../lib/contentArchitecture', () => ({ getPremiumEntitlementState: async () => ({ isPremium: true }), getContentLayer: (...args: unknown[]) => mockGetContentLayer(...args) }));
+jest.mock('../lib/contentArchitecture', () => ({ getPremiumEntitlementState: async () => ({ isPremium: true }), getContentLayer: jest.fn() }));
 jest.mock('../lib/auth/appAuth', () => ({ requireAppUser: async () => ({ userId: '42' }) }));
 jest.mock('../lib/adminAuth', () => ({ AdminAuthError: class extends Error {}, handleAdminError: jest.fn() }));
 jest.mock('../lib/appSettings', () => ({ getOpenAIModelForContent: jest.fn() }));
-jest.mock('../lib/natalContent', () => ({ generateNatalFullReading: (...args: unknown[]) => mockGenerate(...args), generateNatalAnchorReading: (...args: unknown[]) => mockGenerate(...args), generateNatalLivingReading: (...args: unknown[]) => mockGenerate(...args) }));
 jest.mock('../lib/natalReadings', () => ({
   NATAL_FULL_CACHE_KEY: 'full', NATAL_ANCHOR_CACHE_KEY: 'anchor',
   NATAL_FULL_PROMPT_VERSION: 'version', NATAL_ANCHOR_PROMPT_VERSION: 'version', NATAL_LIVING_PROMPT_VERSION: 'version',
@@ -45,7 +49,9 @@ describe('legacy natal content only reads the selected saved snapshot', () => {
     jest.clearAllMocks();
     mockChart = { id: 7, user_id: '42', subject_type: 'saved_person', name: 'Saved person', birth_time: null, input_hash: 'birth-hash', chart_data: mockChartData };
     mockReadChart.mockImplementation(async () => mockChart);
-    mockGetContentLayer.mockResolvedValue({ interpretation: { promptVersion: 'version', content: {} }, chartId: 7, source: 'cache' });
+    const interpretation = buildNatalInterpretation(canonicalNatalChart());
+    const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+    mockCached.mockResolvedValue({ content: materializeNatalUnifiedReading({ interpretation, plan, tier: 'premium', raw: natalWriterPayload(interpretation, plan) }).reading });
   });
 
   it('uses saved-person identity, birth data and precision even when client profile supplies different values', async () => {
@@ -54,15 +60,15 @@ describe('legacy natal content only reads the selected saved snapshot', () => {
     expect(context?.chartData).toBe(mockChartData);
   });
 
-  it.each(Object.entries(handlers))('%s scopes caches to the immutable saved revision and ignores client chartData', async (_name, handler) => {
+  it.each(Object.entries(handlers))('%s reads the selected saved birth data and ignores client chartData', async (_name, handler) => {
     const first = await request(handler);
     expect(first.status).toHaveBeenCalledWith(200);
     expect(mockReadChart).toHaveBeenCalledWith('42', 7);
-    const firstKey = mockGetContentLayer.mock.calls[0][0].cacheKey;
-    expect(firstKey).toContain(':natal:birth-hash:2026-09-04T10:00:00Z');
-    mockChart = { ...mockChart, input_hash: 'changed-birth-hash' };
-    await request(handler);
-    expect(mockGetContentLayer.mock.calls[1][0].cacheKey).not.toBe(firstKey);
+    const ctx = mockCached.mock.calls[0][0];
+    expect(ctx.chartId).toBe(7);
+    expect(ctx.chartData).toBe(mockChartData);
+    expect(ctx.profile.birthPlace).toBe('Saved city');
+    expect(ctx.profile.name).toBe('Saved person');
     expect(mockGenerate).not.toHaveBeenCalled();
   });
 
@@ -73,7 +79,7 @@ describe('legacy natal content only reads the selected saved snapshot', () => {
       expect(res.status).toHaveBeenCalledWith(status);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code }));
     }
-    expect(mockGetContentLayer).not.toHaveBeenCalled();
+    expect(mockCached).not.toHaveBeenCalled();
     expect(mockGenerate).not.toHaveBeenCalled();
   });
 });

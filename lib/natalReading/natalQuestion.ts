@@ -9,6 +9,7 @@ import {
 } from '../natalInterpretation';
 import { getNatalStorySystemPrompt } from '../voice/contracts/natal';
 import { hasCoreVoiceViolation } from '../voice/validators';
+import { natalPlainLanguageError } from '../natalInterpretation/plainLanguage';
 import {
   createLunaStructuredResponse,
   OPENAI_LUNA_MODEL,
@@ -116,6 +117,7 @@ export type NatalQuestionPromptContext = {
     scope: NatalMeaning['scope'];
     topics: NatalMeaning['topics'];
     meaning: string;
+    area?: string;
   }>;
   recentMessages: Array<{
     role: 'user' | 'assistant';
@@ -542,6 +544,7 @@ export function buildNatalQuestionPromptContext(input: {
         scope: meaning.scope,
         topics: meaning.topics,
         meaning: meaning.text,
+        ...(meaning.area ? { area: meaning.area } : {}),
       })),
       recentMessages: pairedRecentMessages(input.chartId, input.history),
       question: normalizePersonalForecastQuestionInput(input.question),
@@ -563,7 +566,7 @@ export function buildNatalQuestionPrompt(
 
 ЖЁСТКИЕ ПРАВИЛА:
 - Во входе APPROVED_MEANINGS уже содержится весь разрешённый смысл.
-- Верни только JSON: {"answer":"3-5 законченных предложений","meaning_ids":["существующий meaning id"]}.
+- Верни только JSON: {"answer":"краткий ответ обычными словами","meaning_ids":["существующий meaning id"]}. Достаточно 1–5 предложений, не добавляй фразы ради количества.
 - Сначала ответь на вопрос по делу. Используй только те meaning_ids, которые реально нужны для ответа: обычно 1–4, максимум 6.
 - Каждое личное утверждение в answer должно быть прямым пересказом выбранных approved meanings. Нельзя добавлять новую причину, мотив, биографию, событие или психологический ярлык.
 - Если готовые смыслы не подтверждают предпосылку вопроса, так и скажи простыми словами. Не подгоняй карту под вопрос.
@@ -583,7 +586,7 @@ You answer only from the already approved meanings produced by the unified natal
 
 STRICT RULES:
 - APPROVED_MEANINGS contains the entire allowed interpretation.
-- Return JSON only: {"answer":"3-5 complete sentences","meaning_ids":["existing meaning id"]}.
+- Return JSON only: {"answer":"a brief answer in ordinary words","meaning_ids":["existing meaning id"]}. Use 1–5 sentences; do not add sentences just to reach a count.
 - Answer the question directly. Use only the meaning_ids actually needed for the answer: normally 1–4, maximum 6.
 - Every personal claim in answer must be a direct paraphrase of the selected approved meanings. Add no new cause, motive, biography, event, or psychological label.
 - If the approved meanings do not support the premise of the question, say so plainly. Do not force the chart to fit the question.
@@ -616,7 +619,7 @@ function sentenceCount(value: string): number {
 const QUESTION_VISIBLE_ASTROLOGY = /(?:солнц\p{L}*|лун\p{L}*|меркур\p{L}*|венер\p{L}*|марс\p{L}*|юпитер\p{L}*|сатурн\p{L}*|уран\p{L}*|нептун\p{L}*|плутон\p{L}*|хирон\p{L}*|узел\p{L}*|асцендент|десцендент|аспект\p{L}*|трин\p{L}*|секстил\p{L}*|квадрат\p{L}*|оппозиц\p{L}*|соединени\p{L}*|\d{1,2}\s+дом\p{L}*|орб\p{L}*|ретроград\p{L}*|\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|ascendant|descendant|aspect|trine|sextile|square|opposition|conjunction|retrograde)\b)/iu;
 const QUESTION_PSEUDO_PSYCHOLOGY = /(?:осознанн\p{L}*|ресурс\p{L}*|потенциал\p{L}*|трансформац\p{L}*|проработ\p{L}*|точк\p{L}*\s+рост\p{L}*|паттерн\p{L}*|сценари\p{L}*|триггер\p{L}*|травм\p{L}*|архетип\p{L}*|подсозн\p{L}*|самосаботаж\p{L}*|тенев\p{L}*\s+сторон\p{L}*|внутренн\p{L}*\s+(?:реб[её]н\p{L}*|ресурс\p{L}*|конфликт\p{L}*)|глубинн\p{L}*\s+(?:страх\p{L}*|потребност\p{L}*|мотив\p{L}*)|\b(?:inner\s+child|growth\s+point|trauma|trigger|healing|transformation|potential|archetype|shadow\s+self|self[- ]sabotage)\b)/iu;
 const QUESTION_META_LANGUAGE = /(?:карта\s+(?:показывает|говорит|подсказывает)|астрологическ\p{L}*\s+трактовк\p{L}*|в\s+этой\s+тем\p{L}*|эта\s+тем\p{L}*|может\s+проявляться|проявля\p{L}*\s+как|внутренн\p{L}*\s+динамик\p{L}*|\b(?:the\s+chart\s+shows|this\s+theme|may\s+manifest|inner\s+dynamic|astrological\s+interpretation)\b)/iu;
-const QUESTION_ADVICE_LANGUAGE = /(?:тебе\s+(?:нужно|стоит|следует|важно)(?!\p{L})|(?:попробуй|старайся|помни|сохраняй|проверь|сверь|выбирай|держи|не\s+бойся|позволь\s+себе)(?!\p{L})|\b(?:you\s+should|you\s+need\s+to|try\s+to|remember\s+to|make\s+sure\s+to|check\s+that|choose\s+based)\b)/iu;
+const QUESTION_ADVICE_LANGUAGE = /(?:тебе\s+(?:нужно|стоит|следует)(?!\p{L})|(?:попробуй|старайся|помни|сохраняй|проверь|сверь|выбирай|держи|не\s+бойся|позволь\s+себе)(?!\p{L})|\b(?:you\s+should|you\s+need\s+to|try\s+to|remember\s+to|make\s+sure\s+to|check\s+that|choose\s+based)\b)/iu;
 
 const DIAGNOSTIC_ANSWER_EN = /\b(?:diagnos(?:e|ed|es|ing|is|tic)|disorders?|diseases?|illness(?:es)?)\b/iu;
 const DIAGNOSTIC_ANSWER_RU = /(?:диагноз\w*|диагностир\w*|расстройств\w*|болезн\w*)/iu;
@@ -690,7 +693,7 @@ export function getNatalQuestionAnswerValidationErrors(
 
   if (answer.length < 40) errors.add('ANSWER_TOO_SHORT');
   if (answer.length > 1600) errors.add('ANSWER_TOO_LONG');
-  if (sentences < 3 || sentences > 5) errors.add('SENTENCE_COUNT_INVALID');
+  if (sentences < 1 || sentences > 5) errors.add('SENTENCE_COUNT_INVALID');
   if (ids.length === 0) errors.add('MEANING_REQUIRED');
   if (ids.some((id) => !allowedMeaningIds.has(id))) errors.add('MEANING_UNKNOWN');
   if (ids.length > 6) errors.add('MEANING_SELECTION_TOO_BROAD');
@@ -700,6 +703,7 @@ export function getNatalQuestionAnswerValidationErrors(
     || QUESTION_PSEUDO_PSYCHOLOGY.test(answer)
     || QUESTION_META_LANGUAGE.test(answer)
     || QUESTION_ADVICE_LANGUAGE.test(answer)
+    || natalPlainLanguageError(answer)
   ) errors.add('COPY_VIOLATION');
   if (DIAGNOSTIC_ANSWER_EN.test(answer) || DIAGNOSTIC_ANSWER_RU.test(answer)) {
     errors.add('DIAGNOSTIC_CLAIM');
@@ -728,7 +732,7 @@ async function reviewNatalQuestionSemanticFidelity(input: {
   language: NatalReadingLanguage;
   question: string;
   answer: string;
-  meanings: Array<Pick<NatalMeaning, 'id' | 'scope' | 'text'>>;
+  meanings: Array<Pick<NatalMeaning, 'id' | 'scope' | 'text' | 'area'>>;
 }): Promise<string[]> {
   const instructions = input.language === 'ru'
     ? `Проверь только соответствие ответа уже утверждённым смыслам.
@@ -751,6 +755,7 @@ A brief boundary saying a natal chart cannot determine a calendar date or event 
         id: meaning.id,
         scope: meaning.scope,
         meaning: meaning.text,
+        ...(meaning.area ? { area: meaning.area } : {}),
       })),
       candidate: input.answer,
     }),

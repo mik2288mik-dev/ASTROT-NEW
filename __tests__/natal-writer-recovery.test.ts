@@ -1,3 +1,4 @@
+import { natalWriterPayload } from './fixtures/natalWriterPayload';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
 import { buildNatalInterpretation } from '../lib/natalInterpretation';
 const mockResponse = jest.fn();
@@ -6,10 +7,9 @@ import { buildNatalUnifiedWriterPlan, generateNatalUnifiedReading, type NatalWri
 
 function fixture() {
   const chart = canonicalNatalChart();
-  const plan = buildNatalUnifiedWriterPlan(buildNatalInterpretation(chart), 'premium');
-  const block = (item: { id: string; meaningIds: string[] }) => ({ id: item.id, meaning_ids: item.meaningIds,
-    text: 'Обычно ты сначала разбираешься в деталях, а потом выбираешь понятный способ действовать без лишней суеты.' });
-  const raw = { story: plan.story.map(block), topics: plan.topics.map((topic) => ({ key: topic.key, title: topic.title, blocks: topic.blocks.map(block) })) };
+  const interpretation = buildNatalInterpretation(chart);
+  const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+  const raw = natalWriterPayload(interpretation, plan);
   const checks = [...raw.story, ...raw.topics.flatMap((topic) => topic.blocks)].map((item) => ({ id: item.id, issues: [] as { kind: string; detail: string }[] }));
   return { chart, raw, checks };
 }

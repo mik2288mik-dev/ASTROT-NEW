@@ -1,3 +1,4 @@
+import { natalWriterPayload } from './fixtures/natalWriterPayload';
 import fs from 'node:fs';
 import path from 'node:path';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
@@ -12,30 +13,12 @@ function source(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }
 
-function validRaw(
-  plan: ReturnType<typeof buildNatalUnifiedWriterPlan>,
-) {
-  const text = 'Обычно ты сначала разбираешься в деталях, а потом выбираешь понятный способ действовать без лишней суеты.';
-  return {
-    story: plan.story.map((block) => ({
-      id: block.id,
-      text,
-      meaning_ids: [...block.meaningIds],
-    })),
-    topics: plan.topics.map((topic) => ({
-      key: topic.key,
-      title: topic.title,
-      blocks: topic.blocks.map((block) => ({
-        id: block.id,
-        text,
-        meaning_ids: [...block.meaningIds],
-      })),
-    })),
-  };
+function validRaw(plan: ReturnType<typeof buildNatalUnifiedWriterPlan>) {
+  return natalWriterPayload(buildNatalInterpretation(canonicalNatalChart()), plan);
 }
 
 describe('hardened unified natal writer', () => {
-  it('uses ordinary topic names and assigns every meaning to one visible topic only', () => {
+  it('uses ordinary topic names and a short relevant selection for each topic', () => {
     const interpretation = buildNatalInterpretation(canonicalNatalChart());
     const titles = interpretation.topics.map((topic) => topic.title);
     const ids = interpretation.topics.flatMap((topic) => topic.meaningIds);
@@ -56,8 +39,9 @@ describe('hardened unified natal writer', () => {
     expect(titles).not.toContain('Учёба и новое');
     expect(titles).not.toContain('Нагрузка и восстановление');
 
-    expect(new Set(ids).size).toBe(ids.length);
-    expect(new Set(ids)).toEqual(new Set(interpretation.meanings.map((meaning) => meaning.id)));
+    expect(ids.every(id => interpretation.meanings.some(meaning => meaning.id === id))).toBe(true);
+    expect(interpretation.topics.every(topic => topic.meaningIds.length <= 3
+      && new Set(topic.meaningIds).size === topic.meaningIds.length)).toBe(true);
   });
 
   it('accepts concise everyday copy when ids and topic structure are unchanged', () => {
@@ -145,8 +129,40 @@ describe('hardened unified natal writer', () => {
     expect(generation).toContain('semantic review');
     expect(generation).toContain('NATAL_WRITER_REJECTED');
     expect(generation).not.toContain('function deterministicFallback');
-    expect(service).toContain("nebo:natal-unified-reading:v3");
+    expect(service).toContain("nebo:natal-unified-reading:v4");
     expect(ui).toContain("const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free';");
     expect(ui).not.toContain("mode === 'topics' && isPremium ? 'premium' : 'free'");
+  });
+  it('accepts a grounded subset rather than forcing every minor detail into prose', () => {
+    const interpretation = buildNatalInterpretation(canonicalNatalChart());
+    const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+    const raw = validRaw(plan);
+    const result = materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan });
+    expect(result.reading!.story[0].meaningIds).toHaveLength(1);
+    expect(plan.story[0].meaningIds.length).toBeGreaterThan(1);
+    const cited = new Set(result.reading!.meaningIds);
+    expect(new Set(result.reading!.evidenceIds)).toEqual(new Set(interpretation.meanings.filter(meaning => cited.has(meaning.id)).flatMap(meaning => meaning.evidenceIds)));
+    raw.story[0].meaning_ids = ['invented-id'];
+    expect(materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan }).reading).toBeNull();
+  });
+  it.each([
+    'Самоподача и отношения могут требовать разных решений и включаются вместе.',
+    'Реакция чаще идёт напрямую, без дополнительного внутреннего пересмотра.',
+    'Ты выбираешь понятный способ действовать. Ты выбираешь понятный способ действовать.',
+  ])('rejects the actual pseudo-prose and repetitions: %s', text => {
+    const interpretation = buildNatalInterpretation(canonicalNatalChart());
+    const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+    const raw = validRaw(plan);
+    raw.story[0].text = text;
+    const result = materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan });
+    expect(result.reading).toBeNull();
+    expect(result.errors.some(error => /technical pseudo-prose|repeated sentence/.test(error))).toBe(true);
+  });
+  it('rejects a duplicated paragraph in different visible topics', () => {
+    const interpretation = buildNatalInterpretation(canonicalNatalChart());
+    const plan = buildNatalUnifiedWriterPlan(interpretation, 'premium');
+    const raw = validRaw(plan);
+    raw.topics[1].blocks[0].text = raw.topics[0].blocks[0].text;
+    expect(materializeNatalUnifiedReading({ raw, interpretation, tier: 'premium', plan }).errors.join(' ')).toContain('repeated paragraph');
   });
 });

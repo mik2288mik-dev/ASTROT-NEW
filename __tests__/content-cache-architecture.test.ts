@@ -117,8 +117,8 @@ describe('content cache architecture', () => {
     it('natal full and anchor APIs use stable cache constants', () => {
       const anchor = readApiSource('pages/api/content/natal/anchor.ts');
       const full = readApiSource('pages/api/content/natal/full.ts');
-      expect(anchor).toContain('NATAL_ANCHOR_CACHE_KEY');
-      expect(full).toContain('NATAL_FULL_CACHE_KEY');
+      expect(anchor).toContain("legacyNatalReadingHandler('anchor')");
+      expect(full).toContain("legacyNatalReadingHandler('full')");
       expect(anchor).not.toMatch(/cacheKey:\s*getMoscowTodayKey\(\)/);
       expect(full).not.toMatch(/cacheKey:\s*getMoscowTodayKey\(\)/);
     });
@@ -145,17 +145,18 @@ describe('content cache architecture', () => {
 
     it('natal anchor GET does not call generateNatalAnchorReading', () => {
       const source = readApiSource('pages/api/content/natal/anchor.ts');
-      assertNoGenerationBefore(source, 'generateNatalAnchorReading');
+      expect(source).not.toContain('generateNatalAnchorReading');
     });
 
     it('natal full GET does not call generateNatalFullReading', () => {
       const source = readApiSource('pages/api/content/natal/full.ts');
-      assertNoGenerationBefore(source, 'generateNatalFullReading');
+      expect(source).not.toContain('generateNatalFullReading');
     });
 
     it('planet insight GET does not call generatePlanetInsight', () => {
       const source = readApiSource('pages/api/content/natal/planet-insight.ts');
-      assertNoGenerationBefore(source, 'generatePlanetInsight');
+      expect(source).not.toContain('generatePlanetInsight');
+      expect(source).toContain('getCachedNatalUnifiedReading');
     });
   });
 
@@ -165,7 +166,9 @@ describe('content cache architecture', () => {
       expect(context).toContain('chart.input_hash');
       expect(context).toContain('calculationMetadata?.calculatedAt');
       for (const route of ['anchor', 'full', 'living', 'planet-insight']) {
-        expect(readApiSource(`pages/api/content/natal/${route}.ts`)).toContain('context.snapshotKey');
+        const source = readApiSource(`pages/api/content/natal/${route}.ts`);
+        expect(source).toMatch(/legacyNatalReadingHandler|getCachedNatalUnifiedReading/);
+        expect(source).not.toContain('withContentGenerationLock');
       }
     });
 

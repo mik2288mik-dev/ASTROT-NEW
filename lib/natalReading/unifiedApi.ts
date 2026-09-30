@@ -16,6 +16,7 @@ import {
   isNatalUnifiedReading,
   NATAL_UNIFIED_READING_CACHE_KEY,
   NATAL_UNIFIED_READING_PROMPT_VERSION,
+  NATAL_COPY_REVISION,
   type NatalUnifiedReading,
   type NatalUnifiedReadingTier,
 } from './unifiedReading';
@@ -97,6 +98,7 @@ export function natalUnifiedReadingCacheOptions(
 export async function getCachedNatalUnifiedReading(
   ctx: ReadingContext,
   tier: NatalUnifiedReadingTier,
+  requiredCopyRevision?: string,
 ): Promise<ContentInterpretation<NatalUnifiedReading> | null> {
   if (ctx.chartId == null) return null;
   const options = natalUnifiedReadingCacheOptions(ctx, tier);
@@ -110,6 +112,7 @@ export async function getCachedNatalUnifiedReading(
      ORDER BY created_at ASC, id ASC`,
     [ctx.chartId, String(ctx.profile.id)],
   );
+  let previous: ContentInterpretation<NatalUnifiedReading> | null = null;
   for (const row of candidates.rows) {
     const cached = await db.content_interpretations.getByChart(
       ctx.chartId, 'premium', 'natal', 'full', row.cache_key, true,
@@ -118,9 +121,11 @@ export async function getCachedNatalUnifiedReading(
     const matches = cached.inputHash === options.inputHash || cached.inputHash === legacyInputHash(
       ctx, String(cached.promptVersion || ''), cached.content.contractVersion,
     );
-    if (matches) return cached;
+    if (!matches) continue;
+    if (cached.content.copyRevision === (requiredCopyRevision || NATAL_COPY_REVISION)) return cached;
+    if (!requiredCopyRevision && !previous) previous = cached;
   }
-  return null;
+  return previous;
 }
 
 export async function generateNatalUnifiedReadingWithLock(input: {
@@ -143,7 +148,7 @@ export async function generateNatalUnifiedReadingWithLock(input: {
     }),
     operation: 'natal-unified-generation',
     readCached: async () => {
-      const cached = await getCachedNatalUnifiedReading(input.ctx, input.tier);
+      const cached = await getCachedNatalUnifiedReading(input.ctx, input.tier, NATAL_COPY_REVISION);
       return cached
         ? { value: cached, source: 'natal_unified_v1' }
         : null;

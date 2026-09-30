@@ -14,15 +14,6 @@ export function getNatalInterpretationValidationErrors(
     errors.push('duplicate meaning id');
   }
 
-  const coveredEvidence = new Set(
-    interpretation.meanings.flatMap((meaning) => meaning.evidenceIds),
-  );
-  for (const evidenceId of evidenceIds) {
-    if (!coveredEvidence.has(evidenceId)) {
-      errors.push(`reliable evidence not interpreted: ${evidenceId}`);
-    }
-  }
-
   for (const meaning of interpretation.meanings) {
     if (!meaning.text.trim()) errors.push(`empty meaning: ${meaning.id}`);
     if (!meaning.technicalText.trim()) errors.push(`empty technical meaning: ${meaning.id}`);
@@ -32,9 +23,6 @@ export function getNatalInterpretationValidationErrors(
     }
   }
 
-  if (interpretation.storyMeaningIds.length !== interpretation.meanings.length) {
-    errors.push('story does not include every approved meaning');
-  }
   if (new Set(interpretation.storyMeaningIds).size !== interpretation.storyMeaningIds.length) {
     errors.push('story repeats an approved meaning');
   }
@@ -43,11 +31,13 @@ export function getNatalInterpretationValidationErrors(
   }
 
   const topicMeaningIds = interpretation.topics.flatMap((topic) => topic.meaningIds);
-  if (topicMeaningIds.length !== interpretation.meanings.length) {
-    errors.push('topics do not include every approved meaning exactly once');
-  }
-  if (new Set(topicMeaningIds).size !== topicMeaningIds.length) {
-    errors.push('topics repeat an approved meaning');
+  for (const topic of interpretation.topics) {
+    if (new Set(topic.meaningIds).size !== topic.meaningIds.length) {
+      errors.push(`topic repeats an approved meaning: ${topic.key}`);
+    }
+    if (topic.evidenceIds.some(id => !evidenceIds.has(id))) {
+      errors.push(`topic references unknown evidence: ${topic.key}`);
+    }
   }
   if (topicMeaningIds.some((id) => !meaningIds.has(id))) {
     errors.push('topics reference unknown meaning');

@@ -93,7 +93,7 @@ export const MAP_ASPECTS: Record<string, { name: string; what: string; effect: s
     const type = key as keyof typeof ASPECT_LABELS_RU;
     return [key, {
       name: ASPECT_LABELS_RU[type][0].toUpperCase() + ASPECT_LABELS_RU[type].slice(1),
-      what: `Это рассчитанный аспект. ${ASPECT_DYNAMICS_RU[type]}.`,
+      what: ASPECT_DYNAMICS_RU[type],
       effect: ASPECT_DYNAMICS_RU[type],
     }];
   }),
@@ -220,7 +220,8 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
     const meanings = evidenceIds
       .map((id) => ({ id, meaning: byEvidence.get(id) }))
       .filter((entry): entry is { id: string; meaning: NatalMeaning } => !!entry.meaning);
-    const reasons = meanings.map(({ id, meaning }) => {
+    const distinctMeanings = [...new Map(meanings.map(entry => [entry.meaning.id, entry])).values()];
+    const reasons = distinctMeanings.map(({ id, meaning }) => {
       const fact = interpretation?.evidence.find((candidate) => candidate.id === id);
       const tone: MapReason['tone'] = fact?.kind === 'aspect'
         ? 'aspect'
@@ -228,12 +229,12 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
           ? 'house'
           : 'sign';
       const subtitle = fact?.kind === 'aspect'
-        ? 'Как связано с другими частями карты'
+        ? 'Что это означает'
         : fact?.kind === 'body_house'
-          ? 'Где это проявляется'
+          ? 'К каким делам относится'
           : fact?.kind === 'body_retrograde'
-            ? 'Дополнительная настройка'
-            : 'Как это проявляется';
+            ? 'Движение точки'
+            : 'Что это означает';
       return reasonForMeaning(meaning, tone, subtitle);
     });
     const primaryMeanings = meanings
@@ -257,7 +258,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
       ? conciseMeaning(primaryMeanings, 2)
       : meanings.length
         ? conciseMeaning(meanings.map((entry) => entry.meaning), 1)
-        : 'Для этой точки нет надёжного персонального объяснения в сохранённом расчёте.';
+        : 'Одного положения этой точки недостаточно, чтобы сделать вывод о тебе.';
     return {
       title: meta.name,
       glyph: meta.glyph,
@@ -290,7 +291,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
     );
     const meaning = meanings.length
       ? conciseMeaning(meanings, 2)
-      : 'Для этого дома нет надёжного персонального объяснения.';
+      : 'Для объяснения этого дома недостаточно данных.';
     return {
       title: `${house} дом`,
       glyph: '⌂',
@@ -312,7 +313,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
     const left = findPoint(aspect.fromKey);
     const right = findPoint(aspect.toKey);
     const title = `${mapObject(left?.key || aspect.fromKey)?.name || aspect.fromKey} — ${mapObject(right?.key || aspect.toKey)?.name || aspect.toKey}`;
-    const text = meaning?.text || 'Для этого аспекта нет надёжного персонального объяснения.';
+    const text = meaning?.text || 'Этой связи недостаточно, чтобы сделать отдельный вывод о тебе.';
     return {
       title: MAP_ASPECTS[aspect.type].name,
       glyph: '△',
@@ -347,12 +348,12 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
     .filter((meaning): meaning is NatalMeaning => !!meaning);
   const text = meanings.length
     ? conciseMeaning(meanings, 3)
-    : 'В этом знаке нет надёжно рассчитанных точек твоей карты, поэтому отдельный персональный вывод не делается.';
+    : 'В этом знаке нет точек, по которым можно сделать отдельный вывод о тебе.';
   return {
     title: MAP_SIGN_NAMES[signIndex],
     glyph: ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'][signIndex],
     color: '#008879',
-    what: 'Знак описывает способ проявления рассчитанных точек, которые находятся в этом участке круга.',
+    what: 'Это один из двенадцати участков круга. Здесь видно, какие точки твоей карты находятся в этом знаке.',
     yours: occupants.map((point) => mapObject(point.key)?.name).filter(Boolean).join(' · ') || 'Нет рассчитанных точек',
     meaning: text,
     reasons: meanings.map((meaning) => reasonForMeaning(meaning, 'sign', 'Точка в этом знаке')),
