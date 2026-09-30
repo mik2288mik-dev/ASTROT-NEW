@@ -33,7 +33,7 @@ describe('natal personality product flow', () => {
     expect(app).toContain('partnerChartId: selected.id');
   });
 
-  it('renders personality through the unified interpretation path instead of HumanReport', () => {
+  it('renders personality through the persisted unified interpretation path instead of HumanReport', () => {
     const view = read('views/PersonalityReport.tsx');
     const unified = read('components/NatalReading/NatalUnifiedReport.tsx');
 
@@ -41,8 +41,9 @@ describe('natal personality product flow', () => {
     expect(view).toContain('<NatalUnifiedReport');
     expect(view).not.toContain('HumanReport');
     expect(unified).toContain('buildNatalInterpretation');
-    expect(unified).toContain('ensureNatalUnifiedReading');
+    expect(unified).toContain('loadNatalUnifiedReading');
     expect(unified).toContain('getNatalUnifiedReadingCached');
+    expect(unified).not.toContain('ensureNatalUnifiedReading');
     expect(unified).not.toContain('ensureHumanBaseReport');
     expect(unified).not.toContain('ensureHumanPremiumReport');
   });
