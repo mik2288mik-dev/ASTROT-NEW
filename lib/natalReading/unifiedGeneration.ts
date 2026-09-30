@@ -15,8 +15,8 @@ import {
   type NatalUnifiedWriterPlanBlock,
 } from './unifiedReading';
 
-const STORY_CHUNK_SIZE = 4;
-const TOPIC_CHUNK_SIZE = 3;
+const STORY_CHUNK_SIZE = 3;
+const TOPIC_CHUNK_SIZE = 4;
 const MAX_BLOCK_REPAIRS = 2;
 
 type RawBlock = { id?: unknown; text?: unknown; meaning_ids?: unknown };
@@ -119,7 +119,9 @@ export function buildNatalUnifiedWriterPlan(
   const story = chunks(interpretation.storyMeaningIds, STORY_CHUNK_SIZE).map(
     (meaningIds, index): NatalUnifiedWriterPlanBlock => ({
       id: `story:${index + 1}`,
-      meaningIds,
+      // One complete story, with suggested anchors for each paragraph.
+      meaningIds: [...interpretation.storyMeaningIds],
+      focusMeaningIds: meaningIds,
     }),
   );
   const topics = tier === 'premium'
@@ -128,7 +130,8 @@ export function buildNatalUnifiedWriterPlan(
         title: topic.title,
         blocks: chunks(topic.meaningIds, TOPIC_CHUNK_SIZE).map((meaningIds, index) => ({
           id: `topic:${topic.key}:${index + 1}`,
-          meaningIds,
+          meaningIds: [...topic.meaningIds],
+          focusMeaningIds: meaningIds,
         })),
       }))
     : [];
@@ -145,19 +148,23 @@ function promptPlan(
   tier: NatalUnifiedReadingTier,
   language: 'ru' | 'en',
   errors: readonly string[] = [],
+  current?: RawPayload,
 ): string {
   const byId = meaningMap(interpretation);
   const hydrate = (block: NatalUnifiedWriterPlanBlock, surface: string) => ({
     id: block.id,
     surface,
     meaning_ids: block.meaningIds,
+    paragraph_focus: block.focusMeaningIds || block.meaningIds,
     allowed_meanings: block.meaningIds.map((id) => {
       const meaning = byId.get(id)!;
       return {
         id: meaning.id,
         scope: meaning.scope,
         evidence_ids: meaning.evidenceIds,
-        meaning: meaning.text,
+        meaning: surface.startsWith('topic:')
+          ? meaning.topicText?.[surface.slice(6) as keyof NonNullable<NatalMeaning['topicText']>] || meaning.text
+          : meaning.text,
         ...(meaning.area ? { area: meaning.area } : {}),
       };
     }),
@@ -170,6 +177,14 @@ function promptPlan(
       title: topic.title,
       blocks: topic.blocks.map((block) => hydrate(block, `topic:${topic.key}`)),
     })),
+    ...(current ? { preserved_context: {
+      story: current.story?.filter(block => !plan.story.some(item => item.id === block.id))
+        .map(block => ({ text: block.text, meaning_ids: block.meaning_ids })),
+      topics: current.topics?.map(topic => ({ key: topic.key,
+        paragraphs: topic.blocks?.filter(block => !plan.topics.some(item => item.blocks.some(entry => entry.id === block.id)))
+          .map(block => ({ text: block.text, meaning_ids: block.meaning_ids })),
+      })),
+    } } : {}),
   };
 
   const rules = language === 'ru'
@@ -189,9 +204,16 @@ function promptPlan(
 - В основном тексте не должно быть планет, знаков, домов, аспектов, градусов, орбов или ретроградности.
 - Заголовки тем уже заданы. Не переименовывай их и не придумывай новые разделы.
 - Рассказ — связное чтение о человеке, а не перечень трактовок. В темах раскрой только то, что относится к названной теме; не копируй абзацы рассказа.
+- Сначала продумай и напиши весь рассказ целиком, затем раздели его на заданные абзацы story. paragraph_focus — ориентир для последовательности, а не отдельное задание написать мини-разбор. Все абзацы продолжают один текст; соседние абзацы не начинают рассказ заново.
+- Темы — подробности по выбранному вопросу. Используй подходящие наблюдения и их пояснения; не пересказывай весь рассказ и не повторяй одну характеристику в каждой теме. Если тема имеет несколько блоков, они продолжают одну главу.
+- Обычная речь: называй конкретно, что человек говорит, замечает, выбирает или делает. Не заменяй объяснение словами «надёжный результат», «складываются договорённости», «потребность в близости», «сочетание настойчивости и чувствительности».
+- Не начинай подряд предложения с «ты», «тебе», «для тебя». Меняй построение фразы естественно; не заменяй местоимения словами «человек», «личность» или «пользователь».
+- Не придумывай связь между соседними наблюдениями ради плавного перехода. Если два смысла близки, объясни их вместе и укажи оба ID.
+- Каждый следующий абзац рассказа или одной главы добавляет хотя бы одно ещё не использованное наблюдение. Можно сослаться на предыдущее для перехода, но нельзя написать ещё один абзац только о нём.
+- preserved_context — уже написанные соседние абзацы. Учитывай их, чтобы исправленный абзац продолжал текст и не повторял его. Не возвращай и не изменяй эти абзацы.
 - area уточняет, где относится наблюдение. Используй её, если это помогает объяснению, без перечисления сфер.
 - Сохрани id. В meaning_ids укажи только использованные ID из allowed_meanings; каждый вывод должен иметь основание.
-- На блок достаточно 2–4 простых предложений. Это предел, не требование добрать объём. Не более 90 слов в блоке.
+- Абзац может подробно объяснять несколько подтверждённых наблюдений. Не сжимай его до двух общих фраз; не добирай заданное количество предложений или слов. Не более 160 слов в абзаце.
 - Не раздувай текст. Один понятный смысл лучше трёх красивых предложений.
 - Верни только JSON.`
     : `TASK:
@@ -210,9 +232,13 @@ STRICT RULES:
 - No visible astrology terminology in the main copy.
 - Topic titles are fixed. Do not rename them or invent new sections.
 - Story is a connected reading about a person, not a list. Topics explain only the named area. Do not copy story paragraphs into topics.
+- Compose the whole story before splitting it into the supplied paragraphs. paragraph_focus suggests progression, not separate mini-reports. Topic blocks continue one chapter.
+- Vary sentence openings naturally; do not begin consecutive sentences with "you" or "for you". Do not invent transitions or repeat a trait throughout every topic.
+- Each next paragraph in the story or a single chapter adds at least one unused observation. Previous observations may connect paragraphs but must not be the only basis for another paragraph.
+- preserved_context contains neighbouring paragraphs for continuity only. Do not return or rewrite them.
 - Use area to explain where an observation belongs when helpful.
 - Keep id unchanged. In meaning_ids cite only the supplied IDs actually used. Every claim needs an approved basis.
-- Use at most 90 words per block. Two to four simple sentences are enough; do not add sentences just to reach a count.
+- A paragraph may explain several approved observations in detail. Use at most 160 words per paragraph, with no minimum word or sentence quota.
 - Do not pad the copy.
 - Return JSON only.`;
 
@@ -265,7 +291,7 @@ function validateCopy(
     const meaning = byId.get(id);
     return total + (meaning ? wordCount(meaning.text) : 0);
   }, 0);
-  const maxWords = Math.min(90, Math.max(40, Math.ceil(sourceWords * 1.35)));
+  const maxWords = Math.min(160, Math.max(60, Math.ceil(sourceWords * 1.8)));
   if (wordCount(text) > maxWords) return 'copy padded beyond approved material';
 
   return null;
@@ -341,12 +367,17 @@ export function materializeNatalUnifiedReading(input: {
     }
   }
 
-  for (const surface of [story, topics.flatMap(topic => topic.blocks)]) {
-    const seen = new Set<string>();
-    for (const block of surface) {
-      const normalized = block.text.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-      if (seen.has(normalized)) errors.push(`${block.id}: repeated paragraph`);
-      seen.add(normalized);
+  const seen = new Set<string>();
+  for (const block of [...story, ...topics.flatMap(topic => topic.blocks)]) {
+    const normalized = block.text.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    if (seen.has(normalized)) errors.push(`${block.id}: repeated paragraph`);
+    seen.add(normalized);
+  }
+  for (const section of [story, ...topics.map(topic => topic.blocks)]) {
+    const used = new Set<string>();
+    for (const block of section) {
+      if (block.meaningIds.every(id => used.has(id))) errors.push(`${block.id}: paragraph adds no new observation`);
+      block.meaningIds.forEach(id => used.add(id));
     }
   }
   if (errors.length) return { reading: null, errors };
@@ -385,7 +416,8 @@ async function validateSemanticFidelity(
     surface,
     allowed_meanings: block.meaningIds.map((id) => {
       const meaning = byId.get(id)!;
-      return { id, scope: meaning.scope, meaning: meaning.text, ...(meaning.area ? { area: meaning.area } : {}) };
+      const topic = surface.startsWith('topic:') ? surface.slice(6) as keyof NonNullable<NatalMeaning['topicText']> : null;
+      return { id, scope: meaning.scope, meaning: topic ? meaning.topicText?.[topic] || meaning.text : meaning.text, ...(meaning.area ? { area: meaning.area } : {}) };
     }),
     candidate: block.text,
   }));
@@ -510,7 +542,7 @@ export async function generateNatalUnifiedReading(input: {
       input: promptPlan(interpretation, plan, input.tier, language),
       maxOutputTokens: input.tier === 'premium' ? 6500 : 3500,
       reasoningEffort: 'medium',
-      verbosity: 'low',
+      verbosity: 'medium',
       store: false,
       schemaName: 'natal_unified_reading',
       schema: WRITER_SCHEMA,
@@ -532,9 +564,9 @@ export async function generateNatalUnifiedReading(input: {
     await checkpoint();
     const response = await createLunaStructuredResponse({
       instructions: getNatalStorySystemPrompt(language),
-      input: promptPlan(interpretation, partial, input.tier, language, errors),
+      input: promptPlan(interpretation, partial, input.tier, language, errors, progress.raw),
       maxOutputTokens: Math.min(6500, Math.max(1000,
-        (partial.story.length + partial.topics.reduce((sum, topic) => sum + topic.blocks.length, 0)) * 240)),
+        (partial.story.length + partial.topics.reduce((sum, topic) => sum + topic.blocks.length, 0)) * 500)),
       reasoningEffort: 'low', verbosity: 'low', store: false,
       schemaName: 'natal_unified_block_repair', schema: WRITER_SCHEMA,
     });

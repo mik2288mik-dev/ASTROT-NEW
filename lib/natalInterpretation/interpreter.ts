@@ -1,9 +1,10 @@
 import type { NatalChartDataV2, NatalBodyKey } from '../natalChartV2Types';
 import {
   ANGLE_LABELS, ANGLE_TOPICS, ASPECT_LABELS_RU, BODY_TOPICS,
-  HOUSE_AREAS_RU, HOUSE_OPENINGS_RU, HOUSE_TOPICS, POINT_ACTIONS_RU,
-  bodyLabel, bodySignMeaning, isBackgroundSignBody, signStyle,
+  HOUSE_AREAS_RU, HOUSE_TOPICS,
+  bodyLabel, bodySignMeaning, isBackgroundSignBody, signStyle, signName, angleSignMeaning, moneyHouseMeaning,
 } from './meanings';
+import { aspectMeaningRu } from './aspectMeanings';
 import { extractNatalInterpretationEvidence } from './evidence';
 import type { NatalInterpretationEvidence, NatalMeaning, NatalMeaningScope, NatalMeaningTopic } from './types';
 
@@ -33,9 +34,7 @@ function pointTopics(key: NonNullable<NatalInterpretationEvidence['fromKey']>): 
 function pointLabel(key: NonNullable<NatalInterpretationEvidence['fromKey']>, language: 'ru' | 'en'): string {
   return key in ANGLE_LABELS ? ANGLE_LABELS[key as keyof typeof ANGLE_LABELS] : bodyLabel(key as NatalBodyKey, language);
 }
-function aspectText(fact: NatalInterpretationEvidence, language: 'ru' | 'en'): string {
-  const left = POINT_ACTIONS_RU[fact.fromKey!];
-  const right = POINT_ACTIONS_RU[fact.toKey!];
+function aspectText(fact: NatalInterpretationEvidence, language: 'ru' | 'en'): string | null {
   if (language === 'en') {
     const actions: Partial<Record<NatalBodyKey, string>> = {
       sun: 'deciding what you want', moon: 'taking your feelings into account', mercury: 'thinking and explaining your ideas',
@@ -55,13 +54,7 @@ function aspectText(fact: NatalInterpretationEvidence, language: 'ru' | 'en'): s
       default: return `${a} is closely connected with ${b}.`;
     }
   }
-  switch (fact.aspectType) {
-    case 'square': return `Тебе бывает трудно одновременно ${left.infinitive} и ${right.infinitive}.`;
-    case 'opposition': return `Иногда ты выбираешь между тем, чтобы ${left.infinitive}, и тем, чтобы ${right.infinitive}.`;
-    case 'trine': return `Тебе обычно легко ${left.infinitive}, когда ты ${right.present}.`;
-    case 'sextile': return `Тебе может быть проще ${left.infinitive}, когда ты ${right.present}.`;
-    default: return `Когда ты ${left.present}, это тесно связано с тем, как ты ${right.present}.`;
-  }
+  return aspectMeaningRu(fact)?.text || null;
 }
 function meaningForEvidence(fact: NatalInterpretationEvidence, language: 'ru' | 'en'): NatalMeaning | null {
   const base = { id: `meaning:${fact.id}`, evidenceIds: [fact.id] };
@@ -70,37 +63,42 @@ function meaningForEvidence(fact: NatalInterpretationEvidence, language: 'ru' | 
     if (!text) return null;
     return { ...base, semanticKey: `body-sign:${fact.bodyKey}:${fact.sign}`,
       scope: isBackgroundSignBody(fact.bodyKey) ? 'background' : 'personal', text,
-      technicalText: `${bodyLabel(fact.bodyKey, language)} · ${fact.sign}${fact.degree == null ? '' : ` · ${fact.degree.toFixed(1)}°`}`,
+      technicalText: `${bodyLabel(fact.bodyKey, language)} · ${signName(fact.sign, language)}${fact.degree == null ? '' : ` · ${fact.degree.toFixed(1)}°`}`,
       topics: BODY_TOPICS[fact.bodyKey] };
   }
   // Motion is calculator data, not proof of a person's response or habits.
   // A body's house is attached to its observation below rather than narrated twice.
   if (fact.kind === 'body_house' || fact.kind === 'body_retrograde') return null;
   if (fact.kind === 'angle_sign' && fact.angleKey && fact.sign) {
-    const style = signStyle(fact.sign, language);
-    if (!style) return null;
+    const text = language === 'ru' ? angleSignMeaning(fact.angleKey, fact.sign) : signStyle(fact.sign, language);
+    if (!text) return null;
     return { ...base, semanticKey: `angle-sign:${fact.angleKey}:${fact.sign}`, scope: 'personal',
-      text: `${angleOpenings[fact.angleKey][language]} ${language === 'ru' ? 'ты' : ''} ${style}.`.replace(/\s+/g, ' '),
-      technicalText: `${ANGLE_LABELS[fact.angleKey]} · ${fact.sign}${fact.degree == null ? '' : ` · ${fact.degree.toFixed(1)}°`}`,
+      text: language === 'ru' ? text : `${angleOpenings[fact.angleKey].en} ${text}.`,
+      technicalText: `${ANGLE_LABELS[fact.angleKey]} · ${signName(fact.sign, language)}${fact.degree == null ? '' : ` · ${fact.degree.toFixed(1)}°`}`,
       topics: ANGLE_TOPICS[fact.angleKey] };
   }
   if (fact.kind === 'house_cusp' && fact.house && fact.sign) {
-    const style = signStyle(fact.sign, language);
-    const opening = language === 'ru' ? HOUSE_OPENINGS_RU[fact.house] : houseOpeningsEn[fact.house];
-    if (!style || !opening) return null;
+    // Use life-area-specific copy where available; never insert an area's
+    // name before a generic sign slogan and call that a detailed explanation.
+    const area = language === 'ru' ? HOUSE_AREAS_RU[fact.house] : houseOpeningsEn[fact.house];
+    if (!area) return null;
     return { ...base, semanticKey: `house-cusp:${fact.house}:${fact.sign}`, scope: 'structural',
-      text: `${opening} ${language === 'ru' ? 'ты' : ''} ${style}.`.replace(/\s+/g, ' '),
-      technicalText: `${fact.house} ${language === 'ru' ? 'дом' : 'house'} · ${fact.sign}${fact.degree == null ? '' : ` · ${fact.degree.toFixed(1)}°`}`,
+      text: language === 'ru' ? moneyHouseMeaning(fact.house, fact.sign) || `Этот дом относится к следующим делам: ${area}. Знак на его границе — ${signName(fact.sign, language)}. Планеты в этом доме дают отдельные пояснения.` : `This house concerns ${area.toLowerCase()}. Its cusp is in ${fact.sign}; planets in the house have their own explanations.`,
+      technicalText: `${fact.house} ${language === 'ru' ? 'дом' : 'house'} · ${signName(fact.sign, language)}${fact.degree == null ? '' : ` · ${fact.degree.toFixed(1)}°`}`,
       topics: HOUSE_TOPICS[fact.house] || ['general'] };
   }
   if (fact.kind === 'aspect' && fact.fromKey && fact.toKey && fact.aspectType) {
     // These calculated points stay on the map; a generic pair of roles is not
     // enough to turn them into a personal claim in the reading.
     if ([fact.fromKey, fact.toKey].some(key => ['chiron', 'northNode', 'southNode'].includes(key))) return null;
+    if (angles.has(fact.fromKey) && angles.has(fact.toKey)) return null;
+    const text = aspectText(fact, language);
+    if (!text) return null;
     return { ...base, semanticKey: `aspect:${fact.fromKey}:${fact.aspectType}:${fact.toKey}`,
-      scope: aspectScope(fact.fromKey, fact.toKey), text: aspectText(fact, language),
+      scope: aspectScope(fact.fromKey, fact.toKey), text,
       technicalText: `${pointLabel(fact.fromKey, language)} · ${language === 'ru' ? ASPECT_LABELS_RU[fact.aspectType] : fact.aspectType} · ${pointLabel(fact.toKey, language)}${fact.orb == null ? '' : ` · ${fact.orb.toFixed(1)}°`}`,
-      topics: unique([...pointTopics(fact.fromKey), ...pointTopics(fact.toKey)]) };
+      topics: language === 'ru' ? aspectMeaningRu(fact)!.topics : unique([...pointTopics(fact.fromKey), ...pointTopics(fact.toKey)]),
+      relevance: 10 - Math.min(10, fact.orb || 0) };
   }
   return null;
 }
@@ -114,7 +112,13 @@ export function interpretNatalChart(chart: NatalChartDataV2, language: 'ru' | 'e
         meaning.area = language === 'ru' ? HOUSE_AREAS_RU[house.house] : houseOpeningsEn[house.house];
         meaning.evidenceIds.push(house.id);
         meaning.technicalText += ` · ${house.house} ${language === 'ru' ? 'дом' : 'house'}`;
-        meaning.topics = unique([...meaning.topics, ...(HOUSE_TOPICS[house.house] || [])]);
+        // The house locates the observation. It does not turn a way of
+        // speaking into a spending habit or a feeling into a job description.
+        const areaTopics = HOUSE_TOPICS[house.house] || [];
+        meaning.topics = unique([...meaning.topics, ...areaTopics]);
+        meaning.topicText = Object.fromEntries(areaTopics.map(topic => [topic,
+          language === 'ru' ? `${meaning.text} Это наблюдение относится к следующим делам: ${meaning.area}.` : `${meaning.text} This observation concerns ${meaning.area}.`,
+        ]));
       }
     }
     return meaning;

@@ -13,6 +13,7 @@ import {
   BODY_LABELS,
   BODY_ROLES,
   HOUSE_AREAS_RU,
+  signName,
   type NatalInterpretation,
   type NatalMeaning,
 } from '../../lib/natalInterpretation';
@@ -58,7 +59,7 @@ function bodyMeta(key: string) {
     name: BODY_LABELS[canonical].ru,
     glyph: visual.glyph,
     color: visual.color,
-    what: `В карте эта точка описывает ${BODY_ROLES[canonical].ru}.`,
+    what: `${BODY_LABELS[canonical].ru} помогает объяснить, ${BODY_ROLES[canonical].ru}.`,
     topic: BODY_ROLES[canonical].ru,
   };
 }
@@ -75,7 +76,7 @@ export const MAP_OBJECTS: Record<string, { name: string; glyph: string; color: s
       name,
       glyph: visual.glyph,
       color: visual.color,
-      what: `В карте эта точка описывает ${role}.`,
+      what: `${name} помогает объяснить, ${role}.`,
       topic: role,
     }];
   }),
@@ -161,13 +162,20 @@ function reasonForMeaning(
     subtitle,
     text: meaning.text,
     tone: kind,
-    facts: meaning.technicalText,
+    // The title already contains these facts. Do not print it a second time.
   };
 }
 
 function conciseMeaning(values: readonly NatalMeaning[], limit: number): string {
   const unique = [...new Map(values.map((meaning) => [meaning.id, meaning])).values()];
   return unique.slice(0, limit).map((meaning) => meaning.text).join(' ');
+}
+
+function aspectReference(type: string, orb?: number | null): string {
+  const angles: Record<string, number> = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 };
+  const angle = angles[type];
+  if (angle == null) return 'Линия соединяет две рассчитанные точки карты.';
+  return `Это связь двух точек под углом ${angle}°. ${orb == null ? '' : `Отклонение от точного угла — ${orb.toFixed(1)}°. `}Её объяснение зависит от обеих точек; один угол не описывает привычку или поступок.`;
 }
 
 function pointEvidenceIds(
@@ -258,7 +266,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
       ? conciseMeaning(primaryMeanings, 2)
       : meanings.length
         ? conciseMeaning(meanings.map((entry) => entry.meaning), 1)
-        : 'Одного положения этой точки недостаточно, чтобы сделать вывод о тебе.';
+        : 'Знак показывает участок круга, в котором находится точка. Градусы — её место внутри этого участка.';
     return {
       title: meta.name,
       glyph: meta.glyph,
@@ -266,8 +274,10 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
       what: meta.what,
       yours: placementLine(point, pointHouse(point)),
       meaning,
-      reasons,
-      summary: meaning,
+      reasons: reasons.length ? reasons : [{
+        title: 'Как читать положение', subtitle: 'Расчёт точки', text: meaning, tone: 'sign' as const,
+      }],
+      summary: '',
     };
   }
 
@@ -298,11 +308,11 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
       color: '#7b44df',
       what: `${house} дом — часть карты про ${MAP_HOUSES[house]}.`,
       yours: cusp?.sign
-        ? `${house} дом · начало в ${cusp.sign}${cusp.degree == null ? '' : ` · ${cusp.degree.toFixed(1)}°`}`
+        ? `${house} дом · знак на границе: ${signName(cusp.sign, 'ru')}${cusp.degree == null ? '' : ` · ${cusp.degree.toFixed(1)}°`}`
         : `${house} дом`,
       meaning,
       reasons: meanings.map((item) => reasonForMeaning(item, 'house', 'Что здесь рассчитано')),
-      summary: meaning,
+      summary: '',
     };
   }
 
@@ -313,7 +323,10 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
     const left = findPoint(aspect.fromKey);
     const right = findPoint(aspect.toKey);
     const title = `${mapObject(left?.key || aspect.fromKey)?.name || aspect.fromKey} — ${mapObject(right?.key || aspect.toKey)?.name || aspect.toKey}`;
-    const text = meaning?.text || 'Этой связи недостаточно, чтобы сделать отдельный вывод о тебе.';
+    const isAxis = ['ascendant:descendant', 'ic:mc'].includes([aspect.fromKey, aspect.toKey].sort().join(':'));
+    const text = meaning?.text || (isAxis
+      ? 'Это два конца одной оси карты. Между ними всегда 180°. Здесь показано устройство карты; личные особенности объясняются положениями этих точек и другими связанными с ними элементами.'
+      : aspectReference(aspect.type, interpretation?.evidence.find(fact => fact.id === `aspect:${aspect.id}`)?.orb));
     return {
       title: MAP_ASPECTS[aspect.type].name,
       glyph: '△',
@@ -321,8 +334,8 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
       what: MAP_ASPECTS[aspect.type].what,
       yours: title,
       meaning: text,
-      reasons: meaning ? [reasonForMeaning(meaning, 'aspect', title)] : [],
-      summary: text,
+      reasons: meaning ? [reasonForMeaning(meaning, 'aspect', title)] : [{ title, subtitle: 'Расчёт связи', text, tone: 'aspect' as const }],
+      summary: '',
     };
   }
 
@@ -357,6 +370,6 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
     yours: occupants.map((point) => mapObject(point.key)?.name).filter(Boolean).join(' · ') || 'Нет рассчитанных точек',
     meaning: text,
     reasons: meanings.map((meaning) => reasonForMeaning(meaning, 'sign', 'Точка в этом знаке')),
-    summary: text,
+    summary: '',
   };
 }

@@ -65,10 +65,13 @@ export type NatalMeaning = {
   semanticKey: string;
   scope: NatalMeaningScope;
   text: string;
+  /** A life-area-specific wording of the same observation, not a new claim. */
+  topicText?: Partial<Record<NatalMeaningTopic, string>>;
   area?: string;
   technicalText: string;
   topics: NatalMeaningTopic[];
   evidenceIds: string[];
+  relevance?: number;
 };
 
 export type NatalTopicPlan = {

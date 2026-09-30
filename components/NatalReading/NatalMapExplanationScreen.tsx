@@ -24,9 +24,9 @@ export function NatalMapExplanationScreen({ explanation }: { explanation: MapExp
       {reason.facts ? <p className={styles.facts}>{reason.facts}</p> : null}
       <p>{reason.text}</p>
     </section>)}
-    <section className={`${styles.reason} ${styles.total}`}>
+    {explanation.summary ? <section className={`${styles.reason} ${styles.total}`}>
       <header className={styles.reasonHeading}><span className={styles.reasonMarker}><Heart size={23} aria-hidden="true"/></span><h3>Что всё это значит вместе</h3></header>
       <p>{explanation.summary}</p>
-    </section>
+    </section> : null}
   </article>;
 }
