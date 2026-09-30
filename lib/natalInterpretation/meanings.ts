@@ -116,7 +116,7 @@ export const HOUSE_TOPICS: Record<number, NatalMeaningTopic[]> = {
   3: ['communication', 'learning'],
   4: ['home', 'emotions'],
   5: ['relationships', 'general'],
-  6: ['work', 'rest'],
+  6: ['work'],
   7: ['relationships'],
   8: ['relationships', 'money'],
   9: ['learning'],

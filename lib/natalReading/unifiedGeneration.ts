@@ -17,7 +17,7 @@ import {
 
 const STORY_CHUNK_SIZE = 3;
 const TOPIC_CHUNK_SIZE = 4;
-export const NATAL_MAX_BLOCK_REPAIRS = 2;
+export const NATAL_MAX_BLOCK_REPAIRS = 3;
 
 type RawBlock = { id?: unknown; text?: unknown; meaning_ids?: unknown };
 type RawTopic = { key?: unknown; title?: unknown; blocks?: RawBlock[] };
@@ -105,10 +105,14 @@ const SEMANTIC_REVIEW_SCHEMA: StrictJsonSchema = {
 };
 
 
-function chunks(values: readonly string[], size: number): string[][] {
+function chunks(values: readonly string[], size: number, joinLast = false): string[][] {
   const out: string[][] = [];
   for (let index = 0; index < values.length; index += size) {
     out.push(values.slice(index, index + size));
+  }
+  // Do not demand a separate last paragraph for one leftover observation.
+  if (joinLast && out.length > 1 && out[out.length - 1].length === 1) {
+    out[out.length - 2].push(...out.pop()!);
   }
   return out;
 }
@@ -117,7 +121,7 @@ export function buildNatalUnifiedWriterPlan(
   interpretation: NatalInterpretation,
   tier: NatalUnifiedReadingTier,
 ): NatalUnifiedWriterPlan {
-  const story = chunks(interpretation.storyMeaningIds, STORY_CHUNK_SIZE).map(
+  const story = chunks(interpretation.storyMeaningIds, STORY_CHUNK_SIZE, true).map(
     (meaningIds, index): NatalUnifiedWriterPlanBlock => ({
       id: `story:${index + 1}`,
       // One complete story, with suggested anchors for each paragraph.
@@ -444,6 +448,11 @@ async function validateSemanticFidelity(
 4) structural не превращён в диагноз характера;
 5) описание не превращено в совет.
 Не отклоняй текст за отсутствующую деталь или другое словоупотребление.
+allowed_meanings вместе с area — полное основание: область из area допустимо назвать в тексте.
+Проверяй новые факты, а не совпадение слов. Обычные синонимы, смена порядка слов и разговорная формулировка того же наблюдения не являются unsupported_claim.
+Не считай слова «приятно», «особенно» или переход между абзацами новым личным свойством сами по себе. Отклоняй лишь конкретное добавленное утверждение, которого нет ни в смыслах, ни в area.
+Причина поведения, новый мотив, постоянная привычка или биографический факт требуют явного основания. Связка не должна превращать два независимых наблюдения в причину и следствие.
+scope_strengthening относится к усилению background или structural до уверенного личного свойства; это не проверка буквального совпадения обычных личных описаний.
 Замечания о полноте перечисляй только с kind=missing_detail.
 kind=unsupported_claim — конкретное новое утверждение; contradiction — противоречие;
 scope_strengthening — усиление фонового смысла; advice — совет вместо описания.
@@ -452,6 +461,10 @@ scope_strengthening — усиление фонового смысла; advice �
 Do not interpret astrology and do not add your own conclusions.
 Condensing, paraphrasing and omitting details are acceptable. Completeness notes must use kind=missing_detail.
 Other kinds: unsupported_claim for a specific new assertion, contradiction, scope_strengthening, and advice.
+The supplied area is part of the approved basis. Naming that area is allowed.
+Check added facts, not word matching. Ordinary synonyms, word order, and conversational paraphrases of the same observation are not unsupported claims.
+A new motive, cause, lasting habit, or biographical fact must have an explicit basis. Do not turn unrelated observations into cause and effect.
+scope_strengthening means inflating background or structural material into a confident personal trait.
 Do not judge style. Return one check for every id.`;
 
   const response = await createLunaStructuredResponse({
@@ -543,6 +556,9 @@ export async function generateNatalUnifiedReading(input: {
   const progress: NatalWriterProgress = { ...input.progress, repairs: input.progress?.repairs || 0 };
   if (progress.reading) return progress.reading;
   const checkpoint = async () => { await input.onProgress?.(progress); };
+  // A topic source correction can change its paragraph plan. Resume the saved
+  // text by stable block IDs; only missing or invalid blocks need editing.
+  if (progress.raw) progress.raw = alignRaw(progress.raw, plan);
   if (!progress.raw) {
     if (progress.writerStarted) {
       throw Object.assign(new Error('Natal draft was not returned; full writing will not be repeated automatically'), { code: 'NATAL_WRITER_REJECTED' });
