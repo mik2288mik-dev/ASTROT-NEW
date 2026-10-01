@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import {
     clearNativeNotifications, consumeNativeNotificationTap, listenNativeNotificationTap,
-    markNativeTodayRead, nativeNotificationsAvailable, notifyNativeResultReady,
+    markNativeTodayRead, nativeNotificationsAvailable, notifyNativeResultReady, offerNativeNotificationsOnce,
     setNativeNotificationContext, setNativeNotificationForeground,
 } from './services/nativeNotifications';
 import { UserProfile, NatalChartData, ViewState } from './types';
@@ -2365,8 +2365,9 @@ const App: React.FC = () => {
         }
         void setNativeNotificationContext({
             accountId: String(profile.id), language: profile.language === 'en' ? 'en' : 'ru', isSetup: !!profile.isSetup,
+            name: profile.name, birthDate: profile.birthDate, selectedSign: profile.selectedZodiacSign,
         });
-    }, [loading, profile?.id, profile?.language, profile?.isSetup, authSessionMode]);
+    }, [loading, profile?.id, profile?.language, profile?.isSetup, profile?.name, profile?.birthDate, profile?.selectedZodiacSign, authSessionMode]);
 
     useEffect(() => {
         if (!nativeNotificationsAvailable()) return;
@@ -2402,9 +2403,22 @@ const App: React.FC = () => {
             if (!route) return;
             setNavigationSheet(null);
             setPaywallContext(null);
-            if (route === 'today') openBottomToday(); else openBottomNatal();
+            if (route === 'today') openBottomToday();
+            else if (route === 'natal') openBottomNatal();
+            else if (route === 'horoscope') openBottomZodiac();
+            else openSynastryFromHome();
         });
-    }, [loading, profile?.id, profile?.legalAcknowledgements, authSessionMode, nativeActive, nativeTapVersion, openBottomToday, openBottomNatal, setPaywallContext]);
+    }, [loading, profile?.id, profile?.legalAcknowledgements, authSessionMode, nativeActive, nativeTapVersion, openBottomToday, openBottomNatal, openBottomZodiac, openSynastryFromHome, setPaywallContext]);
+
+    // Один раз после онбординга — системный запрос на уведомления, когда человек уже на главной.
+    useEffect(() => {
+        if (loading || !profile?.isSetup || !nativeActive || view !== 'dashboard' || paywallContext || navigationSheet
+            || requiresExplicitAuthentication(authSessionMode)
+            || !legalAcknowledgementGateContract.hasAcceptedEveryDocument(profile.legalAcknowledgements || null)) return;
+        const accountId = String(profile.id);
+        const timer = window.setTimeout(() => { void offerNativeNotificationsOnce(accountId); }, 4000);
+        return () => window.clearTimeout(timer);
+    }, [loading, profile?.id, profile?.isSetup, profile?.legalAcknowledgements, nativeActive, view, paywallContext, navigationSheet, authSessionMode]);
 
     useEffect(() => {
         if (!loading && profile && nativeActive && view === 'dashboard' && dashboardPeriod === 'day'

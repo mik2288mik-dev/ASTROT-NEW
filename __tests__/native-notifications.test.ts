@@ -9,7 +9,9 @@ const mockNative = {
   cancelAll: jest.fn(),
   consumeTap: jest.fn(),
   addListener: jest.fn(),
+  configureInbox: jest.fn(),
 };
+const mockApiFetch = jest.fn();
 const mockIsPluginAvailable = jest.fn();
 const mockIsNativeAndroidRuntime = jest.fn();
 const mockRegisterPlugin = jest.fn(() => mockNative);
@@ -19,13 +21,16 @@ jest.mock('@capacitor/core', () => ({
   registerPlugin: mockRegisterPlugin,
 }));
 jest.mock('../services/nativeRuntime', () => ({ isNativeAndroidRuntime: mockIsNativeAndroidRuntime }));
+jest.mock('../services/apiClient', () => ({ apiFetch: mockApiFetch, getApiBaseUrl: () => 'https://api.example.test' }));
 
 type NotificationService = typeof import('../services/nativeNotifications');
 type DisplayPermission = 'granted' | 'prompt' | 'denied';
 let notifications: NotificationService;
 let permission: DisplayPermission;
 let records: Map<string, string>;
-const account = (accountId = 'account-a') => ({ accountId, language: 'ru' as const, isSetup: true });
+const account = (accountId = 'account-a') => ({ accountId, language: 'ru' as const, isSetup: true, birthDate: '1995-03-01' });
+const localPlans = () => scheduledPlans().filter((plan) => plan.kind !== 'ready');
+const readyPlans = () => scheduledPlans().filter((plan) => plan.kind === 'ready');
 const storageKey = (kind: string, accountId = 'account-a') => `nebo.native-notifications.v1.${kind}.${accountId}`;
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
@@ -76,6 +81,8 @@ beforeEach(() => {
   mockNative.consumeTap.mockResolvedValue({});
   mockNative.openSettings.mockResolvedValue({ status: 'opened' });
   mockNative.addListener.mockResolvedValue({ remove: jest.fn() });
+  mockNative.configureInbox.mockResolvedValue({ status: 'configured' });
+  mockApiFetch.mockResolvedValue({ ok: true, json: async () => ({ cursor: 41 }) });
   notifications = require('../services/nativeNotifications');
 });
 
@@ -93,7 +100,7 @@ describe('native notification permission and lifecycle boundaries', () => {
     await notifications.setNativeNotificationContext(account());
     expect(mockRegisterPlugin).toHaveBeenCalledWith('NeboNotifications');
     expect(mockNative.configure).toHaveBeenCalledWith(expect.objectContaining({
-      accountId: 'account-a', enabled: false, mode: 'important', readDate: '',
+      accountId: 'account-a', enabled: false, mode: 'daily', readDate: '',
     }));
     expect(mockNative.getPermissionState).not.toHaveBeenCalled();
     expect(mockNative.requestDisplayPermission).not.toHaveBeenCalled();
@@ -122,7 +129,7 @@ describe('native notification permission and lifecycle boundaries', () => {
 
     await notifications.saveNativeNotificationSettings('account-a', { enabled: true }, true);
     expect(mockNative.requestDisplayPermission).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(records.get(storageKey('settings'))!)).toMatchObject({ enabled: true, mode: 'important' });
+    expect(JSON.parse(records.get(storageKey('settings'))!)).toMatchObject({ enabled: true, mode: 'daily' });
     expect(mockNative.configure).toHaveBeenLastCalledWith(expect.objectContaining({ accountId: 'account-a', enabled: true }));
   });
 
@@ -137,7 +144,7 @@ describe('native notification permission and lifecycle boundaries', () => {
   it('passes disabled configuration to native cancellation without a permission check or new schedule', async () => {
     seedSettings({ mode: 'daily' });
     await notifications.setNativeNotificationContext(account());
-    expect(scheduledPlans()).toHaveLength(7);
+    expect(localPlans().length).toBeGreaterThan(7);
     jest.clearAllMocks();
 
     await notifications.saveNativeNotificationSettings('account-a', { enabled: false });
@@ -216,8 +223,8 @@ describe('native notification result and reading rules', () => {
     notifications.setNativeNotificationForeground(false);
     notifications.notifyNativeResultReady('account-a', 'natal', 'chart-revision-1', true);
     await settle();
-    expect(scheduledPlans()).toEqual([expect.objectContaining({
-      accountId: 'account-a', route: 'natal', kind: 'ready', title: 'Натальная карта сохранена',
+    expect(readyPlans()).toEqual([expect.objectContaining({
+      accountId: 'account-a', route: 'natal', kind: 'ready', title: 'Натальная карта готова',
     })]);
     jest.advanceTimersByTime(3000);
     notifications.notifyNativeResultReady('account-a', 'natal', 'chart-revision-1', true);
@@ -234,10 +241,10 @@ describe('native notification result and reading rules', () => {
     jest.advanceTimersByTime(5000);
     configured.resolve({ status: 'configured' });
     await settle();
-    expect(scheduledPlans()).toHaveLength(1);
-    expect(scheduledPlans()[0]).toMatchObject({ accountId: 'account-a', route: 'today', kind: 'ready' });
-    expect(scheduledPlans()[0].at).toBeGreaterThan(Date.now());
-    expect(scheduledPlans()[0].at).toBeLessThan(scheduledPlans()[0].expiresAt);
+    expect(readyPlans()).toHaveLength(1);
+    expect(readyPlans()[0]).toMatchObject({ accountId: 'account-a', route: 'today', kind: 'ready' });
+    expect(readyPlans()[0].at).toBeGreaterThan(Date.now());
+    expect(readyPlans()[0].at).toBeLessThan(readyPlans()[0].expiresAt);
   });
 
   it('remembers visible and cached results without replaying them after backgrounding', async () => {
@@ -266,11 +273,12 @@ describe('native notification result and reading rules', () => {
     notifications.setNativeNotificationForeground(false);
     notifications.notifyNativeResultReady('account-a', 'today', 'result-1', true);
     await settle();
-    expect(scheduledPlans()).toHaveLength(1);
+    expect(readyPlans()).toHaveLength(1);
     jest.clearAllMocks();
     notifications.setNativeNotificationForeground(true);
     await settle();
-    expect(mockNative.schedule).toHaveBeenCalledWith({ notifications: [] });
+    expect(mockNative.schedule).toHaveBeenCalled();
+    expect(readyPlans()).toEqual([]);
   });
 
   it('does not accept results from an obsolete account or with no content identity', async () => {
@@ -283,18 +291,16 @@ describe('native notification result and reading rules', () => {
     expect(records.has(storageKey('seen', 'account-b'))).toBe(false);
   });
 
-  it('replaces the daily plan without today after reading and does not repeat the write', async () => {
+  it('stores the read day, passes it to Android and does not repeat the write', async () => {
     jest.setSystemTime(new Date(2026, 8, 5, 8, 30));
     seedSettings({ mode: 'daily' });
     await notifications.setNativeNotificationContext(account());
-    expect(scheduledPlans().some((plan) => plan.dayKey === '2026-09-05')).toBe(true);
     jest.clearAllMocks();
     notifications.markNativeTodayRead('account-a');
     await settle();
     expect(JSON.parse(records.get(storageKey('read'))!)).toBe('2026-09-05');
     expect(mockNative.configure).toHaveBeenCalledWith(expect.objectContaining({ readDate: '2026-09-05' }));
-    expect(scheduledPlans()).toHaveLength(7);
-    expect(scheduledPlans().every((plan) => plan.dayKey !== '2026-09-05')).toBe(true);
+    expect(localPlans().some((plan) => plan.kind === 'daily' && plan.dayKey === '2026-09-05')).toBe(false);
     jest.clearAllMocks();
     notifications.markNativeTodayRead('account-a');
     await settle();
@@ -313,7 +319,7 @@ describe('native notification result and reading rules', () => {
 });
 
 describe('native notification tap identity', () => {
-  it.each(['today', 'natal'] as const)('returns a valid %s tap only for the current account', async (route) => {
+  it.each(['today', 'natal', 'horoscope', 'compatibility'] as const)('returns a valid %s tap only for the current account', async (route) => {
     await notifications.setNativeNotificationContext(account());
     mockNative.consumeTap.mockResolvedValue({ accountId: 'account-a', route });
     await expect(notifications.consumeNativeNotificationTap('account-a')).resolves.toBe(route);
@@ -335,5 +341,60 @@ describe('native notification tap identity', () => {
     await notifications.setNativeNotificationContext(account('account-b'));
     tap.resolve({ accountId: 'account-a', route: 'today' });
     await expect(consumed).resolves.toBeNull();
+  });
+});
+
+describe('engagement extras', () => {
+  it('plans morning horoscope reminders without forcing the sign into every text', async () => {
+    seedSettings({ mode: 'daily' });
+    await notifications.setNativeNotificationContext(account());
+    const morning = localPlans().filter((plan) => plan.kind === 'daily');
+    expect(morning.length).toBeGreaterThan(0);
+    expect(morning.filter((plan) => /Рыб/.test(`${plan.title} ${plan.body}`)).length).toBeLessThanOrEqual(1);
+  });
+
+  it('registers the device for admin messages once a day and hands the cursor to Android', async () => {
+    seedSettings();
+    await notifications.setNativeNotificationContext(account());
+    await settle();
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/app/push/register', expect.objectContaining({ method: 'POST' }));
+    const sent = JSON.parse(mockApiFetch.mock.calls[0][1].body);
+    expect(sent).toMatchObject({ language: 'ru', sign: 'Pisces' });
+    expect(sent.token).toMatch(/^[a-f0-9]{48}$/);
+    expect(mockNative.configureInbox).toHaveBeenCalledWith({ baseUrl: 'https://api.example.test', token: sent.token, cursor: 41 });
+    mockApiFetch.mockClear();
+    notifications.setNativeNotificationForeground(true);
+    await settle();
+    expect(mockApiFetch).not.toHaveBeenCalled();
+  });
+
+  it('does not register for admin messages while notifications are off', async () => {
+    await notifications.setNativeNotificationContext(account());
+    expect(mockApiFetch).not.toHaveBeenCalled();
+  });
+
+  it('asks for permission once after onboarding and enables everything on consent', async () => {
+    permission = 'prompt';
+    await notifications.setNativeNotificationContext(account());
+    await notifications.offerNativeNotificationsOnce('account-a');
+    expect(mockNative.requestDisplayPermission).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(records.get(storageKey('settings'))!)).toMatchObject({ enabled: true, mode: 'daily' });
+    await notifications.offerNativeNotificationsOnce('account-a');
+    expect(mockNative.requestDisplayPermission).toHaveBeenCalledTimes(1);
+  });
+
+  it('never re-asks after a refusal or an explicit choice in settings', async () => {
+    permission = 'prompt';
+    mockNative.requestDisplayPermission.mockResolvedValue({ display: 'denied' });
+    await notifications.setNativeNotificationContext(account());
+    await notifications.offerNativeNotificationsOnce('account-a');
+    await notifications.offerNativeNotificationsOnce('account-a');
+    expect(mockNative.requestDisplayPermission).toHaveBeenCalledTimes(1);
+    expect(records.has(storageKey('settings'))).toBe(false);
+
+    seedSettings({ enabled: false }, 'account-b');
+    await notifications.setNativeNotificationContext(account('account-b'));
+    await notifications.offerNativeNotificationsOnce('account-b');
+    expect(mockNative.requestDisplayPermission).toHaveBeenCalledTimes(1);
   });
 });

@@ -23,6 +23,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -40,15 +46,21 @@ public class NeboNotificationReceiver extends BroadcastReceiver {
     static final String EXTRA_ROUTE = "nebo_notification_route";
     static final String EXTRA_ACCOUNT = "nebo_notification_account";
     private static final String ACTION_DELIVER = "ru.tvoygoroskop.app.NEBO_LOCAL_NOTIFICATION";
+    private static final String ACTION_POLL = "ru.tvoygoroskop.app.NEBO_INBOX_POLL";
     private static final String CHANNEL_ID = "nebo_useful_v1";
+    private static final String NEWS_CHANNEL_ID = "nebo_news_v1";
+    private static final int POLL_REQUEST_CODE = 61999;
+    private static final long POLL_INTERVAL_MS = 2L * 60 * 60 * 1000;
+    private static final int MAX_ENTRIES = 32;
+    private static final int MAX_PER_DAY = 3;
     private static final String NOTIFICATION_TAG = "nebo_local";
     private static final String EXTRA_KIND = "nebo_notification_kind";
     private static final String EXTRA_DAY_KEY = "nebo_notification_day_key";
     private static final String PENDING = "pending";
     private static final Object LOCK = new Object();
-    private static final long HORIZON_MS = 8L * 24 * 60 * 60 * 1000;
+    private static final long HORIZON_MS = 16L * 24 * 60 * 60 * 1000;
     private static final long WINDOW_MS = 15L * 60 * 1000;
-    private static final long MIN_INTERVAL_MS = 6L * 60 * 60 * 1000;
+    private static final long MIN_INTERVAL_MS = 3L * 60 * 60 * 1000;
     private static volatile boolean foreground;
 
     public static void setForeground(boolean value) {
@@ -64,7 +76,12 @@ public class NeboNotificationReceiver extends BroadcastReceiver {
     }
 
     static boolean validRoute(String value) {
-        return "today".equals(value) || "natal".equals(value);
+        return "today".equals(value) || "natal".equals(value) || "horoscope".equals(value) || "compatibility".equals(value);
+    }
+
+    private static boolean validKind(String value) {
+        return "daily".equals(value) || "ready".equals(value) || "invite".equals(value) || "comeback".equals(value)
+            || "holiday".equals(value) || "birthday".equals(value) || "season".equals(value) || "sky".equals(value);
     }
 
     static boolean hasRuntimePermission(Context context) {
@@ -109,7 +126,7 @@ public class NeboNotificationReceiver extends BroadcastReceiver {
     private static JSONArray pending(SharedPreferences preferences) {
         try {
             JSONArray entries = new JSONArray(preferences.getString(PENDING, "[]"));
-            return entries.length() <= 8 ? entries : new JSONArray();
+            return entries.length() <= MAX_ENTRIES ? entries : new JSONArray();
         } catch (JSONException ignored) {
             return new JSONArray();
         }
@@ -123,7 +140,10 @@ public class NeboNotificationReceiver extends BroadcastReceiver {
         synchronized (LOCK) {
             SharedPreferences prefs = preferences(context);
             boolean readDateChanged = !readDate.equals(prefs.getString("readDate", ""));
-            if (!accountId.equals(prefs.getString("accountId", "")) || !enabled) cancelOwned(context, prefs);
+            boolean accountChanged = !accountId.equals(prefs.getString("accountId", ""));
+            if (accountChanged || !enabled) cancelOwned(context, prefs);
+            // Рассылки прошлого аккаунта не должны прийти новому: токен выдаётся заново из JS.
+            if (accountChanged) prefs.edit().remove("inboxToken").remove("inboxBase").remove("inboxCursor").commit();
             boolean stored = prefs.edit().putString("accountId", accountId).putBoolean("enabled", enabled)
                 .putString("quietStart", quietStart).putString("quietEnd", quietEnd).putString("readDate", readDate).commit();
             if (stored && readDateChanged && !readDate.isEmpty()) dismissReadDaily(context, accountId, readDate);
@@ -134,14 +154,16 @@ public class NeboNotificationReceiver extends BroadcastReceiver {
     static void disableAndCancel(Context context) {
         synchronized (LOCK) {
             SharedPreferences prefs = preferences(context);
-            prefs.edit().putBoolean("enabled", false).putString("accountId", "").putString("readDate", "").commit();
+            prefs.edit().putBoolean("enabled", false).putString("accountId", "").putString("readDate", "")
+                .remove("inboxToken").remove("inboxBase").remove("inboxCursor").commit();
             cancelOwned(context, prefs);
+            cancelPoll(context);
         }
     }
 
     /** Scheduling is replacement, not append, so periodic reconciliation cannot accumulate alarms. */
     static String schedule(Context context, JSONArray requested) {
-        if (requested == null || requested.length() > 8) return "invalid";
+        if (requested == null || requested.length() > MAX_ENTRIES) return "invalid";
         synchronized (LOCK) {
             SharedPreferences prefs = preferences(context);
             if (!prefs.getBoolean("enabled", false)) return "disabled";
@@ -169,7 +191,7 @@ public class NeboNotificationReceiver extends BroadcastReceiver {
                         || at <= now || at > now + HORIZON_MS || expiresAt <= at || expiresAt > now + HORIZON_MS
                         || !account.equals(string(item, "accountId")) || !validAccount(account)
                         || !plainText(title, 70) || !plainText(body, 180) || !validDate(dayKey)
-                        || !("daily".equals(kind) || "ready".equals(kind)) || !validRoute(route)) return "invalid";
+                        || !validKind(kind) || !validRoute(route)) return "invalid";
                     // Rebuild from the allowlist; arbitrary JS fields never enter persistent storage.
                     entries.put(new JSONObject().put("id", id).put("title", title).put("body", body)
                         .put("at", at).put("expiresAt", expiresAt).put("accountId", account)
@@ -274,9 +296,16 @@ public class NeboNotificationReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent == null) return;
+        if (ACTION_POLL.equals(intent.getAction())) {
+            pollAsync(context);
+            return;
+        }
         synchronized (LOCK) {
             try {
-                if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) restoreFuture(context);
+                if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
+                    restoreFuture(context);
+                    if (!preferences(context).getString("inboxToken", "").isEmpty()) schedulePoll(context);
+                }
                 else if (ACTION_DELIVER.equals(intent.getAction())) {
                     deliver(context, intent.getIntExtra("id", -1), intent.getStringExtra("generation"));
                 }
@@ -324,40 +353,163 @@ public class NeboNotificationReceiver extends BroadcastReceiver {
         String today = localDate(now);
         boolean daily = "daily".equals(entry.getString("kind"));
         long lastSentAt = prefs.getLong("lastSentAt", 0);
+        int sentToday = today.equals(prefs.getString("lastSentDate", "")) ? prefs.getInt("sentCount", 1) : 0;
         if (!prefs.getBoolean("enabled", false) || foreground || !canDisplay(context)
             || !prefs.getString("accountId", "").equals(entry.getString("accountId"))
             || now < entry.getLong("at") || now >= entry.getLong("expiresAt") || quiet(prefs, calendar)
-            || today.equals(prefs.getString("lastSentDate", ""))
+            || sentToday >= MAX_PER_DAY
             || (lastSentAt > 0 && now - lastSentAt < MIN_INTERVAL_MS)
             || (daily && (!today.equals(entry.getString("dayKey"))
                 || entry.getString("dayKey").equals(prefs.getString("readDate", ""))
                 || calendar.get(Calendar.HOUR_OF_DAY) < 9 || calendar.get(Calendar.HOUR_OF_DAY) >= 21))) return;
 
+        Bundle metadata = new Bundle();
+        metadata.putString(EXTRA_KIND, entry.getString("kind"));
+        metadata.putString(EXTRA_DAY_KEY, entry.getString("dayKey"));
+        metadata.putString(EXTRA_ACCOUNT, entry.getString("accountId"));
+        if (!show(context, CHANNEL_ID, id, entry.getString("title"), entry.getString("body"), entry.getString("route"),
+            entry.getString("accountId"), metadata, entry.getLong("expiresAt") - now)) return;
+        // Preserve these device-level gates across logout or account changes.
+        prefs.edit().putString("lastSentDate", today).putInt("sentCount", sentToday + 1).putLong("lastSentAt", now).commit();
+    }
+
+    private static boolean show(Context context, String channelId, int id, String title, String body, String route,
+                                String accountId, Bundle metadata, long timeoutMs) {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
-        if (manager == null) return;
+        if (manager == null) return false;
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "NEBO · По делу", NotificationManager.IMPORTANCE_DEFAULT);
+            boolean news = NEWS_CHANNEL_ID.equals(channelId);
+            NotificationChannel channel = new NotificationChannel(channelId, news ? "NEBO · Новости" : "NEBO · Гороскоп и напоминания",
+                NotificationManager.IMPORTANCE_DEFAULT);
             channel.enableVibration(false);
             channel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
             manager.createNotificationChannel(channel);
         }
         Intent launch = new Intent(context, MainActivity.class)
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .putExtra(EXTRA_ROUTE, entry.getString("route")).putExtra(EXTRA_ACCOUNT, entry.getString("accountId"));
+            .putExtra(EXTRA_ROUTE, route).putExtra(EXTRA_ACCOUNT, accountId);
         PendingIntent tap = PendingIntent.getActivity(context, id, launch,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        Bundle metadata = new Bundle();
-        metadata.putString(EXTRA_KIND, entry.getString("kind"));
-        metadata.putString(EXTRA_DAY_KEY, entry.getString("dayKey"));
-        metadata.putString(EXTRA_ACCOUNT, entry.getString("accountId"));
-        Notification notification = new NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_nebo_notification).setContentTitle(entry.getString("title"))
-            .setContentText(entry.getString("body")).setStyle(new NotificationCompat.BigTextStyle().bigText(entry.getString("body")))
+        Notification notification = new NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_nebo_notification).setContentTitle(title)
+            .setContentText(body).setStyle(new NotificationCompat.BigTextStyle().bigText(body))
             .setContentIntent(tap).setAutoCancel(true).setOnlyAlertOnce(true).addExtras(metadata)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setVibrate(new long[] { 0L }).setTimeoutAfter(entry.getLong("expiresAt") - now).build();
+            .setVibrate(new long[] { 0L }).setTimeoutAfter(Math.max(timeoutMs, 60_000L)).build();
         manager.notify(NOTIFICATION_TAG, id, notification);
-        // Preserve these device-level gates across logout or account changes.
-        prefs.edit().putString("lastSentDate", today).putLong("lastSentAt", now).commit();
+        return true;
+    }
+
+    // ───────────── Рассылки из админки: периодический опрос сервера ─────────────
+
+    /** Сохраняет адрес и токен устройства; курсор не откатывается назад для того же токена. */
+    static String configureInbox(Context context, String baseUrl, String token, long cursor) {
+        if (baseUrl == null || !baseUrl.matches("^https://[A-Za-z0-9.-]+(?::[0-9]{1,5})?$")
+            || token == null || !token.matches("^[a-f0-9]{48}$") || cursor < 0) return "invalid";
+        synchronized (LOCK) {
+            SharedPreferences prefs = preferences(context);
+            long stored = token.equals(prefs.getString("inboxToken", "")) ? prefs.getLong("inboxCursor", 0) : 0;
+            boolean saved = prefs.edit().putString("inboxBase", baseUrl).putString("inboxToken", token)
+                .putLong("inboxCursor", Math.max(stored, cursor)).commit();
+            if (!saved) return "unavailable";
+            schedulePoll(context);
+            return "configured";
+        }
+    }
+
+    private static PendingIntent pollIntent(Context context, int flags) {
+        Intent intent = new Intent(context, NeboNotificationReceiver.class).setAction(ACTION_POLL);
+        return PendingIntent.getBroadcast(context, POLL_REQUEST_CODE, intent, flags | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    private static void schedulePoll(Context context) {
+        AlarmManager alarms = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarms == null) return;
+        PendingIntent poll = pollIntent(context, PendingIntent.FLAG_UPDATE_CURRENT);
+        alarms.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 15L * 60 * 1000,
+            POLL_INTERVAL_MS, poll);
+    }
+
+    private static void cancelPoll(Context context) {
+        AlarmManager alarms = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        PendingIntent poll = pollIntent(context, PendingIntent.FLAG_NO_CREATE);
+        if (poll == null) return;
+        if (alarms != null) alarms.cancel(poll);
+        poll.cancel();
+    }
+
+    private void pollAsync(Context context) {
+        final PendingResult result = goAsync();
+        final Context app = context.getApplicationContext();
+        new Thread(() -> {
+            try {
+                pollInbox(app);
+            } catch (Exception ignored) {
+                // Сеть недоступна или ответ битый — попробуем в следующий раз.
+            } finally {
+                result.finish();
+            }
+        }, "nebo-inbox-poll").start();
+    }
+
+    private static void pollInbox(Context context) throws Exception {
+        String base;
+        String token;
+        long cursor;
+        synchronized (LOCK) {
+            SharedPreferences prefs = preferences(context);
+            base = prefs.getString("inboxBase", "");
+            token = prefs.getString("inboxToken", "");
+            cursor = prefs.getLong("inboxCursor", 0);
+            // Пока приложение открыто, тихие часы или уведомления выключены — сообщения ждут на сервере.
+            if (base.isEmpty() || token.isEmpty() || !prefs.getBoolean("enabled", false) || foreground
+                || !canDisplay(context) || quiet(prefs, Calendar.getInstance())) return;
+        }
+        URL url = new URL(base + "/api/app/push/inbox?token=" + URLEncoder.encode(token, "UTF-8") + "&after=" + cursor);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setConnectTimeout(8000);
+        connection.setReadTimeout(8000);
+        connection.setRequestProperty("Accept", "application/json");
+        String body;
+        try {
+            if (connection.getResponseCode() != 200) return;
+            try (InputStream input = connection.getInputStream(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[4096];
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, read);
+                    if (output.size() > 64 * 1024) return;
+                }
+                body = new String(output.toByteArray(), StandardCharsets.UTF_8);
+            }
+        } finally {
+            connection.disconnect();
+        }
+        JSONArray messages = new JSONObject(body).optJSONArray("messages");
+        if (messages == null) return;
+        synchronized (LOCK) {
+            SharedPreferences prefs = preferences(context);
+            if (!token.equals(prefs.getString("inboxToken", "")) || !prefs.getBoolean("enabled", false)) return;
+            String account = prefs.getString("accountId", "");
+            long next = prefs.getLong("inboxCursor", 0);
+            long now = System.currentTimeMillis();
+            for (int i = 0; i < messages.length() && i < 3; i++) {
+                JSONObject item = messages.optJSONObject(i);
+                if (item == null) continue;
+                long id = item.optLong("id", -1);
+                String title = item.optString("title", "");
+                String text = item.optString("body", "");
+                String route = item.optString("route", "today");
+                if (id <= next) continue;
+                next = id;
+                if (!plainText(title, 70) || !plainText(text, 240) || !validRoute(route) || !validAccount(account)) continue;
+                Bundle metadata = new Bundle();
+                metadata.putString(EXTRA_KIND, "admin");
+                metadata.putString(EXTRA_ACCOUNT, account);
+                show(context, NEWS_CHANNEL_ID, 900000 + (int) (id % 90000), title, text, route, account, metadata,
+                    24L * 60 * 60 * 1000);
+            }
+            if (next > prefs.getLong("inboxCursor", 0)) prefs.edit().putLong("inboxCursor", next).putLong("lastSentAt", now).commit();
+        }
     }
 }

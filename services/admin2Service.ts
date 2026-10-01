@@ -155,6 +155,17 @@ export type AdminTicketRow = { id: number; userId: string | null; userName: stri
 export type AdminTicketDetail = { ticket: { id: number; userId: string | null; userName: string | null; subject: string; status: string; priority: string }; messages: Array<{ authorType: string; body: string; internal: boolean; createdAt: string | null }> };
 export type AdminSendResult = { ok: boolean; total: number; sent: number; failed: number; capped: boolean };
 export type AdminFlag = { key: string; value: any; description: string | null; updatedAt: string | null };
+export type AdminAppPushRoute = 'today' | 'natal' | 'horoscope' | 'compatibility';
+export type AdminAppPushMessage = {
+  id: number; title: string; body: string; route: AdminAppPushRoute; audience: 'all' | 'user' | 'sign'; target: string | null;
+  sendAt: string | null; expiresAt: string | null; cancelledAt: string | null; createdAt: string | null;
+  createdBy: string | null; delivered: number;
+};
+export type AdminAppPushOverview = { devices: { total: number; active7d: number; users: number }; messages: AdminAppPushMessage[] };
+export type AdminAppPushDraft = {
+  title: string; body: string; route: AdminAppPushRoute; audience: 'all' | 'user' | 'sign' | 'me';
+  target?: string; sendAt?: string | null; ttlHours?: number;
+};
 
 export type AdminNotificationScenario = {
   id: number; key: string; name: string; description: string; enabled: boolean;
@@ -451,6 +462,9 @@ export const admin2 = {
     req<{ ok: boolean; template: AdminNotificationTemplate }>('/api/admin/v2/notifications/templates', { method: 'POST', body }),
   deleteNotificationTemplate: (id: number) =>
     req<{ ok: boolean }>(`/api/admin/v2/notifications/templates/${id}`, { method: 'DELETE' }),
+  appPush: () => req<AdminAppPushOverview>('/api/admin/v2/app-push'),
+  sendAppPush: (body: AdminAppPushDraft) => req<{ ok: boolean; id: number }>('/api/admin/v2/app-push', { method: 'POST', body }),
+  cancelAppPush: (id: number) => req<{ ok: boolean }>('/api/admin/v2/app-push', { method: 'DELETE', body: { id } }),
   notificationsDiagnostics: () => req<AdminNotificationDiagnostics>('/api/admin/v2/notifications/diagnostics'),
   runNotifications: (body: { action: 'selftest' | 'dispatch' | 'plan'; userId?: string; jobType?: string }) =>
     req<AdminNotificationRunResult>('/api/admin/v2/notifications/run', { method: 'POST', body }),
