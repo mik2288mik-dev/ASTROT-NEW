@@ -123,7 +123,7 @@ describe('support ticket validation and delivery', () => {
     }
   });
 
-  it('emails the full ticket and sends the owner a privacy-safe Telegram alert', async () => {
+  it('emails the full ticket and sends the owner the full ticket in Telegram', async () => {
     process.env.RESEND_API_KEY = 're_server_secret_123';
     process.env.SUPPORT_EMAIL_TO = 'owner@example.test';
     process.env.SUPPORT_EMAIL_FROM = 'NEBO <support@example.test>';
@@ -160,8 +160,9 @@ describe('support ticket validation and delivery', () => {
     expect(resendBody.reply_to).toBe('person@example.test');
 
     expect(mockSendTelegramTextMessage).toHaveBeenCalledTimes(1);
-    expect(mockSendTelegramTextMessage.mock.calls[0][1]).toContain('✉️ Новое обращение NEBO #42');
-    expect(mockSendTelegramTextMessage.mock.calls[0][1]).not.toContain(sensitiveMessage);
+    expect(mockSendTelegramTextMessage.mock.calls[0][1]).toContain('✉️ Обращение #42');
+    // The owner asked to receive every ticket with the full text.
+    expect(mockSendTelegramTextMessage.mock.calls[0][1]).toContain(sensitiveMessage);
     expect(mockLoggerInfo).toHaveBeenCalledWith(expect.objectContaining({
       status: 'sent',
       metadata: { ticketId: 42, channel: 'telegram', result: 'sent' },

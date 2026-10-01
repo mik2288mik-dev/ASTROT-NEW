@@ -77,29 +77,29 @@ export function isNeboOpsEventEnabled(eventType: string, payload: Record<string,
 const on = (value: boolean) => value ? '✅' : '◻️';
 const hour = (value: number | null) => value === null ? 'выкл' : `${String(value).padStart(2, '0')}:00 МСК`;
 
-export function renderNeboOpsMenu(prefs: NeboOpsPreferences): { text: string; replyMarkup: TelegramReplyMarkup } {
+export function renderNeboOpsMenu(prefs: NeboOpsPreferences, server = ''): { text: string; replyMarkup: TelegramReplyMarkup } {
   // Inline web_app разворачивается клиентом Telegram как приложение, а не
   // открывается маленьким окном поверх переписки, как обычная t.me-ссылка.
   // initData остаётся в Web App и сервер допускает только OWNER_ID/роли.
   const appOrigin = String(process.env.NEBO_ADMIN_MINI_APP_URL || process.env.PUBLIC_APP_ORIGIN || '').replace(/\/$/, '');
   const adminButton = /^https:\/\//.test(appOrigin)
-    ? [[{ text: '🛠 Открыть админку', web_app: { url: `${appOrigin}/?view=admin` } }]]
+    ? [[{ text: '🛠 Админка: всё подробно', web_app: { url: `${appOrigin}/?view=admin` } }]]
     : [];
   return {
     text: [
-      '⚙️ NEBO · Уведомления владельца',
+      `⚙️ NEBO · Бот событий${server ? ` · 🖥 ${server}` : ''}`,
       '',
-      'Нажми пункт, чтобы включить или выключить. Настройки сохраняются на сервере.',
-      `Ежедневный отчёт: ${hour(prefs.daily_report_hour)}`,
-      `Недельный отчёт: воскресенье, ${hour(prefs.weekly_report_hour)}`,
+      'Отчёты — кнопками ниже. Галочка = уведомление приходит.',
+      `Отчёт каждый день: ${hour(prefs.daily_report_hour)}`,
+      `Отчёт за неделю: воскресенье, ${hour(prefs.weekly_report_hour)}`,
     ].join('\n'),
     replyMarkup: { inline_keyboard: [
-      [{ text: `${on(prefs.notify_payments)} Оплаты`, callback_data: 'ops:toggle:notify_payments' }, { text: `${on(prefs.notify_support)} Обратная связь`, callback_data: 'ops:toggle:notify_support' }],
-      [{ text: `${on(prefs.notify_logins)} Входы`, callback_data: 'ops:toggle:notify_logins' }, { text: `${on(prefs.notify_paywalls)} Paywall`, callback_data: 'ops:toggle:notify_paywalls' }],
-      [{ text: `📅 День · ${hour(prefs.daily_report_hour)}`, callback_data: 'ops:schedule:daily' }],
-      [{ text: `📈 Неделя · ${hour(prefs.weekly_report_hour)}`, callback_data: 'ops:schedule:weekly' }],
-      [{ text: '📊 Отчёт за сегодня', callback_data: 'ops:report:today' }, { text: '📈 Отчёт за 7 дней', callback_data: 'ops:report:week' }],
-      [{ text: '🔄 Обновить меню', callback_data: 'ops:menu' }],
+      [{ text: '📊 Сегодня', callback_data: 'ops:report:today' }, { text: '📅 Вчера', callback_data: 'ops:report:yesterday' }],
+      [{ text: '📈 7 дней + график', callback_data: 'ops:report:week' }, { text: '🗓 30 дней + график', callback_data: 'ops:report:month' }],
+      [{ text: `${on(prefs.notify_logins)} Входы`, callback_data: 'ops:toggle:notify_logins' }, { text: `${on(prefs.notify_paywalls)} Экран оплаты`, callback_data: 'ops:toggle:notify_paywalls' }],
+      [{ text: `${on(prefs.notify_payments)} Оплаты`, callback_data: 'ops:toggle:notify_payments' }, { text: `${on(prefs.notify_support)} Обращения`, callback_data: 'ops:toggle:notify_support' }],
+      [{ text: `⏰ Каждый день · ${hour(prefs.daily_report_hour)}`, callback_data: 'ops:schedule:daily' }],
+      [{ text: `⏰ Неделя · ${hour(prefs.weekly_report_hour)}`, callback_data: 'ops:schedule:weekly' }],
       ...adminButton,
     ] },
   };
@@ -130,7 +130,7 @@ export async function ensureNeboOpsBotSetup(token: string): Promise<void> {
   try {
     const responses = await Promise.all([
       telegramApiRequest(token, 'setWebhook', { url: `${base}/api/telegram/ops-webhook`, secret_token: secret, allowed_updates: ['message', 'callback_query'], drop_pending_updates: false }, { signal: AbortSignal.timeout(8_000) }),
-      telegramApiRequest(token, 'setMyCommands', { commands: [{ command: 'menu', description: 'Настройки уведомлений' }, { command: 'report', description: 'Отчёт за сегодня' }, { command: 'week', description: 'Отчёт за 7 дней' }] }, { signal: AbortSignal.timeout(8_000) }),
+      telegramApiRequest(token, 'setMyCommands', { commands: [{ command: 'menu', description: 'Меню и настройки' }, { command: 'report', description: 'Отчёт за сегодня' }, { command: 'week', description: 'Отчёт за 7 дней с графиком' }, { command: 'month', description: 'Отчёт за 30 дней с графиком' }] }, { signal: AbortSignal.timeout(8_000) }),
     ]);
     const failures = failedTelegramSetupOperations(responses);
     if (failures.length) {
@@ -146,7 +146,7 @@ export async function ensureNeboOpsBotSetup(token: string): Promise<void> {
 /** Регистрирует /menu только у выделенного бота. Отдельные webhook URL не
  * позволяют сообщению из оплат оказаться в обработчике поддержки и наоборот. */
 export async function ensureNeboOwnerChannelBotSetup(
-  channel: 'payments' | 'support',
+  channel: 'payments' | 'support' | 'errors',
   token: string,
 ): Promise<void> {
   const secret = String(process.env.NEBO_OPS_WEBHOOK_SECRET || '').trim();
@@ -157,10 +157,10 @@ export async function ensureNeboOwnerChannelBotSetup(
       telegramApiRequest(token, 'setWebhook', {
           url: `${base}/api/telegram/owner-channel-webhook?channel=${channel}`,
           secret_token: secret,
-          allowed_updates: ['message'],
+          allowed_updates: ['message', 'callback_query'],
           drop_pending_updates: false,
         }, { signal: AbortSignal.timeout(8_000) }),
-      telegramApiRequest(token, 'setMyCommands', { commands: [{ command: 'menu', description: 'О боте' }] }, { signal: AbortSignal.timeout(8_000) }),
+      telegramApiRequest(token, 'setMyCommands', { commands: [{ command: 'menu', description: 'Меню и отчёты' }] }, { signal: AbortSignal.timeout(8_000) }),
     ]);
     const failures = failedTelegramSetupOperations(responses);
     if (failures.length) {
