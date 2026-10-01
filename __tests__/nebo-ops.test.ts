@@ -12,8 +12,6 @@ import { logger } from '../lib/logger';
 import { startServerOperationalDiagnostic } from '../lib/serverOperationalDiagnostics';
 import {
   enqueueNeboOpsEvent,
-  enqueueNeboOpsDailySummary,
-  getNeboOpsDailySummaryWindow,
   shouldDeliverNeboOpsEvent,
   getNeboOpsConfig,
   processNeboOpsOutbox,
@@ -36,7 +34,7 @@ const query = jest.fn();
 const deliveryQuery = jest.fn();
 const release = jest.fn();
 const connect = jest.fn();
-const processState = globalThis as typeof globalThis & { __neboOpsWorkerV1?: unknown };
+const processState = globalThis as typeof globalThis & { __neboOpsWorkerV2?: unknown };
 let fetchMock: jest.SpiedFunction<typeof fetch>;
 
 function telegramResponse(status: number, body: unknown): Response {
@@ -70,7 +68,7 @@ beforeEach(() => {
     NEBO_SUPPORT_BOT_TOKEN: TOKEN, NEBO_SUPPORT_CHAT_ID: OWNER_ID,
     NEBO_PAYMENTS_BOT_TOKEN: TOKEN, NEBO_PAYMENTS_CHAT_ID: OWNER_ID, OWNER_ID,
   };
-  delete processState.__neboOpsWorkerV1;
+  delete processState.__neboOpsWorkerV2;
   query.mockReset();
   release.mockReset();
   deliveryQuery.mockReset().mockImplementation(async (sql: string) => {
@@ -89,7 +87,7 @@ beforeEach(() => {
 
 afterEach(() => {
   process.env = originalEnv;
-  delete processState.__neboOpsWorkerV1;
+  delete processState.__neboOpsWorkerV2;
   jest.restoreAllMocks();
 });
 
@@ -153,10 +151,9 @@ describe('operational data and message formatting', () => {
       payload_json: { isFirstLogin: true, provider: 'vk_id', runtime: 'native', question: 'PRIVATE_QUESTION' },
     }, { name: '@vk_38523093', language: 'ru' });
     expect(message.split('\n')).toEqual([
-      '👤 Первый вход', '🙋 @vk_38523093 · ID 9000000003446',
-      '🔐 Вход: VK ID', '📱 Платформа: Приложение',
-      '🎯 Источник установки: не определён', '🌐 Язык: ru',
-      '🕒 04.09.2026, 19:03:09 МСК',
+      '👤 Новый пользователь · @vk_38523093', '🙋 @vk_38523093 · ID 9000000003446',
+      '📦 Приложение', '🔐 Вход: VK ID',
+      '🕒 04.09.2026, 19:03 МСК · 🖥 Timeweb',
     ]);
     expect(message).not.toContain('PRIVATE_QUESTION');
     expect(message).not.toContain('MyTracker');
@@ -168,39 +165,63 @@ describe('operational data and message formatting', () => {
       occurred_at: '2026-09-04T16:03:09Z',
       payload_json: { isFirstLogin: true, provider: 'vk_id', runtime: 'native', distributionChannel: 'rustore' },
     }, { name: '@vk_38523093', language: 'ru' });
-    expect(message).toContain('📥 Канал установки: RuStore');
+    expect(message).toContain('📦 Установлено из RuStore');
+    expect(message).toContain('🎯 Реклама: нет, сам нашёл в RuStore');
+  });
+
+  it('shows the phone, Android and app version the client reported', () => {
+    const message = renderNeboOpsMessage({
+      event_type: 'login', user_id: '-9001', occurred_at: '2026-09-04T16:03:09Z',
+      payload_json: {
+        isFirstLogin: false, provider: 'yandex', runtime: 'native', distributionChannel: 'rustore',
+        deviceManufacturer: 'Samsung', deviceModel: 'SM-A515F', osName: 'Android', osVersion: '13',
+        appVersion: '1.0.5', versionCode: 8,
+      },
+    }, { name: 'Михаил', created_at: '2026-09-08T19:14:00Z', visit_days: 12, has_premium: false });
+    expect(message.split('\n')).toEqual([
+      '🔑 Михаил вошёл в аккаунт', '🙋 Михаил · ID -9001',
+      '📱 Samsung SM-A515F · Android 13', '📦 NEBO 1.0.5 (8) · установлено из RuStore',
+      '🔐 Вход: Яндекс ID', '📅 С нами с 08.09.2026 · заходил 12 дней', '🔓 Бесплатный доступ',
+      '🕒 04.09.2026, 19:03 МСК · 🖥 Timeweb',
+    ]);
+  });
+
+  it('labels the server that sent the message', () => {
+    const row = { event_type: 'login', user_id: null, occurred_at: '2026-09-04T16:03:09Z', payload_json: {} };
+    process.env.RAILWAY_ENVIRONMENT_ID = 'env';
+    expect(renderNeboOpsMessage(row)).toContain('🖥 Railway');
+    process.env.NEBO_SERVER_LABEL = 'Резерв';
+    expect(renderNeboOpsMessage(row)).toContain('🖥 Резерв');
   });
 
   it('distinguishes a server-confirmed payment from the client reporting a purchase', () => {
     const base = { user_id: '9001', occurred_at: '2026-09-04T16:03:09Z' };
     const confirmed = renderNeboOpsMessage({
       ...base, event_type: 'payment_confirmed',
-      payload_json: { provider: 'rustore', productId: 'monthly', amountMinor: 19900, currency: 'RUB' },
+      payload_json: { provider: 'rustore', productId: 'premium_month', amountMinor: 39900, currency: 'RUB' },
     });
     const client = renderNeboOpsMessage({
       ...base, event_type: 'activity', payload_json: { eventType: 'purchase_success' },
     });
-    expect(confirmed.split('\n')[0]).toBe('💰 Оплата подтверждена сервером');
-    expect(confirmed).toContain('💵 Сумма: 199.00 RUB');
-    expect(client.split('\n')[0]).toBe('📲 Приложение сообщило об оплате');
-    expect(client).not.toContain('подтверждена сервером');
+    expect(confirmed.split('\n')[0]).toBe('💰 Оплата · Месяц · 399 ₽');
+    expect(confirmed).toContain('💵 Сумма: 399.00 RUB');
+    expect(client.split('\n')[0]).toBe('📍 Пользователь оплатил (данные приложения)');
+    expect(client).not.toContain('💰 Оплата');
   });
 
   it('waits for MyTracker only for an associated SDK account and labels a known account source', () => {
     const row = {
       event_type: 'login', user_id: '-9001', occurred_at: '2026-09-04T20:00:00Z',
-      payload_json: { runtime: 'native' },
+      payload_json: { isFirstLogin: true, runtime: 'native', distributionChannel: 'rustore' },
     };
-    expect(renderNeboOpsMessage(row)).toContain('Источник установки: не определён');
-    expect(renderNeboOpsMessage(row, { mytracker_id: 'known-sdk-account' })).toContain('ожидаем MyTracker');
+    expect(renderNeboOpsMessage(row)).toContain('🎯 Реклама: нет, сам нашёл в RuStore');
+    expect(renderNeboOpsMessage(row, { mytracker_id: 'known-sdk-account' })).toContain('🎯 Реклама: ждём данные MyTracker');
     const known = renderNeboOpsMessage(row, {
       mytracker_id: 'known-sdk-account', attribution_source: 'VK Ads',
       attribution_campaign: 'NEBO · Сентябрь', attribution_at: '2026-09-04T18:00:00Z',
     });
-    expect(known).toContain('Источник аккаунта (MyTracker): VK Ads');
-    expect(known).toContain('📣 Кампания: NEBO · Сентябрь');
-    expect(known).toContain('04.09.2026, 21:00 МСК');
-    expect(known).not.toContain('ожидаем');
+    expect(known).toContain('🎯 Реклама: VK Ads · NEBO · Сентябрь');
+    expect(known).not.toContain('ждём');
   });
 
   it('renders late attribution separately without exposing raw callbacks or unresolved macros', () => {
@@ -212,8 +233,8 @@ describe('operational data and message formatting', () => {
         token: 'PRIVATE_SECRET', deeplink: 'PRIVATE_LINK', profileId: 'PRIVATE_DEVICE',
       },
     });
-    expect(message).toContain('🎯 MyTracker · Источник определён');
-    expect(message).toContain('📍 Источник: VK Ads');
+    expect(message).toContain('🎯 MyTracker определил источник');
+    expect(message).toContain('🎯 Источник: VK Ads');
     expect(message).toContain('📣 Кампания: NEBO Сентябрь');
     expect(message).not.toContain('PRIVATE_');
     expect(sanitizeNeboOpsPayload({
@@ -233,11 +254,12 @@ describe('durable owner notification queue', () => {
     for (const eventType of [
       'payment_confirmed', 'trial_started', 'subscription_grace', 'subscription_cancelled',
       'subscription_expired', 'subscription_resumed', 'payment_refunded', 'support_ticket',
-      'ai_error', 'diagnostic', 'daily_summary',
+      'ai_error', 'technical_error', 'diagnostic', 'attribution_received',
     ]) {
       expect(shouldDeliverNeboOpsEvent(eventType)).toBe(true);
     }
-    for (const eventType of ['hourly_summary', 'attribution_received']) {
+    // Reports are built on demand from the shared statistics, never queued.
+    for (const eventType of ['hourly_summary', 'daily_summary']) {
       expect(shouldDeliverNeboOpsEvent(eventType)).toBe(false);
     }
     for (const eventType of ['screen_view', 'checkout_start', 'question_sent', 'purchase_success']) {
@@ -260,9 +282,9 @@ describe('durable owner notification queue', () => {
     expect(insert[1][3]).not.toContain('PRIVATE_SESSION');
     const rendered = renderNeboOpsMessage({ event_type: 'activity', user_id: '-9001',
       payload_json: JSON.parse(insert[1][3]), occurred_at: new Date() });
-    expect(rendered.split('\n')[0]).toBe('👋 Открыл приложение');
-    expect(rendered).toContain('📥 Канал установки: RuStore');
-    expect(rendered).not.toContain('Первый вход');
+    expect(rendered.split('\n')[0]).toBe('👋 Пользователь открыл приложение');
+    expect(rendered).toContain('📦 Установлено из RuStore');
+    expect(rendered).not.toContain('Новый пользователь');
     expect(rendered).not.toContain('Вход:');
   });
 
@@ -278,11 +300,12 @@ describe('durable owner notification queue', () => {
     await expect(processNeboOpsOutbox(1)).resolves.toEqual({ claimed: 1, sent: 1, failed: 0 });
     const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
     expect(body.chat_id).toBe(OWNER_ID);
-    expect(body.text.split('\n')[0]).toBe('👋 Открыл приложение');
+    expect(body.text.split('\n')[0]).toBe('👋 Алина открыл приложение');
     const filtered = query.mock.calls.find(([sql]) => sql.includes("last_error_code = 'OWNER_SCOPE_FILTERED'"))!;
     const claim = query.mock.calls.find(([sql]) => sql.includes('RETURNING id, event_type, user_id'))!;
-    expect(filtered[0]).toContain("IN ('paywall_view', 'app_open', 'app_opened')");
-    expect(claim[0]).toContain("IN ('paywall_view', 'app_open', 'app_opened')");
+    expect(filtered[1][1]).toEqual(expect.arrayContaining(['paywall_view', 'app_open', 'app_opened']));
+    expect(claim[1][3]).toEqual(expect.arrayContaining(['paywall_view', 'app_open', 'app_opened']));
+    expect(claim[1][2]).toEqual(expect.arrayContaining(['login', 'payment_confirmed', 'ai_error', 'technical_error']));
   });
 
   it('retires old noisy queue entries without sending them to Telegram', async () => {
@@ -294,7 +317,7 @@ describe('durable owner notification queue', () => {
       return { rows: [], rowCount: 1 };
     });
     await expect(processNeboOpsOutbox(1)).resolves.toEqual({ claimed: 1, sent: 0, failed: 0 });
-    expect(query).toHaveBeenCalledWith(expect.stringContaining("WHERE status IN ('pending', 'failed')"));
+    expect(query).toHaveBeenCalledWith(expect.stringContaining("WHERE status IN ('pending', 'failed')"), expect.any(Array));
     expect(query).toHaveBeenCalledWith(expect.stringContaining('WHERE id = $1 AND lease_token = $2::uuid'), ['41', expect.any(String)]);
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -368,7 +391,7 @@ describe('durable owner notification queue', () => {
     expect(url).toBe(`https://api.telegram.org/bot${TOKEN}/sendMessage`);
     const body = JSON.parse(String(request?.body));
     expect(body.chat_id).toBe(OWNER_ID);
-    expect(body.text).toContain('👤 Первый вход');
+    expect(body.text).toContain('👤 Новый пользователь · Лёша');
     expect(body.parse_mode).toBeUndefined();
     expect(deliveryQuery).toHaveBeenCalledWith('SELECT pg_advisory_unlock(2026090401)');
     expect(release).toHaveBeenCalledTimes(1);
@@ -658,131 +681,12 @@ describe('owner support notifications', () => {
       expect.stringContaining('AND ($4::TEXT IS NULL OR channel = $4::TEXT)'), [10, 1, null, 'telegram'],
     );
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][1]).toContain('✉️ Новое обращение NEBO #301');
-    expect(send.mock.calls[0][1]).not.toContain('Не получается открыть прогноз');
+    expect(send.mock.calls[0][1]).toContain('✉️ Обращение #301 · Ошибка');
+    // Every ticket reaches the owner with the full text the person wrote.
+    expect(send.mock.calls[0][1]).toContain('«Не получается открыть прогноз после входа.»');
     const deferred = query.mock.calls.find(([sql]) => sql.includes("last_error_code = 'SUPPORT_DELIVERY_DEFERRED'"))!;
     expect(deferred[0]).toContain('attempts = GREATEST(0, attempts - 1)');
     expect(fetchMock).not.toHaveBeenCalled();
-  });
-});
-
-describe('daily owner summaries', () => {
-  const stats = {
-    newUsers: 2, totalUsers: 100, logins: 6, activeUsers: 4, actions: 21, screens: 13, paymentOpens: 3,
-    starsPurchases: 1, starsGross: 200, rustoreConfirmations: 3, rustoreTestConfirmations: 2,
-    supportTickets: 1, clientPaymentErrors: 2, aiErrors: 1,
-  };
-  const dailyQuery = jest.fn();
-  let persistedKeys: Set<string>;
-  let lockAvailable: boolean;
-
-  beforeEach(() => {
-    persistedKeys = new Set();
-    lockAvailable = true;
-    dailyQuery.mockReset().mockImplementation(async (sql: string, values?: unknown[]) => {
-      if (sql.includes('pg_try_advisory_xact_lock')) return { rows: [{ acquired: lockAvailable }], rowCount: 1 };
-      if (sql.startsWith('SELECT 1 FROM nebo_ops_outbox WHERE event_key')) {
-        return { rows: [], rowCount: persistedKeys.has(String(values?.[0])) ? 1 : 0 };
-      }
-      if (sql.includes('WITH bounds AS')) {
-        return { rows: [{
-          ...Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, String(value)])),
-          topScreens: [{ section: 'natal_reading', count: 8 }, { section: 'PRIVATE_SCREEN', count: 5 }],
-          privateUserData: 'PRIVATE_NAME',
-        }], rowCount: 1 };
-      }
-      if (sql.includes('INSERT INTO nebo_ops_outbox')) {
-        const eventKey = String(values?.[0]);
-        const exists = persistedKeys.has(eventKey);
-        persistedKeys.add(eventKey);
-        return { rows: exists ? [] : [{ id: '801' }], rowCount: exists ? 0 : 1 };
-      }
-      return { rows: [], rowCount: 0 };
-    });
-    connect.mockResolvedValue({ query: dailyQuery, release });
-  });
-
-  it.each(['2026-09-05T19:59:59Z', '2026-09-05T21:00:00Z', '2026-09-05T00:00:00Z'])(
-    'does not issue an hourly or catch-up report outside 23 Moscow: %s', async (date) => {
-      expect(getNeboOpsDailySummaryWindow(new Date(date))).toBeNull();
-      await expect(enqueueNeboOpsDailySummary(new Date(date))).resolves.toBe(false);
-      expect(connect).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each(['2026-09-05T20:00:00Z', '2026-09-05T20:37:41Z'])(
-    'collects only the previous 24 hours at 23 Moscow at %s', async (now) => {
-      await expect(enqueueNeboOpsDailySummary(new Date(now))).resolves.toBe(true);
-      const scan = dailyQuery.mock.calls.find(([sql]) => sql.includes('WITH bounds AS'))!;
-      expect(scan[1]).toEqual(['2026-09-04T20:00:00.000Z', '2026-09-05T20:00:00.000Z']);
-      expect(scan[0]).toContain('e.occurred_at >= b.start_utc AND e.occurred_at < b.end_utc');
-      const insert = dailyQuery.mock.calls.find(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))!;
-      expect(insert[0]).toContain('ON CONFLICT (event_key) DO NOTHING RETURNING id');
-      expect(insert[1][0]).toBe('daily:2026-09-05');
-      expect(insert[1][2]).toBe('2026-09-05T20:00:00.000Z');
-      const payload = JSON.parse(insert[1][1]);
-      expect(payload.stats).toEqual(stats);
-      expect(payload.topScreens).toEqual([{ section: 'natal_reading', count: 8 }, { section: 'unknown', count: 5 }]);
-      expect(insert[1][1]).not.toContain('PRIVATE_');
-      expect(dailyQuery).toHaveBeenCalledWith('COMMIT');
-      expect(release).toHaveBeenCalledTimes(1);
-      expect(fetchMock).not.toHaveBeenCalled();
-    },
-  );
-
-  it('deduplicates the daily report across worker restarts without scanning activity again', async () => {
-    await expect(enqueueNeboOpsDailySummary(new Date('2026-09-05T20:01:00Z'))).resolves.toBe(true);
-    delete processState.__neboOpsWorkerV1;
-    await expect(enqueueNeboOpsDailySummary(new Date('2026-09-05T20:59:00Z'))).resolves.toBe(false);
-    expect(dailyQuery.mock.calls.filter(([sql]) => sql.includes('WITH bounds AS'))).toHaveLength(1);
-    expect(dailyQuery.mock.calls.filter(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))).toHaveLength(1);
-    expect(persistedKeys.size).toBe(1);
-  });
-
-  it('does not scan or enqueue when another collector holds the daily lock', async () => {
-    lockAvailable = false;
-    await expect(enqueueNeboOpsDailySummary(new Date('2026-09-05T20:01:00Z'))).resolves.toBe(false);
-    expect(dailyQuery.mock.calls.some(([sql]) => sql.includes('WITH bounds AS'))).toBe(false);
-    expect(dailyQuery.mock.calls.some(([sql]) => sql.includes('INSERT INTO nebo_ops_outbox'))).toBe(false);
-    expect(dailyQuery).toHaveBeenCalledWith('COMMIT');
-    expect(release).toHaveBeenCalledTimes(1);
-  });
-
-  it('does nothing for an invalid date or disabled owner notifications', async () => {
-    await expect(enqueueNeboOpsDailySummary(new Date(NaN))).resolves.toBe(false);
-    process.env.NEBO_OPS_TELEGRAM_ENABLED = '0';
-    await expect(enqueueNeboOpsDailySummary(new Date('2026-09-05T20:01:00Z'))).resolves.toBe(false);
-    expect(connect).not.toHaveBeenCalled();
-  });
-
-  it('renders useful counts and known screens without identities or raw payload', () => {
-    const message = renderNeboOpsMessage({
-      event_type: 'daily_summary', user_id: null, occurred_at: '2026-09-05T20:00:00Z',
-      payload_json: {
-        periodStart: '2026-09-04T20:00:00Z', periodEnd: '2026-09-05T20:00:00Z',
-        stats: { ...stats, users: ['PRIVATE_NAME'], question: 'PRIVATE_QUESTION' },
-        topScreens: [{ section: 'natal_reading', count: 8 }, { section: 'PRIVATE_SCREEN', count: 5 }],
-        userName: 'PRIVATE_NAME', receipt: 'PRIVATE_RECEIPT',
-      },
-    });
-    expect(message).toContain('📊 NEBO · Итоги дня · 23:00 МСК');
-    expect(message).toContain('04.09.2026');
-    expect(message).toContain('23:00 МСК');
-    expect(message).toContain('👤 Новых аккаунтов: 2');
-    expect(message).toContain('👥 Всего аккаунтов сейчас: 100');
-    expect(message).toContain('💳 Открыли экран оплаты: 3');
-    expect(message).toContain('Натальная карта · Разбор: 8');
-    expect(message).toContain('Экран не определён: 5');
-    expect(message).toContain('валовая сумма: 200 Stars');
-    expect(message).toContain('Подтверждения RuStore: 3 · тестовые: 2');
-    expect(message).toContain('Ошибки генерации ИИ: 1');
-    expect(message).not.toContain('PRIVATE_');
-    expect(sanitizeNeboOpsPayload({
-      stats: { newUsers: -1, totalUsers: 1.5, logins: Infinity, actions: Number.MAX_SAFE_INTEGER + 1, screens: 0 },
-      topScreens: Array.from({ length: 8 }, () => ({ section: 'today', count: 1, user: 'PRIVATE_NAME' })),
-    })).toEqual({
-      stats: { screens: 0 }, topScreens: Array.from({ length: 5 }, () => ({ section: 'today', count: 1 })),
-    });
   });
 });
 
@@ -798,15 +702,14 @@ describe('AI generation error notifications', () => {
         stack: 'PRIVATE_STACK', error: 'PRIVATE_RAW_ERROR', request: { token: 'PRIVATE_TOKEN' },
       },
     });
-    expect(message).toContain('⚠️ Ошибка генерации ИИ');
-    expect(message).toContain('🙋 Пользователь: не определён');
-    expect(message).toContain('Личный прогноз');
-    expect(message).toContain('/api/content/forecast/personal');
-    expect(message).toContain('Период: Неделя');
-    expect(message).toContain('Код: UPSTREAM_TIMEOUT');
-    expect(message).toContain('HTTP: 503');
-    expect(message).toContain('Длительность: 1,5 с');
-    expect(message).toContain('версия abc1234');
+    expect(message.split('\n')[0]).toBe('🤖 Ошибка генерации ИИ');
+    expect(message).toContain('🙋 Пользователь не определён');
+    expect(message).toContain('📍 Где: Личный прогноз');
+    expect(message).toContain('🗓 Период прогноза: неделя');
+    expect(message).toContain('⚙️ Код: UPSTREAM_TIMEOUT');
+    expect(message).toContain('🌐 HTTP 503');
+    expect(message).toContain('⏱ 1,5 с');
+    expect(message).toContain('сборка abc1234');
     expect(message).toContain('trace_42');
     expect(message).not.toContain('PRIVATE_');
   });

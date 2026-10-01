@@ -1,5 +1,7 @@
 import { logger } from './logger';
-import { getNeboOwnerChannelConfig, isNeboOpsEnabled, sendNeboOpsTextWithConfig } from './neboOps';
+import { getPool } from './db';
+import { getNeboOwnerChannelConfig, isNeboOpsEnabled, neboServerLabel, sendNeboOpsTextWithConfig } from './neboOps';
+import { PROVIDER_LABELS } from './neboOpsStats';
 import { getNeboOpsPreferences } from './neboOpsSettings';
 import { sendTelegramTextMessage } from './telegramBot';
 
@@ -302,15 +304,19 @@ async function sendSupportTelegram(input: SupportDeliveryInput): Promise<Support
       return { channel: 'telegram', result: 'suppressed' };
     }
     const adminUrl = supportAdminUrl();
+    const author = await supportAuthorLines(input.userId);
     const message = [
-      `✉️ Новое обращение NEBO #${input.ticketId}`,
-      `📂 Категория: ${CATEGORY_LABELS[input.category]}`,
-      `📱 Версия: ${versionText(input.diagnostics)}`,
-      `🏪 Канал: ${input.diagnostics?.distributionChannel || 'не указан'}`,
+      `✉️ Обращение #${input.ticketId} · ${CATEGORY_LABELS[input.category]}`,
+      '',
+      `«${input.message.trim().slice(0, 2_500)}»`,
+      '',
+      ...author,
+      ...(input.replyEmail ? [`📧 Ответить на почту: ${input.replyEmail}`] : []),
+      `📦 NEBO ${versionText(input.diagnostics)} · ${CHANNEL_TEXT[input.diagnostics?.distributionChannel || ''] || 'канал не указан'}`,
       ...(input.createdAt && Number.isFinite(new Date(input.createdAt).getTime()) ? [
         `🕒 ${new Intl.DateTimeFormat('ru-RU', {
-          timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'medium',
-        }).format(new Date(input.createdAt))} МСК`,
+          timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'short',
+        }).format(new Date(input.createdAt))} МСК · 🖥 ${neboServerLabel()}`,
       ] : []),
     ].join('\n');
     const options = adminUrl
@@ -331,6 +337,32 @@ async function sendSupportTelegram(input: SupportDeliveryInput): Promise<Support
     return { channel: 'telegram', result: result.ok ? 'sent' : 'failed' };
   } catch {
     return { channel: 'telegram', result: 'failed' };
+  }
+}
+
+const CHANNEL_TEXT: Record<string, string> = {
+  rustore: 'из RuStore', google_play: 'из Google Play', telegram: 'Telegram', development: 'тестовая сборка',
+};
+
+/** Who wrote: name, sign-in method and access. Lookup failures never block delivery. */
+async function supportAuthorLines(userId: string | undefined): Promise<string[]> {
+  if (!userId || !process.env.DATABASE_URL) return ['🙋 Без аккаунта'];
+  try {
+    const row = (await getPool().query(
+      `SELECT u.name, u.auth_provider,
+              GREATEST(u.premium_until, (SELECT MAX(pe.ends_at) AT TIME ZONE 'UTC' FROM premium_entitlements pe
+                WHERE pe.user_id = u.id AND pe.status = 'active')) AS premium_until
+       FROM users u WHERE u.id = $1`, [userId],
+    )).rows[0];
+    if (!row) return [`🙋 ID ${userId}`];
+    const premiumUntil = row.premium_until ? new Date(row.premium_until) : null;
+    const premium = premiumUntil && premiumUntil.getTime() > Date.now()
+      ? `💎 Premium до ${new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', dateStyle: 'short' }).format(premiumUntil)}`
+      : '🔓 Бесплатный доступ';
+    const provider = PROVIDER_LABELS[String(row.auth_provider || '')];
+    return [`🙋 ${String(row.name || 'Без имени').slice(0, 70)} · ID ${userId}${provider ? ` · ${provider}` : ''}`, premium];
+  } catch {
+    return [`🙋 ID ${userId}`];
   }
 }
 

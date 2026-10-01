@@ -1,6 +1,5 @@
 import { randomUUID } from 'crypto';
 import { telegramApiRequest } from './telegramRelay';
-import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import type { PoolClient } from 'pg';
 import { getPool } from './db';
 import type { TelegramReplyMarkup } from './telegramBot';
@@ -10,6 +9,7 @@ import {
   getNeboOpsPreferences,
   isNeboOpsEventEnabled,
 } from './neboOpsSettings';
+import { CHANNEL_LABELS, planLabel, planPriceRub, PROVIDER_LABELS, SCREEN_LABELS } from './neboOpsStats';
 
 type Queryable = Pick<PoolClient, 'query'>;
 type Payload = Record<string, unknown>;
@@ -21,6 +21,7 @@ export type NeboOpsEvent = {
   payload?: Payload;
 };
 export type NeboOpsConfig = { token: string; chatId: string };
+export type NeboOwnerChannel = 'payments' | 'support' | 'errors';
 type OpsRow = {
   id: string;
   event_type: string;
@@ -41,6 +42,8 @@ type UserSummary = {
   attribution_source?: string | null;
   attribution_campaign?: string | null;
   attribution_at?: Date | string | null;
+  visit_days?: number | string | null;
+  paid_purchases?: number | string | null;
 };
 type SendResult = {
   ok: boolean;
@@ -53,81 +56,73 @@ type SendResult = {
 const MAX_ATTEMPTS = 12;
 const MAX_BATCH = 10;
 const REQUEST_TIMEOUT_MS = 8_000;
-const HOUR_MS = 60 * 60 * 1_000;
-const SUMMARY_STAT_KEYS = [
-  'newUsers', 'totalUsers', 'logins', 'activeUsers', 'actions', 'screens', 'paymentOpens',
-  'starsPurchases', 'starsGross', 'rustoreConfirmations', 'rustoreTestConfirmations',
-  'supportTickets', 'clientPaymentErrors', 'aiErrors',
-] as const;
 const EVENT_TYPES = new Set([
   'login', 'activity', 'payment_confirmed', 'trial_started',
   'subscription_grace', 'subscription_cancelled', 'subscription_expired', 'subscription_resumed',
   'payment_refunded', 'support_ticket', 'diagnostic', 'hourly_summary', 'daily_summary', 'ai_error', 'technical_error', 'attribution_received',
 ]);
-const PROVIDERS: Record<string, string> = {
-  telegram: 'Telegram', telegram_stars: 'Telegram Stars',
-  web_guest: 'Гость', guest: 'Гость', native: 'Гость приложения',
-  vk: 'VK ID', vk_id: 'VK ID', yandex: 'Яндекс ID', google: 'Google',
-  email: 'Email', password: 'Email и пароль', rustore: 'RuStore', rustore_pay: 'RuStore',
-};
-const DISTRIBUTION_CHANNELS: Record<string, string> = {
-  rustore: 'RuStore',
-  google_play: 'Google Play',
-  telegram: 'Telegram',
-  development: 'Development',
-};
-const SCREENS: Record<string, string> = {
-  dashboard: 'Сегодня', today: 'Сегодня', personal_forecast: 'Личный прогноз',
-  horoscope: 'Гороскоп', zodiac: 'Гороскоп', chart: 'Натальная карта',
-  natal_map: 'Натальная карта · Карта', natal_reading: 'Натальная карта · Разбор',
-  natal_questions: 'Натальная карта · Спросить о себе', natal_matrix: 'Матрица судьбы',
-  synastry: 'Сравнить', compatibility: 'Сравнить', settings: 'Настройки',
-  menu: 'Меню', services: 'Меню', onboarding: 'Знакомство с приложением',
-  premium: 'Premium', paywall: 'Premium', encyclopedia: 'Энциклопедия',
-  charts: 'Сохранённые карты', personality: 'Разбор карты', natal_story: 'Разбор карты',
-};
+/** Everything the owner bots deliver. Reports are built on demand, never queued. */
+const DELIVERED_EVENT_TYPES = [
+  'login', 'payment_confirmed', 'trial_started', 'subscription_grace', 'subscription_cancelled',
+  'subscription_expired', 'subscription_resumed', 'payment_refunded', 'support_ticket',
+  'ai_error', 'technical_error', 'diagnostic', 'attribution_received',
+];
+const DELIVERED_ACTIVITY = ['paywall_view', 'app_open', 'app_opened', 'purchase_failed', 'restore_failed'];
+const PAYMENT_EVENTS = new Set([
+  'payment_confirmed', 'trial_started', 'subscription_grace', 'subscription_cancelled',
+  'subscription_expired', 'subscription_resumed', 'payment_refunded',
+]);
+const ERROR_EVENTS = new Set(['ai_error', 'technical_error']);
+const PROVIDER_CODES = new Set([
+  ...Object.keys(PROVIDER_LABELS), 'telegram_stars', 'rustore', 'rustore_pay',
+]);
+const DISTRIBUTION_CHANNELS = new Set(['rustore', 'google_play', 'telegram', 'development']);
 const ACTIONS: Record<string, string> = {
-  app_open: '👋 Открыл приложение',
-  app_opened: '👋 Открыл приложение',
-  screen_view: '🧭 Открыл экран', first_result_ready: '✨ Получил первый результат',
-  first_value_viewed: '✨ Посмотрел первый результат', natal_section_open: '📖 Открыл раздел разбора',
-  compatibility_ready: '🤝 Получил совместимость', person_added: '👥 Добавил человека',
-  future_open: '🔭 Открыл прогноз', question_sent: '💬 Задал вопрос о себе',
-  locked_feature_tapped: '🔒 Нажал закрытую функцию', premium_promo_impression: '💎 Увидел предложение Premium',
-  premium_promo_clicked: '💎 Открыл предложение Premium', premium_promo_dismissed: '💎 Закрыл предложение Premium',
-  paywall_view: '💳 Открыл экран оплаты', plan_selected: '🛒 Выбрал тариф',
-  checkout_start: '🛒 Начал оплату', purchase_success: '📲 Приложение сообщило об оплате',
-  purchase_cancelled: '↩️ Отменил оплату', purchase_failed: '⚠️ Ошибка оплаты в приложении',
-  restore_started: '🔄 Начал восстановление покупок', restore_success: '✅ Восстановил доступ',
-  restore_failed: '⚠️ Ошибка восстановления', subscription_cancelled: '↩️ Отключил автопродление',
-  subscription_expired: '⌛ Доступ закончился', share: '📤 Нажал «Поделиться»', invite_open: '🔗 Открыл приглашение',
-  natal_story_open: '📖 Открыл разбор', natal_card_impression: '📖 Увидел фрагмент разбора',
-  natal_story_completed: '🏁 Дочитал разбор', natal_card_swipe_next: '📖 Перешёл к следующему фрагменту',
-  natal_readmore_tap: '📖 Нажал «Читать дальше»', natal_sheet_open: '📖 Открыл подробности',
-  natal_today_cta_tap: '☀️ Перешёл к прогнозу', natal_checkin_cta_tap: '📖 Открыл продолжение',
-  natal_save_tap: '🔖 Нажал «Сохранить»', natal_share_tap: '📤 Нажал «Поделиться разбором»',
-  natal_notifications_optin: '🔔 Изменил уведомления', natal_paywall_open: '💎 Открыл Premium из разбора',
-  natal_sheet_scroll_depth: '📖 Читает разбор', natal_paywall_dismiss: '💎 Закрыл Premium',
+  app_open: 'открыл приложение', app_opened: 'открыл приложение',
+  paywall_view: 'открыл экран оплаты', purchase_failed: 'не смог оплатить — ошибка в приложении',
+  restore_failed: 'не смог восстановить покупку', screen_view: 'открыл экран',
+  first_result_ready: 'получил первый результат', first_value_viewed: 'посмотрел первый результат',
+  natal_section_open: 'открыл раздел разбора', compatibility_ready: 'получил совместимость',
+  person_added: 'добавил человека', future_open: 'открыл прогноз', question_sent: 'задал вопрос о себе',
+  locked_feature_tapped: 'нажал закрытую функцию', premium_promo_impression: 'увидел предложение Premium',
+  premium_promo_clicked: 'открыл предложение Premium', premium_promo_dismissed: 'закрыл предложение Premium',
+  plan_selected: 'выбрал тариф', checkout_start: 'начал оплату', purchase_success: 'оплатил (данные приложения)',
+  purchase_cancelled: 'отменил оплату', restore_started: 'восстанавливает покупки', restore_success: 'восстановил доступ',
+  subscription_cancelled: 'отключил автопродление', subscription_expired: 'остался без Premium',
+  share: 'нажал «Поделиться»', invite_open: 'открыл приглашение', natal_story_open: 'открыл разбор',
+  natal_card_impression: 'читает разбор', natal_story_completed: 'дочитал разбор',
+  natal_card_swipe_next: 'листает разбор', natal_readmore_tap: 'нажал «Читать дальше»',
+  natal_sheet_open: 'открыл подробности', natal_today_cta_tap: 'перешёл к прогнозу',
+  natal_checkin_cta_tap: 'открыл продолжение', natal_save_tap: 'нажал «Сохранить»',
+  natal_share_tap: 'поделился разбором', natal_notifications_optin: 'изменил уведомления',
+  natal_paywall_open: 'открыл Premium из разбора', natal_sheet_scroll_depth: 'читает разбор',
+  natal_paywall_dismiss: 'закрыл Premium',
+};
+const ACTION_ICONS: Record<string, string> = {
+  app_open: '👋', app_opened: '👋', paywall_view: '💳', purchase_failed: '⚠️', restore_failed: '⚠️',
 };
 const TITLES: Record<string, string> = {
-  payment_confirmed: '💰 Оплата подтверждена сервером', trial_started: '🎁 Начался пробный период',
-  subscription_grace: '⚠️ Продление ожидает оплаты', subscription_cancelled: '↩️ Автопродление отключено',
-  subscription_expired: '⌛ Подписка закончилась', payment_refunded: '↩️ Возврат подтверждён',
+  payment_confirmed: '💰 Оплата', trial_started: '🎁 Пробный период',
+  subscription_grace: '⏳ Продление ждёт оплаты', subscription_cancelled: '↩️ Отключил автопродление',
+  subscription_expired: '⌛ Подписка закончилась', payment_refunded: '↩️ Возврат денег',
   subscription_resumed: '✅ Подписка восстановлена',
   support_ticket: '✉️ Новое обращение', diagnostic: '🛠 Проверка уведомлений',
-  ai_error: '⚠️ Ошибка генерации ИИ',
-  technical_error: '🚨 Ошибка сервера',
-  attribution_received: '🎯 MyTracker · Источник определён',
+  ai_error: '🤖 Ошибка генерации ИИ', technical_error: '🚨 Ошибка сервера',
+  attribution_received: '🎯 MyTracker определил источник',
 };
 
 function text(value: unknown, limit = 100): string {
   return typeof value === 'string'
-    ? value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, limit)
+    ? value.replace(/[\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, limit)
     : '';
 }
 function code(value: unknown): string {
   const clean = text(value, 80);
   return /^[a-zA-Z0-9_.:-]{1,80}$/.test(clean) ? clean : '';
+}
+function hardware(value: unknown, limit: number): string {
+  const clean = text(value, limit);
+  return /^[\p{L}\p{N}][\p{L}\p{N} ._()+/-]*$/u.test(clean) ? clean : '';
 }
 function positiveNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
@@ -137,14 +132,32 @@ function validDate(value: unknown): Date | null {
   const date = new Date(value instanceof Date ? value.getTime() : value);
   return Number.isFinite(date.getTime()) ? date : null;
 }
+function moscowDate(value: Date): string {
+  return new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', dateStyle: 'short' }).format(value);
+}
 function moscowDateTime(value: Date): string {
   return new Intl.DateTimeFormat('ru-RU', {
-    timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'short',
+    timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
   }).format(value);
+}
+function daysWord(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'день';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'дня';
+  return 'дней';
 }
 
 export function isNeboOpsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.NEBO_OPS_TELEGRAM_ENABLED === '1';
+}
+
+/** Which server wrote the message: two deployments can share the same bots. */
+export function neboServerLabel(env: NodeJS.ProcessEnv = process.env): string {
+  const configured = text(env.NEBO_SERVER_LABEL, 40);
+  if (configured) return configured;
+  return env.RAILWAY_ENVIRONMENT_ID || env.RAILWAY_PROJECT_ID ? 'Railway' : 'Timeweb';
 }
 
 export function getNeboOpsConfig(env: NodeJS.ProcessEnv = process.env): NeboOpsConfig | null {
@@ -160,10 +173,10 @@ export function getNeboOpsConfig(env: NodeJS.ProcessEnv = process.env): NeboOpsC
 /** Dedicated delivery bots never fall back to the notification bot: a payment
  * or support alert must not be mixed into the owner events stream. */
 export function getNeboOwnerChannelConfig(
-  channel: 'payments' | 'support',
+  channel: NeboOwnerChannel,
   env: NodeJS.ProcessEnv = process.env,
 ): NeboOpsConfig | null {
-  const prefix = channel === 'payments' ? 'NEBO_PAYMENTS' : 'NEBO_SUPPORT';
+  const prefix = channel === 'payments' ? 'NEBO_PAYMENTS' : channel === 'support' ? 'NEBO_SUPPORT' : 'NEBO_ERRORS';
   const token = String(env[`${prefix}_BOT_TOKEN`] || '').trim();
   const chatId = String(env[`${prefix}_CHAT_ID`] || env.OWNER_ID || '').trim();
   if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(token) || !/^[1-9]\d{0,15}$/.test(chatId)) return null;
@@ -183,28 +196,6 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
   }
   const attributionAt = validDate(input.attributionAt);
   if (attributionAt) result.attributionAt = attributionAt.toISOString();
-  for (const key of ['periodStart', 'periodEnd']) {
-    const date = validDate(input[key]);
-    if (date) result[key] = date.toISOString();
-  }
-  if (input.stats && typeof input.stats === 'object' && !Array.isArray(input.stats)) {
-    const source = input.stats as Payload;
-    const stats: Payload = {};
-    for (const key of SUMMARY_STAT_KEYS) {
-      const value = positiveNumber(source[key]);
-      if (value !== undefined && Number.isSafeInteger(value)) stats[key] = value;
-    }
-    result.stats = stats;
-  }
-  if (Array.isArray(input.topScreens)) {
-    result.topScreens = input.topScreens.slice(0, 5).flatMap((item) => {
-      if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
-      const section = code(item.section);
-      const count = positiveNumber(item.count);
-      if (count === undefined || !Number.isSafeInteger(count)) return [];
-      return [{ section: Object.prototype.hasOwnProperty.call(SCREENS, section) ? section : 'unknown', count }];
-    });
-  }
   if (input.operation === 'personal_forecast' || input.operation === 'natal_question') result.operation = input.operation;
   if (['generation', 'lazy_refresh', 'request'].includes(String(input.stage))) result.stage = input.stage;
   if (['day', 'week', 'month'].includes(String(input.period))) result.period = input.period;
@@ -236,10 +227,15 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
   if (durationMs !== undefined && Number.isSafeInteger(durationMs)) result.durationMs = durationMs;
   if (typeof input.isFirstLogin === 'boolean') result.isFirstLogin = input.isFirstLogin;
   const provider = code(input.provider);
-  if (Object.prototype.hasOwnProperty.call(PROVIDERS, provider)) result.provider = provider;
+  if (PROVIDER_CODES.has(provider)) result.provider = provider;
   const distributionChannel = code(input.distributionChannel);
-  if (Object.prototype.hasOwnProperty.call(DISTRIBUTION_CHANNELS, distributionChannel)) result.distributionChannel = distributionChannel;
+  if (DISTRIBUTION_CHANNELS.has(distributionChannel)) result.distributionChannel = distributionChannel;
   if (['native', 'web', 'telegram'].includes(String(input.runtime))) result.runtime = input.runtime;
+  if (['Android', 'iOS', 'Windows', 'macOS', 'Linux'].includes(String(input.osName))) result.osName = input.osName;
+  for (const [key, limit] of [['deviceManufacturer', 40], ['deviceModel', 80], ['osVersion', 40]] as const) {
+    const value = hardware(input[key], limit);
+    if (value) result[key] = value;
+  }
   if (typeof input.sandbox === 'boolean') result.sandbox = input.sandbox;
   if (typeof input.autoRenewing === 'boolean') result.autoRenewing = input.autoRenewing;
   if (typeof input.expiresAt === 'string' && Number.isFinite(Date.parse(input.expiresAt))) {
@@ -254,7 +250,7 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
   const eventType = code(input.eventType);
   if (Object.prototype.hasOwnProperty.call(ACTIONS, eventType)) result.eventType = eventType;
   const section = code(input.section);
-  if (Object.prototype.hasOwnProperty.call(SCREENS, section)) result.section = section;
+  if (Object.prototype.hasOwnProperty.call(SCREEN_LABELS, section)) result.section = section;
   for (const key of ['paymentType', 'productId', 'productCode', 'planId', 'status', 'category']) {
     const value = code(input[key]);
     if (value) result[key] = value;
@@ -283,25 +279,8 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
 }
 
 export function shouldDeliverNeboOpsEvent(eventType: string, payload: Payload = {}): boolean {
-  const criticalOwnerEvents = new Set([
-    'payment_confirmed',
-    'trial_started',
-    'subscription_grace',
-    'subscription_cancelled',
-    'subscription_expired',
-    'subscription_resumed',
-    'payment_refunded',
-    'support_ticket',
-    'ai_error',
-    'technical_error',
-    'diagnostic',
-    'daily_summary',
-  ]);
-  return eventType === 'login'
-    || criticalOwnerEvents.has(eventType)
-    || (eventType === 'activity' && (payload?.eventType === 'paywall_view'
-      || payload?.eventType === 'app_open' || payload?.eventType === 'app_opened'
-      || payload?.eventType === 'purchase_failed' || payload?.eventType === 'restore_failed'));
+  return DELIVERED_EVENT_TYPES.includes(eventType)
+    || (eventType === 'activity' && DELIVERED_ACTIVITY.includes(String(payload?.eventType)));
 }
 
 export async function enqueueNeboOpsEvent(db: Queryable, input: NeboOpsEvent): Promise<void> {
@@ -332,278 +311,176 @@ export async function enqueueNeboOpsEvent(db: Queryable, input: NeboOpsEvent): P
   }
 }
 
-export function getNeboOpsDailySummaryWindow(now = new Date()): { dateKey: string; start: Date; end: Date } | null {
-  if (!Number.isFinite(now.getTime()) || formatInTimeZone(now, 'Europe/Moscow', 'HH') !== '23') return null;
-  const dateKey = formatInTimeZone(now, 'Europe/Moscow', 'yyyy-MM-dd');
-  const end = fromZonedTime(`${dateKey}T23:00:00`, 'Europe/Moscow');
-  return { dateKey, start: new Date(end.getTime() - 24 * HOUR_MS), end };
+function personLine(row: { user_id: string | null }, user: UserSummary): string | null {
+  if (!row.user_id) return null;
+  return `🙋 ${text(user.name, 70) || 'Без имени'} · ID ${row.user_id}`;
 }
 
-/** Enqueue once during 23:00–23:59 Moscow; never replay yesterday's report on a daytime restart. */
-export async function enqueueNeboOpsDailySummary(now = new Date()): Promise<boolean> {
-  if (!getNeboOpsConfig()) return false;
-  const window = getNeboOpsDailySummaryWindow(now);
-  if (!window) return false;
-  const { start, end, dateKey } = window;
-  const eventKey = `daily:${dateKey}`;
-  const client = await getPool().connect();
-  try {
-    await client.query('BEGIN');
-    const lock = await client.query('SELECT pg_try_advisory_xact_lock(2026090402) AS acquired');
-    if (lock.rows[0]?.acquired !== true) {
-      await client.query('COMMIT');
-      return false;
-    }
-    const existing = await client.query('SELECT 1 FROM nebo_ops_outbox WHERE event_key = $1 LIMIT 1', [eventKey]);
-    if (existing.rowCount) {
-      await client.query('COMMIT');
-      return false;
-    }
-    await client.query("SET LOCAL statement_timeout = '20s'");
-    // Legacy TIMESTAMP columns store UTC wall time. Convert the bounds rather
-    // than indexed columns; outbox TIMESTAMPTZ uses absolute instants directly.
-    const collected = await client.query(
-      `WITH bounds AS (
-         SELECT $1::timestamptz AS start_at, $2::timestamptz AS end_at,
-                $1::timestamptz AT TIME ZONE 'UTC' AS start_utc,
-                $2::timestamptz AT TIME ZONE 'UTC' AS end_utc
-       ), hour_events AS (
-         SELECT e.user_id, e.event_type, e.section
-         FROM user_app_events e CROSS JOIN bounds b
-         WHERE e.occurred_at >= b.start_utc AND e.occurred_at < b.end_utc
-           AND COALESCE(e.source, '') NOT IN ('rustore_callback', 'entitlement_expiry')
-       ), hour_sessions AS (
-         SELECT s.user_id FROM app_sessions s CROSS JOIN bounds b
-         WHERE s.created_at >= b.start_utc AND s.created_at < b.end_utc
-       ), active_users AS (
-         SELECT user_id FROM hour_events WHERE user_id IS NOT NULL
-         UNION SELECT user_id FROM hour_sessions
-       ), hour_stars AS (
-         SELECT p.stars_amount FROM star_payments p CROSS JOIN bounds b
-         WHERE p.created_at >= b.start_utc AND p.created_at < b.end_utc
-           AND COALESCE(p.provider, 'telegram_stars') = 'telegram_stars'
-           AND p.status IN ('paid', 'confirmed', 'consumed', 'refunded')
-       ), hour_ops AS (
-         SELECT o.event_type, o.payload_json
-         FROM nebo_ops_outbox o CROSS JOIN bounds b
-         WHERE o.created_at >= b.start_at AND o.created_at < b.end_at
-           AND o.event_type IN ('payment_confirmed', 'ai_error')
-       ), top_screens AS (
-         SELECT COALESCE(section, 'unknown') AS section, COUNT(*)::int AS count
-         FROM hour_events WHERE event_type = 'screen_view'
-         GROUP BY COALESCE(section, 'unknown') ORDER BY count DESC, section LIMIT 5
-       )
-       SELECT
-         (SELECT COUNT(*) FROM users u CROSS JOIN bounds b
-          WHERE u.created_at >= b.start_at AND u.created_at < b.end_at) AS "newUsers",
-         (SELECT COUNT(*) FROM users) AS "totalUsers",
-         (SELECT COUNT(*) FROM hour_sessions) AS "logins",
-         (SELECT COUNT(*) FROM active_users) AS "activeUsers",
-         (SELECT COUNT(*) FROM hour_events) AS "actions",
-         (SELECT COUNT(*) FROM hour_events WHERE event_type = 'screen_view') AS "screens",
-         (SELECT COUNT(*) FROM hour_events WHERE event_type = 'paywall_view') AS "paymentOpens",
-         (SELECT COUNT(*) FROM hour_stars) AS "starsPurchases",
-         (SELECT COALESCE(SUM(stars_amount), 0) FROM hour_stars) AS "starsGross",
-         (SELECT COUNT(*) FROM hour_ops WHERE event_type = 'payment_confirmed'
-          AND payload_json->>'provider' = 'rustore'
-          AND COALESCE(payload_json->>'sandbox', 'false') <> 'true') AS "rustoreConfirmations",
-         (SELECT COUNT(*) FROM hour_ops WHERE event_type = 'payment_confirmed'
-          AND payload_json->>'provider' = 'rustore'
-          AND payload_json->>'sandbox' = 'true') AS "rustoreTestConfirmations",
-         (SELECT COUNT(*) FROM support_tickets t CROSS JOIN bounds b
-          WHERE t.created_at >= b.start_utc AND t.created_at < b.end_utc) AS "supportTickets",
-         (SELECT COUNT(*) FROM hour_events
-          WHERE event_type IN ('purchase_failed', 'restore_failed')) AS "clientPaymentErrors",
-         (SELECT COUNT(*) FROM hour_ops WHERE event_type = 'ai_error') AS "aiErrors",
-         (SELECT COALESCE(jsonb_agg(jsonb_build_object('section', section, 'count', count)
-                  ORDER BY count DESC, section), '[]'::jsonb) FROM top_screens) AS "topScreens"`,
-      [start.toISOString(), end.toISOString()],
-    );
-    const row = collected.rows[0];
-    if (!row) throw new Error('NEBO_OPS_DAILY_STATS_MISSING');
-    const stats = Object.fromEntries(SUMMARY_STAT_KEYS.map((key) => [key, Number(row[key])]));
-    if (Object.values(stats).some((value) => !Number.isSafeInteger(value) || value < 0)) {
-      throw new Error('NEBO_OPS_DAILY_STATS_INVALID');
-    }
-    const payload = sanitizeNeboOpsPayload({
-      periodStart: start.toISOString(), periodEnd: end.toISOString(), stats, topScreens: row.topScreens,
-    });
-    const inserted = await client.query(
-      `INSERT INTO nebo_ops_outbox (event_key, event_type, payload_json, occurred_at)
-       VALUES ($1, 'daily_summary', $2::jsonb, $3)
-       ON CONFLICT (event_key) DO NOTHING RETURNING id`,
-      [eventKey, JSON.stringify(payload), end.toISOString()],
-    );
-    await client.query('COMMIT');
-    return inserted.rowCount === 1;
-  } catch (error) {
-    await client.query('ROLLBACK').catch(() => undefined);
-    throw error;
-  } finally {
-    client.release();
-  }
+function deviceLines(p: Payload): string[] {
+  const lines: string[] = [];
+  const maker = String(p.deviceManufacturer || '');
+  const model = String(p.deviceModel || '');
+  const device = [maker && !model.toLowerCase().startsWith(maker.toLowerCase()) ? maker : '', model]
+    .filter(Boolean).join(' ');
+  const os = p.osName ? `${p.osName}${p.osVersion ? ` ${p.osVersion}` : ''}` : '';
+  if (device || os) lines.push(`📱 ${[device, os].filter(Boolean).join(' · ')}`);
+  const version = p.appVersion ? `NEBO ${p.appVersion}${typeof p.versionCode === 'number' ? ` (${p.versionCode})` : ''}` : '';
+  const channel = CHANNEL_LABELS[String(p.distributionChannel || '')];
+  const where = p.runtime === 'telegram' ? 'Telegram Mini App'
+    : p.runtime === 'web' ? 'сайт в браузере'
+      : channel ? `установлено из ${channel}` : p.runtime === 'native' ? 'приложение' : '';
+  const app = [version, where].filter(Boolean).join(' · ');
+  if (app) lines.push(`📦 ${app.charAt(0).toUpperCase()}${app.slice(1)}`);
+  return lines;
 }
 
-function renderDailySummary(payload: Payload): string {
-  const start = validDate(payload.periodStart);
-  const end = validDate(payload.periodEnd);
-  const stats = (payload.stats || {}) as Payload;
-  const count = (key: string) => typeof stats[key] === 'number' ? String(stats[key]) : 'нет данных';
-  const lines = [
-    '📊 NEBO · Итоги дня · 23:00 МСК',
-    start && end ? `🕒 ${moscowDateTime(start)} — ${moscowDateTime(end)} МСК` : '🕒 Период не указан',
-    '',
-    `👤 Новых аккаунтов: ${count('newUsers')}`,
-    `👥 Всего аккаунтов сейчас: ${count('totalUsers')}`,
-    `👋 Новые сессии: ${count('logins')}`,
-    `💳 Открыли экран оплаты: ${count('paymentOpens')}`,
-    `🙋 Активных по событиям и сессиям: ${count('activeUsers')}`,
-    `📍 Действий: ${count('actions')} · открытий экранов: ${count('screens')}`,
-  ];
-  const screens = payload.topScreens as Array<{ section: string; count: number }> | undefined;
-  if (screens?.length) {
-    lines.push('🧭 Самые посещаемые экраны:');
-    for (const screen of screens) lines.push(`• ${SCREENS[screen.section] || 'Экран не определён'}: ${screen.count}`);
+function accountLines(row: OpsRow | Pick<OpsRow, 'event_type' | 'user_id'>, user: UserSummary, p: Payload): string[] {
+  if (!row.user_id) return [];
+  const lines: string[] = [];
+  const provider = PROVIDER_LABELS[String(p.provider || user.auth_provider || '')];
+  if (provider) lines.push(`🔐 Вход: ${provider}`);
+  const registeredAt = validDate(user.created_at);
+  const visitDays = Number(user.visit_days || 0);
+  if (registeredAt) {
+    lines.push(`📅 С нами с ${moscowDate(registeredAt)}${visitDays > 0 ? ` · заходил ${visitDays} ${daysWord(visitDays)}` : ''}`);
   }
-  lines.push(
-    '',
-    `⭐ Платежи Stars: ${count('starsPurchases')} · валовая сумма: ${count('starsGross')} Stars`,
-    `🟦 Подтверждения RuStore: ${count('rustoreConfirmations')} · тестовые: ${count('rustoreTestConfirmations')}`,
-    `✉️ Новых обращений: ${count('supportTickets')}`,
-    `⚠️ Ошибки оплаты и восстановления в приложении: ${count('clientPaymentErrors')}`,
-    `🤖 Ошибки генерации ИИ: ${count('aiErrors')}`,
-    '',
-    'RuStore и ошибки ИИ — по серверным событиям с момента включения сбора.',
-    'Валовая сумма Stars указана до вычета возвратов.',
-  );
-  return lines.join('\n').slice(0, 3_800);
+  const premiumUntil = validDate(user.premium_until);
+  if (user.has_premium === true) lines.push(`💎 Premium${premiumUntil ? ` до ${moscowDate(premiumUntil)}` : ''}`);
+  else if (user.has_premium === false) lines.push('🔓 Бесплатный доступ');
+  return lines;
+}
+
+function sourceLine(p: Payload, user: UserSummary): string | null {
+  const source = text(user.attribution_source, 120);
+  const campaign = text(user.attribution_campaign, 120);
+  if (source) return `🎯 Реклама: ${source}${campaign ? ` · ${campaign}` : ''}`;
+  if (user.mytracker_id) return '🎯 Реклама: ждём данные MyTracker';
+  if (p.distributionChannel === 'rustore') return '🎯 Реклама: нет, сам нашёл в RuStore';
+  return null;
+}
+
+function footer(occurredAt: Date | string, p: Payload): string {
+  const occurred = validDate(occurredAt);
+  const version = p.serverVersion ? ` · сборка ${String(p.serverVersion).slice(0, 7)}` : '';
+  return `🕒 ${occurred ? moscowDateTime(occurred) : 'время не указано'} МСК · 🖥 ${neboServerLabel()}${version}`;
+}
+
+function renderPayment(row: Pick<OpsRow, 'event_type' | 'user_id' | 'occurred_at'>, user: UserSummary, p: Payload): string[] {
+  const detail = (p.eventPayload || {}) as Payload;
+  const product = String(p.productCode || p.productId || p.planId || detail.plan_id || '');
+  const price = product ? planPriceRub(product) : 0;
+  const title = TITLES[row.event_type] || '💳 Подписка';
+  const lines = [`${title}${product ? ` · ${planLabel(product)}` : ''}${row.event_type === 'payment_confirmed' && price ? ` · ${price} ₽` : ''}`];
+  const person = personLine(row, user);
+  if (person) lines.push(person);
+  if (row.event_type === 'payment_confirmed') {
+    const paid = Number(user.paid_purchases || 0);
+    if (row.user_id) lines.push(paid > 1 ? `🔁 Продление · всего оплат: ${paid}` : '🆕 Первая покупка');
+  }
+  if (typeof p.amountMinor === 'number' && p.currency) lines.push(`💵 Сумма: ${(p.amountMinor / 100).toFixed(2)} ${p.currency}`);
+  if (typeof p.starsAmount === 'number') lines.push(`⭐ Сумма: ${p.starsAmount} Stars`);
+  const expiresAt = validDate(p.expiresAt);
+  if (expiresAt) lines.push(`📅 Доступ до ${moscowDate(expiresAt)}`);
+  if (typeof p.autoRenewing === 'boolean') lines.push(`🔄 Автопродление ${p.autoRenewing ? 'включено' : 'выключено'}`);
+  if (p.sandbox === true) lines.push('🧪 Тестовая оплата RuStore (не настоящие деньги)');
+  const provider = PROVIDER_LABELS[String(user.auth_provider || '')];
+  if (provider) lines.push(`🔐 Вход: ${provider}`);
+  return lines;
+}
+
+function renderError(row: Pick<OpsRow, 'event_type' | 'user_id'>, user: UserSummary, p: Payload): string[] {
+  const lines = [TITLES[row.event_type]];
+  if (row.event_type === 'ai_error') {
+    const section = p.operation === 'personal_forecast' ? 'Личный прогноз'
+      : p.operation === 'natal_question' ? 'Спросить о себе' : '';
+    if (section) lines.push(`📍 Где: ${section}`);
+    const stage = p.stage === 'generation' ? 'генерация текста' : p.stage === 'lazy_refresh' ? 'обновление прогноза'
+      : p.stage === 'request' ? 'обработка запроса' : '';
+    if (stage) lines.push(`🛠 Этап: ${stage}`);
+    const period = p.period === 'day' ? 'сегодня' : p.period === 'week' ? 'неделя' : p.period === 'month' ? 'месяц' : '';
+    if (period) lines.push(`🗓 Период прогноза: ${period}`);
+  } else {
+    const where = [p.scope, p.diagnosticEvent].filter(Boolean).join(' · ');
+    if (where) lines.push(`📍 Где: ${where}`);
+    if (p.surface) lines.push(`🧩 Раздел: ${p.surface}`);
+    if (p.source) lines.push(`🛠 Компонент: ${p.source}`);
+  }
+  if (p.errorCode) lines.push(`⚙️ Код: ${p.errorCode}`);
+  if (typeof p.httpStatus === 'number') lines.push(`🌐 HTTP ${p.httpStatus}`);
+  if (p.status) lines.push(`📌 Статус: ${p.status}`);
+  if (typeof p.durationMs === 'number') lines.push(`⏱ ${(p.durationMs / 1_000).toFixed(1).replace('.', ',')} с`);
+  const metadata = p.metadata && typeof p.metadata === 'object' && !Array.isArray(p.metadata) ? p.metadata as Payload : {};
+  const pairs = Object.entries(metadata)
+    .filter(([, value]) => ['string', 'number', 'boolean'].includes(typeof value))
+    .slice(0, 8).map(([key, value]) => `${key}=${String(value)}`);
+  if (pairs.length) lines.push(`🧾 ${pairs.join(' · ')}`);
+  const person = personLine(row, user);
+  lines.push(person || '🙋 Пользователь не определён');
+  if (p.traceId) lines.push(`🔗 Trace: ${p.traceId}`);
+  if (p.reportId) lines.push(`🧾 Отчёт: ${p.reportId}`);
+  return lines;
 }
 
 export function renderNeboOpsMessage(row: Pick<OpsRow, 'event_type' | 'user_id' | 'payload_json' | 'occurred_at'>, user: UserSummary = {}): string {
   const p = sanitizeNeboOpsPayload(row.payload_json);
-  if (row.event_type === 'daily_summary') return renderDailySummary(p);
-  const detail = (p.eventPayload || {}) as Payload;
-  const title = row.event_type === 'login'
-    ? (p.isFirstLogin ? '👤 Первый вход' : '👋 Вход в приложение')
-    : row.event_type === 'activity' ? (ACTIONS[String(p.eventType)] || '📍 Действие в приложении')
-      : TITLES[row.event_type] || '📍 Событие NEBO';
-  const lines = [title];
-  if (row.user_id) lines.push(`🙋 ${text(user.name, 70) || 'Пользователь'} · ID ${row.user_id}`);
-  else if (row.event_type === 'ai_error') lines.push('🙋 Пользователь: не определён');
-  if (row.user_id) {
-    const registeredAt = validDate(user.created_at);
-    if (registeredAt) lines.push(`🗓 Регистрация: ${moscowDateTime(registeredAt)} МСК`);
-    const premiumUntil = validDate(user.premium_until);
-    if (user.has_premium === true) lines.push(`💎 Доступ сейчас: Premium${premiumUntil ? ` до ${moscowDateTime(premiumUntil)} МСК` : ''}`);
-    else if (user.has_premium === false) lines.push('🔓 Доступ сейчас: бесплатный');
-  }
-  if (row.event_type === 'technical_error') {
-    if (p.scope || p.diagnosticEvent) {
-      lines.push(`📍 Источник: ${[p.scope, p.diagnosticEvent].filter(Boolean).join(' · ')}`);
-    }
-    if (p.surface) lines.push(`🧩 Раздел: ${p.surface}`);
-    if (p.source) lines.push(`🛠 Компонент: ${p.source}`);
-    if (p.errorCode) lines.push(`⚙️ Код: ${p.errorCode}`);
-    if (p.status) lines.push(`📌 Статус: ${p.status}`);
-    if (typeof p.durationMs === 'number') lines.push(`⏱ Длительность: ${(p.durationMs / 1_000).toFixed(1).replace('.', ',')} с`);
-    if (p.serverVersion) lines.push(`🖥 Версия: ${p.serverVersion}`);
-    if (p.traceId) lines.push(`🔗 Trace: ${p.traceId}`);
-    const metadata = p.metadata && typeof p.metadata === 'object' && !Array.isArray(p.metadata)
-      ? p.metadata as Payload
-      : {};
-    const metaPairs = Object.entries(metadata)
-      .filter(([, value]) => ['string', 'number', 'boolean'].includes(typeof value))
-      .slice(0, 10)
-      .map(([key, value]) => `${key}=${String(value)}`);
-    if (metaPairs.length) lines.push(`🧾 Детали: ${metaPairs.join(' · ')}`);
-  }
-  if (row.event_type === 'ai_error') {
-    const operation = p.operation === 'personal_forecast'
-      ? { label: 'Личный прогноз', endpoint: '/api/content/forecast/personal' }
-      : p.operation === 'natal_question'
-        ? { label: 'Спросить о себе', endpoint: '/api/content/natal/questions' }
-        : null;
-    if (operation) lines.push(`📍 Раздел: ${operation.label}`, `🌐 Запрос: ${operation.endpoint}`);
-    const stage = p.stage === 'generation' ? 'Генерация' : p.stage === 'lazy_refresh' ? 'Обновление прогноза' : p.stage === 'request' ? 'Обработка запроса' : '';
-    if (stage) lines.push(`🛠 Этап: ${stage}`);
-    const period = p.period === 'day' ? 'Сегодня' : p.period === 'week' ? 'Неделя' : p.period === 'month' ? 'Месяц' : '';
-    if (period) lines.push(`🗓 Период: ${period}`);
-    if (p.errorCode) lines.push(`⚙️ Код: ${p.errorCode}`);
-    if (typeof p.httpStatus === 'number') lines.push(`🌐 HTTP: ${p.httpStatus}`);
-    if (typeof p.durationMs === 'number') lines.push(`⏱ Длительность: ${(p.durationMs / 1_000).toFixed(1).replace('.', ',')} с`);
-    lines.push(`🖥 Исполнение: сервер${p.serverVersion ? ` · версия ${p.serverVersion}` : ''}`);
-    if (p.reportId) lines.push(`🧾 Отчёт сервера: ${p.reportId}`);
-    if (p.traceId) lines.push(`🔗 Метка запроса для сопоставления: ${p.traceId}`);
-  }
-  const provider = PROVIDERS[String(p.provider || user.auth_provider || '')];
-  if (provider) lines.push(`🔐 ${row.event_type === 'login' ? 'Вход' : 'Провайдер'}: ${provider}`);
-  const installChannel = DISTRIBUTION_CHANNELS[String(p.distributionChannel || '')];
-  if (installChannel) lines.push(`📥 Канал установки: ${installChannel}`);
-  if (!installChannel && row.event_type === 'activity') {
-    lines.push('📥 Канал установки: не определён');
-  }
-  if (p.runtime) lines.push(`📱 Платформа: ${p.runtime === 'native' ? 'Приложение' : p.runtime === 'telegram' ? 'Telegram Mini App' : 'Браузер'}`);
+  const name = text(user.name, 70) || 'Пользователь';
+  let lines: string[];
   if (row.event_type === 'login') {
-    const source = text(user.attribution_source, 120);
-    const directTelegram = !source && p.runtime === 'telegram' && p.distributionChannel === 'telegram';
-    lines.push(source
-      ? `🎯 Источник аккаунта (MyTracker): ${source}`
-      : user.mytracker_id ? '🎯 Источник установки: ожидаем MyTracker'
-        : directTelegram ? '🎯 Источник входа: Telegram · прямой'
-          : '🎯 Источник установки: не определён');
-    const campaign = text(user.attribution_campaign, 120);
-    if (source && campaign) lines.push(`📣 Кампания: ${campaign}`);
-    const attributedAt = validDate(user.attribution_at);
-    if (source && attributedAt) lines.push(`📌 Атрибуция: ${moscowDateTime(attributedAt)} МСК`);
-    lines.push(`🌐 Язык: ${user.language === 'en' ? 'en' : user.language === 'ru' ? 'ru' : 'не указан'}`);
-  }
-  if (row.event_type === 'attribution_received') {
-    lines.push(`📍 Источник: ${p.attributionSource || 'не определён'}`);
+    lines = [p.isFirstLogin ? `👤 Новый пользователь · ${name}` : `🔑 ${name} вошёл в аккаунт`];
+    const person = personLine(row, user);
+    if (person) lines.push(person);
+    lines.push(...deviceLines(p), ...accountLines(row, user, p));
+    const source = p.isFirstLogin ? sourceLine(p, user) : null;
+    if (source) lines.push(source);
+    if (user.language === 'en') lines.push('🌐 Язык: английский');
+  } else if (row.event_type === 'activity') {
+    const action = String(p.eventType || '');
+    lines = [`${ACTION_ICONS[action] || '📍'} ${name} ${ACTIONS[action] || 'сделал действие'}`];
+    const person = personLine(row, user);
+    if (person) lines.push(person);
+    lines.push(...deviceLines(p), ...accountLines(row, user, p));
+    if (p.section && action !== 'app_open' && action !== 'app_opened') lines.push(`📍 Экран: ${SCREEN_LABELS[String(p.section)]}`);
+    const detail = (p.eventPayload || {}) as Payload;
+    if (detail.plan_id) lines.push(`🧾 Тариф: ${planLabel(String(detail.plan_id))}`);
+    if (detail.reason_code) lines.push(`⚙️ Код: ${detail.reason_code}`);
+  } else if (PAYMENT_EVENTS.has(row.event_type)) {
+    lines = renderPayment(row, user, p);
+  } else if (ERROR_EVENTS.has(row.event_type)) {
+    lines = renderError(row, user, p);
+  } else if (row.event_type === 'attribution_received') {
+    lines = [TITLES.attribution_received];
+    const person = personLine(row, user);
+    if (person) lines.push(person);
+    lines.push(`🎯 Источник: ${p.attributionSource || 'не определён'}`);
     if (p.attributionCampaign) lines.push(`📣 Кампания: ${p.attributionCampaign}`);
-    if (p.attributionCampaignId) lines.push(`🆔 Кампания: ${p.attributionCampaignId}`);
-    if (p.attributionMethod) lines.push(`🔎 Метод MyTracker: ${p.attributionMethod}`);
-    const attributedAt = validDate(p.attributionAt);
-    if (attributedAt) lines.push(`📌 Атрибуция: ${moscowDateTime(attributedAt)} МСК`);
+  } else {
+    lines = [TITLES[row.event_type] || '📍 Событие NEBO'];
+    const person = personLine(row, user);
+    if (person) lines.push(person);
+    if (p.ticketId) lines.push(`🎫 Обращение #${p.ticketId}`);
   }
-  if (p.section) lines.push(`📍 Экран: ${SCREENS[String(p.section)]}`);
-  if (detail.section_key) lines.push(`📖 Раздел: ${detail.section_key}`);
-  const plan = p.productCode || p.productId || p.planId || p.paymentType || detail.plan_id;
-  if (plan) lines.push(`🧾 Тариф: ${plan}`);
-  if (typeof p.starsAmount === 'number') lines.push(`⭐ Сумма: ${p.starsAmount} Stars`);
-  if (p.sandbox === true) lines.push('🧪 Тестовая среда RuStore');
-  if (typeof p.autoRenewing === 'boolean') lines.push(`🔄 Автопродление: ${p.autoRenewing ? 'включено' : 'выключено'}`);
-  if (p.expiresAt) lines.push(`📅 Доступ до: ${new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'short' }).format(new Date(String(p.expiresAt)))} МСК`);
-  if (typeof p.amountMinor === 'number' && p.currency) lines.push(`💵 Сумма: ${(p.amountMinor / 100).toFixed(2)} ${p.currency}`);
-  if (typeof detail.price_micros === 'number' && detail.currency) lines.push(`🏷 Цена в приложении: ${(detail.price_micros / 1_000_000).toFixed(2)} ${detail.currency}`);
-  if (typeof detail.depth_pct === 'number') lines.push(`📖 Прочитано: ${Math.min(100, detail.depth_pct)}%`);
-  if (detail.reason_code) lines.push(`⚙️ Код: ${detail.reason_code}`);
-  if (p.ticketId) lines.push(`🎫 Обращение: #${p.ticketId}`);
-  const occurred = new Date(row.occurred_at);
-  lines.push(`🕒 ${Number.isFinite(occurred.getTime()) ? new Intl.DateTimeFormat('ru-RU', {
-    timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-  }).format(occurred) : 'время не указано'} МСК`);
+  lines.push(footer(row.occurred_at, p));
   return lines.join('\n').slice(0, 3_800);
 }
 
 type WorkerState = {
   started: boolean; running: boolean; requested: boolean; connecting: boolean;
   listener: PoolClient | null; timer: ReturnType<typeof setInterval> | null;
-  lastCleanupAt: number; lastDailyCheckAt: number; configurationWarning: boolean;
+  lastCleanupAt: number; lastReportCheckAt: number; configurationWarning: boolean;
 };
-const processState = globalThis as typeof globalThis & { __neboOpsWorkerV1?: WorkerState };
+const processState = globalThis as typeof globalThis & { __neboOpsWorkerV2?: WorkerState };
 function worker(): WorkerState {
-  return processState.__neboOpsWorkerV1 ??= {
+  return processState.__neboOpsWorkerV2 ??= {
     started: false, running: false, requested: false, connecting: false,
-    listener: null, timer: null, lastCleanupAt: 0, lastDailyCheckAt: 0, configurationWarning: false,
+    listener: null, timer: null, lastCleanupAt: 0, lastReportCheckAt: 0, configurationWarning: false,
   };
 }
 
 /** All messages use the verified owner chat and share the per-chat rate limit. */
-export async function sendNeboOpsTextWithConfig(
+async function sendNeboOpsWithConfig(
   config: NeboOpsConfig | null,
-  message: string,
-  options?: { replyMarkup?: TelegramReplyMarkup },
+  method: 'sendMessage' | 'sendPhoto',
+  body: Payload,
 ): Promise<SendResult> {
   if (!config) return { ok: false, error: 'OPS_UNCONFIGURED' };
   let client: PoolClient | null = null;
@@ -624,12 +501,8 @@ export async function sendNeboOpsTextWithConfig(
     if (delay > 0) await new Promise<void>((resolve) => setTimeout(resolve, delay));
     await client.query("UPDATE nebo_ops_delivery_state SET next_send_at = NOW() + INTERVAL '1100 milliseconds' WHERE id = 1");
     try {
-      const response = await telegramApiRequest(config.token, 'sendMessage', {
-        chat_id: config.chatId,
-        text: message.slice(0, 3_800),
-        disable_web_page_preview: true,
-        reply_markup: options?.replyMarkup,
-      }, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+      const response = await telegramApiRequest(config.token, method, { chat_id: config.chatId, ...body },
+        { signal: AbortSignal.timeout(method === 'sendPhoto' ? 20_000 : REQUEST_TIMEOUT_MS) });
       const data = await response.json().catch(() => null);
       if (response.ok && data?.ok === true && Number.isSafeInteger(data.result?.message_id)) {
         return { ok: true, messageId: data.result.message_id };
@@ -660,8 +533,42 @@ export async function sendNeboOpsTextWithConfig(
   }
 }
 
+export async function sendNeboOpsTextWithConfig(
+  config: NeboOpsConfig | null,
+  message: string,
+  options?: { replyMarkup?: TelegramReplyMarkup },
+): Promise<SendResult> {
+  return sendNeboOpsWithConfig(config, 'sendMessage', {
+    text: message.slice(0, 3_800),
+    disable_web_page_preview: true,
+    reply_markup: options?.replyMarkup,
+  });
+}
+
 export async function sendNeboOpsText(message: string, options?: { replyMarkup?: TelegramReplyMarkup }): Promise<SendResult> {
   return sendNeboOpsTextWithConfig(getNeboOpsConfig(), message, options);
+}
+
+export async function sendNeboOpsPhotoWithConfig(config: NeboOpsConfig | null, photoUrl: string, caption: string): Promise<SendResult> {
+  return sendNeboOpsWithConfig(config, 'sendPhoto', { photo: photoUrl, caption: caption.slice(0, 1_000) });
+}
+
+export async function sendNeboOpsPhoto(photoUrl: string, caption: string): Promise<SendResult> {
+  return sendNeboOpsPhotoWithConfig(getNeboOpsConfig(), photoUrl, caption);
+}
+
+function destinationFor(eventType: string): { config: NeboOpsConfig | null; missing?: string } {
+  if (PAYMENT_EVENTS.has(eventType)) {
+    const config = getNeboOwnerChannelConfig('payments');
+    return config ? { config } : { config: null, missing: 'PAYMENTS_BOT_UNCONFIGURED' };
+  }
+  if (eventType === 'support_ticket') {
+    const config = getNeboOwnerChannelConfig('support');
+    return config ? { config } : { config: null, missing: 'SUPPORT_BOT_UNCONFIGURED' };
+  }
+  // Errors go to their own bot when it exists, otherwise to the events bot.
+  if (ERROR_EVENTS.has(eventType)) return { config: getNeboOwnerChannelConfig('errors') || getNeboOpsConfig() };
+  return { config: getNeboOpsConfig() };
 }
 
 export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: number; failed: number; claimed: number }> {
@@ -675,23 +582,14 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
        last_error_code = 'LEASE_EXPIRED'
      WHERE status = 'processing' AND locked_at < NOW() - INTERVAL '90 seconds'`, [MAX_ATTEMPTS],
   );
-  // Preserve historical facts for the daily aggregate while retiring messages
-  // that were queued under the broader, previous notification preferences.
+  // Facts stay stored for statistics; only the owner-visible scope is delivered.
   await pool.query(
     `UPDATE nebo_ops_outbox SET status = 'dead', locked_at = NULL, lease_token = NULL,
        last_error_code = 'OWNER_SCOPE_FILTERED', updated_at = NOW()
      WHERE status IN ('pending', 'failed')
-       AND NOT (
-         event_type IN (
-           'login', 'daily_summary', 'payment_confirmed', 'trial_started',
-           'subscription_grace', 'subscription_cancelled', 'subscription_expired',
-           'subscription_resumed', 'payment_refunded', 'support_ticket',
-           'ai_error', 'technical_error', 'diagnostic'
-         )
-         OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') IN (
-           'paywall_view', 'app_open', 'app_opened', 'purchase_failed', 'restore_failed'
-         ))
-       )`,
+       AND NOT (event_type = ANY($1::text[])
+         OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') = ANY($2::text[])))`,
+    [DELIVERED_EVENT_TYPES, DELIVERED_ACTIVITY],
   );
   const count = Number.isFinite(limit) ? Math.min(MAX_BATCH, Math.max(1, Math.trunc(limit))) : MAX_BATCH;
   for (let index = 0; index < count; index++) {
@@ -702,14 +600,12 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
        WHERE id = (
          SELECT id FROM nebo_ops_outbox
          WHERE status IN ('pending', 'failed') AND next_attempt_at <= NOW() AND attempts < $1
-           AND (
-             event_type IN ('login', 'daily_summary', 'payment_confirmed')
-             OR (event_type = 'activity' AND payload_json->>'eventType' IN ('paywall_view', 'app_open', 'app_opened'))
-           )
+           AND (event_type = ANY($3::text[])
+             OR (event_type = 'activity' AND payload_json->>'eventType' = ANY($4::text[])))
          ORDER BY CASE WHEN event_type = 'activity' THEN 1 ELSE 0 END, next_attempt_at, id
          FOR UPDATE SKIP LOCKED LIMIT 1
        ) RETURNING id, event_type, user_id, payload_json, occurred_at, attempts, lease_token`,
-      [MAX_ATTEMPTS, lease],
+      [MAX_ATTEMPTS, lease, DELIVERED_EVENT_TYPES, DELIVERED_ACTIVITY],
     );
     const row = claim.rows[0];
     if (!row) break;
@@ -739,6 +635,10 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
               ${includeMyTracker ? `mt.analytics_user_id::text AS mytracker_id,
               mt.traffic_source AS attribution_source, mt.campaign_title AS attribution_campaign,
               mt.attribution_at,` : ''}
+              (SELECT COUNT(DISTINCT ((e.occurred_at AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow')::date)
+                 FROM user_app_events e WHERE e.user_id = u.id)::int AS visit_days,
+              (SELECT COUNT(*) FROM store_purchases sp
+                 WHERE sp.user_id = u.id AND sp.status NOT IN ('store_trial', 'refunded'))::int AS paid_purchases,
               GREATEST(u.premium_until, p.active_until AT TIME ZONE 'UTC') AS premium_until,
               COALESCE(GREATEST(u.premium_until, p.active_until AT TIME ZONE 'UTC') > NOW(), FALSE) AS has_premium
        FROM users u
@@ -754,23 +654,10 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
       await pool.query('DELETE FROM nebo_ops_outbox WHERE id = $1 AND lease_token = $2::uuid', [row.id, lease]);
       continue;
     }
-    const paymentEvents = new Set([
-      'payment_confirmed', 'trial_started', 'subscription_grace', 'subscription_cancelled',
-      'subscription_expired', 'subscription_resumed', 'payment_refunded',
-    ]);
-    const dedicatedChannel = paymentEvents.has(row.event_type)
-      ? 'payments'
-      : row.event_type === 'support_ticket' ? 'support' : null;
-    const destination = dedicatedChannel
-      ? getNeboOwnerChannelConfig(dedicatedChannel)
-      : getNeboOpsConfig();
-    const sent = destination
-      ? await sendNeboOpsTextWithConfig(destination, renderNeboOpsMessage(row, user))
-      : {
-        ok: false,
-        error: dedicatedChannel === 'payments' ? 'PAYMENTS_BOT_UNCONFIGURED' : 'SUPPORT_BOT_UNCONFIGURED',
-        retryAfterSeconds: 300,
-      };
+    const destination = destinationFor(row.event_type);
+    const sent = destination.config
+      ? await sendNeboOpsTextWithConfig(destination.config, renderNeboOpsMessage(row, user))
+      : { ok: false, error: destination.missing || 'OPS_UNCONFIGURED', retryAfterSeconds: 300 };
     if (sent.ok) {
       await pool.query(
         `UPDATE nebo_ops_outbox SET status = 'sent', sent_at = NOW(), telegram_message_id = $3,
@@ -836,20 +723,23 @@ export function wakeNeboOpsDelivery(): void {
         state.requested = false;
         const result = await processNeboOpsOutbox();
         if (result.claimed === MAX_BATCH) state.requested = true;
-        if (Date.now() - (state.lastDailyCheckAt || 0) >= 60_000) {
-          state.lastDailyCheckAt = Date.now();
-          try {
-            if (await enqueueNeboOpsDailySummary(new Date(state.lastDailyCheckAt))) state.requested = true;
-          } catch {
-            console.warn('[nebo-ops] daily summary deferred; delivery continues');
-          }
-        }
       } while (state.requested && getNeboOpsConfig());
+      // Scheduled reports live here, not in the notification dispatcher, so a
+      // slow push dispatch can never silence the owner's daily report.
+      if (Date.now() - state.lastReportCheckAt >= 60_000) {
+        state.lastReportCheckAt = Date.now();
+        try {
+          const { maybeSendScheduledNeboOpsReports } = await import('./neboOpsReports');
+          await maybeSendScheduledNeboOpsReports(new Date(state.lastReportCheckAt));
+        } catch {
+          console.warn('[nebo-ops] scheduled report deferred');
+        }
+      }
       if (Date.now() - state.lastCleanupAt > 60 * 60 * 1000) {
         await getPool().query(
           `DELETE FROM nebo_ops_outbox WHERE id IN (
              SELECT id FROM nebo_ops_outbox WHERE status IN ('sent', 'dead')
-               AND updated_at < NOW() - INTERVAL '30 days' ORDER BY id LIMIT 1000
+               AND updated_at < NOW() - INTERVAL '120 days' ORDER BY id LIMIT 1000
            )`,
         );
         state.lastCleanupAt = Date.now();
@@ -877,10 +767,10 @@ export function ensureNeboOpsWorker(): void {
   // Retry Telegram webhook/command registration on later server calls if a
   // transient Telegram failure occurred during the initial process startup.
   void ensureNeboOpsBotSetup(config.token);
-  const payments = getNeboOwnerChannelConfig('payments');
-  const support = getNeboOwnerChannelConfig('support');
-  if (payments) void ensureNeboOwnerChannelBotSetup('payments', payments.token);
-  if (support) void ensureNeboOwnerChannelBotSetup('support', support.token);
+  for (const channel of ['payments', 'support', 'errors'] as const) {
+    const channelConfig = getNeboOwnerChannelConfig(channel);
+    if (channelConfig) void ensureNeboOwnerChannelBotSetup(channel, channelConfig.token);
+  }
   if (state.started) return;
   state.started = true;
   void connectWakeupListener();

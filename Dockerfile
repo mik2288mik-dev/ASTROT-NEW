@@ -53,7 +53,8 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000
 
-RUN apk add --no-cache ca-certificates libc6-compat && \
+# font-dejavu: owner bot charts render their labels with a real font.
+RUN apk add --no-cache ca-certificates libc6-compat font-dejavu && \
     addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 --ingroup nodejs nextjs
 

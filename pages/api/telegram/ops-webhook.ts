@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'crypto';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getNeboOpsConfig, sendNeboOpsText } from '../../../lib/neboOps';
-import { sendNeboOpsBusinessReport } from '../../../lib/neboOpsReports';
+import { getNeboOpsConfig, neboServerLabel, sendNeboOpsText } from '../../../lib/neboOps';
+import { sendNeboOpsBusinessReport, type NeboReportKind } from '../../../lib/neboOpsReports';
 import { telegramApiRequest } from '../../../lib/telegramRelay';
 import {
   cycleNeboOpsReportSchedule,
@@ -30,7 +30,7 @@ async function answerCallback(token: string, callbackId: string, text: string) {
 }
 
 async function sendMenu() {
-  const menu = renderNeboOpsMenu(await getNeboOpsPreferences());
+  const menu = renderNeboOpsMenu(await getNeboOpsPreferences(), neboServerLabel());
   await sendNeboOpsText(menu.text, { replyMarkup: menu.replyMarkup });
 }
 
@@ -59,9 +59,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await cycleNeboOpsReportSchedule(data.endsWith('daily') ? 'daily' : 'weekly');
       await answerCallback(config.token, callback.id, 'Расписание обновлено');
       await sendMenu();
-    } else if (data === 'ops:report:today' || data === 'ops:report:week') {
+    } else if (/^ops:report:(today|yesterday|week|month)$/.test(data)) {
       await answerCallback(config.token, callback.id, 'Собираю отчёт…');
-      if (!(await sendNeboOpsBusinessReport(data.endsWith('today') ? 'today' : 'week'))) {
+      if (!(await sendNeboOpsBusinessReport(data.slice('ops:report:'.length) as NeboReportKind))) {
         await sendNeboOpsText('⚠️ Не удалось отправить отчёт. Попробуй ещё раз через минуту.');
       }
     } else {
@@ -74,6 +74,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const command = String(update.message?.text || '').trim().split(/\s+/)[0].toLowerCase().replace(/@[^\s]+$/, '');
   if (command === '/report') await sendNeboOpsBusinessReport('today');
   else if (command === '/week') await sendNeboOpsBusinessReport('week');
+  else if (command === '/month') await sendNeboOpsBusinessReport('month');
+  else if (command === '/yesterday') await sendNeboOpsBusinessReport('yesterday');
   else await sendMenu();
   return res.status(200).json({ ok: true });
 }
