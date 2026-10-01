@@ -11,7 +11,7 @@ jest.mock('../lib/personalForecastPrewarm', () => ({
 jest.mock('../lib/birthProfileRepository', () => ({ birthProfileRepository: { get: jest.fn() } }));
 jest.mock('../lib/db', () => ({ db: { users: { get: jest.fn() } } }));
 jest.mock('../lib/serverOperationalDiagnostics', () => ({
-  startServerOperationalDiagnostic: () => ({ log: jest.fn(), error: jest.fn() }),
+  startServerOperationalDiagnostic: () => ({ log: jest.fn(), error: jest.fn(), setUser: jest.fn() }),
 }));
 
 import type { NextApiRequest, NextApiResponse } from 'next';

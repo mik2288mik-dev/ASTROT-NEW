@@ -691,27 +691,84 @@ describe('owner support notifications', () => {
 });
 
 describe('AI generation error notifications', () => {
-  it('includes operational context and trace identifiers while omitting private user content', () => {
+  it('explains the failure in plain words and keeps trace ids in one developer line', () => {
     const message = renderNeboOpsMessage({
-      event_type: 'ai_error', user_id: null, occurred_at: '2026-09-04T20:00:07Z',
+      event_type: 'ai_error', user_id: null, occurred_at: '2026-09-24T15:54:00Z',
       payload_json: {
-        operation: 'personal_forecast', stage: 'generation', period: 'week',
-        errorCode: 'UPSTREAM_TIMEOUT', httpStatus: 503, durationMs: 1500,
-        serverVersion: 'abc1234', reportId: '6b8af41a-955d-4db1-8bf1-ec0eacc26f59', traceId: 'trace_42',
+        operation: 'personal_forecast', stage: 'generation', period: 'day',
+        errorCode: 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED', httpStatus: 503, durationMs: 14200,
+        serverVersion: 'abc1234', reportId: '6b8af41a-955d-4db1-8bf1-ec0eacc26f59', traceId: 'forecast-day-42abc',
         question: 'PRIVATE_QUESTION', birthDate: 'PRIVATE_BIRTH', email: 'PRIVATE_EMAIL',
         stack: 'PRIVATE_STACK', error: 'PRIVATE_RAW_ERROR', request: { token: 'PRIVATE_TOKEN' },
       },
-    });
-    expect(message.split('\n')[0]).toBe('🤖 Ошибка генерации ИИ');
-    expect(message).toContain('🙋 Пользователь не определён');
-    expect(message).toContain('📍 Где: Личный прогноз');
-    expect(message).toContain('🗓 Период прогноза: неделя');
-    expect(message).toContain('⚙️ Код: UPSTREAM_TIMEOUT');
-    expect(message).toContain('🌐 HTTP 503');
-    expect(message).toContain('⏱ 1,5 с');
-    expect(message).toContain('сборка abc1234');
-    expect(message).toContain('trace_42');
+    }, {}, { repeats: 3, now: new Date('2026-10-01T22:19:00Z') });
+    expect(message.split('\n')).toEqual([
+      '🤖 Не получился личный прогноз на сегодня',
+      'Причина: ИИ написал текст, но он не прошёл нашу автоматическую проверку качества.',
+      'Человек увидел: сообщение об ошибке вместо текста (может нажать «повторить»).',
+      '🙋 Кто: не вошедший пользователь или запрос без аккаунта',
+      '⏱ Ждал 14 с',
+      '🔁 Такая же ошибка за последний час: 3 раз',
+      '⏳ Ошибка старая — пришла с опозданием',
+      '💡 Если повторяется часто — проверка слишком строгая или ИИ пишет не по правилам, нужно смотреть тексты.',
+      '🔧 Для разработчика: PERSONAL_FORECAST_WRITER_VALIDATION_FAILED · HTTP 503 · trace forecast-day-42abc',
+      '🕒 24.09.2026, 18:54 МСК · 🖥 Timeweb · сборка abc1234',
+    ]);
     expect(message).not.toContain('PRIVATE_');
+  });
+
+  it('names the person whose request failed', () => {
+    const message = renderNeboOpsMessage({
+      event_type: 'ai_error', user_id: '-9001', occurred_at: new Date(),
+      payload_json: { operation: 'natal_question', stage: 'generation', errorCode: 'AI_GENERATION_TIMEOUT', httpStatus: 504 },
+    }, { name: 'Алина' });
+    expect(message.split('\n')[0]).toBe('🤖 Не получился ответ на вопрос «Спросить о себе»');
+    expect(message).toContain('🙋 Алина · ID -9001');
+    expect(message).not.toContain('опозданием');
+  });
+
+  function claimError(occurredAt: string, recentlySent = 0) {
+    query.mockImplementation(async (sql: string, values?: unknown[]) => {
+      if (sql.includes('RETURNING id, event_type, user_id')) {
+        return { rows: [{
+          id: '77', event_type: 'ai_error', user_id: null,
+          payload_json: { operation: 'personal_forecast', errorCode: 'PERSONAL_FORECAST_WRITER_UNAVAILABLE', httpStatus: 503 },
+          occurred_at: occurredAt, attempts: 1, lease_token: values?.[1],
+        }] };
+      }
+      if (sql.includes('AS recently_sent')) return { rows: [{ repeats: 2, recently_sent: recentlySent }] };
+      return { rows: [], rowCount: 1 };
+    });
+  }
+
+  it('sends errors to the support bot while there is no errors bot', async () => {
+    process.env.NEBO_SUPPORT_BOT_TOKEN = '654321:supportsupportsupportsupport_X';
+    claimError(new Date().toISOString());
+    await expect(processNeboOpsOutbox(1)).resolves.toEqual({ claimed: 1, sent: 1, failed: 0 });
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/bot654321:supportsupportsupportsupport_X/sendMessage');
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).text).toContain('🔁 Такая же ошибка за последний час: 3 раз');
+  });
+
+  it('prefers a dedicated errors bot when configured', async () => {
+    process.env.NEBO_ERRORS_BOT_TOKEN = '777777:errorserrorserrorserrors_Y';
+    claimError(new Date().toISOString());
+    await processNeboOpsOutbox(1);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/bot777777:errorserrorserrorserrors_Y/sendMessage');
+  });
+
+  it('folds a repeat of an error already sent in the last 10 minutes', async () => {
+    claimError(new Date().toISOString(), 1);
+    await expect(processNeboOpsOutbox(1)).resolves.toEqual({ claimed: 1, sent: 0, failed: 0 });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(query.mock.calls.some(([sql]) => sql.includes("last_error_code = 'GROUPED_DUPLICATE'"))).toBe(true);
+  });
+
+  it('skips day-old visits and errors but never payments or tickets', async () => {
+    query.mockResolvedValue({ rows: [], rowCount: 0 });
+    await processNeboOpsOutbox(1);
+    const stale = query.mock.calls.find(([sql]) => sql.includes("last_error_code = 'STALE_SKIPPED'"))!;
+    expect(stale[0]).toContain("occurred_at < NOW() - INTERVAL '24 hours'");
+    expect(stale[1][0]).toEqual(expect.arrayContaining(['payment_confirmed', 'payment_refunded', 'support_ticket']));
   });
 });
 

@@ -388,40 +388,77 @@ function renderPayment(row: Pick<OpsRow, 'event_type' | 'user_id' | 'occurred_at
   return lines;
 }
 
-function renderError(row: Pick<OpsRow, 'event_type' | 'user_id'>, user: UserSummary, p: Payload): string[] {
-  const lines = [TITLES[row.event_type]];
+/** Plain-language meaning of the error codes the owner can actually receive. */
+export const ERROR_REASONS: Record<string, string> = {
+  PERSONAL_FORECAST_WRITER_VALIDATION_FAILED: 'ИИ написал текст, но он не прошёл нашу автоматическую проверку качества',
+  PERSONAL_FORECAST_WRITER_UNAVAILABLE: 'ИИ (OpenAI) не ответил — сбой или недоступность сервиса',
+  PERSONAL_FORECAST_WRITER_OUTPUT_LIMIT: 'ИИ не уложился в лимит длины ответа',
+  PERSONAL_FORECAST_WRITER_INCOMPLETE: 'ИИ оборвал ответ на середине',
+  PERSONAL_FORECAST_WRITER_REFUSED: 'ИИ отказался писать этот текст',
+  PERSONAL_FORECAST_EVIDENCE_EMPTY: 'по карте человека не нашлось данных для прогноза',
+  PERSONAL_FORECAST_CACHE_WRITE_FAILED: 'текст написан, но не сохранился в базе',
+  PERSONAL_FORECAST_GENERATION_FAILED: 'генерация прогноза упала с неизвестной ошибкой',
+  AI_GENERATION_TIMEOUT: 'ИИ думал слишком долго, ответ не дождались',
+  AI_GENERATION_FAILED: 'генерация упала с неизвестной ошибкой',
+};
+const ERROR_ADVICE: Record<string, string> = {
+  PERSONAL_FORECAST_WRITER_VALIDATION_FAILED: 'Если повторяется часто — проверка слишком строгая или ИИ пишет не по правилам, нужно смотреть тексты.',
+  PERSONAL_FORECAST_WRITER_UNAVAILABLE: 'Обычно проходит само. Если идёт подряд — проверь ключ и баланс OpenAI.',
+  AI_GENERATION_TIMEOUT: 'Если идёт подряд — OpenAI тормозит, обычно проходит само.',
+};
+export const OPERATION_TITLES: Record<string, string> = {
+  personal_forecast: 'личный прогноз', natal_question: 'ответ на вопрос «Спросить о себе»',
+};
+const PERIOD_TITLES: Record<string, string> = { day: 'на сегодня', week: 'на неделю', month: 'на месяц' };
+
+export type NeboErrorContext = { repeats?: number; now?: Date };
+
+function renderError(
+  row: Pick<OpsRow, 'event_type' | 'user_id' | 'occurred_at'>,
+  user: UserSummary,
+  p: Payload,
+  context: NeboErrorContext,
+): string[] {
+  const errorCode = String(p.errorCode || '');
+  const lines: string[] = [];
   if (row.event_type === 'ai_error') {
-    const section = p.operation === 'personal_forecast' ? 'Личный прогноз'
-      : p.operation === 'natal_question' ? 'Спросить о себе' : '';
-    if (section) lines.push(`📍 Где: ${section}`);
-    const stage = p.stage === 'generation' ? 'генерация текста' : p.stage === 'lazy_refresh' ? 'обновление прогноза'
-      : p.stage === 'request' ? 'обработка запроса' : '';
-    if (stage) lines.push(`🛠 Этап: ${stage}`);
-    const period = p.period === 'day' ? 'сегодня' : p.period === 'week' ? 'неделя' : p.period === 'month' ? 'месяц' : '';
-    if (period) lines.push(`🗓 Период прогноза: ${period}`);
+    const what = OPERATION_TITLES[String(p.operation)] || 'текст от ИИ';
+    const period = p.operation === 'personal_forecast' ? PERIOD_TITLES[String(p.period)] || '' : '';
+    lines.push(`🤖 Не получился ${what}${period ? ` ${period}` : ''}`);
+    lines.push(`Причина: ${ERROR_REASONS[errorCode] || 'неизвестная ошибка генерации'}.`);
+    const clientError = typeof p.httpStatus === 'number' && p.httpStatus >= 500;
+    lines.push(clientError || p.stage === 'generation' || p.stage === 'request'
+      ? 'Человек увидел: сообщение об ошибке вместо текста (может нажать «повторить»).'
+      : 'Человек увидел: старый текст, обновить не удалось.');
   } else {
+    lines.push('🚨 Ошибка на сервере');
     const where = [p.scope, p.diagnosticEvent].filter(Boolean).join(' · ');
-    if (where) lines.push(`📍 Где: ${where}`);
-    if (p.surface) lines.push(`🧩 Раздел: ${p.surface}`);
-    if (p.source) lines.push(`🛠 Компонент: ${p.source}`);
+    if (where) lines.push(`Где: ${where}${p.surface ? ` · ${p.surface}` : ''}`);
+    if (errorCode || p.status) lines.push(`Что: ${[errorCode, p.status].filter(Boolean).join(' · ')}`);
   }
-  if (p.errorCode) lines.push(`⚙️ Код: ${p.errorCode}`);
-  if (typeof p.httpStatus === 'number') lines.push(`🌐 HTTP ${p.httpStatus}`);
-  if (p.status) lines.push(`📌 Статус: ${p.status}`);
-  if (typeof p.durationMs === 'number') lines.push(`⏱ ${(p.durationMs / 1_000).toFixed(1).replace('.', ',')} с`);
-  const metadata = p.metadata && typeof p.metadata === 'object' && !Array.isArray(p.metadata) ? p.metadata as Payload : {};
-  const pairs = Object.entries(metadata)
-    .filter(([, value]) => ['string', 'number', 'boolean'].includes(typeof value))
-    .slice(0, 8).map(([key, value]) => `${key}=${String(value)}`);
-  if (pairs.length) lines.push(`🧾 ${pairs.join(' · ')}`);
   const person = personLine(row, user);
-  lines.push(person || '🙋 Пользователь не определён');
-  if (p.traceId) lines.push(`🔗 Trace: ${p.traceId}`);
-  if (p.reportId) lines.push(`🧾 Отчёт: ${p.reportId}`);
+  lines.push(person || '🙋 Кто: не вошедший пользователь или запрос без аккаунта');
+  if (typeof p.durationMs === 'number' && p.durationMs >= 1_000) {
+    lines.push(`⏱ Ждал ${Math.round(p.durationMs / 1_000)} с`);
+  }
+  const repeats = Number(context.repeats || 0);
+  if (repeats > 1) lines.push(`🔁 Такая же ошибка за последний час: ${repeats} раз`);
+  const occurred = validDate(row.occurred_at);
+  const now = context.now || new Date();
+  if (occurred && now.getTime() - occurred.getTime() > 60 * 60 * 1_000) lines.push('⏳ Ошибка старая — пришла с опозданием');
+  const advice = ERROR_ADVICE[errorCode];
+  if (advice) lines.push(`💡 ${advice}`);
+  const dev = [errorCode, typeof p.httpStatus === 'number' ? `HTTP ${p.httpStatus}` : '', p.traceId ? `trace ${p.traceId}` : '']
+    .filter(Boolean).join(' · ');
+  if (dev) lines.push(`🔧 Для разработчика: ${dev}`);
   return lines;
 }
 
-export function renderNeboOpsMessage(row: Pick<OpsRow, 'event_type' | 'user_id' | 'payload_json' | 'occurred_at'>, user: UserSummary = {}): string {
+export function renderNeboOpsMessage(
+  row: Pick<OpsRow, 'event_type' | 'user_id' | 'payload_json' | 'occurred_at'>,
+  user: UserSummary = {},
+  errorContext: NeboErrorContext = {},
+): string {
   const p = sanitizeNeboOpsPayload(row.payload_json);
   const name = text(user.name, 70) || 'Пользователь';
   let lines: string[];
@@ -446,7 +483,7 @@ export function renderNeboOpsMessage(row: Pick<OpsRow, 'event_type' | 'user_id' 
   } else if (PAYMENT_EVENTS.has(row.event_type)) {
     lines = renderPayment(row, user, p);
   } else if (ERROR_EVENTS.has(row.event_type)) {
-    lines = renderError(row, user, p);
+    lines = renderError(row, user, p, errorContext);
   } else if (row.event_type === 'attribution_received') {
     lines = [TITLES.attribution_received];
     const person = personLine(row, user);
@@ -566,8 +603,11 @@ function destinationFor(eventType: string): { config: NeboOpsConfig | null; miss
     const config = getNeboOwnerChannelConfig('support');
     return config ? { config } : { config: null, missing: 'SUPPORT_BOT_UNCONFIGURED' };
   }
-  // Errors go to their own bot when it exists, otherwise to the events bot.
-  if (ERROR_EVENTS.has(eventType)) return { config: getNeboOwnerChannelConfig('errors') || getNeboOpsConfig() };
+  // Errors go to their own bot when it exists, otherwise to the support bot
+  // (owner's choice), and only without either to the events bot.
+  if (ERROR_EVENTS.has(eventType)) {
+    return { config: getNeboOwnerChannelConfig('errors') || getNeboOwnerChannelConfig('support') || getNeboOpsConfig() };
+  }
   return { config: getNeboOpsConfig() };
 }
 
@@ -590,6 +630,14 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
        AND NOT (event_type = ANY($1::text[])
          OR (event_type = 'activity' AND COALESCE(payload_json->>'eventType', '') = ANY($2::text[])))`,
     [DELIVERED_EVENT_TYPES, DELIVERED_ACTIVITY],
+  );
+  // A day-old visit or error is noise; money and support tickets are always delivered.
+  await pool.query(
+    `UPDATE nebo_ops_outbox SET status = 'dead', locked_at = NULL, lease_token = NULL,
+       last_error_code = 'STALE_SKIPPED', updated_at = NOW()
+     WHERE status IN ('pending', 'failed') AND occurred_at < NOW() - INTERVAL '24 hours'
+       AND NOT (event_type = ANY($1::text[]))`,
+    [[...PAYMENT_EVENTS, 'support_ticket']],
   );
   const count = Number.isFinite(limit) ? Math.min(MAX_BATCH, Math.max(1, Math.trunc(limit))) : MAX_BATCH;
   for (let index = 0; index < count; index++) {
@@ -654,9 +702,33 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
       await pool.query('DELETE FROM nebo_ops_outbox WHERE id = $1 AND lease_token = $2::uuid', [row.id, lease]);
       continue;
     }
+    const errorContext: NeboErrorContext = {};
+    if (ERROR_EVENTS.has(row.event_type)) {
+      // One message per kind of failure every 10 minutes; it says how often it repeated.
+      const same = (await pool.query(
+        `SELECT COUNT(*)::int AS repeats,
+                COUNT(*) FILTER (WHERE status = 'sent' AND sent_at > NOW() - INTERVAL '10 minutes')::int AS recently_sent
+         FROM nebo_ops_outbox
+         WHERE event_type = $1 AND id <> $2 AND occurred_at > NOW() - INTERVAL '1 hour'
+           AND COALESCE(payload_json->>'errorCode', '') = $3
+           AND COALESCE(payload_json->>'operation', payload_json->>'scope', '') = $4`,
+        [row.event_type, row.id, String(row.payload_json?.errorCode || ''),
+          String(row.payload_json?.operation || row.payload_json?.scope || '')],
+      )).rows[0] || {};
+      if (Number(same.recently_sent || 0) > 0) {
+        await pool.query(
+          `UPDATE nebo_ops_outbox SET status = 'dead', attempts = GREATEST(0, attempts - 1),
+             locked_at = NULL, lease_token = NULL, last_error_code = 'GROUPED_DUPLICATE', updated_at = NOW()
+           WHERE id = $1 AND lease_token = $2::uuid AND status = 'processing'`,
+          [row.id, lease],
+        );
+        continue;
+      }
+      errorContext.repeats = Number(same.repeats || 0) + 1;
+    }
     const destination = destinationFor(row.event_type);
     const sent = destination.config
-      ? await sendNeboOpsTextWithConfig(destination.config, renderNeboOpsMessage(row, user))
+      ? await sendNeboOpsTextWithConfig(destination.config, renderNeboOpsMessage(row, user, errorContext))
       : { ok: false, error: destination.missing || 'OPS_UNCONFIGURED', retryAfterSeconds: 300 };
     if (sent.ok) {
       await pool.query(

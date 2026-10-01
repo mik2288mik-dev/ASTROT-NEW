@@ -76,6 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
   const { userId, ctx } = ready;
+  diagnostic.setUser(userId);
   const language = ctx.profile.language === 'en' ? 'en' : 'ru';
   diagnostic.log('context', 'ok', { source: 'owned_selected_chart' });
   const entitlement = await getPremiumEntitlementState(userId);
