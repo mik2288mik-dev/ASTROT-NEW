@@ -35,6 +35,11 @@ type QuestionPair = {
   answer: NatalQuestionStoredMessage | null;
 };
 
+const QUESTION_EXAMPLES = {
+  ru: ['Расскажи мне о любви', 'Что меня ждёт?', 'Какая работа мне подходит?', 'Что у меня с деньгами?', 'Кто мне подходит?', 'В чём я сильнее всего?'],
+  en: ['Tell me about love', 'What lies ahead for me?', 'What work suits me?', 'What about my money?', 'Who is right for me?', 'What am I best at?'],
+};
+
 function questionMessageEvidenceIds(message: NatalQuestionStoredMessage): string[] {
   const value = message.payload?.evidenceIds || message.payload?.evidence_ids;
   return Array.isArray(value)
@@ -121,6 +126,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   const reportIdentity = `${userId}:${chartId ?? 'primary'}:${buildNatalChartFingerprint(chartData)}`;
   const [snapshot, setSnapshot] = useState<NatalQuestionSnapshot | null>(null);
   const [questionText, setQuestionText] = useState('');
+  const [questionExampleIndex, setQuestionExampleIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +135,14 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   const [explanation, setExplanation] = useState<NatalExplanationTarget | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const pairs = useMemo(() => buildQuestionPairs(snapshot?.messages || []), [snapshot?.messages]);
+
+  useEffect(() => {
+    if (!isPremium || compact) return;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) setQuestionExampleIndex(current => (current + 1) % QUESTION_EXAMPLES[language].length);
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [isPremium, compact, language]);
 
   useEffect(() => {
     setSnapshot(null);
@@ -302,10 +316,13 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         </section>
       ) : (
         <section className="natal-v3-question-composer" aria-labelledby="natal-v3-question-composer-title">
-          <div className="natal-v3-section-heading">
+          <div className="natal-v3-section-heading natal-v3-question-composer-heading">
             <h2 id="natal-v3-question-composer-title">
               {language === 'ru' ? 'Твой вопрос' : 'Your question'}
             </h2>
+            {!compact ? <span id="natal-question-example" className="natal-v3-question-example">
+              {language === 'ru' ? 'Например: ' : 'For example: '}{QUESTION_EXAMPLES[language][questionExampleIndex]}
+            </span> : null}
           </div>
 
           <form onSubmit={submitQuestion} aria-busy={submitting || undefined}>
@@ -322,7 +339,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                   ? 'Напиши свой вопрос…'
                   : 'Write your question…'}
                 disabled={inputDisabled}
-                aria-describedby="natal-v3-question-status natal-v3-question-warning"
+                aria-describedby={`${compact ? '' : 'natal-question-example '}natal-v3-question-status natal-v3-question-warning`}
               />
               <button
                 type="submit"

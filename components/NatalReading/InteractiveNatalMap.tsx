@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ChevronRight, ChevronDown, X, House, Triangle, Circle, BookOpen } from 'lucide-react';
+import { ChevronDown, X, House, Triangle, Circle, BookOpen } from 'lucide-react';
 import type { NatalChartWheelSource } from '../../lib/natalChartWheelModel';
 import { natalChartWheelHouseLabelLongitude } from '../../lib/natalChartWheelModel';
 import { buildMapData, explainMapSelection, MAP_SIGNS, MAP_SIGN_NAMES, mapObject, MAP_ASPECTS, type MapSelection } from './mapExplanation';
@@ -7,7 +7,6 @@ import styles from './InteractiveNatalMap.module.css';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { ZodiacIcon } from '../icons/ZodiacIcon';
-import { NatalMapExplanationScreen } from './NatalMapExplanationScreen';
 import { NatalDetails } from './NatalDetails';
 import sectionStyles from './NatalSection.module.css';
 import { NatalPlusEntry } from './NatalPlusEntry';
@@ -28,7 +27,9 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
 }) {
   const data = buildMapData(chart);
   const [selection, setSelection] = useState<MapSelection | null>(null);
-  const [detail, setDetail] = useState(false);
+  const [entered, setEntered] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [dragOffset, setDragOffset] = useState<number | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | SVGElement | null>(null);
   const content = useRef<HTMLDivElement>(null);
@@ -50,7 +51,7 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
     if (!['point','house','aspect','sign'].includes(kind) || !id) return;
     const restored = {kind:kind as MapSelection['kind'],id};
     if (!explainMapSelection(chart,restored)) return;
-    setSelection(restored); setDetail(true);
+    setClosing(false); setSelection(restored);
     onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
   }, [chart, view, premiumContinuation, onPremiumContinuationHandled]);
   const quality = chart.chartQuality?.birthTimeQuality ?? chart.birthTimeQuality ?? 'unknown';
@@ -77,10 +78,19 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
   const objectIcon = (key: string, size: number) => <PlanetIcon planet={key === 'northNode' ? 'north-node' : key === 'southNode' ? 'south-node' : key === 'ascendant' ? 'asc' : key === 'descendant' ? 'desc' : key} size={size} strokeWidth={1.7}/>;
   const choose = (kind: MapSelection['kind'], id: string, target: EventTarget | null) => {
     opener.current = target as HTMLElement | SVGElement;
-    setDetail(false); setSelection({ kind, id });
+    setClosing(false); setSelection({ kind, id });
   };
-  const close = () => { setSelection(null); setDetail(false); };
-  backAction.current = () => { if (detail) setDetail(false); else close(); };
+  const finishClose = () => { setSelection(null); setEntered(false); setClosing(false); setDragOffset(null); };
+  const close = () => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) finishClose();
+    else setClosing(true);
+  };
+  backAction.current = close;
+  useEffect(() => {
+    if (!closing) return;
+    const timer = window.setTimeout(() => { setSelection(null); setEntered(false); setClosing(false); setDragOffset(null); }, 180);
+    return () => window.clearTimeout(timer);
+  }, [closing]);
   useEffect(() => {
     if (!selection) return;
     const nativeBack = (event: Event) => {
@@ -96,6 +106,9 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
     const el = dialog.current;
     if (isOpen && el && !el.open) el.showModal();
     if (isOpen) {
+      let frame = window.requestAnimationFrame(() => {
+        frame = window.requestAnimationFrame(() => setEntered(true));
+      });
       const previous = document.body.style.overflow;
       const host = (window as unknown as { Telegram?: { WebApp?: { isVersionAtLeast?: (v: string) => boolean; isVerticalSwipesEnabled?: boolean; disableVerticalSwipes?: () => void; enableVerticalSwipes?: () => void } } }).Telegram?.WebApp;
       const restoreSwipes = host?.isVerticalSwipesEnabled !== false;
@@ -103,6 +116,7 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
       if (canControlSwipes) host?.disableVerticalSwipes?.();
       document.body.style.overflow = 'hidden';
       return () => {
+        window.cancelAnimationFrame(frame);
         document.body.style.overflow = previous;
         if (canControlSwipes && restoreSwipes) host?.enableVerticalSwipes?.();
         el?.close();
@@ -115,7 +129,7 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
     if (!dialog.current?.open) return;
     content.current?.scrollTo(0, 0);
     dialog.current.querySelector<HTMLButtonElement>('button')?.focus();
-  }, [detail]);
+  }, [selection]);
   const interactive = (kind: MapSelection['kind'], id: string, label: string) => ({
     role: 'button', tabIndex: 0, 'aria-label': label, 'aria-pressed': selected(kind, id),
     onClick: (e: React.MouseEvent<SVGElement>) => {
@@ -139,7 +153,7 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
     onKeyDown: (e: React.KeyboardEvent<SVGElement>) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(kind, id, e.currentTarget); } },
   });
   return <section className={view === 'details' ? sectionStyles.content : styles.map} aria-labelledby="interactive-map-name">
-    <header className={styles.person}><h1 id="interactive-map-name">{name}</h1><p>{birthLine}</p></header>
+    <header className={sectionStyles.personInline}><h1 id="interactive-map-name">{name}</h1><p title={birthLine}>{birthLine}</p></header>
     {view === 'details' ? <NatalDetails key={name + birthLine} chart={chart} isPremium={isPremium} onSelect={(item, target) => choose(item.kind, item.id, target)}/> : <>
     <svg viewBox="0 0 400 400" className={styles.wheel} aria-label="Твоя натальная карта. Выбери планету, знак, дом или аспект.">
       <circle cx="200" cy="200" r="184" fill="white"/>
@@ -184,17 +198,31 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
       />
     </div>
     </>}
-    <dialog ref={dialog} className={`${styles.sheet} ${detail ? styles.detail : ''}`} aria-labelledby="map-explanation-title" onCancel={e => { e.preventDefault(); if (detail) setDetail(false); else close(); }} onClick={e => { if (e.target === e.currentTarget) close(); }}>
+    <dialog ref={dialog} className={styles.sheet} data-entered={entered} data-closing={closing} data-dragging={dragOffset !== null && !closing} style={{transform: dragOffset !== null && !closing ? `translateY(${dragOffset}px)` : undefined}} aria-labelledby="map-explanation-title" onCancel={e => { e.preventDefault(); close(); }} onClick={e => {
+      if (e.target !== e.currentTarget) return;
+      const bounds = e.currentTarget.getBoundingClientRect();
+      if (e.clientX < bounds.left || e.clientX > bounds.right || e.clientY < bounds.top || e.clientY > bounds.bottom) close();
+    }}>
       {explanation ? <div className={styles.sheetInner}>
-        {detail ? <header className={styles.detailHeader}><button type="button" aria-label="Назад к краткому объяснению" onClick={() => setDetail(false)}><ArrowLeft/></button><h2 id="map-explanation-title">На чём основано<span className={styles.detailObject}>{explanation.title}</span></h2><button type="button" aria-label="Закрыть объяснение" onClick={close}><X/></button></header> : <><div className={styles.handle} onPointerDown={e => { dragStart.current = e.clientY; e.currentTarget.setPointerCapture(e.pointerId); }} onPointerUp={e => { if (dragStart.current !== null && e.clientY - dragStart.current > 55) close(); dragStart.current = null; }}><span/></div><header className={styles.sheetHeader}><span className={styles.symbol} style={{color: explanation.color}}>{selection?.kind === 'point' ? objectIcon(selection.id, 30) : selection?.kind === 'sign' ? <ZodiacIcon sign={selection.id} size={30} stroke={explanation.color}/> : selection?.kind === 'house' ? <House size={30}/> : <Triangle size={30}/>}</span><div className={styles.sheetHeading}><h2 id="map-explanation-title">{explanation.title}</h2><p>{explanation.yours}</p></div><button type="button" aria-label="Закрыть объяснение" onClick={close}><X/></button></header></>}
+        <div className={styles.handle} aria-hidden="true" onPointerDown={e => { dragStart.current = e.clientY; setDragOffset(0); e.currentTarget.setPointerCapture(e.pointerId); }} onPointerMove={e => { if (dragStart.current !== null) setDragOffset(Math.max(0, e.clientY - dragStart.current)); }} onPointerUp={e => { if (dragStart.current !== null && e.clientY - dragStart.current > 55) close(); setDragOffset(null); dragStart.current = null; }} onPointerCancel={() => { setDragOffset(null); dragStart.current = null; }}><span/></div>
+        <header className={styles.sheetHeader}><span className={styles.symbol} style={{color: explanation.color}}>{selection?.kind === 'point' ? objectIcon(selection.id, 30) : selection?.kind === 'sign' ? <ZodiacIcon sign={selection.id} size={30} stroke={explanation.color}/> : selection?.kind === 'house' ? <House size={30}/> : <Triangle size={30}/>}</span><div className={styles.sheetHeading}><h2 id="map-explanation-title">{explanation.title}</h2><p>{explanation.yours}</p></div><button type="button" aria-label="Закрыть объяснение" onClick={close}><X/></button></header>
         <div ref={content} className={styles.sheetContent}>
           {fullAccess ? (
-            detail
-              ? <NatalMapExplanationScreen explanation={explanation}/>
-              : <><p className={styles.selectionIntro}>{explanation.meaning}</p><button type="button" className={styles.why} onClick={() => setDetail(true)}><BookOpen size={20}/>На чём основано<ChevronRight size={20}/></button></>
+            <><p className={styles.selectionIntro}>{explanation.meaning}</p>
+              <section className={styles.basis} aria-labelledby="map-explanation-basis" data-map-explanation-screen>
+                <h3 id="map-explanation-basis">На чём основано</h3>
+                <p>{explanation.what}</p>
+                {explanation.reasons.map((reason, index) => <section key={index} className={styles.basisReason}>
+                  <h4>{reason.title}</h4>
+                  {reason.facts ? <p className={styles.basisFacts}>{reason.facts}</p> : null}
+                  {reason.text !== explanation.meaning ? <p>{reason.text}</p> : null}
+                </section>)}
+                {explanation.summary ? <p>{explanation.summary}</p> : null}
+              </section>
+            </>
           ) : (
             <div data-map-premium-entry>
-              <NatalPlusEntry title={`Открыть: ${explanation.title}`} onOpen={() => {if (selection) {const item=selection; close(); onRequestPremium?.(item,'map');}}}>
+              <NatalPlusEntry title={`Открыть: ${explanation.title}`} onOpen={() => {if (selection) {const item=selection; finishClose(); onRequestPremium?.(item,'map');}}}>
                 Полная интерактивная карта доступна с Premium. Бесплатно открыты Солнце, Асцендент и 1 дом.
               </NatalPlusEntry>
             </div>

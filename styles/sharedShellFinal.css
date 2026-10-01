@@ -1,12 +1,35 @@
 /* Final shared rails: one top bar, one tab rhythm, one divider treatment. */
 .app-top-bar,
 .app-top-bar.home-logo-bar {
+  height: calc(var(--app-top-bar-content-safe-top) + 54px);
+  min-height: calc(var(--app-top-bar-content-safe-top) + 54px);
+  padding-top: calc(var(--app-top-bar-content-safe-top) + 14px);
+  padding-bottom: 13px;
+  --app-top-bar-safe-left: max(20px, env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px));
+  --app-top-bar-safe-right: max(20px, env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px));
   border: 0 !important;
   border-bottom: 0 !important;
   background: #fff !important;
   box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+
+.app-top-bar-spacer {
+  height: calc(var(--app-top-bar-content-safe-top) + 54px);
+  flex-basis: calc(var(--app-top-bar-content-safe-top) + 54px);
+}
+
+.app-top-bar .app-top-bar-title.app-top-bar-title--sign-horoscope {
+  width: auto;
+  max-width: calc(100% - var(--app-top-bar-safe-left) - var(--app-top-bar-safe-right) - 100px);
+  margin-right: 48px;
+  font-size: clamp(12px, 3.8vw, 15px);
+  line-height: 1.2;
+}
+
+.app-top-bar-title--sign-horoscope > span {
+  display: block;
 }
 
 .app-top-bar-title,
@@ -71,8 +94,9 @@
   margin-top: 0;
 }
 
-.editorial-tab,
-.today-period-tab,
+.editorial-tabs > .editorial-tab,
+.fresh-page .editorial-tabs > .editorial-tab,
+.today-period-tabs > .today-period-tab,
 .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab {
   position: relative;
   display: inline-flex;
@@ -86,22 +110,25 @@
   background: transparent !important;
   color: #817b75 !important;
   font: inherit;
-  font-size: clamp(11px, 2.85vw, 13px);
-  font-weight: 480;
+  font-family: var(--forecast-editorial-font, var(--fresh-font, 'Manrope', system-ui, sans-serif));
+  font-size: var(--app-period-rail-font-size, 0.79rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
   line-height: 1.18;
   transition: color 140ms cubic-bezier(0.2, 0, 0, 1), transform 140ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-.editorial-tab.is-active,
+.editorial-tabs > .editorial-tab.is-active,
+.fresh-page .editorial-tabs > .editorial-tab.is-active,
 .today-period-tab[aria-selected='true'],
 .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active,
 .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] {
   background: transparent !important;
   color: #292724 !important;
-  font-weight: 650;
+  font-weight: 600;
 }
 
-.editorial-tab::after,
+.editorial-tabs > .editorial-tab::after,
 .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab::after,
 .today-period-tab-underline {
   position: absolute;
@@ -113,14 +140,6 @@
   background: transparent;
   content: '';
   transform: translateX(50%);
-}
-
-.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab:nth-child(2)::after {
-  width: 43px;
-}
-
-.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab:nth-child(3)::after {
-  width: 42px;
 }
 
 .editorial-tab.is-active::after,
