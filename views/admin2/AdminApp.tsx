@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NeboLogo } from '../../components/brand/NeboLogo';
 import { AdminActivityDashboard, AdminUserActivity } from '../../components/admin2/AdminActivity';
 import HomeCardsEditor from '../../components/admin2/HomeCardsEditor';
+import { AppPushSection } from '../../components/admin2/AppPushSection';
 import {
   admin2,
   admin2Auth,
@@ -46,7 +47,7 @@ import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeB
  * Меню и действия гейтятся по правам из /api/admin/v2/me (сервер — источник правды).
  */
 
-type SectionId = 'dashboard' | 'users' | 'charts' | 'billing' | 'cms' | 'ai' | 'comms' | 'support' | 'roles' | 'audit' | 'settings';
+type SectionId = 'dashboard' | 'users' | 'charts' | 'billing' | 'cms' | 'ai' | 'push' | 'comms' | 'support' | 'roles' | 'audit' | 'settings';
 
 const NAV: Array<{ id: SectionId; label: string; perm: string; icon: string }> = [
   { id: 'dashboard', label: 'Дашборд', perm: 'analytics.view', icon: 'M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm9 0h7V11h-7v9Zm0-16v5h7V4h-7Z' },
@@ -55,7 +56,8 @@ const NAV: Array<{ id: SectionId; label: string; perm: string; icon: string }> =
   { id: 'billing', label: 'Монетизация', perm: 'billing.view', icon: 'M3 6h18v12H3V6Zm2 2v2h14V8H5Zm0 4v4h8v-4H5Z' },
   { id: 'cms', label: 'Контент', perm: 'content.view', icon: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm2 4v2h10V7H7Zm0 4v2h10v-2H7Zm0 4v2h7v-2H7Z' },
   { id: 'ai', label: 'AI-промпты', perm: 'ai.view', icon: 'M12 2a2 2 0 0 1 2 2v1h3a2 2 0 0 1 2 2v3h1a2 2 0 0 1 0 4h-1v3a2 2 0 0 1-2 2h-3v-2a2 2 0 0 0-4 0v2H7a2 2 0 0 1-2-2v-3H4a2 2 0 0 1 0-4h1V7a2 2 0 0 1 2-2h3V4a2 2 0 0 1 2-2Z' },
-  { id: 'comms', label: 'Рассылки', perm: 'push.send', icon: 'M2 4l20 8-20 8 4-8-4-8Zm4 8H2' },
+  { id: 'push', label: 'Уведомления в приложении', perm: 'push.send', icon: 'M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6V11a6 6 0 0 0-5-5.9V4a1 1 0 0 0-2 0v1.1A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2Z' },
+  { id: 'comms', label: 'Рассылки Telegram', perm: 'push.send', icon: 'M2 4l20 8-20 8 4-8-4-8Zm4 8H2' },
   { id: 'support', label: 'Поддержка', perm: 'support.view', icon: 'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2ZM7 9h10v2H7V9Zm0 4h7v2H7v-2Z' },
   { id: 'roles', label: 'Роли и доступы', perm: 'roles.manage', icon: 'M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5l-9-4Zm0 10.9h7c-.5 4.1-3.3 7.8-7 8.9V12H5V6.3l7-3.1v8.7Z' },
   { id: 'audit', label: 'Журнал действий', perm: 'audit.view', icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 16H8v-2h8v2Zm0-4H8v-2h8v2Zm-3-5V3.5L18.5 9H13Z' },
@@ -1830,6 +1832,7 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {active === 'billing' && <BillingSection me={me} />}
             {active === 'cms' && <ContentSection me={me} />}
             {active === 'ai' && <PromptsSection me={me} />}
+            {active === 'push' && <AppPushSection />}
             {active === 'comms' && <CommsSection />}
             {active === 'support' && <SupportSection me={me} />}
             {active === 'roles' && <RolesSection />}

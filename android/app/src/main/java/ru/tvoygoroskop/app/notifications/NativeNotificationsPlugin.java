@@ -16,7 +16,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
-/** Local reminders only. Permission prompts are never part of configuration or scheduling. */
+/** Local reminders plus a periodic inbox poll for admin messages. Permission prompts are never part of configuration or scheduling. */
 @CapacitorPlugin(name = "NeboNotifications", permissions = {
     @Permission(alias = "notifications", strings = { Manifest.permission.POST_NOTIFICATIONS })
 })
@@ -101,6 +101,17 @@ public class NativeNotificationsPlugin extends Plugin {
         try {
             JSArray notifications = call.getArray("notifications");
             resolveStatus(call, NeboNotificationReceiver.schedule(getContext(), notifications));
+        } catch (RuntimeException ignored) {
+            resolveStatus(call, "unavailable");
+        }
+    }
+
+    @PluginMethod
+    public void configureInbox(PluginCall call) {
+        try {
+            Long cursor = call.getLong("cursor", 0L);
+            resolveStatus(call, NeboNotificationReceiver.configureInbox(getContext(),
+                call.getString("baseUrl", ""), call.getString("token", ""), cursor == null ? -1 : cursor));
         } catch (RuntimeException ignored) {
             resolveStatus(call, "unavailable");
         }
