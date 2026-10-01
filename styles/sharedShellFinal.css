@@ -21,9 +21,9 @@
 }
 
 .app-top-bar .app-top-bar-title.app-top-bar-title--sign-horoscope {
-  width: auto;
-  max-width: calc(100% - var(--app-top-bar-safe-left) - var(--app-top-bar-safe-right) - 100px);
-  margin-right: 48px;
+  width: calc(100% - var(--app-top-bar-title-rail) - var(--app-top-bar-title-rail));
+  max-width: calc(100% - var(--app-top-bar-title-rail) - var(--app-top-bar-title-rail));
+  margin: 0;
   font-size: clamp(12px, 3.8vw, 15px);
   line-height: 1.2;
 }
