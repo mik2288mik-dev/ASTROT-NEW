@@ -172,14 +172,14 @@ export function NatalMagazine({
   const header = (
     <>
       <AppTopBar title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} rightAction={onOpenCharts ? <button type="button" className="app-top-bar-action" aria-label={`Выбрать сохранённую карту: ${subjectName || 'Моя карта'}`} onClick={onOpenCharts}><MonoAvatar initial={(subjectName || '?').slice(0,1)} size={36}/></button> : undefined}/>
-      {data ? <nav className={styles.navigation} aria-label="Вкладки натальной карты">
+      {data ? <nav className={`${styles.navigation} editorial-tabs`} aria-label="Вкладки натальной карты">
         {([
           { id: 'foundation', label: 'Обзор' },
           { id: 'map', label: 'Карта' },
           { id: 'ask', label: 'Спросить' },
         ] as const).map(tab => {
           const active = tab.id === normalizedActiveTab || (tab.id === 'foundation' && normalizedActiveTab === 'explore');
-          return <button key={tab.id} type="button" aria-current={active ? 'page' : undefined} onClick={() => selectTab(tab.id)}>{tab.label}</button>;
+          return <button key={tab.id} type="button" className={`editorial-tab${active ? ' is-active' : ''}`} aria-current={active ? 'page' : undefined} onClick={() => selectTab(tab.id)}>{tab.label}</button>;
         })}
       </nav> : null}
     </>
@@ -240,7 +240,7 @@ export function NatalMagazine({
     chartSubject?.calculation_version || data.calculationVersion || 'unknown',
   ].join(':');
   const birthLine = [formatDisplayDate(data.birth?.localDate || subjectBirthDate, language), (data.birth ? data.birth.localTime : subjectBirthTime)?.slice(0, 5) || 'Время не указано', data.birth?.place || subjectBirthPlace].filter(Boolean).join(' · ');
-  const person = <header className={styles.person}><h1>{subjectName || 'Моя карта'}</h1><p>{birthLine}</p></header>;
+  const person = <header className={styles.personInline}><h1>{subjectName || 'Моя карта'}</h1><p title={birthLine}>{birthLine}</p></header>;
 
   return (
     <div ref={sectionRef} className="fresh-page natal-editorial-page natal-mvp-page natal-v3-page">

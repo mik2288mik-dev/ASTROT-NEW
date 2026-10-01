@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Circle, House, Compass, Triangle, Square, Asterisk } from 'lucide-react';
+import { ChevronDown, ChevronRight, Circle, House, Compass, Triangle, Square, Asterisk, LockKeyhole } from 'lucide-react';
 import type { NatalChartWheelSource } from '../../lib/natalChartWheelModel';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { buildMapData, explainMapSelection, mapObject, MAP_HOUSES, MAP_ASPECTS, type MapSelection } from './mapExplanation';
@@ -37,11 +37,12 @@ export function NatalDetails({ chart, onSelect, isPremium = false }: {
         const objectKey = 'objectKey' in row ? row.objectKey : undefined;
         const freeRow = (row.kind === 'point' && ['sun', 'ascendant'].includes(row.id))
           || (row.kind === 'house' && row.id === '1');
-        const rowMeaning = isPremium || freeRow ? row.meaning : 'Доступно с Premium';
+        const locked = !isPremium && !freeRow;
+        const rowMeaning = locked ? 'Доступно с Premium' : row.meaning;
         const AspectIcon = row.title.startsWith('Квадрат:') ? Square : row.title.startsWith('Секстиль:') ? Asterisk : Icon;
         return <button key={row.id} type="button" onClick={e => onSelect({kind:row.kind,id:row.id},e.currentTarget)}>
         {typeof objectKey === 'string' ? <PlanetIcon planet={objectKey === 'northNode' ? 'north-node' : objectKey === 'southNode' ? 'south-node' : objectKey === 'ascendant' ? 'asc' : objectKey === 'descendant' ? 'desc' : objectKey} size={30} stroke={mapObject(objectKey)?.color}/> : row.kind === 'house' ? <i className={styles.houseNumber} aria-hidden="true">{row.id}</i> : <AspectIcon size={26} color={row.title.startsWith('Квадрат:') ? '#ed3152' : row.title.startsWith('Тригон:') ? '#00a76d' : color} aria-hidden="true"/>}
-        <span><strong>{row.title}</strong><small>{rowMeaning}</small></span><ChevronRight size={17} aria-hidden="true"/>
+        <span><strong>{row.title}</strong><small>{rowMeaning}</small></span>{locked ? <LockKeyhole size={17} aria-hidden="true"/> : <ChevronRight size={17} aria-hidden="true"/>}
       </button>})}</div>
       {!rows.length ? <p className={styles.detailsEmpty}>В сохранённой карте нет надёжных данных для этой группы.</p> : null}
     </section>;

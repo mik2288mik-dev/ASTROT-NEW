@@ -41,6 +41,7 @@ export function AppTopBar({
   reserveSpace = true,
 }: AppTopBarProps) {
   const isPersonalForecastHeader = title === 'NEBO';
+  const isSignHoroscopeHeader = title === 'Гороскоп по знакам' || title === 'Гороскоп по знакам зодиака';
   const settings = useContext(AppTopBarSettingsContext);
   const showSettings = Boolean(settings) && title !== 'Настройки' && title !== 'Settings' && title !== 'Premium';
 
@@ -62,7 +63,7 @@ export function AppTopBar({
 
         <span
           className={`home-logo-wordmark app-top-bar-title${
-            isPersonalForecastHeader ? ' app-top-bar-title--personal-forecast' : ''
+            isPersonalForecastHeader ? ' app-top-bar-title--personal-forecast' : isSignHoroscopeHeader ? ' app-top-bar-title--sign-horoscope' : ''
           }`}
         >
           {isPersonalForecastHeader ? (
@@ -72,6 +73,8 @@ export function AppTopBar({
               size="header"
               priority
             />
+          ) : isSignHoroscopeHeader ? (
+            <><span>Гороскоп по знакам</span><span>зодиака</span></>
           ) : title}
         </span>
 
