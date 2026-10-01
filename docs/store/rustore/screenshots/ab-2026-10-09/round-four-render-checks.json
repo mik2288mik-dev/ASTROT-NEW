@@ -1,0 +1,924 @@
+{
+  "checks": [
+    {
+      "id": "N26",
+      "index": 0,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Гороскоп. Карта.",
+          "overflow": false
+        },
+        {
+          "text": "Всё в NEBO.",
+          "overflow": false
+        },
+        {
+          "text": "Рассчитай свою",
+          "overflow": false
+        },
+        {
+          "text": "натальную карту.",
+          "overflow": false
+        },
+        {
+          "text": "Гороскоп на сегодня.",
+          "overflow": false
+        },
+        {
+          "text": "Для каждого знака.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N26",
+      "index": 1,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Гороскоп. Карта.",
+          "overflow": false
+        },
+        {
+          "text": "Всё в NEBO.",
+          "overflow": false
+        },
+        {
+          "text": "Рассчитай свою",
+          "overflow": false
+        },
+        {
+          "text": "натальную карту.",
+          "overflow": false
+        },
+        {
+          "text": "Гороскоп на сегодня.",
+          "overflow": false
+        },
+        {
+          "text": "Для каждого знака.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N26",
+      "index": 2,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Гороскоп. Карта.",
+          "overflow": false
+        },
+        {
+          "text": "Всё в NEBO.",
+          "overflow": false
+        },
+        {
+          "text": "Рассчитай свою",
+          "overflow": false
+        },
+        {
+          "text": "натальную карту.",
+          "overflow": false
+        },
+        {
+          "text": "Гороскоп на сегодня.",
+          "overflow": false
+        },
+        {
+          "text": "Для каждого знака.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N26",
+      "index": 3,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Матрица рождения.",
+          "overflow": false
+        },
+        {
+          "text": "С подробным разбором.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N26",
+      "index": 4,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Твоя неделя.",
+          "overflow": false
+        },
+        {
+          "text": "Твой месяц.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N26",
+      "index": 5,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Совместимость.",
+          "overflow": false
+        },
+        {
+          "text": "По двум датам рождения.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N26",
+      "index": 6,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Открой планеты",
+          "overflow": false
+        },
+        {
+          "text": "своей карты.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N26",
+      "index": 7,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Природа звучит.",
+          "overflow": false
+        },
+        {
+          "text": "Прямо в NEBO.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N27",
+      "index": 0,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "НАТАЛЬНАЯ КАРТА.",
+          "overflow": false
+        },
+        {
+          "text": "ТВОЯ ДАТА. ТВОЁ ВРЕМЯ.",
+          "overflow": false
+        },
+        {
+          "text": "ОВЕН. РЫБЫ. ВЕСЫ.",
+          "overflow": false
+        },
+        {
+          "text": "ВЫБЕРИ СВОЙ ЗНАК.",
+          "overflow": false
+        },
+        {
+          "text": "ЛИЧНЫЙ ГОРОСКОП.",
+          "overflow": false
+        },
+        {
+          "text": "ДЕНЬ ЗА ДНЁМ.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N27",
+      "index": 1,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "НАТАЛЬНАЯ КАРТА.",
+          "overflow": false
+        },
+        {
+          "text": "ТВОЯ ДАТА. ТВОЁ ВРЕМЯ.",
+          "overflow": false
+        },
+        {
+          "text": "ОВЕН. РЫБЫ. ВЕСЫ.",
+          "overflow": false
+        },
+        {
+          "text": "ВЫБЕРИ СВОЙ ЗНАК.",
+          "overflow": false
+        },
+        {
+          "text": "ЛИЧНЫЙ ГОРОСКОП.",
+          "overflow": false
+        },
+        {
+          "text": "ДЕНЬ ЗА ДНЁМ.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N27",
+      "index": 2,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "НАТАЛЬНАЯ КАРТА.",
+          "overflow": false
+        },
+        {
+          "text": "ТВОЯ ДАТА. ТВОЁ ВРЕМЯ.",
+          "overflow": false
+        },
+        {
+          "text": "ОВЕН. РЫБЫ. ВЕСЫ.",
+          "overflow": false
+        },
+        {
+          "text": "ВЫБЕРИ СВОЙ ЗНАК.",
+          "overflow": false
+        },
+        {
+          "text": "ЛИЧНЫЙ ГОРОСКОП.",
+          "overflow": false
+        },
+        {
+          "text": "ДЕНЬ ЗА ДНЁМ.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N27",
+      "index": 3,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "ОБЩЕНИЕ. ЛЮБОВЬ.",
+          "overflow": false
+        },
+        {
+          "text": "ВАША СОВМЕСТИМОСТЬ.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N27",
+      "index": 4,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "МАТРИЦА СУДЬБЫ.",
+          "overflow": false
+        },
+        {
+          "text": "РАСЧЁТ ПО ДАТЕ.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N27",
+      "index": 5,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "НЕДЕЛЯ И МЕСЯЦ.",
+          "overflow": false
+        },
+        {
+          "text": "ЛИЧНЫЙ ПРОГНОЗ.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N27",
+      "index": 6,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "ВСЯ ТВОЯ КАРТА.",
+          "overflow": false
+        },
+        {
+          "text": "В ПОДРОБНОСТЯХ.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N27",
+      "index": 7,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "ПОСТАВЬ НА ПАУЗУ.",
+          "overflow": false
+        },
+        {
+          "text": "ВКЛЮЧИ ЗВУКИ ПРИРОДЫ.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N28",
+      "index": 0,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Начни день",
+          "overflow": false
+        },
+        {
+          "text": "с личного прогноза.",
+          "overflow": false
+        },
+        {
+          "text": "Дата. Время. Место.",
+          "overflow": false
+        },
+        {
+          "text": "И твоя карта готова.",
+          "overflow": false
+        },
+        {
+          "text": "Гороскоп по знаку.",
+          "overflow": false
+        },
+        {
+          "text": "От Овна до Рыб.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N28",
+      "index": 1,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Начни день",
+          "overflow": false
+        },
+        {
+          "text": "с личного прогноза.",
+          "overflow": false
+        },
+        {
+          "text": "Дата. Время. Место.",
+          "overflow": false
+        },
+        {
+          "text": "И твоя карта готова.",
+          "overflow": false
+        },
+        {
+          "text": "Гороскоп по знаку.",
+          "overflow": false
+        },
+        {
+          "text": "От Овна до Рыб.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N28",
+      "index": 2,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Начни день",
+          "overflow": false
+        },
+        {
+          "text": "с личного прогноза.",
+          "overflow": false
+        },
+        {
+          "text": "Дата. Время. Место.",
+          "overflow": false
+        },
+        {
+          "text": "И твоя карта готова.",
+          "overflow": false
+        },
+        {
+          "text": "Гороскоп по знаку.",
+          "overflow": false
+        },
+        {
+          "text": "От Овна до Рыб.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N28",
+      "index": 3,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Не только сегодня.",
+          "overflow": false
+        },
+        {
+          "text": "Ещё неделя и месяц.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N28",
+      "index": 4,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Два человека.",
+          "overflow": false
+        },
+        {
+          "text": "Две натальные карты.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N28",
+      "index": 5,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Числа рождения.",
+          "overflow": false
+        },
+        {
+          "text": "Узнай свою матрицу.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N28",
+      "index": 6,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Твоя Луна.",
+          "overflow": false
+        },
+        {
+          "text": "Твоё Солнце.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N28",
+      "index": 7,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Пусть звучит дождь.",
+          "overflow": false
+        },
+        {
+          "text": "Или шумит море.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N29",
+      "index": 0,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Сегодня в NEBO.",
+          "overflow": false
+        },
+        {
+          "text": "Твой личный гороскоп.",
+          "overflow": false
+        },
+        {
+          "text": "Натальная карта.",
+          "overflow": false
+        },
+        {
+          "text": "Введи данные рождения.",
+          "overflow": false
+        },
+        {
+          "text": "Свой знак найдётся.",
+          "overflow": false
+        },
+        {
+          "text": "Все двенадцать — здесь.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N29",
+      "index": 1,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Сегодня в NEBO.",
+          "overflow": false
+        },
+        {
+          "text": "Твой личный гороскоп.",
+          "overflow": false
+        },
+        {
+          "text": "Натальная карта.",
+          "overflow": false
+        },
+        {
+          "text": "Введи данные рождения.",
+          "overflow": false
+        },
+        {
+          "text": "Свой знак найдётся.",
+          "overflow": false
+        },
+        {
+          "text": "Все двенадцать — здесь.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N29",
+      "index": 2,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Сегодня в NEBO.",
+          "overflow": false
+        },
+        {
+          "text": "Твой личный гороскоп.",
+          "overflow": false
+        },
+        {
+          "text": "Натальная карта.",
+          "overflow": false
+        },
+        {
+          "text": "Введи данные рождения.",
+          "overflow": false
+        },
+        {
+          "text": "Свой знак найдётся.",
+          "overflow": false
+        },
+        {
+          "text": "Все двенадцать — здесь.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N29",
+      "index": 3,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Читай прогноз.",
+          "overflow": false
+        },
+        {
+          "text": "Слушай природу.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N29",
+      "index": 4,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Планы на неделю?",
+          "overflow": false
+        },
+        {
+          "text": "Открой прогноз.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N29",
+      "index": 5,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Твоя дата —",
+          "overflow": false
+        },
+        {
+          "text": "начало расчёта.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N29",
+      "index": 6,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Пара дат.",
+          "overflow": false
+        },
+        {
+          "text": "Большой разбор совместимости.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N29",
+      "index": 7,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Планета за планетой.",
+          "overflow": false
+        },
+        {
+          "text": "Читай о своей карте.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N30",
+      "index": 0,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Гороскоп по знакам.",
+          "overflow": false
+        },
+        {
+          "text": "Выбери свой.",
+          "overflow": false
+        },
+        {
+          "text": "Карта по рождению.",
+          "overflow": false
+        },
+        {
+          "text": "Разбор по темам.",
+          "overflow": false
+        },
+        {
+          "text": "Каждый день —",
+          "overflow": false
+        },
+        {
+          "text": "с личным гороскопом.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N30",
+      "index": 1,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Гороскоп по знакам.",
+          "overflow": false
+        },
+        {
+          "text": "Выбери свой.",
+          "overflow": false
+        },
+        {
+          "text": "Карта по рождению.",
+          "overflow": false
+        },
+        {
+          "text": "Разбор по темам.",
+          "overflow": false
+        },
+        {
+          "text": "Каждый день —",
+          "overflow": false
+        },
+        {
+          "text": "с личным гороскопом.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N30",
+      "index": 2,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Гороскоп по знакам.",
+          "overflow": false
+        },
+        {
+          "text": "Выбери свой.",
+          "overflow": false
+        },
+        {
+          "text": "Карта по рождению.",
+          "overflow": false
+        },
+        {
+          "text": "Разбор по темам.",
+          "overflow": false
+        },
+        {
+          "text": "Каждый день —",
+          "overflow": false
+        },
+        {
+          "text": "с личным гороскопом.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N30",
+      "index": 3,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Море или лес?",
+          "overflow": false
+        },
+        {
+          "text": "Выбирай свой звук.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N30",
+      "index": 4,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Одна дата.",
+          "overflow": false
+        },
+        {
+          "text": "Целая матрица.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N30",
+      "index": 5,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Посмотри, как",
+          "overflow": false
+        },
+        {
+          "text": "сочетаются ваши карты.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N30",
+      "index": 6,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "На следующую неделю",
+          "overflow": false
+        },
+        {
+          "text": "прогноз тоже есть.",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "id": "N30",
+      "index": 7,
+      "unloaded": 0,
+      "fonts": "loaded",
+      "detached": 0,
+      "heads": [
+        {
+          "text": "Солнце и Луна.",
+          "overflow": false
+        },
+        {
+          "text": "Раскрой свою карту.",
+          "overflow": false
+        }
+      ]
+    }
+  ]
+}

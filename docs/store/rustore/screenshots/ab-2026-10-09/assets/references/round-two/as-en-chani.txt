@@ -1,0 +1,250 @@
+Browser tab: 3, Title: "‎CHANI: Your Astrology Guide App - App Store", URL: "https://apps.apple.com/us/app/chani-your-astrology-guide/id1532791252".
+1 AXWebArea ‎CHANI: Your Astrology Guide App - App Store, URL: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252
+	2 container
+		3 container Description: App Store, ID: app-store-icon-container
+		4 button (collapsed) App Store, ID: popover-1-target, Secondary Actions: Expand
+			5 text for iPhone
+			6 image
+		7 container search-input-form
+			8 text Search
+			9 search text field (settable) Search, ID: search-input__text-field
+		10 container navigation
+			11 content list
+				12 checkbox Today, Value: 0
+				13 checkbox Games, Value: 0
+				14 checkbox Apps, Value: 0
+				15 checkbox Arcade, Value: 0
+	16 container
+		17 container
+			18 heading CHANI: Your Astrology Guide, Value: 1
+				19 text CHANI: Your Astrology Guide
+			20 text Learn, Reflect, Grow, Heal
+			21 text Free · In‑App Purchases
+			22 button Share
+		23 container
+			24 button (disabled) Previous Page
+				25 image
+			26 content list
+				27 link Description: 59K RATINGS 4.9 Stars, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252#productRatings
+				28 link Description: AWARDS Editors’ Choice Apps, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252#productRatings
+				29 link Description: AGE RATING 9+ Years, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252#information
+				30 link Description: CATEGORY Lifestyle, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252#information
+				31 link Description: DEVELOPER Chani Nicholas Incorporated, Value: apps.apple.com/us/developer/chani-nicholas-incorporated/id1532791254?platform=iphone
+				32 link Description: LANGUAGE EN English, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252#information
+			33 button Next Page
+				34 image
+		35 container Description: iPhone App Previews and Screenshots, ID: product_media_phone_
+			36 container
+				37 button (disabled) Previous Page
+					38 image
+				39 content list
+					40 container Screenshot
+					41 container Screenshot
+					42 container Screenshot
+					43 container Screenshot
+				44 button Next Page
+					45 image
+		46 button iPhone, iPad
+			47 text iPhone, iPad
+		48 container
+			49 text CHANI is the #1 astrology app made by real astrologers — not AI. Designed to make astrology accessible and useful, it combines ancient astro wisdom with mindfulness tools to help you unlock your full potential, tap into your personal power, and live out your life’s purpose. With CHANI, you can…
+
+GROUND INTO EACH DAY:
+- Understand how the day’s astrology will land for you and get tips on how to work with it with daily horoscopes.
+- Center yourself with a guided meditation highlighted to support the day’s astrological energy.
+- Create lunar magic with real-time readings that update with the Moon's movements.
+
+PREP FOR WHAT’S NEXT:
+- Check the astroweather forecast and ﻿tune in to the Astrology of the Week Ahead podcast for a breakdown of how the upcoming astro is showing up in the collective and on the world stage.
+- Listen to your weekly reading for a deeper, personalized look at how each week’s events will manifest in your life, and advice on how to make the most of them.
+- Work with the astro as it unfolds with weekly rituals, tarot cards, personalized journal prompts, and audio offerings curated to help you meet the moment — from New Moons and Full Moons to retrogrades, eclipses, and more.
+
+EXPLORE THE BLUEPRINT OF YOUR PURPOSE:
+- Uncover each planet and point’s position in your birth chart and learn how their positions and relationships play a role in your life. Then dig into your detailed astro insights and discover the gifts and challenges that your natal placements bring to the table.
+
+TRACK THE LESSONS OF YOUR TRANSITS:
+- Keep tabs on what sign each planet is currently in, whether or not it’s retrograde, and what all of that means for you personally with timely planetary horoscopes.
+- Access the wisdom that expert astrologers draw on (aka hyper-personalized transit readings) to learn how the planets are interacting with your unique birth chart at this exact moment.
+
+RESET YOUR NERVOUS SYSTEM + MANIFEST ABUNDANCE:
+- Browse our full library of guided meditations, affirmations, frequencies, and sleep stories to ground, decompress, dream, and access your inner wisdom.
+
+GROW THROUGH WHAT YOU GO THROUGH:
+- Overcome obstacles, transform your life, and ﻿reconnect with yourself through CHANI courses like the 7-part Saturn Return course and the viral 28-day Breakthrough course.
+
+FIND OUT WHAT THE FUTURE HOLDS:
+- ﻿Look ahead and unpack your year with personalized month-by-month readings, a zoomed-out astro overview, annual horoscopes for the four main areas of your life, and a collection of rituals, journal prompts, altar suggestions, and guided meditations dedicated to each of the year’s main themes.
+
+WHAT THE PEOPLE ARE SAYING:
+- “It’s my favorite app on my phone.”
+- “This app feels like home. It’s a daily, well-researched astrological companion.”
+- “I recommend CHANI as often as I can because I really believe in the positive impact it’s had on my life.”
+- “It’s so much more than an astrology app… It’s a partner that I can lean on when I need a boost.”
+
+WHO WE ARE:
+CHANI is a queer, feminist-led company that is anti-AI and not VC-funded. We’re on a mission to make astrology accessible and to support everyone in living their purpose — because we believe that astrology is a tool that can help transform us and our world for the better. We also believe that good business prioritizes personal wellbeing and promotes economic justice. No one on our team is paid less than $80K before benefits, and we offer a four-day workweek; fully covered health, dental, and vision insurance; unlimited menstrual leave; and more. In addition, 5% of all our company’s revenue is disbursed directly to survivors of gender-based violence via freefrom.org, and we’ve generated over $3.5 million for survivors to date. By choosing CHANI, you are investing in human talent, environmentally conscious technology, mutual aid, and mindful community.
+			50 button more
+		51 container Description: Ratings & Reviews, ID: productRatings
+			52 link Description: Ratings & Reviews, Value: apps.apple.com/us/app/1532791252?see-all=reviews&platform=iphone
+			53 content list
+				54 container
+					55 text 4.9 out of 5 59K Ratings
+					56 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					57 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					58 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					59 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					60 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.other.one**
+		61 container
+			62 button (disabled) Previous Page
+				63 image
+			64 content list
+				65 container
+					66 heading Editors’ Choice, Value: 3
+						67 text Editors’ Choice
+					68 text With regular horoscopes, birth chart breakdowns, and more, Chani helps clear up the mystery of the stars. The app not only serves as an accessible entry point for astrology beginners but also includes a breadth of information for experts. 
+				69 container Chani gives me chills constantly! ✨
+					70 heading Chani gives me chills constantly! ✨, Value: 3, ID: review-9276286578-title
+						71 text Chani gives me chills constantly! ✨
+					72 content list 5 Stars
+					73 text 11/11/2022
+					74 text Stephanie.Craig
+					75 container
+						76 text This app has by far lifted my life in so many ways. I am two years into astrology and this app helps me not only understand astrology and my Nataly chart phenomenally and way more into depth than any other app but Chani personally records weekly readings every week for the generalized public and a personal reading based on your chart. Let me tell you, once you get in the routine of every Sunday listening to the reading for the week, it feels as if Chani is talking to you personally right there and then. I will listen to my reading and the generalized reading every day of the week to really feel and understand the readings as they are happening and I feel I learn something new or hear something different each time I listen. It’s so crazy when you read and listen to your reading and then it happens in real life!! Oh the universe and it’s beautiful ways of connection ✨ I have unsubscribed several apps because they just don’t do the justice or gives me the same feeling that this app gives me. Chani you are truly outstanding!! Your creation here is truly one of a kind and has my full support. I share this app to everyone I know starting into astrology and who likes astrology. Thank you for creating this for all of us to dive deeper and give our souls the truest form of self love and understanding. Don’t pass this app up ✨ if you are wanting to find yourself and free your soul, download and upgrade to pro, this is worth every penny! 🦋
+						77 button more
+			78 button Next Page
+				79 image
+		80 container Description: What’s New, ID: mostRecentVersion
+			81 button What’s New
+				82 heading What’s New, Value: 2
+					83 text What’s New
+			84 container What’s New
+				85 text Thank you for being a part of the CHANI community!
+
+This update includes minor improvements.
+Please reach out to us at info@chaninicholas.com if you run into any trouble on the app.
+				86 text Version 2.9.2
+				87 text Oct 1
+		88 container Description: App Privacy, ID: privacyHeader
+			89 button App Privacy
+				90 link Description: App Privacy, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252#
+			91 container
+				92 text The developer,  Chani Nicholas Incorporated , indicated that the app’s privacy practices may include handling of data as described below. For more information, see the 
+				93 link Description: Developer’s Privacy Policy, Value: chaninicholas.com/privacy-policy-chani-app/
+				94 text .
+		95 content list
+			96 container Data Linked to You
+				97 heading Data Linked to You, Value: 3
+					98 text Data Linked to You
+				99 text The following data may be collected and linked to your identity:
+				100 content list
+					101 text Contact Info
+					102 text User Content
+					103 text Other Data
+			104 container Data Not Linked to You
+				105 heading Data Not Linked to You, Value: 3
+					106 text Data Not Linked to You
+				107 text The following data may be collected but it is not linked to your identity:
+				108 content list
+					109 text Diagnostics
+		110 container
+			111 text Privacy practices may vary, for example, based on the features you use or your age. 
+			112 link Description: Learn More, Value: apps.apple.com/us/iphone/story/id1538632801
+		113 container Description: Accessibility, ID: accessibilityHeader
+			114 heading Accessibility, Value: 2
+				115 text Accessibility
+			116 container
+				117 text The developer has not yet indicated which accessibility features this app supports. 
+				118 link Description: Learn More, Value: apps.apple.com/story/id1814164299
+		119 container Description: Information, ID: information
+			120 heading Information, Value: 2
+				121 text Information
+			122 definition list
+				123 container Seller
+					124 text Seller
+				125 text Chani Nicholas Incorporated
+				126 container Size
+					127 text Size
+				128 text 78 MB
+				129 container Category
+					130 text Category
+				131 text Lifestyle
+				132 container Compatibility
+					133 text Compatibility
+				134 button (collapsed) Requires iOS 15.1 or later., Secondary Actions: Expand
+					135 text Requires iOS 15.1 or later.
+					136 image
+				137 container Languages
+					138 text Languages
+				139 text English
+				140 container Age Rating
+					141 text Age Rating
+				142 button (collapsed) 9+, Secondary Actions: Expand
+					143 text 9+
+					144 image
+				145 container In-App Purchases
+					146 text In-App Purchases
+				147 button (collapsed) Yes, Secondary Actions: Expand
+					148 text Yes
+					149 image
+				150 container Copyright
+					151 text Copyright
+				152 text © 2021 Chani Nicholas Inc.
+		153 container notPurchasedLinks
+			154 link Description: Developer Website ↗, Value: chaninicholas.com/
+			155 link Description: Privacy Policy ↗, Value: chaninicholas.com/privacy-policy-chani-app/
+			156 link Description: License Agreement, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252#
+		157 container Description: Supports, ID: capabilities
+			158 heading Supports, Value: 2
+				159 text Supports
+			160 content list
+				161 container
+					162 heading Family Sharing, Value: 3
+						163 text Family Sharing
+					164 text Some in-app purchases and subscriptions may be shareable with your family group when Family Sharing is enabled. 
+					165 link Description: Learn More, Value: apps.apple.com/us/iphone/story/id1563279606
+		166 container Description: Featured In, ID: featuredIn
+			167 heading Featured In, Value: 2
+				168 text Featured In
+			169 content list
+				170 link Description: Made by and for the LGBTQ+ Community, Value: apps.apple.com/us/iphone/story/id1887972608
+				171 link Description: Lifestyle Apps by Women, Value: apps.apple.com/us/iphone/story/id1609113800
+				172 link Description: Dive Into Astrology and Personal Growth, Value: apps.apple.com/us/iphone/story/id1551405189
+		173 container Description: You Might Also Like, ID: similarItems
+			174 link Description: You Might Also Like, Value: apps.apple.com/us/app/1532791252?see-all=customers-also-bought-apps&platform=iphone
+			175 container
+				176 button (disabled) Previous Page
+					177 image
+				178 content list
+					179 link Description: View TimePassages Astrology The Original Astrology App, Value: apps.apple.com/us/app/timepassages-astrology/id488946918
+					180 link Description: View Astro Future - Daily Horoscope Astrology & Love Compatibility, Value: apps.apple.com/us/app/astro-future-daily-horoscope/id1119123378
+					181 link Description: View Moonly: Moon Phases & Calendar Birth Chart, Tarot, Dreamer, Value: apps.apple.com/us/app/moonly-moon-phases-calendar/id1489889871
+					182 link Description: View Sanctuary Psychic Reading Zodiac Horoscope & Astrology, Value: apps.apple.com/us/app/sanctuary-psychic-reading/id1417411962
+					183 link Description: View The Pattern Self & Relationship Insights, Value: apps.apple.com/us/app/the-pattern/id1071085727
+					184 link Description: View Astromatrix Horoscopes Modern Astrology Horoscopes, Value: apps.apple.com/us/app/astromatrix-horoscopes/id1065636826
+					185 link Description: View Numerology & Astrology Horoscope, Birth Chart & Tarot, Value: apps.apple.com/us/app/numerology-astrology/id1243994894
+					186 link Description: View Astra - Life Advice Astrology & Compatibility, Value: apps.apple.com/us/app/astra-life-advice/id6473748536
+					187 link Description: View AstroBella Astrology Horoscope Zodiac Signs & Birth Chart, Value: apps.apple.com/us/app/astrobella-astrology-horoscope/id6468093061
+				188 button Next Page
+					189 image
+		190 container
+			191 button United States
+			192 content list
+				193 link Description: This page is available in Español (México), Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252?l=es-MX
+				194 link Description: This page is available in العربية, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252?l=ar
+				195 link Description: This page is available in Русский, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252?l=ru
+				196 link Description: This page is available in 简体中文, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252?l=zh-Hans-CN
+				197 link Description: This page is available in Français (France), Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252?l=fr-FR
+				198 link Description: This page is available in 한국어, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252?l=ko
+				199 link Description: This page is available in Português (Brazil), Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252?l=pt-BR
+				200 link Description: This page is available in Tiếng Việt, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252?l=vi
+				201 link Description: This page is available in 繁體中文 (台灣), Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252?l=zh-Hant-TW
+			202 text Copyright © 2026
+			203 link Description: Apple Inc., Value: apple.com/
+			204 text All rights reserved.
+			205 content list
+				206 link Description: Internet Service Terms, Value: apple.com/legal/internet-services/
+				207 link Description: App Store & Privacy, Value: apple.com/legal/privacy/data/en/app-store/
+				208 link Description: Cookie Warning, Value: apple.com/privacy/use-of-cookies/
+				209 link Description: Support, Value: support.apple.com/billing
+
+The focused UI element is 1 AXWebArea ‎CHANI: Your Astrology Guide App - App Store, URL: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252

@@ -1,0 +1,179 @@
+Browser tab: 3, Title: "Finch: Self-Care Pet - Apps on Google Play", URL: "https://play.google.com/store/apps/details?id=com.finch.finch&hl=en".
+1 AXWebArea Finch: Self-Care Pet - Apps on Google Play, URL: play.google.com/store/apps/details?id=com.finch.finch&hl=en
+	2 container yDmH0d
+		3 container
+			4 container Page Header
+				5 link Description: Google Play logo, Value: play.google.com/store/games
+				6 container Main
+					7 tab group
+						8 tab (selectable, settable, boolean) Games, Value: 0, ID: 11
+						9 tab (selected, settable, boolean) Apps, Value: 1
+						10 tab (selectable, settable, boolean) Books, Value: 0, ID: 5
+						11 tab (selectable, settable, boolean) Kids, Value: 0, ID: 13
+				12 button Search
+				13 button Help Center
+				14 pop up button (collapsed) Description: Open account menu, Secondary Actions: Expand
+		15 container
+			16 container
+				17 heading Finch: Self-Care Pet, Value: 1
+					18 text Finch: Self-Care Pet
+				19 link Description: Finch Care Public Benefit Corporation, Value: play.google.com/store/apps/dev?id=5628861420212947727
+				20 text In-app purchases
+				21 container Information badges
+					22 container
+						23 image Rated 4.8 stars out of five stars
+						24 text 630K reviews
+					25 container
+						26 text 10M+ Downloads
+			27 button Install
+				28 text Install
+			29 button Share
+				30 text Share
+			31 button Add to wishlist
+				32 text Add to wishlist
+			33 container
+				34 content list
+					35 button Screenshot image
+					36 button Screenshot image
+					37 button Screenshot image
+					38 button Screenshot image
+					39 button Screenshot image
+					40 button Screenshot image
+					41 button Screenshot image
+					42 button Screenshot image
+					43 button Screenshot image
+					44 button Screenshot image
+					45 button Screenshot image
+					46 button Screenshot image
+					47 button Screenshot image
+					48 button Screenshot image
+					49 button Screenshot image
+					50 button Screenshot image
+					51 button Screenshot image
+					52 button Screenshot image
+					53 button Screenshot image
+					54 button Screenshot image
+					55 button Screenshot image
+					56 button Screenshot image
+					57 button Screenshot image
+					58 button Screenshot image
+				59 button
+			60 container
+				61 heading About this app, Value: 2
+					62 text About this app
+				63 button See more information on About this app
+				64 container Mood journal, habits, self-care tracker, self-love
+					65 text Mood journal, habits, self-care tracker, self-love
+				66 text Updated on Oct 8, 2026
+				67 container
+					68 link Description: Health & Fitness, Value: play.google.com/store/apps/category/HEALTH_AND_FITNESS
+			69 container
+				70 text Events & offers
+				71 content list
+					72 container
+						73 link Description: Ends on 10/29 Birbs & Broomsticks, with new magical Micropet!, Value: play.google.com/store/apps/eventdetails/4829221616013662072
+			74 container
+				75 heading Data safety, Value: 2
+					76 text Data safety
+				77 container
+					78 link Description: See more information on Data safety, Value: play.google.com/store/apps/datasafety?id=com.finch.finch
+				79 text Safety starts with understanding how developers collect and share your data. Data privacy and security practices may vary based on your use, region, and age. The developer provided this information and may update it over time.
+				80 content list
+					81 container
+						82 text This app may share these data types with third parties Personal info, Financial info and 3 others
+					83 container
+						84 text This app may collect these data types Personal info, App activity and 2 others
+					85 text Data is encrypted in transit
+					86 text You can request that data be deleted
+				87 container
+					88 link Description: See more details on data safety, Value: play.google.com/store/apps/datasafety?id=com.finch.finch
+			89 container
+				90 heading Ratings and reviews, Value: 2
+					91 text Ratings and reviews
+				92 button See more information on Ratings and reviews
+				93 button Ratings and reviews are verified
+					94 text Ratings and reviews are verified
+				95 content list
+					96 checkbox Description: Phone, Value: 1, ID: formFactor_2
+					97 checkbox Description: Desktop, Value: 0, ID: formFactor_5
+					98 checkbox Description: Tablet, Value: 0, ID: formFactor_3
+				99 image Rated 4.8 stars out of five stars
+				100 text 612K  reviews
+				101 image 561,290 reviews for star rating 5
+				102 image 23,881 reviews for star rating 4
+				103 image 6,537 reviews for star rating 3
+				104 image 5,203 reviews for star rating 2
+				105 image 14,542 reviews for star rating 1
+				106 text Lily
+				107 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+				108 container
+					109 image Rated 3 stars out of five stars
+					110 text September 18, 2026
+				111 text My whole family uses it. it's been great edit: Decreasing to 3 stars. After more time using finch (and paying for the full year membership) I have some more complaints. The whole thing feels like an ad now. The whole reason I paid for it in the first place was so I could get the additional items during the monthly adventure themes. Now the themes are seemingly only related to movies that are coming out soon. I'm paying for an ad, and I want a refund. 3  people found this review helpful
+				112 text Did you find this helpful?
+				113 checkbox Description: Yes, Value: 0, ID: 6362ecf8-4b34-4b29-aaa6-48e89a5f1b01::1
+				114 checkbox Description: No, Value: 0, ID: 6362ecf8-4b34-4b29-aaa6-48e89a5f1b01::2
+				115 text Kira P
+				116 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+				117 container
+					118 image Rated 5 stars out of five stars
+					119 text August 24, 2026
+				120 text i've been using this app for a year now, and it's a huge blessing. Everything gets better and better with each update! I just wanna offer 1 suggestion I thought of all this time: It would be more comfortable if breathing exercises had optional breathing sound, as if the birb inhaled & exhaled with you. It annoys me that I have to look up at the screen all the time to make sure I do the exercise right. It's hard to keep up when you're having a panic attack. The sound may add some soothing as well 5  people found this review helpful
+				121 text Did you find this helpful?
+				122 checkbox Description: Yes, Value: 0, ID: e0328b1d-e576-4b5f-a7d2-7469e6a28a9c::1
+				123 checkbox Description: No, Value: 0, ID: e0328b1d-e576-4b5f-a7d2-7469e6a28a9c::2
+				124 text Georgie Pratt
+				125 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+				126 container
+					127 image Rated 4 stars out of five stars
+					128 text April 27, 2026
+				129 text 4/27 I love this app soooo much! The previous issues, not many, were resolved and I'm soooo grateful. I do have a technical question, though. When I check off a task as done, there is a pop up for any edits and to write a reflection on the task. If I tap the three dots for a drop down menu, it immediately just goes away and I have to go into history to add the reflection. Not a huge deal, but I used that option a lot in the past and it's frus ***fun and easy way to stay organized and motivated 47  people found this review helpful
+				130 text Did you find this helpful?
+				131 checkbox Description: Yes, Value: 0, ID: 5466e616-6a8c-433e-bf6e-aeed40d8c4b0::1
+				132 checkbox Description: No, Value: 0, ID: 5466e616-6a8c-433e-bf6e-aeed40d8c4b0::2
+				133 button See all reviews
+					134 text See all reviews
+			135 container
+				136 heading What’s new, Value: 2
+					137 text What’s new
+				138 text Hey Finch Fam! This update includes:
+				139 text • Fixing those darned bugs - thanks for reporting them!
+				140 text • Tweaks here and there to make things prettier and more fun.
+			141 link Description: Flag as inappropriate (opens in new window), Value: support.google.com/googleplay/?p=report_content
+			142 image Content rating
+			143 text Rated for 3+
+			144 text Users Interact
+			145 link Description: Learn more about content ratings (opens in new window), Value: support.google.com/googleplay?p=appgame_ratings
+			146 container developer-contacts-heading
+				147 heading App support, Value: 2
+					148 text App support
+				149 button (collapsed) Expand
+			150 container
+				151 heading Similar apps, Value: 2
+					152 text Similar apps
+				153 container
+					154 link Description: See more information on Similar apps, Value: play.google.com/store/apps/collection/cluster?gsr=SndqLDRPTGpVM1Y3bjBpV1pONEdWMTVacmMzaklhYTlseWpqSi84WDIyakI1cWM9wgJDChMKD2NvbS5maW5jaC5maW5jaBAHGAgwATgASiAIARAAGhRGaW5jaDogU2VsZi1DYXJlIFBldCAAKAAwAFAAWAFgALASAA%3D%3D:S:ANO1ljJ-cj0
+				155 link Description: Duolingo: Learn Languages Duolingo Rated 4.8 stars out of five stars, Value: play.google.com/store/apps/details?id=com.duolingo
+				156 link Description: Pinterest Pinterest Rated 4.2 stars out of five stars, Value: play.google.com/store/apps/details?id=com.pinterest
+				157 link Description: Foxtale - Mood Tracker Journal Bearable Rated 4.9 stars out of five stars, Value: play.google.com/store/apps/details?id=app.bearable.lumifox
+				158 link Description: Catzy: Self-Care Journey Nieruo Team Rated 4.6 stars out of five stars, Value: play.google.com/store/apps/details?id=com.nieruo.healthapp
+				159 link Description: Mental Health: Serene Uprise Labs Rated 4.7 stars out of five stars, Value: play.google.com/store/apps/details?id=com.mentallabs.mentalhealth
+				160 link Description: Yazio: Счетчик Калорий и Диета Yazio Rated 4.4 stars out of five stars, Value: play.google.com/store/apps/details?id=com.yazio.android
+		161 container
+			162 text Google Play
+			163 link Description: Play Pass, Value: play.google.com/store/pass/getstarted
+			164 link Description: Play Points, Value: play.google.com/store/points/enroll
+			165 link Description: Gift cards, Value: play.google.com/about/giftcards
+			166 link Description: Redeem, Value: play.google.com/redeem
+			167 link Description: Refund policy, Value: support.google.com/googleplay/answer/134336
+			168 text Kids & family
+			169 link Description: Parent Guide, Value: support.google.com/googleplay?p=pff_parentguide
+			170 link Description: Family sharing, Value: support.google.com/googleplay/answer/7007852
+			171 link Description: Terms of Service, Value: play.google.com/intl/en_ru/about/play-terms.html
+			172 link Description: Privacy, Value: policies.google.com/privacy
+			173 link Description: About Google Play, Value: support.google.com/googleplay/?p=about_play
+			174 link Description: Developers, Value: developer.android.com/index.html
+			175 link Description: Google Store, Value: store.google.com/?playredirect=true&utm_source=play&utm_medium=google_oo&utm_campaign=GS106288
+			176 text All prices include VAT. Russia (English)
+
+The focused UI element is 1 AXWebArea Finch: Self-Care Pet - Apps on Google Play, URL: play.google.com/store/apps/details?id=com.finch.finch&hl=en

@@ -3,6 +3,7 @@ import {
   isReleasedAndroidSignHoroscopeClient,
   projectSignHoroscopeForWire,
   RELEASED_ANDROID_SIGN_HOROSCOPE_SCHEMA_VERSION,
+  resolveSignHoroscopeWireVersion,
 } from '../lib/horoscope/signWireCompatibility';
 
 const reading: SignHoroscopeReadingV2 = {
@@ -15,6 +16,14 @@ const reading: SignHoroscopeReadingV2 = {
 };
 
 describe('released Android sign horoscope wire compatibility', () => {
+  it('honors the new Android reader request instead of downgrading every Dalvik client', () => {
+    const ua = 'Dalvik/2.1.0 (Linux; U; Android 13; M2101K9AG Build/test)';
+    expect(projectSignHoroscopeForWire(reading, ua, 'sign-horoscope-reading-v5')).toBe(reading);
+    expect(resolveSignHoroscopeWireVersion(undefined, ua)).toBe('sign-horoscope-reading-v4');
+    for (const version of ['', null, 'unknown', ['sign-horoscope-reading-v5']]) {
+      expect(resolveSignHoroscopeWireVersion(version, ua)).toBeNull();
+    }
+  });
   it('recognizes the released native Android transport', () => {
     expect(isReleasedAndroidSignHoroscopeClient(
       'Dalvik/2.1.0 (Linux; U; Android 13; M2101K9AG Build/TKQ1.221013.002)',

@@ -7,6 +7,7 @@ import { readClientRuntimeMetadata } from '../../../lib/clientRuntimeMetadata';
 import { enqueueNeboOpsEvent, isNeboOpsEnabled, wakeNeboOpsDelivery } from '../../../lib/neboOps';
 import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 import { queuePersonalForecastPrewarmForUser } from '../../../lib/personalForecastPrewarm';
+import { rememberNativeSignReader } from '../../../lib/horoscope/signClientCompatibility';
 
 async function recordAppVisit(
   appUser: AppUserContext,
@@ -96,6 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    await rememberNativeSignReader(req, appUser);
     // Фиксируем сам вход (last_login + login_streak) и трекаем устройство/сессию.
     await db.users.recordLogin(appUser.userId).catch(() => undefined);
     const session = await recordAppVisit(appUser, sessionId, {

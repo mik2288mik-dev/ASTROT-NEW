@@ -703,6 +703,7 @@ async function fetchOnce(
       /^\/api\/auth\/[A-Za-z0-9/_-]+$/.test(metadataPath)
       || metadataPath === '/api/users/session'
       || metadataPath === '/api/users/events'
+      || metadataPath === '/api/app/client-error'
     )) {
       if (controller.signal.aborted) throw requestWasAborted();
       const runtimeHeader = await getClientRuntimeHeader().catch(() => null);

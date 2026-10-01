@@ -1,0 +1,2012 @@
+{
+  "date": "2026-10-10",
+  "count": 20,
+  "images": 160,
+  "generation": {
+    "mode": "built-in image_gen",
+    "prompts": "round-two-generation.json",
+    "masters": "round-two-masters.html"
+  },
+  "sets": [
+    {
+      "id": "N01",
+      "label": "N01",
+      "name": "Солнце в кармане",
+      "folder": "N01-sun-pocket",
+      "font": "Onest",
+      "tone": "Светлый",
+      "people": false,
+      "planets": false,
+      "layout": "gouache",
+      "reference": "gp-en-headspace",
+      "idea": "Солнечный рисунок знакомит с гороскопом по знаку; второй кадр показывает личный прогноз, третий — настоящую карту.",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Гороскоп|твоего знака",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "А что сегодня|у тебя?",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Натальная карта.|С расшифровкой.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Взгляни на неделю|и месяц",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Что между вами|по вашим картам?",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Твоя дата.|Твоя матрица.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Профиль твоей|натальной карты",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Море. Дождь.|Музыка для отдыха.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create one original premium editorial illustration for Russian astrology app NEBO store screenshot campaign 'Sun in your pocket'. Wide landscape 16:9 panoramic composition intended to be sliced into three adjacent vertical posters. Flat gouache and screen-print art, tactile cream paper, warm saffron yellow, sky blue, tomato coral, dark ink navy. Main joyful oversized sun with sophisticated simple face in lower LEFT third, arcing blue horizon across lower middle, a tiny sailboat and abstract botanical sprigs on far right, small hand-drawn zodiac-inspired ram, lion and two fish subtly integrated at bottom. Adult stylish editorial design, beautiful confident cutout shapes, original tasteful details. Upper 30 percent stays mostly flat pale cream negative space for separately typeset headings. Middle and right thirds contain quiet open space for real UI placed later. No phone, no interface, no writing, no letters, no logos, no badges, no watermark. Full-bleed landscape artwork, not mockup, not contact sheet, no panel borders.",
+      "asset": "assets/round-two/N01-art.png",
+      "preview": "N01-first-three.jpg",
+      "zip": "NEBO-N01-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N02",
+      "label": "N02",
+      "name": "Небо начинается с тебя",
+      "folder": "N02-golden-portrait",
+      "font": "Playfair",
+      "tone": "Тёмный",
+      "people": true,
+      "planets": true,
+      "layout": "portrait",
+      "reference": "as-ru-stargaze",
+      "idea": "Оригинальный портрет на тёмном фоне ведёт от даты рождения к гороскопу по знаку и личному прогнозу.",
+      "images": [
+        {
+          "number": 1,
+          "key": "natal",
+          "file": "01-natal.jpg",
+          "title": "Натальная карта.|Твоя история.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 2,
+          "key": "zodiac",
+          "file": "02-zodiac.jpg",
+          "title": "Твой знак.|Твой гороскоп.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 3,
+          "key": "today",
+          "file": "03-today.jpg",
+          "title": "Личный прогноз|на сегодня",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Дни впереди —|перед глазами",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Две карты.|Один разбор.",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Разбор матрицы|по дате рождения",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Сильные планеты|твоей карты",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Звуки для сна|и отдыха",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Luxury editorial photographic collage on deep midnight navy. An original fictional adult woman age 28 with short dark wavy hair, warm natural skin, ivory silk blouse, softly smiling and looking upward, half-body portrait placed entirely in LEFT third below top 32 percent. Dramatic warm amber side light. A giant finely textured golden moon disk behind her shoulder, thin constellation threads flow to the empty middle and right, a few gold leaf shapes and small celestial motifs. No resemblance to a celebrity, no phone held, sophisticated magazine cover, not fantasy costume. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N02-art.png",
+      "preview": "N02-first-three.jpg",
+      "zip": "NEBO-N02-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N03",
+      "label": "N03",
+      "name": "Зодиак — герои",
+      "folder": "N03-zodiac-characters",
+      "font": "Rubik",
+      "tone": "Яркий",
+      "people": false,
+      "planets": false,
+      "layout": "clay",
+      "reference": "gp-en-finch",
+      "idea": "Объёмные герои знаков привлекают внимание; дальше крупные подлинные фрагменты прогноза и натальной карты.",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Все 12 знаков.|Твой — тоже.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "Прогноз лично|для тебя",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "А вот и твоя|натальная карта",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Открой календарь.|Посмотри прогноз.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Узнай, как вы|подходите друг другу",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Матрица судьбы.|Рассчитай свою.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Твоя карта|в подробностях",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Пора отдохнуть.|Включи звуки.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original premium clay stop-motion sculptural animal illustration on pale butter yellow background. Friendly but sophisticated white ram with large curled cobalt horns dominant lower left, peach lion with burnt orange mane at bottom middle-left, turquoise crab, two pale coral fish swirling and a small balanced pair of stones further right. Handmade matte clay, exquisite microtexture, soft studio shadows, large readable silhouettes. All animals are decorative zodiac mascots, no owl, no bird and no existing brand characters. Left third hero animal large; middle and right mostly quiet. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N03-art.png",
+      "preview": "N03-first-three.jpg",
+      "zip": "NEBO-N03-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N04",
+      "label": "N04",
+      "name": "Атлас рождения",
+      "folder": "N04-birth-atlas",
+      "font": "Cormorant",
+      "tone": "Светлый",
+      "people": false,
+      "planets": true,
+      "layout": "atlas",
+      "reference": "as-ru-astrocode",
+      "idea": "Светлый астрономический атлас: крупная настоящая карта сразу, затем личный прогноз и знак зодиака.",
+      "images": [
+        {
+          "number": 1,
+          "key": "natal",
+          "file": "01-natal.jpg",
+          "title": "Натальная карта|с расшифровкой",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "Твой личный|гороскоп на день",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "zodiac",
+          "file": "03-zodiac.jpg",
+          "title": "Гороскоп для|твоего знака",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Прогноз на неделю.|И на месяц.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Совместимость|по двум картам",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Что в твоей|матрице судьбы?",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Особенности|карты рождения",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Немного моря.|Немного тишины.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original antique-modern celestial atlas illustration, engraved copperplate line work over warm ivory parchment, with Prussian blue and terracotta accents. Huge elegant astronomical armillary sphere lower left, thin dotted orbital paths and small sun/moon etchings extending toward lower right, botanical fine-line leaves, translucent architectural circles. Not an actual scientific chart or false data; decorative astronomical sculpture. Contemporary luxury book design, airy, fine detail, confident large silhouette, no mystic symbols. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N04-art.png",
+      "preview": "N04-first-three.jpg",
+      "zip": "NEBO-N04-8-1080x1920.zip",
+      "hero": false
+    },
+    {
+      "id": "N05",
+      "label": "N05",
+      "name": "Сад под небом",
+      "folder": "N05-sky-garden",
+      "font": "Manrope",
+      "tone": "Светлый",
+      "people": true,
+      "planets": false,
+      "layout": "garden",
+      "reference": "as-ru-forest",
+      "idea": "Цельный бумажный сад и человек с книгой создают спокойное утро; следующие кадры раскрывают знаки и карту.",
+      "images": [
+        {
+          "number": 1,
+          "key": "today",
+          "file": "01-today.jpg",
+          "title": "Начни день|со своего гороскопа",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 2,
+          "key": "zodiac",
+          "file": "02-zodiac.jpg",
+          "title": "Гороскоп|твоего знака",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Карта рождения.|Загляни в разбор.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Взгляни на неделю|и месяц",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Что между вами|по вашим картам?",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Твоя дата.|Твоя матрица.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Профиль твоей|натальной карты",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Море. Дождь.|Музыка для отдыха.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original lush paper cut illustration with sculptural depth on very pale mint. A terraced floating garden in lower left, tiny original adult woman in orange coat reading a plain small book on a curved stone bench, stylized dark pine trees, huge soft mint and emerald leaves, lavender flowers, paths extending across bottom toward small cream archways at right. Modern sophisticated illustration, layered paper edges, no game UI, no phone, no planets. Forest inspired as an illustrative world but original architectural garden and original human. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N05-art.png",
+      "preview": "N05-first-three.jpg",
+      "zip": "NEBO-N05-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N06",
+      "label": "N06",
+      "name": "День по полочкам",
+      "folder": "N06-day-shelf",
+      "font": "Rubik",
+      "tone": "Яркий",
+      "people": false,
+      "planets": false,
+      "layout": "blocks",
+      "reference": "gp-ru-duolingo",
+      "idea": "Яркий предметный мир и большие экраны без тяжёлой рамки: знак, карта, личный прогноз.",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Гороскоп на сегодня?|Выбери свой знак.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "title": "Дата, время, место.|Твоя натальная карта.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "today",
+          "file": "03-today.jpg",
+          "title": "Что у тебя|сегодня?",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Дни впереди —|перед глазами",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Две карты.|Один разбор.",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Разбор матрицы|по дате рождения",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Сильные планеты|твоей карты",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Звуки для сна|и отдыха",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original playful design objects rendered in colorful sculptural rubber and paper on warm marigold yellow. Lower left a giant coral umbrella with curved cobalt handle, beside it a chunky violet sun wheel, a blank ivory flip calendar with no numerals, an orange ceramic cup, folded mint paper arrow, abstract blue headphones and tiny green leaves spread rhythmically along the lower panorama. Exquisite advertising still life, bold natural shadows, large clean silhouettes, upper third plain yellow, not familiar brand mascots. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N06-art.png",
+      "preview": "N06-first-three.jpg",
+      "zip": "NEBO-N06-8-1080x1920.zip",
+      "hero": false
+    },
+    {
+      "id": "N07",
+      "label": "N07",
+      "name": "Большое небо",
+      "folder": "N07-open-sky",
+      "font": "Onest",
+      "tone": "Светлый",
+      "people": false,
+      "planets": false,
+      "layout": "scenic",
+      "reference": "as-en-calm",
+      "idea": "Единый пейзаж озера проходит через первые три кадра; первый продаёт гороскоп, следующие показывают карту и знак.",
+      "images": [
+        {
+          "number": 1,
+          "key": "today",
+          "file": "01-today.jpg",
+          "title": "Пару минут.|Гороскоп на сегодня.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "title": "Твоя карта|рождения",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "zodiac",
+          "file": "03-zodiac.jpg",
+          "title": "Какой у тебя знак?|Открой прогноз.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Открой календарь.|Посмотри прогноз.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Узнай, как вы|подходите друг другу",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Матрица судьбы.|Рассчитай свою.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Твоя карта|в подробностях",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Пора отдохнуть.|Включи звуки.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original breathtaking editorial panoramic landscape photograph of a still coastal lagoon at sunrise, pale apricot sky upper third, pastel lavender misty distant mountains, low golden sun near left horizon, soft blue mirror water, a few delicate reeds along bottom edges, warm rays reflected in water. Restrained natural beauty, no people, no boats, no buildings, no planets, realistic photographic atmosphere, tranquil and uplifting, clean wide upper sky for typesetting, no copied location or branded composition. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N07-art.png",
+      "preview": "N07-first-three.jpg",
+      "zip": "NEBO-N07-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N08",
+      "label": "N08",
+      "name": "Смелый гороскоп",
+      "folder": "N08-bold-sign",
+      "font": "Oswald",
+      "tone": "Яркий",
+      "people": false,
+      "planets": false,
+      "layout": "bold",
+      "reference": "gp-en-duolingo",
+      "idea": "Контрастный плакат с узким крупным шрифтом и большими экранами: гороскоп по знаку на входе.",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Твой знак|на сегодня",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "Личный гороскоп.|Каждый день.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Карта рождения.|Полный разбор.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Прогноз на неделю.|И на месяц.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Совместимость|по двум картам",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Что в твоей|матрице судьбы?",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Особенности|карты рождения",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Немного моря.|Немного тишины.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original bold graphic silkscreen illustration on saturated cobalt blue. Giant acid lime spiral sun flower and coral jagged sunburst placed in lower left, loose creamy geometric ribbon sweeping along lower panorama, oversized halftone turquoise circles and orange abstract hands only at far edges, playful editorial optical geometry, energetic sophisticated art direction, crisp cutout forms, risograph ink textures. Upper 32 percent flat cobalt for typography. No real planets, no stars, no human faces, no letters. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N08-art.png",
+      "preview": "N08-first-three.jpg",
+      "zip": "NEBO-N08-8-1080x1920.zip",
+      "hero": false
+    },
+    {
+      "id": "N09",
+      "label": "N09",
+      "name": "Открытка себе",
+      "folder": "N09-morning-postcard",
+      "font": "Caveat",
+      "tone": "Светлый",
+      "people": true,
+      "planets": false,
+      "layout": "postcard",
+      "reference": "as-en-fabulous",
+      "idea": "Нарисованное утро с человеком и котом, рукописные заголовки и экраны как открытки.",
+      "images": [
+        {
+          "number": 1,
+          "key": "today",
+          "file": "01-today.jpg",
+          "title": "Утро. Кофе.|Твой гороскоп.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 2,
+          "key": "zodiac",
+          "file": "02-zodiac.jpg",
+          "title": "Твой знак.|Прогноз на сегодня.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Натальная карта|с расшифровкой",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Взгляни на неделю|и месяц",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Что между вами|по вашим картам?",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Твоя дата.|Твоя матрица.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Профиль твоей|натальной карты",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Море. Дождь.|Музыка для отдыха.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original beautiful hand-painted gouache everyday scene on warm pale peach. A fashionable adult woman with dark curly bob in a blue striped sweater reading a plain small book while sitting on a balcony at lower LEFT, round orange cat curled beside her, terracotta geranium pots, coral coffee cup, cream linen curtain flowing gently across lower middle, painted Mediterranean-inspired city roofs in lower distance, sophisticated adult illustration with charming imperfect brushwork. Upper third quiet pale peach wall, center and right quiet for app screenshots. No phones, no planets, no text. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N09-art.png",
+      "preview": "N09-first-three.jpg",
+      "zip": "NEBO-N09-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N10",
+      "label": "N10",
+      "name": "Орбитальная мастерская",
+      "folder": "N10-orbital-studio",
+      "font": "Unbounded",
+      "tone": "Тёмный",
+      "people": false,
+      "planets": true,
+      "layout": "orbit",
+      "reference": "gp-en-nebula",
+      "idea": "Тёмная астрономическая мастерская с оригинальной скульптурой; вход через натальную карту.",
+      "images": [
+        {
+          "number": 1,
+          "key": "natal",
+          "file": "01-natal.jpg",
+          "title": "Натальная карта|с расшифровкой",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "Личный гороскоп|на сегодня",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "zodiac",
+          "file": "03-zodiac.jpg",
+          "title": "Все знаки.|Твой прогноз.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Дни впереди —|перед глазами",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Две карты.|Один разбор.",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Разбор матрицы|по дате рождения",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Сильные планеты|твоей карты",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Звуки для сна|и отдыха",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original ultra premium sculptural celestial mobile in a dark midnight blue architectural studio. Monumental warm brushed brass orbital rings and blue translucent spheres in lower LEFT, beautifully lit realistic pearl moon surface, thin gold wires, geometric pale stone plinths, tiny red planet on lower right, subtle teal haze. High-end museum installation photography, physically credible materials, asymmetrical spacious composition, not magical, no symbols or charts. Top third flat midnight blue negative space, middle-right open. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N10-art.png",
+      "preview": "N10-first-three.jpg",
+      "zip": "NEBO-N10-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N11",
+      "label": "N11",
+      "name": "Между вами",
+      "folder": "N11-together",
+      "font": "Manrope",
+      "tone": "Светлый",
+      "people": true,
+      "planets": false,
+      "layout": "together",
+      "reference": "as-en-pattern",
+      "idea": "Совместимость на первом кадре с оригинальной парой; дальше настоящая карта и гороскоп по знаку.",
+      "images": [
+        {
+          "number": 1,
+          "key": "compatibility",
+          "file": "01-compatibility.jpg",
+          "title": "Что между|вами?",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "title": "Разбор твоей|натальной карты",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "zodiac",
+          "file": "03-zodiac.jpg",
+          "title": "Гороскоп|по знаку зодиака",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 4,
+          "key": "today",
+          "file": "04-today.jpg",
+          "title": "Личный гороскоп|на каждый день",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 5,
+          "key": "future",
+          "file": "05-future.jpg",
+          "title": "Открой календарь.|Посмотри прогноз.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Матрица судьбы.|Рассчитай свою.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Твоя карта|в подробностях",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Пора отдохнуть.|Включи звуки.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original modern linocut editorial illustration of two fictional adults in a warm candid moment: dark-haired woman wearing cobalt blouse and curly-haired man wearing coral shirt, facing each other with understated smiles, hands gently touching. Overlapping large cropped profile silhouettes occupy lower LEFT third; flowing cobalt and terracotta bands connect toward lower right. Warm ivory background, elegant rough ink edges, sophisticated magazine style, no phone, no heart emojis, no planets, no mystic imagery, no existing characters. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N11-art.png",
+      "preview": "N11-first-three.jpg",
+      "zip": "NEBO-N11-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N12",
+      "label": "N12",
+      "name": "Светлый журнал",
+      "folder": "N12-quiet-editorial",
+      "font": "Cormorant",
+      "tone": "Светлый",
+      "people": true,
+      "planets": true,
+      "layout": "editorial",
+      "reference": "gp-en-costar",
+      "idea": "Редакционный светлый коллаж с крупной антиквой и монохромным портретом; вход через натальную карту.",
+      "images": [
+        {
+          "number": 1,
+          "key": "natal",
+          "file": "01-natal.jpg",
+          "title": "Прочитай свою|натальную карту",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "Твой день.|Твой личный гороскоп.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "zodiac",
+          "file": "03-zodiac.jpg",
+          "title": "Гороскоп для|твоего знака",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Прогноз на неделю.|И на месяц.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Совместимость|по двум картам",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Что в твоей|матрице судьбы?",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Особенности|карты рождения",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Немного моря.|Немного тишины.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original monochrome fine-art editorial collage on warm clean ivory. Large close cropped photographic face of fictional adult woman with freckles and short dark hair, eyes softly closed, positioned low in LEFT third, juxtaposed with intricate engraved botanical leaves, a pale paper moon disk and black thin abstract orbit arcs. Delicate silver-gray halftone print texture, museum book quality, precise torn paper edges, middle-right mostly spacious ivory. No celebrity likeness, no phone, no gothic magic, no tattoos, no text. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N12-art.png",
+      "preview": "N12-first-three.jpg",
+      "zip": "NEBO-N12-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N13",
+      "label": "N13",
+      "name": "Планеты как конфеты",
+      "folder": "N13-glass-planets",
+      "font": "Rubik",
+      "tone": "Светлый",
+      "people": false,
+      "planets": true,
+      "layout": "glass",
+      "reference": "as-ru-moonly",
+      "idea": "Прозрачные стеклянные планеты на персиковом фоне; знак зодиака первым, далее личный прогноз и карта.",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Знаки зодиака.|Гороскоп каждый день.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "Твой личный|прогноз на сегодня",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Разберись в своей|натальной карте",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Взгляни на неделю|и месяц",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Что между вами|по вашим картам?",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Твоя дата.|Твоя матрица.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Профиль твоей|натальной карты",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Море. Дождь.|Музыка для отдыха.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original premium macro 3D glass art on pale blush peach. A large translucent apricot ringed planet sculpture lower LEFT, glossy mint and lilac orb sculptures, smaller clear faceted star-shaped glass sculpture and iridescent flowing glass ribbon across lower middle/right. Objects have real refraction, tiny caustic shadows, exquisite candy glass material, tactile joyful adult art, not cheap floating sphere gradient. Upper third empty pale blush, quiet middle-right for UI, no letters, no phones, no interface. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N13-art.png",
+      "preview": "N13-first-three.jpg",
+      "zip": "NEBO-N13-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N14",
+      "label": "N14",
+      "name": "Твой городской день",
+      "folder": "N14-city-day",
+      "font": "Manrope",
+      "tone": "Светлый",
+      "people": true,
+      "planets": false,
+      "layout": "city",
+      "reference": "gp-ru-litres",
+      "idea": "Повседневная городская иллюстрация с людьми; большой личный прогноз открывает набор.",
+      "images": [
+        {
+          "number": 1,
+          "key": "today",
+          "file": "01-today.jpg",
+          "title": "Что у тебя|сегодня?",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 2,
+          "key": "zodiac",
+          "file": "02-zodiac.jpg",
+          "title": "Гороскоп для|твоего знака",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Твоя карта.|Разбор по темам.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Дни впереди —|перед глазами",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Две карты.|Один разбор.",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Разбор матрицы|по дате рождения",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Сильные планеты|твоей карты",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Звуки для сна|и отдыха",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original sophisticated European graphic novel illustration in flat sky blue, cream, coral and dark navy. Lower LEFT adult woman in orange coat sitting at an outdoor cafe table with a blue coffee cup and a small closed book, another adult man with bicycle nearby, a third adult woman walking her small dog further to right. Elegant urban street windows, shadows and archway connect across lower panorama. Stylish light linework, lively but restrained, no text on shops, no phones, no planets, no famous faces. Upper third pale sky blue empty. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N14-art.png",
+      "preview": "N14-first-three.jpg",
+      "zip": "NEBO-N14-8-1080x1920.zip",
+      "hero": false
+    },
+    {
+      "id": "N15",
+      "label": "N15",
+      "name": "Небо на бумаге",
+      "folder": "N15-paper-sky",
+      "font": "Onest",
+      "tone": "Светлый",
+      "people": false,
+      "planets": false,
+      "layout": "paper",
+      "reference": "as-en-chani",
+      "idea": "Бумажные волны и силуэты знаков переходят из кадра в кадр; вход через Овна, Рыб и Льва.",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Овен? Рыбы? Лев?|Твой гороскоп здесь.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "title": "Натальная карта.|С расшифровкой.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "today",
+          "file": "03-today.jpg",
+          "title": "Прогноз по карте.|Лично для тебя.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Открой календарь.|Посмотри прогноз.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Узнай, как вы|подходите друг другу",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Матрица судьбы.|Рассчитай свою.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Твоя карта|в подробностях",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Пора отдохнуть.|Включи звуки.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original artful torn-paper collage on clean off-white textured paper. Monumental cobalt ocean wave cutout and warm vermilion sun disk lower LEFT, small cream ram silhouette, coral lion profile and blue twin fish made from torn paper, sage green leaves and cream folded architectural steps further right. Real tactile uneven deckled edges, visible layered paper shadows, luxury contemporary editorial collage with plenty of breathing room. Top third clean off-white, middle/right open. No phones, no brand motifs, no text, no actual planets. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N15-art.png",
+      "preview": "N15-first-three.jpg",
+      "zip": "NEBO-N15-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N16",
+      "label": "N16",
+      "name": "Фарфоровый зодиак",
+      "folder": "N16-porcelain-zodiac",
+      "font": "Unbounded",
+      "tone": "Тёмный",
+      "people": false,
+      "planets": false,
+      "layout": "porcelain",
+      "reference": "gp-ru-moonly",
+      "idea": "Тёмный бирюзовый фон и фарфоровые герои знаков; дальше настоящий прогноз и карта с золотистой рамкой.",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Гороскоп|для всех 12 знаков",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "Личный прогноз|на каждый день",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Карта рождения.|Узнай подробности.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Прогноз на неделю.|И на месяц.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Совместимость|по двум картам",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Что в твоей|матрице судьбы?",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Особенности|карты рождения",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Немного моря.|Немного тишины.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original exquisite zodiac animal collection crafted from white porcelain and deep cobalt glaze on dark petrol teal background. Large refined porcelain ram sculpture lower LEFT with sculpted curled horns; a lion, paired fish, crab, scorpion and small birdless balanced scales sculptural objects arranged across bottom, fine metallic gold accents and microcraquelure glaze. Premium ceramic gallery still-life, soft dramatic side light, large distinct silhouettes, no text, no phone, no planet spheres, upper third plain teal and middle/right open. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N16-art.png",
+      "preview": "N16-first-three.jpg",
+      "zip": "NEBO-N16-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N17",
+      "label": "N17",
+      "name": "Мягкий вечер",
+      "folder": "N17-soft-evening",
+      "font": "Rubik",
+      "tone": "Тёмный",
+      "people": true,
+      "planets": false,
+      "layout": "evening",
+      "reference": "as-ru-litres",
+      "idea": "Уютная вечерняя сцена с человеком и котом объединяет гороскоп и звуки; затем знак и карта.",
+      "images": [
+        {
+          "number": 1,
+          "key": "today",
+          "file": "01-today.jpg",
+          "title": "Гороскоп днём.|Звуки вечером.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 2,
+          "key": "zodiac",
+          "file": "02-zodiac.jpg",
+          "title": "Твой знак.|Твой прогноз на день.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Карта рождения.|Загляни в разбор.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Взгляни на неделю|и месяц",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Что между вами|по вашим картам?",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Твоя дата.|Твоя матрица.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Профиль твоей|натальной карты",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Море. Дождь.|Музыка для отдыха.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original cinematic tactile 3D illustrated adult cozy room at dusk, deep mauve/navy walls, amber lamp glow, a fictional adult woman with short dark hair in loose cream sweater sitting in sage armchair with a plain book, an orange sleeping cat on lower LEFT, potted plants, large blue window with gentle dusk sky and crescent moon far right. Sophisticated charming stop-motion film art, not children toy, realistic cozy cloth texture, first third woman/cat dominant, top third dark quiet wall, middle/right sparse for UI. No phones, no text. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N17-art.png",
+      "preview": "N17-first-three.jpg",
+      "zip": "NEBO-N17-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N18",
+      "label": "N18",
+      "name": "Дата рождения",
+      "folder": "N18-birth-numbers",
+      "font": "Unbounded",
+      "tone": "Яркий",
+      "people": false,
+      "planets": false,
+      "layout": "numbers",
+      "reference": "gp-ru-cyntik",
+      "idea": "Розовый мир объёмных форм и календаря: первым показана матрица по дате рождения, затем карта и знак.",
+      "images": [
+        {
+          "number": 1,
+          "key": "matrix",
+          "file": "01-matrix.jpg",
+          "title": "Что говорит|твоя дата рождения?",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "title": "Натальная карта.|Рассчитай свою.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "zodiac",
+          "file": "03-zodiac.jpg",
+          "title": "Выбери знак.|Открой гороскоп.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 4,
+          "key": "today",
+          "file": "04-today.jpg",
+          "title": "Личный гороскоп|на каждый день",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 5,
+          "key": "future",
+          "file": "05-future.jpg",
+          "title": "Дни впереди —|перед глазами",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 6,
+          "key": "compatibility",
+          "file": "06-compatibility.jpg",
+          "title": "Две карты.|Один разбор.",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Сильные планеты|твоей карты",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Звуки для сна|и отдыха",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original high-end typographic object still-life on warm strawberry pink. Giant sculptural glossy butter-yellow numeral 7 lower LEFT leaning against a cobalt block, mint glass numeral 3 and peach numeral 9 at bottom middle, smaller geometric ivory numeral 2 far right, blank pale-yellow paper calendar and abstract folded paper strips. Numbers purely decorative sculptural objects, no dates, no fabricated data or chart. Rich physically correct lighting and soft shadows, premium editorial advertising design, upper third flat pink, middle/right quiet, no phones, no writing aside from these numeral objects. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N18-art.png",
+      "preview": "N18-first-three.jpg",
+      "zip": "NEBO-N18-8-1080x1920.zip",
+      "hero": true
+    },
+    {
+      "id": "N19",
+      "label": "N19",
+      "name": "Ветер и свет",
+      "folder": "N19-wind-light",
+      "font": "Playfair",
+      "tone": "Светлый",
+      "people": false,
+      "planets": false,
+      "layout": "ribbon",
+      "reference": "as-en-flo",
+      "idea": "Светлая скульптура из ткани, воды и света; первым крупно показана настоящая карта.",
+      "images": [
+        {
+          "number": 1,
+          "key": "natal",
+          "file": "01-natal.jpg",
+          "title": "Карта рождения.|Разбор по темам.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "Личный гороскоп|на сегодня",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "zodiac",
+          "file": "03-zodiac.jpg",
+          "title": "Гороскоп|твоего знака",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Открой календарь.|Посмотри прогноз.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Узнай, как вы|подходите друг другу",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Матрица судьбы.|Рассчитай свою.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Твоя карта|в подробностях",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Пора отдохнуть.|Включи звуки.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original minimalist fine art studio photograph on luminous ivory. Monumental translucent sky-blue silk ribbon sculptural loop lower LEFT, soft amber translucent paper disc, delicate feather-like folded white paper shapes, a pale peach ceramic oval, flowing ribbons across lower right. Exquisite material detail and graceful airy motion, beautiful shadows, elegant tactile art direction, adult restrained and timeless. Upper third plain ivory, no planets, no people, no magic, no phones, no text. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N19-art.png",
+      "preview": "N19-first-three.jpg",
+      "zip": "NEBO-N19-8-1080x1920.zip",
+      "hero": false
+    },
+    {
+      "id": "N20",
+      "label": "N20",
+      "name": "Звёздный театр",
+      "folder": "N20-star-theatre",
+      "font": "Oswald",
+      "tone": "Тёмный",
+      "people": false,
+      "planets": true,
+      "layout": "theatre",
+      "reference": "gp-ru-weather",
+      "idea": "Тёмный бумажный театр с Луной и астрономическими предметами; вход через гороскоп по знаку.",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Какой у тебя знак?|Открой гороскоп.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "title": "Натальная карта|с расшифровкой",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "today",
+          "file": "03-today.jpg",
+          "title": "Личный гороскоп.|На каждый день.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Прогноз на неделю.|И на месяц.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Совместимость|по двум картам",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Что в твоей|матрице судьбы?",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Особенности|карты рождения",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Немного моря.|Немного тишины.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ],
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original premium theatrical paper-cut diorama on deep ink navy. A monumental vermilion and warm gold proscenium arch dominates lower LEFT, suspended golden sun medallion and ivory crescent moon within it, layered midnight blue mountains and ocean waves across bottom, delicate orbital mobile on lower right. Luxurious tactile cut paper and velvet-like materials, subtle stage spotlights, striking restrained theatrical composition, no occult tools, no crystal ball, no real people, no phones, no writing. Top third quiet navy and right two thirds open for UI. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N20-art.png",
+      "preview": "N20-first-three.jpg",
+      "zip": "NEBO-N20-8-1080x1920.zip",
+      "hero": true
+    }
+  ]
+}

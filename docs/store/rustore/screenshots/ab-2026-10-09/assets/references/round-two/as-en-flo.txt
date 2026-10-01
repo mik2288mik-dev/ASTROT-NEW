@@ -1,0 +1,333 @@
+Browser tab: 3, Title: "‎Flo Cycle & Period Tracker App - App Store", URL: "https://apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065".
+1 AXWebArea ‎Flo Cycle & Period Tracker App - App Store, URL: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065
+	2 container
+		3 container Description: App Store, ID: app-store-icon-container
+		4 button (collapsed) App Store, ID: popover-1-target, Secondary Actions: Expand
+			5 text for iPhone
+			6 image
+		7 container search-input-form
+			8 text Search
+			9 search text field (settable) Search, ID: search-input__text-field
+		10 container navigation
+			11 content list
+				12 checkbox Today, Value: 0
+				13 checkbox Games, Value: 0
+				14 checkbox Apps, Value: 0
+				15 checkbox Arcade, Value: 0
+			16 content list Categories
+				17 checkbox Categories, Value: 0
+				18 checkbox Photo & Video, Value: 0
+				19 checkbox Health & Fitness, Value: 0
+				20 checkbox Productivity, Value: 0
+				21 checkbox Entertainment, Value: 0
+				22 checkbox Action, Value: 0
+				23 checkbox Adventure, Value: 0
+				24 checkbox Puzzle, Value: 0
+				25 checkbox Indie, Value: 0
+	26 container
+		27 container
+			28 heading Flo Cycle & Period Tracker, Value: 1
+				29 text Flo Cycle & Period Tracker
+			30 text Ovulation & Pregnancy Calendar
+			31 text Free · In‑App Purchases
+			32 button Share
+		33 content list
+			34 link Description: 2M RATINGS 4.7 Stars, Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065#productRatings
+			35 link Description: AGE RATING 13+ In-App Controls, Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065#information
+			36 link Description: CHART #2 Health & Fitness, Value: apps.apple.com/us/iphone/charts/6013?chart=top-free
+			37 link Description: DEVELOPER FLO HEALTH UK LIMITED, Value: apps.apple.com/us/developer/flo-health-uk-limited/id1149787531?platform=iphone
+			38 link Description: LANGUAGE EN + 20 More, Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065#information
+			39 link Description: SIZE 293.4 MB, Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065#information
+		40 container Description: iPhone App Previews and Screenshots, ID: product_media_phone_
+			41 container
+				42 button (disabled) Previous Page
+					43 image
+				44 content list
+					45 container Screenshot
+					46 container Screenshot
+					47 container Screenshot
+					48 container Screenshot
+				49 button Next Page
+					50 image
+		51 button iPhone, Apple Watch
+			52 text iPhone, Apple Watch
+		53 container
+			54 text Flo Health is a science-backed cycle, ovulation, pregnancy, and period tracker with over 570 million downloads worldwide.*
+
+Track your period (regular or irregular), predict ovulation, learn to spot fertile signs, follow your baby’s growth with Flo Health’s pregnancy tracker, and explore common perimenopause symptoms. Flo Health is here to support your menstrual cycle and female health journey.
+
+Is my data safe with Flo Health?
+Flo Health is the first and only period tracking app with two certifications that are internationally recognized as the gold standard in data protection and security. In 2025, Flo Health was recognized as the ISO/Information Security Management System Team of the Year at the PICCASO Privacy and Security Awards for excellence and commitment to privacy-first design.
+
+- Anonymous Mode: Use the Flo Health period tracker without any personal identifiers being linked to your health data.
+
+Why choose Flo Health for period and ovulation tracking?
+Flo Health is more than a basic calendar — it's a period tracker and ovulation tracker designed to help you notice patterns over time.
+
+- Over 70 trackable symptoms and moods to receive personalized menstrual cycle insights
+- Support for irregular periods, pre-period symptoms, and cycle changes
+- Cycle report summaries you can download and share with your doctor
+
+Can Flo Health support my trying-to-conceive (TTC) journey?
+Flo Health offers educational features to help you explore conception insights and better understand how to spot fertile signs.
+
+- Fertile window and ovulation predictions based on your logged period data
+- Log LH/ovulation test strip results and basal body temperature
+- Discharge tracking to help you recognize fertile signs
+
+How does Flo Health support me in pregnancy?
+Once you conceive, switch to Pregnancy Mode for checklists and expert guidance.
+
+- Pregnancy tracking with weekly updates on your baby's development
+- Daily articles explaining fetal development at each stage
+
+Can Flo Health help me with perimenopause symptoms?
+Track changes during perimenopause with tools designed to help you better understand this life stage.
+
+- Perimenopause Score to follow symptom changes
+- Menopause Timeline to understand the perimenopause phases
+- Tracker to log sleep, energy, mood, and well-being changes
+
+Can I share with my partner?
+Flo for Partners lets you invite your partner to support your health journey.
+
+- Help them understand your menstrual cycle, get ovulation predictions, and celebrate pregnancy progress together.
+
+Is Flo Health free?
+The Flo Health app is free to download and includes core tools you need to track and understand your cycle.
+
+What do I get with Flo Health Premium?
+
+- Daily, tailored insights and expert-led videos
+- In-depth pregnancy features
+- Symptom Checker** that provides educational information on polyendocrine metabolic ovarian syndrome, endometriosis, and uterine fibroids symptoms
+- Fertility insights to support your TTC journey
+- 24/7 virtual Health Assistant: Explore instant, tailored insights about your body and cycle trends
+- Secret Chats: Find tips from other members
+- Flori: Well-Being Battery that gives you a snapshot of how your sleep, cycle, activity, and symptoms may be impacting you
+
+Note: Flo Health Premium is HSA/FSA eligible.
+
+Medical disclaimer: Flo Health does not provide medical advice, diagnosis, or treatment, and is not a method of birth control or conception aid. Predictions and features are for informational and educational purposes only. Always consult a qualified healthcare professional.
+
+Flo Health period tracker is compatible with Apple Watch.
+
+Download the Flo Health app today and join millions using a trusted period tracker, pregnancy app, and cycle tracker.
+
+*As of July 2026
+**Not available in the UK, EU, Iceland, Liechtenstein, Norway, or Switzerland.
+
+Privacy Policy: https://flo.health/privacy-policy
+Terms of Use: https://flo.health/terms-of-service
+			55 button more
+		56 container Description: Events, ID: appEvents
+			57 heading Events, Value: 2
+				58 text Events
+			59 content list
+				60 container
+					61 text HAPPENING NOW
+					62 link Description: Explore perimenopause features, Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065?eventid=6813562583
+		63 container Description: Ratings & Reviews, ID: productRatings
+			64 link Description: Ratings & Reviews, Value: apps.apple.com/us/app/1038369065?see-all=reviews&platform=iphone
+			65 content list
+				66 container
+					67 text 4.7 out of 5 2M Ratings
+					68 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					69 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					70 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					71 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					72 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.other.one**
+		73 container
+			74 button (disabled) Previous Page
+				75 image
+			76 content list
+				77 container Not a fan of new format
+					78 heading Not a fan of new format, Value: 3, ID: review-7609708298-title
+						79 text Not a fan of new format
+					80 content list 5 Stars
+					81 text 07/23/2021
+					82 text mallalalalalalalalala
+					83 container
+						84 text I used to love flo. I’ve been using the app since my junior year of high school (I’m now a senior in college). I appreciate how I’ve been able to track my period through the years, as it’s been enormously helpful to my overall health, well-being, and awareness of my body. That being said, I have really struggled with the new updates that flo has undergone. Not only has the app become significantly less user-friendly, but the constant push to “go premium” has really negatively impacted my experience. I understand why they have a premium option, and I respect that it is there, but what I don’t respect is how I’m constantly being mislead in order to be trapped into signing up for a premium subscription. I find it really irresponsible that women who don’t want to pay for this app, will be given insights about their menstrual health, only to find out that they can’t have access to the information behave they don’t have an account! I used the chat feature a few times before, and it’ll leave me responding to chats for about 5 minutes, and right before they give me an answer about my health, they say I need to subscribe! It’s honestly cruel that an app meant to help women feel more secure about their health, is constantly misleading them like this, or trying to buy their desire for basic health info! Most of which can be googled, btw. I’ve really loved using flo, but am honestly considering shifting gears if things don’t change soon.
+						85 button more
+						86 text Developer Response
+						87 text Hi mallalalalalalalalala,Thank you for sharing this. We’re sorry to hear you’re disappointed that we moved some features out of the free plan. Premium subscriptions fund the ongoing development of the app, while keeping the basics free for everyone. We welcome your feedback. Please email us at support@flo.health.Kind Regards,Flo Support Team
+						88 button more
+				89 container Above just a period app
+					90 heading Above just a period app, Value: 3, ID: review-8316218714-title
+						91 text Above just a period app
+					92 content list 5 Stars
+					93 text 02/04/2022
+					94 text Amanda_bubble
+					95 container
+						96 text I used this app for a couple years to track my period and symptoms every month. (Like most). And I found it very useful to see symptoms that I would get routinely every month, especially since I wasn’t always exactly on schedule. At the time I always had my period every month and from my knowledge I thought it was normal the cycle lengths I had. But after two years Flo popped up with a notification letting me know “Your symptoms match up with people who have PCOS and thought was aren’t drs. We think you should ask or bring it up to your OBGYN.” My phone died right after and when I would try to look it up later I constantly ran in to pms. Acouple years pass and I out of the blood skip my period for three months with no pregnancy but period pains with no blood. I call my obgyn and they tell me.  “We think you have pcos, we are gonna do blood work to make sure but we are pretty certain” blood work came back and I was diagnosed with  polycystic ovary syndrome. Which was a relief and yet scary all at the same time. But it made me think back to when the Flo app sent me that message years prior, telling me to chat with my dr. I really appreciate this app and the developers for recognizing that pcos is a thing and people can go through life not every knowing or being diagnosed. So I told my dr about how my period tracker on my phone recommended I chat with them about it. So if you had any thoughts on why this app is so useful and above the rest. This is why it meant so much to me!
+						97 button more
+						98 text Developer Response
+						99 text Hi Amanda!We really appreciate your feedback! We’re so glad that you like using our app! We’re constantly working on improving Flo, and we hope that we can make it even more useful and interesting for you in the future.Kind regards,Flo Support Team
+						100 button more
+			101 button Next Page
+				102 image
+		103 container Description: What’s New, ID: mostRecentVersion
+			104 button What’s New
+				105 heading What’s New, Value: 2
+					106 text What’s New
+			107 container What’s New
+				108 container
+					109 text Dear Flo Community,
+This is a technical update that helps us improve our app and make performance even better.
+Thank you for updating!
+
+Always yours,
+The Flo Team
+P.S.: If you like our app, please don’t hesitate to rate and review us
+					110 button more
+				111 text Version 10.8.0
+				112 text 2d ago
+		113 container Description: Subscriptions, ID: subscriptions
+			114 heading Subscriptions, Value: 2
+				115 text Subscriptions
+			116 content list
+				117 container
+					118 heading Flo Menstrual Cycle Tracker, Value: 3
+						119 text Flo Menstrual Cycle Tracker
+					120 text Your personal period calendar & symptom diary
+					121 text Free Trial
+				122 container
+					123 heading Flo Pregnancy Tracker, Value: 3
+						124 text Flo Pregnancy Tracker
+					125 text Track your baby's growth with Flo Premium
+					126 text Free Trial
+				127 container
+					128 heading Flo Birth Control Reminder, Value: 3
+						129 text Flo Birth Control Reminder
+					130 text Set reminders for your birth control method
+					131 text Free Trial
+				132 container
+					133 heading Flo Women's Health & Wellbeing, Value: 3
+						134 text Flo Women's Health & Wellbeing
+					135 text Trusted Information backed by health experts
+					136 text Free Trial
+				137 container
+					138 heading Ovulation Tracker, Value: 3
+						139 text Ovulation Tracker
+					140 text Understand your fertile days
+					141 text $9.99
+		142 container Description: App Privacy, ID: privacyHeader
+			143 button App Privacy
+				144 link Description: App Privacy, Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065#
+			145 container
+				146 text The developer,  FLO HEALTH UK LIMITED , indicated that the app’s privacy practices may include handling of data as described below. For more information, see the 
+				147 link Description: Developer’s Privacy Policy, Value: flo.health/privacy-policy
+				148 text .
+		149 content list
+			150 container Data Used to Track You
+				151 heading Data Used to Track You, Value: 3
+					152 text Data Used to Track You
+				153 text The following data may be used to track you across apps and websites owned by other companies:
+				154 content list
+					155 text Purchases
+					156 text Location
+					157 text Identifiers
+					158 text Usage Data
+			159 container Data Linked to You
+				160 heading Data Linked to You, Value: 3
+					161 text Data Linked to You
+				162 text The following data may be collected and linked to your identity:
+				163 content list
+					164 text Health & Fitness
+					165 text Purchases
+					166 text Location
+					167 text Contact Info
+					168 text User Content
+					169 text Search History
+					170 text Identifiers
+					171 text Usage Data
+					172 text Sensitive Info
+					173 text Diagnostics
+		174 container
+			175 text Privacy practices may vary, for example, based on the features you use or your age. 
+			176 link Description: Learn More, Value: apps.apple.com/us/iphone/story/id1538632801
+		177 container Description: Accessibility, ID: accessibilityHeader
+			178 heading Accessibility, Value: 2
+				179 text Accessibility
+			180 container
+				181 text The developer has not yet indicated which accessibility features this app supports. 
+				182 link Description: Learn More, Value: apps.apple.com/story/id1814164299
+		183 container Description: Information, ID: information
+			184 heading Information, Value: 2
+				185 text Information
+			186 definition list
+				187 container Seller
+					188 text Seller
+				189 text FLO HEALTH UK LIMITED
+				190 container Size
+					191 text Size
+				192 text 293.4 MB
+				193 container Category
+					194 text Category
+				195 text Health & Fitness
+				196 container Compatibility
+					197 text Compatibility
+				198 button (collapsed) Requires iOS 17.0 or later., Secondary Actions: Expand
+					199 text Requires iOS 17.0 or later.
+					200 image
+				201 container Languages
+					202 text Languages
+				203 button (collapsed) English and 20 more, Secondary Actions: Expand
+					204 text English and 20 more
+					205 image
+				206 container Age Rating
+					207 text Age Rating
+				208 button (collapsed) 13+, Secondary Actions: Expand
+					209 text 13+
+					210 image
+				211 container In-App Purchases
+					212 text In-App Purchases
+				213 button (collapsed) Yes, Secondary Actions: Expand
+					214 text Yes
+					215 image
+				216 container Copyright
+					217 text Copyright
+				218 text © Flo Health UK Limited
+		219 container notPurchasedLinks
+			220 link Description: Developer Website ↗, Value: flo.health/
+			221 link Description: Privacy Policy ↗, Value: flo.health/privacy-policy
+		222 container Description: You Might Also Like, ID: similarItems
+			223 link Description: You Might Also Like, Value: apps.apple.com/us/app/1038369065?see-all=customers-also-bought-apps&platform=iphone
+			224 container
+				225 button (disabled) Previous Page
+					226 image
+				227 content list
+					228 link Description: View Period Tracker and Calendar Track your Cycle & Ovulation, Value: apps.apple.com/us/app/period-tracker-and-calendar/id1032267351
+					229 link Description: View Clover －Period Tracker, Cycle Calendar for Women and Teens, Value: apps.apple.com/us/app/clover-period-tracker-cycle/id1423628793
+					230 link Description: View Clue Period & Cycle Tracker Ovulation & Fertility Calendar, Value: apps.apple.com/us/app/clue-period-cycle-tracker/id657189652
+					231 link Description: View My Cycle ؜ Ovulation & Period Tracker, Value: apps.apple.com/us/app/my-cycle/id1459096552
+					232 link Description: View Femometer Fertility Tracker Ovulation & Period Calendar, Value: apps.apple.com/us/app/femometer-fertility-tracker/id1269972832
+					233 link Description: View Period Tracker Period Calendar Cycle Tracker & Ovulation, Value: apps.apple.com/us/app/period-tracker-period-calendar/id896501514
+					234 link Description: View Period Tracker by GP Apps Women’s Health Diary, Value: apps.apple.com/us/app/period-tracker-by-gp-apps/id330376830
+					235 link Description: View Ovia Cycle & Pregnancy Tracker Fertility, Ovulation, & Period, Value: apps.apple.com/us/app/ovia-cycle-pregnancy-tracker/id570244389
+					236 link Description: View Glow Ovulation & Period App FDA Listed Fertility Tracker, Value: apps.apple.com/us/app/glow-ovulation-period-app/id638021335
+				237 button Next Page
+					238 image
+		239 container
+			240 button United States
+			241 content list
+				242 link Description: This page is available in Español (México), Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065?l=es-MX
+				243 link Description: This page is available in العربية, Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065?l=ar
+				244 link Description: This page is available in Русский, Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065?l=ru
+				245 link Description: This page is available in 简体中文, Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065?l=zh-Hans-CN
+				246 link Description: This page is available in Français (France), Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065?l=fr-FR
+				247 link Description: This page is available in 한국어, Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065?l=ko
+				248 link Description: This page is available in Português (Brazil), Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065?l=pt-BR
+				249 link Description: This page is available in Tiếng Việt, Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065?l=vi
+				250 link Description: This page is available in 繁體中文 (台灣), Value: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065?l=zh-Hant-TW
+			251 text Copyright © 2026
+			252 link Description: Apple Inc., Value: apple.com/
+			253 text All rights reserved.
+			254 content list
+				255 link Description: Internet Service Terms, Value: apple.com/legal/internet-services/
+				256 link Description: App Store & Privacy, Value: apple.com/legal/privacy/data/en/app-store/
+				257 link Description: Cookie Warning, Value: apple.com/privacy/use-of-cookies/
+				258 link Description: Support, Value: support.apple.com/billing
+
+The focused UI element is 1 AXWebArea ‎Flo Cycle & Period Tracker App - App Store, URL: apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065

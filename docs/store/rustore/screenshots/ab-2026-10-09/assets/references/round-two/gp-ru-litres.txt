@@ -1,0 +1,203 @@
+Browser tab: 3, Title: "Приложения в Google Play – Литрес: Книги и аудиокниги", URL: "https://play.google.com/store/apps/details?id=ru.litres.android&hl=ru".
+1 AXWebArea Приложения в Google Play – Литрес: Книги и аудиокниги, URL: play.google.com/store/apps/details?id=ru.litres.android&hl=ru
+	2 container yDmH0d
+		3 container
+			4 container Заголовок страницы
+				5 link Description: Логотип Google Play, Value: play.google.com/store/games
+				6 container Главная панель навигации
+					7 tab group
+						8 tab (selectable, settable, boolean) Игры, Value: 0, ID: 11
+						9 tab (selected, settable, boolean) Приложения, Value: 1
+						10 tab (selectable, settable, boolean) Книги, Value: 0, ID: 5
+						11 tab (selectable, settable, boolean) Детям, Value: 0, ID: 13
+				12 button Поиск
+				13 button Справочный центр
+				14 pop up button (collapsed) Description: Открыть меню аккаунта, Secondary Actions: Expand
+		15 container
+			16 container
+				17 heading Литрес: Книги и аудиокниги, Value: 1
+					18 text Литрес: Книги и аудиокниги
+				19 link Description: LitRes, Value: play.google.com/store/apps/dev?id=8427637182851887164
+				20 text Покупки в приложении
+				21 container Информационные значки
+					22 container
+						23 image Средняя оценка: 4,6 из 5
+						24 text Отзывы: 369 тыс.
+					25 container
+						26 text 10 млн+ (количество скачиваний)
+			27 button Установить
+				28 text Установить
+			29 button Поделиться
+				30 text Поделиться
+			31 button Добавить в список желаний
+				32 text Добавить в список желаний
+			33 content list
+				34 button Скриншот
+				35 button Скриншот
+				36 button Скриншот
+				37 button Скриншот
+				38 button Скриншот
+				39 button Скриншот
+				40 button Скриншот
+				41 button Скриншот
+				42 button Скриншот
+				43 button Скриншот
+				44 button Скриншот
+				45 button Скриншот
+				46 button Скриншот
+				47 button Скриншот
+				48 button Скриншот
+				49 button Скриншот
+				50 button Скриншот
+				51 button Скриншот
+				52 button Скриншот
+				53 button Скриншот
+				54 button Скриншот
+				55 button Скриншот
+				56 button Скриншот
+				57 button Скриншот
+				58 button Скриншот
+				59 button Скриншот
+				60 button Скриншот
+				61 button Скриншот
+				62 button Скриншот
+				63 button Скриншот
+				64 button Скриншот
+				65 button Скриншот
+			66 container
+				67 heading Описание, Value: 2
+					68 text Описание
+				69 button Подробнее об игре "Описание"
+				70 container Читать книги и слушать аудиокниги онлайн и без интернета. Электронная библиотека
+					71 text Читать книги и слушать аудиокниги онлайн и без интернета. Электронная библиотека
+				72 text Последнее обновление 7 окт. 2026 г.
+				73 button (disabled) #3 топ бесплатных в категории "книги и справочники"
+					74 text #3 топ бесплатных в категории "книги и справочники"
+				75 container
+					76 link Description: Книги и справочники, Value: play.google.com/store/apps/category/BOOKS_AND_REFERENCE
+			77 container
+				78 text События и предложения
+				79 content list
+					80 container
+						81 link Description: Доступно обновление «Гипотеза любви» Али Хейзелвуд — читайте до премьеры фильма, Value: play.google.com/store/apps/eventdetails/4829123555902752573
+					82 container
+						83 link Description: Срок хранения истекает через 1 день На любой вкус — скидки до 80% на подборку книг, Value: play.google.com/store/apps/eventdetails/4831127627913303648
+					84 container
+						85 link Description: Доступно обновление «Сера» Калли Харт — продолжение «Ртути», уже в Литрес, Value: play.google.com/store/apps/eventdetails/4829837771619961153
+					86 container
+						87 link Description: Доступно обновление «Тайный дневник Верити» Колин Гувер, Value: play.google.com/store/apps/eventdetails/4831171351267221509
+			88 container
+				89 heading Безопасность данных, Value: 2
+					90 text Безопасность данных
+				91 container
+					92 link Description: Подробнее об игре "Безопасность данных", Value: play.google.com/store/apps/datasafety?id=ru.litres.android
+				93 text Чтобы контролировать безопасность, нужно знать, как разработчики собирают ваши данные и передают их третьим лицам. Методы обеспечения безопасности и конфиденциальности могут зависеть от того, как вы используете приложение, а также от вашего региона и возраста. Информация ниже предоставлена разработчиком и в будущем может измениться.
+				94 content list
+					95 container
+						96 text Это приложение может передавать указанные типы данных третьим лицам История действий в приложении и Сведения о приложении и его производительности
+					97 container
+						98 text Это приложение может собирать указанные типы данных Личная информация и История действий в приложении
+					99 text Данные не шифруются.
+					100 text Вы можете запросить удаление данных
+				101 container
+					102 link Description: Подробнее о безопасности данных, Value: play.google.com/store/apps/datasafety?id=ru.litres.android
+			103 container
+				104 heading Оценки и отзывы, Value: 2
+					105 text Оценки и отзывы
+				106 button Подробнее об игре "Оценки и отзывы"
+				107 button Оценки и отзывы проверены
+					108 text Оценки и отзывы проверены
+				109 content list
+					110 checkbox Description: Телефон, Value: 1, ID: formFactor_2
+					111 checkbox Description: ТВ, Value: 0, ID: formFactor_6
+					112 checkbox Description: Desktop, Value: 0, ID: formFactor_5
+					113 checkbox Description: Планшет, Value: 0, ID: formFactor_3
+				114 image Средняя оценка: 4,6 из 5
+				115 text 344 тыс. отзывов
+				116 image 293 994 отзыва с рейтингом 5
+				117 image 14 390 отзывов с рейтингом 4
+				118 image 7 229 отзывов с рейтингом 3
+				119 image 5 387 отзывов с рейтингом 2
+				120 image 22 921 отзыв с рейтингом 1
+				121 text Анастасия Рязанцева
+				122 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+				123 container
+					124 image Средняя оценка: 3 из 5
+					125 text 9 ноября 2024 г.
+				126 text Пользуюсь подпиской очень давно. Больше года точно. Но что-то с каждым обновлением приложение становится все хуже и хуже. Найдя интересную книгу "...часть 2", начинаешь целый квест в поисках части 1. Почему теперь в информации о книге нет ссылки на всю серию? Почему не пишется её номер в серии? Ушла далеко от вайфая, мне: "нет связи с интернетом, прослушивание книги приостановлено". Это что такое? А нафига мне в памяти гигабайты скаченных книг, если я их слушать не могу без интернета? 133 человека отметили этот отзыв как полезный.
+				127 text Вам помогла эта информация?
+				128 checkbox Description: Да, Value: 0, ID: dd1a6a11-39fd-43f9-90e8-5f141d90462d::1
+				129 checkbox Description: Нет, Value: 0, ID: dd1a6a11-39fd-43f9-90e8-5f141d90462d::2
+				130 text LitRes 10 ноября 2024 г. Спасибо, что поделились своим опытом. Нам очень жаль, что использование приложения стало вызывать неудобства :( Серия и последовательность книг должны отображаться корректно, а скачанные книги оставаться доступными для прослушивания без интернета. Пожалуйста, напишите нам на care@litres.ru — мы все проверим 🙏
+				131 text Виолетта Кулида
+				132 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+				133 container
+					134 image Средняя оценка: 1 из 5
+					135 text 16 сентября 2026 г.
+				136 text После смены интерфейса оплаты стало понятно, что карту от приложения нужно отвязывать. При нажатии на кнопку "купить" есть 5 секунд на смену способа оплаты, но сама форма висит, и к тому моменту, когда меееедленно выплывают кнопки для того, чтобы собственно изменить форму оплаты (списать бонусы, сберспасибо), 5 секунд уже истекают и деньги списываются с карты. Отменить тоже нельзя. Волшебство и никакого мошенничества :) Техподдержка сообщила, что "у них все работает нормально". Ну да, ну да.. 9 человек отметили этот отзыв как полезный.
+				137 text Вам помогла эта информация?
+				138 checkbox Description: Да, Value: 0, ID: 8cd91d7e-aaa9-4f95-9b19-cee69b582eeb::1
+				139 checkbox Description: Нет, Value: 0, ID: 8cd91d7e-aaa9-4f95-9b19-cee69b582eeb::2
+				140 text LitRes 16 сентября 2026 г. Нам очень жаль, что вы столкнулись с этой неприятностью :( Если при оплате возникают какие-либо сложности, пожалуйста, напишите нам на почту care@litres.ru – обязательно всё проверим и поможем вам 🙏
+				141 text Fimistaklus Kaitiris
+				142 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+				143 container
+					144 image Средняя оценка: 5 из 5
+					145 text 11 сентября 2026 г.
+				146 text Приложение сложноватое по интерфейсу,но разобраться можно- как добавлять закладки,находить закладки,регулировать скорость чтения в аудиокнигах,и другое.Радует, что приложение запоминает место,где пользователь остановился и можно продолжить чтение с того же места.Со скринридерами работает,в целом,хорошо (по крайней мере на Android- для тех,кто в теме) 7 человек отметили этот отзыв как полезный.
+				147 text Вам помогла эта информация?
+				148 checkbox Description: Да, Value: 0, ID: a81bebcf-d097-4a7d-9e12-37d1cd9e0653::1
+				149 checkbox Description: Нет, Value: 0, ID: a81bebcf-d097-4a7d-9e12-37d1cd9e0653::2
+				150 text LitRes 11 сентября 2026 г. Спасибо, что поддержали нас отзывом и высокой оценкой 🤗 Будем делать всё, чтобы сохранить ваше доверие!
+				151 button Все отзывы
+					152 text Все отзывы
+			153 container
+				154 heading Новое в приложении, Value: 2
+					155 text Новое в приложении
+				156 text В этой версии мы занимались оптимизацией приложения и исправлением багов.
+				157 text Если у вас есть предложения по улучшению или вы столкнулись с какими-либо проблемами, пожалуйста, напишите нам (Профиль => Сообщить о проблеме).
+			158 link Description: Пожаловаться (откроется в новом окне), Value: support.google.com/googleplay/?p=report_content
+			159 image Возрастные ограничения
+			160 text 3+
+			161 text Цифровые покупки
+			162 link Description: Подробнее о возрастных ограничениях (ссылка откроется в новом окне), Value: support.google.com/googleplay?p=appgame_ratings
+			163 container developer-contacts-heading
+				164 heading Поддержка приложения, Value: 2
+					165 text Поддержка приложения
+				166 button (collapsed) Description: Развернуть, Secondary Actions: Expand
+			167 container
+				168 heading LitRes: другие приложения, Value: 2
+					169 text LitRes: другие приложения
+				170 container
+					171 link Description: Подробнее об игре "LitRes: другие приложения", Value: play.google.com/store/apps/dev?id=8427637182851887164
+				172 link Description: Читай — Книги онлайн, читалка LitRes Средняя оценка: 4,3 из 5, Value: play.google.com/store/apps/details?id=ru.litres.android.readfree
+				173 link Description: Литрес: Аудиокниги онлайн LitRes Средняя оценка: 4,4 из 5, Value: play.google.com/store/apps/details?id=ru.litres.android.audio
+			174 container
+				175 heading Похожие приложения, Value: 2
+					176 text Похожие приложения
+				177 container
+					178 link Description: Подробнее об игре "Похожие приложения", Value: play.google.com/store/apps/collection/cluster?gsr=SpUBaixaTCtlNmFhK0d1ZHpjZ1JDZDlDU1BIb0lyNWpMQTNtWS9uMlI1dkdNNUlVPcICYQoVChFydS5saXRyZXMuYW5kcm9pZBAHGAgwATgASjwIARAAGjDQm9C40YLRgNC10YE6INCa0L3QuNCz0Lgg0Lgg0LDRg9C00LjQvtC60L3QuNCz0LggACgAMABQAFgBYACwEgA%3D:S:ANO1ljI2riI
+				179 link Description: Яндекс Книги Direct Cursus Computer Systems Trading LLC Средняя оценка: 4,8 из 5, Value: play.google.com/store/apps/details?id=ru.plus.bookmate
+				180 link Description: Хочу Водить Simplica Software Средняя оценка: 4,8 из 5, Value: play.google.com/store/apps/details?id=ru.wantdrive
+				181 link Description: Моя школа Дневник Центр Цифровизации Образования Средняя оценка: 3,8 из 5, Value: play.google.com/store/apps/details?id=ru.mes.dnevnik.fgis
+				182 link Description: Кинопоиск Direct Cursus Computer Systems Trading LLC Средняя оценка: 3,4 из 5, Value: play.google.com/store/apps/details?id=ru.kinopoisk.tv
+				183 link Description: Кинопоиск－фильмы，сериалы，спорт Direct Cursus Computer Systems Trading LLC Средняя оценка: 4,6 из 5, Value: play.google.com/store/apps/details?id=ru.kinopoisk
+				184 link Description: eBoox: Читалка книг fb2 epub ReadingApp Средняя оценка: 4,9 из 5, Value: play.google.com/store/apps/details?id=com.reader.books
+		185 container
+			186 text Google Play
+			187 link Description: Play Pass, Value: play.google.com/store/pass/getstarted
+			188 link Description: Play Points, Value: play.google.com/store/points/enroll
+			189 link Description: Подарочные карты, Value: play.google.com/about/giftcards
+			190 link Description: Использовать, Value: play.google.com/redeem
+			191 link Description: Правила возврата платежей, Value: support.google.com/googleplay/answer/134336
+			192 text Дети и семья
+			193 link Description: Руководство для родителей, Value: support.google.com/googleplay?p=pff_parentguide
+			194 link Description: Семейный доступ, Value: support.google.com/googleplay/answer/7007852
+			195 link Description: Условия использования, Value: play.google.com/intl/ru_ru/about/play-terms.html
+			196 link Description: Конфиденциальность, Value: policies.google.com/privacy
+			197 link Description: О Google Play, Value: support.google.com/googleplay/?p=about_play
+			198 link Description: Для разработчиков, Value: developer.android.com/index.html
+			199 link Description: Google Store, Value: store.google.com/?playredirect=true&utm_source=play&utm_medium=google_oo&utm_campaign=GS106288
+			200 text Все цены указаны с учетом НДС. Россия (Русский)
+
+The focused UI element is 1 AXWebArea Приложения в Google Play – Литрес: Книги и аудиокниги, URL: play.google.com/store/apps/details?id=ru.litres.android&hl=ru

@@ -6,6 +6,7 @@ import { ModuleKind, ScriptTarget, transpileModule } from 'typescript';
 import * as dateFnsTz from 'date-fns-tz';
 import {
   PERSONAL_FORECAST_CONTRACT_VERSION,
+  PERSONAL_FORECAST_PROMPT_VERSION,
   isPersonalForecastPackage,
   slicePersonalForecastForAccess,
   type PersonalForecastAccessPayload,
@@ -17,6 +18,7 @@ import {
   RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION,
   projectPersonalForecastForWire,
   resolvePersonalForecastWireVersion,
+  resolvePersonalForecastWirePromptVersion,
 } from '../lib/personalForecastWireCompatibility';
 import { personalForecastFixture } from './personal-forecast-fixture';
 
@@ -44,6 +46,23 @@ runInNewContext(transpileModule(releasedValidatorSource, {
   },
 });
 
+// Clean source commit embedded in NEBO-rustore-release-1.0.5-vc8.apk.
+const testApkValidatorSource = readFileSync(join(__dirname, 'fixtures/personalForecastContract-v34.source.txt'), 'utf8').replace(/\r\n/g, '\n');
+const testApkValidator = {} as typeof releasedValidator;
+runInNewContext(transpileModule(testApkValidatorSource, {
+  compilerOptions: { module: ModuleKind.CommonJS, target: ScriptTarget.ES2022 },
+}).outputText, {
+  exports: testApkValidator,
+  require(id: string) {
+    if (id === 'date-fns-tz') return dateFnsTz;
+    if (id === './appVoice') return {
+      PERSONAL_FORECAST_VOICE_VERSION: '16',
+      withPersonalForecastVoiceVersion: (base: string) => `${base}+forecast-voice.16`,
+    };
+    throw new Error(`Unexpected test APK validator import: ${id}`);
+  },
+});
+
 function payload(period: PersonalForecastPeriod, premium: boolean): PersonalForecastAccessPayload {
   return {
     ...slicePersonalForecastForAccess(personalForecastFixture(period), premium),
@@ -53,6 +72,41 @@ function payload(period: PersonalForecastPeriod, premium: boolean): PersonalFore
 }
 
 describe('released APK personal forecast wire compatibility', () => {
+  it('pins the validator actually bundled in 1.0.5, including its old prompt identity', () => {
+    expect(createHash('sha256').update(testApkValidatorSource).digest('hex'))
+      .toBe('886e3520b7a94da6f3bc754fe7ff52cfd8784c59e761de63dae2d7b1711bf7fe');
+    expect(resolvePersonalForecastWirePromptVersion('personal-forecast-feed-v34-direct-prose'))
+      .toBe('personal-forecast-feed.v57-grounded-today+week-month+forecast-voice.16');
+    expect(resolvePersonalForecastWirePromptVersion(PERSONAL_FORECAST_CONTRACT_VERSION, PERSONAL_FORECAST_PROMPT_VERSION))
+      .toBe(PERSONAL_FORECAST_PROMPT_VERSION);
+    for (const prompt of ['', 'unknown', [PERSONAL_FORECAST_PROMPT_VERSION]]) {
+      expect(resolvePersonalForecastWirePromptVersion(PERSONAL_FORECAST_CONTRACT_VERSION, prompt)).toBeNull();
+    }
+  });
+
+  it.each<PersonalForecastPeriod>(['day', 'week', 'month'])('delivers fresh Premium %s text to the exact 1.0.5 validator', (period) => {
+    const original = payload(period, true);
+    const before = JSON.stringify(original);
+    expect(testApkValidator.getPersonalForecastPackageValidationError(original.forecast)).toBe('PACKAGE_META_INVALID');
+    const projected = projectPersonalForecastForWire(original, 'personal-forecast-feed-v34-direct-prose');
+    expect(testApkValidator.getPersonalForecastPackageValidationError(projected.forecast)).toBeNull();
+    expect(projected.forecast.overview).toBe(original.forecast.overview);
+    expect(projected.forecast.sections).toBe(original.forecast.sections);
+    expect(projected.forecast.evidence).toBe(original.forecast.evidence);
+    expect(projected.forecast.meta).toMatchObject({ currentGeneration: { promptVersion: original.forecast.meta.promptVersion } });
+    expect(JSON.stringify(original)).toBe(before);
+    expect(projectPersonalForecastForWire(original, PERSONAL_FORECAST_CONTRACT_VERSION, PERSONAL_FORECAST_PROMPT_VERSION)).toBe(original);
+  });
+
+  it('delivers the complete Free Day to the 1.0.5 validator', () => {
+    const original = payload('day', false);
+    const projected = projectPersonalForecastForWire(original, 'personal-forecast-feed-v34-direct-prose');
+    expect(testApkValidator.getPersonalForecastPackageValidationError(projected.forecast, {
+      redactedSectionIds: projected.lockedSectionIds,
+    })).toBeNull();
+    expect(projected.forecast.overview).toBe(original.forecast.overview);
+    expect(projected.lockedSectionIds).toEqual(original.lockedSectionIds);
+  });
   it('defaults only an absent version to v25 and rejects unknown or ambiguous negotiation', () => {
     expect(resolvePersonalForecastWireVersion(undefined)).toBe(LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION);
     for (const version of [LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION, RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION, 'personal-forecast-feed-v30-nebo-human-voice', DIRECT_PROSE_ANDROID_CONTRACT_VERSION, PERSONAL_FORECAST_CONTRACT_VERSION]) {
@@ -169,7 +223,7 @@ describe('released APK personal forecast wire compatibility', () => {
     });
     expect(projected.lockedSectionIds).toEqual([]);
     expect(JSON.stringify(original)).toBe(before);
-    expect(projectPersonalForecastForWire(original, PERSONAL_FORECAST_CONTRACT_VERSION)).toBe(original);
+    expect(projectPersonalForecastForWire(original, PERSONAL_FORECAST_CONTRACT_VERSION, PERSONAL_FORECAST_PROMPT_VERSION)).toBe(original);
     // Negotiation must not weaken the new client's validator.
     // expect(isPersonalForecastPackage(original.forecast)).toBe(true);
     expect(isPersonalForecastPackage(forecast)).toBe(false);

@@ -17,6 +17,7 @@ import {
 import {
   buildPersonalForecastBirthProfileFingerprint,
   PERSONAL_FORECAST_ROLLING_DAY_COUNT,
+  FREE_FORECAST_DAYS,
   getPersonalForecastDayHorizon,
   getPersonalForecastPeriodKey,
   isPersonalForecastPeriodAllowedForTier,
@@ -106,23 +107,28 @@ function uniqueTargets(targets: PersonalForecastPrewarmTarget[]): PersonalForeca
   });
 }
 
+/**
+ * Target order is the fill order and the scheduler's pass index:
+ * Premium = five nearest days, then the current week and month; Free = what a
+ * free reader can open (today and tomorrow), or the rolling days when it backs
+ * an expiring subscription. Later «Будущее» days are generated only on request.
+ */
 export function buildPersonalForecastPrewarmTargets(input: {
   accessTier: PersonalForecastGenerationTier;
   timezone?: string | null;
   now?: Date;
+  freeDayLimit?: number;
 }): PersonalForecastPrewarmTarget[] {
   const timezone = normalizeForecastTimezone(input.timezone);
   const now = input.now || new Date();
-  const days = getPersonalForecastDayHorizon(timezone, now);
-  const dayTargets = days.map((periodKey) => ({
-    accessTier: input.accessTier,
-    period: 'day' as const,
-    periodKey,
-  }));
-  if (input.accessTier === 'free') return dayTargets;
-
+  const dayTarget = (periodKey: string) => ({ accessTier: input.accessTier, period: 'day' as const, periodKey });
+  if (input.accessTier === 'free') {
+    return getPersonalForecastDayHorizon(timezone, now)
+      .slice(0, input.freeDayLimit ?? PERSONAL_FORECAST_ROLLING_DAY_COUNT)
+      .map(dayTarget);
+  }
   return uniqueTargets([
-    ...dayTargets,
+    ...getPersonalForecastDayHorizon(timezone, now).map(dayTarget),
     { accessTier: 'premium', period: 'week', periodKey: getPersonalForecastPeriodKey('week', now, timezone) },
     { accessTier: 'premium', period: 'month', periodKey: getPersonalForecastPeriodKey('month', now, timezone) },
   ]);
@@ -155,6 +161,8 @@ export async function prewarmPersonalForecastHorizon(input: {
     accessTier: input.accessTier,
     timezone: input.profile.birthTimezone,
     now: input.now,
+    // A free fallback for an expiring subscription keeps the rolling days.
+    freeDayLimit: input.notBeforeDayKey ? undefined : FREE_FORECAST_DAYS,
   });
   const selectedTargets = input.targetIndex === undefined ? allTargets
     : allTargets.slice(input.targetIndex, input.targetIndex + 1);
@@ -500,7 +508,7 @@ let scheduledInFlight: Promise<{ scanned: number; generated: number; inProgress:
 const SCHEDULED_BATCH_SIZE = 8;
 const SCHEDULED_CONCURRENCY = 1;
 // Five rolling days, then the two current Premium periods. Free users simply
-// have no work in the final two passes.
+// have no work in the final passes.
 const SCHEDULED_TARGET_PASSES = PERSONAL_FORECAST_ROLLING_DAY_COUNT + 2;
 
 /** Reconcile logged-in accounts in date order. Missing items are retried on
@@ -559,6 +567,7 @@ export function prewarmPersonalForecastIncrement(
               now,
               targetIndex: scheduledTargetIndex,
               maxMissingGenerations: 1,
+              notBeforeDayKey: user.freeFallbackFromDayKey,
             });
             result.generated += fallback.generated.length;
             result.inProgress += fallback.inProgress.length;

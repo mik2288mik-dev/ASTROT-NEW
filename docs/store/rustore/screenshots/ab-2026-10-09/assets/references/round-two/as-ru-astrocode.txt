@@ -1,0 +1,3 @@
+Browser tab: 3, Title: "‎Приложение «Astrocode: личный гороскоп» — App Store", URL: "https://apps.apple.com/ru/app/astrocode-%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D0%B9-%D0%B3%D0%BE%D1%80%D0%BE%D1%81%D0%BA%D0%BE%D0%BF/id1342547303".
+There has been no change in the accessibility tree.
+The focused UI element is 0 AXWebArea ‎Приложение «Astrocode: личный гороскоп» — App Store, URL: apps.apple.com/ru/app/astrocode-%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D0%B9-%D0%B3%D0%BE%D1%80%D0%BE%D1%81%D0%BA%D0%BE%D0%BF/id1342547303

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { UserProfile } from '../types';
 import type { PremiumPlanId } from '../lib/premiumPricing';
 import type { PaywallContext } from '../lib/paywallContext';
@@ -80,6 +80,7 @@ const CONTEXT_COPY: Record<PaywallContext['placement'], { ru: string; en: string
     ru: 'Личные прогнозы, подробные разборы и совместимость по картам.',
     en: 'Personal forecasts, detailed readings, and two-chart compatibility.',
   },
+  matrix: { ru: 'Откроется матрица целиком: деньги, отношения, возрасты и полный разбор.', en: 'The full matrix will open: money, relationships, life stages and the full reading.' },
   week: { ru: 'Откроется твоя личная неделя.', en: 'Your personal week will open.' },
   month: { ru: 'Откроется твой личный месяц.', en: 'Your personal month will open.' },
   deep_natal: { ru: 'Откроются все разделы твоей натальной карты.', en: 'Every topic in your natal chart will open.' },
@@ -166,6 +167,20 @@ export const Paywall: React.FC<PaywallProps> = ({
   const [managingSubscription, setManagingSubscription] = useState(false);
   const [manageError, setManageError] = useState(false);
   const [previewNotice, setPreviewNotice] = useState('');
+  const checkoutRef = useRef<HTMLElement | null>(null);
+  const [checkoutHeight, setCheckoutHeight] = useState(0);
+
+  useEffect(() => {
+    if (!embedded || alreadyPremium) return;
+    const checkout = checkoutRef.current;
+    if (!checkout) return;
+
+    const updateHeight = () => setCheckoutHeight(checkout.getBoundingClientRect().height);
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(checkout);
+    return () => observer.disconnect();
+  }, [embedded, alreadyPremium]);
 
   useEffect(() => {
     if (previewFixture) return;
@@ -357,6 +372,7 @@ export const Paywall: React.FC<PaywallProps> = ({
   return (
     <div
       className={`fresh-page pw2 ${embedded ? 'pw2--embedded' : 'pw2--overlay'}`}
+      style={embedded && !alreadyPremium ? { paddingBottom: checkoutHeight } : undefined}
       data-paywall-instance-id={context.paywallInstanceId}
       data-paywall-placement={context.placement}
       data-paywall-mode={embedded ? 'embedded' : 'overlay'}
@@ -462,7 +478,7 @@ export const Paywall: React.FC<PaywallProps> = ({
       </div>
 
       {!alreadyPremium ? (
-        <footer className="pw2-checkout" aria-label={ru ? 'Оформление Premium' : 'Premium checkout'}>
+        <footer ref={checkoutRef} className="pw2-checkout" aria-label={ru ? 'Оформление Premium' : 'Premium checkout'}>
           <div className="pw2-checkout-inner">
             <div className="pw2-selection-summary" aria-live="polite" aria-atomic="true">
               <p>{selectedPlan ? `${selectedPlan.periodLabel} Premium` : (ru ? 'Premium' : 'Premium')}</p>

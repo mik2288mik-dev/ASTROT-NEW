@@ -1,0 +1,1156 @@
+{
+  "files": [
+    {
+      "file": "A-current/01-personal-and-sky.jpg",
+      "sha256": "8195129133cb33dbb879eb6a25f062a4c4769cc8ddf1e9f313220b279a2fe607"
+    },
+    {
+      "file": "A-current/02-natal-and-profile.jpg",
+      "sha256": "ac7b765736169f867622576a0a17594e94f8de011bc096dba183ece32b27fd16"
+    },
+    {
+      "file": "A-current/03-matrix-and-today.jpg",
+      "sha256": "79a584069981ca5f257af9c66ac245fc64e95b3efc9cad185da38d32f2a1ed58"
+    },
+    {
+      "file": "A-current/04-future-calendar.jpg",
+      "sha256": "90b9bf7990178520c228f9385f422813f53a1abda6ff9a2375c9a44d74caaeaa"
+    },
+    {
+      "file": "A-current/05-compatibility.jpg",
+      "sha256": "4a67bd6728e2f08e10b2e62ae20717ee26485e8527864d014351eff7434427f8"
+    },
+    {
+      "file": "A-current/06-zodiac-horoscope.jpg",
+      "sha256": "04e6dd879b9a0e6e1edb82202b5793c4ee937b0941dcd5caaac3d8e075dad9a7"
+    },
+    {
+      "file": "A-current/07-natal-profile.jpg",
+      "sha256": "f27281c428b0acbe94a4bb883da0bca1cf6f6c72e710865324b68c292ef30ff7"
+    },
+    {
+      "file": "A-current/08-sounds.jpg",
+      "sha256": "fc7eada44a1f2f1dd776bb29115335f02a00c3959da6ba2849ae36a7799c182f"
+    },
+    {
+      "file": "B-daylight/01-natal.jpg",
+      "sha256": "6fb1555199b6b788ab042ad730d1aa8be93a2448c03d78cb413d275085e9f288"
+    },
+    {
+      "file": "B-daylight/02-today.jpg",
+      "sha256": "f5b5cdfd4272540c7e71cc40656f0bad5cd5f69e6b34f802066032e48f788ed4"
+    },
+    {
+      "file": "B-daylight/03-compatibility.jpg",
+      "sha256": "91c5a51d371090de76d181c8fd76007d76c956586275219ad4240f2fe0b34046"
+    },
+    {
+      "file": "B-daylight/04-future.jpg",
+      "sha256": "cf6f5fb21ca2de1217cd2545fdfec23561e55fae506a34d5bddfd951d8e7ada6"
+    },
+    {
+      "file": "B-daylight/05-matrix.jpg",
+      "sha256": "b1d8e8b848226a52c1e1ef3262e4ffa8d1536d1146951660a882719fe4e4441f"
+    },
+    {
+      "file": "B-daylight/06-profile.jpg",
+      "sha256": "f51050f2048fb0c48829f10fcb9a4663cc89ce72d5388ae530548eca645c3c6f"
+    },
+    {
+      "file": "B-daylight/07-zodiac.jpg",
+      "sha256": "8bef53b8a92983f5bb0669e1ea9d19829d91533fc6528d0830d2ddcbaa622148"
+    },
+    {
+      "file": "B-daylight/08-sounds.jpg",
+      "sha256": "7f33408fd8f39bd94d1a8e3d9982e3aa91c42e499d9b89a5624681a277436476"
+    },
+    {
+      "file": "V-sunshine/01-today.jpg",
+      "sha256": "51fe5fa12559acc920fa9c62baaa115b51421119dd052643a90a39373849b927"
+    },
+    {
+      "file": "V-sunshine/02-natal.jpg",
+      "sha256": "d179889cad8b300546ada9dd29665842e6abc7cbaf747edfdaa6e4af57e7ca7d"
+    },
+    {
+      "file": "V-sunshine/03-compatibility.jpg",
+      "sha256": "82a4f94bda5d093e2eef6a77c2163b197e293a771467ee3ab3cd36f7478b0661"
+    },
+    {
+      "file": "V-sunshine/04-future.jpg",
+      "sha256": "e8e5d5d0c3927f73e9a81bf796df528061996d43b2df546c6f087780c67bf666"
+    },
+    {
+      "file": "V-sunshine/05-matrix.jpg",
+      "sha256": "c0083e446d1168a19c8dc351290934a7bafa7b6514fd6762a8084bbd8913d7eb"
+    },
+    {
+      "file": "V-sunshine/06-profile.jpg",
+      "sha256": "3ef6fa09d66db2b75e96e399c34d4d21df587225a864bdff23d86ae581c7bf66"
+    },
+    {
+      "file": "V-sunshine/07-zodiac.jpg",
+      "sha256": "d7b0c41160982bc5c1b93a37e4399b3e3e2e3f97858b5f311dca95f0cb089e85"
+    },
+    {
+      "file": "V-sunshine/08-sounds.jpg",
+      "sha256": "3ec8bd94151997985172dcb7eaba0bf850fd8165470c226d8ff4c457271c5676"
+    },
+    {
+      "file": "V1-person/01-zodiac.jpg",
+      "sha256": "72725ecf51ccda155b20b8ebb0e24da6515ce4d88734ffe5e5d007955234c8b0"
+    },
+    {
+      "file": "V1-person/02-natal.jpg",
+      "sha256": "5580d1eaac1af3244160c535538200856c2302bf3baa0b7d67fa5d07f1ba6310"
+    },
+    {
+      "file": "V1-person/03-compatibility.jpg",
+      "sha256": "17b4e18138a83dc5e85ed559d289598e9db4251d6c6af743f2ebd64df2bca5dc"
+    },
+    {
+      "file": "V1-person/04-today.jpg",
+      "sha256": "51fe5fa12559acc920fa9c62baaa115b51421119dd052643a90a39373849b927"
+    },
+    {
+      "file": "V1-person/05-future.jpg",
+      "sha256": "e8e5d5d0c3927f73e9a81bf796df528061996d43b2df546c6f087780c67bf666"
+    },
+    {
+      "file": "V1-person/06-matrix.jpg",
+      "sha256": "c0083e446d1168a19c8dc351290934a7bafa7b6514fd6762a8084bbd8913d7eb"
+    },
+    {
+      "file": "V1-person/07-profile.jpg",
+      "sha256": "3ef6fa09d66db2b75e96e399c34d4d21df587225a864bdff23d86ae581c7bf66"
+    },
+    {
+      "file": "V1-person/08-sounds.jpg",
+      "sha256": "3ec8bd94151997985172dcb7eaba0bf850fd8165470c226d8ff4c457271c5676"
+    },
+    {
+      "file": "V2-zodiac-collage/01-natal.jpg",
+      "sha256": "60dbd3953a62e32bf12271b96821038407078a95042eddb740ebeef39cda6ee2"
+    },
+    {
+      "file": "V2-zodiac-collage/02-zodiac.jpg",
+      "sha256": "73e80dd8d47301aa11e586676ed3fdaf70ea1cf5dcd6c2ba2f68cc03a2fc66cc"
+    },
+    {
+      "file": "V2-zodiac-collage/03-today.jpg",
+      "sha256": "761a44853cbb0c1803a59c0eee7b7a631f7ec4169ba4d9532c85698f06f12ac5"
+    },
+    {
+      "file": "V2-zodiac-collage/04-compatibility.jpg",
+      "sha256": "82a4f94bda5d093e2eef6a77c2163b197e293a771467ee3ab3cd36f7478b0661"
+    },
+    {
+      "file": "V2-zodiac-collage/05-future.jpg",
+      "sha256": "e8e5d5d0c3927f73e9a81bf796df528061996d43b2df546c6f087780c67bf666"
+    },
+    {
+      "file": "V2-zodiac-collage/06-matrix.jpg",
+      "sha256": "c0083e446d1168a19c8dc351290934a7bafa7b6514fd6762a8084bbd8913d7eb"
+    },
+    {
+      "file": "V2-zodiac-collage/07-profile.jpg",
+      "sha256": "3ef6fa09d66db2b75e96e399c34d4d21df587225a864bdff23d86ae581c7bf66"
+    },
+    {
+      "file": "V2-zodiac-collage/08-sounds.jpg",
+      "sha256": "3ec8bd94151997985172dcb7eaba0bf850fd8165470c226d8ff4c457271c5676"
+    },
+    {
+      "file": "V3-big-screens/01-today.jpg",
+      "sha256": "5547bac92a92121db417b4f14ffe7b296eb46d0af3859527804166e199d0a3cd"
+    },
+    {
+      "file": "V3-big-screens/02-natal.jpg",
+      "sha256": "952a4e7a2d70916cd90513b3e2ea011c81ea2f856dfef56103560e0a643f6da1"
+    },
+    {
+      "file": "V3-big-screens/03-zodiac.jpg",
+      "sha256": "026df3e7bdc55dc213dd37627f6c5351b46c33fe54bfbc96cbc303a704defed6"
+    },
+    {
+      "file": "V3-big-screens/04-compatibility.jpg",
+      "sha256": "82a4f94bda5d093e2eef6a77c2163b197e293a771467ee3ab3cd36f7478b0661"
+    },
+    {
+      "file": "V3-big-screens/05-future.jpg",
+      "sha256": "e8e5d5d0c3927f73e9a81bf796df528061996d43b2df546c6f087780c67bf666"
+    },
+    {
+      "file": "V3-big-screens/06-matrix.jpg",
+      "sha256": "c0083e446d1168a19c8dc351290934a7bafa7b6514fd6762a8084bbd8913d7eb"
+    },
+    {
+      "file": "V3-big-screens/07-profile.jpg",
+      "sha256": "3ef6fa09d66db2b75e96e399c34d4d21df587225a864bdff23d86ae581c7bf66"
+    },
+    {
+      "file": "V3-big-screens/08-sounds.jpg",
+      "sha256": "3ec8bd94151997985172dcb7eaba0bf850fd8165470c226d8ff4c457271c5676"
+    },
+    {
+      "file": "V4-sunny-poster/01-zodiac.jpg",
+      "sha256": "555613022f6acb76d25bbc5b58999dcc762a7745e0dc2c9c6e410042bcb3d6d1"
+    },
+    {
+      "file": "V4-sunny-poster/02-today.jpg",
+      "sha256": "2e0c42b9d6de081028f1d70a815b4fbc6565d40d32fd83f5be08fea52cdf72d6"
+    },
+    {
+      "file": "V4-sunny-poster/03-natal.jpg",
+      "sha256": "d01fe3c19526146c51ae1163d906c8e9f387f95545a2cfd136780a5fce356bc4"
+    },
+    {
+      "file": "V4-sunny-poster/04-compatibility.jpg",
+      "sha256": "82a4f94bda5d093e2eef6a77c2163b197e293a771467ee3ab3cd36f7478b0661"
+    },
+    {
+      "file": "V4-sunny-poster/05-future.jpg",
+      "sha256": "e8e5d5d0c3927f73e9a81bf796df528061996d43b2df546c6f087780c67bf666"
+    },
+    {
+      "file": "V4-sunny-poster/06-matrix.jpg",
+      "sha256": "c0083e446d1168a19c8dc351290934a7bafa7b6514fd6762a8084bbd8913d7eb"
+    },
+    {
+      "file": "V4-sunny-poster/07-profile.jpg",
+      "sha256": "3ef6fa09d66db2b75e96e399c34d4d21df587225a864bdff23d86ae581c7bf66"
+    },
+    {
+      "file": "V4-sunny-poster/08-sounds.jpg",
+      "sha256": "3ec8bd94151997985172dcb7eaba0bf850fd8165470c226d8ff4c457271c5676"
+    },
+    {
+      "file": "G-orbit/01-natal.jpg",
+      "sha256": "0d9210e6ee32488a7ce3f118ffc1dc55fd60f2c643f41919eef60b05a583323f"
+    },
+    {
+      "file": "G-orbit/02-zodiac.jpg",
+      "sha256": "370a12bf4ee844aaa7064a2d349f7588fc61409f2d4c86e847b3c2ad7e0de6f2"
+    },
+    {
+      "file": "G-orbit/03-today.jpg",
+      "sha256": "ee447888e6a7b260f6a03f20e2ad20c78dbcaa91dcde6ed0817e1e12da400257"
+    },
+    {
+      "file": "G-orbit/04-compatibility.jpg",
+      "sha256": "71eb1a0759e65189f2810613d3808117aa16bf320426ad3e78f04d5c43d39716"
+    },
+    {
+      "file": "G-orbit/05-matrix.jpg",
+      "sha256": "7f930a1bb4d18451c465f3a4e69c5c0ccce5985d9a7037fc6518645a9028c4de"
+    },
+    {
+      "file": "G-orbit/06-future.jpg",
+      "sha256": "d2163a513ba0b9f7584b161c01047acc7467b4f170cbbc044fbff8ee71073e1a"
+    },
+    {
+      "file": "G-orbit/07-profile.jpg",
+      "sha256": "f3a22cfe55d3ab82ffefc9d2d4dc5fbaa2828934a0fa773cabc02f5e4a811c1f"
+    },
+    {
+      "file": "G-orbit/08-sounds.jpg",
+      "sha256": "3599847b912bc3b39c4ea636d6f092ca3107d768afc85bd027b894579cb415bc"
+    },
+    {
+      "file": "D-living-day/01-zodiac.jpg",
+      "sha256": "a5fe664908a845fe3218c382f50dd7232d1412fa6f2d980e1ba98a8c260b0aa9"
+    },
+    {
+      "file": "D-living-day/02-today.jpg",
+      "sha256": "2a65d018eb2f691b10be41e86cc6c2c71f29ec9a8a43f31e22de7d5d65af2b70"
+    },
+    {
+      "file": "D-living-day/03-compatibility.jpg",
+      "sha256": "99fb575b95873f4a48b66b7f5b3b6fd8082a97a5b1b1b715ccf4126d8f57eb2f"
+    },
+    {
+      "file": "D-living-day/04-natal.jpg",
+      "sha256": "c90e82d3e58b95714ffddda2348bb7bf35c6543f81a1b8d3447786e5047d0a84"
+    },
+    {
+      "file": "D-living-day/05-future.jpg",
+      "sha256": "f15c61f71a05b2b33736b7f0f15a7030de75d7c2cab5ac9708d7f3a552589045"
+    },
+    {
+      "file": "D-living-day/06-matrix.jpg",
+      "sha256": "e63cbbb13242a27041d7fbabf1c02c8bd599895b38937b74c485615ca53eb4e1"
+    },
+    {
+      "file": "D-living-day/07-profile.jpg",
+      "sha256": "9791ee90bf9a6533d7958bafab9e27ceaeb2cb105eb2d03183dc59562483bf80"
+    },
+    {
+      "file": "D-living-day/08-sounds.jpg",
+      "sha256": "d0c06e9a19a6c4fb3a34af97400a8f80f8861ea12ccd091c4a02913d643a2e13"
+    },
+    {
+      "file": "E-bold/01-zodiac.jpg",
+      "sha256": "75204ca238101b5e92cfcb4786650e2fabe55e728cc980753b7303c5f6111331"
+    },
+    {
+      "file": "E-bold/02-natal.jpg",
+      "sha256": "4a94b6519c4fc429c5df680cc199552dfaafde2333bdbad3e315ba21fe8c48ee"
+    },
+    {
+      "file": "E-bold/03-today.jpg",
+      "sha256": "57cc0b7c872fb62aeaeae71020b974550744789400add4b474e6a04299da4885"
+    },
+    {
+      "file": "E-bold/04-matrix.jpg",
+      "sha256": "eceb310c88b527d4ae9284336ac086bad39f78b2b06ce954ae075983df1c01b5"
+    },
+    {
+      "file": "E-bold/05-compatibility.jpg",
+      "sha256": "5df46a26785d88c8f0eb19abc288c3c5390290b3f39f48893be48199bc5d2377"
+    },
+    {
+      "file": "E-bold/06-future.jpg",
+      "sha256": "2e37928adb89d8b0a541d2d2fb69897cab459578a81557c7c35eeb6f2019744e"
+    },
+    {
+      "file": "E-bold/07-profile.jpg",
+      "sha256": "92fd266cac214933a7d205208cfe714eeee7040a47624c8fbe85dc634d45635b"
+    },
+    {
+      "file": "E-bold/08-sounds.jpg",
+      "sha256": "34457d9682bde8695890004e69a320d9211a70ffbad7d32accb0c6235270e3b0"
+    },
+    {
+      "file": "ZH-air/01-today.jpg",
+      "sha256": "8f991d284538e6d02c964eec4fde45b7d48e608c9d7bed3463c7bee15894cbaf"
+    },
+    {
+      "file": "ZH-air/02-zodiac.jpg",
+      "sha256": "a2add348a1dafac89a4b44b3180ac8128cd6ef4e58c4b98909c3ac33e7e8dc85"
+    },
+    {
+      "file": "ZH-air/03-natal.jpg",
+      "sha256": "fc3d6fa1010bb6ee3c2c629ba9deece6a73f34a001ec1b6fc333c5cb0c72f084"
+    },
+    {
+      "file": "ZH-air/04-future.jpg",
+      "sha256": "4f4acb5d208ee2fc49047bed8b4b50e5026f85030d3bfc871ae7ee4c687a0bbb"
+    },
+    {
+      "file": "ZH-air/05-compatibility.jpg",
+      "sha256": "b4d8444c32e96df611f583e550d08ec591d39396c829fd934d15df0c99fcdde4"
+    },
+    {
+      "file": "ZH-air/06-matrix.jpg",
+      "sha256": "38d6f5cc8f578460248aed0243246a1fd015fbc1b4128a39bf683ddcf08c087d"
+    },
+    {
+      "file": "ZH-air/07-profile.jpg",
+      "sha256": "b5a6e267f1aaeafd8c534884a8f31967653b01f7f4cebb72eb40188a5c9d6480"
+    },
+    {
+      "file": "ZH-air/08-sounds.jpg",
+      "sha256": "44e3ab2b0ca73e412c77a2853a8f86c893ae6eb1945f52bbd8e40271ed16c03c"
+    },
+    {
+      "file": "Z-red-editorial/01-zodiac.jpg",
+      "sha256": "c5dd02873cf10b2451b38b5ff4423bcdd74f1b091eb07820dfb8800d0e78f4e2"
+    },
+    {
+      "file": "Z-red-editorial/02-natal.jpg",
+      "sha256": "0b9675629af63a481d6c3a302eefe2d982abb7a7568baefb25b4f0ce47fcdafc"
+    },
+    {
+      "file": "Z-red-editorial/03-today.jpg",
+      "sha256": "6782cddf0526aaf2b8bf8aa579807966eb239ad9883b3cd83aefe53d18ef9947"
+    },
+    {
+      "file": "Z-red-editorial/04-compatibility.jpg",
+      "sha256": "bd8a012ec80edf7b90513a502a43eaff6884e1cc4d466deadb18fb94726ac30d"
+    },
+    {
+      "file": "Z-red-editorial/05-future.jpg",
+      "sha256": "6ab2bc16bb3acafe1d7a0110fa350c213278d36f81c2878940249ba404eccd10"
+    },
+    {
+      "file": "Z-red-editorial/06-matrix.jpg",
+      "sha256": "98330395cff28a2d8a72360b0367f04d411616759d1788211665dcdde0c30096"
+    },
+    {
+      "file": "Z-red-editorial/07-profile.jpg",
+      "sha256": "020008a583dddf256ea3561468b2dfea6fa81d29b0ca2fd2858524e1056f98cd"
+    },
+    {
+      "file": "Z-red-editorial/08-sounds.jpg",
+      "sha256": "1647d804b0849392c2fbf0633440d906880192f3429f0b353bb2e070b1a0b8ee"
+    },
+    {
+      "file": "I-lavender-studio/01-natal.jpg",
+      "sha256": "710b7ecf3f17341f9d479c21965cacf2b46573b40ead504a099373ed0217b522"
+    },
+    {
+      "file": "I-lavender-studio/02-zodiac.jpg",
+      "sha256": "8a9da316cc65c32305f4339f3636fd2d17566f7382c9fd20bc703d72b23cb58a"
+    },
+    {
+      "file": "I-lavender-studio/03-today.jpg",
+      "sha256": "5d6f5f2fe7d1881cc574b821e8951ed4f9ba188850a78f75cb11bb4fc2f2e90b"
+    },
+    {
+      "file": "I-lavender-studio/04-matrix.jpg",
+      "sha256": "d3c7cf203ced5ba39e430b8ecc34c1c3375fa2233afd0f0c91e18943eb07678b"
+    },
+    {
+      "file": "I-lavender-studio/05-compatibility.jpg",
+      "sha256": "b0d1e8b6f7708f478284819225ddd2a47ebb2c3d5425de1fd2b28d4de7902bc8"
+    },
+    {
+      "file": "I-lavender-studio/06-future.jpg",
+      "sha256": "516cd4c2f8a2dbff51b9a7dc521cef5b76f9aaad455b283e95ba5e38e1269bec"
+    },
+    {
+      "file": "I-lavender-studio/07-profile.jpg",
+      "sha256": "abefcee956d01ee83ab76e6226bf9308a1eafa53db657160440a3114ee0a02ae"
+    },
+    {
+      "file": "I-lavender-studio/08-sounds.jpg",
+      "sha256": "ffb905fe92d9ea4551754b8273a1c9082ff03df8a0eae629d9bad14b7ffc7098"
+    },
+    {
+      "file": "K-people-night/01-zodiac.jpg",
+      "sha256": "12f8bd60b8795a4afb5b7b3e6a07c007547f93702dd8034682083580942ad3b1"
+    },
+    {
+      "file": "K-people-night/02-today.jpg",
+      "sha256": "8d653bc8d91c08da68a8b8e048e36822cf3315e87dfd367ae259415a219d7302"
+    },
+    {
+      "file": "K-people-night/03-natal.jpg",
+      "sha256": "d3c5c859f3b211ce4eec4237cf5db18d39e1613daadf0263b51c2028e3fbe6a1"
+    },
+    {
+      "file": "K-people-night/04-compatibility.jpg",
+      "sha256": "3a72568d5ac1353df0d40472808c695eec6adb38c71279cf816f1ad527231bec"
+    },
+    {
+      "file": "K-people-night/05-future.jpg",
+      "sha256": "724530fba6a442f3b59681c96f8c3aafd035c393dbe47ab6c5d5f1c394d89bef"
+    },
+    {
+      "file": "K-people-night/06-matrix.jpg",
+      "sha256": "f9fbf93912671441b5bb55b4f98db0441d8a47bce24653db69f96e1716e5c85c"
+    },
+    {
+      "file": "K-people-night/07-profile.jpg",
+      "sha256": "b0b6383b2fe6ebfcf000b411bda639e4312cef9b7328e46d7198892ab188d9fd"
+    },
+    {
+      "file": "K-people-night/08-sounds.jpg",
+      "sha256": "aa56354ec50a1cd5351e39e60e73c2b1a1851ba47edc940485aea627c7af77f3"
+    },
+    {
+      "file": "L-blue-poster/01-zodiac.jpg",
+      "sha256": "332c720e6f4b5ecfecd70c1df5c743790cc072d0d1ce70b6784f76ce9dd06a51"
+    },
+    {
+      "file": "L-blue-poster/02-today.jpg",
+      "sha256": "756274b0e0c37e0ec3b2539b21874070523c8fc240b7407c4c4ff73adff973c4"
+    },
+    {
+      "file": "L-blue-poster/03-natal.jpg",
+      "sha256": "1f972711a7365f86f150351b59d0cc867559045cd4123cadd1f283943ecb98e4"
+    },
+    {
+      "file": "L-blue-poster/04-compatibility.jpg",
+      "sha256": "afa4394c1d76543f569deed20a4e912f0c2c6cc7f323f9c28f7a6e18bb54cd27"
+    },
+    {
+      "file": "L-blue-poster/05-matrix.jpg",
+      "sha256": "68669fd70f7b8c911818541d2f5a27b36f9a987677b6528c42758aac630796f8"
+    },
+    {
+      "file": "L-blue-poster/06-future.jpg",
+      "sha256": "d11e09f1ea88d49dd812b8d9a7ab7506b348278d8b78150cd4120a55eaff1bf8"
+    },
+    {
+      "file": "L-blue-poster/07-profile.jpg",
+      "sha256": "a23bc1333bad5c9e1261255705be5695d246da67a2e9ceea07e4004b0a667df2"
+    },
+    {
+      "file": "L-blue-poster/08-sounds.jpg",
+      "sha256": "c5e5b005f730c1b54f54262cbc830da22696d23e1d9d106cf2200b7f8e1fb338"
+    },
+    {
+      "file": "M-kraft/01-today.jpg",
+      "sha256": "9ed8cbede32943152d16d781661f25bc6ec10dd566a66d7d1ef5ecf66975a280"
+    },
+    {
+      "file": "M-kraft/02-zodiac.jpg",
+      "sha256": "39edbfd32905fcdc84341d8312d445471e2672346dd0ca8ecff6388b034b815f"
+    },
+    {
+      "file": "M-kraft/03-natal.jpg",
+      "sha256": "780849785d01cd8be6f673a8e91ac9a6196e8e66c24d157424641231df1d4873"
+    },
+    {
+      "file": "M-kraft/04-future.jpg",
+      "sha256": "b507cd8563d48290b7485ac3960e6fa19415e95c33d0cef1e5d05734e1e121b7"
+    },
+    {
+      "file": "M-kraft/05-compatibility.jpg",
+      "sha256": "3cfbe18f8d38b1a385f681a0b87dd0fe3547585df3dd6d6b3b903fd4b19f9e32"
+    },
+    {
+      "file": "M-kraft/06-matrix.jpg",
+      "sha256": "541c7fd8062eef9aa83f489d68950d00d58505c3cb2f2da7cf50f680c25156ac"
+    },
+    {
+      "file": "M-kraft/07-profile.jpg",
+      "sha256": "aea75a694cb14e004a3f76c5b3490bd1987ba8cac132dec3f32d60d77dfd55cf"
+    },
+    {
+      "file": "M-kraft/08-sounds.jpg",
+      "sha256": "43136df6b16280bfd751b591d6c808eb2241a6b9100dee9bd860793a01685d47"
+    },
+    {
+      "file": "N01-sun-pocket/01-zodiac.jpg",
+      "sha256": "e2208be70444e46c9d56c8440b4f37f76ea68fa4d1c5ddcf95889766e08b839f"
+    },
+    {
+      "file": "N01-sun-pocket/02-today.jpg",
+      "sha256": "f0e26888055e6742479b46446a213cfa9ff2688d00fe8308a34b314c3beb229e"
+    },
+    {
+      "file": "N01-sun-pocket/03-natal.jpg",
+      "sha256": "d6ba27fe1881e337bf7d08da707ebaa8d351d4e9276164832472a6a1484e0ce6"
+    },
+    {
+      "file": "N01-sun-pocket/04-future.jpg",
+      "sha256": "4b065ddbe4ce2418558a3c393e64bf48cdf65e644a3683fb24d606f863e33881"
+    },
+    {
+      "file": "N01-sun-pocket/05-compatibility.jpg",
+      "sha256": "8a37b55fdd648f4eb1f44e93c78f700785df7a0819a5dd8e1e8e2e2a7fdccb9f"
+    },
+    {
+      "file": "N01-sun-pocket/06-matrix.jpg",
+      "sha256": "5faabcebbcb94b198f42ed69a7c4f92a35318c14a0a3658bf9f52f15959a0316"
+    },
+    {
+      "file": "N01-sun-pocket/07-profile.jpg",
+      "sha256": "1ef74307bd70f801f05bd76a12f3fca7b60b7223ee54ea6626367ae464609994"
+    },
+    {
+      "file": "N01-sun-pocket/08-sounds.jpg",
+      "sha256": "f596cacb509ea40e003a86da5055a5b73d965a0fbefb7a440bc4f6f534b87d63"
+    },
+    {
+      "file": "N02-golden-portrait/01-natal.jpg",
+      "sha256": "2e64e6746aa7bc95acc8d5ef2ed84305ccb02774ded401ce4061533a0f8f478d"
+    },
+    {
+      "file": "N02-golden-portrait/02-zodiac.jpg",
+      "sha256": "51a59d23a301e95819cb1d399dff2712a671dd7f22d886aff0c8fd710daeff89"
+    },
+    {
+      "file": "N02-golden-portrait/03-today.jpg",
+      "sha256": "bb6c543fc8b1c78b44051fa5b97f5e6184741e7060e5ef8d5f2e82c040d02a9f"
+    },
+    {
+      "file": "N02-golden-portrait/04-future.jpg",
+      "sha256": "48a590e54449892acd6f170dd8af6d8e7f7c7db8869403fedb2f7b1f2eb21e7b"
+    },
+    {
+      "file": "N02-golden-portrait/05-compatibility.jpg",
+      "sha256": "43ebbb88502d8265fecf8d2a1d9d7612f73f185f2ac75524c1f83e645b4df240"
+    },
+    {
+      "file": "N02-golden-portrait/06-matrix.jpg",
+      "sha256": "49a6dc1e1b83a77388319d91b0ae0b2867906c34aa48b2071c4e5e7276251fdb"
+    },
+    {
+      "file": "N02-golden-portrait/07-profile.jpg",
+      "sha256": "880f89b95bbf9e6414c8d72cd2713067f748b2a0d5102703a628c7080c44b8b4"
+    },
+    {
+      "file": "N02-golden-portrait/08-sounds.jpg",
+      "sha256": "752fc390c88964a8969184f1b207353ea9850c0e3b82034cc2a96c3dd0c64e22"
+    },
+    {
+      "file": "N03-zodiac-characters/01-zodiac.jpg",
+      "sha256": "ee4bb095548aa36f09fb2e19eb4ea0db173055bc9d1098a5aaa23f555a3e8fd8"
+    },
+    {
+      "file": "N03-zodiac-characters/02-today.jpg",
+      "sha256": "d7edf16f3d94584a385f137661a152262fdb894dae45ef78ba139760d16bf373"
+    },
+    {
+      "file": "N03-zodiac-characters/03-natal.jpg",
+      "sha256": "9b253fdfb20c87c681563d9b83a6eb3a62a8baef01f3854ce964139182448c2c"
+    },
+    {
+      "file": "N03-zodiac-characters/04-future.jpg",
+      "sha256": "221e515781ea6b20bcc1ee5ce5bca8b1b5bdc0e2f111db06d86a9b46c91aa468"
+    },
+    {
+      "file": "N03-zodiac-characters/05-compatibility.jpg",
+      "sha256": "09f4bc0a6088bd45072c5b5bf50e06fdbbe5d5183836eeef6cf75ccca24b4957"
+    },
+    {
+      "file": "N03-zodiac-characters/06-matrix.jpg",
+      "sha256": "aed08a84866df426ad9a1318747cbc8b6501439925a20fcbdfd54811b02eea57"
+    },
+    {
+      "file": "N03-zodiac-characters/07-profile.jpg",
+      "sha256": "dc3f6ad17624410ceb55f32676903175e729337aab8646f68ff3bc47516eb9fa"
+    },
+    {
+      "file": "N03-zodiac-characters/08-sounds.jpg",
+      "sha256": "9a91e9d84799025f4a251c07240d359a851f93e47a58b3d18c8bc72ff291eb5d"
+    },
+    {
+      "file": "N04-birth-atlas/01-natal.jpg",
+      "sha256": "7e934b0af56e5d37753af665d0a97dd3b455d96c82fd0ad001a7a126cc8a08c1"
+    },
+    {
+      "file": "N04-birth-atlas/02-today.jpg",
+      "sha256": "8d9a4e52a982b51e7348184ccc92eb7e7006372a5f0c0c66d5cfbf81ac9ea4df"
+    },
+    {
+      "file": "N04-birth-atlas/03-zodiac.jpg",
+      "sha256": "0c06782150367ba828e1a0d093b36a136a7445f075b81f27dfb18fb9921a450b"
+    },
+    {
+      "file": "N04-birth-atlas/04-future.jpg",
+      "sha256": "9b103377b04aae62b062fd2ffe407aa8657b0f916567111e0dc79219780b3d50"
+    },
+    {
+      "file": "N04-birth-atlas/05-compatibility.jpg",
+      "sha256": "b37c41d0b48e0faf667c06b0558eabcd8982c674ecf434766719ca3b83a33a7b"
+    },
+    {
+      "file": "N04-birth-atlas/06-matrix.jpg",
+      "sha256": "8ae47a56918ac9b5fa091c0099bcb46e6d9917b6c9658c6daae23f26a237b0a0"
+    },
+    {
+      "file": "N04-birth-atlas/07-profile.jpg",
+      "sha256": "1ba820b52e3270ecf19cf9634108bdc77bda124e8cf778e92b523821816332c8"
+    },
+    {
+      "file": "N04-birth-atlas/08-sounds.jpg",
+      "sha256": "e50a23397309346ebfcca6b124ae9dbc3b9320c3b4ada0baaaf5d473ec9d9984"
+    },
+    {
+      "file": "N05-sky-garden/01-today.jpg",
+      "sha256": "24483209e625c94630fea120aa802bfc48582642ab1a1cdcb29e8c645ab229be"
+    },
+    {
+      "file": "N05-sky-garden/02-zodiac.jpg",
+      "sha256": "fce863c00ad2757be779fec06331ee3bf91c0e818d6070bd31b2896f4eacd38d"
+    },
+    {
+      "file": "N05-sky-garden/03-natal.jpg",
+      "sha256": "0480255bcb9d59453d02a482dccddd57bc3024ebe10e050cc6aad979ada320bd"
+    },
+    {
+      "file": "N05-sky-garden/04-future.jpg",
+      "sha256": "1d998a9bc322db9da42210d6c785d1d1d16dfc6ab685382cdd20b695df789525"
+    },
+    {
+      "file": "N05-sky-garden/05-compatibility.jpg",
+      "sha256": "0360f366829f4da50dc812609c6a6e46c6bf5b0a9ef53046522df231a962ab59"
+    },
+    {
+      "file": "N05-sky-garden/06-matrix.jpg",
+      "sha256": "5574b14001c094f9e5a2d67d024eb47a0194f741810118a05f9bcfd58684b3d9"
+    },
+    {
+      "file": "N05-sky-garden/07-profile.jpg",
+      "sha256": "a3ec91237fb00a654f047a4bcefc39e7f06c5314d3b3299a84fa6c6a29681355"
+    },
+    {
+      "file": "N05-sky-garden/08-sounds.jpg",
+      "sha256": "46d2f551fcc5aa6a205ec7b7e76dde145e4539e70127a5ebd78ba0ccafcf4cec"
+    },
+    {
+      "file": "N06-day-shelf/01-zodiac.jpg",
+      "sha256": "ee55d7473bca9c926ed470b33801d1d7e2a83dc2163573f988adfe0ded26ec15"
+    },
+    {
+      "file": "N06-day-shelf/02-natal.jpg",
+      "sha256": "409e8f9ca693819bef7b2472d4a9e6532994f51036a65da2518932979ccd94bf"
+    },
+    {
+      "file": "N06-day-shelf/03-today.jpg",
+      "sha256": "53c0da28ac3595b9b2fb015bb839e0309fa66dfd1fdce9c48a26e8f646515d39"
+    },
+    {
+      "file": "N06-day-shelf/04-future.jpg",
+      "sha256": "29fee7422bc48cc89f704c663cd00aee50e14300856d9b5851c421426fe62e31"
+    },
+    {
+      "file": "N06-day-shelf/05-compatibility.jpg",
+      "sha256": "a823e736395ff21e999df0f0c77ac7880433a8258707ba745a2af981d52cf877"
+    },
+    {
+      "file": "N06-day-shelf/06-matrix.jpg",
+      "sha256": "207a75884014c40cf9d2c8422f8bb3c99dfe691e1b8544d8d738421b02c7a12f"
+    },
+    {
+      "file": "N06-day-shelf/07-profile.jpg",
+      "sha256": "2f56ff89084912040c95b6da0602c0aba5b052eda765a0e171748567e6ff4099"
+    },
+    {
+      "file": "N06-day-shelf/08-sounds.jpg",
+      "sha256": "977d8869baa1dcdacf3431954ed737cb823f12e2e8132549d17eb9fb286a0e99"
+    },
+    {
+      "file": "N07-open-sky/01-today.jpg",
+      "sha256": "7ff6f3bb1a6b20b34eabd516b05d47bf04eb755386bd7ab2c11238784712bfc9"
+    },
+    {
+      "file": "N07-open-sky/02-natal.jpg",
+      "sha256": "f5d9d77071112a43789f92041e7ca066d4d9a5e89174645ee049e5d4b0dfaad0"
+    },
+    {
+      "file": "N07-open-sky/03-zodiac.jpg",
+      "sha256": "f0a637780b1c8b235e712ea8a8db5ff750f96dfd9f5cd472a25c7578ba4c85b1"
+    },
+    {
+      "file": "N07-open-sky/04-future.jpg",
+      "sha256": "72b84ebc1e97cd186d48f29ea35058a2c76b6896f2eb5904e3e4b147c09fe85a"
+    },
+    {
+      "file": "N07-open-sky/05-compatibility.jpg",
+      "sha256": "2ed9797013669942bce8f9432f6191b444911ae0048975a2578e715fab3b400e"
+    },
+    {
+      "file": "N07-open-sky/06-matrix.jpg",
+      "sha256": "0e5ca9949e50afdf4d67a4c86cc84a4a781d242c881f642c9019d0a626bebd32"
+    },
+    {
+      "file": "N07-open-sky/07-profile.jpg",
+      "sha256": "9ae8c1aec2fe8ff40721bafd13a4d8cf84babac0856e215a349e6c10d934adc2"
+    },
+    {
+      "file": "N07-open-sky/08-sounds.jpg",
+      "sha256": "ec5e3cbeb44025af58ccc4222196fe90e0dbdfff656fc552a34c133b087da154"
+    },
+    {
+      "file": "N08-bold-sign/01-zodiac.jpg",
+      "sha256": "2762cb84da1015f031d290c7bbc6ba1fd9026824092c75a0a10b60361ccbf075"
+    },
+    {
+      "file": "N08-bold-sign/02-today.jpg",
+      "sha256": "215d6c58889661e5f9df53676f0525f3799193c8af3b72449b3a67c176660f5d"
+    },
+    {
+      "file": "N08-bold-sign/03-natal.jpg",
+      "sha256": "1a228a2da927a81ea90bc9754d15db58f9acf9068153b6d8cef69fc5af9d40ac"
+    },
+    {
+      "file": "N08-bold-sign/04-future.jpg",
+      "sha256": "620969587676be30260c368fd77c6184832306929263c2cc8d182b135fe9433f"
+    },
+    {
+      "file": "N08-bold-sign/05-compatibility.jpg",
+      "sha256": "a2d701abe427007e15db3d47f10bcaf97cee2b867e025a6c228323dc35f5e0ee"
+    },
+    {
+      "file": "N08-bold-sign/06-matrix.jpg",
+      "sha256": "d9c015aaf0bf6f813293f60d2b9a6831518c8697a9cfb02c66e6b233c1c7782e"
+    },
+    {
+      "file": "N08-bold-sign/07-profile.jpg",
+      "sha256": "3aba401971b9684cb5416dc79e8a612c8a6f80a22f6dc3a4389f218481947026"
+    },
+    {
+      "file": "N08-bold-sign/08-sounds.jpg",
+      "sha256": "9c55cb9b83638ccee7cc8249f6c4494ba36b7b398dcf1fe101d0f37e11956a96"
+    },
+    {
+      "file": "N09-morning-postcard/01-today.jpg",
+      "sha256": "0d52a2969d5aef8aeb0887fe3a283e7b28f8f363f94bc39e311b3f89ba6dda65"
+    },
+    {
+      "file": "N09-morning-postcard/02-zodiac.jpg",
+      "sha256": "ce8653df90bd328365c449ae012a6685594b3fe478f831015f4200def6913672"
+    },
+    {
+      "file": "N09-morning-postcard/03-natal.jpg",
+      "sha256": "5ef6d22f3143e497d70cd3aaea52d18011cf7b121dc99bd85f4703e4c4e9f83d"
+    },
+    {
+      "file": "N09-morning-postcard/04-future.jpg",
+      "sha256": "9fe45c5b7b569b810cc9915d011dcf8ae73899ab4033b83b3f2ab0cfc7c828b0"
+    },
+    {
+      "file": "N09-morning-postcard/05-compatibility.jpg",
+      "sha256": "56360ffe38bdc2e48d39e3bf1e36b55f25273252c342c2ee77e6a0270a1df0e0"
+    },
+    {
+      "file": "N09-morning-postcard/06-matrix.jpg",
+      "sha256": "00b7e867c5e2a0b6630747cb30c4f9edc24e149489ebfe71d1fef6ab5a2f00f2"
+    },
+    {
+      "file": "N09-morning-postcard/07-profile.jpg",
+      "sha256": "1a1835b4ba1fcfa56efae0abfcb75a4435659ec943e57bc09c9fee1cc7d3e84e"
+    },
+    {
+      "file": "N09-morning-postcard/08-sounds.jpg",
+      "sha256": "1a137c6e0d07903573e31081a27bc93cae4680c42fc39d01f67b4c57af778073"
+    },
+    {
+      "file": "N10-orbital-studio/01-natal.jpg",
+      "sha256": "e909c9868ae9cb3a38d3c349d1a1a87140ed06782d7ebd01dbd840eb797cbf9a"
+    },
+    {
+      "file": "N10-orbital-studio/02-today.jpg",
+      "sha256": "785f5a191032423c436ede966cfeccc3f94029db700788e4c16def46e91be0e2"
+    },
+    {
+      "file": "N10-orbital-studio/03-zodiac.jpg",
+      "sha256": "4ac1b65347dc037d8bf85f89306a9c037818350db43fd8619c2e0c51c3ae395c"
+    },
+    {
+      "file": "N10-orbital-studio/04-future.jpg",
+      "sha256": "1ed653de9fe5627a0c839e9c3ce7136ef279625f653cb078aeabbc4618a1a7aa"
+    },
+    {
+      "file": "N10-orbital-studio/05-compatibility.jpg",
+      "sha256": "83d8489ccf881ccf53f0586c079babc28931a03b23bf7e6cb5d15b341c5726d6"
+    },
+    {
+      "file": "N10-orbital-studio/06-matrix.jpg",
+      "sha256": "a569703bbcd05a9f8d218291ab1d0449cf71166fa1fa6a402d4c0927d471968d"
+    },
+    {
+      "file": "N10-orbital-studio/07-profile.jpg",
+      "sha256": "65c39d9bd37c374ce203f12079274e9d770f80bdb714661cc65ada324554981a"
+    },
+    {
+      "file": "N10-orbital-studio/08-sounds.jpg",
+      "sha256": "07dabce88ffc0756bfc1b526f8f12f64702083d6de832335903029fbcd3547ac"
+    },
+    {
+      "file": "N11-together/01-compatibility.jpg",
+      "sha256": "6edded7b6507e92ad33b72dfe8d46f95c04bb7634c41aa1a7b58463c6ba24cba"
+    },
+    {
+      "file": "N11-together/02-natal.jpg",
+      "sha256": "90182d13a1294e9aed7c5c55f7dd1fbf116b2c7dd6d42aae4f7a27c2ab5ae096"
+    },
+    {
+      "file": "N11-together/03-zodiac.jpg",
+      "sha256": "186b673da073f42abe2c02aad6dac0489cfade2d313e8af2a9d645bc1df4cb7c"
+    },
+    {
+      "file": "N11-together/04-today.jpg",
+      "sha256": "c5beed0e09c0e3912d611b661ad059402b5bb69e4f3d7ae3096a9e1d73863084"
+    },
+    {
+      "file": "N11-together/05-future.jpg",
+      "sha256": "a5d109288ca35011146a4df6763a0b4355eadea03ac37cf0264c6477242cd248"
+    },
+    {
+      "file": "N11-together/06-matrix.jpg",
+      "sha256": "54982269dd193b8c6294b29edf72d02f470a14913aa2490dc33c0246830418da"
+    },
+    {
+      "file": "N11-together/07-profile.jpg",
+      "sha256": "c8cdead1d2a3395236d68c013db9ea5f992751c26495c9e076922adeedfd2b67"
+    },
+    {
+      "file": "N11-together/08-sounds.jpg",
+      "sha256": "01ba36cb8fb7732de5b4c9b448e1309dcbd201a8ca1db353d5686cd687972477"
+    },
+    {
+      "file": "N12-quiet-editorial/01-natal.jpg",
+      "sha256": "7bba05a96674af085471a453d3195d1455c8d5fc138b0f076d4c537c92027ec3"
+    },
+    {
+      "file": "N12-quiet-editorial/02-today.jpg",
+      "sha256": "5c254e4835a76f7eac96d641cc1014a675292ac742447360f5ada770c399ea9b"
+    },
+    {
+      "file": "N12-quiet-editorial/03-zodiac.jpg",
+      "sha256": "2b4d4f9db760dd161622c9c815936954114dcc56061a4a94c5ecddbefcba3669"
+    },
+    {
+      "file": "N12-quiet-editorial/04-future.jpg",
+      "sha256": "2ed322ceaa2c73d4236895b802c9f5eba2ca526e4b781dafd91a55a78dd2a0f7"
+    },
+    {
+      "file": "N12-quiet-editorial/05-compatibility.jpg",
+      "sha256": "c33a00b2de3c57a54fe03625447813ff88955413845b2384ac568e76b374fd9a"
+    },
+    {
+      "file": "N12-quiet-editorial/06-matrix.jpg",
+      "sha256": "1d2d11d432fc09691ff4366711065beed2f3ebc548e463bdf1ce4cee0e4b0648"
+    },
+    {
+      "file": "N12-quiet-editorial/07-profile.jpg",
+      "sha256": "67b718c0e6c460602cf70a4fb0ed597f9c9554aa9463f914e8b5126bb72a0c78"
+    },
+    {
+      "file": "N12-quiet-editorial/08-sounds.jpg",
+      "sha256": "64929fa606ea94039ee86f006d5d91909b793d9fcd0e1f1d319d59a49820acd4"
+    },
+    {
+      "file": "N13-glass-planets/01-zodiac.jpg",
+      "sha256": "33e00147cd7f3c5462bd0482471134023a7749e6116e17acce8481882d84cbcc"
+    },
+    {
+      "file": "N13-glass-planets/02-today.jpg",
+      "sha256": "c9f5236dfe9e421d82e349a09cd89ca144fe108cc9ae7544d9a2d78825743584"
+    },
+    {
+      "file": "N13-glass-planets/03-natal.jpg",
+      "sha256": "146ab544a111ed33b029b451381cba15bd6d9da6c7f7fa8cfaf55247e22f3305"
+    },
+    {
+      "file": "N13-glass-planets/04-future.jpg",
+      "sha256": "1aac420854780ad64fd25710f9785bbe9ef5c0c191423f38175daff1ed4f8fd2"
+    },
+    {
+      "file": "N13-glass-planets/05-compatibility.jpg",
+      "sha256": "5d4e142c02487097f5b38bbbd18c4ecc556d02fefb81f8181963e6edc3c222b4"
+    },
+    {
+      "file": "N13-glass-planets/06-matrix.jpg",
+      "sha256": "e73a9e9f8f97df642ffd32a1d88412b2bd09b2657c591332a0df26ba775ca124"
+    },
+    {
+      "file": "N13-glass-planets/07-profile.jpg",
+      "sha256": "765d71f583309f9b832e7749de966829b043a6e4d345ecf71abb40415c7940dc"
+    },
+    {
+      "file": "N13-glass-planets/08-sounds.jpg",
+      "sha256": "a8e66202427fac0d52e4bd82740fe700982f9a01e05b7c4f53807c1a62f378f2"
+    },
+    {
+      "file": "N14-city-day/01-today.jpg",
+      "sha256": "c7de8527090bc3f5ccaaae69363b91d4d0c6bbe9bccf83925a88da9ebe3b3cfb"
+    },
+    {
+      "file": "N14-city-day/02-zodiac.jpg",
+      "sha256": "9b2b253a530a9b49b753cb5a8972a4ff7b61425941bc09fc56bf1972a3eb4e73"
+    },
+    {
+      "file": "N14-city-day/03-natal.jpg",
+      "sha256": "29c6658530eb6c5c1c10a9f22940e06a3a49303f1abb1119766f737333163e68"
+    },
+    {
+      "file": "N14-city-day/04-future.jpg",
+      "sha256": "ba3922a164dee542e1b09955b32ba7d44972efb1f49879ca59a85705133a433e"
+    },
+    {
+      "file": "N14-city-day/05-compatibility.jpg",
+      "sha256": "57beff806c82dc5f1cc090b02c8f2e70379c357ca08e759fbfff71622d45b543"
+    },
+    {
+      "file": "N14-city-day/06-matrix.jpg",
+      "sha256": "ac475106beedce26e54a15e32efa7434549eff39ed1006cc1843d6425af68d75"
+    },
+    {
+      "file": "N14-city-day/07-profile.jpg",
+      "sha256": "8bda0422fa6424108d3652184fffef9af36f20d57d5a4c464ffcd1fc5703f54b"
+    },
+    {
+      "file": "N14-city-day/08-sounds.jpg",
+      "sha256": "d36aea2f9137192932df80cd2d1f8b101fee2c0fa320976c613d9c8ec4827a01"
+    },
+    {
+      "file": "N15-paper-sky/01-zodiac.jpg",
+      "sha256": "dd1b062dd98ee43443829078b4f3e3a3eb97c208cd635148d731efa088839822"
+    },
+    {
+      "file": "N15-paper-sky/02-natal.jpg",
+      "sha256": "a2b92a5905d9cca4bd58211b8e437d8dbb1218175e38e374c1e0ad0adda93442"
+    },
+    {
+      "file": "N15-paper-sky/03-today.jpg",
+      "sha256": "666b45a91b4ba142d7ddad8caff7c3e2e8c3197a6ecdf15a5e03e1f7c62fb527"
+    },
+    {
+      "file": "N15-paper-sky/04-future.jpg",
+      "sha256": "bd270544865ee76c5c42921551e77683b75318634b34a0d5895e7b4d7b670348"
+    },
+    {
+      "file": "N15-paper-sky/05-compatibility.jpg",
+      "sha256": "2d185a97323b6dd16b74b7b21291dc57ab7f3108a476b048e8b411bf03eea004"
+    },
+    {
+      "file": "N15-paper-sky/06-matrix.jpg",
+      "sha256": "9dee850a651842534a334e889f06dcd61adafcbc894b6c22d926d60caab3f208"
+    },
+    {
+      "file": "N15-paper-sky/07-profile.jpg",
+      "sha256": "058b1dcf3755459ea52520249295beeb68cdab4ddbe2e4adaa08e726db020e6c"
+    },
+    {
+      "file": "N15-paper-sky/08-sounds.jpg",
+      "sha256": "4d65968a652d955926a78feed2436afcf7c993101028bbe10ca5dc3b0b426b9d"
+    },
+    {
+      "file": "N16-porcelain-zodiac/01-zodiac.jpg",
+      "sha256": "efa91c82caebf815b5bd8b986f4aee170e836291fc3f60a4faf6e3a804d1c8b4"
+    },
+    {
+      "file": "N16-porcelain-zodiac/02-today.jpg",
+      "sha256": "9b2034976627dd50efcc898acf0f19ed6261ff8d18dbd2825c4c53f260adfa93"
+    },
+    {
+      "file": "N16-porcelain-zodiac/03-natal.jpg",
+      "sha256": "a7508ce28a20fcd4975d40dd9b6e7a51f158f649dff1b149badfb9bd709b25f2"
+    },
+    {
+      "file": "N16-porcelain-zodiac/04-future.jpg",
+      "sha256": "99edf29bb49a5a56d1e64a3f430620d1df04bfda16a2b18d1fff1850f65d7d1b"
+    },
+    {
+      "file": "N16-porcelain-zodiac/05-compatibility.jpg",
+      "sha256": "16df7dd09afa186d84fdf173dcf29011131338b750a98a384bd99947ce929418"
+    },
+    {
+      "file": "N16-porcelain-zodiac/06-matrix.jpg",
+      "sha256": "15a3841e9bc6f8632d93b960f23c00f0ee84a54f209cfd73d71a398a8e1d9d4f"
+    },
+    {
+      "file": "N16-porcelain-zodiac/07-profile.jpg",
+      "sha256": "3a520a6b15f656ef356796478196c73c5875021772471a4763e5f34b3a53261d"
+    },
+    {
+      "file": "N16-porcelain-zodiac/08-sounds.jpg",
+      "sha256": "1dc65899ae00c2a2ce47a8e630d36dfa38f0bcb58240600b1941dd5cfdcdccc2"
+    },
+    {
+      "file": "N17-soft-evening/01-today.jpg",
+      "sha256": "2b461d5c58c3bc504b9669eb7fae59c69a9e02a49203e4ae27548d78c4a742c1"
+    },
+    {
+      "file": "N17-soft-evening/02-zodiac.jpg",
+      "sha256": "da45a6a418f90f0c37777ac0d625abbaff43065d23c4deb89c95a22a51fbc7e0"
+    },
+    {
+      "file": "N17-soft-evening/03-natal.jpg",
+      "sha256": "d19c57cb8441f1b4e9922fe78e922b5f3dac2ac8f25409f5b57a93c70de73816"
+    },
+    {
+      "file": "N17-soft-evening/04-future.jpg",
+      "sha256": "be334945d5c379723661a880ba2cd2dbd5938a8db45dc66a445876444fe7ad50"
+    },
+    {
+      "file": "N17-soft-evening/05-compatibility.jpg",
+      "sha256": "490bf65328c0ce50e274c4ce57ba09fb419e1987e7e75909c538dfd63048b47e"
+    },
+    {
+      "file": "N17-soft-evening/06-matrix.jpg",
+      "sha256": "9ff53851630037e1141b4b8a7d07e6987dc0fee5a15246f9aa6a1f776e71baa2"
+    },
+    {
+      "file": "N17-soft-evening/07-profile.jpg",
+      "sha256": "9c8872dc55f5e6647205c45da3896f4fa5a0d9f0efb6979217afbe2dfeed8c57"
+    },
+    {
+      "file": "N17-soft-evening/08-sounds.jpg",
+      "sha256": "3c7c473a34206e0cb58508df2a968c8b9164c1df7cc13678e47b7f8f8f631491"
+    },
+    {
+      "file": "N18-birth-numbers/01-matrix.jpg",
+      "sha256": "3b429fe33f036463d56a6a2847ab1dba1d0fe4ce56ffd08eaba0af428f043380"
+    },
+    {
+      "file": "N18-birth-numbers/02-natal.jpg",
+      "sha256": "7cfc8389f39e257d8bcacc875140e58138f01798353d063d5da959978eb66521"
+    },
+    {
+      "file": "N18-birth-numbers/03-zodiac.jpg",
+      "sha256": "f4ffe539a85ba87ad4d05ef97a36e1e357db6d582ac3faf28ddbf91581f308a4"
+    },
+    {
+      "file": "N18-birth-numbers/04-today.jpg",
+      "sha256": "fcbc1a50d9adf613d879bf9044a256868c48dab15bdc125dc2f98b194a4ddec2"
+    },
+    {
+      "file": "N18-birth-numbers/05-future.jpg",
+      "sha256": "230a78ca6d6c0fdf3cfd0b8e7c191e60d0f968f78a86bb8183f4fa2aceb52c26"
+    },
+    {
+      "file": "N18-birth-numbers/06-compatibility.jpg",
+      "sha256": "95842991a76bb5f8e13a75387e4627ef31805e7c9ea44ce0111fb87997f83e16"
+    },
+    {
+      "file": "N18-birth-numbers/07-profile.jpg",
+      "sha256": "f886e5222f7e8a0363ca4c464c53968974866fee9a370378366350e75b2c2776"
+    },
+    {
+      "file": "N18-birth-numbers/08-sounds.jpg",
+      "sha256": "12e85a60d4e1e00fd66bdd5f460d5d5417b8394530de9c03e6a5a67d01952768"
+    },
+    {
+      "file": "N19-wind-light/01-natal.jpg",
+      "sha256": "bebfbffaa709e6ae4db9ee8a991e563cd2055c22bd8176c4b4c69e804c71aff0"
+    },
+    {
+      "file": "N19-wind-light/02-today.jpg",
+      "sha256": "c657f821f0fdf379c47863d5a5c19b580241b371da074afb0faea1dd4da3565d"
+    },
+    {
+      "file": "N19-wind-light/03-zodiac.jpg",
+      "sha256": "8c648782eb1cd0d48e693547ff192ab7e5842d100cb90c762c0e67827343aaca"
+    },
+    {
+      "file": "N19-wind-light/04-future.jpg",
+      "sha256": "8d4bd3744c922333cc85f559e69f139f983e9196ef47642accc3c5587ea33cdb"
+    },
+    {
+      "file": "N19-wind-light/05-compatibility.jpg",
+      "sha256": "0535c2278b1bd6e242142f19087a840950348bb2a326bfd6737576559f490ae0"
+    },
+    {
+      "file": "N19-wind-light/06-matrix.jpg",
+      "sha256": "444d4b15a1b7e2108584d02c06dd92da67959ab9f5260a9dc83052cf930f9188"
+    },
+    {
+      "file": "N19-wind-light/07-profile.jpg",
+      "sha256": "adbb052a55cfa7323aaef70242aad98e1ea80251a8513ce5dc1d2cdbc152381e"
+    },
+    {
+      "file": "N19-wind-light/08-sounds.jpg",
+      "sha256": "f0ed690a179c571c2ac9968b5ca71246f1f364a10877fb53932ba1149885dcc2"
+    },
+    {
+      "file": "N20-star-theatre/01-zodiac.jpg",
+      "sha256": "545347f94d30ded4f61fae29dbf4f74cc8a1f865d0743c30a80b33ae5cf6d76c"
+    },
+    {
+      "file": "N20-star-theatre/02-natal.jpg",
+      "sha256": "421c3e10b0f5e68c7aee44f536d51dc92aed1af8997627d15bb274ef9464ca25"
+    },
+    {
+      "file": "N20-star-theatre/03-today.jpg",
+      "sha256": "74c240f74834c1968e10b8a4c42a6e1e4e0978766a928af1fb79db02af2c4ab7"
+    },
+    {
+      "file": "N20-star-theatre/04-future.jpg",
+      "sha256": "a31820aa2eb24c8d1e8c51b2cefbc255dbbc1e46c03f4b46438f6bf75f4a8c94"
+    },
+    {
+      "file": "N20-star-theatre/05-compatibility.jpg",
+      "sha256": "a9fb95e2e53eb6ae6934b871dcf4da33b0c09df7c73848cf21e384431be4e45c"
+    },
+    {
+      "file": "N20-star-theatre/06-matrix.jpg",
+      "sha256": "9118bba5fe98b7341e099cf77b5ad7d0c619fca48cd8f1db7df14c62012850f4"
+    },
+    {
+      "file": "N20-star-theatre/07-profile.jpg",
+      "sha256": "80396ab38b140c82300477932cb999ac183765b10a0dd63e5d9527e174abce66"
+    },
+    {
+      "file": "N20-star-theatre/08-sounds.jpg",
+      "sha256": "511cfa26804059cdf7e6ab3540a5c7ebf2552771b19ab8b3cc3dfb3181f02a78"
+    }
+  ]
+}

@@ -21,6 +21,17 @@ import { HoroscopeReader } from '../../views/v2/HoroscopeReader';
 import { NatalMagazine } from '../../views/v2/NatalMagazine';
 import { MatrixRoom } from '../../views/v2/MatrixRoom';
 import readingSamples from './readingSamples.json';
+import type { NatalUnifiedReading } from '../../lib/natalReading/unifiedReading';
+
+type PreviewPerson = {
+  id: string;
+  profile: { name: string; birthDate: string; birthTime: string; birthPlace: string; gender: string };
+  chart: unknown;
+  chartId?: number;
+  isPrimary?: boolean;
+  subjectType?: 'self' | 'saved_person';
+  reading?: NatalUnifiedReading | null;
+};
 import { UnionRoom } from '../../views/v2/UnionRoom';
 import { AstrologyEncyclopedia } from '../../views/v2/AstrologyEncyclopedia';
 import { ServiceScreen, type ServiceTab } from '../../views/v2/ServiceScreen';
@@ -481,10 +492,15 @@ export default function UiPreviewApp() {
   const [chartsReturnScreen, setChartsReturnScreen] = useState<UiPreviewScreen>('menu');
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  const [samplePerson, setSamplePerson] = useState(() => {
+  const savedAdmin = new URLSearchParams(window.location.search).get('saved') === 'admin';
+  const [savedPeople, setSavedPeople] = useState<PreviewPerson[] | null>(null);
+  const [savedError, setSavedError] = useState<string | null>(null);
+  const [samplePerson, setSamplePerson] = useState<PreviewPerson | undefined>(() => {
     const person = new URLSearchParams(window.location.search).get('person');
+    if (savedAdmin) return undefined;
     return readingSamples.people.find(sample => sample.id === person);
   });
+  const previewPeople: PreviewPerson[] = savedAdmin ? savedPeople || [] : readingSamples.people;
   const profile = useMemo(() => {
     const base = createUiPreviewProfile(scenario.access, scenario.birthTime);
     if (!samplePerson || scenario.access === 'guest') return base;
@@ -496,8 +512,8 @@ export default function UiPreviewApp() {
     ? samplePerson.chart as unknown as ReturnType<typeof createUiPreviewChart>
     : createUiPreviewChart(scenario.birthTime), [scenario.birthTime, samplePerson]);
   const natalProfile = useMemo(() => ({ ...profile, id: '', gender: samplePerson ? samplePerson.profile.gender as typeof profile.gender : profile.gender }), [profile,samplePerson]);
-  const natalPreviewCharts = useMemo(() => samplePerson ? readingSamples.people.map((sample, index) => ({ ...createUiPreviewCharts({...profile, name:sample.profile.name, birthDate:sample.profile.birthDate, birthTime:sample.profile.birthTime, birthPlace:sample.profile.birthPlace}, sample.chart as unknown as typeof chart)[0], id:index + 1, is_primary:index === 0, subject_type:index === 0 ? 'self' as const : 'saved_person' as const, input_hash:`ui-preview-${sample.id}` })) : createUiPreviewCharts(profile,chart), [samplePerson,profile,chart]);
-  const selectedNatalSubject = samplePerson ? natalPreviewCharts[readingSamples.people.indexOf(samplePerson)] : undefined;
+  const natalPreviewCharts = useMemo(() => samplePerson ? previewPeople.map((sample, index) => ({ ...createUiPreviewCharts({...profile, name:sample.profile.name, birthDate:sample.profile.birthDate, birthTime:sample.profile.birthTime, birthPlace:sample.profile.birthPlace}, sample.chart as unknown as typeof chart)[0], id:sample.chartId ?? index + 1, is_primary:sample.isPrimary ?? index === 0, subject_type:sample.subjectType ?? (index === 0 ? 'self' as const : 'saved_person' as const), input_hash:`ui-preview-${sample.id}` })) : createUiPreviewCharts(profile,chart), [samplePerson,previewPeople,profile,chart]);
+  const selectedNatalSubject = samplePerson ? natalPreviewCharts[previewPeople.indexOf(samplePerson)] : undefined;
   const view = previewViewForScreen(scenario.screen);
   const showsBottomNavigation = !['onboarding', 'paywall'].includes(scenario.screen);
 
@@ -515,7 +531,7 @@ export default function UiPreviewApp() {
       const next = { ...current, ...patch };
       const query = new URLSearchParams(scenarioToSearch(next));
       const previous = new URLSearchParams(window.location.search);
-      for (const key of ['person', 'controls'] as const) {
+      for (const key of ['person', 'controls', 'saved', 'owner'] as const) {
         const value = previous.get(key);
         if (value !== null) query.set(key, value);
       }
@@ -553,12 +569,36 @@ export default function UiPreviewApp() {
     window.fetch = (input, init) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.includes('/_next/')) return originalFetch(input, init);
+      const target = new URL(url, window.location.href);
+      if (new URLSearchParams(window.location.search).get('saved') === 'admin'
+        && target.origin === window.location.origin && target.pathname === '/api/dev/natal-reading-samples'
+        && (!init?.method || init.method === 'GET')) return originalFetch(input, init);
       return Promise.reject(new Error(`[UI Preview] Network request blocked: ${url}`));
     };
     return () => {
       window.fetch = originalFetch;
     };
   }, []);
+
+  useEffect(() => {
+    if (!savedAdmin) return;
+    const controller = new AbortController();
+    const owner = new URLSearchParams(window.location.search).get('owner');
+    const query = owner ? `?owner=${encodeURIComponent(owner)}` : '';
+    void fetch(`/api/dev/natal-reading-samples${query}`, { signal: controller.signal, cache: 'no-store' })
+      .then(async response => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'Не получилось загрузить карты.');
+        if (!payload.people?.length) throw new Error('В базе нет сохранённых карт.');
+        if (controller.signal.aborted) return;
+        const people: PreviewPerson[] = payload.people;
+        const personId = new URLSearchParams(window.location.search).get('person');
+        setSavedPeople(people);
+        setSamplePerson(people.find(person => person.id === personId) || people[0]);
+      })
+      .catch(error => { if (!controller.signal.aborted) setSavedError(error.message); });
+    return () => controller.abort();
+  }, [savedAdmin]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -571,7 +611,11 @@ export default function UiPreviewApp() {
     || scenario.screen === 'question';
   const usesRealCompatibilityState = scenario.screen.startsWith('compatibility-')
     && (scenario.state === 'loading' || scenario.state === 'error');
-  if (scenario.state !== 'ready' && !usesRealNatalState && !usesRealCompatibilityState) {
+  if (savedAdmin && !savedPeople) {
+    scene = <div className="ui-preview-page"><AppTopBar title="Натальная карта" />
+      <p role={savedError ? 'alert' : 'status'}>{savedError || 'Загружаем твои сохранённые карты…'}</p>
+    </div>;
+  } else if (scenario.state !== 'ready' && !usesRealNatalState && !usesRealCompatibilityState) {
     const stateHeaderAction = scenario.screen === 'settings' ? (
       <EditorialChartsButton label="Открыть мои карты" onClick={openCharts} />
     ) : scenario.screen === 'charts' ? undefined : (
@@ -629,7 +673,7 @@ export default function UiPreviewApp() {
   } else if (scenario.screen === 'natal' || scenario.screen === 'natal-reading' || scenario.screen === 'question') {
     scene = (
       <NatalMagazine
-        key={`${scenario.screen}:${scenario.access}:${scenario.birthTime}`}
+        key={`${scenario.screen}:${scenario.access}:${scenario.birthTime}:${samplePerson?.id}`}
         data={scenario.state === 'empty' ? null : chart}
         profile={natalProfile}
         chartId={selectedNatalSubject?.id}
@@ -646,6 +690,7 @@ export default function UiPreviewApp() {
         onOpenCharts={openCharts}
         onOpenEncyclopedia={() => navigate('encyclopedia')}
         uiPreview={{
+          unifiedReading: savedAdmin ? { reading: samplePerson?.reading || null } : undefined,
           initialTab: scenario.screen === 'natal'
             ? 'map'
             : scenario.screen === 'question'
@@ -688,7 +733,7 @@ export default function UiPreviewApp() {
           canPromotePremium={scenario.access !== 'premium'}
           onRequestPremium={() => navigate('paywall')}
           onChartSelect={['natal','natal-reading','question'].includes(chartsReturnScreen) ? selected => {
-              const sample = readingSamples.people[selected.id - 1];
+              const sample = previewPeople.find((person, index) => (person.chartId ?? index + 1) === selected.id);
               if (samplePerson && sample) {
                 setSamplePerson(sample);
                 const query = new URLSearchParams(window.location.search); query.set('person',sample.id); window.history.replaceState(null,'',`?${query}`);

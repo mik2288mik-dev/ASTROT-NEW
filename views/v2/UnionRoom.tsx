@@ -5,6 +5,8 @@ import {
   ChevronDown,
   Clock3,
   Info,
+  Lock,
+  Send,
   MapPin,
   UserRound,
 } from 'lucide-react';
@@ -13,7 +15,8 @@ import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibili
 import { getZodiacSign } from '../../constants';
 import { getProfilePremiumUntil, hasActivePremium } from '../../lib/accessMatrix';
 import { getCharts, type ChartListItem } from '../../services/storageService';
-import { getSignCompatibility, calculateExtendedSynastry } from '../../services/astrologyService';
+import { getSignCompatibility, calculateExtendedSynastry, getCompatibilityPreview } from '../../services/astrologyService';
+import type { CompatibilityPreview } from '../../lib/synastry/compatibilityPreview';
 import { formatDisplayDate, toDateInputValue } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { getCompatScore, sunSignFromDate, DIMENSION_LABELS, type CompatResult, type CompatDimension } from '../../lib/synastry/compatScore';
@@ -50,6 +53,8 @@ import {
 import { getCompatibilityRingGeometry } from '../../lib/synastry/compatibilityPresentation';
 import { buildSignCompatibilityReactionKey } from '../../lib/synastry/compatibilityReaction';
 import { CompatibilityStoryReader } from '../../components/CompatibilityStoryReader';
+import { CompatibilityAnswers, CompatibilityCalculation, CompatibilityGauge, gaugeHeadline } from '../../components/CompatibilityAnswers';
+import { CompatibilityTalkCalendar, CompatibilityTopicSwitch } from '../../components/CompatibilityExtras';
 
 type CompatibilityPersonSource = 'birth' | 'saved' | 'sign';
 
@@ -148,6 +153,14 @@ type Selected = {
   partnerSign?: string;
   calculationLevel?: CompatibilityPairLevel;
 };
+
+/** The two people of a comparison, regardless of the relationship type. */
+function compatibilityPeopleKey(selected: Selected): string {
+  return JSON.stringify([
+    selected.subjectSource, selected.subjectChartId, selected.subjectName, selected.subjectDate,
+    selected.partnerSource, selected.chartId, selected.name, selected.date,
+  ]);
+}
 
 function compatibilityRequestKey(selected: Selected): string {
   return JSON.stringify([
@@ -715,7 +728,7 @@ export function UnionRoom(props: UnionRoomProps) {
     previewFixture?.screen === 'result' || initialPrefill ? 'result' : 'add',
   );
   const [entryMode, setEntryMode] = useState<'birth' | 'sign'>(
-    previewFixture ? (previewFixture.screen === 'signs' ? 'sign' : 'birth') : premium ? 'birth' : 'sign',
+    previewFixture ? (previewFixture.screen === 'signs' ? 'sign' : 'birth') : 'birth',
   );
   const [availableCharts, setAvailableCharts] = useState<ChartListItem[]>([]);
   const [peopleLoaded, setPeopleLoaded] = useState(previewEnabled);
@@ -821,6 +834,9 @@ export function UnionRoom(props: UnionRoomProps) {
     previewFixture?.screen === 'result' && previewFixture.resultKind !== 'sign' ? 'deep:v1:preview' : null,
   );
   const [deepLoading, setDeepLoading] = useState(previewResultState === 'loading');
+  const [answersPreview, setAnswersPreview] = useState<CompatibilityPreview | null>(null);
+  const [answersPreviewLoading, setAnswersPreviewLoading] = useState(false);
+  const [pairTopics, setPairTopics] = useState<{ key: string; topics: NonNullable<CompatibilityPreview['topics']> } | null>(null);
   const autoDeepKeyRef = useRef<string | null>(null);
   const [personSheet, setPersonSheet] = useState<'subject' | 'partner' | null>(null);
   const [signSheet, setSignSheet] = useState<'subject' | 'partner' | null>(null);
@@ -845,7 +861,7 @@ export function UnionRoom(props: UnionRoomProps) {
 
   useEffect(() => {
     if (previewEnabled) return;
-    if (!profile.id || !premium) {
+    if (!profile.id) {
       setAvailableCharts([]);
       setPeopleLoaded(true);
       return;
@@ -870,7 +886,6 @@ export function UnionRoom(props: UnionRoomProps) {
 
   useEffect(() => {
     if (!premium) {
-      setEntryMode('sign');
       setDeep(null);
       setDeepReactionKey(null);
       setDeepLoading(false);
@@ -915,6 +930,16 @@ export function UnionRoom(props: UnionRoomProps) {
     () => availableCharts.find((chart) => chart.subject_type === 'self') || null,
     [availableCharts],
   );
+  // The first person is usually the user: start from their own saved chart until they choose otherwise.
+  const ownChartPrefilledRef = useRef(false);
+  useEffect(() => {
+    if (ownChartPrefilledRef.current || !ownSavedChart || previewEnabled) return;
+    ownChartPrefilledRef.current = true;
+    if (subjectSource !== 'birth' || sDate || firstChartId != null) return;
+    setSubjectSource('saved');
+    setFirstChartId(ownSavedChart.id);
+    setYouGender(initialYouGender);
+  }, [ownSavedChart, previewEnabled, subjectSource, sDate, firstChartId, initialYouGender]);
   const subjectResolvedSource: CompatibilityPersonSource = subjectSource;
   const partnerResolvedSource: CompatibilityPersonSource = partnerSource;
   const subjectClassification = useMemo(() => classifyCompatibilityPerson({
@@ -994,6 +1019,7 @@ export function UnionRoom(props: UnionRoomProps) {
     lumiaSelectionHaptic();
     autoDeepKeyRef.current = null;
     setDeepLoading(false);
+    setAnswersPreview(null);
     setSignText(null);
     setDeep(null);
     setDeepReactionKey(null);
@@ -1001,6 +1027,13 @@ export function UnionRoom(props: UnionRoomProps) {
     setSelected(s);
     setScreen('result');
     scrollCompatibilityToTop();
+  };
+
+  const switchTopic = (context: RelationshipContext) => {
+    if (!selected || selected.kind !== 'person') return;
+    setRelationshipContext(context);
+    setRelationshipFocus(compatibilityFocusForContext(context));
+    openResult({ ...selected, relationshipContext: context });
   };
 
   const persistCalculatedHistory = (entry: Selected, overall: number) => {
@@ -1098,10 +1131,19 @@ export function UnionRoom(props: UnionRoomProps) {
     const second = selected.kind === 'sign'
       ? getZodiacSign(lang, theirSun)
       : (selected.name || (ru ? 'Вторая карта' : 'Second chart'));
+    const personScore = deep?.overallScore ?? answersPreview?.overallScore;
+    const personQuestions = (deep?.questions?.length ? deep.questions : answersPreview?.questions) || [];
+    const strongestQuestion = [...personQuestions].filter((item) => item.score != null && item.short).sort((a, b) => b.score! - a.score!)[0];
     const text = selected.kind === 'person'
-      ? ru
-        ? `Совместимость ${first} + ${second}: ${deep?.summary || 'подробный разбор по вашим данным'}.\n\nСравни свою пару в NEBO.`
-        : `Compatibility ${first} + ${second}: ${deep?.summary || 'a detailed reading based on your data'}.\n\nCompare your pair in NEBO.`
+      ? typeof personScore === 'number'
+        ? ru
+          ? `${first} и ${second}: ${gaugeHeadline(personScore, true).toLowerCase()}.${strongestQuestion ? ` Сильнее всего у нас — ${strongestQuestion.short}.` : ''}
+
+Проверь нашу совместимость со своей стороны в NEBO.`
+          : `${first} and ${second}: ${gaugeHeadline(personScore, false).toLowerCase()}.${strongestQuestion ? ` Our strongest side is ${strongestQuestion.short}.` : ''}
+
+Check our compatibility from your side in NEBO.`
+        : ''
       : score
         ? ru
           ? `Совместимость ${first} + ${second}: ${score.overall}/100 — ${score.verdict}. Сильнее всего — ${DIMENSION_LABELS[score.strongest][lang]}.\n\nСравни свою пару в NEBO.`
@@ -1161,16 +1203,6 @@ export function UnionRoom(props: UnionRoomProps) {
     }
     if (partnerResolvedSource === 'birth' && !fPlace.trim()) {
       setError(ru ? 'Укажи место рождения второго человека.' : 'Add the second person\'s birth place.');
-      return;
-    }
-    if (!premium) {
-      void requestPremium('compatibility_by_charts', {
-        placement: 'compatibility_by_charts',
-        featureKey: 'synastry_by_charts',
-        triggerType: 'locked_feature',
-        returnView: 'synastry',
-        returnAction: 'submit_birth_compatibility',
-      });
       return;
     }
     if (subjectResolvedSource === 'saved' && !firstChart) {
@@ -1376,6 +1408,37 @@ export function UnionRoom(props: UnionRoomProps) {
     void runDeep();
   }, [screen, selected, premium, peopleLoaded, previewResultState, runDeep]);
 
+  // Free answers by birth dates: calculated on the server without AI, for everyone.
+  const previewLanguageRef = useRef(profile);
+  previewLanguageRef.current = profile;
+  useEffect(() => {
+    if (previewEnabled || screen !== 'result' || selected?.kind !== 'person' || !peopleLoaded) return;
+    let alive = true;
+    setAnswersPreviewLoading(true);
+    const person = (source: Selected['subjectSource'], chartId: number | undefined, name?: string, date?: string, place?: string) => (
+      source === 'saved' && chartId != null
+        ? { source: 'saved' as const, chartId }
+        : { source: 'birth' as const, name, date, place }
+    );
+    void getCompatibilityPreview(
+      previewLanguageRef.current,
+      person(selected.subjectSource, selected.subjectChartId, selected.subjectName, selected.subjectDate, selected.subjectPlace),
+      person(selected.partnerSource, selected.chartId, selected.name, selected.date, selected.place),
+      selected.relationshipContext,
+    )
+      .then((result) => {
+        if (!alive) return;
+        setAnswersPreview(result);
+        if (result.topics?.length) setPairTopics({ key: compatibilityPeopleKey(selected), topics: result.topics });
+        persistCalculatedHistory(selected, result.overallScore);
+      })
+      .catch((e: any) => {
+        if (alive && !premium) setError(e?.message || (ru ? 'Не удалось посчитать совместимость.' : 'Could not calculate compatibility.'));
+      })
+      .finally(() => { if (alive) setAnswersPreviewLoading(false); });
+    return () => { alive = false; };
+  }, [previewEnabled, screen, selected, peopleLoaded, premium, ru]);
+
   const compatibilityTabs = useMemo(() => [
     { id: 'birth' as const, label: ru ? 'По дате рождения' : 'By birth date' },
     { id: 'sign' as const, label: ru ? 'По знаку зодиака' : 'By zodiac sign' },
@@ -1486,6 +1549,15 @@ export function UnionRoom(props: UnionRoomProps) {
     );
   };
 
+  // One row per pair: switching topics saves the same two people several times.
+  const recentPairs = history
+    .filter((entry) => entry.kind === 'person')
+    .filter((entry, index, list) => list.findIndex((other) => (
+      other.subjectChartId === entry.subjectChartId && other.subjectName === entry.subjectName
+      && other.chartId === entry.chartId && other.name === entry.name && other.date === entry.date
+    )) === index)
+    .slice(0, 3);
+
   const compactPersonMeta = (source: CompatibilityPersonSource, chart: ChartListItem | null, date: string, time: string, place: string) => {
     if (source === 'saved' && chart) {
       return [formatDisplayDate(chart.birth_date, lang), chart.birth_place].filter(Boolean).join(' · ');
@@ -1519,6 +1591,29 @@ export function UnionRoom(props: UnionRoomProps) {
                 <h2>{ru ? 'Какая у вас совместимость?' : 'How compatible are you?'}</h2>
                 <p>{ru ? 'Не ставим отношениям оценку. Смотрим, где вам легко вместе и где обычно начинаются сложности.' : 'This is not a relationship grade. It shows where you feel at ease and where friction may begin.'}</p>
               </section>
+
+              {recentPairs.length ? (
+                <section className="compat-pairs" aria-label={ru ? 'Мои пары' : 'My pairs'}>
+                  <h3>{ru ? 'Мои пары' : 'My pairs'}</h3>
+                  {recentPairs.map((entry) => {
+                    const first = entry.subjectName || profile.name || (ru ? 'Я' : 'Me');
+                    const second = entry.name || (ru ? 'Второй человек' : 'Second person');
+                    return (
+                      <button key={entry.id} type="button" className="compat-pair-row" onClick={() => openFromHistory(entry)}>
+                        <span className="compat-pair-avatars" aria-hidden="true">
+                          <span>{first.trim().charAt(0).toUpperCase()}</span>
+                          <span>{second.trim().charAt(0).toUpperCase()}</span>
+                        </span>
+                        <span className="compat-pair-copy">
+                          <strong>{first} {ru ? 'и' : 'and'} {second}</strong>
+                          <small>{getRelationshipContextLabel(normalizeRelationshipContext(entry.relationshipContext), lang)} · {gaugeHeadline(entry.overall, ru).toLowerCase()}</small>
+                        </span>
+                        <ChevronRightIcon size={17} aria-hidden="true" />
+                      </button>
+                    );
+                  })}
+                </section>
+              ) : null}
 
               <section className="compat-entry-context compat-entry-context--date" aria-label={ru ? 'Кто вы друг другу' : 'Relationship type'}>
                 <span className="compat-date-section-label">{ru ? 'Кто вы друг другу' : 'Who are you to each other'}</span>
@@ -1913,8 +2008,12 @@ export function UnionRoom(props: UnionRoomProps) {
     : deep
       ? (ru ? 'Разбор без полного времени рождения' : 'Reading without complete birth times')
       : '';
+  const gaugeQuestions = (premium && deep?.questions?.length ? deep.questions : answersPreview?.questions) || [];
+  const gaugeScore = premium && deep && typeof deep.overallScore === 'number'
+    ? deep.overallScore
+    : answersPreview?.overallScore ?? null;
   const isWaitingForResult = isPerson
-    ? Boolean(deepLoading && !deep && !error)
+    ? Boolean(((premium && deepLoading && !deep) || (answersPreviewLoading && !answersPreview && !deep)) && !error)
     : Boolean(!signText && !error);
 
   return (
@@ -1990,11 +2089,56 @@ export function UnionRoom(props: UnionRoomProps) {
 
       {resultPercent == null ? (
         <header className="compat-story-cover">
-          <p>{resultContextLabel} · {ru ? 'полный разбор' : 'full reading'}</p>
+          <p>
+            {resultContextLabel} · {premium && deep
+              ? (ru ? 'полный разбор' : 'full reading')
+              : (ru ? 'основные ответы' : 'main answers')}
+          </p>
           <h1><span>{leftName}</span><span className="compat-story-plus" aria-hidden="true">&</span><span>{rightName}</span></h1>
           <div><span>{getZodiacSign(lang, leftSun)}</span><span aria-hidden="true">·</span><span>{getZodiacSign(lang, theirSun)}</span></div>
           <button type="button" className="compat-result-change" onClick={() => { setError(null); setEntryMode('birth'); setScreen('add'); scrollCompatibilityToTop(); }}>{ru ? 'Изменить людей или тип отношений' : 'Change people or relationship type'}</button>
         </header>
+      ) : null}
+
+      {isPerson && gaugeScore != null ? (
+        <CompatibilityGauge score={gaugeScore} questions={gaugeQuestions} language={lang} />
+      ) : null}
+      {isPerson && selected && pairTopics && pairTopics.key === compatibilityPeopleKey(selected) ? (
+        <CompatibilityTopicSwitch topics={pairTopics.topics} active={selected.relationshipContext} onPick={switchTopic} language={lang} />
+      ) : null}
+
+      {isPerson && answersPreview && !(premium && deep) ? (
+        <>
+          <CompatibilityAnswers
+            language={lang}
+            rows={answersPreview.questions.map((question) => ({
+              ...question,
+              text: question.explanation,
+              locked: !premium && question.locked,
+            }))}
+            unknownHint={ru ? 'Чтобы ответить, нужно точное время рождения обоих.' : 'Both exact birth times are needed to answer this.'}
+          />
+          {!premium ? (
+            <>
+              <section className="compat-answers-extras" aria-label={ru ? 'Что ещё есть в полном разборе' : 'What else is in the full reading'}>
+                <h3>{ru ? 'В полном разборе' : 'In the full reading'}</h3>
+                <ul>{answersPreview.lockedExtras.map((item) => <li key={item}><Lock size={14} strokeWidth={1.8} aria-hidden="true" />{item}</li>)}</ul>
+              </section>
+              {canPromotePremium ? (
+                <button type="button" className="fresh-btn-primary compat-answers-cta" onClick={() => void runDeep()}>
+                  {ru ? 'Открыть все ответы про вас двоих' : 'Open all answers about you two'}
+                </button>
+              ) : null}
+            </>
+          ) : null}
+          {answersPreview.calculationLevel === 'date_only' ? (
+            <p className="compat-answers-note">
+              {ru
+                ? 'Посчитано по датам рождения. Если добавить точное время рождения обоих, ответы станут точнее.'
+                : 'Calculated from birth dates. Adding both exact birth times makes the answers more precise.'}
+            </p>
+          ) : null}
+        </>
       ) : null}
 
       {isPerson && premium && deep ? (
@@ -2072,7 +2216,7 @@ export function UnionRoom(props: UnionRoomProps) {
             {(deep.evidence || []).filter((item) => deep.narrativeEvidenceIds?.includes(item.id)).map((item) => <li key={item.id}>{item.label}</li>)}
           </ul>
         </details>
-      ) : isPerson && !deep && !deepLoading && !error && (premium || canPromotePremium) ? (
+      ) : isPerson && premium && !deep && !deepLoading && !error ? (
         <button type="button" className="horo-premium" style={{ marginTop: 16 }} disabled={deepLoading} onClick={() => void runDeep()}>
           <div className="horo-premium-text">
             <div className="horo-premium-kicker">{ru ? 'Подробная совместимость' : 'Detailed compatibility'}</div>
@@ -2104,6 +2248,31 @@ export function UnionRoom(props: UnionRoomProps) {
           </div>
           <span className="horo-premium-cta">{premium ? (ru ? 'Открыть' : 'Open') : 'Premium'}<ChevronRightIcon size={15} /></span>
         </button>
+      ) : null}
+
+      {isPerson && answersPreview?.talkDays?.length ? (
+        <CompatibilityTalkCalendar
+          days={answersPreview.talkDays}
+          premium={premium}
+          language={lang}
+          onUnlock={canPromotePremium ? () => void runDeep() : undefined}
+        />
+      ) : null}
+
+      {isPerson && gaugeScore != null && !(premium && deep) ? (
+        <button type="button" className="compat-share" onClick={() => { lumiaSelectionHaptic(); shareCompat(); }}>
+          <Send size={16} strokeWidth={1.8} aria-hidden="true" />
+          {ru ? 'Отправить результат' : 'Send the result'}
+        </button>
+      ) : null}
+
+      {isPerson && gaugeScore != null && gaugeQuestions.length ? (
+        <CompatibilityCalculation
+          score={gaugeScore}
+          questions={gaugeQuestions}
+          limitations={premium && deep ? undefined : answersPreview?.limitations}
+          language={lang}
+        />
       ) : null}
 
       {(!isPerson || (premium && deep)) && resultReactionKey ? (

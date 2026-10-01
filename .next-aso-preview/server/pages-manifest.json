@@ -1,0 +1,12 @@
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/_document": "pages/_document.js",
+  "/": "pages/index.js",
+  "/api/users/me": "pages/api/users/me.js",
+  "/api/auth/session/refresh": "pages/api/auth/session/refresh.js",
+  "/api/users/legal-acknowledgements": "pages/api/users/legal-acknowledgements.js",
+  "/api/users/activity": "pages/api/users/activity.js",
+  "/api/users/events": "pages/api/users/events.js",
+  "/api/users/session": "pages/api/users/session.js"
+}

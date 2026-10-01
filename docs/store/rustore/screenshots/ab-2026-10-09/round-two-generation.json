@@ -1,0 +1,168 @@
+{
+  "date": "2026-10-10",
+  "mode": "built-in image_gen",
+  "artworkCount": 20,
+  "composition": "Один оригинальный панорамный рисунок на направление. Подлинные экраны NEBO и точный русский текст добавлены отдельно в сохранённых мастерах.",
+  "prompts": [
+    {
+      "id": "N01",
+      "name": "Солнце в кармане",
+      "prompt": "Use case: ads-marketing. Create one original premium editorial illustration for Russian astrology app NEBO store screenshot campaign 'Sun in your pocket'. Wide landscape 16:9 panoramic composition intended to be sliced into three adjacent vertical posters. Flat gouache and screen-print art, tactile cream paper, warm saffron yellow, sky blue, tomato coral, dark ink navy. Main joyful oversized sun with sophisticated simple face in lower LEFT third, arcing blue horizon across lower middle, a tiny sailboat and abstract botanical sprigs on far right, small hand-drawn zodiac-inspired ram, lion and two fish subtly integrated at bottom. Adult stylish editorial design, beautiful confident cutout shapes, original tasteful details. Upper 30 percent stays mostly flat pale cream negative space for separately typeset headings. Middle and right thirds contain quiet open space for real UI placed later. No phone, no interface, no writing, no letters, no logos, no badges, no watermark. Full-bleed landscape artwork, not mockup, not contact sheet, no panel borders.",
+      "asset": "assets/round-two/N01-art.png",
+      "reference": "gp-en-headspace",
+      "idea": "Солнечный рисунок знакомит с гороскопом по знаку; второй кадр показывает личный прогноз, третий — настоящую карту."
+    },
+    {
+      "id": "N02",
+      "name": "Небо начинается с тебя",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Luxury editorial photographic collage on deep midnight navy. An original fictional adult woman age 28 with short dark wavy hair, warm natural skin, ivory silk blouse, softly smiling and looking upward, half-body portrait placed entirely in LEFT third below top 32 percent. Dramatic warm amber side light. A giant finely textured golden moon disk behind her shoulder, thin constellation threads flow to the empty middle and right, a few gold leaf shapes and small celestial motifs. No resemblance to a celebrity, no phone held, sophisticated magazine cover, not fantasy costume. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N02-art.png",
+      "reference": "as-ru-stargaze",
+      "idea": "Оригинальный портрет на тёмном фоне ведёт от даты рождения к гороскопу по знаку и личному прогнозу."
+    },
+    {
+      "id": "N03",
+      "name": "Зодиак — герои",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original premium clay stop-motion sculptural animal illustration on pale butter yellow background. Friendly but sophisticated white ram with large curled cobalt horns dominant lower left, peach lion with burnt orange mane at bottom middle-left, turquoise crab, two pale coral fish swirling and a small balanced pair of stones further right. Handmade matte clay, exquisite microtexture, soft studio shadows, large readable silhouettes. All animals are decorative zodiac mascots, no owl, no bird and no existing brand characters. Left third hero animal large; middle and right mostly quiet. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N03-art.png",
+      "reference": "gp-en-finch",
+      "idea": "Объёмные герои знаков привлекают внимание; дальше крупные подлинные фрагменты прогноза и натальной карты."
+    },
+    {
+      "id": "N04",
+      "name": "Атлас рождения",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original antique-modern celestial atlas illustration, engraved copperplate line work over warm ivory parchment, with Prussian blue and terracotta accents. Huge elegant astronomical armillary sphere lower left, thin dotted orbital paths and small sun/moon etchings extending toward lower right, botanical fine-line leaves, translucent architectural circles. Not an actual scientific chart or false data; decorative astronomical sculpture. Contemporary luxury book design, airy, fine detail, confident large silhouette, no mystic symbols. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N04-art.png",
+      "reference": "as-ru-astrocode",
+      "idea": "Светлый астрономический атлас: крупная настоящая карта сразу, затем личный прогноз и знак зодиака."
+    },
+    {
+      "id": "N05",
+      "name": "Сад под небом",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original lush paper cut illustration with sculptural depth on very pale mint. A terraced floating garden in lower left, tiny original adult woman in orange coat reading a plain small book on a curved stone bench, stylized dark pine trees, huge soft mint and emerald leaves, lavender flowers, paths extending across bottom toward small cream archways at right. Modern sophisticated illustration, layered paper edges, no game UI, no phone, no planets. Forest inspired as an illustrative world but original architectural garden and original human. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N05-art.png",
+      "reference": "as-ru-forest",
+      "idea": "Цельный бумажный сад и человек с книгой создают спокойное утро; следующие кадры раскрывают знаки и карту."
+    },
+    {
+      "id": "N06",
+      "name": "День по полочкам",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original playful design objects rendered in colorful sculptural rubber and paper on warm marigold yellow. Lower left a giant coral umbrella with curved cobalt handle, beside it a chunky violet sun wheel, a blank ivory flip calendar with no numerals, an orange ceramic cup, folded mint paper arrow, abstract blue headphones and tiny green leaves spread rhythmically along the lower panorama. Exquisite advertising still life, bold natural shadows, large clean silhouettes, upper third plain yellow, not familiar brand mascots. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N06-art.png",
+      "reference": "gp-ru-duolingo",
+      "idea": "Яркий предметный мир и большие экраны без тяжёлой рамки: знак, карта, личный прогноз."
+    },
+    {
+      "id": "N07",
+      "name": "Большое небо",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original breathtaking editorial panoramic landscape photograph of a still coastal lagoon at sunrise, pale apricot sky upper third, pastel lavender misty distant mountains, low golden sun near left horizon, soft blue mirror water, a few delicate reeds along bottom edges, warm rays reflected in water. Restrained natural beauty, no people, no boats, no buildings, no planets, realistic photographic atmosphere, tranquil and uplifting, clean wide upper sky for typesetting, no copied location or branded composition. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N07-art.png",
+      "reference": "as-en-calm",
+      "idea": "Единый пейзаж озера проходит через первые три кадра; первый продаёт гороскоп, следующие показывают карту и знак."
+    },
+    {
+      "id": "N08",
+      "name": "Смелый гороскоп",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original bold graphic silkscreen illustration on saturated cobalt blue. Giant acid lime spiral sun flower and coral jagged sunburst placed in lower left, loose creamy geometric ribbon sweeping along lower panorama, oversized halftone turquoise circles and orange abstract hands only at far edges, playful editorial optical geometry, energetic sophisticated art direction, crisp cutout forms, risograph ink textures. Upper 32 percent flat cobalt for typography. No real planets, no stars, no human faces, no letters. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N08-art.png",
+      "reference": "gp-en-duolingo",
+      "idea": "Контрастный плакат с узким крупным шрифтом и большими экранами: гороскоп по знаку на входе."
+    },
+    {
+      "id": "N09",
+      "name": "Открытка себе",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original beautiful hand-painted gouache everyday scene on warm pale peach. A fashionable adult woman with dark curly bob in a blue striped sweater reading a plain small book while sitting on a balcony at lower LEFT, round orange cat curled beside her, terracotta geranium pots, coral coffee cup, cream linen curtain flowing gently across lower middle, painted Mediterranean-inspired city roofs in lower distance, sophisticated adult illustration with charming imperfect brushwork. Upper third quiet pale peach wall, center and right quiet for app screenshots. No phones, no planets, no text. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N09-art.png",
+      "reference": "as-en-fabulous",
+      "idea": "Нарисованное утро с человеком и котом, рукописные заголовки и экраны как открытки."
+    },
+    {
+      "id": "N10",
+      "name": "Орбитальная мастерская",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original ultra premium sculptural celestial mobile in a dark midnight blue architectural studio. Monumental warm brushed brass orbital rings and blue translucent spheres in lower LEFT, beautifully lit realistic pearl moon surface, thin gold wires, geometric pale stone plinths, tiny red planet on lower right, subtle teal haze. High-end museum installation photography, physically credible materials, asymmetrical spacious composition, not magical, no symbols or charts. Top third flat midnight blue negative space, middle-right open. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N10-art.png",
+      "reference": "gp-en-nebula",
+      "idea": "Тёмная астрономическая мастерская с оригинальной скульптурой; вход через натальную карту."
+    },
+    {
+      "id": "N11",
+      "name": "Между вами",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original modern linocut editorial illustration of two fictional adults in a warm candid moment: dark-haired woman wearing cobalt blouse and curly-haired man wearing coral shirt, facing each other with understated smiles, hands gently touching. Overlapping large cropped profile silhouettes occupy lower LEFT third; flowing cobalt and terracotta bands connect toward lower right. Warm ivory background, elegant rough ink edges, sophisticated magazine style, no phone, no heart emojis, no planets, no mystic imagery, no existing characters. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N11-art.png",
+      "reference": "as-en-pattern",
+      "idea": "Совместимость на первом кадре с оригинальной парой; дальше настоящая карта и гороскоп по знаку."
+    },
+    {
+      "id": "N12",
+      "name": "Светлый журнал",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original monochrome fine-art editorial collage on warm clean ivory. Large close cropped photographic face of fictional adult woman with freckles and short dark hair, eyes softly closed, positioned low in LEFT third, juxtaposed with intricate engraved botanical leaves, a pale paper moon disk and black thin abstract orbit arcs. Delicate silver-gray halftone print texture, museum book quality, precise torn paper edges, middle-right mostly spacious ivory. No celebrity likeness, no phone, no gothic magic, no tattoos, no text. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N12-art.png",
+      "reference": "gp-en-costar",
+      "idea": "Редакционный светлый коллаж с крупной антиквой и монохромным портретом; вход через натальную карту."
+    },
+    {
+      "id": "N13",
+      "name": "Планеты как конфеты",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original premium macro 3D glass art on pale blush peach. A large translucent apricot ringed planet sculpture lower LEFT, glossy mint and lilac orb sculptures, smaller clear faceted star-shaped glass sculpture and iridescent flowing glass ribbon across lower middle/right. Objects have real refraction, tiny caustic shadows, exquisite candy glass material, tactile joyful adult art, not cheap floating sphere gradient. Upper third empty pale blush, quiet middle-right for UI, no letters, no phones, no interface. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N13-art.png",
+      "reference": "as-ru-moonly",
+      "idea": "Прозрачные стеклянные планеты на персиковом фоне; знак зодиака первым, далее личный прогноз и карта."
+    },
+    {
+      "id": "N14",
+      "name": "Твой городской день",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original sophisticated European graphic novel illustration in flat sky blue, cream, coral and dark navy. Lower LEFT adult woman in orange coat sitting at an outdoor cafe table with a blue coffee cup and a small closed book, another adult man with bicycle nearby, a third adult woman walking her small dog further to right. Elegant urban street windows, shadows and archway connect across lower panorama. Stylish light linework, lively but restrained, no text on shops, no phones, no planets, no famous faces. Upper third pale sky blue empty. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N14-art.png",
+      "reference": "gp-ru-litres",
+      "idea": "Повседневная городская иллюстрация с людьми; большой личный прогноз открывает набор."
+    },
+    {
+      "id": "N15",
+      "name": "Небо на бумаге",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original artful torn-paper collage on clean off-white textured paper. Monumental cobalt ocean wave cutout and warm vermilion sun disk lower LEFT, small cream ram silhouette, coral lion profile and blue twin fish made from torn paper, sage green leaves and cream folded architectural steps further right. Real tactile uneven deckled edges, visible layered paper shadows, luxury contemporary editorial collage with plenty of breathing room. Top third clean off-white, middle/right open. No phones, no brand motifs, no text, no actual planets. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N15-art.png",
+      "reference": "as-en-chani",
+      "idea": "Бумажные волны и силуэты знаков переходят из кадра в кадр; вход через Овна, Рыб и Льва."
+    },
+    {
+      "id": "N16",
+      "name": "Фарфоровый зодиак",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original exquisite zodiac animal collection crafted from white porcelain and deep cobalt glaze on dark petrol teal background. Large refined porcelain ram sculpture lower LEFT with sculpted curled horns; a lion, paired fish, crab, scorpion and small birdless balanced scales sculptural objects arranged across bottom, fine metallic gold accents and microcraquelure glaze. Premium ceramic gallery still-life, soft dramatic side light, large distinct silhouettes, no text, no phone, no planet spheres, upper third plain teal and middle/right open. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N16-art.png",
+      "reference": "gp-ru-moonly",
+      "idea": "Тёмный бирюзовый фон и фарфоровые герои знаков; дальше настоящий прогноз и карта с золотистой рамкой."
+    },
+    {
+      "id": "N17",
+      "name": "Мягкий вечер",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original cinematic tactile 3D illustrated adult cozy room at dusk, deep mauve/navy walls, amber lamp glow, a fictional adult woman with short dark hair in loose cream sweater sitting in sage armchair with a plain book, an orange sleeping cat on lower LEFT, potted plants, large blue window with gentle dusk sky and crescent moon far right. Sophisticated charming stop-motion film art, not children toy, realistic cozy cloth texture, first third woman/cat dominant, top third dark quiet wall, middle/right sparse for UI. No phones, no text. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N17-art.png",
+      "reference": "as-ru-litres",
+      "idea": "Уютная вечерняя сцена с человеком и котом объединяет гороскоп и звуки; затем знак и карта."
+    },
+    {
+      "id": "N18",
+      "name": "Дата рождения",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original high-end typographic object still-life on warm strawberry pink. Giant sculptural glossy butter-yellow numeral 7 lower LEFT leaning against a cobalt block, mint glass numeral 3 and peach numeral 9 at bottom middle, smaller geometric ivory numeral 2 far right, blank pale-yellow paper calendar and abstract folded paper strips. Numbers purely decorative sculptural objects, no dates, no fabricated data or chart. Rich physically correct lighting and soft shadows, premium editorial advertising design, upper third flat pink, middle/right quiet, no phones, no writing aside from these numeral objects. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N18-art.png",
+      "reference": "gp-ru-cyntik",
+      "idea": "Розовый мир объёмных форм и календаря: первым показана матрица по дате рождения, затем карта и знак."
+    },
+    {
+      "id": "N19",
+      "name": "Ветер и свет",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original minimalist fine art studio photograph on luminous ivory. Monumental translucent sky-blue silk ribbon sculptural loop lower LEFT, soft amber translucent paper disc, delicate feather-like folded white paper shapes, a pale peach ceramic oval, flowing ribbons across lower right. Exquisite material detail and graceful airy motion, beautiful shadows, elegant tactile art direction, adult restrained and timeless. Upper third plain ivory, no planets, no people, no magic, no phones, no text. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N19-art.png",
+      "reference": "as-en-flo",
+      "idea": "Светлая скульптура из ткани, воды и света; первым крупно показана настоящая карта."
+    },
+    {
+      "id": "N20",
+      "name": "Звёздный театр",
+      "prompt": "Use case: ads-marketing. Create a single ORIGINAL premium artwork for NEBO Russian app store creative. Wide landscape 16:9 panorama to slice into three adjacent portrait store posters, so the principal hero subject must be in the LOWER LEFT third; upper 30–32 percent is calm mostly uniform negative space reserved for separately typeset Russian headings. Center and right thirds must stay open enough for authentic app screens added later. Original premium theatrical paper-cut diorama on deep ink navy. A monumental vermilion and warm gold proscenium arch dominates lower LEFT, suspended golden sun medallion and ivory crescent moon within it, layered midnight blue mountains and ocean waves across bottom, delicate orbital mobile on lower right. Luxurious tactile cut paper and velvet-like materials, subtle stage spotlights, striking restrained theatrical composition, no occult tools, no crystal ball, no real people, no phones, no writing. Top third quiet navy and right two thirds open for UI. Full-bleed artwork only, not three separate panels, not a moodboard. Composition should work as one connected triptych while each slice still has subtle artwork. Original drawing/photo, do not copy any existing brand or artist. No phone, no interface, no logos, no badges, no ratings, no watermark, no lettering.",
+      "asset": "assets/round-two/N20-art.png",
+      "reference": "gp-ru-weather",
+      "idea": "Тёмный бумажный театр с Луной и астрономическими предметами; вход через гороскоп по знаку."
+    }
+  ]
+}

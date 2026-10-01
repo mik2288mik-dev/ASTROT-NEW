@@ -53,6 +53,31 @@ function longitudeOf(position: ChartPosition): number | null {
   return ((position.longitude % 360) + 360) % 360;
 }
 
+/**
+ * Longitudes to check for a position. Without a birth time a fast body is known
+ * only as a range over the birth day, so we sample its start, middle and end:
+ * a contact counts only if it holds across the whole range.
+ */
+export function longitudeSamples(position: ChartPosition): number[] | null {
+  const longitude = longitudeOf(position);
+  if (longitude == null) return null;
+  const range = position && 'range' in position ? (position as { range?: { startLongitude?: number; endLongitude?: number } }).range : undefined;
+  const start = range?.startLongitude;
+  const end = range?.endLongitude;
+  if (typeof start !== 'number' || typeof end !== 'number' || !Number.isFinite(start) || !Number.isFinite(end)) {
+    return [longitude];
+  }
+  const span = (((end - start) % 360) + 360) % 360;
+  const norm = (value: number) => ((value % 360) + 360) % 360;
+  return [norm(start), norm(start + span / 2), norm(start + span)];
+}
+
+function separation(first: number, second: number): number {
+  let distance = Math.abs(first - second) % 360;
+  if (distance > 180) distance = 360 - distance;
+  return distance;
+}
+
 function reliabilityOf(position: ChartPosition): Exclude<NatalReliability, 'variable_in_range'> {
   if (position && 'reliability' in position && position.reliability === 'stable_in_range') {
     return 'stable_in_range';
@@ -84,19 +109,20 @@ export function computeSynastryAspects(
 
   for (const aKey of SYNASTRY_BODY_KEYS) {
     const aPosition = readPosition(subject, aKey);
-    const aLongitude = longitudeOf(aPosition);
-    if (aLongitude == null) continue;
+    const aSamples = longitudeSamples(aPosition);
+    if (!aSamples) continue;
 
     for (const bKey of SYNASTRY_BODY_KEYS) {
       const bPosition = readPosition(partner, bKey);
-      const bLongitude = longitudeOf(bPosition);
-      if (bLongitude == null) continue;
+      const bSamples = longitudeSamples(bPosition);
+      if (!bSamples) continue;
 
-      let distance = Math.abs(aLongitude - bLongitude) % 360;
-      if (distance > 180) distance = 360 - distance;
+      const distances = aSamples.flatMap((a) => bSamples.map((b) => separation(a, b)));
+      const distance = distances[Math.floor(distances.length / 2)];
 
       for (const definition of ASPECTS) {
-        const orb = Math.abs(distance - definition.angle);
+        // Worst case over the whole known range: no false precision without a birth time.
+        const orb = Math.max(...distances.map((value) => Math.abs(value - definition.angle)));
         if (orb > definition.orb) continue;
         const reliability = reliabilityOf(aPosition) === 'stable_in_range'
           || reliabilityOf(bPosition) === 'stable_in_range'

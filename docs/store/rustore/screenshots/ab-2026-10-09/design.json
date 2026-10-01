@@ -1,0 +1,730 @@
+{
+  "created": "2026-10-09",
+  "size": [
+    1080,
+    1920
+  ],
+  "font": "Onest",
+  "variants": {
+    "A": {
+      "folder": "A-current",
+      "letter": "А",
+      "name": "Текущий тёмный",
+      "lead": "Гороскоп → карта → матрица",
+      "reason": "Текущий комплект, который ты отправил на модерацию. Две наклонённые рамки в первых трёх кадрах и космическая панорама.",
+      "images": [
+        {
+          "file": "01-personal-and-sky.jpg",
+          "title": "Гороскоп именно для тебя",
+          "name": "Гороскоп именно для тебя",
+          "number": 1
+        },
+        {
+          "file": "02-natal-and-profile.jpg",
+          "title": "Твоя карта простыми словами",
+          "name": "Твоя карта простыми словами",
+          "number": 2
+        },
+        {
+          "file": "03-matrix-and-today.jpg",
+          "title": "Матрица по дате рождения",
+          "name": "Матрица по дате рождения",
+          "number": 3
+        },
+        {
+          "file": "04-future-calendar.jpg",
+          "title": "Календарь будущего",
+          "name": "Календарь будущего",
+          "number": 4
+        },
+        {
+          "file": "05-compatibility.jpg",
+          "title": "Совместимость по двум картам",
+          "name": "Совместимость по двум картам",
+          "number": 5
+        },
+        {
+          "file": "06-zodiac-horoscope.jpg",
+          "title": "Гороскоп по знаку зодиака",
+          "name": "Гороскоп по знаку зодиака",
+          "number": 6
+        },
+        {
+          "file": "07-natal-profile.jpg",
+          "title": "Профиль твоей карты",
+          "name": "Профиль твоей карты",
+          "number": 7
+        },
+        {
+          "file": "08-sounds.jpg",
+          "title": "Звуки для сна и отдыха",
+          "name": "Звуки для сна и отдыха",
+          "number": 8
+        }
+      ]
+    },
+    "B": {
+      "folder": "B-daylight",
+      "letter": "Б",
+      "name": "Дневной свет",
+      "lead": "Карта → гороскоп → совместимость",
+      "reason": "Начинаем с натальной карты с расшифровкой. Светлое небо, тёмные заголовки, один крупный экран. Мой первый выбор для теста.",
+      "images": [
+        {
+          "number": 1,
+          "key": "natal",
+          "file": "01-natal.jpg",
+          "name": "Натальная карта",
+          "title": "Натальная карта с расшифровкой",
+          "subtitle": "По дате, времени и месту рождения",
+          "premium": false,
+          "source": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "name": "Личный гороскоп",
+          "title": "Личный гороскоп на каждый день",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "premium": false,
+          "source": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "compatibility",
+          "file": "03-compatibility.jpg",
+          "name": "Совместимость",
+          "title": "Как вы подходите друг другу",
+          "subtitle": "Совместимость двух натальных карт",
+          "premium": true,
+          "source": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "name": "Календарь",
+          "title": "Важные дни перед глазами",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "premium": true,
+          "source": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "matrix",
+          "file": "05-matrix.jpg",
+          "name": "Матрица судьбы",
+          "title": "Матрица судьбы по дате рождения",
+          "subtitle": "Твой расчёт с разбором по темам",
+          "premium": false,
+          "source": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 6,
+          "key": "profile",
+          "file": "06-profile.jpg",
+          "name": "Профиль карты",
+          "title": "Сильные планеты твоей карты",
+          "subtitle": "Дни недели, цвета и другие особенности",
+          "premium": false,
+          "source": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 7,
+          "key": "zodiac",
+          "file": "07-zodiac.jpg",
+          "name": "Гороскопы знаков",
+          "title": "Гороскоп для твоего знака",
+          "subtitle": "Ежедневный прогноз для всех 12 знаков",
+          "premium": false,
+          "source": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "name": "Звуки для отдыха",
+          "title": "Время выдохнуть и отдохнуть",
+          "subtitle": "Звуки природы и спокойная музыка",
+          "premium": false,
+          "source": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    "V": {
+      "folder": "V-sunshine",
+      "letter": "В",
+      "name": "Солнечный день",
+      "lead": "Гороскоп → карта → совместимость",
+      "reason": "Начинаем с ежедневного сценария. Тёплая бумага, цветные пятна, бумажные стикеры и живее композиция.",
+      "images": [
+        {
+          "number": 1,
+          "key": "today",
+          "file": "01-today.jpg",
+          "name": "Личный гороскоп",
+          "title": "Твой день. Твой гороскоп.",
+          "subtitle": "Личный прогноз по твоим данным рождения",
+          "premium": false,
+          "source": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "name": "Натальная карта",
+          "title": "Твоя карта. Понятный разбор.",
+          "subtitle": "Планеты, дома и аспекты простыми словами",
+          "premium": false,
+          "source": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "compatibility",
+          "file": "03-compatibility.jpg",
+          "name": "Совместимость",
+          "title": "Что между вами?",
+          "subtitle": "Сравни ваши натальные карты",
+          "premium": true,
+          "source": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "name": "Календарь",
+          "title": "Планы есть. А что по дням?",
+          "subtitle": "Календарь и личные прогнозы на неделю и месяц",
+          "premium": true,
+          "source": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "matrix",
+          "file": "05-matrix.jpg",
+          "name": "Матрица судьбы",
+          "title": "Твоя дата. Твоя матрица.",
+          "subtitle": "Матрица судьбы с понятными пояснениями",
+          "premium": false,
+          "source": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 6,
+          "key": "profile",
+          "file": "06-profile.jpg",
+          "name": "Профиль карты",
+          "title": "Из чего состоит твоя карта",
+          "subtitle": "Сильные планеты и особенности твоего профиля",
+          "premium": false,
+          "source": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 7,
+          "key": "zodiac",
+          "file": "07-zodiac.jpg",
+          "name": "Гороскопы знаков",
+          "title": "Выбери знак. Читай гороскоп.",
+          "subtitle": "Прогноз на сегодня для 12 знаков зодиака",
+          "premium": false,
+          "source": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "name": "Звуки для отдыха",
+          "title": "Включи море. Выдохни.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "premium": false,
+          "source": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    }
+  },
+  "baselineHashes": [
+    {
+      "file": "01-personal-and-sky.jpg",
+      "sha256": "8195129133cb33dbb879eb6a25f062a4c4769cc8ddf1e9f313220b279a2fe607",
+      "source": "C:/Users/user/Downloads/NEBO-RuStore-2026-10-08/store-08-approved/01-personal-and-sky.jpg"
+    },
+    {
+      "file": "02-natal-and-profile.jpg",
+      "sha256": "ac7b765736169f867622576a0a17594e94f8de011bc096dba183ece32b27fd16",
+      "source": "C:/Users/user/Downloads/NEBO-RuStore-2026-10-08/store-08-approved/02-natal-and-profile.jpg"
+    },
+    {
+      "file": "03-matrix-and-today.jpg",
+      "sha256": "79a584069981ca5f257af9c66ac245fc64e95b3efc9cad185da38d32f2a1ed58",
+      "source": "C:/Users/user/Downloads/NEBO-RuStore-2026-10-08/store-08-approved/03-matrix-and-today.jpg"
+    },
+    {
+      "file": "04-future-calendar.jpg",
+      "sha256": "90b9bf7990178520c228f9385f422813f53a1abda6ff9a2375c9a44d74caaeaa",
+      "source": "C:/Users/user/Downloads/NEBO-RuStore-2026-10-08/store-08-approved/04-future-calendar.jpg"
+    },
+    {
+      "file": "05-compatibility.jpg",
+      "sha256": "4a67bd6728e2f08e10b2e62ae20717ee26485e8527864d014351eff7434427f8",
+      "source": "C:/Users/user/Downloads/NEBO-RuStore-2026-10-08/store-08-approved/05-compatibility.jpg"
+    },
+    {
+      "file": "06-zodiac-horoscope.jpg",
+      "sha256": "04e6dd879b9a0e6e1edb82202b5793c4ee937b0941dcd5caaac3d8e075dad9a7",
+      "source": "C:/Users/user/Downloads/NEBO-RuStore-2026-10-08/store-08-approved/06-zodiac-horoscope.jpg"
+    },
+    {
+      "file": "07-natal-profile.jpg",
+      "sha256": "f27281c428b0acbe94a4bb883da0bca1cf6f6c72e710865324b68c292ef30ff7",
+      "source": "C:/Users/user/Downloads/NEBO-RuStore-2026-10-08/store-08-approved/07-natal-profile.jpg"
+    },
+    {
+      "file": "08-sounds.jpg",
+      "sha256": "fc7eada44a1f2f1dd776bb29115335f02a00c3959da6ba2849ae36a7799c182f",
+      "source": "C:/Users/user/Downloads/NEBO-RuStore-2026-10-08/store-08-approved/08-sounds.jpg"
+    }
+  ],
+  "checks": [
+    {
+      "variant": "B",
+      "file": "01-natal.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 277524,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 440.734375,
+      "phoneTop": 496,
+      "phoneBottom": 1857.265625,
+      "lines": [
+        {
+          "text": "Натальная карта",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "с расшифровкой",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "B",
+      "file": "02-today.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 301285,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 440.734375,
+      "phoneTop": 496,
+      "phoneBottom": 1857.265625,
+      "lines": [
+        {
+          "text": "Личный гороскоп",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "на каждый день",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "B",
+      "file": "03-compatibility.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 250490,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 440.734375,
+      "phoneTop": 496,
+      "phoneBottom": 1857.265625,
+      "lines": [
+        {
+          "text": "Как вы подходите",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "друг другу",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "B",
+      "file": "04-future.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 251832,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 440.734375,
+      "phoneTop": 496,
+      "phoneBottom": 1857.265625,
+      "lines": [
+        {
+          "text": "Важные дни",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "перед глазами",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "B",
+      "file": "05-matrix.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 244296,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 440.734375,
+      "phoneTop": 496,
+      "phoneBottom": 1857.265625,
+      "lines": [
+        {
+          "text": "Матрица судьбы",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "по дате рождения",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "B",
+      "file": "06-profile.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 277072,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 440.734375,
+      "phoneTop": 496,
+      "phoneBottom": 1857.265625,
+      "lines": [
+        {
+          "text": "Сильные планеты",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "твоей карты",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "B",
+      "file": "07-zodiac.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 272281,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 440.734375,
+      "phoneTop": 496,
+      "phoneBottom": 1857.265625,
+      "lines": [
+        {
+          "text": "Гороскоп для",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "твоего знака",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "B",
+      "file": "08-sounds.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 277486,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 440.734375,
+      "phoneTop": 496,
+      "phoneBottom": 1857.265625,
+      "lines": [
+        {
+          "text": "Время выдохнуть",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "и отдохнуть",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "V",
+      "file": "01-today.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 272309,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 461.484375,
+      "phoneTop": 496.74713134765625,
+      "phoneBottom": 1868.2998657226562,
+      "lines": [
+        {
+          "text": "Твой день.",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "Твой гороскоп.",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "V",
+      "file": "02-natal.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 240462,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 461.484375,
+      "phoneTop": 499.1597900390625,
+      "phoneBottom": 1865.8870849609375,
+      "lines": [
+        {
+          "text": "Твоя карта.",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "Понятный разбор.",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "V",
+      "file": "03-compatibility.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 201587,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 461.484375,
+      "phoneTop": 499.1597900390625,
+      "phoneBottom": 1865.8870849609375,
+      "lines": [
+        {
+          "text": "Что между",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "вами?",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "V",
+      "file": "04-future.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 212448,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 461.484375,
+      "phoneTop": 496.74713134765625,
+      "phoneBottom": 1868.2998657226562,
+      "lines": [
+        {
+          "text": "Планы есть.",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "А что по дням?",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "V",
+      "file": "05-matrix.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 202330,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 461.484375,
+      "phoneTop": 501.62451171875,
+      "phoneBottom": 1863.42236328125,
+      "lines": [
+        {
+          "text": "Твоя дата.",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "Твоя матрица.",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "V",
+      "file": "06-profile.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 242059,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 461.484375,
+      "phoneTop": 499.1597900390625,
+      "phoneBottom": 1865.8870849609375,
+      "lines": [
+        {
+          "text": "Из чего состоит",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "твоя карта",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "V",
+      "file": "07-zodiac.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 243619,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 461.484375,
+      "phoneTop": 496.74713134765625,
+      "phoneBottom": 1868.2998657226562,
+      "lines": [
+        {
+          "text": "Выбери знак.",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "Читай гороскоп.",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    },
+    {
+      "variant": "V",
+      "file": "08-sounds.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 231568,
+      "headlineWidth": 946,
+      "headlineClientWidth": 946,
+      "copyBottom": 461.484375,
+      "phoneTop": 496.74713134765625,
+      "phoneBottom": 1868.2998657226562,
+      "lines": [
+        {
+          "text": "Включи море.",
+          "width": 946,
+          "box": 946
+        },
+        {
+          "text": "Выдохни.",
+          "width": 946,
+          "box": 946
+        }
+      ],
+      "subtitleHeight": 44.546875
+    }
+  ],
+  "tool": "built-in imagegen for backdrop and stickers; HTML/CSS for poster composition and exact Russian text; real saved NEBO screens",
+  "recommendation": "B",
+  "experiment": {
+    "control": "A after current screenshots have passed moderation and been published",
+    "challenger": "B, with V reserved for a subsequent two-variant experiment",
+    "allocation": "50/50",
+    "primaryMetric": "installs / page impressions, using the RuStore reported conversion",
+    "interpretation": "whole screenshot set; cannot attribute change to an individual factor",
+    "doNotChangeInSameTest": [
+      "icon",
+      "title",
+      "short description",
+      "full description",
+      "video"
+    ],
+    "publication": "not submitted"
+  },
+  "research": {
+    "repository": [
+      "docs/store/rustore/ASO_DECISION_PACK_2026-08-26.md",
+      "docs/store/rustore/ASO_GOOGLE_PLAY_MARKET_DECISIONS_2026-08-26.md",
+      "docs/store/rustore/ASO_KEYWORD_CORE_2026-08-28.csv",
+      "docs/store/rustore/ASO_COMPETITORS_2026-08-26.csv"
+    ],
+    "latestPack": "C:/Users/user/Downloads/NEBO-RuStore-ASO-pack.md",
+    "priorDesign": "C:/Users/user/Documents/Codex/2026-10-07/new-chat/outputs/nebo-actual-aso.html",
+    "notes": "August search estimates are historical, not current RuStore traffic or ranking. Matrix restrictions in August docs were superseded by current release and October pack. Current RuStore supports built-in A/B experiments; August UNKNOWN entry is outdated."
+  },
+  "imagePrompts": [
+    {
+      "asset": "assets/daylight-panorama.png",
+      "tool": "built-in imagegen",
+      "prompt": "Use case: ads-marketing. Asset type: high resolution panoramic backdrop for a Russian mobile app store screenshot campaign NEBO, landscape 3:1 composition. Primary request: an exceptionally clean, cheerful airy daylight sky panorama, warm ivory milky atmosphere at the top, gently turning into pale powder blue in the middle with a few real soft sculptural white cumulus clouds clustered along the lower edge. The upper 55 percent must be almost empty, calm, uniformly light cream to support large dark navy text; the center must stay quiet for placing real app screenshots later. At the far bottom corners a subtle touch of warm apricot morning sunlight. Editorial refined natural atmosphere, soft photographic cloud texture, spacious, fresh and optimistic. Continuous broad sky across the whole image, no divided panels. No text, letters, phones, screens, logos, planets, stars, astrology symbols, stickers, sparkles, purple, busy elements or grain. The daylight should remain light even at the lower edge. Intended final individual portrait poster size 1080x1920 using crops of this panorama."
+    },
+    {
+      "asset": "assets/paper-stickers.png",
+      "tool": "built-in imagegen",
+      "transparent_background": true,
+      "prompt": "Use case: ads-marketing. Asset type: transparent decorative sticker sheet for cheerful light NEBO app store campaign. Primary request: one professionally designed collection of 8 distinct large tactile paper-cut stickers with clean thick ivory die-cut borders and tiny soft contact shadows, arranged in a regular 4 columns by 2 rows grid with generous clear transparent spacing. Each centered inside its own equal square area, no touching and no overflow. In exact reading order: 1 a friendly golden apricot sun with short broad rays, 2 a pale sky blue cloud with an apricot sun peeking behind, 3 two interlocking curved paper ribbon loops one coral and one blue, 4 a small calendar page with an abstract grid and single blue dot NO letters NO digits, 5 abstract mint and blue orbital rings with one coral dot, 6 a mint leaf with one blue circular pebble, 7 a sky blue crescent moon on a peach circle, 8 a small stylized rolling blue ocean wave with white seafoam. Sophisticated editorial cut paper collages, joyful but adult, matte cardboard paper, tactile hand-cut edges, crisp shapes, charming simple 2D layers with very restrained depth. Palette: cobalt blue, pale blue, peach, coral, warm yellow, soft mint, ivory white borders. Entire background truly transparent. No text, numerals, lettering, logos, people, faces, eyes, mystical or zodiac symbols, crystals, glitter, 3D plastic, watermarks. Each object separated enough to crop independently. Square or wide landscape sheet."
+    }
+  ]
+}

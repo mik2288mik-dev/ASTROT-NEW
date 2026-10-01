@@ -1,0 +1,153 @@
+Browser tab: 3, Title: "Nebula: Spiritual Guidance - Apps on Google Play", URL: "https://play.google.com/store/apps/details?id=genesis.nebula&hl=en".
+1 AXWebArea Nebula: Spiritual Guidance - Apps on Google Play, URL: play.google.com/store/apps/details?id=genesis.nebula&hl=en
+	2 container yDmH0d
+		3 container
+			4 container Page Header
+				5 link Description: Google Play logo, Value: play.google.com/store/games
+				6 container Main
+					7 tab group
+						8 tab (selectable, settable, boolean) Games, Value: 0, ID: 11
+						9 tab (selected, settable, boolean) Apps, Value: 1
+						10 tab (selectable, settable, boolean) Books, Value: 0, ID: 5
+						11 tab (selectable, settable, boolean) Kids, Value: 0, ID: 13
+				12 button Search
+				13 button Help Center
+				14 pop up button (collapsed) Description: Open account menu, Secondary Actions: Expand
+		15 container
+			16 container
+				17 heading Nebula: Spiritual Guidance, Value: 1
+					18 text Nebula: Spiritual Guidance
+				19 link Description: Nebula: Spiritual Guidance, Value: play.google.com/store/apps/dev?id=6937386024525960018
+				20 text In-app purchases
+				21 container Information badges
+					22 container
+						23 image Rated 3.3 stars out of five stars
+						24 text 85.6K reviews
+					25 container
+						26 text 5M+ Downloads
+			27 button Share
+				28 text Share
+			29 button Add to wishlist
+				30 text Add to wishlist
+			31 container
+				32 content list
+					33 button Screenshot image
+					34 button Screenshot image
+					35 button Screenshot image
+					36 button Screenshot image
+					37 button Screenshot image
+					38 button Screenshot image
+					39 button Screenshot image
+					40 button Screenshot image
+				41 container
+					42 heading About this app, Value: 2
+						43 text About this app
+					44 button See more information on About this app
+				45 container Explore Horoscope & Astrology Insights, Zodiac compatibility, Psychics, Tarot
+					46 text Explore Horoscope & Astrology Insights, Zodiac compatibility, Psychics, Tarot
+				47 text Updated on
+				48 text Oct 8, 2026
+				49 container
+					50 link Description: Lifestyle, Value: play.google.com/store/apps/category/LIFESTYLE
+				51 container
+					52 heading Data safety, Value: 2
+						53 text Data safety
+					54 link Description: See more information on Data safety, Value: play.google.com/store/apps/datasafety?id=genesis.nebula
+				55 text Safety starts with understanding how developers collect and share your data. Data privacy and security practices may vary based on your use, region, and age. The developer provided this information and may update it over time.
+				56 content list
+					57 container
+						58 text This app may share these data types with third parties Location, Personal info and 5 others
+					59 container
+						60 text This app may collect these data types Personal info, Financial info and 4 others
+					61 text Data is encrypted in transit
+					62 text You can request that data be deleted
+				63 container
+					64 link Description: See more details on data safety, Value: play.google.com/store/apps/datasafety?id=genesis.nebula
+				65 container
+					66 heading Ratings and reviews, Value: 2
+						67 text Ratings and reviews
+					68 button See more information on Ratings and reviews
+					69 button Ratings and reviews are verified
+						70 text Ratings and reviews are verified
+				71 image Rated 3.3 stars out of five stars
+				72 text 84.4K reviews
+				73 image 44,321 reviews for star rating 5
+				74 image 2,110 reviews for star rating 4
+				75 image 6,331 reviews for star rating 3
+				76 image 2,110 reviews for star rating 2
+				77 image 29,547 reviews for star rating 1
+				78 container
+					79 text Simmer Elise
+					80 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+					81 image Rated 2 stars out of five stars
+					82 text November 20, 2024
+				83 text It's great until you try to unsubscribe. I unsubscribed the day after I originally downloaded it via a chat in the app. But yesterday, they still took the money out, and my subscription was somehow active again. I have been in contact, and they did refund me. But given that I was resubscribed without my permission I do worry that this app might be a scam. Watch your accounts for at least 30 days after you unsubscribe.
+				84 text 313 people found this review helpful
+				85 text Nebula: Spiritual Guidance
+				86 text November 20, 2024
+				87 text Dear Elise, Thank you for sharing your experience. We sincerely apologize for any confusion caused. Rest assured, your feedback is taken seriously, and we’ve issued a refund as promised. If you have any further concerns, please contact us at nebula.support@nebulahoroscope.com. We're here to assist! Best regards, Nebula Team
+				88 container
+					89 text Malika (Ginni)
+					90 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+					91 image Rated 1 stars out of five stars
+					92 text September 2, 2026
+				93 text I got 3 mins of free time to chat with a physics and I wanted to see what they say. I asked a question from them and they kept telling me what is going on which was in the context of my question so basically repeating what I said in different ways and not once in that 3 mins did I get an answer for my question. It is fake and not worth. Also, once you try to buy credits or subscription they will keep adding stuff and if you are not careful you could end up paying a lot more than you expected to.
+				94 text 6 people found this review helpful
+				95 text Nebula: Spiritual Guidance
+				96 text September 2, 2026
+				97 text Hi Malika! Thank you for sharing such a detailed account of your experience. We’re sorry to hear you didn’t receive the guidance you were looking for during your session and that your question went unanswered. To discuss this in more detail, please reach out to us at support-googleplay@asknebula.com. Trust your path, Nebula
+				98 container
+					99 text Håvard Alvin
+					100 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+					101 image Rated 1 stars out of five stars
+					102 text September 14, 2026
+				103 text DO NOT INSTALL!!! agreed to pay 1 dollar. shortly after they tried to charge me 250 dollar for NOTHING i had agreed to. IT IS NOT possible to login to manage your subscriptions so you CAN NOT cancel!!!! BE AWARE - YOU WILL BE SCAMMED AND STOLEN FROM OR ATLEAST AN ATTEMPT!!! The terms of service also says you cannot take them to court so they have basicly written away any accountability they should have, hahahahahah.....🫠 STAY AWAY THIS - i was lucky, credit card declined to pay the 250 $ fee
+				104 text 4 people found this review helpful
+				105 text Nebula: Spiritual Guidance
+				106 text September 14, 2026
+				107 text Hi Håvard, We’re really sorry about this experience. We understand how concerning it is to see an attempted charge you didn’t expect, especially after agreeing to a $1 payment. Please reach out to us at support-googleplay@asknebula.com or via in-app chat, and we’ll be glad to review your account and help clarify what happened 💜
+				108 button See all reviews
+					109 text See all reviews
+				110 heading What’s new, Value: 2
+					111 text What’s new
+				112 container
+					113 text We’ve updated Nebula! Here’s what’s new…
+					114 text Bug fixes
+			115 link Description: Flag as inappropriate (opens in new window), Value: support.google.com/googleplay/?p=report_content
+			116 image Content rating
+			117 text Rated for 3+
+			118 text Users Interact, In-App Purchases
+			119 link Description: Learn more about content ratings (opens in new window), Value: support.google.com/googleplay?p=appgame_ratings
+			120 container developer-contacts-heading
+				121 heading App support, Value: 2
+					122 text App support
+				123 button (collapsed) Expand
+			124 container
+				125 heading Similar apps, Value: 2
+					126 text Similar apps
+				127 container
+					128 link Description: See more information on Similar apps, Value: play.google.com/store/apps/collection/cluster?gsr=SnxqLEprMGFXMlVVYmVMdDljM0RsQ2Z0aTVpSDRoWGxxT2xZMEdFNkp0d0pCSnc9wgJIChIKDmdlbmVzaXMubmVidWxhEAcYCDABOABKJggBEAAaGk5lYnVsYTogU3Bpcml0dWFsIEd1aWRhbmNlIAAoADAAUABYAWAAsBIA:S:ANO1ljLQSVQ
+				129 link Description: Intellect: Create A Better You The Intellect Company Rated 4.7 stars out of five stars, Value: play.google.com/store/apps/details?id=co.intellect.app
+				130 link Description: Labyrinthos Tarot Cards Labyrinthos Academy Rated 4.7 stars out of five stars, Value: play.google.com/store/apps/details?id=com.labyrinthos.app
+				131 link Description: Co–Star Personalized Astrology Co–Star Astrology Society Rated 4.1 stars out of five stars, Value: play.google.com/store/apps/details?id=com.costarastrology
+				132 link Description: Be My Eyes Be My Eyes Rated 4.1 stars out of five stars, Value: play.google.com/store/apps/details?id=com.bemyeyes.bemyeyes
+				133 link Description: Lumi: AI Tarot & Horoscope Volodymyr Dudarenko Rated 4.7 stars out of five stars, Value: play.google.com/store/apps/details?id=com.yobzh.tarot
+				134 link Description: How We Feel The How We Feel Project, Inc. Rated 4.6 stars out of five stars, Value: play.google.com/store/apps/details?id=org.howwefeel.moodmeter
+		135 container
+			136 text Google Play
+			137 link Description: Play Pass, Value: play.google.com/store/pass/getstarted
+			138 link Description: Play Points, Value: play.google.com/store/points/enroll
+			139 link Description: Gift cards, Value: play.google.com/about/giftcards
+			140 link Description: Redeem, Value: play.google.com/redeem
+			141 link Description: Refund policy, Value: support.google.com/googleplay/answer/134336
+			142 text Kids & family
+			143 link Description: Parent Guide, Value: support.google.com/googleplay?p=pff_parentguide
+			144 link Description: Family sharing, Value: support.google.com/googleplay/answer/7007852
+			145 link Description: Terms of Service, Value: play.google.com/intl/en_ru/about/play-terms.html
+			146 link Description: Privacy, Value: policies.google.com/privacy
+			147 link Description: About Google Play, Value: support.google.com/googleplay/?p=about_play
+			148 link Description: Developers, Value: developer.android.com/index.html
+			149 link Description: Google Store, Value: store.google.com/?playredirect=true&utm_source=play&utm_medium=google_oo&utm_campaign=GS106288
+			150 text All prices include VAT. Russia (English)
+
+The focused UI element is 1 AXWebArea Nebula: Spiritual Guidance - Apps on Google Play, URL: play.google.com/store/apps/details?id=genesis.nebula&hl=en

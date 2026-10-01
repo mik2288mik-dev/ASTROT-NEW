@@ -55,7 +55,7 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('ZodiacIllustration');
     expect(source).toContain('horo-reader-headline');
     expect(source).toContain("title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}");
-    expect(source).toContain('{displayedReading.headline}');
+    expect(source).toContain("{displayedReading.headline.replace(/\\.\\s*$/, '')}");
     expect(source).toContain('{displayedReading.text}');
     expect(source).not.toContain("'Общий фон'");
     expect(source).not.toContain("'Общение'");

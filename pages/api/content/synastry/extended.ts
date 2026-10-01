@@ -45,6 +45,7 @@ import {
   type RelationshipContext,
 } from '../../../../lib/synastry/relationshipContext';
 import { buildDeepCompatibilityReactionKey } from '../../../../lib/synastry/compatibilityReaction';
+import { buildManualCompatibilityChart } from '../../../../lib/synastry/compatibilityManualChart';
 import {
   assertChartReadable,
   ChartAccessPolicyError,
@@ -506,8 +507,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     chartBirthTimeQuality: (partnerChartData as NatalChartDataV2 | null)?.birthTimeQuality,
     birthTimeQuality: partnerInput.birthTimeQuality,
   });
-  // Manually entered people are intentionally a fast, approximate date-based
-  // reading. Do not create a natal chart or pretend that time/place made it exact.
+  // Manually entered people are read by birth date only: their temporary chart
+  // treats the time as unknown, so time/place never pretend to make it exact.
   const calculationLevel = normalizedSubjectSource === 'birth' || normalizedPartnerSource === 'birth'
     ? 'date_only'
     : resolveCompatibilityPairLevel(subjectClassification, partnerClassification);
@@ -603,6 +604,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const resolvedSubjectSign = subjectClassification.sign;
   const resolvedPartnerSign = partnerClassification.sign;
+  // A person entered by hand still gets a real whole-day chart (never saved),
+  // so the answers come from actual planet contacts, not only from Sun signs.
+  if (normalizedSubjectSource === 'birth' && !userChartData) {
+    userChartData = await buildManualCompatibilityChart({ name: subjectInput.name, date: subjectInput.date, place: subjectInput.place });
+  }
+  if (normalizedPartnerSource === 'birth' && !partnerChartData) {
+    partnerChartData = await buildManualCompatibilityChart({ name: partnerInput.name, date: partnerInput.date, place: partnerInput.place });
+  }
   const people = {
     subject: buildWriterPersonContext(subjectInput, normalizedSubjectGender),
     partner: buildWriterPersonContext(partnerInput, normalizedPartnerGender),
@@ -660,7 +669,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const response = await createLunaStructuredResponse({
         instructions: prompt.system,
         input: prompt.user,
-        maxOutputTokens: 1600,
+        maxOutputTokens: 2600,
         reasoningEffort: 'low',
         verbosity: 'low',
         schemaName: 'calculated_compatibility_story',

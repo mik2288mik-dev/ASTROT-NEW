@@ -248,10 +248,24 @@ export interface SynastryResult {
   narrativeVersion?: string;
   narrativeEvidenceIds?: string[];
   storyParagraphs?: Array<{
-    topic: 'what_works' | 'misunderstandings' | 'say_it_early' | 'dont_inflate';
+    /** Current readings answer the questions of the chosen relationship type. */
+    questionId?: string;
+    /** Legacy story chapters (compatibility-story.v6 and older). */
+    topic?: 'what_works' | 'misunderstandings' | 'say_it_early' | 'dont_inflate';
     text: string;
     evidenceIds: string[];
     direction: CompatibilityEvidence['direction'];
+  }>;
+  /** Questions of the chosen relationship type with engine-owned short answers. */
+  questions?: Array<{
+    id: string;
+    question: string;
+    short?: string;
+    dimensionIds: CompatibilityDimensionKey[];
+    score: number | null;
+    confidence: number;
+    answer: 'yes' | 'likely' | 'mixed' | 'hard' | 'unknown';
+    answerLabel: string;
   }>;
   engineVersion?: string;
   overallScore?: number;

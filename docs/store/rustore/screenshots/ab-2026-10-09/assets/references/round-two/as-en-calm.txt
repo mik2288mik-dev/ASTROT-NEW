@@ -1,0 +1,285 @@
+Browser tab: 3, Title: "‎Calm App - App Store", URL: "https://apps.apple.com/us/app/calm/id571800810".
+1 AXWebArea ‎Calm App - App Store, URL: apps.apple.com/us/app/calm/id571800810
+	2 container
+		3 container Description: App Store, ID: app-store-icon-container
+		4 button (collapsed) App Store, ID: popover-1-target, Secondary Actions: Expand
+			5 text for iPhone
+			6 image
+		7 container search-input-form
+			8 text Search
+			9 search text field (settable) Search, ID: search-input__text-field
+		10 container navigation
+			11 content list
+				12 checkbox Today, Value: 0
+				13 checkbox Games, Value: 0
+				14 checkbox Apps, Value: 0
+				15 checkbox Arcade, Value: 0
+			16 content list Categories
+				17 checkbox Categories, Value: 0
+				18 checkbox Photo & Video, Value: 0
+				19 checkbox Health & Fitness, Value: 0
+				20 checkbox Productivity, Value: 0
+				21 checkbox Entertainment, Value: 0
+				22 checkbox Action, Value: 0
+				23 checkbox Adventure, Value: 0
+				24 checkbox Puzzle, Value: 0
+				25 checkbox Indie, Value: 0
+	26 container
+		27 container
+			28 heading Calm, Value: 1
+				29 text Calm
+			30 text Sleep, Meditation, Relaxation
+			31 text Free · In‑App Purchases · Designed for iPad
+			32 button Share
+		33 container
+			34 button (disabled) Previous Page
+				35 image
+			36 content list
+				37 link Description: 2M RATINGS 4.8 Stars, Value: apps.apple.com/us/app/calm/id571800810#productRatings
+				38 link Description: AWARDS Editors’ Choice Apps, Value: apps.apple.com/us/app/calm/id571800810#productRatings
+				39 link Description: AGE RATING 9+ Years, Value: apps.apple.com/us/app/calm/id571800810#information
+				40 link Description: CHART #47 Health & Fitness, Value: apps.apple.com/us/iphone/charts/6013?chart=top-free
+				41 link Description: DEVELOPER Calm.com, Value: apps.apple.com/us/developer/calm-com/id571800813?platform=iphone
+				42 link Description: LANGUAGE EN + 9 More, Value: apps.apple.com/us/app/calm/id571800810#information
+			43 button Next Page
+				44 image
+		45 container Description: iPhone App Previews and Screenshots, ID: product_media_phone_
+			46 container
+				47 button (disabled) Previous Page
+					48 image
+				49 content list
+					50 container Screenshot
+					51 container Screenshot
+					52 container Screenshot
+					53 container Screenshot
+				54 button Next Page
+					55 image
+		56 button iPhone, iPad, Apple TV, Apple Watch
+			57 text iPhone, iPad, Apple TV, Apple Watch
+		58 container
+			59 text Calm is the #1 app for sleep, meditation, and relaxation. Find anxiety relief, stress relief, and better sleep through breathing exercises, sleep sounds, deep sleep music, and mindfulness programs for insomnia, beginner meditation, and beyond. Downloaded by 180 million people worldwide.
+
+Fall asleep faster with Sleep Stories, bedtime stories for adults narrated by Matthew McConaughey, Stephen Fry, P\!nk, Bob Ross, and more. Only on Calm.
+
+Manage stress, relieve anxiety, improve your sleep cycle, and refocus your attention.
+
+Apple App of the Year. Apple Editors' Choice. Happiest App in the World (Center for Humane Technology). 3M+ five-star reviews. Recommended by top psychologists, therapists, and mental health experts.
+
+SLEEP STORIES — ONLY ON CALM
+
+* Drift off to Matthew McConaughey's Wonder — a dreamy journey through the mysteries of the universe  
+* Travel through the village of Provence with master storyteller Stephen Fry in Blue Gold  
+* Fall asleep to the soothing brush strokes of beloved painter Bob Ross in Happy Little Zzzs  
+* Tackle insomnia with 100+ exclusive Sleep Stories, new content added every month
+
+MEDITATION & MINDFULNESS
+
+* Beginner meditation to advanced practice — guided sessions for every experience level  
+* Daily Calm with Tamara Levitt, Daily Jay with Jay Shetty, Daily Trip with Jeff Warren  
+* Mindfulness topics: deep sleep, anxiety relief, stress relief, focus, breaking habits, self-care, personal growth, and more  
+* 7- and 21-day mindfulness programs to build a lasting practice
+
+ANXIETY RELIEF & RELAXATION
+
+* Breathing exercises and breathwork to ease anxiety, stress, and insomnia  
+* Bilateral stimulation music and neuroacoustic sounds for nervous system regulation and somatic relaxation  
+* Guided breathwork for stress relief, anxiety relief, and deep calm  
+* Stress management and self-healing through Dailies: programs for social anxiety, personal growth, and mood balance  
+* Mindful movement and stretching with Daily Move
+
+SLEEP SOUNDS, MUSIC & SOUNDSCAPES
+
+* Calming music, nature sounds, and sleep sounds: ocean waves, heavy rain, campfire, and more  
+* Exclusive focus and sleep music from top artists  
+* Full soundscapes and sleep sounds to help you relax, meditate, and sleep soundly
+
+ALSO FEATURING
+
+* Daily Streaks & Mindful Minutes — emotion and mental health tracker  
+* Calm saves your meditation and sleep sessions to your Apple Health app.
+
+Mental health is health. Calm is for anyone looking to improve their sleep, manage stress, and address everyday anxiety. Meditation novice or seasoned expert.
+
+Take a deep breath and find your Calm.
+
+Calm is free to download and use. There are never any ads and some of the programs and features are free forever. Some content is only available through an optional paid subscription. Be sure to check out our Apple Watch app to quick-start breathing exercises and track your meditations.
+
+Calm offers an auto-renewing subscription to provide you with unlimited access to the Calm Collection while you maintain an active subscription.
+
+Payment will be charged to the credit card connected to your iTunes Account when you confirm the initial subscription purchase. Subscriptions automatically renew unless auto-renew is turned off at least 24-hours before the end of the current subscription period. Your account will be charged for renewal within 24-hours prior to the end of the current period, and the cost of the renewal will be identified. You may manage your subscription and auto-renewal may be turned off by going to your Account Settings after the purchase. Any unused portion of a free trial period, if offered, will be forfeited when you purchase a subscription, where applicable.
+
+Read more about our terms and conditions here:  
+ Terms of service: https://www.calm.com/terms
+ Privacy policy: https://www.calm.com/privacy
+			60 button more
+		61 container Description: Ratings & Reviews, ID: productRatings
+			62 link Description: Ratings & Reviews, Value: apps.apple.com/us/app/571800810?see-all=reviews&platform=iphone
+			63 content list
+				64 container
+					65 text 4.8 out of 5 2M Ratings
+					66 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					67 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					68 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					69 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					70 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.other.one**
+		71 container
+			72 button (disabled) Previous Page
+				73 image
+			74 content list
+				75 container
+					76 heading Editors’ Choice, Value: 3
+						77 text Editors’ Choice
+					78 text Take a deep breath. That phrase greets you whenever you open Calm. It’s both a call to action and a defining feature of the app’s approach to meditation: You’re going to get through this, and all you need to start is a moment. In the increasingly crowded field of apps for meditation and mindfulness, Calm stands out for its ease of use and attention to (soothing) detail.
+					79 button more
+				80 container This app has completely changed my life
+					81 heading This app has completely changed my life, Value: 3, ID: review-12843889685-title
+						82 text This app has completely changed my life
+					83 content list 5 Stars
+					84 text 07/02/2025
+					85 text Hazey Face
+					86 container
+						87 text No, I’m not exaggerating. I was severely depressed. Grieving. Diagnosed with anxiety at age 8. The only thing that’s ever really helped me is DBT, which is based on mindfulness— which is strengthened through meditation. I got Calm do strengthen my DBT skills, but it’s gone beyond that. I’m learning more about myself. I’m unlocking memories. I’m learning how to forgive myself. I’m learning how to be present, all the time. I deleted all my social media apps and distractions and I just use Calm all day now. I love the music for focus, I love the daily move— mindful ways to be more connected to your body, and curated stretches for specific needs. I love the Masterclasses (only wish there were more of them!) I love the Courses— I’m on my third round of the 7 Days of Gratitude and 7 Days of Happiness. There just isn’t a downside to this app. There are so many tools, SOS meditations, soothing voices that feel like they really care, and the SLEEP STORIES!!! they are so good, sometimes I listen to them while I’m cleaning the house or making my breakfast. Just soothing background noise— the storylines are loose and playful so it doesn’t matter if you miss anything. The soundscapes are probably what I utilize for the longest periods— Miss Honeys Garden from Matilda gave me the best nap of my life, and I don’t even take naps! As you can see, I can talk for hours about the Calm app. Hire me as a representative because this is a product I truly care about
+						88 button more
+			89 button Next Page
+				90 image
+		91 container Description: What’s New, ID: mostRecentVersion
+			92 button What’s New
+				93 heading What’s New, Value: 2
+					94 text What’s New
+			95 container What’s New
+				96 container
+					97 text Thanks for using Calm, the #1 app to help you sleep more, stress less and live mindfully with a range of science-backed content and activities for daily mental health support.
+
+This update contains multiple bug fixes and performance improvements.
+
+Now take a deep breath and open the app to see what new daily meditations, Sleep Stories, soundscapes, music, breathing exercises, and more are waiting for you.
+					98 button more
+				99 text Version 7.3
+				100 text 1d ago
+		101 container Description: App Privacy, ID: privacyHeader
+			102 button App Privacy
+				103 link Description: App Privacy, Value: apps.apple.com/us/app/calm/id571800810#
+			104 container
+				105 text The developer,  Calm.com , indicated that the app’s privacy practices may include handling of data as described below. For more information, see the 
+				106 link Description: Developer’s Privacy Policy, Value: calm.com/privacy
+				107 text .
+		108 content list
+			109 container Data Used to Track You
+				110 heading Data Used to Track You, Value: 3
+					111 text Data Used to Track You
+				112 text The following data may be used to track you across apps and websites owned by other companies:
+				113 content list
+					114 text Purchases
+					115 text Identifiers
+					116 text Usage Data
+			117 container Data Linked to You
+				118 heading Data Linked to You, Value: 3
+					119 text Data Linked to You
+				120 text The following data may be collected and linked to your identity:
+				121 content list
+					122 text Health & Fitness
+					123 text Purchases
+					124 text Contact Info
+					125 text Search History
+					126 text Identifiers
+					127 text Usage Data
+					128 text Diagnostics
+		129 container
+			130 text Privacy practices may vary, for example, based on the features you use or your age. 
+			131 link Description: Learn More, Value: apps.apple.com/us/iphone/story/id1538632801
+		132 container Description: Accessibility, ID: accessibilityHeader
+			133 heading Accessibility, Value: 2
+				134 text Accessibility
+			135 container
+				136 text The developer has not yet indicated which accessibility features this app supports. 
+				137 link Description: Learn More, Value: apps.apple.com/story/id1814164299
+		138 container Description: Information, ID: information
+			139 heading Information, Value: 2
+				140 text Information
+			141 definition list
+				142 container Seller
+					143 text Seller
+				144 text Calm.com, Inc.
+				145 container Size
+					146 text Size
+				147 text 178.9 MB
+				148 container Category
+					149 text Category
+				150 text Health & Fitness
+				151 container Compatibility
+					152 text Compatibility
+				153 button (collapsed) Requires iOS 18.0 or later., Secondary Actions: Expand
+					154 text Requires iOS 18.0 or later.
+					155 image
+				156 container Languages
+					157 text Languages
+				158 button (collapsed) English and 9 more, Secondary Actions: Expand
+					159 text English and 9 more
+					160 image
+				161 container Age Rating
+					162 text Age Rating
+				163 button (collapsed) 9+, Secondary Actions: Expand
+					164 text 9+
+					165 image
+				166 container In-App Purchases
+					167 text In-App Purchases
+				168 button (collapsed) Yes, Secondary Actions: Expand
+					169 text Yes
+					170 image
+				171 container Copyright
+					172 text Copyright
+				173 text © Calm.com, Inc.
+		174 container notPurchasedLinks
+			175 link Description: Developer Website ↗, Value: calm.com/
+			176 link Description: Privacy Policy ↗, Value: calm.com/privacy
+		177 container Description: Featured In, ID: featuredIn
+			178 heading Featured In, Value: 2
+				179 text Featured In
+			180 content list
+				181 link Description: Find the Perfect Sleep App for You, Value: apps.apple.com/us/iphone/story/id1787040747
+				182 link Description: Learn to Meditate, Value: apps.apple.com/us/iphone/story/id1827354780
+				183 link Description: Build a Meditation Practice, Value: apps.apple.com/us/iphone/story/id1681927446
+		184 container Description: More by Calm.com, ID: moreByDeveloper
+			185 link Description: More by Calm.com, Value: apps.apple.com/us/developer/calm-com/id571800813
+			186 content list
+				187 link Description: View Calm Health Health & Fitness, Value: apps.apple.com/us/app/calm-health/id1669369516
+				188 link Description: View Calm Sleep - Rest & Relax Stories, Sounds & Tracking, Value: apps.apple.com/us/app/calm-sleep-rest-relax/id6714481749
+		189 container Description: You Might Also Like, ID: similarItems
+			190 link Description: You Might Also Like, Value: apps.apple.com/us/app/571800810?see-all=customers-also-bought-apps&platform=iphone
+			191 container
+				192 button (disabled) Previous Page
+					193 image
+				194 content list
+					195 link Description: View Headspace: Sleep & Meditation Mental Health, Stress, Anxiety, Value: apps.apple.com/us/app/headspace-sleep-meditation/id493145008
+					196 link Description: View Rain Rain Sleep Sounds White Noise & Calm Tinnitus, Value: apps.apple.com/us/app/rain-rain-sleep-sounds/id478687481
+					197 link Description: View Insight Timer: Meditate, Sleep Meditation & Anxiety Relief, Value: apps.apple.com/us/app/insight-timer-meditate-sleep/id337472899
+					198 link Description: View Soothing Sleep Sounds Calming, relaxing ambiance, Value: apps.apple.com/us/app/soothing-sleep-sounds/id880195209
+					199 link Description: View Green Noise Calm Sleep Sounds Rain & White Noise Machine, Value: apps.apple.com/us/app/green-noise-calm-sleep-sounds/id1658257567
+					200 link Description: View Sleep Sounds White Noise, Rain Fall Asleep: Sounds & Stories, Value: apps.apple.com/us/app/sleep-sounds-white-noise-rain/id1453508270
+					201 link Description: View BetterSleep: Relax and Sleep Calm Sounds, Meditation Music, Value: apps.apple.com/us/app/bettersleep-relax-and-sleep/id314498713
+					202 link Description: View Aura: Meditation & Sleep, CBT Anxiety, Stress & Breathwork, Value: apps.apple.com/us/app/aura-meditation-sleep-cbt/id1114223104
+					203 link Description: View Breethe: Sleep & Meditation Breathe to Calm Anxiety Stress, Value: apps.apple.com/us/app/breethe-sleep-meditation/id920161006
+				204 button Next Page
+					205 image
+		206 container
+			207 button United States
+			208 content list
+				209 link Description: This page is available in Español (México), Value: apps.apple.com/us/app/calm/id571800810?l=es-MX
+				210 link Description: This page is available in العربية, Value: apps.apple.com/us/app/calm/id571800810?l=ar
+				211 link Description: This page is available in Русский, Value: apps.apple.com/us/app/calm/id571800810?l=ru
+				212 link Description: This page is available in 简体中文, Value: apps.apple.com/us/app/calm/id571800810?l=zh-Hans-CN
+				213 link Description: This page is available in Français (France), Value: apps.apple.com/us/app/calm/id571800810?l=fr-FR
+				214 link Description: This page is available in 한국어, Value: apps.apple.com/us/app/calm/id571800810?l=ko
+				215 link Description: This page is available in Português (Brazil), Value: apps.apple.com/us/app/calm/id571800810?l=pt-BR
+				216 link Description: This page is available in Tiếng Việt, Value: apps.apple.com/us/app/calm/id571800810?l=vi
+				217 link Description: This page is available in 繁體中文 (台灣), Value: apps.apple.com/us/app/calm/id571800810?l=zh-Hant-TW
+			218 text Copyright © 2026
+			219 link Description: Apple Inc., Value: apple.com/
+			220 text All rights reserved.
+			221 content list
+				222 link Description: Internet Service Terms, Value: apple.com/legal/internet-services/
+				223 link Description: App Store & Privacy, Value: apple.com/legal/privacy/data/en/app-store/
+				224 link Description: Cookie Warning, Value: apple.com/privacy/use-of-cookies/
+				225 link Description: Support, Value: support.apple.com/billing
+
+The focused UI element is 1 AXWebArea ‎Calm App - App Store, URL: apps.apple.com/us/app/calm/id571800810

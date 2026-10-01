@@ -1,5 +1,6 @@
 import {
   PERSONAL_FORECAST_CONTRACT_VERSION,
+  PERSONAL_FORECAST_PROMPT_VERSION,
   buildForecastLockedPreview,
   type ForecastSection,
   type PersonalForecastAccessPayload,
@@ -16,6 +17,26 @@ export const RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-fe
 export const DIRECT_PROSE_ANDROID_CONTRACT_VERSION = 'personal-forecast-feed-v33-direct-prose';
 const DIRECT_PROSE_ANDROID_PROMPT_VERSION = 'personal-forecast-feed.v56-direct-day+week-month+forecast-voice.16';
 
+/** Frozen identities from the bundled validators, independent of the writer. */
+const DIRECT_PROSE_READING_PROMPTS: Readonly<Record<string, readonly string[]>> = {
+  [DIRECT_PROSE_ANDROID_CONTRACT_VERSION]: [DIRECT_PROSE_ANDROID_PROMPT_VERSION],
+  'personal-forecast-feed-v34-direct-prose': [
+    'personal-forecast-feed.v57-grounded-today+week-month+forecast-voice.16',
+    'personal-forecast-feed.v58-spoken-today+week-month+forecast-voice.16',
+  ],
+};
+
+export function resolvePersonalForecastWirePromptVersion(wireVersion: string, value?: unknown): string | null {
+  const supported = DIRECT_PROSE_READING_PROMPTS[wireVersion];
+  if (value === undefined) return supported?.[0]
+    ?? (wireVersion === PERSONAL_FORECAST_CONTRACT_VERSION ? PERSONAL_FORECAST_PROMPT_VERSION : RELEASED_READING_PROMPTS[wireVersion])
+    ?? (wireVersion === LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION ? 'personal-forecast-feed.v42-reference-four-part+forecast-voice.9' : null);
+  if (typeof value !== 'string') return null;
+  const prompt = value.trim();
+  if (wireVersion === PERSONAL_FORECAST_CONTRACT_VERSION && prompt === PERSONAL_FORECAST_PROMPT_VERSION) return prompt;
+  return supported?.includes(prompt) ? prompt : null;
+}
+
 // These readers share the current prose structure, but validate every identity
 // field exactly. Keep their wire identities independent of the generator cache.
 const RELEASED_READING_PROMPTS: Readonly<Record<string, string>> = {
@@ -31,7 +52,7 @@ export function resolvePersonalForecastWireVersion(value: unknown): string | nul
   const normalizedVersion = baseVersion.split('#')[0].trim();
 
   if (normalizedVersion === PERSONAL_FORECAST_CONTRACT_VERSION
-    || normalizedVersion === DIRECT_PROSE_ANDROID_CONTRACT_VERSION
+    || Object.hasOwn(DIRECT_PROSE_READING_PROMPTS, normalizedVersion)
     || normalizedVersion === LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION
     || normalizedVersion === RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION) {
     return normalizedVersion;
@@ -148,21 +169,25 @@ function sectionedReading(original: PersonalForecastPackage): PersonalForecastPa
 export function projectPersonalForecastForWire(
   payload: PersonalForecastAccessPayload,
   wireVersion: string,
+  promptVersion = resolvePersonalForecastWirePromptVersion(wireVersion),
 ): PersonalForecastAccessPayload | LegacyForecastAccessPayload | ReleasedReadingAccessPayload {
   if (payload.periodLocked || (payload.accessTier === 'free' && payload.forecast.period !== 'day')) {
     throw new Error('PERSONAL_FORECAST_PREMIUM_REQUIRED');
   }
-  if (wireVersion === PERSONAL_FORECAST_CONTRACT_VERSION) return payload;
-  if (wireVersion === DIRECT_PROSE_ANDROID_CONTRACT_VERSION) {
+  if (!promptVersion) throw new Error('PERSONAL_FORECAST_CONTRACT_UNSUPPORTED');
+  if (wireVersion === PERSONAL_FORECAST_CONTRACT_VERSION && promptVersion === payload.forecast.meta.promptVersion) return payload;
+  if (Object.hasOwn(DIRECT_PROSE_READING_PROMPTS, wireVersion) || wireVersion === PERSONAL_FORECAST_CONTRACT_VERSION) {
     return {
       ...payload,
       forecast: {
         ...payload.forecast,
         meta: {
           ...payload.forecast.meta,
-          contractVersion: DIRECT_PROSE_ANDROID_CONTRACT_VERSION,
-          semanticVersion: DIRECT_PROSE_ANDROID_CONTRACT_VERSION,
-          promptVersion: DIRECT_PROSE_ANDROID_PROMPT_VERSION,
+          contractVersion: wireVersion,
+          semanticVersion: wireVersion,
+          promptVersion,
+          voiceVersion: '16',
+          calculationVersion: 'personal-forecast-swiss-dated-natal-v17',
           currentGeneration: generationIdentity(payload.forecast),
         },
       },

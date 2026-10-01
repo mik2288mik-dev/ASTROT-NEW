@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-10",
+  "scope": "10 named popular apps, visual review of current public App Store US and Google Play English screenshot galleries. This is a visual benchmark, not a live RuStore search ranking or conversion study.",
+  "sources": [
+    {
+      "name": "Moonly",
+      "store": "App Store",
+      "url": "https://apps.apple.com/us/app/moonly-moon-phases-calendar/id1489889871",
+      "proof": "assets/references/moonly.jpg",
+      "pattern": "Тёмный фон, крупные экраны, объёмные предметы вокруг телефона.",
+      "use": "Г и И: объёмные планеты, общая атмосфера и реальные экраны."
+    },
+    {
+      "name": "CHANI",
+      "store": "App Store",
+      "url": "https://apps.apple.com/us/app/chani-your-astrology-guide/id1532791252",
+      "proof": "assets/references/chani.jpg",
+      "pattern": "Светлая лаванда, наклонные экраны, небольшие коллажи поверх интерфейса.",
+      "use": "И: мягкая студия с объёмными предметами и спокойным светлым фоном."
+    },
+    {
+      "name": "The Pattern",
+      "store": "App Store",
+      "url": "https://apps.apple.com/us/app/the-pattern/id1071085727",
+      "proof": "assets/references/pattern.jpg",
+      "pattern": "Чёрный фон, фотографии людей, наклонные экраны и увеличенные детали.",
+      "use": "К: тёмная серия с человеком; Д: фотографии в повседневном сценарии."
+    },
+    {
+      "name": "Calm",
+      "store": "App Store",
+      "url": "https://apps.apple.com/us/app/calm/id571800810",
+      "proof": "assets/references/calm.jpg",
+      "pattern": "Цельная голубая атмосфера, первые кадры могут обходиться без телефона.",
+      "use": "Б и Л: общий цвет и отдельный плакат среди экранов."
+    },
+    {
+      "name": "Finch",
+      "store": "App Store",
+      "url": "https://apps.apple.com/us/app/finch-self-care-pet/id1528595748",
+      "proof": "assets/references/finch.jpg",
+      "pattern": "Яркие иллюстрации и короткий крупный заголовок, одна идея на кадр.",
+      "use": "Л и В4: крупная простая графика и знакомый сценарий сразу."
+    },
+    {
+      "name": "Flo",
+      "store": "App Store",
+      "url": "https://apps.apple.com/us/app/flo-cycle-period-tracker/id1038369065",
+      "proof": "assets/references/flo.jpg",
+      "pattern": "Одинаковый светлый фон, выделение ключевого слова, крупный экран или его деталь.",
+      "use": "Ж и З: выделение одной пользы, большой экран и ясный заголовок."
+    },
+    {
+      "name": "Nebula",
+      "store": "Google Play",
+      "url": "https://play.google.com/store/apps/details?id=genesis.nebula&hl=en",
+      "proof": "assets/references/nebula.jpg",
+      "pattern": "Единый насыщенный цвет, первый кадр с общей идеей, дальше конкретные функции.",
+      "use": "Л: насыщенный синий плакат и последовательное раскрытие функций."
+    },
+    {
+      "name": "Co–Star",
+      "store": "Google Play",
+      "url": "https://play.google.com/store/apps/details?id=com.costarastrology&hl=en",
+      "proof": "assets/references/costar.jpg",
+      "pattern": "Почти монохромная редакционная подача, засечки, много воздуха и простые экраны.",
+      "use": "Д и М: выразительный шрифт, спокойный фон, мало декора."
+    },
+    {
+      "name": "Duolingo",
+      "store": "Google Play",
+      "url": "https://play.google.com/store/apps/details?id=com.duolingo&hl=en",
+      "proof": "assets/references/duolingo.jpg",
+      "pattern": "Настоящий интерфейс, яркое цветное поле с короткой пользой у нижнего края.",
+      "use": "З и Е: сильный цветовой акцент и короткая подпись рядом с экраном."
+    },
+    {
+      "name": "Headspace",
+      "store": "Google Play",
+      "url": "https://play.google.com/store/apps/details?id=com.getsomeheadspace.android&hl=en",
+      "proof": "assets/references/headspace.jpg",
+      "pattern": "Жёлтый и фиолетовый, крупная форма, сочетание иллюстрации и интерфейса.",
+      "use": "И и В: дружелюбные объекты и цветовая связь между кадрами."
+    }
+  ]
+}

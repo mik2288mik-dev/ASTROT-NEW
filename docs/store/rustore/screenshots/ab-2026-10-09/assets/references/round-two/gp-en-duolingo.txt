@@ -1,0 +1,189 @@
+Browser tab: 3, Title: "Duolingo: Learn Languages - Apps on Google Play", URL: "https://play.google.com/store/apps/details?id=com.duolingo&hl=en".
+1 AXWebArea Duolingo: Learn Languages - Apps on Google Play, URL: play.google.com/store/apps/details?id=com.duolingo&hl=en
+	2 container yDmH0d
+		3 container
+			4 container Page Header
+				5 link Description: Google Play logo, Value: play.google.com/store/games
+				6 container Main
+					7 tab group
+						8 tab (selectable, settable, boolean) Games, Value: 0, ID: 11
+						9 tab (selected, settable, boolean) Apps, Value: 1
+						10 tab (selectable, settable, boolean) Books, Value: 0, ID: 5
+						11 tab (selectable, settable, boolean) Kids, Value: 0, ID: 13
+				12 button Search
+				13 button Help Center
+				14 pop up button (collapsed) Description: Open account menu, Secondary Actions: Expand
+		15 container
+			16 container
+				17 heading Duolingo: Learn Languages, Value: 1
+					18 text Duolingo: Learn Languages
+				19 link Description: Duolingo, Value: play.google.com/store/apps/dev?id=6957685454452609502
+				20 text Contains ads  ·  In-app purchases
+				21 container Information badges
+					22 container
+						23 image Rated 4.8 stars out of five stars
+						24 text 50.6M reviews
+					25 container
+						26 text 500M+ Downloads
+					27 text Editors' Choice
+			28 button Install
+				29 text Install
+			30 button Share
+				31 text Share
+			32 button Add to wishlist
+				33 text Add to wishlist
+			34 container
+				35 content list
+					36 button Screenshot image
+					37 button Screenshot image
+					38 button Screenshot image
+					39 button Screenshot image
+					40 button Screenshot image
+					41 button Screenshot image
+					42 button Screenshot image
+					43 button Screenshot image
+					44 button Screenshot image
+					45 button Screenshot image
+					46 button Screenshot image
+					47 button Screenshot image
+					48 button Screenshot image
+					49 button Screenshot image
+					50 button Screenshot image
+					51 button Screenshot image
+					52 button Screenshot image
+					53 button Screenshot image
+					54 button Screenshot image
+					55 button Screenshot image
+					56 button Screenshot image
+					57 button Screenshot image
+					58 button Screenshot image
+					59 button Screenshot image
+				60 button
+			61 container
+				62 heading About this app, Value: 2
+					63 text About this app
+				64 button See more information on About this app
+				65 container Make language learning fun with Spanish, French, English, chess, math & music.
+					66 text Make language learning fun with Spanish, French, English, chess, math & music.
+				67 text Updated on Oct 6, 2026
+				68 button (disabled) #2 top free education
+					69 text #2 top free education
+				70 container
+					71 link Description: Education, Value: play.google.com/store/apps/category/EDUCATION
+			72 container
+				73 text Events & offers
+				74 content list
+					75 container
+						76 link Description: Update available Playing chess is better with friends!, Value: play.google.com/store/apps/eventdetails/4831503503278494935
+			77 container
+				78 heading Data safety, Value: 2
+					79 text Data safety
+				80 container
+					81 link Description: See more information on Data safety, Value: play.google.com/store/apps/datasafety?id=com.duolingo
+				82 text Safety starts with understanding how developers collect and share your data. Data privacy and security practices may vary based on your use, region, and age. The developer provided this information and may update it over time.
+				83 content list
+					84 container
+						85 text This app may share these data types with third parties App activity, App info and performance, and Device or other IDs
+					86 container
+						87 text This app may collect these data types Personal info, Financial info and 6 others
+					88 text Data is encrypted in transit
+					89 text You can request that data be deleted
+					90 text Committed to follow the Play Families Policy
+				91 container
+					92 link Description: See more details on data safety, Value: play.google.com/store/apps/datasafety?id=com.duolingo
+			93 container
+				94 heading Ratings and reviews, Value: 2
+					95 text Ratings and reviews
+				96 button See more information on Ratings and reviews
+				97 button Ratings and reviews are verified
+					98 text Ratings and reviews are verified
+				99 content list
+					100 checkbox Description: Phone, Value: 1, ID: formFactor_2
+					101 checkbox Description: Desktop, Value: 0, ID: formFactor_5
+					102 checkbox Description: Tablet, Value: 0, ID: formFactor_3
+				103 image Rated 4.8 stars out of five stars
+				104 text 47.9M  reviews
+				105 image 42,379,412 reviews for star rating 5
+				106 image 3,386,586 reviews for star rating 4
+				107 image 770,550 reviews for star rating 3
+				108 image 350,398 reviews for star rating 2
+				109 image 983,789 reviews for star rating 1
+				110 text Joanne Horrocks
+				111 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+				112 container
+					113 image Rated 3 stars out of five stars
+					114 text September 15, 2026
+				115 text I like the lessons and feel like i am learning, but the constant game style, press this for more gems, etc is really annoying. i just want to learn not play silly games. Also, i like to do my lessons while my baby naps, there is no option i can find that turns the silly noises off, so i end up having to turn the volume right down so not to wake her up, she wouldn't be bothered by the voices, but the constant noises disturb her. Wish there was an option to turn all this off. 1 person found this review helpful
+				116 text Did you find this helpful?
+				117 checkbox Description: Yes, Value: 0, ID: a23f0aba-cf40-4760-9b38-cfff073fe2a6::1
+				118 checkbox Description: No, Value: 0, ID: a23f0aba-cf40-4760-9b38-cfff073fe2a6::2
+				119 text Lunae Strat
+				120 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+				121 container
+					122 image Rated 1 stars out of five stars
+					123 text September 16, 2026
+				124 text I don't feel like I'm learning the language I signed up for. There are no speaking exercises for Japanese. There is no explanation behind grammar rules, so I end up guessing based off prior correct answers and end up incorrect. The badges and leagues are supposed to be motivating, but they feel like an overwhelming challenge. So, instead of learning, I'm speeding through and trying not to break a streak or miss a badge. Also - music is broken. You sould be able to sing or play an instrument 1 person found this review helpful
+				125 text Did you find this helpful?
+				126 checkbox Description: Yes, Value: 0, ID: 98cd315b-60ce-4e15-a68e-0619ea3f330f::1
+				127 checkbox Description: No, Value: 0, ID: 98cd315b-60ce-4e15-a68e-0619ea3f330f::2
+				128 text Alex Beattie
+				129 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+				130 container
+					131 image Rated 1 stars out of five stars
+					132 text September 16, 2026
+				133 text keeping it at one star because even though I pay for a premium tier, the app continues to be poorly made and maintained. the "maintenance breaks" are ridiculous and interfere with progress, and they constantly change things just to make their lessons seem more relevant. plus the characters are very annoying and not at all conducive to learning. really needs improvement overall. also has grammatical issues which shouldn't exist. and the gamification of learning doesn't help with retention at all
+				134 text Did you find this helpful?
+				135 checkbox Description: Yes, Value: 0, ID: 8373df05-aae3-4549-aa66-7e810d8b4f5d::1
+				136 checkbox Description: No, Value: 0, ID: 8373df05-aae3-4549-aa66-7e810d8b4f5d::2
+				137 button See all reviews
+					138 text See all reviews
+			139 container
+				140 heading What’s new, Value: 2
+					141 text What’s new
+				142 text Our mascot owl, Duo, is trading in his usual diet of mice for bugs this week. Yup, we’re squashing those pesky bugs to make the experience better for all of you.
+				143 text For more Duolingo news, contests and product releases, follow us on Facebook, Twitter, and Instagram @duolingo.
+			144 link Description: Flag as inappropriate (opens in new window), Value: support.google.com/googleplay/?p=report_content
+			145 image Content rating
+			146 text Rated for 3+
+			147 text Users Interact, In-App Purchases
+			148 link Description: Learn more about content ratings (opens in new window), Value: support.google.com/googleplay?p=appgame_ratings
+			149 container developer-contacts-heading
+				150 heading App support, Value: 2
+					151 text App support
+				152 button (collapsed) Expand
+			153 container
+				154 heading More by Duolingo, Value: 2
+					155 text More by Duolingo
+				156 container
+					157 link Description: See more information on More by Duolingo, Value: play.google.com/store/apps/dev?id=6957685454452609502
+				158 link Description: Learn to Read - Duolingo ABC Duolingo Rated 3.4 stars out of five stars, Value: play.google.com/store/apps/details?id=com.duolingo.literacy
+				159 link Description: Duolingo English Test (DET) Duolingo Rated 3.1 stars out of five stars, Value: play.google.com/store/apps/details?id=com.duolingo.detmobile
+			160 container
+				161 heading Similar apps, Value: 2
+					162 text Similar apps
+				163 container
+					164 link Description: See more information on Similar apps, Value: play.google.com/store/apps/collection/cluster?gsr=Sn1qLFZrS2pVT0FFODRVWmJwOGNHVnFOQWFablZkaHRXZ3A4QTZtL3lmZm12WlE9wgJJChAKDGNvbS5kdW9saW5nbxAHGAgwATgASikIARACEAMQBBoZRHVvbGluZ286IExlYXJuIExhbmd1YWdlcyAAKAAwAFAAWAFgALASAA%3D%3D:S:ANO1ljJjwLM
+				165 link Description: Pinterest Pinterest Rated 4.2 stars out of five stars, Value: play.google.com/store/apps/details?id=com.pinterest
+				166 link Description: WhatsApp Messenger WhatsApp LLC Rated 4.4 stars out of five stars, Value: play.google.com/store/apps/details?id=com.whatsapp
+				167 link Description: TikTok TikTok Pte. Ltd. Rated 3.9 stars out of five stars, Value: play.google.com/store/apps/details?id=com.zhiliaoapp.musically
+				168 link Description: Snapchat Snap Inc Rated 3.8 stars out of five stars, Value: play.google.com/store/apps/details?id=com.snapchat.android
+				169 link Description: TikTok Lite - Save Data & Fast TikTok Pte. Ltd. Rated 4.4 stars out of five stars, Value: play.google.com/store/apps/details?id=com.zhiliaoapp.musically.go
+				170 link Description: ibis Paint X ibis inc. Rated 4.5 stars out of five stars, Value: play.google.com/store/apps/details?id=jp.ne.ibis.ibispaintx.app
+		171 container
+			172 text Google Play
+			173 link Description: Play Pass, Value: play.google.com/store/pass/getstarted
+			174 link Description: Play Points, Value: play.google.com/store/points/enroll
+			175 link Description: Gift cards, Value: play.google.com/about/giftcards
+			176 link Description: Redeem, Value: play.google.com/redeem
+			177 link Description: Refund policy, Value: support.google.com/googleplay/answer/134336
+			178 text Kids & family
+			179 link Description: Parent Guide, Value: support.google.com/googleplay?p=pff_parentguide
+			180 link Description: Family sharing, Value: support.google.com/googleplay/answer/7007852
+			181 link Description: Terms of Service, Value: play.google.com/intl/en_ru/about/play-terms.html
+			182 link Description: Privacy, Value: policies.google.com/privacy
+			183 link Description: About Google Play, Value: support.google.com/googleplay/?p=about_play
+			184 link Description: Developers, Value: developer.android.com/index.html
+			185 link Description: Google Store, Value: store.google.com/?playredirect=true&utm_source=play&utm_medium=google_oo&utm_campaign=GS106288
+			186 text All prices include VAT. Russia (English)
+
+The focused UI element is 1 AXWebArea Duolingo: Learn Languages - Apps on Google Play, URL: play.google.com/store/apps/details?id=com.duolingo&hl=en

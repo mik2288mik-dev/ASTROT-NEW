@@ -124,20 +124,18 @@ describe('personal forecast rolling prewarm', () => {
     expect(isPersonalForecastPeriodAllowedForTier('free', 'month')).toBe(false);
   });
 
-  it('does not regenerate cached rolling days', async () => {
-    const cached = new Set([
-      'free:day:2026-08-25',
-      'free:day:2026-08-26',
-      'free:day:2026-08-27',
-    ]);
+  it('does not regenerate cached rolling days and prepares only what Free can open', async () => {
+    const cached = new Set(['free:day:2026-08-25']);
     const injected = runtime({ cached });
     const result = await prewarmPersonalForecastHorizon({
       userId: 'user-1', profile, accessTier: 'free', reason: 'app_open',
       now: new Date('2026-08-25T09:00:00.000Z'),
     }, injected);
-    expect(result.cached).toHaveLength(3);
-    expect(result.generated).toHaveLength(2);
-    expect(injected.ensure).toHaveBeenCalledTimes(2);
+    // Free opens today and tomorrow only, so nothing beyond them is generated.
+    expect(result.targets.map((target) => target.periodKey)).toEqual(['2026-08-25', '2026-08-26']);
+    expect(result.cached).toHaveLength(1);
+    expect(result.generated).toHaveLength(1);
+    expect(injected.ensure).toHaveBeenCalledTimes(1);
   });
 
   it('does not use a Premium package to satisfy Free Today', async () => {
@@ -187,7 +185,7 @@ describe('personal forecast rolling prewarm', () => {
     release();
     const [firstResult, secondResult] = await Promise.all([first, second]);
     expect(firstResult).toBe(secondResult);
-    expect(injected.ensure).toHaveBeenCalledTimes(5);
+    expect(injected.ensure).toHaveBeenCalledTimes(2);
   });
 
   it('does not coalesce a changed birth profile with an older in-flight horizon', async () => {
@@ -224,8 +222,8 @@ describe('personal forecast rolling prewarm', () => {
     const complete = prewarmPersonalForecastHorizon(input, injected);
     release();
     await Promise.all([incremental, complete]);
-    expect(cached.size).toBe(5);
-    expect(injected.ensure).toHaveBeenCalledTimes(5);
+    expect(cached.size).toBe(2);
+    expect(injected.ensure).toHaveBeenCalledTimes(2);
   });
 
   it('prepares five days before the current Premium Week and Month across a calendar boundary', () => {
@@ -234,8 +232,10 @@ describe('personal forecast rolling prewarm', () => {
       timezone: 'Europe/Moscow',
       now: new Date('2026-08-28T09:00:00.000Z'),
     });
+    // Later «Будущее» days are generated only when the reader asks for them.
     expect(targets.filter((target) => target.period === 'day')).toHaveLength(5);
     expect(targets.slice(0, 5).every((target) => target.period === 'day')).toBe(true);
+    expect(targets.slice(5).map((target) => target.period)).toEqual(['week', 'month']);
     expect(targets.filter((target) => target.period === 'week').map((target) => target.periodKey))
       .toEqual(['2026-W35']);
     expect(targets.filter((target) => target.period === 'month').map((target) => target.periodKey))
@@ -254,7 +254,9 @@ describe('personal forecast rolling prewarm', () => {
     expect(MAX_FUTURE_FORECAST_DAYS).toBe(30);
     for (const accessTier of ['free', 'premium'] as const) {
       expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-08' })).toBe('allowed');
-      expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-09' })).toBe(accessTier === 'premium' ? 'allowed' : 'premium_required');
+      // Tomorrow is free too; from the day after, the future belongs to NEBO+.
+      expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-09' })).toBe('allowed');
+      expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-10' })).toBe(accessTier === 'premium' ? 'allowed' : 'premium_required');
       expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-10-08' })).toBe(accessTier === 'premium' ? 'allowed' : 'premium_required');
       for (const periodKey of ['2026-09-07', '2026-10-09', '2026-09-31', 'garbage']) {
         expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey })).toBe('outside_horizon');

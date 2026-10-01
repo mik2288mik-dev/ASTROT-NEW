@@ -1,0 +1,294 @@
+Browser tab: 3, Title: "‎Приложение «Forest - Сосредоточьтесь» — App Store", URL: "https://apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515".
+1 AXWebArea ‎Приложение «Forest - Сосредоточьтесь» — App Store, URL: apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515
+	2 container
+		3 container Description: App Store, ID: app-store-icon-container
+		4 button (collapsed) App Store, ID: popover-1-target, Secondary Actions: Expand
+			5 text для iPhone
+			6 image
+		7 container search-input-form
+			8 text Поиск
+			9 search text field (settable) Поиск, ID: search-input__text-field
+		10 container navigation
+			11 content list
+				12 checkbox Сегодня, Value: 0
+				13 checkbox Игры, Value: 0
+				14 checkbox Приложения, Value: 0
+				15 checkbox Arcade, Value: 0
+			16 content list Категории
+				17 checkbox Категории, Value: 0
+				18 checkbox Фото и видео, Value: 0
+				19 checkbox Здоровье и фитнес, Value: 0
+				20 checkbox Производительность, Value: 0
+				21 checkbox Развлечения, Value: 0
+				22 checkbox Экшен, Value: 0
+				23 checkbox Приключения, Value: 0
+				24 checkbox Головоломки, Value: 0
+				25 checkbox Инди, Value: 0
+	26 container
+		27 container
+			28 heading Forest - Сосредоточьтесь, Value: 1
+				29 text Forest - Сосредоточьтесь
+			30 text Будь продуктивным везде
+			31 text Бесплатно · Встроенные покупки
+			32 button Поделиться
+		33 content list
+			34 link Description: ОЦЕНОК: 11 ТЫС. Количество звезд: 4,8, Value: apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515#productRatings
+			35 link Description: ВОЗРАСТ 4+ лет (г.), Value: apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515#information
+			36 link Description: РЕЙТИНГ номер 77 Производительность, Value: apps.apple.com/ru/iphone/charts/6007?chart=top-free
+			37 link Description: РАЗРАБОТЧИК SEEKRTECH CO., LTD., Value: apps.apple.com/ru/developer/seekrtech-co-ltd/id469475888?platform=iphone
+			38 link Description: ЯЗЫК RU и еще 13, Value: apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515#information
+			39 link Description: РАЗМЕР 890,9 МБ, Value: apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515#information
+		40 container Description: iPhone Предпросмотр приложений и снимки экрана, ID: product_media_phone_
+			41 container
+				42 button (disabled) Предыдущая страница
+					43 image
+				44 content list
+					45 container Снимок экрана
+					46 container Снимок экрана
+					47 container Снимок экрана
+					48 container Снимок экрана
+				49 button Следующая страница
+					50 image
+		51 button iPhone, iPad
+			52 text iPhone, iPad
+		53 container
+			54 text Не трогайте телефон — и дерево растёт. Уйдёте раньше — оно засохнет. Это Forest, таймер концентрации, которым пользуются 60 миллионов человек по всему миру.
+
+Лучшее приложение для продуктивности в 136 странах. Рекомендовано The New York Times и Business Insider.
+
+«Forest работает действительно хорошо: если ваша цель — быть более присутствующим, не отвлекаться на телефон и по-настоящему разговаривать с друзьями, когда вы рядом, — это приложение для вас». — The New York Times
+
+Вместе наше сообщество посадило более 2 миллионов настоящих деревьев на Земле благодаря партнёрству с Trees for the Future.
+
+---
+
+СОХРАНЯЙТЕ КОНЦЕНТРАЦИЮ
+
+Forest помогает справиться с зависимостью от телефона, сократить количество отвлекающих факторов и выработать настоящие привычки глубокой работы. Готовитесь к экзаменам, работаете из дома или просто хотите быть более внимательным — Forest даёт повод оставаться сосредоточенным на задаче.
+
+- Геймифицированный таймер концентрации, превращающий время без экрана в растущий виртуальный лес
+- Создавайте персонализированные Списки разрешений, чтобы блокировать отвлекающие приложения во время сеансов концентрации (iOS 16 и выше)
+- Отслеживайте, сколько времени вы проводите за телефоном и на экране, каждый день
+
+НАЙДИТЕ МОТИВАЦИЮ
+
+- Открывайте новые виды деревьев и звуковые пейзажи, достигая рубежей концентрации
+- Сажайте деревья вместе с друзьями и близкими во время совместных сеансов концентрации
+- Соревнуйтесь с пользователями по всему миру и делитесь своим лесом
+- Открывайте достижения и получайте дополнительные награды
+- Сажайте настоящие деревья на Земле благодаря партнёрству с Trees for the Future
+
+КОНТРОЛЬ ВРЕМЕНИ: БЛОКИРУЙТЕ ОТВЛЕЧЕНИЯ ПО РАСПИСАНИЮ
+
+Контроль времени помогает устанавливать периоды без телефона в течение дня. Блокируйте отвлекающие приложения по расписанию, ограничивайте доступ к ним и отслеживайте, сколько времени вы проводите за телефоном.
+
+ПРОСТРАНСТВО ОСОЗНАННОСТИ: ПЕРЕЗАГРУЗИТЕ РАЗУМ
+
+Пространство осознанности сочетает успокаивающие звуковые пейзажи, дыхательные упражнения и мягкую анимацию, помогая расслабиться между сеансами концентрации.
+
+СТАТИСТИКА И АНАЛИТИКА
+
+- Создавайте собственные теги и просматривайте подробную статистику того, как вы используете время концентрации
+- Просматривайте свою еженедельную, ежемесячную и годовую историю концентрации в виде наглядного леса
+- Пересматривайте свой путь концентрации в Истории Forest
+- Синхронизируйте время концентрации с Apple Health
+
+Никогда не поздно выработать полезные привычки.
+
+---
+
+FOREST PLUS
+
+Любите Forest? Попробуйте Forest Plus.
+
+- Тройные награды в монетах и более быстрая разблокировка новых деревьев
+- Эксклюзивные виды деревьев только для Plus и ранний доступ к новым сезонным деревьям
+- Превратите свою концентрацию в настоящее дерево на Земле
+
+Начните бесплатный пробный период сегодня, отменить можно в любой момент.
+
+---
+
+ВНИМАНИЕ
+
+Forest доступен на iPhone и iPad. Войдите в тот же аккаунт, чтобы синхронизировать данные и получить доступ к Forest Plus на всех платформах.
+
+Функция «Список разрешений» требует iOS/iPadOS 16 или выше. Forest — оригинальное приложение. Похожие приложения в App Store не разработаны командой Forest.
+
+---
+
+Подписывайтесь на нас в Instagram или посетите forestapp.cc, чтобы узнать больше. Также доступны расширения для браузера.
+
+---
+
+Политика конфиденциальности: https://www.forestapp.cc/privacy/
+
+Условия использования: https://forest-subscription.seekrtech.com/terms/
+			55 button еще
+		56 container Description: События, ID: appEvents
+			57 heading События, Value: 2
+				58 text События
+			59 content list
+				60 container
+					61 text ПРОХОДИТ СЕЙЧАС
+					62 link Description: Челлендж «Сажать вместе», Value: apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515?eventid=6812684058
+				63 container
+					64 text ПРОХОДИТ СЕЙЧАС
+					65 link Description: Ваша фокусировка развивает лес, Value: apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515?eventid=6817671186
+		66 container Description: Оценки и отзывы, ID: productRatings
+			67 link Description: Оценки и отзывы, Value: apps.apple.com/ru/app/866450515?see-all=reviews&platform=iphone
+			68 content list
+				69 container
+					70 text 4,8 из 5 Оценок: 11 тыс.
+					71 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					72 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					73 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					74 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					75 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.other.one**
+		76 container
+			77 button (disabled) Предыдущая страница
+				78 image
+			79 content list
+				80 container Всё круто
+					81 heading Всё круто, Value: 3, ID: review-5093095075-title
+						82 text Всё круто
+					83 content list Количество звезд: 5
+					84 text 06.11.2019
+					85 text varf88
+					86 text Посадил дерево, построил дом, воспитал сына
+				87 container Действительно помогает
+					88 heading Действительно помогает, Value: 3, ID: review-1801166228-title
+						89 text Действительно помогает
+					90 content list Количество звезд: 5
+					91 text 21.09.2017
+					92 text EvilWisp234
+					93 text Приложение превращает концентрацию в игру. Для тех, кто любит игры и хочет себя замотивировать в работе это приложение подойдёт идеально
+			94 button Следующая страница
+				95 image
+		96 container Description: Что нового, ID: mostRecentVersion
+			97 button Что нового
+				98 heading Что нового, Value: 2
+					99 text Что нового
+			100 container Что нового
+				101 text Это обновление содержит исправления известных ошибок и общие улучшения производительности, чтобы сделать вашу работу с Forest более стабильной и плавной.
+				102 text Версия 5.29.1
+				103 text 2 окт.
+		104 container Description: Конфиденциальность приложения, ID: privacyHeader
+			105 button Конфиденциальность приложения
+				106 link Description: Конфиденциальность приложения, Value: apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515#
+			107 container
+				108 text Разработчик  SEEKRTECH CO., LTD.  указал, что в соответствии с политикой конфиденциальности приложения данные могут обрабатываться так, как описано ниже. Подробные сведения доступны в 
+				109 link Description: Политика конфиденциальности разработчика, Value: forestapp.cc/privacy
+				110 text .
+		111 content list
+			112 container Данные, используе­мые для отслежи­вания информации
+				113 heading Данные, используе­мые для отслежи­вания информации, Value: 3
+					114 text Данные, используе­мые для отслежи­вания информации
+				115 text Следующие данные могут использоваться для отслеживания информации о пользователе в приложениях и на сайтах, принадлежащих другим компаниям:
+				116 content list
+					117 text Контактные данные
+					118 text Данные об использова­нии
+			119 container Связанные с пользова­телем данные
+				120 heading Связанные с пользова­телем данные, Value: 3
+					121 text Связанные с пользова­телем данные
+				122 text Может вестись сбор следующих данных, которые связаны с личностью пользователя:
+				123 content list
+					124 text Покупки
+					125 text Контактные данные
+					126 text Пользова­тель­ский контент
+					127 text Идентифика­торы
+					128 text Данные об использова­нии
+					129 text Диагностика
+			130 container Не связанные с пользова­телем данные
+				131 heading Не связанные с пользова­телем данные, Value: 3
+					132 text Не связанные с пользова­телем данные
+				133 text Может вестись сбор следующих данных, которые не связаны с личностью пользователя:
+				134 content list
+					135 text Пользова­тель­ский контент
+					136 text Диагностика
+		137 container
+			138 text Разработчик может использовать различные способы обработки конфиденциальных данных в зависимости от таких факторов, как Ваш возраст и функции, которыми Вы пользуетесь. 
+			139 link Description: Подробнее, Value: apps.apple.com/ru/iphone/story/id1538632801
+		140 container Description: Универсальный доступ, ID: accessibilityHeader
+			141 heading Универсальный доступ, Value: 2
+				142 text Универсальный доступ
+			143 container
+				144 text Разработчик пока не предоставил сведений о функциях универсального доступа, поддерживаемых в этом приложении. 
+				145 link Description: Подробнее, Value: apps.apple.com/story/id1814164299
+		146 container Description: Информация, ID: information
+			147 heading Информация, Value: 2
+				148 text Информация
+			149 definition list
+				150 container Провайдер
+					151 text Провайдер
+				152 text SEEKRTECH CO., LTD.
+				153 container Размер
+					154 text Размер
+				155 text 890,9 МБ
+				156 container Категория
+					157 text Категория
+				158 text Производительность
+				159 container Совместимость
+					160 text Совместимость
+				161 button (collapsed) Требуется iOS 16.0 или новее., Secondary Actions: Expand
+					162 text Требуется iOS 16.0 или новее.
+					163 image
+				164 container Языки
+					165 text Языки
+				166 button (collapsed) русский и еще 13, Secondary Actions: Expand
+					167 text русский и еще 13
+					168 image
+				169 container Возраст
+					170 text Возраст
+				171 button (collapsed) 4+, Secondary Actions: Expand
+					172 text 4+
+					173 image
+				174 container Встроенные покупки
+					175 text Встроенные покупки
+				176 button (collapsed) Да, Secondary Actions: Expand
+					177 text Да
+					178 image
+				179 container Авторские права
+					180 text Авторские права
+				181 text © SeekrTech CO., LTD
+		182 container notPurchasedLinks
+			183 link Description: Сайт разработчика ↗, Value: forestapp.cc/
+			184 link Description: Конфиденциальность ↗, Value: forestapp.cc/privacy
+		185 container Description: Еще от SEEKRTECH CO., LTD., ID: moreByDeveloper
+			186 link Description: Еще от SEEKRTECH CO., LTD., Value: apps.apple.com/ru/developer/seekrtech-co-ltd/id469475888
+			187 content list
+				188 link Description: Смотреть WaterDo: Список дел и задачи Планировщик и Напоминания, Value: apps.apple.com/ru/app/waterdo-%D1%81%D0%BF%D0%B8%D1%81%D0%BE%D0%BA-%D0%B4%D0%B5%D0%BB-%D0%B8-%D0%B7%D0%B0%D0%B4%D0%B0%D1%87%D0%B8/id1388228852
+				189 link Description: Смотреть SleepTown постройте навык здорового сна, Value: apps.apple.com/ru/app/sleeptown/id1210251567
+				190 link Description: Смотреть Vibe Reader: AI Summary Cards Reel-like insights to swipe, Value: apps.apple.com/ru/app/vibe-reader-ai-summary-cards/id6748338132
+		191 container Description: Вам может также понравиться, ID: similarItems
+			192 link Description: Вам может также понравиться, Value: apps.apple.com/ru/app/866450515?see-all=customers-also-bought-apps&platform=iphone
+			193 container
+				194 button (disabled) Предыдущая страница
+					195 image
+				196 content list
+					197 link Description: Смотреть Plantie - сосредоточиться учиться, расти и урожай, Value: apps.apple.com/ru/app/plantie-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D0%B8%D1%82%D1%8C%D1%81%D1%8F/id1135988868
+					198 link Description: Смотреть Focus Plant: Дерево Помодоро Концентрация, учеба, фокус, Value: apps.apple.com/ru/app/focus-plant-%D0%B4%D0%B5%D1%80%D0%B5%D0%B2%D0%BE-%D0%BF%D0%BE%D0%BC%D0%BE%D0%B4%D0%BE%D1%80%D0%BE/id1459096306
+					199 link Description: Смотреть FocusPomo · Pomodoro Timer Производительность, Value: apps.apple.com/ru/app/focuspomo-pomodoro-timer/id1528322796
+					200 link Description: Смотреть Focus Traveller - Flow Timer Производительность, Value: apps.apple.com/ru/app/focus-traveller-flow-timer/id1559730367
+					201 link Description: Смотреть Flow: Focus & Pomodoro Timer концентрация, фокусировка, Value: apps.apple.com/ru/app/flow-focus-pomodoro-timer/id1423210932
+					202 link Description: Смотреть Focustown: Pomodoro Timer Производительность, Value: apps.apple.com/ru/app/focustown-pomodoro-timer/id6758457625
+					203 link Description: Смотреть таймер фокус - Тайм менеджмент Помодоро таймер, Value: apps.apple.com/ru/app/%D1%82%D0%B0%D0%B9%D0%BC%D0%B5%D1%80-%D1%84%D0%BE%D0%BA%D1%83%D1%81-%D1%82%D0%B0%D0%B9%D0%BC-%D0%BC%D0%B5%D0%BD%D0%B5%D0%B4%D0%B6%D0%BC%D0%B5%D0%BD%D1%82/id1239133490
+					204 link Description: Смотреть Flora - Green Focus Производительность, Value: apps.apple.com/ru/app/flora-green-focus/id1225155794
+					205 link Description: Смотреть Study Bunny: Focus Timer Производительность, Value: apps.apple.com/ru/app/study-bunny-focus-timer/id1478345385
+				206 button Следующая страница
+					207 image
+		208 container
+			209 button Россия
+			210 content list
+				211 link Description: Страница доступна на этом языке: English (UK), Value: apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515?l=en-GB
+				212 link Description: Страница доступна на этом языке: Українська, Value: apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515?l=uk
+			213 text Copyright © 2026
+			214 link Description: Apple Inc., Value: apple.com/ru/
+			215 text Все права защищены.
+			216 content list
+				217 link Description: Условия пользования интернет-сервисами, Value: apple.com/legal/internet-services/
+				218 link Description: App Store и конфи­денциальность, Value: apple.com/legal/privacy/data/ru/app-store/
+				219 link Description: Предупреждение об использовании файлов cookie, Value: apple.com/legal/privacy/ru/cookies/
+				220 link Description: Поддержка, Value: support.apple.com/ru-ru/billing
+
+The focused UI element is 1 AXWebArea ‎Приложение «Forest - Сосредоточьтесь» — App Store, URL: apps.apple.com/ru/app/forest-%D1%81%D0%BE%D1%81%D1%80%D0%B5%D0%B4%D0%BE%D1%82%D0%BE%D1%87%D1%8C%D1%82%D0%B5%D1%81%D1%8C/id866450515

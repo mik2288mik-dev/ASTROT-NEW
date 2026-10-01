@@ -99,7 +99,7 @@ import handler from '../pages/api/content/synastry/extended';
 import { ChartAccessPolicyError } from '../lib/chartAccessPolicy';
 import { getPremiumEntitlementState } from '../lib/contentArchitecture';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
-import { compatibilityStory } from './fixtures/compatibilityStory';
+import { compatibilityStoryFromPrompt } from './fixtures/compatibilityStory';
 import { COMPATIBILITY_NARRATIVE_VERSION } from '../lib/synastry/compatibilityNarrative';
 
 function chart(id?: number, birthTimeQuality: 'exact' | 'approximate' | 'unknown' = 'exact') {
@@ -124,6 +124,15 @@ function chart(id?: number, birthTimeQuality: 'exact' | 'approximate' | 'unknown
         input_hash: `birth-input-${id}`,
         chart_data: value,
       };
+}
+
+/** Manual people get a temporary whole-day chart; nothing exact is calculated and nothing is saved. */
+function expectOnlyTemporaryWholeDayCharts() {
+  for (const call of mockCalculateNatalChart.mock.calls) {
+    expect(call[2]).toBe('');
+    expect(call[4]).toMatchObject({ birthTimeMode: 'unknown' });
+  }
+  expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
 }
 
 function response() {
@@ -155,7 +164,7 @@ describe('extended synastry delivery resilience', () => {
     mockWarnContentApi.mockReset();
     mockProfileGender = undefined;
     mockCreateLunaStructuredResponse.mockReset();
-    mockCreateLunaStructuredResponse.mockImplementation(async (request) => ({ content: JSON.stringify(compatibilityStory(JSON.parse(request.input).evidence)) }));
+    mockCreateLunaStructuredResponse.mockImplementation(async (request) => ({ content: JSON.stringify(compatibilityStoryFromPrompt(JSON.parse(request.input))) }));
     mockCreateOrReuseCanonicalChart.mockReset();
     mockGetById.mockReset();
     mockSynastryGet.mockResolvedValue(null);
@@ -163,7 +172,9 @@ describe('extended synastry delivery resilience', () => {
     mockSynastrySet.mockResolvedValue({ success: true });
     mockUpsertByChart.mockResolvedValue({ id: 9 });
     mockUpsertByUser.mockResolvedValue({ id: 10 });
-    mockCalculateNatalChart.mockResolvedValue(chart());
+    mockCalculateNatalChart.mockImplementation(async (_name: string, _date: string, _time: string, _place: string, options?: { birthTimeMode?: 'unknown' }) => (
+      chart(undefined, options?.birthTimeMode === 'unknown' ? 'unknown' : 'exact')
+    ));
     (getPremiumEntitlementState as jest.Mock).mockResolvedValue({ isPremium: true, entitlement: null });
     mockCreateOrReuseCanonicalChart.mockImplementation(async (input) => ({
       chart: {
@@ -199,7 +210,7 @@ describe('extended synastry delivery resilience', () => {
     expect(result.payload.result).toBeUndefined();
     expect(mockSynastrySet).not.toHaveBeenCalled();
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
     expect(result.payload).toMatchObject({ subjectChartId: null, partnerChartId: null });
   });
 
@@ -222,7 +233,7 @@ describe('extended synastry delivery resilience', () => {
     expect(result.payload.result.closing).toBeUndefined();
     expect(result.payload.result.schemaVersion).toBe('compatibility-v2');
     expect(result.payload.result.overallScore).not.toBe(1);
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('retries malformed prose once using the same saved chart evidence', async () => {
@@ -234,7 +245,7 @@ describe('extended synastry delivery resilience', () => {
     expect(mockCreateLunaStructuredResponse.mock.calls[1][0].instructions).toContain('paragraphs_missing');
     expect(mockCreateLunaStructuredResponse.mock.calls[0][0].input).toBe(mockCreateLunaStructuredResponse.mock.calls[1][0].input);
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('does not cache malformed prose after the bounded retry is exhausted', async () => {
@@ -254,13 +265,13 @@ describe('extended synastry delivery resilience', () => {
     );
     expect(mockSynastrySet).not.toHaveBeenCalled();
     expect(mockUpsertByChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('delivers a complete reading without retry when a saved person has unspecified gender', async () => {
     mockGetById.mockImplementation(async (id) => ({ ...chart(id), name: id === 2 ? 'Саша' : 'Анна' }));
     mockCreateLunaStructuredResponse.mockImplementationOnce(async (request) => {
-      const writer = compatibilityStory(JSON.parse(request.input).evidence);
+      const writer = compatibilityStoryFromPrompt(JSON.parse(request.input));
       writer.paragraphs[0].text += ' Саша тоже способен ответить сразу.';
       return { content: JSON.stringify(writer) };
     });
@@ -270,13 +281,13 @@ describe('extended synastry delivery resilience', () => {
     expect(JSON.parse(mockCreateLunaStructuredResponse.mock.calls[0][0].input).people.partner).toMatchObject({ name: 'Саша', gender: 'unspecified' });
     expect(result.payload.result.summary).toContain('Саша тоже способен');
     expect(mockSynastrySet).toHaveBeenCalledTimes(1);
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('saves a complete reading when unspecified gender uses gendered wording', async () => {
     mockGetById.mockImplementation(async (id) => ({ ...chart(id), name: id === 2 ? 'Саша' : 'Анна' }));
     mockCreateLunaStructuredResponse.mockImplementation(async (request) => {
-      const writer = compatibilityStory(JSON.parse(request.input).evidence);
+      const writer = compatibilityStoryFromPrompt(JSON.parse(request.input));
       writer.paragraphs[0].text += ' Саша готова поддержать разговор.';
       return { content: JSON.stringify(writer) };
     });
@@ -297,7 +308,7 @@ describe('extended synastry delivery resilience', () => {
     expect(result.payload.result.relationshipContext).toBe('ex');
     expect(result.payload.fromCache).toBe(false);
     expect(mockCreateLunaStructuredResponse).toHaveBeenCalledTimes(1);
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('keeps zodiac signs on the free route and refuses a hybrid full comparison', async () => {
@@ -315,7 +326,7 @@ describe('extended synastry delivery resilience', () => {
     expect(result.status).toBe(400);
     expect(result.payload.code).toBe('USE_SIGN_COMPATIBILITY');
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
     expect(mockCreateLunaStructuredResponse).not.toHaveBeenCalled();
   });
 
@@ -343,7 +354,7 @@ describe('extended synastry delivery resilience', () => {
     expect(result.payload.calculationLevel).toBe('date_only');
     expect(result.payload.result.calculationLevel).toBe('date_only');
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
     expect(result.payload.result.evidence.some((item: any) => item.type === 'house_overlay' && item.direction === 'partner_to_subject')).toBe(false);
   });
 
@@ -371,7 +382,7 @@ describe('extended synastry delivery resilience', () => {
     expect(result.status).toBe(200);
     expect(result.payload.calculationLevel).toBe('date_only');
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('still rejects comparing the same saved chart with itself', async () => {
@@ -389,7 +400,7 @@ describe('extended synastry delivery resilience', () => {
 
     expect(result.status).toBe(400);
     expect(result.payload.code).toBe('CHART_PAIR_DUPLICATE');
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('does not create a partner chart for a manually entered person', async () => {
@@ -404,12 +415,12 @@ describe('extended synastry delivery resilience', () => {
     expect(result.payload).toMatchObject({ subjectChartId: 1, partnerChartId: null });
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
     expect(mockSynastrySet).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('reuses the saved-pair cache without creating charts or invoking Swiss or AI', async () => {
     mockGetById.mockImplementation(async (id) => chart(id));
-    const cached = { schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION, summary: 'Saved result' };
+    const cached = { schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v2', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION, summary: 'Saved result' };
     mockSynastryGet.mockResolvedValue(cached);
 
     const first = await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'romance' });
@@ -419,7 +430,7 @@ describe('extended synastry delivery resilience', () => {
     expect(second.payload).toMatchObject({ fromCache: true, subjectChartId: 1, partnerChartId: 2, result: cached });
     expect(mockSynastryGet.mock.calls[0][3]).toBe(mockSynastryGet.mock.calls[1][3]);
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
     expect(mockCreateLunaStructuredResponse).not.toHaveBeenCalled();
   });
 
@@ -427,7 +438,7 @@ describe('extended synastry delivery resilience', () => {
     let subjectHash = 'subject-v1';
     let partnerHash = 'partner-v1';
     mockGetById.mockImplementation(async (id) => ({ ...chart(id), input_hash: id === 1 ? subjectHash : partnerHash }));
-    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION });
+    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v2', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION });
     await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'romance' });
     subjectHash = 'subject-v2';
     await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'romance' });
@@ -436,7 +447,7 @@ describe('extended synastry delivery resilience', () => {
     await post({ subjectChartId: 1, partnerChartId: 2, relationshipContext: 'friendship' });
 
     expect(new Set(mockSynastryGet.mock.calls.map((call) => call[3])).size).toBe(4);
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('does not depend on a chart slot when comparing a manually entered person', async () => {
@@ -452,7 +463,7 @@ describe('extended synastry delivery resilience', () => {
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
     expect(mockSynastryGet).not.toHaveBeenCalled();
     expect(mockCreateLunaStructuredResponse).toHaveBeenCalledTimes(1);
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('invalidates a pair cache after explicit repair even when the birth hash is unchanged', async () => {
@@ -461,13 +472,13 @@ describe('extended synastry delivery resilience', () => {
       const record = chart(id) as any;
       return { ...record, chart_data: { ...record.chart_data, calculationMetadata: { ...record.chart_data.calculationMetadata, calculatedAt: id === 1 ? calculatedAt : '2026-09-01T00:00:00.000Z' } } };
     });
-    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION });
+    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v2', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION });
     await post({ subjectChartId: 1, partnerChartId: 2 });
     calculatedAt = '2026-09-04T00:00:00.000Z';
     await post({ subjectChartId: 1, partnerChartId: 2 });
 
     expect(mockSynastryGet.mock.calls[0][3]).not.toBe(mockSynastryGet.mock.calls[1][3]);
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('accepts date-only manual input without creating a natal chart', async () => {
@@ -478,7 +489,7 @@ describe('extended synastry delivery resilience', () => {
 
     expect(result.status).toBe(200);
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('never recalculates a saved chart with missing calculation data', async () => {
@@ -488,7 +499,7 @@ describe('extended synastry delivery resilience', () => {
     expect(result.status).toBe(409);
     expect(result.payload.code).toBe('CHART_REPAIR_REQUIRED');
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it.each([1, 2])('requires repair when saved chart %i has no input hash', async (missingHashId) => {
@@ -499,7 +510,7 @@ describe('extended synastry delivery resilience', () => {
     expect(result.status).toBe(409);
     expect(result.payload.code).toBe('CHART_REPAIR_REQUIRED');
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
     expect(mockSynastryGet).not.toHaveBeenCalled();
     expect(mockCreateLunaStructuredResponse).not.toHaveBeenCalled();
   });
@@ -511,7 +522,7 @@ describe('extended synastry delivery resilience', () => {
     expect(result.status).toBe(403);
     expect(result.payload.code).toBe('PREMIUM_REQUIRED');
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it('keeps both saved people neutral when gender is absent instead of inheriting the account or inferring from names', async () => {
@@ -525,7 +536,7 @@ describe('extended synastry delivery resilience', () => {
     expect(people.subject).toMatchObject({ name: 'Анна', gender: 'unspecified' });
     expect(people.partner).toMatchObject({ name: 'Максим', gender: 'unspecified' });
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
   });
 
   it.each([1, 2])('uses the account gender only for its identified self chart in position %i', async (selfId) => {
@@ -582,7 +593,7 @@ describe('extended synastry delivery resilience', () => {
 
   it('shares a neutral cache across omitted/invalid gender and separates explicit genders without chart recalculation', async () => {
     mockGetById.mockImplementation(async (id) => ({ ...chart(id), subject_type: 'saved_person', is_primary: false }));
-    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v1', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION });
+    mockSynastryGet.mockResolvedValue({ schemaVersion: 'compatibility-v2', engineVersion: 'compatibility-engine.v2', narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION });
     for (const subjectGender of [undefined, 'invalid', 'unspecified', 'female', 'male']) {
       const result = await post({ subjectChartId: 1, partnerChartId: 2, subjectGender, partnerGender: 'unspecified' });
       expect(result.status).toBe(200);
@@ -594,7 +605,7 @@ describe('extended synastry delivery resilience', () => {
     expect(keys[1]).toBe(keys[2]);
     expect(new Set([keys[0], keys[3], keys[4]]).size).toBe(3);
     expect(new Set([keys[0], keys[3], keys[5]]).size).toBe(3);
-    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
+    expectOnlyTemporaryWholeDayCharts();
     expect(mockCreateOrReuseCanonicalChart).not.toHaveBeenCalled();
     expect(mockCreateLunaStructuredResponse).not.toHaveBeenCalled();
   });

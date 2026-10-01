@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-10",
+  "mode": "built-in image_gen",
+  "artwork": [
+    {
+      "id": "N21",
+      "file": "assets/round-three/N21-astrolabe.png",
+      "transparent": true,
+      "source": "C:/Users/user/.codex/generated_images/01a12212-4f5b-7583-b015-c32a56f6c68c/exec-a49e6650-1477-4640-a3ed-cd145e8579ce.png",
+      "prompt": "Use case: ads-marketing. Create an ORIGINAL high-end product-photography cutout of a monumental sculptural astrolabe, for an astrology app campaign. One large silver-titanium astronomical armillary instrument, three elegant interlocking machined rings, an empty open circular center, delicate cyan illuminated orbit lines, tiny ruby and ice-blue glass points. Physical engineering, brushed metal, optically clear glass, subtle refraction. Frontal three-quarter view, all object fully visible with generous transparent margins, isolated on a genuinely transparent background. Dramatic cool museum spotlight. Palette silver, electric cyan, a few cobalt accents. This is a NEW composition, not a recreation of any competitor graphic. No people, no hands, no planets with faces, no moon, no sun mascot, no phone, no interface, no text, no letters, no numbers, no brand, no watermark. The center is deliberately open so authentic app content can be placed inside later. Landscape square-ish object, maximum tactile detail, exceptional silhouette.",
+      "mode": "built-in image_gen"
+    },
+    {
+      "id": "N22",
+      "file": "assets/round-three/N22-person.png",
+      "transparent": true,
+      "source": "C:/Users/user/.codex/generated_images/01a12212-4f5b-7583-b015-c32a56f6c68c/exec-9e74e468-c120-42d0-8b6b-8aff9ee42519.png",
+      "prompt": "Use case: photorealistic-natural. Create an original fictional adult woman, around 28, for a confident contemporary mobile app campaign, a full-body fashion editorial photograph isolated on genuinely transparent background. Dark short curly bob hair, medium warm skin, natural happy expression looking toward the viewer, wearing a beautiful oversized pale pistachio blazer over a simple white t-shirt and dark plum straight trousers, white trainers. She is sitting sideways on a transparent/simple dark low stool with one leg relaxed and one arm naturally resting, the other hand relaxed on her knee, absolutely no phone or objects. Slightly asymmetric pose, candid ease, distinctive lively face, realistic anatomy and fabric. Head and shoes fully visible, a lot of breathing room on all sides. Soft frontal key light and subtle warm rim light that works over a wine-red backdrop. No celebrities or resemblance to real people, no astrology props, no cosmic symbols, no moon, no planets, no books, no letters, no logos, no watermark. Main goal a believable person with expressive styling and a clean cutout edge, not a mystical guru.",
+      "mode": "built-in image_gen"
+    },
+    {
+      "id": "N23",
+      "file": "assets/round-three/N23-hand.png",
+      "transparent": true,
+      "source": "C:/Users/user/.codex/generated_images/01a12212-4f5b-7583-b015-c32a56f6c68c/exec-024bc83a-4575-4f31-a065-b205290364b9.png",
+      "prompt": "Use case: product-mockup. An original premium photographic cutout of ONE realistic adult right hand gently holding a generic modern Android smartphone, isolated on genuinely transparent background, entire phone and hand/wrist visible. Frontal straight-on view, no foreshortening, no rotation, the phone screen is a perfectly rectangular solid pure lilac field, no content or text. Screen aspect ratio about 0.45 (narrow tall 393:873), rounded corners, very thin black bezel, tiny centered Android punch-hole only. Phone centered in portrait composition, occupies 54 percent of image width and 80 percent of image height, top begins near 5 percent image height. Hand rises naturally from the lower right, four fingers support the back, thumb touches ONLY the lower right bezel, never crosses the blank display. Anatomically perfect, normal five fingers, no jewelry, short unpainted nails. Soft neutral studio light, natural warm skin, subtle realistic material and edge reflections. A real app screenshot will be placed inside the blank screen later, so the display must remain front-on and unobstructed with clean corners. No Apple logo or dynamic island, no letters, no numbers, no interface, no watermark, no additional objects, no planets.",
+      "mode": "built-in image_gen"
+    },
+    {
+      "id": "N23",
+      "file": "assets/round-three/N23-charms.png",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Create an ORIGINAL tactile product-photo illustration of five separate handmade felt charms isolated on a truly transparent background, in a wide landscape arrangement with generous gaps, no overlapping objects. Charm 1: two tiny soft peach and lavender embroidered fish circling together with visible yarn stitching, occupying the left fifth. Charm 2: a cobalt and lilac wool crescent moon with a soft cream edge, next fifth. Charm 3: a beautiful peach felt four-point star, middle fifth. Charm 4: a cobalt felt shooting comet with lavender and coral wool tails, next fifth. Charm 5: a small peach and periwinkle wool crab with anatomically clear cute claws, right fifth. Sophisticated craft-store art direction, close-up dense wool fibers, visible hand-stitching, charming but adult, no faces or eyes, no candy plastic, no shiny glass. Each object is a separate high-detail cutout, fully visible, photographed from straight above with gentle studio shadow. Only these five objects, each a very different silhouette. No text, no letters, no labels, no phone, no UI, no frame, no watermark, no brand. Arrange as one horizontal row centered vertically for later individual cropping into original app-store compositions.",
+      "source": "C:\\Users\\user\\.codex\\generated_images\\01a12212-4f5b-7583-b015-c32a56f6c68c\\exec-f2323b2f-0c5a-4e66-8724-2bcde33b977a.png",
+      "mode": "built-in image_gen"
+    },
+    {
+      "id": "N24",
+      "file": "assets/round-three/N24-objects.png",
+      "transparent": true,
+      "prompt": "Use case: ads-marketing. Original professional still-life cutout of an artistic sky-blue pair of over-ear headphones, a large glossy orange magnifying glass with a clear lens, two bright turquoise translucent bookmark-shaped acrylic pieces, and a white curved ribbon arrow. These are physical oversized campaign props, with striking saturated colour and premium real studio photography. Composition forms an asymmetric dynamic diagonal group from lower-left blue headphones to upper-right orange magnifier, the lens and headband are open negative spaces. All props fully visible and separated enough to crop individually. Bright contemporary editorial objects, convincing tactile materials, restrained reflections. Genuinely transparent background, no floor, no room, no text, no lettering, no logos, no interface, no phones, no badges, no planets, no people, no books, no eyes, no watermark. This is a new original visual for a Russian daily horoscope app campaign focused on readable content and sounds; do not imitate an existing brand or familiar mascot.",
+      "source": "C:\\Users\\user\\.codex\\generated_images\\01a12212-4f5b-7583-b015-c32a56f6c68c\\exec-9ad2f6ec-addb-47ab-90db-61b69002e760.png",
+      "mode": "built-in image_gen"
+    },
+    {
+      "id": "N25",
+      "file": "assets/round-three/N25-world.png",
+      "transparent": false,
+      "prompt": "Use case: ads-marketing. Create a totally ORIGINAL miniature architectural 3D diorama panorama, wide landscape aspect ratio about 1.7:1, continuous across three equal vertical slices, for a sophisticated app-store campaign. Palette pale aqua, saturated turquoise, lilac-blue, white plaster, coral red accent. Three connected floating architectural islands sit in shallow clear blue water in the LOWER 65 percent of the canvas, connected by graceful white bridges. LEFT island: rounded white modern pavilion, a coral curved staircase and a tiny turquoise pool. MIDDLE island: tall white sculptural arch, tiered pale blue stairs, a coral circular balcony. RIGHT island: white airy stepped amphitheatre, turquoise arches, a tiny bright cobalt pavilion. The islands are architectural and abstract, no gardens, no trees, no forest, no literal planets, no books. Premium architectural scale model, convincing porcelain plaster, soft realistic sunlight, exquisite miniature shadows, beautiful clear water reflections. Upper 30 percent is mostly uniform quiet pale-aqua sky, leaving calm room for large headings. Leave broad openings in the architecture where real app screenshots can be composited later. No phone or electronics, no interface, no people, no text, no numbers, no logos, no border, no watermark, no fantasy castle, no glossy candy characters. Render ONE coherent wide full-bleed scene, not three separate pictures or panels. The scene should feel uplifting, intelligent, airy and magical through design rather than mysticism.",
+      "source": "C:\\Users\\user\\.codex\\generated_images\\01a12212-4f5b-7583-b015-c32a56f6c68c\\exec-3a3d6f12-4bcf-486d-a671-85058dd83f4c.png",
+      "mode": "built-in image_gen"
+    }
+  ],
+  "assembly": "Текст набран отдельно, поверх оригинальных рисунков размещены настоящие экраны NEBO. Исходные макеты: round-three-masters.html."
+}

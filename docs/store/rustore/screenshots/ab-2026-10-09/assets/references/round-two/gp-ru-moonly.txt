@@ -1,0 +1,166 @@
+Browser tab: 3, Title: "Приложения в Google Play – Moonly — Лунный Календарь", URL: "https://play.google.com/store/apps/details?id=com.moonly.android&hl=ru".
+1 AXWebArea Приложения в Google Play – Moonly — Лунный Календарь, URL: play.google.com/store/apps/details?id=com.moonly.android&hl=ru
+	2 container yDmH0d
+		3 container
+			4 container Заголовок страницы
+				5 link Description: Логотип Google Play, Value: play.google.com/store/games
+				6 container Главная панель навигации
+					7 tab group
+						8 tab (selectable, settable, boolean) Игры, Value: 0, ID: 11
+						9 tab (selected, settable, boolean) Приложения, Value: 1
+						10 tab (selectable, settable, boolean) Книги, Value: 0, ID: 5
+						11 tab (selectable, settable, boolean) Детям, Value: 0, ID: 13
+				12 button Поиск
+				13 button Справочный центр
+				14 pop up button (collapsed) Description: Открыть меню аккаунта, Secondary Actions: Expand
+		15 container
+			16 container
+				17 heading Moonly — Лунный Календарь, Value: 1
+					18 text Moonly — Лунный Календарь
+				19 link Description: Cosmic Vibrations Inc, Value: play.google.com/store/apps/dev?id=5130543590107427520
+				20 text Есть реклама  ·  Покупки в приложении
+				21 container Информационные значки
+					22 container
+						23 image Средняя оценка: 3,7 из 5
+						24 text Отзывы: 28,9 тыс.
+					25 container
+						26 text 1 млн+ (количество скачиваний)
+			27 button Установить
+				28 text Установить
+			29 button Поделиться
+				30 text Поделиться
+			31 button Добавить в список желаний
+				32 text Добавить в список желаний
+			33 content list
+				34 button Скриншот
+				35 button Скриншот
+				36 button Скриншот
+				37 button Скриншот
+				38 button Скриншот
+				39 button Скриншот
+				40 button Скриншот
+				41 button Скриншот
+			42 container
+				43 heading Описание, Value: 2
+					44 text Описание
+				45 button Подробнее об игре "Описание"
+				46 container Фазы Луны и Лунный календарь, Натальная карта, Астрология, Медитация, Карты Таро
+					47 text Фазы Луны и Лунный календарь, Натальная карта, Астрология, Медитация, Карты Таро
+				48 text Последнее обновление 1 окт. 2026 г.
+				49 container
+					50 link Description: Стиль жизни, Value: play.google.com/store/apps/category/LIFESTYLE
+			51 container
+				52 text События и предложения
+				53 content list
+					54 container
+						55 link Description: Скоро конец Новолуние в Деве: Реши проблему — Ритуалы, Медитация и Баланс, Value: play.google.com/store/apps/eventdetails/4831275211000092299
+			56 container
+				57 heading Безопасность данных, Value: 2
+					58 text Безопасность данных
+				59 container
+					60 link Description: Подробнее об игре "Безопасность данных", Value: play.google.com/store/apps/datasafety?id=com.moonly.android
+				61 text Чтобы контролировать безопасность, нужно знать, как разработчики собирают ваши данные и передают их третьим лицам. Методы обеспечения безопасности и конфиденциальности могут зависеть от того, как вы используете приложение, а также от вашего региона и возраста. Информация ниже предоставлена разработчиком и в будущем может измениться.
+				62 content list
+					63 container
+						64 text Это приложение может передавать указанные типы данных третьим лицам Финансовые данные, История действий в приложении и Идентификаторы устройства или другие идентификаторы
+					65 container
+						66 text Данные не собираются Подробнее о том, 
+						67 link Description: как разработчики заявляют о сборе данных, Value: support.google.com/googleplay?p=data-safety&hl=ru
+						68 text …
+					69 text Данные шифруются при передаче
+					70 text Вы можете запросить удаление данных
+				71 container
+					72 link Description: Подробнее о безопасности данных, Value: play.google.com/store/apps/datasafety?id=com.moonly.android
+			73 container
+				74 heading Оценки и отзывы, Value: 2
+					75 text Оценки и отзывы
+				76 button Подробнее об игре "Оценки и отзывы"
+				77 button Оценки и отзывы проверены
+					78 text Оценки и отзывы проверены
+				79 content list
+					80 checkbox Description: Телефон, Value: 1, ID: formFactor_2
+					81 checkbox Description: Desktop, Value: 0, ID: formFactor_5
+					82 checkbox Description: Планшет, Value: 0, ID: formFactor_3
+				83 image Средняя оценка: 3,6 из 5
+				84 text 28,3 тыс. отзывов
+				85 image 15 685 отзывов с рейтингом 5
+				86 image 1 588 отзывов с рейтингом 4
+				87 image 3 054 отзыва с рейтингом 3
+				88 image 1 343 отзыва с рейтингом 2
+				89 image 6 621 отзыв с рейтингом 1
+				90 text Инна Титова
+				91 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+				92 container
+					93 image Средняя оценка: 5 из 5
+					94 text 6 августа 2026 г.
+				95 text Чудесное приложение. Использую около года с платной подпиской. Ни разу не пожалела об оплате. Столько функций в доступе, множество качественных по смыслу и исполнению медитаций, мотивация к осознанности и поддержка в непростые моменты. Отдельное слово об эстетике оформления,каждый день новые изображения как метафорические карты. Благодарю 🙏 1 человек отметил этот отзыв как полезный.
+				96 text Вам помогла эта информация?
+				97 checkbox Description: Да, Value: 0, ID: e59599aa-94aa-40ac-98e6-cf5045a07c9e::1
+				98 checkbox Description: Нет, Value: 0, ID: e59599aa-94aa-40ac-98e6-cf5045a07c9e::2
+				99 text Cosmic Vibrations Inc 6 августа 2026 г. Здравствуйте! Спасибо за такой вдохновляющий отзыв 🌕 Мы очень рады, что вам откликаются наши медитации и эстетика приложения. Ваша обратная связь — лучшая мотивация для всей команды. Благодарим вас за доверие 🙏💫
+				100 text Наталья Губина
+				101 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+				102 container
+					103 image Средняя оценка: 5 из 5
+					104 text 10 августа 2026 г.
+				105 text Приложение замечательное! Много полезного и интересного! Спасибо, что добавили возможность составления натальной карты👍 Хочу дополнить отзыв спустя 3 года использования приложения. Приложение обновляется и появляются новые дополнительные функции и курсы. Так случилось, что после смены телефона все предоставленные функции перестали работать. Благодаря оперативной помощи поддержки всё было восстановлено очень быстро. Медитации, курсы, натальная карта, таро, руны, гороскоп, и многое другое!!! 1 человек отметил этот отзыв как полезный.
+				106 text Вам помогла эта информация?
+				107 checkbox Description: Да, Value: 0, ID: 9115b34a-60b0-4d6e-8394-081dccff53ed::1
+				108 checkbox Description: Нет, Value: 0, ID: 9115b34a-60b0-4d6e-8394-081dccff53ed::2
+				109 text Cosmic Vibrations Inc 10 августа 2026 г. Здравствуйте! Благодарим за добрые слова 🌕 Очень рады, что вы с нами уже несколько лет и что вам нравятся обновления Moonly. Отдельное спасибо за добрые слова о поддержке — всегда рады помочь 💫
+				110 text Екатерина Зайцева
+				111 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+				112 container
+					113 image Средняя оценка: 3 из 5
+					114 text 12 августа 2026 г.
+				115 text Обновила приложение на свою голову - теперь ничего не грузится вообще, кроме плашки с предложением подписаться/купить. Даже превью материалов нет, вообще ничего, ни платного, ни бесплатного. Пробовала с разными интернет-сетями, без впн и даже с ним. Просто пустой экран и крутится загрузка (планетка на главной или луна). Пока снижаю оценку - пользоваться не могу. Работало-работало, обновила, опять половина не грузится ничего. Мда. 18 человек отметили этот отзыв как полезный.
+				116 text Вам помогла эта информация?
+				117 checkbox Description: Да, Value: 0, ID: 49ab32ac-36e9-441a-8a8c-24890a50254e::1
+				118 checkbox Description: Нет, Value: 0, ID: 49ab32ac-36e9-441a-8a8c-24890a50254e::2
+				119 text Cosmic Vibrations Inc 12 августа 2026 г. Приветствуем! Нам очень жаль, что вы столкнулись с такой ситуацией после обновления 🌙 Пожалуйста, напишите на почту hi@moonly.app, чтобы мы могли проверить ваш аккаунт. Также, если у вас открывается раздел настроек в приложении и отображается ваш User ID, укажите его, пожалуйста, в письме 💫
+				120 button Все отзывы
+					121 text Все отзывы
+			122 container
+				123 heading Новое в приложении, Value: 2
+					124 text Новое в приложении
+				125 text Будьте в контакте с собой и оставайтесь в контакте с нами — ведь с каждым новым релизом мы становимся все лучше!
+				126 text Что нового в этот раз?
+				127 text - Повысили стабильность работы приложения
+			128 link Description: Пожаловаться (откроется в новом окне), Value: support.google.com/googleplay/?p=report_content
+			129 image Возрастные ограничения
+			130 text 3+
+			131 text Покупки из приложения
+			132 link Description: Подробнее о возрастных ограничениях (ссылка откроется в новом окне), Value: support.google.com/googleplay?p=appgame_ratings
+			133 container developer-contacts-heading
+				134 heading Поддержка приложения, Value: 2
+					135 text Поддержка приложения
+				136 button (collapsed) Description: Развернуть, Secondary Actions: Expand
+			137 container
+				138 heading Похожие приложения, Value: 2
+					139 text Похожие приложения
+				140 container
+					141 link Description: Подробнее об игре "Похожие приложения", Value: play.google.com/store/apps/collection/cluster?gsr=SpABaixIMDFYMXovUnkwYVVNRXdTUWFOMk9sRzNRWkFlaEVVcU1LVTJEK2t0ZENZPcICXAoWChJjb20ubW9vbmx5LmFuZHJvaWQQBxgIMAE4AEo2CAEQABoqTW9vbmx5IOKAlCDQm9GD0L3QvdGL0Lkg0JrQsNC70LXQvdC00LDRgNGMIAAoADAAUABYAWAAsBIA:S:ANO1ljKfD-E
+				142 link Description: MoonX: Луна и Лунный Календарь LLC VIBES Средняя оценка: 4,3 из 5, Value: play.google.com/store/apps/details?id=by.olion.Moon
+				143 link Description: Diarium: Личный дневник Timo Partl Средняя оценка: 4,8 из 5, Value: play.google.com/store/apps/details?id=partl.Diarium
+				144 link Description: Навамша: лунный календарь Navamsha LLC Средняя оценка: 4,8 из 5, Value: play.google.com/store/apps/details?id=paladin.com.mantra
+				145 link Description: Mind Power: вишлист, медитация FOXMIND INC Средняя оценка: 3,8 из 5, Value: play.google.com/store/apps/details?id=com.elizavetapolitova.mindpower
+				146 link Description: Фазы Луны M2Catalyst, LLC. Средняя оценка: 4,4 из 5, Value: play.google.com/store/apps/details?id=com.universetoday.moon.free
+				147 link Description: Loóna: сон и расслабление Loona Inc Средняя оценка: 4,6 из 5, Value: play.google.com/store/apps/details?id=co.loona
+		148 container
+			149 text Google Play
+			150 link Description: Play Pass, Value: play.google.com/store/pass/getstarted
+			151 link Description: Play Points, Value: play.google.com/store/points/enroll
+			152 link Description: Подарочные карты, Value: play.google.com/about/giftcards
+			153 link Description: Использовать, Value: play.google.com/redeem
+			154 link Description: Правила возврата платежей, Value: support.google.com/googleplay/answer/134336
+			155 text Дети и семья
+			156 link Description: Руководство для родителей, Value: support.google.com/googleplay?p=pff_parentguide
+			157 link Description: Семейный доступ, Value: support.google.com/googleplay/answer/7007852
+			158 link Description: Условия использования, Value: play.google.com/intl/ru_ru/about/play-terms.html
+			159 link Description: Конфиденциальность, Value: policies.google.com/privacy
+			160 link Description: О Google Play, Value: support.google.com/googleplay/?p=about_play
+			161 link Description: Для разработчиков, Value: developer.android.com/index.html
+			162 link Description: Google Store, Value: store.google.com/?playredirect=true&utm_source=play&utm_medium=google_oo&utm_campaign=GS106288
+			163 text Все цены указаны с учетом НДС. Россия (Русский)
+
+The focused UI element is 1 AXWebArea Приложения в Google Play – Moonly — Лунный Календарь, URL: play.google.com/store/apps/details?id=com.moonly.android&hl=ru

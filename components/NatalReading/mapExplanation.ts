@@ -129,7 +129,38 @@ export function buildMapData(chart: NatalChartWheelSource) {
       longitude: angle.longitude,
     }];
   });
-  return { ...model, allPoints: [...model.allPoints, ...extra], angles: [...model.angles, ...extra] };
+  return {
+    ...model,
+    aspects: meaningfulMapAspects(model.aspects),
+    /** Every calculated aspect, so a selection can still be explained even if the list hides it. */
+    allAspects: model.aspects,
+    allPoints: [...model.allPoints, ...extra],
+    angles: [...model.angles, ...extra],
+  };
+}
+
+/** Each axis has two ends; an aspect to one end always mirrors an aspect to the other. */
+const AXIS_MIRROR: Record<string, string> = { descendant: 'ascendant', ic: 'mc', southnode: 'northnode' };
+
+/**
+ * Hides aspects that say nothing about the person: the axis ends facing each
+ * other (ASC–DSC, MC–IC, the two nodes) and the mirrored twin of every aspect
+ * to an axis. The stored chart keeps them; only the list on screen is cleaner.
+ */
+export function meaningfulMapAspects<T extends { fromKey: string; toKey: string }>(aspects: readonly T[]): T[] {
+  const mirror = (key: string) => AXIS_MIRROR[key] ?? key;
+  const mirroredEnds = (aspect: T) => Number(mirror(aspect.fromKey) !== aspect.fromKey) + Number(mirror(aspect.toKey) !== aspect.toKey);
+  const best = new Map<string, T>();
+  for (const aspect of aspects) {
+    const from = mirror(aspect.fromKey);
+    const to = mirror(aspect.toKey);
+    if (from === to) continue;
+    const key = [from, to].sort().join(':');
+    const current = best.get(key);
+    if (!current || mirroredEnds(aspect) < mirroredEnds(current)) best.set(key, aspect);
+  }
+  const kept = new Set(best.values());
+  return aspects.filter((aspect) => kept.has(aspect));
 }
 
 function canonicalV2(chart: NatalChartWheelSource): NatalChartDataV2 | null {
@@ -317,7 +348,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
   }
 
   if (selection.kind === 'aspect') {
-    const aspect = data.aspects.find((candidate) => candidate.id === selection.id);
+    const aspect = data.allAspects.find((candidate) => candidate.id === selection.id);
     if (!aspect) return null;
     const meaning = byEvidence.get(`aspect:${aspect.id}`);
     const left = findPoint(aspect.fromKey);

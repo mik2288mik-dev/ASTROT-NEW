@@ -73,8 +73,6 @@ export function AppTopBar({
               size="header"
               priority
             />
-          ) : isSignHoroscopeHeader ? (
-            <><span>Гороскоп по знакам</span><span>зодиака</span></>
           ) : title}
         </span>
 

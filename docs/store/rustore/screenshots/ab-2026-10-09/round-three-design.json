@@ -1,0 +1,622 @@
+{
+  "date": "2026-10-10",
+  "count": 5,
+  "images": 40,
+  "generation": {
+    "mode": "built-in image_gen",
+    "prompts": "round-three-generation.json",
+    "masters": "round-three-masters.html"
+  },
+  "sets": [
+    {
+      "id": "N21",
+      "name": "Небесный прибор",
+      "folder": "N21-celestial-instrument",
+      "font": "Golos Text",
+      "fontId": "GolosText",
+      "fontDir": "golostext",
+      "reference": "as-ru-astrocode",
+      "tone": "Тёмный",
+      "people": false,
+      "planets": false,
+      "bg": "#071f32",
+      "fg": "#e9fcff",
+      "accent": "#82e9ef",
+      "layout": "instrument",
+      "idea": "Серебряный прибор и настоящая карта становятся первым кадром. Дальше — вертикальный экран гороскопа и большой фрагмент личного прогноза. Небесная линия связывает три разные композиции.",
+      "order": [
+        "natal",
+        "zodiac",
+        "today",
+        "future",
+        "compatibility",
+        "matrix",
+        "profile",
+        "sounds"
+      ],
+      "titles": [
+        "Карта рождения.|Схема и расшифровка.",
+        "Знак зодиака.|Прогноз на день.",
+        "Личный гороскоп.|Твоя карта — твой день.",
+        "Смотри дальше.|Неделя. Месяц.",
+        "Ваши карты.|Ваша совместимость.",
+        "Числа твоей|даты рождения.",
+        "Как устроена|твоя карта.",
+        "Слушай море|или дождь."
+      ],
+      "label": "N21",
+      "preview": "N21-first-three.jpg",
+      "zip": "NEBO-N21-8-1080x1920.zip",
+      "images": [
+        {
+          "number": 1,
+          "key": "natal",
+          "file": "01-natal.jpg",
+          "title": "Карта рождения.|Схема и расшифровка.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 2,
+          "key": "zodiac",
+          "file": "02-zodiac.jpg",
+          "title": "Знак зодиака.|Прогноз на день.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 3,
+          "key": "today",
+          "file": "03-today.jpg",
+          "title": "Личный гороскоп.|Твоя карта — твой день.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Смотри дальше.|Неделя. Месяц.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Ваши карты.|Ваша совместимость.",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Числа твоей|даты рождения.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Как устроена|твоя карта.",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Слушай море|или дождь.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    {
+      "id": "N22",
+      "name": "Прочитай о себе",
+      "folder": "N22-read-yourself",
+      "font": "Prata",
+      "fontId": "Prata",
+      "fontDir": "prata",
+      "reference": "as-ru-stargaze",
+      "tone": "Тёмный",
+      "people": true,
+      "planets": false,
+      "bg": "#57213b",
+      "fg": "#f5f7cd",
+      "accent": "#cbe891",
+      "layout": "portrait-seam",
+      "idea": "Живой фотопостер с человеком и большим экраном, который пересекает стык первых двух картинок. Во втором кадре текст внизу; третий начинается с крупного интерфейса, а не с заголовка.",
+      "order": [
+        "natal",
+        "zodiac",
+        "today",
+        "compatibility",
+        "future",
+        "matrix",
+        "profile",
+        "sounds"
+      ],
+      "titles": [
+        "Натальная карта.|Прочитай о себе.",
+        "Любой знак.|Твой гороскоп.",
+        "О чём сегодня|твой прогноз?",
+        "Ты и ещё|один человек.",
+        "Что в прогнозе|на неделю?",
+        "Введи дату.|Открой матрицу.",
+        "Солнце, Луна|и твоя карта.",
+        "Включи дождь.|Устройся поудобнее."
+      ],
+      "label": "N22",
+      "preview": "N22-first-three.jpg",
+      "zip": "NEBO-N22-8-1080x1920.zip",
+      "images": [
+        {
+          "number": 1,
+          "key": "natal",
+          "file": "01-natal.jpg",
+          "title": "Натальная карта.|Прочитай о себе.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 2,
+          "key": "zodiac",
+          "file": "02-zodiac.jpg",
+          "title": "Любой знак.|Твой гороскоп.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 3,
+          "key": "today",
+          "file": "03-today.jpg",
+          "title": "О чём сегодня|твой прогноз?",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 4,
+          "key": "compatibility",
+          "file": "04-compatibility.jpg",
+          "title": "Ты и ещё|один человек.",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 5,
+          "key": "future",
+          "file": "05-future.jpg",
+          "title": "Что в прогнозе|на неделю?",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Введи дату.|Открой матрицу.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Солнце, Луна|и твоя карта.",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Включи дождь.|Устройся поудобнее.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    {
+      "id": "N23",
+      "name": "Гороскоп под рукой",
+      "folder": "N23-in-your-hand",
+      "font": "Geologica",
+      "fontId": "Geologica",
+      "fontDir": "geologica",
+      "reference": "as-ru-moonly",
+      "tone": "Светлый",
+      "people": true,
+      "planets": true,
+      "bg": "#dcd9ff",
+      "fg": "#302058",
+      "accent": "#8070cd",
+      "layout": "hand-felt",
+      "idea": "Настоящий гороскоп вставлен в телефон в руке. Затем карта вынесена крупным кругом; личный прогноз показан увеличенной карточкой. Отдельные шерстяные фигурки добавляют глубину.",
+      "order": [
+        "zodiac",
+        "natal",
+        "today",
+        "future",
+        "matrix",
+        "compatibility",
+        "profile",
+        "sounds"
+      ],
+      "titles": [
+        "Гороскоп|под рукой.",
+        "Твоя карта|крупным планом.",
+        "Сегодня —|лично для тебя.",
+        "От дня|к неделе и месяцу.",
+        "Матрица судьбы.|Просто по дате.",
+        "Сравни ваши|натальные карты.",
+        "Подробнее|о твоей карте.",
+        "Звуки природы.|Когда хочется паузы."
+      ],
+      "label": "N23",
+      "preview": "N23-first-three.jpg",
+      "zip": "NEBO-N23-8-1080x1920.zip",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Гороскоп|под рукой.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "title": "Твоя карта|крупным планом.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "today",
+          "file": "03-today.jpg",
+          "title": "Сегодня —|лично для тебя.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "От дня|к неделе и месяцу.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "matrix",
+          "file": "05-matrix.jpg",
+          "title": "Матрица судьбы.|Просто по дате.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 6,
+          "key": "compatibility",
+          "file": "06-compatibility.jpg",
+          "title": "Сравни ваши|натальные карты.",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Подробнее|о твоей карте.",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Звуки природы.|Когда хочется паузы.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    {
+      "id": "N24",
+      "name": "Открыл. Прочитал.",
+      "folder": "N24-open-read",
+      "font": "Dela Gothic One",
+      "fontId": "DelaGothicOne",
+      "fontDir": "delagothicone",
+      "reference": "as-ru-litres",
+      "tone": "Яркий",
+      "people": false,
+      "planets": false,
+      "bg": "#ff6c31",
+      "fg": "#30233b",
+      "accent": "#c8eeed",
+      "layout": "poster-collage",
+      "idea": "Яркий рекламный коллаж: заголовки работают как графика, содержание прогноза вынесено вперёд, экраны чередуют крупный план и смещённые слои. Голубые наушники и лупа — собственные предметные рисунки.",
+      "order": [
+        "today",
+        "natal",
+        "zodiac",
+        "matrix",
+        "future",
+        "compatibility",
+        "profile",
+        "sounds"
+      ],
+      "titles": [
+        "Гороскоп.|Открыл. Прочитал.",
+        "Данные рождения.|Готовая карта.",
+        "Овен? Весы?|Выбирай свой знак.",
+        "Есть дата?|Есть матрица.",
+        "Прогноз|на целый месяц.",
+        "Добавь человека.|Узнай совместимость.",
+        "Из карты —|в подробный разбор.",
+        "Дождь в наушниках.|Море — тоже."
+      ],
+      "label": "N24",
+      "preview": "N24-first-three.jpg",
+      "zip": "NEBO-N24-8-1080x1920.zip",
+      "images": [
+        {
+          "number": 1,
+          "key": "today",
+          "file": "01-today.jpg",
+          "title": "Гороскоп.|Открыл. Прочитал.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "title": "Данные рождения.|Готовая карта.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "zodiac",
+          "file": "03-zodiac.jpg",
+          "title": "Овен? Весы?|Выбирай свой знак.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 4,
+          "key": "matrix",
+          "file": "04-matrix.jpg",
+          "title": "Есть дата?|Есть матрица.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 5,
+          "key": "future",
+          "file": "05-future.jpg",
+          "title": "Прогноз|на целый месяц.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 6,
+          "key": "compatibility",
+          "file": "06-compatibility.jpg",
+          "title": "Добавь человека.|Узнай совместимость.",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Из карты —|в подробный разбор.",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Дождь в наушниках.|Море — тоже.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    {
+      "id": "N25",
+      "name": "Три окна NEBO",
+      "folder": "N25-three-windows",
+      "font": "Nunito Sans",
+      "fontId": "NunitoSans",
+      "fontDir": "nunitosans",
+      "reference": "as-ru-forest",
+      "tone": "Светлый",
+      "people": false,
+      "planets": false,
+      "bg": "#d9f4f2",
+      "fg": "#126362",
+      "accent": "#ef704e",
+      "layout": "architecture",
+      "idea": "Три объёмных архитектурных острова соединены мостами. Экраны стоят на разной высоте, у карты — круглый крупный план, у знаков — прозрачное окно. Следующие кадры продолжают мир с другой композицией.",
+      "order": [
+        "today",
+        "natal",
+        "zodiac",
+        "future",
+        "compatibility",
+        "matrix",
+        "profile",
+        "sounds"
+      ],
+      "titles": [
+        "Твой прогноз.|Здесь начинается день.",
+        "Карта рождения.|Открой свой разбор.",
+        "Двенадцать знаков.|Найди свой.",
+        "Календарь|твоих прогнозов.",
+        "Две даты рождения.|Ваша совместимость.",
+        "Твои числа|с объяснениями.",
+        "У каждой карты|свои особенности.",
+        "Немного звуков|для твоего вечера."
+      ],
+      "label": "N25",
+      "preview": "N25-first-three.jpg",
+      "zip": "NEBO-N25-8-1080x1920.zip",
+      "images": [
+        {
+          "number": 1,
+          "key": "today",
+          "file": "01-today.jpg",
+          "title": "Твой прогноз.|Здесь начинается день.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "title": "Карта рождения.|Открой свой разбор.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "zodiac",
+          "file": "03-zodiac.jpg",
+          "title": "Двенадцать знаков.|Найди свой.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Календарь|твоих прогнозов.",
+          "subtitle": "Календарь, прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Две даты рождения.|Ваша совместимость.",
+          "subtitle": "Совместимость двух натальных карт",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Твои числа|с объяснениями.",
+          "subtitle": "Расчёт с разбором по темам",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "У каждой карты|свои особенности.",
+          "subtitle": "Сильные планеты и другие особенности",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Немного звуков|для твоего вечера.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    }
+  ]
+}

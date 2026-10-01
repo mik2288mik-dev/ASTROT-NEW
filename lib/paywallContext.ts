@@ -2,6 +2,7 @@ import type { FeatureKey } from './accessMatrix';
 import type { ViewState } from '../types';
 
 export type PaywallPlacement =
+  | 'matrix'
   | 'today'
   | 'week'
   | 'month'
@@ -37,6 +38,7 @@ export type PaywallContext = {
 };
 
 const PAYWALL_PLACEMENTS = new Set<PaywallPlacement>([
+  'matrix',
   'today',
   'week',
   'month',

@@ -1,0 +1,182 @@
+Browser tab: 3, Title: "Приложения в Google Play – Яндекс Погода - Карта осадков", URL: "https://play.google.com/store/apps/details?id=ru.yandex.weatherplugin&hl=ru".
+1 AXWebArea Приложения в Google Play – Яндекс Погода - Карта осадков, URL: play.google.com/store/apps/details?id=ru.yandex.weatherplugin&hl=ru
+	2 container yDmH0d
+		3 container
+			4 container Заголовок страницы
+				5 link Description: Логотип Google Play, Value: play.google.com/store/games
+				6 container Главная панель навигации
+					7 tab group
+						8 tab (selectable, settable, boolean) Игры, Value: 0, ID: 11
+						9 tab (selected, settable, boolean) Приложения, Value: 1
+						10 tab (selectable, settable, boolean) Книги, Value: 0, ID: 5
+						11 tab (selectable, settable, boolean) Детям, Value: 0, ID: 13
+				12 button Поиск
+				13 button Справочный центр
+				14 pop up button (collapsed) Description: Открыть меню аккаунта, Secondary Actions: Expand
+		15 container
+			16 container
+				17 heading Яндекс Погода - Карта осадков, Value: 1
+					18 text Яндекс Погода - Карта осадков
+				19 link Description: Direct Cursus Computer Systems Trading LLC, Value: play.google.com/store/apps/dev?id=7231550417352417242
+				20 text Есть реклама
+				21 container Информационные значки
+					22 container
+						23 image Средняя оценка: 4,3 из 5
+						24 text Отзывы: 845 тыс.
+					25 container
+						26 text 50 млн+ (количество скачиваний)
+					27 text Выбор редакции
+			28 button Установить
+				29 text Установить
+			30 button Поделиться
+				31 text Поделиться
+			32 button Добавить в список желаний
+				33 text Добавить в список желаний
+			34 container
+				35 content list
+					36 button Скриншот
+					37 button Скриншот
+					38 button Скриншот
+					39 button Скриншот
+					40 button Скриншот
+					41 button Скриншот
+					42 button Скриншот
+				43 button
+				44 container
+					45 heading Описание, Value: 2
+						46 text Описание
+					47 button Подробнее об игре "Описание"
+				48 container Прогноз погоды и карта осадков в любой точке мира, виджеты для вашего смартфона
+					49 text Прогноз погоды и карта осадков в любой точке мира, виджеты для вашего смартфона
+				50 text Последнее обновление
+				51 text 7 окт. 2026 г.
+				52 button (disabled) #1 топ бесплатных в категории "погода"
+					53 text #1 топ бесплатных в категории "погода"
+				54 container
+					55 link Description: Погода, Value: play.google.com/store/apps/category/WEATHER
+				56 container
+					57 heading Безопасность данных, Value: 2
+						58 text Безопасность данных
+					59 link Description: Подробнее об игре "Безопасность данных", Value: play.google.com/store/apps/datasafety?id=ru.yandex.weatherplugin
+				60 text Чтобы контролировать безопасность, нужно знать, как разработчики собирают ваши данные и передают их третьим лицам. Методы обеспечения безопасности и конфиденциальности могут зависеть от того, как вы используете приложение, а также от вашего региона и возраста. Информация ниже предоставлена разработчиком и в будущем может измениться.
+				61 content list
+					62 container
+						63 text Данные не передаются третьим сторонам. Подробнее о том, 
+						64 link Description: как разработчики заявляют о передаче данных, Value: support.google.com/googleplay?p=data-safety&hl=ru
+						65 text …
+					66 container
+						67 text Это приложение может собирать указанные типы данных Местоположение, Личная информация и ещё 3
+					68 text Данные шифруются при передаче
+					69 text Вы можете запросить удаление данных
+				70 container
+					71 link Description: Подробнее о безопасности данных, Value: play.google.com/store/apps/datasafety?id=ru.yandex.weatherplugin
+				72 container
+					73 heading Оценки и отзывы, Value: 2
+						74 text Оценки и отзывы
+					75 button Подробнее об игре "Оценки и отзывы"
+					76 button Оценки и отзывы проверены
+						77 text Оценки и отзывы проверены
+				78 content list
+					79 checkbox Description: Телефон, Value: 1, ID: formFactor_2
+					80 checkbox Description: Desktop, Value: 0, ID: formFactor_5
+					81 checkbox Description: Планшет, Value: 0, ID: formFactor_3
+				82 image Средняя оценка: 4,3 из 5
+				83 container
+					84 text 805 тыс.  отзыв
+				85 image 599 787 отзывов с рейтингом 5
+				86 image 52 912 отзывов с рейтингом 4
+				87 image 19 990 отзывов с рейтингом 3
+				88 image 21 429 отзывов с рейтингом 2
+				89 image 110 398 отзывов с рейтингом 1
+				90 container
+					91 text Добрыня Никитич
+					92 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+					93 image Средняя оценка: 1 из 5
+					94 text 29 августа 2026 г.
+				95 text Бесполезная вещь, вечно показывает не ту погоду которая будет и есть по факту, уже несколько раз конкретно подводило. Категорически не советую пользоваться данным приложением. Много аналогов которые выполняют свою функцию. Яндекс погода - помойка, к удалению. Вы немного наверное потерялись по жизни, смысл приложения для погоды в том, что оно сообщает пользователю о погоде, а не наоборот.
+				96 container
+					97 text 12  человек отметили этот отзыв как полезный.
+				98 container
+					99 text Вам помогла эта информация?
+					100 checkbox Description: Да, Value: 0, ID: a714848e-a0e3-499a-b392-312ea54ea8fd::1
+					101 checkbox Description: Нет, Value: 0, ID: a714848e-a0e3-499a-b392-312ea54ea8fd::2
+				102 text Direct Cursus Computer Systems Trading LLC
+				103 text 29 августа 2026 г.
+				104 text Исключить неточности в прогнозе невозможно — ни одна прогностическая модель не бывает абсолютно точной. При формировании прогнозов мы учитываем данные метеостанций и метеорадаров, а также сигналы пользователей. Такие сигналы позволят сделать ближайший прогноз более точным.
+				105 container
+					106 text Lu Neo
+					107 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+					108 image Средняя оценка: 3 из 5
+					109 text 14 сентября 2026 г.
+				110 text Семь камней за сто дней?! Вы серьёзно!? Одна реклама в глаза лезет, пока долистаешь до погоды. - Исключить неточности в прогнозе невозможно — ни одна прогностическая модель не бывает абсолютно точной. Я не знаю что Вы там учитываете, но в других приложениях погода показана на три дня с минимальной погрешностью! Белое пятно на половину экрана... оказалась туча. HTC телефон был 18 лет назад, так там тучи были, гроза, как красиво. Такое ощущение, что назад откатываемся.
+				111 container
+					112 text 8  человек отметили этот отзыв как полезный.
+				113 container
+					114 text Вам помогла эта информация?
+					115 checkbox Description: Да, Value: 0, ID: de66d152-9840-4b04-a244-5802a6caae13::1
+					116 checkbox Description: Нет, Value: 0, ID: de66d152-9840-4b04-a244-5802a6caae13::2
+				117 container
+					118 text Anton Labaznikov
+					119 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+					120 image Средняя оценка: 1 из 5
+					121 text 4 сентября 2026 г.
+				122 text Сломан виджет, огромные пустые пространства, не отображается то, что раньше отображалось. Год назад я написал об этом в поддержку, на что получил ответ, что мы работаем над этим вопросом и вернемся к вам как только решим его. Ваши отписки на отзыв в виде: "напишите нам" очень смешны. Я за год несколько раз это уже делал! А воз и ныне там. Апдейт: прошло больше года, как сломан виджет.
+				123 container
+					124 text 15  человек отметили этот отзыв как полезный.
+				125 container
+					126 text Вам помогла эта информация?
+					127 checkbox Description: Да, Value: 0, ID: 0bc76855-bf21-4e9b-a207-2ee9efb181f4::1
+					128 checkbox Description: Нет, Value: 0, ID: 0bc76855-bf21-4e9b-a207-2ee9efb181f4::2
+				129 text Direct Cursus Computer Systems Trading LLC
+				130 text 4 сентября 2026 г.
+				131 text Антон, ситуация странная — виджет не должно так работать. Чтобы мы разобрались, напишите нам через кнопку «Написать разработчикам» в разделе «Настройки». Постараемся помочь решить проблему.
+				132 button Все отзывы
+					133 text Все отзывы
+			134 link Description: Пожаловаться (откроется в новом окне), Value: support.google.com/googleplay/?p=report_content
+			135 image Возрастные ограничения
+			136 text 3+
+			137 link Description: Подробнее о возрастных ограничениях (ссылка откроется в новом окне), Value: support.google.com/googleplay?p=appgame_ratings
+			138 container developer-contacts-heading
+				139 heading Поддержка приложения, Value: 2
+					140 text Поддержка приложения
+				141 button (collapsed) Description: Развернуть, Secondary Actions: Expand
+			142 container
+				143 heading Direct Cursus Computer Systems Trading LLC: другие приложения, Value: 2
+					144 text Direct Cursus Computer Systems Trading LLC: другие приложения
+				145 container
+					146 link Description: Подробнее об игре "Direct Cursus Computer Systems Trading LLC: другие приложения", Value: play.google.com/store/apps/dev?id=7231550417352417242
+				147 link Description: Алиса AI: Нейросеть Яндекса Direct Cursus Computer Systems Trading LLC Средняя оценка: 4,7 из 5, Value: play.google.com/store/apps/details?id=com.yandex.aliceapp
+				148 link Description: Яндекс — с Алисой AI Direct Cursus Computer Systems Trading LLC Средняя оценка: 4,6 из 5, Value: play.google.com/store/apps/details?id=com.yandex.searchapp
+				149 link Description: Яндекс Музыка, Книги, Подкасты Direct Cursus Computer Systems Trading LLC Средняя оценка: 4,4 из 5, Value: play.google.com/store/apps/details?id=ru.yandex.music
+				150 link Description: Яндекс Браузер — с Алисой AI Direct Cursus Computer Systems Trading LLC Средняя оценка: 4,6 из 5, Value: play.google.com/store/apps/details?id=com.yandex.browser
+				151 link Description: Яндекс Диск - Облако для фото Direct Cursus Computer Systems Trading LLC Средняя оценка: 4,5 из 5, Value: play.google.com/store/apps/details?id=ru.yandex.disk
+				152 link Description: Яндекс Почта Direct Cursus Computer Systems Trading LLC Средняя оценка: 4,6 из 5, Value: play.google.com/store/apps/details?id=ru.yandex.mail
+			153 container
+				154 heading Похожие приложения, Value: 2
+					155 text Похожие приложения
+				156 container
+					157 link Description: Подробнее об игре "Похожие приложения", Value: play.google.com/store/apps/collection/cluster?gsr=SqABaixwV053bEpwZmh6TllsRmRWTlVPRmU5TGVrRWN5VVIvU0J6aWZrZEZ1MEFJPcICbAobChdydS55YW5kZXgud2VhdGhlcnBsdWdpbhAHGAgwATgASkEIARAAGjXQr9C90LTQtdC60YEg0J_QvtCz0L7QtNCwIC0g0JrQsNGA0YLQsCDQvtGB0LDQtNC60L7QsiAAKAAwAFAAWAFgALASAA%3D%3D:S:ANO1ljKfxD0
+				158 link Description: Погода ruivop Средняя оценка: 3,5 из 5, Value: play.google.com/store/apps/details?id=com.ruivop.realweather
+				159 link Description: Яндекс Браузер (бета) Direct Cursus Computer Systems Trading LLC Средняя оценка: 4,4 из 5, Value: play.google.com/store/apps/details?id=com.yandex.browser.beta
+				160 link Description: Прогноз погоды Accurate Weather Forecast & Weather Radar Map Средняя оценка: 4,5 из 5, Value: play.google.com/store/apps/details?id=com.wftab.weather.forecast
+				161 link Description: Яндекс Карты и Навигатор Direct Cursus Computer Systems Trading LLC Средняя оценка: 4,6 из 5, Value: play.google.com/store/apps/details?id=ru.yandex.yandexmaps
+				162 link Description: 2ГИС: карты, навигатор, друзья 2GIS Средняя оценка: 4,7 из 5, Value: play.google.com/store/apps/details?id=ru.dublgis.dgismobile
+				163 link Description: Погода 14 дней - Метеоред Meteored Средняя оценка: 4,9 из 5, Value: play.google.com/store/apps/details?id=aplicacion.tiempo
+		164 container
+			165 text Google Play
+			166 link Description: Play Pass, Value: play.google.com/store/pass/getstarted
+			167 link Description: Play Points, Value: play.google.com/store/points/enroll
+			168 link Description: Подарочные карты, Value: play.google.com/about/giftcards
+			169 link Description: Использовать, Value: play.google.com/redeem
+			170 link Description: Правила возврата платежей, Value: support.google.com/googleplay/answer/134336
+			171 text Дети и семья
+			172 link Description: Руководство для родителей, Value: support.google.com/googleplay?p=pff_parentguide
+			173 link Description: Семейный доступ, Value: support.google.com/googleplay/answer/7007852
+			174 link Description: Условия использования, Value: play.google.com/intl/ru_ru/about/play-terms.html
+			175 link Description: Конфиденциальность, Value: policies.google.com/privacy
+			176 link Description: О Google Play, Value: support.google.com/googleplay/?p=about_play
+			177 link Description: Для разработчиков, Value: developer.android.com/index.html
+			178 link Description: Google Store, Value: store.google.com/?playredirect=true&utm_source=play&utm_medium=google_oo&utm_campaign=GS106288
+			179 text Все цены указаны с учетом НДС. Россия (Русский)
+
+The focused UI element is 1 AXWebArea Приложения в Google Play – Яндекс Погода - Карта осадков, URL: play.google.com/store/apps/details?id=ru.yandex.weatherplugin&hl=ru

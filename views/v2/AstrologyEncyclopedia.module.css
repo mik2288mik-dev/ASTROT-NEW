@@ -14,7 +14,7 @@
   box-sizing: border-box;
   width: min(100%, 720px);
   margin: 0 auto;
-  padding: 18px max(20px, env(safe-area-inset-right, 0px)) max(64px, calc(env(safe-area-inset-bottom, 0px) + 40px)) max(20px, env(safe-area-inset-left, 0px));
+  padding: 18px max(16px, env(safe-area-inset-right, 0px)) max(64px, calc(env(safe-area-inset-bottom, 0px) + 40px)) max(16px, env(safe-area-inset-left, 0px));
 }
 
 .visuallyHidden {

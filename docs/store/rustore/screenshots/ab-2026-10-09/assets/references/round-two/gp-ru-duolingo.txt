@@ -1,0 +1,171 @@
+Browser tab: 3, Title: "Приложения в Google Play – Duolingo - языки и шахматы", URL: "https://play.google.com/store/apps/details?id=com.duolingo&hl=ru".
+1 AXWebArea Приложения в Google Play – Duolingo - языки и шахматы, URL: play.google.com/store/apps/details?id=com.duolingo&hl=ru
+	2 container yDmH0d
+		3 container
+			4 container Заголовок страницы
+				5 link Description: Логотип Google Play, Value: play.google.com/store/games
+				6 container Главная панель навигации
+					7 tab group
+						8 tab (selectable, settable, boolean) Игры, Value: 0, ID: 11
+						9 tab (selected, settable, boolean) Приложения, Value: 1
+						10 tab (selectable, settable, boolean) Книги, Value: 0, ID: 5
+						11 tab (selectable, settable, boolean) Детям, Value: 0, ID: 13
+				12 button Поиск
+				13 button Справочный центр
+				14 pop up button (collapsed) Description: Открыть меню аккаунта, Secondary Actions: Expand
+		15 container
+			16 container
+				17 heading Duolingo - языки и шахматы, Value: 1
+					18 text Duolingo - языки и шахматы
+				19 link Description: Duolingo, Value: play.google.com/store/apps/dev?id=6957685454452609502
+				20 text Есть реклама  ·  Покупки в приложении
+				21 container Информационные значки
+					22 container
+						23 image Средняя оценка: 4,8 из 5
+						24 text Отзывы: 50,6 млн
+					25 container
+						26 text 500 млн+ (количество скачиваний)
+					27 text Выбор редакции
+			28 button Установить
+				29 text Установить
+			30 button Поделиться
+				31 text Поделиться
+			32 button Добавить в список желаний
+				33 text Добавить в список желаний
+			34 container
+				35 content list
+					36 button Скриншот
+					37 button Скриншот
+					38 button Скриншот
+					39 button Скриншот
+					40 button Скриншот
+					41 button Скриншот
+				42 button
+			43 container
+				44 heading Описание, Value: 2
+					45 text Описание
+				46 button Подробнее об игре "Описание"
+				47 container Изучайте английский, немецкий, французский, испанский и другие языки бесплатно.
+					48 text Изучайте английский, немецкий, французский, испанский и другие языки бесплатно.
+				49 text Последнее обновление 6 окт. 2026 г.
+				50 button (disabled) #2 топ бесплатных в категории "образование"
+					51 text #2 топ бесплатных в категории "образование"
+				52 container
+					53 link Description: Образование, Value: play.google.com/store/apps/category/EDUCATION
+			54 container
+				55 text События и предложения
+				56 content list
+					57 container
+						58 link Description: Доступно обновление Играть в шахматы лучше с друзьями!, Value: play.google.com/store/apps/eventdetails/4831503503278494935
+			59 container
+				60 heading Безопасность данных, Value: 2
+					61 text Безопасность данных
+				62 container
+					63 link Description: Подробнее об игре "Безопасность данных", Value: play.google.com/store/apps/datasafety?id=com.duolingo
+				64 text Чтобы контролировать безопасность, нужно знать, как разработчики собирают ваши данные и передают их третьим лицам. Методы обеспечения безопасности и конфиденциальности могут зависеть от того, как вы используете приложение, а также от вашего региона и возраста. Информация ниже предоставлена разработчиком и в будущем может измениться.
+				65 content list
+					66 container
+						67 text Это приложение может передавать указанные типы данных третьим лицам История действий в приложении, Сведения о приложении и его производительности и Идентификаторы устройства или другие идентификаторы
+					68 container
+						69 text Это приложение может собирать указанные типы данных Личная информация, Финансовые данные и ещё 6
+					70 text Данные шифруются при передаче
+					71 text Вы можете запросить удаление данных
+					72 text Соблюдаются правила программы Google Play "Приложения для всей семьи".
+				73 container
+					74 link Description: Подробнее о безопасности данных, Value: play.google.com/store/apps/datasafety?id=com.duolingo
+			75 container
+				76 heading Оценки и отзывы, Value: 2
+					77 text Оценки и отзывы
+				78 button Подробнее об игре "Оценки и отзывы"
+				79 button Оценки и отзывы проверены
+					80 text Оценки и отзывы проверены
+				81 content list
+					82 checkbox Description: Телефон, Value: 1, ID: formFactor_2
+					83 checkbox Description: Desktop, Value: 0, ID: formFactor_5
+					84 checkbox Description: Планшет, Value: 0, ID: formFactor_3
+				85 image Средняя оценка: 4,8 из 5
+				86 text 47,9 млн  отзыва
+				87 image 42 379 345 отзывов с рейтингом 5
+				88 image 3 386 586 отзывов с рейтингом 4
+				89 image 770 550 отзывов с рейтингом 3
+				90 image 350 398 отзывов с рейтингом 2
+				91 image 983 789 отзывов с рейтингом 1
+				92 text aleksei1110
+				93 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+				94 container
+					95 image Средняя оценка: 1 из 5
+					96 text 27 декабря 2025 г.
+				97 text Некогда не плохое приложение, но система рейтингов в сочетании с бонусами на x2 - x3 опыта мотивирует не столь вникать в материал, сколь гоняться за очками. Раньше в приложении не было вообще какой либо рекламы - последнее же время реклама подписки Super (которую из России все равно не купишь никак) всплывает после каждого урока. Это жутко раздражает. Дегродировала и лента новостей - раньше там отображались новости сугубо друзей, ныне же - всех подряд... Увы, но оценку приходится снизить. 1 817  человек отметили этот отзыв как полезный.
+				98 text Вам помогла эта информация?
+				99 checkbox Description: Да, Value: 0, ID: 5e2b3c90-fc86-4048-aa90-28f113026b61::1
+				100 checkbox Description: Нет, Value: 0, ID: 5e2b3c90-fc86-4048-aa90-28f113026b61::2
+				101 text Ангелина Талалаева
+				102 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+				103 container
+					104 image Средняя оценка: 5 из 5
+					105 text 27 июня 2025 г.
+				106 text Очень хорошее приложение для изучения разных языков. Я уже 3 недели занимаюсь английским в этом приложении, и заметила как я начала понимать гораздо больше слов на практике, в жизни. Удобно что можно выбрать насколько хорошо вы знаете язык, а так же вы можете выбрать зачем вам он понадобится в жизни, то есть если вы выберете то что хотите свободно говорить на этом языке, то уроки будут подстроены под вас. А так же там много мотивации в виде очень милой совы) В общем, всем советую!!!) 2 402  человека отметили этот отзыв как полезный.
+				107 text Вам помогла эта информация?
+				108 checkbox Description: Да, Value: 0, ID: 90d39d64-5fbc-4fe3-95e2-e7fd58cbd47e::1
+				109 checkbox Description: Нет, Value: 0, ID: 90d39d64-5fbc-4fe3-95e2-e7fd58cbd47e::2
+				110 text Евгения Сафонова
+				111 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+				112 container
+					113 image Средняя оценка: 5 из 5
+					114 text 19 июля 2025 г.
+				115 text отличное приложение. подойдёт взрослым и детям. интересная мотивация, ударный режим, лиги, медали за месяц. просто бомба! но есть минусы: во первых в начале раздела вам пихают кучу слов и их сразу сложно запомнить..вторых теперь для прохождения заданий на время нужен super, а раньше это было бесплатно. Но хорошо хоть за 100 алмазов можно проходить. Хотелось бы ещё коллекции слов,историй и уроки для речи и для других языков. А так всё классно. Всем советую!!! 882  человека отметили этот отзыв как полезный.
+				116 text Вам помогла эта информация?
+				117 checkbox Description: Да, Value: 0, ID: a2a12502-f6fe-4ed0-9a13-06645a890f81::1
+				118 checkbox Description: Нет, Value: 0, ID: a2a12502-f6fe-4ed0-9a13-06645a890f81::2
+				119 button Все отзывы
+					120 text Все отзывы
+			121 container
+				122 heading Новое в приложении, Value: 2
+					123 text Новое в приложении
+				124 text На этой неделе у нашего талисмана, совёнка Duo, новая диета — он будет питаться исключительно ошибками в приложении. Duo поможет нам устранить эти надоедливые неполадки, чтобы учиться было ещё приятнее.
+				125 text Подписывайтесь на @duolingo в Facebook, X и Instagram, чтобы быть в курсе новостей и не пропустить выход новых продуктов Duolingo.
+			126 link Description: Пожаловаться (откроется в новом окне), Value: support.google.com/googleplay/?p=report_content
+			127 image Возрастные ограничения
+			128 text 3+
+			129 text Взаимодействие пользователей, Покупки из приложения
+			130 link Description: Подробнее о возрастных ограничениях (ссылка откроется в новом окне), Value: support.google.com/googleplay?p=appgame_ratings
+			131 container developer-contacts-heading
+				132 heading Поддержка приложения, Value: 2
+					133 text Поддержка приложения
+				134 button (collapsed) Description: Развернуть, Secondary Actions: Expand
+			135 container
+				136 heading Duolingo: другие приложения, Value: 2
+					137 text Duolingo: другие приложения
+				138 container
+					139 link Description: Подробнее об игре "Duolingo: другие приложения", Value: play.google.com/store/apps/dev?id=6957685454452609502
+				140 link Description: Learn to Read - Duolingo ABC Duolingo Средняя оценка: 3,4 из 5, Value: play.google.com/store/apps/details?id=com.duolingo.literacy
+				141 link Description: Duolingo English Test (DET) Duolingo Средняя оценка: 3,1 из 5, Value: play.google.com/store/apps/details?id=com.duolingo.detmobile
+			142 container
+				143 heading Похожие приложения, Value: 2
+					144 text Похожие приложения
+				145 container
+					146 link Description: Подробнее об игре "Похожие приложения", Value: play.google.com/store/apps/collection/cluster?gsr=SosBaixDOTRmdkJGRXcreHZFVzVNRWlMSDBLNW9ia1V3VEtPbUUwKy9JbG51OVc0PcICVwoQCgxjb20uZHVvbGluZ28QBxgIMAE4AEo3CAEQAhADEAQaJ0R1b2xpbmdvIC0g0Y_Qt9GL0LrQuCDQuCDRiNCw0YXQvNCw0YLRiyAAKAAwAFAAWAFgALASAA%3D%3D:S:ANO1ljLn7rM
+				147 link Description: ibis Paint X ibis inc. Средняя оценка: 4,5 из 5, Value: play.google.com/store/apps/details?id=jp.ne.ibis.ibispaintx.app
+				148 link Description: Pinterest Pinterest Средняя оценка: 4,2 из 5, Value: play.google.com/store/apps/details?id=com.pinterest
+				149 link Description: TikTok Lite - Сохранить данные TikTok Pte. Ltd. Средняя оценка: 4,4 из 5, Value: play.google.com/store/apps/details?id=com.zhiliaoapp.musically.go
+				150 link Description: TikTok TikTok Pte. Ltd. Средняя оценка: 3,9 из 5, Value: play.google.com/store/apps/details?id=com.zhiliaoapp.musically
+				151 link Description: WhatsApp Messenger WhatsApp LLC Средняя оценка: 4,4 из 5, Value: play.google.com/store/apps/details?id=com.whatsapp
+				152 link Description: SHAREit:Передача,обмен файлами Smart Media4U Technology Pte.Ltd. Средняя оценка: 4,3 из 5, Value: play.google.com/store/apps/details?id=com.lenovo.anyshare.gps
+		153 container
+			154 text Google Play
+			155 link Description: Play Pass, Value: play.google.com/store/pass/getstarted
+			156 link Description: Play Points, Value: play.google.com/store/points/enroll
+			157 link Description: Подарочные карты, Value: play.google.com/about/giftcards
+			158 link Description: Использовать, Value: play.google.com/redeem
+			159 link Description: Правила возврата платежей, Value: support.google.com/googleplay/answer/134336
+			160 text Дети и семья
+			161 link Description: Руководство для родителей, Value: support.google.com/googleplay?p=pff_parentguide
+			162 link Description: Семейный доступ, Value: support.google.com/googleplay/answer/7007852
+			163 link Description: Условия использования, Value: play.google.com/intl/ru_ru/about/play-terms.html
+			164 link Description: Конфиденциальность, Value: policies.google.com/privacy
+			165 link Description: О Google Play, Value: support.google.com/googleplay/?p=about_play
+			166 link Description: Для разработчиков, Value: developer.android.com/index.html
+			167 link Description: Google Store, Value: store.google.com/?playredirect=true&utm_source=play&utm_medium=google_oo&utm_campaign=GS106288
+			168 text Все цены указаны с учетом НДС. Россия (Русский)
+
+The focused UI element is 1 AXWebArea Приложения в Google Play – Duolingo - языки и шахматы, URL: play.google.com/store/apps/details?id=com.duolingo&hl=ru

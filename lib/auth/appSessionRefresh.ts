@@ -4,6 +4,7 @@ import { getPool } from '../db';
 import type { AppUserSession } from './appAuth';
 import {
   ACCESS_TOKEN_TTL_SECONDS,
+  NATIVE_SESSION_EXPIRES_AT,
   REFRESH_ABSOLUTE_TTL_SECONDS,
   REFRESH_CONCURRENCY_GRACE_SECONDS,
   REFRESH_IDLE_TTL_SECONDS,
@@ -62,7 +63,7 @@ function sessionResult(input: {
   now: number;
   absoluteExpiresAt: number;
 }): AppUserSession & { refreshTokenHash: string } {
-  const refreshExpiresAt = Math.min(input.now + REFRESH_IDLE_TTL_SECONDS, input.absoluteExpiresAt);
+  const refreshExpiresAt = input.kind === 'native' ? NATIVE_SESSION_EXPIRES_AT : Math.min(input.now + REFRESH_IDLE_TTL_SECONDS, input.absoluteExpiresAt);
   const expiresAt = Math.min(input.now + ACCESS_TOKEN_TTL_SECONDS, input.absoluteExpiresAt);
   const refreshToken = createRefreshSessionToken({
     userId: input.userId,
@@ -98,7 +99,9 @@ export async function refreshAppUserSession(input: {
   if (!process.env.DATABASE_URL) throw invalidRefresh();
 
   const refreshPayload = verifyRefreshSessionToken(input.credential);
-  const legacyPayload = refreshPayload ? null : verifyAppSessionToken(input.credential);
+  const legacyPayload = refreshPayload ? null : verifyAppSessionToken(input.credential, {
+    allowExpired: input.expectedKind === 'native',
+  });
   if (!refreshPayload && (!legacyPayload || legacyPayload.version !== 1)) throw invalidRefresh();
   if (legacyPayload && legacyPayload.provider !== providerForKind(input.expectedKind)) throw invalidRefresh();
 
@@ -145,7 +148,7 @@ export async function refreshAppUserSession(input: {
 
     const now = epochSeconds(row.db_now_epoch);
     const idleExpiresAt = epochSeconds(row.expires_at_epoch);
-    if (idleExpiresAt <= now) {
+    if (input.expectedKind !== 'native' && idleExpiresAt <= now) {
       await client.query(
         `UPDATE app_sessions
          SET revoked_at = clock_timestamp(), revoke_reason = 'idle_expired'
@@ -159,7 +162,9 @@ export async function refreshAppUserSession(input: {
 
     if (legacyPayload) {
       if (Number(row.session_version) !== 1 || row.refresh_token_hash) throw invalidRefresh();
-      const absoluteExpiresAt = epochSeconds(row.created_at_epoch) + REFRESH_ABSOLUTE_TTL_SECONDS;
+      const absoluteExpiresAt = input.expectedKind === 'native'
+        ? NATIVE_SESSION_EXPIRES_AT
+        : epochSeconds(row.created_at_epoch) + REFRESH_ABSOLUTE_TTL_SECONDS;
       if (absoluteExpiresAt <= now) {
         await client.query(
           `UPDATE app_sessions
@@ -199,22 +204,17 @@ export async function refreshAppUserSession(input: {
 
     if (Number(row.session_version) !== 2 || !row.refresh_token_hash) throw invalidRefresh();
     const absoluteExpiresAt = epochSeconds(row.absolute_expires_at_epoch);
-    if (
-      absoluteExpiresAt <= now
-      || refreshPayload!.absoluteExpiresAt !== absoluteExpiresAt
-    ) {
-      if (absoluteExpiresAt > 0 && absoluteExpiresAt <= now) {
-        await client.query(
-          `UPDATE app_sessions
-           SET revoked_at = clock_timestamp(), revoke_reason = 'absolute_expired'
-           WHERE session_id = $1 AND revoked_at IS NULL`,
-          [sessionId],
-        );
-        await client.query('COMMIT');
-        committed = true;
-        throw new AdminAuthError(401, 'APP_SESSION_REFRESH_EXPIRED', 'The session has expired');
-      }
-      throw invalidRefresh();
+    if (absoluteExpiresAt <= 0) throw invalidRefresh();
+    if (input.expectedKind !== 'native' && absoluteExpiresAt <= now) {
+      await client.query(
+        `UPDATE app_sessions
+         SET revoked_at = clock_timestamp(), revoke_reason = 'absolute_expired'
+         WHERE session_id = $1 AND revoked_at IS NULL`,
+        [sessionId],
+      );
+      await client.query('COMMIT');
+      committed = true;
+      throw new AdminAuthError(401, 'APP_SESSION_REFRESH_EXPIRED', 'The session has expired');
     }
 
     const currentGeneration = Number(row.refresh_generation);
@@ -241,6 +241,7 @@ export async function refreshAppUserSession(input: {
     }
 
     const suppliedHash = hashRefreshSessionToken(input.credential);
+    if (refreshPayload!.absoluteExpiresAt !== absoluteExpiresAt) throw invalidRefresh();
     if (!constantTimeHashMatch(suppliedHash, row.refresh_token_hash)) throw invalidRefresh();
     const nextGeneration = currentGeneration + 1;
     if (!Number.isSafeInteger(nextGeneration)) throw invalidRefresh();
@@ -250,7 +251,7 @@ export async function refreshAppUserSession(input: {
       kind: input.expectedKind,
       generation: nextGeneration,
       now,
-      absoluteExpiresAt,
+      absoluteExpiresAt: input.expectedKind === 'native' ? NATIVE_SESSION_EXPIRES_AT : absoluteExpiresAt,
     });
     await client.query(
       `UPDATE app_sessions
@@ -258,9 +259,10 @@ export async function refreshAppUserSession(input: {
            refresh_generation = $3,
            refresh_rotated_at = clock_timestamp(),
            expires_at = to_timestamp($4),
+           absolute_expires_at = to_timestamp($5),
            last_seen_at = clock_timestamp()
        WHERE session_id = $1 AND revoked_at IS NULL`,
-      [sessionId, next.refreshTokenHash, nextGeneration, next.refreshExpiresAt],
+      [sessionId, next.refreshTokenHash, nextGeneration, next.refreshExpiresAt, next.absoluteExpiresAt],
     );
     await client.query('COMMIT');
     committed = true;

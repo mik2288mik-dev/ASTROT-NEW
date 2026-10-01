@@ -12,7 +12,11 @@ import sectionStyles from './NatalSection.module.css';
 import { NatalPlusEntry } from './NatalPlusEntry';
 import type { PaywallContext } from '../../lib/paywallContext';
 
-const SIGN_COLORS = ['#cf403b','#087d5e','#076aa6','#6542c5','#d25923','#567423','#a33a89','#275dc5','#d1681b','#168478','#6841c6','#1374bc'];
+// Sky palette by element: fire = sunset, earth = dawn, air = day sky, water = evening.
+const ELEMENT_INK = ['#d9603f', '#a87517', '#2d6fd6', '#4b4f9e'];
+const ELEMENT_FILL = ['#ffe4d9', '#fbefd6', '#deebfd', '#e7e4f7'];
+const SIGN_COLORS = Array.from({ length: 12 }, (_, index) => ELEMENT_INK[index % 4]);
+const SIGN_FILLS = Array.from({ length: 12 }, (_, index) => ELEMENT_FILL[index % 4]);
 const HELP = [
   { Icon: Circle, title: 'Планета — что именно', text: 'Показывает, о какой части человека идёт речь.' },
   { Icon: BookOpen, title: 'Знак — как проявляется', text: 'Показывает, каким образом это выражается.' },
@@ -159,7 +163,7 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
       <circle cx="200" cy="200" r="184" fill="white"/>
       {MAP_SIGNS.map((sign, i) => {
         const a = point(i * 30, 184), b = point(i * 30 + 30, 184), c = point(i * 30 + 30, 155), d = point(i * 30, 155), g = point(i * 30 + 15, 170);
-        return <g key={sign} className={styles.sign} style={{'--sign-fill':['#ffe0dc','#bceede','#ffebbf','#c9ddff','#ffe0dc','#bceede','#e0d3ff','#c9ddff','#ffe0dc','#bceede','#ffebbf','#c9ddff'][i]} as React.CSSProperties} {...interactive('sign', sign, `Знак: ${MAP_SIGN_NAMES[i]}`)}>
+        return <g key={sign} className={styles.sign} style={{'--sign-fill':SIGN_FILLS[i]} as React.CSSProperties} {...interactive('sign', sign, `Знак: ${MAP_SIGN_NAMES[i]}`)}>
           <path d={`M ${a.x} ${a.y} A 184 184 0 0 0 ${b.x} ${b.y} L ${c.x} ${c.y} A 155 155 0 0 1 ${d.x} ${d.y} Z`} stroke="white" strokeWidth="1"/>
           <g transform={`translate(${g.x - 15} ${g.y - 15})`} style={{color:SIGN_COLORS[i]}}><ZodiacIcon sign={sign} size={30} strokeWidth={1.6}/></g>
         </g>;

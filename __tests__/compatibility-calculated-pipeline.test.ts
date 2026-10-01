@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { buildCompatibilityStoryPrompt, COMPATIBILITY_STORY_SCHEMA } from '../lib/synastry/compatibilityVoice';
-import { compatibilityStory } from './fixtures/compatibilityStory';
+import { answerableQuestionIds, compatibilityStoryFor } from './fixtures/compatibilityStory';
 import { calculateCompatibility } from '../lib/synastry/compatibilityEngine';
 import {
   buildCompatibilityResult,
@@ -99,7 +99,7 @@ describe('calculated compatibility pipeline', () => {
     });
     const result = buildCompatibilityResult(
       calculated,
-      { ...compatibilityStory(selectCompatibilityWriterEvidence(calculated)), compatibilityScore: 1 },
+      { ...compatibilityStoryFor(calculated), compatibilityScore: 1 },
       { subjectName: 'Анна', partnerName: 'Максим', language: 'ru' },
     );
     const api = read('pages/api/content/synastry/extended.ts');
@@ -119,8 +119,8 @@ describe('calculated compatibility pipeline', () => {
     expect(JSON.stringify(context)).not.toContain('"score"');
     expect(result.sections).toEqual([]);
     expect(result.closing).toBeUndefined();
-    expect(result.summary).toBe(compatibilityStory(selectCompatibilityWriterEvidence(calculated)).summary);
-    expect(result.storyParagraphs).toHaveLength(4);
+    expect(result.summary).toBe(compatibilityStoryFor(calculated).summary);
+    expect(result.storyParagraphs).toHaveLength(answerableQuestionIds(calculated).length);
     expect(result.narrativeEvidenceIds?.length).toBeGreaterThanOrEqual(3);
   });
 
@@ -128,7 +128,7 @@ describe('calculated compatibility pipeline', () => {
     const calculated = calculateCompatibility({ subjectChart: chart(0), partnerChart: chart(21), calculationLevel: 'full', relationshipContext: 'romance', language: 'ru' });
     expect(() => buildCompatibilityResult(calculated, null)).toThrow('SYNASTRY_NARRATIVE_INVALID:shape');
     expect(() => buildCompatibilityResult(calculated, { summary: 'Между вами присутствует динамика.' })).toThrow('paragraphs_missing');
-    const short = compatibilityStory(selectCompatibilityWriterEvidence(calculated));
+    const short = compatibilityStoryFor(calculated);
     short.paragraphs[0].text = 'Очень короткий ответ.';
     expect(() => buildCompatibilityResult(calculated, short)).toThrow('prose_content');
   });

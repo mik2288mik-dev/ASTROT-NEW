@@ -1,13 +1,13 @@
 import type { CompatibilityEvidence, SynastryResult } from '../../types';
 import type { CalculatedCompatibility } from './compatibilityEngine';
-import { COMPATIBILITY_STORY_TOPICS, type CompatibilityStoryTopic } from './storyTopics';
+import type { CompatibilityQuestionId } from './compatibilityQuestions';
 
-export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-story.v6';
+export const COMPATIBILITY_NARRATIVE_VERSION = 'compatibility-answers.v7';
 
 export type CompatibilityWriterResponse = {
   summary: string;
   paragraphs: Array<{
-    topic: CompatibilityStoryTopic;
+    questionId: CompatibilityQuestionId;
     text: string;
     evidenceIds: string[];
     direction: CompatibilityEvidence['direction'];
@@ -120,7 +120,10 @@ export function validateCompatibilityNarrative(value: unknown, calculated: Calcu
   const evidence = selectCompatibilityWriterEvidence(calculated);
   const evidenceById = new Map(evidence.map((item) => [item.id, item]));
   if (!evidence.length) fail('evidence_missing');
-  if (source.paragraphs.length < 3 || source.paragraphs.length > 4) fail('paragraph_count');
+  const questions = calculated.questions.filter((question) => question.score != null);
+  if (!questions.length) fail('questions_missing');
+  if (source.paragraphs.length !== questions.length) fail('paragraph_count');
+  const questionOrder = questions.map((question) => question.id);
   const summaryRaw = source.summary.trim();
   if (/\n|^\s*(?:#{1,6}\s|[-*•]\s|\d+[.)]\s)|\*\*/u.test(summaryRaw)) fail('summary_format');
   const summary = summaryRaw.replace(/\s+/gu, ' ');
@@ -130,12 +133,12 @@ export function validateCompatibilityNarrative(value: unknown, calculated: Calcu
   if (blockedSummary) fail(blockedSummary.reason);
   const signatures = new Set<string>();
   const usedIds = new Set<string>();
-  const usedTopics = new Set<CompatibilityStoryTopic>();
+  const usedQuestions = new Set<CompatibilityQuestionId>();
   const paragraphs = source.paragraphs.map((paragraph) => {
     if (!paragraph || typeof paragraph !== 'object' || typeof paragraph.text !== 'string') fail('paragraph_shape');
-    if (!COMPATIBILITY_STORY_TOPICS.includes(paragraph.topic)) fail('topic_missing');
-    if (usedTopics.has(paragraph.topic)) fail('topic_repeated');
-    usedTopics.add(paragraph.topic);
+    if (!questionOrder.includes(paragraph.questionId)) fail('question_missing');
+    if (usedQuestions.has(paragraph.questionId)) fail('question_repeated');
+    usedQuestions.add(paragraph.questionId);
     const raw = paragraph.text.trim();
     if (/\n|^\s*(?:#{1,6}\s|[-*•]\s|\d+[.)]\s)|\*\*/u.test(raw)) fail('prose_format');
     const text = raw.replace(/\s+/gu, ' ');
@@ -159,10 +162,10 @@ export function validateCompatibilityNarrative(value: unknown, calculated: Calcu
       fail('unsupported_mutual_direction');
     }
     ids.forEach((id) => usedIds.add(id));
-    return { topic: paragraph.topic, text, evidenceIds: [...new Set(ids)], direction: paragraph.direction };
-  });
+    return { questionId: paragraph.questionId, text, evidenceIds: [...new Set(ids)], direction: paragraph.direction };
+  }).sort((first, second) => questionOrder.indexOf(first.questionId) - questionOrder.indexOf(second.questionId));
   const words = [summary, ...paragraphs.map((paragraph) => paragraph.text)].join(' ').match(/[\p{L}\p{N}]+(?:[-’'][\p{L}\p{N}]+)*/gu)?.length || 0;
-  if (words < 140 || words > 430) fail('story_length');
+  if (words < 30 + questions.length * 30 || words > 120 + questions.length * 95) fail('story_length');
   if (paragraphs.filter((paragraph) => RELATIONSHIP_CAVEAT.test(paragraph.text)).length > 2) fail('repeated_relationship_caveat');
   if (usedIds.size < Math.min(3, evidence.length)) fail('insufficient_evidence_variety');
   if (input) validateReaderVoice([summary, ...paragraphs.map((paragraph) => paragraph.text)], input);
@@ -176,6 +179,7 @@ export function buildCompatibilityResult(calculated: CalculatedCompatibility, wr
     narrativeVersion: COMPATIBILITY_NARRATIVE_VERSION,
     narrativeEvidenceIds: [...new Set(writer.paragraphs.flatMap((paragraph) => paragraph.evidenceIds))],
     storyParagraphs: writer.paragraphs,
+    questions: calculated.questions,
     engineVersion: calculated.engineVersion,
     // Retained for stored API compatibility; the story UI does not display scores.
     overallScore: calculated.overallScore,

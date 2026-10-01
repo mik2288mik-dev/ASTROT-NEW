@@ -1,0 +1,274 @@
+Browser tab: 3, Title: "‎Приложение «Натальная карта · Stargaze» — App Store", URL: "https://apps.apple.com/ru/app/%D0%BD%D0%B0%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-stargaze/id6449580660".
+1 AXWebArea ‎Приложение «Натальная карта · Stargaze» — App Store, URL: apps.apple.com/ru/app/%D0%BD%D0%B0%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-stargaze/id6449580660
+	2 container
+		3 container Description: App Store, ID: app-store-icon-container
+		4 button (collapsed) App Store, ID: popover-1-target, Secondary Actions: Expand
+			5 text для iPhone
+			6 image
+		7 container search-input-form
+			8 text Поиск
+			9 search text field (settable) Поиск, ID: search-input__text-field
+		10 container navigation
+			11 content list
+				12 checkbox Сегодня, Value: 0
+				13 checkbox Игры, Value: 0
+				14 checkbox Приложения, Value: 0
+				15 checkbox Arcade, Value: 0
+			16 content list Категории
+				17 checkbox Категории, Value: 0
+				18 checkbox Фото и видео, Value: 0
+				19 checkbox Здоровье и фитнес, Value: 0
+				20 checkbox Производительность, Value: 0
+				21 checkbox Развлечения, Value: 0
+				22 checkbox Экшен, Value: 0
+				23 checkbox Приключения, Value: 0
+				24 checkbox Головоломки, Value: 0
+				25 checkbox Инди, Value: 0
+	26 container
+		27 container
+			28 heading Натальная карта · Stargaze, Value: 1
+				29 text Натальная карта · Stargaze
+			30 text Точный гороскоп на каждый день
+			31 text Только для iPhone
+			32 text Бесплатно · Встроенные покупки
+			33 button Поделиться
+		34 content list
+			35 link Description: ОЦЕНОК: 143 Количество звезд: 4,7, Value: apps.apple.com/ru/app/%D0%BD%D0%B0%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-stargaze/id6449580660#productRatings
+			36 link Description: ВОЗРАСТ 4+ лет (г.), Value: apps.apple.com/ru/app/%D0%BD%D0%B0%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-stargaze/id6449580660#information
+			37 link Description: КАТЕГОРИЯ Образ жизни, Value: apps.apple.com/ru/app/%D0%BD%D0%B0%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-stargaze/id6449580660#information
+			38 link Description: РАЗРАБОТЧИК Stargaze LLP, Value: apps.apple.com/ru/developer/stargaze-llp/id1731010011?platform=iphone
+			39 link Description: ЯЗЫК EN английский, Value: apps.apple.com/ru/app/%D0%BD%D0%B0%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-stargaze/id6449580660#information
+			40 link Description: РАЗМЕР 73,2 МБ, Value: apps.apple.com/ru/app/%D0%BD%D0%B0%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-stargaze/id6449580660#information
+		41 container Description: iPhone Предпросмотр приложений и снимки экрана, ID: product_media_phone_
+			42 container
+				43 button (disabled) Предыдущая страница
+					44 image
+				45 content list
+					46 container Снимок экрана
+					47 container Снимок экрана
+					48 container Снимок экрана
+					49 container Снимок экрана
+				50 button Следующая страница
+					51 image
+			52 text iPhone
+		53 container
+			54 text Stargaze — ваш точный гороскоп на каждый день и полная натальная карта в одном приложении. Узнайте, что звёзды говорят о вашей любви, отношениях и совместимости знаков зодиака. Астрология, лунный календарь и персональные предсказания — бесплатно и без рекламы.
+
+
+Гороскоп на каждый день
+
+Начните утро с точного гороскопа и персональных астрологических советов для вашего знака зодиака:
+
+- Цвет дня — для удачи и гармонии
+- Аффирмации — для позитивного настроя
+- Счастливые числа и камни — персонально для вас
+- Что делать и чего избегать сегодня
+
+
+Натальная карта — разгадайте свою судьбу
+
+Ваш гороскоп — это не только знак зодиака. Полный анализ натальной карты покажет:
+
+- Ваши сильные стороны и скрытые таланты
+- Влияние Луны, Солнца, Меркурия и Марса на эмоции, карьеру и любовь
+- Финансовые возможности, которые ждут вас впереди
+- Как принимать правильные решения по звёздам
+
+
+Совместимость знаков зодиака
+
+Узнайте, кто вам подходит на самом деле:
+
+- Оцените совместимость с партнёром или другом
+- Поймите динамику ваших отношений через астрологию
+- Улучшите связь с близкими людьми
+
+
+Лунный календарь
+
+Планируйте жизнь по Луне и действуйте в правильный момент:
+
+- Фазы Луны — когда начинать новое, а когда завершать
+- Ретроградные периоды — избегайте ошибок во время ретроградного Меркурия
+- Благоприятные дни для работы, отношений и важных решений
+
+
+Календарь красоты
+
+Выбирайте идеальные дни для бьюти-процедур:
+
+- Стрижки
+- Маникюр
+- Эпиляция
+- Уход за кожей
+
+
+Медитации
+
+Найдите гармонию с космосом:
+
+- Медитации для расслабления и сна
+- Практики для любви, уверенности и успеха
+- Звуки для глубокого отдыха
+
+
+Толкование снов
+
+Ваши сны связаны с влиянием Луны и вашего знака зодиака:
+
+- Узнайте скрытые подсказки о будущем
+- Получите толкование символов через астрологию
+- Разгадывайте сны и получайте полезные инсайты
+
+
+Stargaze объединяет астрологию и технологии ИИ, чтобы давать вам точные гороскопы и персональные предсказания — бесплатно и без рекламы.
+
+Условия использования: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+			55 button еще
+		56 container Description: Оценки и отзывы, ID: productRatings
+			57 link Description: Оценки и отзывы, Value: apps.apple.com/ru/app/6449580660?see-all=reviews&platform=iphone
+			58 content list
+				59 container
+					60 text 4,7 из 5 Оценок: 143
+					61 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					62 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					63 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					64 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					65 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.other.one**
+		66 container
+			67 button (disabled) Предыдущая страница
+				68 image
+			69 content list
+				70 container Полезно
+					71 heading Полезно, Value: 3, ID: review-14135523867-title
+						72 text Полезно
+					73 content list Количество звезд: 5
+					74 text 2 июн.
+					75 text Stored194
+					76 text Гороскопы интересные и мотивирующие, особенно понравились аффирмации. Иногда советы прямо в точку.
+				77 container Не отключается подписка
+					78 heading Не отключается подписка, Value: 3, ID: review-14614592912-title
+						79 text Не отключается подписка
+					80 content list Количество звезд: 2
+					81 text 1 окт.
+					82 text mira kowa
+					83 text Скажите как отменить подписку?? Списывается и не знаю где отменить!!
+			84 button Следующая страница
+				85 image
+		86 container Description: Что нового, ID: mostRecentVersion
+			87 button Что нового
+				88 heading Что нового, Value: 2
+					89 text Что нового
+			90 container Что нового
+				91 text • Выберите предпочитаемый язык приложения в профиле.
+• Улучшена привязка аккаунта к электронной почте.
+• Улучшения производительности и стабильности.
+				92 text Версия 3.35.0
+				93 text 31 авг.
+		94 container Description: Конфиденциальность приложения, ID: privacyHeader
+			95 button Конфиденциальность приложения
+				96 link Description: Конфиденциальность приложения, Value: apps.apple.com/ru/app/%D0%BD%D0%B0%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-stargaze/id6449580660#
+			97 container
+				98 text Разработчик  Stargaze LLP  указал, что в соответствии с политикой конфиденциальности приложения данные могут обрабатываться так, как описано ниже. Подробные сведения доступны в 
+				99 link Description: Политика конфиденциальности разработчика, Value: stargaz.ae/privacy
+				100 text .
+		101 content list
+			102 container Данные, используе­мые для отслежи­вания информации
+				103 heading Данные, используе­мые для отслежи­вания информации, Value: 3
+					104 text Данные, используе­мые для отслежи­вания информации
+				105 text Следующие данные могут использоваться для отслеживания информации о пользователе в приложениях и на сайтах, принадлежащих другим компаниям:
+				106 content list
+					107 text Идентифика­торы
+			108 container Связанные с пользова­телем данные
+				109 heading Связанные с пользова­телем данные, Value: 3
+					110 text Связанные с пользова­телем данные
+				111 text Может вестись сбор следующих данных, которые связаны с личностью пользователя:
+				112 content list
+					113 text Контактные данные
+					114 text Идентифика­торы
+					115 text Диагностика
+			116 container Не связанные с пользова­телем данные
+				117 heading Не связанные с пользова­телем данные, Value: 3
+					118 text Не связанные с пользова­телем данные
+				119 text Может вестись сбор следующих данных, которые не связаны с личностью пользователя:
+				120 content list
+					121 text Данные об использова­нии
+					122 text Диагностика
+		123 container
+			124 text Разработчик может использовать различные способы обработки конфиденциальных данных в зависимости от таких факторов, как Ваш возраст и функции, которыми Вы пользуетесь. 
+			125 link Description: Подробнее, Value: apps.apple.com/ru/iphone/story/id1538632801
+		126 container Description: Универсальный доступ, ID: accessibilityHeader
+			127 heading Универсальный доступ, Value: 2
+				128 text Универсальный доступ
+			129 container
+				130 text Разработчик пока не предоставил сведений о функциях универсального доступа, поддерживаемых в этом приложении. 
+				131 link Description: Подробнее, Value: apps.apple.com/story/id1814164299
+		132 container Description: Информация, ID: information
+			133 heading Информация, Value: 2
+				134 text Информация
+			135 definition list
+				136 container Провайдер
+					137 text Провайдер
+				138 text STARGEIZ, TOO
+				139 container Размер
+					140 text Размер
+				141 text 73,2 МБ
+				142 container Категория
+					143 text Категория
+				144 text Образ жизни
+				145 container Совместимость
+					146 text Совместимость
+				147 button (collapsed) Требуется iOS 17.0 или новее., Secondary Actions: Expand
+					148 text Требуется iOS 17.0 или новее.
+					149 image
+				150 container Языки
+					151 text Языки
+				152 text английский
+				153 container Возраст
+					154 text Возраст
+				155 button (collapsed) 4+, Secondary Actions: Expand
+					156 text 4+
+					157 image
+				158 container Встроенные покупки
+					159 text Встроенные покупки
+				160 button (collapsed) Да, Secondary Actions: Expand
+					161 text Да
+					162 image
+				163 container Авторские права
+					164 text Авторские права
+				165 text © 2025 STARGEIZ LLP
+		166 container notPurchasedLinks
+			167 link Description: Сайт разработчика ↗, Value: stargaz.ae/
+			168 link Description: Конфиденциальность ↗, Value: stargaz.ae/privacy
+		169 container Description: Вам может также понравиться, ID: similarItems
+			170 link Description: Вам может также понравиться, Value: apps.apple.com/ru/app/6449580660?see-all=customers-also-bought-apps&platform=iphone
+			171 container
+				172 button (disabled) Предыдущая страница
+					173 image
+				174 content list
+					175 link Description: Смотреть Astrocode: личный гороскоп Астрология & Натальная карта, Value: apps.apple.com/ru/app/astrocode-%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D0%B9-%D0%B3%D0%BE%D1%80%D0%BE%D1%81%D0%BA%D0%BE%D0%BF/id1342547303
+					176 link Description: Смотреть Reha Vedic Astrology Образ жизни, Value: apps.apple.com/ru/app/reha-vedic-astrology/id1620162709
+					177 link Description: Смотреть AstroVizor Образ жизни, Value: apps.apple.com/ru/app/astrovizor/id1164552553
+					178 link Description: Смотреть AstroVed –Astrology & Remedies Образ жизни, Value: apps.apple.com/ru/app/astroved-astrology-remedies/id1406242342
+					179 link Description: Смотреть Астрологические Карты Lite Натал и транзит астрология, Value: apps.apple.com/ru/app/%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%BB%D0%BE%D0%B3%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5-%D0%BA%D0%B0%D1%80%D1%82%D1%8B-lite/id918924399
+					180 link Description: Смотреть Daily Astrology - JP Образ жизни, Value: apps.apple.com/ru/app/daily-astrology-jp/id1471002743
+					181 link Description: Смотреть Human Design - Дизайн Человека Матрица судьбы и астрология, Value: apps.apple.com/ru/app/human-design-%D0%B4%D0%B8%D0%B7%D0%B0%D0%B9%D0%BD-%D1%87%D0%B5%D0%BB%D0%BE%D0%B2%D0%B5%D0%BA%D0%B0/id1448353020
+					182 link Description: Смотреть AstroVeda: Ask Astrology Guru Образ жизни, Value: apps.apple.com/ru/app/astroveda-ask-astrology-guru/id1273590638
+					183 link Description: Смотреть Up Astrology Образ жизни, Value: apps.apple.com/ru/app/up-astrology/id1460129882
+				184 button Следующая страница
+					185 image
+		186 container
+			187 button Россия
+			188 content list
+				189 link Description: Страница доступна на этом языке: English (UK), Value: apps.apple.com/ru/app/%D0%BD%D0%B0%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-stargaze/id6449580660?l=en-GB
+				190 link Description: Страница доступна на этом языке: Українська, Value: apps.apple.com/ru/app/%D0%BD%D0%B0%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-stargaze/id6449580660?l=uk
+			191 text Copyright © 2026
+			192 link Description: Apple Inc., Value: apple.com/ru/
+			193 text Все права защищены.
+			194 content list
+				195 link Description: Условия пользования интернет-сервисами, Value: apple.com/legal/internet-services/
+				196 link Description: App Store и конфи­денциальность, Value: apple.com/legal/privacy/data/ru/app-store/
+				197 link Description: Предупреждение об использовании файлов cookie, Value: apple.com/legal/privacy/ru/cookies/
+				198 link Description: Поддержка, Value: support.apple.com/ru-ru/billing
+
+The focused UI element is 1 AXWebArea ‎Приложение «Натальная карта · Stargaze» — App Store, URL: apps.apple.com/ru/app/%D0%BD%D0%B0%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-stargaze/id6449580660

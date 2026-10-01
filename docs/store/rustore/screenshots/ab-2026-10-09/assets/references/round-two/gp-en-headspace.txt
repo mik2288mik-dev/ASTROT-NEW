@@ -1,0 +1,173 @@
+Browser tab: 3, Title: "Headspace: Sleep & Meditation - Apps on Google Play", URL: "https://play.google.com/store/apps/details?id=com.getsomeheadspace.android&hl=en".
+1 AXWebArea Headspace: Sleep & Meditation - Apps on Google Play, URL: play.google.com/store/apps/details?id=com.getsomeheadspace.android&hl=en
+	2 container yDmH0d
+		3 container
+			4 container Page Header
+				5 link Description: Google Play logo, Value: play.google.com/store/games
+				6 container Main
+					7 tab group
+						8 tab (selectable, settable, boolean) Games, Value: 0, ID: 11
+						9 tab (selected, settable, boolean) Apps, Value: 1
+						10 tab (selectable, settable, boolean) Books, Value: 0, ID: 5
+						11 tab (selectable, settable, boolean) Kids, Value: 0, ID: 13
+				12 button Search
+				13 button Help Center
+				14 pop up button (collapsed) Description: Open account menu, Secondary Actions: Expand
+		15 container
+			16 container
+				17 heading Headspace: Sleep & Meditation, Value: 1
+					18 text Headspace: Sleep & Meditation
+				19 link Description: Headspace for Meditation, Mindfulness and Sleep, Value: play.google.com/store/apps/developer?id=Headspace+for+Meditation,+Mindfulness+and+Sleep
+				20 text In-app purchases
+				21 container Information badges
+					22 container
+						23 image Rated 3.2 stars out of five stars
+						24 text 340K reviews
+					25 container
+						26 text 10M+ Downloads
+			27 button Install
+				28 text Install
+			29 button Share
+				30 text Share
+			31 button Add to wishlist
+				32 text Add to wishlist
+			33 button Play trailer
+			34 container
+				35 content list
+					36 button Screenshot image
+					37 button Screenshot image
+					38 button Screenshot image
+					39 button Screenshot image
+					40 button Screenshot image
+					41 button Screenshot image
+					42 button Screenshot image
+					43 button Screenshot image
+				44 button
+				45 container
+					46 heading About this app, Value: 2
+						47 text About this app
+					48 button See more information on About this app
+				49 container Better sleep and mindfulness for anxiety, stress, wellness, and mental health
+					50 text Better sleep and mindfulness for anxiety, stress, wellness, and mental health
+				51 text Updated on
+				52 text Oct 9, 2026
+				53 container
+					54 link Description: Health & Fitness, Value: play.google.com/store/apps/category/HEALTH_AND_FITNESS
+				55 container
+					56 heading Data safety, Value: 2
+						57 text Data safety
+					58 link Description: See more information on Data safety, Value: play.google.com/store/apps/datasafety?id=com.getsomeheadspace.android
+				59 text Safety starts with understanding how developers collect and share your data. Data privacy and security practices may vary based on your use, region, and age. The developer provided this information and may update it over time.
+				60 content list
+					61 container
+						62 text This app may share these data types with third parties Location, Personal info and 3 others
+					63 container
+						64 text This app may collect these data types Location, Personal info and 3 others
+					65 text Data is encrypted in transit
+					66 text You can request that data be deleted
+				67 container
+					68 link Description: See more details on data safety, Value: play.google.com/store/apps/datasafety?id=com.getsomeheadspace.android
+				69 container
+					70 heading Ratings and reviews, Value: 2
+						71 text Ratings and reviews
+					72 button See more information on Ratings and reviews
+					73 button Ratings and reviews are verified
+						74 text Ratings and reviews are verified
+				75 content list
+					76 checkbox Description: Phone, Value: 1, ID: formFactor_2
+					77 checkbox Description: Desktop, Value: 0, ID: formFactor_5
+					78 checkbox Description: Tablet, Value: 0, ID: formFactor_3
+				79 image Rated 3.2 stars out of five stars
+				80 container
+					81 text 329K  reviews
+				82 image 151,201 reviews for star rating 5
+				83 image 16,783 reviews for star rating 4
+				84 image 20,412 reviews for star rating 3
+				85 image 22,377 reviews for star rating 2
+				86 image 117,634 reviews for star rating 1
+				87 container
+					88 text Sharmiesha Coleman
+					89 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+					90 image Rated 2 stars out of five stars
+					91 text October 8, 2025
+				92 text While I like it to remind me to relax, it is sloooooooow. It takes forever to load initially and as you switch between the screens it takes even longer to load. I have to constantly close out of the app and go back in just to get the main page to load. When I'm frustrated, stressed or overwhelmed, have the app take so long to load to get to the exercises is NOT helpful. It defeats the purpose.
+				93 container
+					94 text 354  people found this review helpful
+				95 container
+					96 text Did you find this helpful?
+					97 checkbox Description: Yes, Value: 0, ID: da96150f-2e27-47ed-b177-b022cdf36af1::1
+					98 checkbox Description: No, Value: 0, ID: da96150f-2e27-47ed-b177-b022cdf36af1::2
+				99 container
+					100 text Natalia Funtova
+					101 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+					102 image Rated 1 stars out of five stars
+					103 text October 24, 2022
+				104 text I used to love this app, but it's become really frustrating. Someone mentioned that after you do a meditation, it often freezes and doesn't complete. I lost a 140 day streak because of that. Also, when you open a meditation, it now starts right away instead of taking you to the description like before. You have to press a button to see the description - after you've waited several seconds for the meditation to buffer and start. And then you find out it doesn't even suit you. Just why?
+				105 container
+					106 text 21  people found this review helpful
+				107 container
+					108 text Did you find this helpful?
+					109 checkbox Description: Yes, Value: 0, ID: 102e9bb4-ab37-4676-8462-d4605284310a::1
+					110 checkbox Description: No, Value: 0, ID: 102e9bb4-ab37-4676-8462-d4605284310a::2
+				111 text Headspace for Meditation, Mindfulness and Sleep
+				112 text October 25, 2022
+				113 text Thank you for reaching out. We are sorry for the trouble you had using your Headspace app. Please send us a note to help@headspace.com and we'd be happy to assist further with this behavior your app is having. We want you to have a great experience and not this type of situation.
+				114 container
+					115 text Jackie Buday
+					116 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+					117 image Rated 3 stars out of five stars
+					118 text December 28, 2024
+				119 text I have been meditating for years and I was excited when my employer included this as a benefit. That excitement ended quickly once I started using the app. It's a very busy app and feels very Sesame Street to me. I was having trouble sleeping and I remembered that I could use this app for free. I wanted to see what teachers they used w/o success. I clicked on 1 that sounded like an AI voice (ugh). If you are new to meditation, this is great. If you aren't, go elsewhere. (Insight timer)
+				120 container
+					121 text 197  people found this review helpful
+				122 container
+					123 text Did you find this helpful?
+					124 checkbox Description: Yes, Value: 0, ID: 7d600699-265c-4c88-9391-bc73b8ca34c6::1
+					125 checkbox Description: No, Value: 0, ID: 7d600699-265c-4c88-9391-bc73b8ca34c6::2
+				126 text Headspace for Meditation, Mindfulness and Sleep
+				127 text December 30, 2024
+				128 text Thank you for providing your valuable feedback! We're sorry to hear that you didn't enjoy your experience. Feel free to send us a note at help@headspace.com. We will be happy to help with content recommendations and changing teachers.
+				129 button See all reviews
+					130 text See all reviews
+				131 heading What’s new, Value: 2
+					132 text What’s new
+				133 container
+					134 text A steady meditation practice can calm the mind. But sometimes a bug appears in the app and it distracts us. We removed that bug from this latest version, and we already feel more at ease.
+					135 text If you run into any trouble, let us know at help@headspace.com
+			136 link Description: Flag as inappropriate (opens in new window), Value: support.google.com/googleplay/?p=report_content
+			137 image Content rating
+			138 text Rated for 3+
+			139 link Description: Learn more about content ratings (opens in new window), Value: support.google.com/googleplay?p=appgame_ratings
+			140 container developer-contacts-heading
+				141 heading App support, Value: 2
+					142 text App support
+				143 button (collapsed) Expand
+			144 container
+				145 heading Similar apps, Value: 2
+					146 text Similar apps
+				147 container
+					148 link Description: See more information on Similar apps, Value: play.google.com/store/apps/collection/cluster?gsr=So0BaixrMzFmdTNBTTVaODk3YjJXa1l5bUJvUFUxUUZBUC9UOFo0N0g5dG5vU0cwPcICWQogChxjb20uZ2V0c29tZWhlYWRzcGFjZS5hbmRyb2lkEAcYCDABOABKKQgBEAAaHUhlYWRzcGFjZTogU2xlZXAgJiBNZWRpdGF0aW9uIAAoADAAUABYAWAAsBIA:S:ANO1ljJGgqY
+				149 link Description: How We Feel The How We Feel Project, Inc. Rated 4.6 stars out of five stars, Value: play.google.com/store/apps/details?id=org.howwefeel.moodmeter
+				150 link Description: Finch: Self-Care Pet Finch Care Public Benefit Corporation Rated 4.8 stars out of five stars, Value: play.google.com/store/apps/details?id=com.finch.finch
+				151 link Description: SleepisolBio - AI Sleep & Care Lee Sol Co., Ltd, Value: play.google.com/store/apps/details?id=com.leesolbrain.sleepisol.sleep
+				152 link Description: Me+ Lifestyle Routine ENERJOY PTE. LTD. Rated 4.5 stars out of five stars, Value: play.google.com/store/apps/details?id=daily.planner.routine.habits
+				153 link Description: Sleep Cycle: Sleep Tracker Sleep Cycle AB Rated 4.2 stars out of five stars, Value: play.google.com/store/apps/details?id=com.northcube.sleepcycle
+				154 link Description: Slowdive | Meditation & Mantra Reliz LTD Rated 2.6 stars out of five stars, Value: play.google.com/store/apps/details?id=com.slowdive
+		155 container
+			156 text Google Play
+			157 link Description: Play Pass, Value: play.google.com/store/pass/getstarted
+			158 link Description: Play Points, Value: play.google.com/store/points/enroll
+			159 link Description: Gift cards, Value: play.google.com/about/giftcards
+			160 link Description: Redeem, Value: play.google.com/redeem
+			161 link Description: Refund policy, Value: support.google.com/googleplay/answer/134336
+			162 text Kids & family
+			163 link Description: Parent Guide, Value: support.google.com/googleplay?p=pff_parentguide
+			164 link Description: Family sharing, Value: support.google.com/googleplay/answer/7007852
+			165 link Description: Terms of Service, Value: play.google.com/intl/en-US_ru/about/play-terms.html
+			166 link Description: Privacy, Value: policies.google.com/privacy
+			167 link Description: About Google Play, Value: support.google.com/googleplay/?p=about_play
+			168 link Description: Developers, Value: developer.android.com/index.html
+			169 link Description: Google Store, Value: store.google.com/?playredirect=true&utm_source=play&utm_medium=google_oo&utm_campaign=GS106288
+			170 text All prices include VAT. Russia (English (United States))
+
+The focused UI element is 1 AXWebArea Headspace: Sleep & Meditation - Apps on Google Play, URL: play.google.com/store/apps/details?id=com.getsomeheadspace.android&hl=en

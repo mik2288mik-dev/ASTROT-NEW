@@ -1,0 +1,266 @@
+Browser tab: 3, Title: "‎The Pattern App - App Store", URL: "https://apps.apple.com/us/app/the-pattern/id1071085727".
+1 AXWebArea ‎The Pattern App - App Store, URL: apps.apple.com/us/app/the-pattern/id1071085727
+	2 container
+		3 container Description: App Store, ID: app-store-icon-container
+		4 button (collapsed) App Store, ID: popover-1-target, Secondary Actions: Expand
+			5 text for iPhone
+			6 image
+		7 container search-input-form
+			8 text Search
+			9 search text field (settable) Search, ID: search-input__text-field
+		10 container navigation
+			11 content list
+				12 checkbox Today, Value: 0
+				13 checkbox Games, Value: 0
+				14 checkbox Apps, Value: 0
+				15 checkbox Arcade, Value: 0
+			16 content list Categories
+				17 checkbox Categories, Value: 0
+				18 checkbox Photo & Video, Value: 0
+				19 checkbox Health & Fitness, Value: 0
+				20 checkbox Productivity, Value: 0
+				21 checkbox Entertainment, Value: 0
+				22 checkbox Action, Value: 0
+				23 checkbox Adventure, Value: 0
+				24 checkbox Puzzle, Value: 0
+				25 checkbox Indie, Value: 0
+	26 container
+		27 container
+			28 heading The Pattern, Value: 1
+				29 text The Pattern
+			30 text Self & Relationship Insights
+			31 text Only for iPhone
+			32 text Free · In‑App Purchases
+			33 button Share
+		34 content list
+			35 link Description: 16K RATINGS 4 Stars, Value: apps.apple.com/us/app/the-pattern/id1071085727#productRatings
+			36 link Description: AGE RATING 13+ In-App Controls, Value: apps.apple.com/us/app/the-pattern/id1071085727#information
+			37 link Description: CATEGORY Lifestyle, Value: apps.apple.com/us/app/the-pattern/id1071085727#information
+			38 link Description: DEVELOPER Pattern Home, Inc., Value: apps.apple.com/us/developer/pattern-home-inc/id1071085726?platform=iphone
+			39 link Description: LANGUAGE EN English, Value: apps.apple.com/us/app/the-pattern/id1071085727#information
+			40 link Description: SIZE 110.2 MB, Value: apps.apple.com/us/app/the-pattern/id1071085727#information
+		41 container Description: iPhone App Previews and Screenshots, ID: product_media_phone_
+			42 container
+				43 button (disabled) Previous Page
+					44 image
+				45 content list
+					46 container Screenshot
+					47 container Screenshot
+					48 container Screenshot
+					49 container Screenshot
+				50 button Next Page
+					51 image
+			52 text iPhone
+		53 container
+			54 text Created to help you feel seen and understood. A homegrown labor of love, The Pattern was born out of our founder’s personal journey of self-discovery. While trying to make sense of a challenging time, she recognized what an incredibly empowering tool our birth charts can be and sought to develop an application that could offer this information in a way that was easily digestible for all. Offering a psychological blueprint of one’s self and insight into the unique things they may be experiencing during a period of time, The Pattern acts as a mirror, helping you to better understand yourself and others, enabling connections to be made on a much deeper level. As featured in Vanity Fair, Time, TechCrunch, Vogue, Bustle, Mashable, Harper’s Bazaar, among others. For answers to commonly asked questions, please visit:
+
+https://thepattern.zendesk.com/hc/
+
+For additional customer support, please email us:
+
+contact@thepattern.com
+
+FEATURES
+
+- *NEW: Explore yourself and your bonds on an even deeper level with the In-Depth conversation feature, powered by Your Pattern and completely private and secure. Talk about any of your relationship types including family and coworkers.
+- Your Pattern: In-depth insight into your unique personality traits and human design.
+- Your Transits: An informative overview of influential timing cycles you may encounter throughout your life - past, present and future.
+- Bonds: Explore your unique compatibility with friends and romantic interests. Gain valuable information about your most important relationships - or those of your favorite Public Figures.
+- Romantic Patterns: Gain valuable insight into your romantic dynamics with another individual; explore your strongest connections, and identify potential challenges that may require more thoughtful communication.
+- Friendship Patterns: Take a deep dive into your friends’ patterns to better understand the ways in which you can support one another.
+- Discover Collections: A mix of insights and brand new audio episodes about various aspects, as well as New Moon Guides, immersive audio, and more. New Collections & audio episodes released throughout the month.
+- Cosmic Climate: Influential cycles that may be affecting all of us collectively. Some people will feel these energies more personally than others.
+- Custom Friends: Create a profile for anyone to learn about your similarities and the various cycles they may be experiencing at any point in time.
+- Connect: Dating with Depth. Utilizing The Pattern’s proprietary algorithm, Connect offers insight into your compatibility with potential matches, enabling you to make more meaningful connections from the start.
+
+Follow @ThePattern on Facebook, Instagram, TikTok and Twitter. Share your favorite insights from The Pattern using #ThePattern
+
+The Pattern offers in-app purchases that enhance the user experience. Auto-renewing “Go Deeper+” subscriptions may be purchased to unlock additional content starting at $14.99 USD per month. Subscriptions are entirely optional and may be canceled at any time. Details are available in the Terms of Service, available here:
+
+https://www.thepattern.com/terms.html
+			55 button more
+		56 container Description: Ratings & Reviews, ID: productRatings
+			57 link Description: Ratings & Reviews, Value: apps.apple.com/us/app/1071085727?see-all=reviews&platform=iphone
+			58 content list
+				59 container
+					60 text 4.0 out of 5 16K Ratings
+					61 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					62 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					63 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					64 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					65 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.other.one**
+		66 container
+			67 button (disabled) Previous Page
+				68 image
+			69 content list
+				70 container PLEASE fix this problem! But great app!
+					71 heading PLEASE fix this problem! But great app!, Value: 3, ID: review-6538325018-title
+						72 text PLEASE fix this problem! But great app!
+					73 content list 4 Stars
+					74 text 10/15/2020
+					75 text nighttimewanderlust
+					76 container
+						77 text Well FIRST, I haven’t been able to change my profile photo on the app in at least a year, it’s so frustrating! Every time I try, when I go to save my new changes, I get an error message telling me to try at a later time, I’m so over it! I love all the new features and add-ons, but seriously can you fix this issue already?! It’s beyond overdue. But other than that... seriously love this app, I think it’s great for helping you to realize your own unhealthy behaviors and patterns, and why you might do those things. I do agree with others, though, that it could all be written in less of a negative tone, and maybe add helpful bits of advice on how to improve or change the patterns we’re in, rather than just keep reiterating the same points over and over. I think this app has so much potential to be more than it is even now with the bonds, which is really cool, but yeah, it does start to feel negative to be reminded of the same unhealthy patterns we get stuck in and why, but without any kind of advice or words of encouragement to uplift us and change the patterns. Obviously a lot of this information is based off astrology without using astrological terms, which does leave it more open for those who tend to discredit/doubt astrology. Overall, it’s a cool app, very interesting to read and go in depth, and love that you can even read about others. I definitely recommend it, but there could still be improvements 😊
+						78 button more
+						79 text Developer Response
+						80 text We are so grateful for your kind words and appreciate you taking the time to write a wonderful review! Thank you for your feedback and we are sincerely sorry for the inconvenience of the inability to change your profile photo. If this is still a current issue for you, please drop us an email at contact@thepattern.com so we can look into this further. We appreciate you being part of The Pattern community and hope you continue to enjoy The Pattern!
+						81 button more
+				82 container OMG this app is even better than it was before!
+					83 heading OMG this app is even better than it was before!, Value: 3, ID: review-11030696866-title
+						84 text OMG this app is even better than it was before!
+					85 content list 5 Stars
+					86 text 03/11/2024
+					87 text StarburstCA
+					88 container
+						89 text I got this app a couple years ago and was very impressed.  My love of astrology has lead me to draw and Interpret hundreds of natal charts for friends and family over the years. So I have high standards with any astrology content I encounter. I was so blown away by how deeply accurate and well written the information was - I laughed, I cried than laughter while crying, as the words struck a cord with me. My only complaint was with the app interface and having to scroll thru so many  little pages of information and I found it  difficult to navigate the content the way it was arranged in the app.   But now the app is even better! Now you  can listen to all of this juicy , deeply moving information. Plus, the narrator has such a lovely voice! She speaks with soul enthusiast and slightly seductive which draws you in. This is a definite must read/listen.    My only suggestion I would like to see is there being an option for monthly billing. I would rather pay $12 a month that $30 every quarter.    But I love this app so much, I have to end my review with one more positive  attribute I adore… and that is,  being able to see how two peoples charts are compatible. These are great for further understanding those obscure nuances  between not just you and a lover but friends or family as well.  If you want to do a deep dive  into yourself and/or to truly know the energy’s working behind the scenes in all your relationships , than this app is for you and you will be thrilled!
+						90 button more
+			91 button Next Page
+				92 image
+		93 container Description: What’s New, ID: mostRecentVersion
+			94 button What’s New
+				95 heading What’s New, Value: 2
+					96 text What’s New
+			97 container What’s New
+				98 container
+					99 text A new Lens experience is here, giving you a clearer, more engaging way to explore the insights that feel most relevant to you.
+
+Also included are improvements to friend requests, making them easier to view and manage.
+
+Be sure to turn on push notifications to stay connected and receive updates on freshly released personalized content!
+
+Follow @thepattern on Instagram
+
+—
+
+Enjoy even more personalized insights (now easier to find in the tab about You!), as well as all new romantic relationship and transit insights. We are sending out monthly moon journeys, 360 immersive audios, astrology classes that help you go deeper into what’s behind your chart and bonds, and so much more!
+
+What everyone gets for free:
+
+- Daily personalized updates about you and your romantic partner or friends
+- Bonds that you can view to explore your compatibility with anyone
+- Access to some of our content library, including chapters of Cosmic Climate
+- Manage your Friends and Custom Friends directly from their profile
+
+What our Go Deeper+ subscribers enjoy:
+
+- ALL NEW Romantic Timing cycles in Bond Transits
+- Unlimited access to the entire content library
+- Unlimited access to audio & written insights, conversations, and 360 immersive sound meditations
+- Traveling through time, which allows you to see how your life has been impacted during key moments in your life, both in the past and future
+- View unlimited bonds with anyone in your friends list or in our extensive public figures database
+- Classes in Astrology 101, to master all things astro in understandable terms
+- Full access to our Connect dating feature to find and chat with your perfect match
+
+Join our community today!
+					100 button more
+				101 text Version 5.42.3
+				102 text 6d ago
+		103 container Description: App Privacy, ID: privacyHeader
+			104 button App Privacy
+				105 link Description: App Privacy, Value: apps.apple.com/us/app/the-pattern/id1071085727#
+			106 container
+				107 text The developer,  Pattern Home, Inc. , indicated that the app’s privacy practices may include handling of data as described below. For more information, see the 
+				108 link Description: Developer’s Privacy Policy, Value: thepattern.com/privacy-policy
+				109 text .
+		110 content list
+			111 container Data Linked to You
+				112 heading Data Linked to You, Value: 3
+					113 text Data Linked to You
+				114 text The following data may be collected and linked to your identity:
+				115 content list
+					116 text Contact Info
+					117 text User Content
+					118 text Identifiers
+					119 text Usage Data
+					120 text Diagnostics
+			121 container Data Not Linked to You
+				122 heading Data Not Linked to You, Value: 3
+					123 text Data Not Linked to You
+				124 text The following data may be collected but it is not linked to your identity:
+				125 content list
+					126 text Contacts
+		127 container
+			128 text Privacy practices may vary, for example, based on the features you use or your age. 
+			129 link Description: Learn More, Value: apps.apple.com/us/iphone/story/id1538632801
+		130 container Description: Accessibility, ID: accessibilityHeader
+			131 heading Accessibility, Value: 2
+				132 text Accessibility
+			133 container
+				134 text The developer has not yet indicated which accessibility features this app supports. 
+				135 link Description: Learn More, Value: apps.apple.com/story/id1814164299
+		136 container Description: Information, ID: information
+			137 heading Information, Value: 2
+				138 text Information
+			139 definition list
+				140 container Seller
+					141 text Seller
+				142 text Pattern Home, Inc.
+				143 container Size
+					144 text Size
+				145 text 110.2 MB
+				146 container Category
+					147 text Category
+				148 text Lifestyle
+				149 container Compatibility
+					150 text Compatibility
+				151 button (collapsed) Requires iOS 17.0 or later., Secondary Actions: Expand
+					152 text Requires iOS 17.0 or later.
+					153 image
+				154 container Languages
+					155 text Languages
+				156 text English
+				157 container Age Rating
+					158 text Age Rating
+				159 button (collapsed) 13+, Secondary Actions: Expand
+					160 text 13+
+					161 image
+				162 container In-App Purchases
+					163 text In-App Purchases
+				164 button (collapsed) Yes, Secondary Actions: Expand
+					165 text Yes
+					166 image
+				167 container Copyright
+					168 text Copyright
+				169 text © Pattern Home, Inc.
+		170 container notPurchasedLinks
+			171 link Description: Developer Website ↗, Value: thepattern.com/
+			172 link Description: Privacy Policy ↗, Value: thepattern.com/privacy-policy
+		173 container Description: You Might Also Like, ID: similarItems
+			174 link Description: You Might Also Like, Value: apps.apple.com/us/app/1071085727?see-all=customers-also-bought-apps&platform=iphone
+			175 container
+				176 button (disabled) Previous Page
+					177 image
+				178 content list
+					179 link Description: View TimePassages Astrology The Original Astrology App, Value: apps.apple.com/us/app/timepassages-astrology/id488946918
+					180 link Description: View CHANI: Your Astrology Guide Learn, Reflect, Grow, Heal, Value: apps.apple.com/us/app/chani-your-astrology-guide/id1532791252
+					181 link Description: View Astro Future - Daily Horoscope Astrology & Love Compatibility, Value: apps.apple.com/us/app/astro-future-daily-horoscope/id1119123378
+					182 link Description: View Sanctuary Psychic Reading Zodiac Horoscope & Astrology, Value: apps.apple.com/us/app/sanctuary-psychic-reading/id1417411962
+					183 link Description: View Moonly: Moon Phases & Calendar Birth Chart, Tarot, Dreamer, Value: apps.apple.com/us/app/moonly-moon-phases-calendar/id1489889871
+					184 link Description: View Co–Star Personalized Astrology Horoscopes from the Void, Value: apps.apple.com/us/app/co-star-personalized-astrology/id1264782561
+					185 link Description: View Astromatrix Horoscopes Modern Astrology Horoscopes, Value: apps.apple.com/us/app/astromatrix-horoscopes/id1065636826
+					186 link Description: View Astra - Life Advice Astrology & Compatibility, Value: apps.apple.com/us/app/astra-life-advice/id6473748536
+					187 link Description: View Human Design: HD Birth Chart My Hdesign-Neutrino Numerology, Value: apps.apple.com/us/app/human-design-hd-birth-chart/id1582464555
+				188 button Next Page
+					189 image
+		190 container
+			191 button United States
+			192 content list
+				193 link Description: This page is available in Español (México), Value: apps.apple.com/us/app/the-pattern/id1071085727?l=es-MX
+				194 link Description: This page is available in العربية, Value: apps.apple.com/us/app/the-pattern/id1071085727?l=ar
+				195 link Description: This page is available in Русский, Value: apps.apple.com/us/app/the-pattern/id1071085727?l=ru
+				196 link Description: This page is available in 简体中文, Value: apps.apple.com/us/app/the-pattern/id1071085727?l=zh-Hans-CN
+				197 link Description: This page is available in Français (France), Value: apps.apple.com/us/app/the-pattern/id1071085727?l=fr-FR
+				198 link Description: This page is available in 한국어, Value: apps.apple.com/us/app/the-pattern/id1071085727?l=ko
+				199 link Description: This page is available in Português (Brazil), Value: apps.apple.com/us/app/the-pattern/id1071085727?l=pt-BR
+				200 link Description: This page is available in Tiếng Việt, Value: apps.apple.com/us/app/the-pattern/id1071085727?l=vi
+				201 link Description: This page is available in 繁體中文 (台灣), Value: apps.apple.com/us/app/the-pattern/id1071085727?l=zh-Hant-TW
+			202 text Copyright © 2026
+			203 link Description: Apple Inc., Value: apple.com/
+			204 text All rights reserved.
+			205 content list
+				206 link Description: Internet Service Terms, Value: apple.com/legal/internet-services/
+				207 link Description: App Store & Privacy, Value: apple.com/legal/privacy/data/en/app-store/
+				208 link Description: Cookie Warning, Value: apple.com/privacy/use-of-cookies/
+				209 link Description: Support, Value: support.apple.com/billing
+
+The focused UI element is 1 AXWebArea ‎The Pattern App - App Store, URL: apps.apple.com/us/app/the-pattern/id1071085727

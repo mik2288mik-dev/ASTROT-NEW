@@ -1,0 +1,216 @@
+{
+  "date": "2026-10-10",
+  "method": "Повторно визуально просмотрены все пять официальных галерей из картинки пользователя. Дополнительно прочитаны материалы по композиции и навыки из первичных репозиториев. Старые рисунки в новой пятёрке не используются.",
+  "references": [
+    {
+      "id": "as-ru-astrocode",
+      "name": "Astrocode",
+      "store": "App Store",
+      "language": "ru",
+      "url": "https://apps.apple.com/ru/app/astrocode/id1342547303",
+      "evidence": "1,3 тыс. оценок, 4,5",
+      "selection": "Прямой конкурент из примера пользователя",
+      "composition": "Синий единый фон; первая картинка с рисунком; далее крупные экраны",
+      "copy": "Короткий заголовок сверху или снизу; одна функция на кадр",
+      "take": "Астрономический рисунок вместо телефона на входе",
+      "avoid": "Ясно назвать натальную карту; заменить абстрактные обещания конкретным содержанием",
+      "proof": "assets/references/round-two/as-ru-astrocode.jpg",
+      "newSet": "N21"
+    },
+    {
+      "id": "as-ru-stargaze",
+      "name": "Stargaze",
+      "store": "App Store",
+      "language": "ru",
+      "url": "https://apps.apple.com/ru/app/stargaze/id6449580660",
+      "evidence": "143 оценки, 4,7",
+      "selection": "Композиционный референс пользователя; масштаб меньше крупных сервисов",
+      "composition": "Человек и телефон перекрывают границу первых двух кадров; третья картинка раскрывает функции",
+      "copy": "Название функции крупно; лицо привлекает внимание",
+      "take": "Оригинальный человек и общая композиция первых трёх",
+      "avoid": "Чужие лица, рейтинг 4,9 и +20K не переносить в NEBO",
+      "proof": "assets/references/round-two/as-ru-stargaze.jpg",
+      "newSet": "N22"
+    },
+    {
+      "id": "as-ru-moonly",
+      "name": "Moonly",
+      "store": "App Store",
+      "language": "ru",
+      "url": "https://apps.apple.com/ru/app/moonly/id1489889871",
+      "evidence": "4,1 тыс. оценок, 4,7; №142 в Образе жизни",
+      "selection": "Заметный прямой конкурент, русские креативы",
+      "composition": "Тёмный фон, настоящий UI, объёмные планеты и детали перед телефоном",
+      "copy": "Крупные короткие названия функций; второе сообщение меньше",
+      "take": "Скульптурные материалы и глубина вокруг экрана",
+      "avoid": "У NEBO собственные функции: без чата астролога, Таро и заявлений конкурента",
+      "proof": "assets/references/round-two/as-ru-moonly.jpg",
+      "newSet": "N23"
+    },
+    {
+      "id": "as-ru-litres",
+      "name": "Литрес",
+      "store": "App Store",
+      "language": "ru",
+      "url": "https://apps.apple.com/ru/app/litres/id438441429",
+      "evidence": "277 тыс. оценок, 4,7; №3 в Книгах",
+      "selection": "Крупный русскоязычный сервис",
+      "composition": "Первый кадр с человеком; затем UI и вынесенные карточки/объекты на фиолетовом фоне",
+      "copy": "Понятная конкретная функция в каждой картинке",
+      "take": "Человеческая сцена плюс крупные детали продукта",
+      "avoid": "Собственный персонаж; не копировать актрису, ценовую рекламу и книжные обложки",
+      "proof": "assets/references/round-two/as-ru-litres.jpg",
+      "newSet": "N24"
+    },
+    {
+      "id": "as-ru-forest",
+      "name": "Forest",
+      "store": "App Store",
+      "language": "ru",
+      "url": "https://apps.apple.com/ru/app/forest/id866450515",
+      "evidence": "11 тыс. оценок, 4,8; №77 в Производительности",
+      "selection": "Популярный сервис с русской галереей",
+      "composition": "Мятный светлый мир, объёмная иллюстрация сада; UI как часть мира",
+      "copy": "Выраженное действие в коротком заголовке",
+      "take": "Придумать цельную иллюстрированную среду вокруг NEBO",
+      "avoid": "Иллюстрация декоративная; не обещать игровой сад в приложении",
+      "proof": "assets/references/round-two/as-ru-forest.jpg",
+      "newSet": "N25"
+    }
+  ],
+  "sources": [
+    {
+      "name": "Apple — App Store asset best practices",
+      "url": "https://developer.apple.com/app-store/asset-best-practices/",
+      "take": "Первые кадры показывают сильные функции и реальный опыт. Последовательность рассказывает понятную историю."
+    },
+    {
+      "name": "Anthropic — frontend-design",
+      "url": "https://github.com/anthropics/skills/blob/main/skills/frontend-design/SKILL.md",
+      "take": "Заранее выбрать характер шрифта, палитру и пространственную композицию. Проверить замысел на шаблонность до сборки."
+    },
+    {
+      "name": "Anthropic — canvas-design",
+      "url": "https://github.com/anthropics/skills/blob/main/skills/canvas-design/SKILL.md",
+      "take": "Масштаб, свободное место и иерархия создают цельный рисунок. Повторный просмотр должен улучшать согласованность элементов."
+    },
+    {
+      "name": "App Store Screenshots — Parth Jadhav",
+      "url": "https://github.com/ParthJadhav/app-store-screenshots/blob/main/skills/app-store-screenshots/SKILL.md",
+      "take": "Общая сцена может проходить между кадрами и экспортироваться отдельными фрагментами. Заголовки проверяются в размере магазинной миниатюры."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "N21",
+      "reference": "as-ru-astrocode",
+      "composition": "Серебряный прибор и настоящая карта становятся первым кадром. Дальше — вертикальный экран гороскопа и большой фрагмент личного прогноза. Небесная линия связывает три разные композиции.",
+      "palette": [
+        "#071f32",
+        "#e9fcff",
+        "#82e9ef"
+      ],
+      "font": "Golos Text",
+      "featureOrder": [
+        "natal",
+        "zodiac",
+        "today",
+        "future",
+        "compatibility",
+        "matrix",
+        "profile",
+        "sounds"
+      ]
+    },
+    {
+      "id": "N22",
+      "reference": "as-ru-stargaze",
+      "composition": "Живой фотопостер с человеком и большим экраном, который пересекает стык первых двух картинок. Во втором кадре текст внизу; третий начинается с крупного интерфейса, а не с заголовка.",
+      "palette": [
+        "#57213b",
+        "#f5f7cd",
+        "#cbe891"
+      ],
+      "font": "Prata",
+      "featureOrder": [
+        "natal",
+        "zodiac",
+        "today",
+        "compatibility",
+        "future",
+        "matrix",
+        "profile",
+        "sounds"
+      ]
+    },
+    {
+      "id": "N23",
+      "reference": "as-ru-moonly",
+      "composition": "Настоящий гороскоп вставлен в телефон в руке. Затем карта вынесена крупным кругом; личный прогноз показан увеличенной карточкой. Отдельные шерстяные фигурки добавляют глубину.",
+      "palette": [
+        "#dcd9ff",
+        "#302058",
+        "#8070cd"
+      ],
+      "font": "Geologica",
+      "featureOrder": [
+        "zodiac",
+        "natal",
+        "today",
+        "future",
+        "matrix",
+        "compatibility",
+        "profile",
+        "sounds"
+      ]
+    },
+    {
+      "id": "N24",
+      "reference": "as-ru-litres",
+      "composition": "Яркий рекламный коллаж: заголовки работают как графика, содержание прогноза вынесено вперёд, экраны чередуют крупный план и смещённые слои. Голубые наушники и лупа — собственные предметные рисунки.",
+      "palette": [
+        "#ff6c31",
+        "#30233b",
+        "#c8eeed"
+      ],
+      "font": "Dela Gothic One",
+      "featureOrder": [
+        "today",
+        "natal",
+        "zodiac",
+        "matrix",
+        "future",
+        "compatibility",
+        "profile",
+        "sounds"
+      ]
+    },
+    {
+      "id": "N25",
+      "reference": "as-ru-forest",
+      "composition": "Три объёмных архитектурных острова соединены мостами. Экраны стоят на разной высоте, у карты — круглый крупный план, у знаков — прозрачное окно. Следующие кадры продолжают мир с другой композицией.",
+      "palette": [
+        "#d9f4f2",
+        "#126362",
+        "#ef704e"
+      ],
+      "font": "Nunito Sans",
+      "featureOrder": [
+        "today",
+        "natal",
+        "zodiac",
+        "future",
+        "compatibility",
+        "matrix",
+        "profile",
+        "sounds"
+      ]
+    }
+  ],
+  "novelty": {
+    "artwork": "6 новых оригинальных растровых рисунков, не использованных в прежних 36 наборах",
+    "type": "5 новых семейств с кириллицей",
+    "layout": "5 разных схем первых трёх и разные размещения остальных экранов",
+    "claims": "Сцены и стикеры — оформление; интерфейс и содержание взяты из настоящих NEBO-экранов"
+  }
+}

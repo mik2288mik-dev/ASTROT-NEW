@@ -9,6 +9,7 @@ import type { NatalPlanetKey } from "../lib/natalPlanetMeta";
 import type { SignCompatibilityResult } from '../lib/synastry/signCompatibility';
 import { buildLocalSignCompatibility } from '../lib/synastry/localSignText';
 import type { RelationshipContext } from '../lib/synastry/relationshipContext';
+import type { CompatibilityPreview } from '../lib/synastry/compatibilityPreview';
 import { getTelegramInitDataHeaders } from "./sessionService";
 import type { SkyTodaySnapshot } from '../lib/skyToday';
 import { ZODIAC_KEYS } from '../lib/zodiacKeys';
@@ -272,7 +273,7 @@ export const getCachedDailySignHoroscope = async (
   const local = readLocalSignHoroscope('today', sign, date, language);
   if (local?.periodKey === date) return local;
 
-  const params = new URLSearchParams({ sign, date, language });
+  const params = new URLSearchParams({ sign, date, language, schemaVersion: 'sign-horoscope-reading-v5' });
   const url = `${API_BASE_URL}/api/content/horoscope/sign-daily?${params.toString()}`;
   log.info('[getCachedDailySignHoroscope] Starting request', { sign, date, language });
 
@@ -320,7 +321,7 @@ export const getCachedWeeklySignHoroscope = async (
 ): Promise<SignHoroscopeReadingV2 | null> => {
   const local = readLocalSignHoroscope('week', sign, periodKey, language);
   if (local?.periodKey === periodKey) return local;
-  const params = new URLSearchParams({ sign, periodKey, language });
+  const params = new URLSearchParams({ sign, periodKey, language, schemaVersion: 'sign-horoscope-reading-v5' });
   const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-weekly?${params}`, {
     method: 'GET',
     credentials: 'include',
@@ -356,7 +357,7 @@ export const getCachedMonthlySignHoroscope = async (
 ): Promise<SignHoroscopeReadingV2 | null> => {
   const local = readLocalSignHoroscope('month', sign, periodKey, language);
   if (local?.periodKey === periodKey) return local;
-  const params = new URLSearchParams({ sign, periodKey, language });
+  const params = new URLSearchParams({ sign, periodKey, language, schemaVersion: 'sign-horoscope-reading-v5' });
   const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-monthly?${params}`, {
     method: 'GET',
     credentials: 'include',
@@ -938,6 +939,50 @@ export const calculateExtendedSynastry = async (
   };
 };
 
+
+export type CompatibilityPreviewPerson = {
+  source: 'birth' | 'saved';
+  chartId?: number;
+  name?: string;
+  date?: string;
+  place?: string;
+};
+
+/** Бесплатная совместимость по датам рождения: расчёт без ИИ, короткие ответы на вопросы темы. */
+export const getCompatibilityPreview = async (
+  profile: UserProfile,
+  subject: CompatibilityPreviewPerson,
+  partner: CompatibilityPreviewPerson,
+  relationshipContext: RelationshipContext,
+): Promise<CompatibilityPreview> => {
+  const response = await apiFetch(`${API_BASE_URL}/api/content/synastry/preview`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+    body: JSON.stringify({
+      language: profile.language,
+      relationshipContext,
+      subjectSource: subject.source,
+      subjectChartId: subject.chartId,
+      subjectName: subject.name,
+      subjectDate: subject.date,
+      subjectPlace: subject.place,
+      partnerSource: partner.source,
+      partnerChartId: partner.chartId,
+      partnerName: partner.name,
+      partnerDate: partner.date,
+      partnerPlace: partner.place,
+    }),
+  });
+  const data = await response.json().catch(() => null) as { preview?: CompatibilityPreview; error?: string; code?: string } | null;
+  if (!response.ok || !data?.preview) {
+    const apiError = new Error(data?.error || `Compatibility preview failed: ${response.status}`) as ApiErrorWithCode;
+    apiError.status = response.status;
+    apiError.code = data?.code;
+    throw apiError;
+  }
+  return data.preview;
+};
 
 export const updateUserEvolution = async (profile: UserProfile, chartData?: NatalChartData): Promise<UserEvolution> => {
   // If no evolution exists, initialize with personalized values based on natal chart

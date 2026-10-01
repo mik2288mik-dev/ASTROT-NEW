@@ -289,8 +289,8 @@ const ENUM_VALUES_BY_KEY: Record<string, ReadonlySet<string>> = {
   forecast_period: new Set(['day', 'week', 'month', 'future']),
   access_state: new Set(['open', 'locked', 'premium']),
   entry_point: PAYWALL_ENTRY_POINT_VALUES,
-  placement: new Set(['today', 'week', 'month', 'deep_natal', 'personality_deep', 'natal_questions', 'compatibility_by_charts', 'saved_people', 'settings']),
-  feature_key: new Set(['personal_daily', 'personal_daily_full', 'personal_weekly', 'personal_monthly', 'natal_deep', 'personality_deep', 'natal_questions', 'synastry_by_charts', 'saved_people']),
+  placement: new Set(['matrix', 'today', 'week', 'month', 'deep_natal', 'personality_deep', 'natal_questions', 'compatibility_by_charts', 'saved_people', 'settings']),
+  feature_key: new Set(['matrix_full', 'personal_daily', 'personal_daily_full', 'personal_weekly', 'personal_monthly', 'natal_deep', 'personality_deep', 'natal_questions', 'synastry_by_charts', 'saved_people']),
   trigger_type: new Set(['inline_promo', 'locked_feature', 'settings']),
   return_view: new Set(['dashboard', 'chart', 'synastry', 'charts', 'settings']),
   return_action: new Set([

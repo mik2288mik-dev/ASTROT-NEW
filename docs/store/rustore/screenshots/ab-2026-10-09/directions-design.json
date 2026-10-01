@@ -1,0 +1,2159 @@
+{
+  "date": "2026-10-10",
+  "versions": {
+    "G": {
+      "label": "Г",
+      "name": "Орбита",
+      "folder": "G-orbit",
+      "theme": "orbit",
+      "font": "Unbounded",
+      "tone": "Тёмный",
+      "people": false,
+      "planets": true,
+      "order": [
+        "natal",
+        "zodiac",
+        "today",
+        "compatibility",
+        "matrix",
+        "future",
+        "profile",
+        "sounds"
+      ],
+      "idea": "Глубокий синий фон, объёмные планеты и широкий шрифт. Вход через карту, обычный гороскоп сразу следом.",
+      "id": "G",
+      "images": [
+        {
+          "number": 1,
+          "key": "natal",
+          "file": "01-natal.jpg",
+          "title": "Натальная карта",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 2,
+          "key": "zodiac",
+          "file": "02-zodiac.jpg",
+          "title": "Гороскоп твоего знака",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 3,
+          "key": "today",
+          "file": "03-today.jpg",
+          "title": "Личный гороскоп",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 4,
+          "key": "compatibility",
+          "file": "04-compatibility.jpg",
+          "title": "Кто вы друг другу?",
+          "subtitle": "Сравни ваши натальные карты",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 5,
+          "key": "matrix",
+          "file": "05-matrix.jpg",
+          "title": "Матрица по твоей дате",
+          "subtitle": "По дате рождения, с понятными пояснениями",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 6,
+          "key": "future",
+          "file": "06-future.jpg",
+          "title": "Твои дни. Твои планы.",
+          "subtitle": "Календарь, личные прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Детали твоей карты",
+          "subtitle": "Сильные планеты и особенности твоей карты",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Пауза для отдыха",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    "D": {
+      "label": "Д",
+      "name": "Живой день",
+      "folder": "D-living-day",
+      "theme": "life",
+      "font": "Cormorant Garamond",
+      "tone": "Светлый",
+      "people": true,
+      "planets": false,
+      "order": [
+        "zodiac",
+        "today",
+        "compatibility",
+        "natal",
+        "future",
+        "matrix",
+        "profile",
+        "sounds"
+      ],
+      "idea": "Светлый кремовый фон, живые люди и крупные заголовки с засечками. Вход через привычный гороскоп и повседневное использование.",
+      "id": "D",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Твой знак. Твой день.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "Гороскоп лично для тебя",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "compatibility",
+          "file": "03-compatibility.jpg",
+          "title": "Что между вами?",
+          "subtitle": "Сравни ваши натальные карты",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 4,
+          "key": "natal",
+          "file": "04-natal.jpg",
+          "title": "Твоя карта простыми словами",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 5,
+          "key": "future",
+          "file": "05-future.jpg",
+          "title": "Посмотри на дни вперёд",
+          "subtitle": "Календарь, личные прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Твоя дата. Твоя матрица.",
+          "subtitle": "По дате рождения, с понятными пояснениями",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Какая она, твоя карта?",
+          "subtitle": "Сильные планеты и особенности твоей карты",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Включи море. Выдохни.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    "E": {
+      "label": "Е",
+      "name": "Чётко",
+      "folder": "E-bold",
+      "theme": "bold",
+      "font": "Oswald",
+      "tone": "Тёмный",
+      "people": false,
+      "planets": false,
+      "order": [
+        "zodiac",
+        "natal",
+        "today",
+        "matrix",
+        "compatibility",
+        "future",
+        "profile",
+        "sounds"
+      ],
+      "idea": "Почти чёрный фон, лаймовый акцент и узкий жирный шрифт. Большие слова и реальные экраны без людей и объёмных планет.",
+      "id": "E",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "ТВОЙ ЗНАК. ТВОЙ ГОРОСКОП.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "title": "НАТАЛЬНАЯ КАРТА.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "today",
+          "file": "03-today.jpg",
+          "title": "ТВОЙ ДЕНЬ. ЛИЧНЫЙ ПРОГНОЗ.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 4,
+          "key": "matrix",
+          "file": "04-matrix.jpg",
+          "title": "ТВОЯ ДАТА. ТВОЯ МАТРИЦА.",
+          "subtitle": "По дате рождения, с понятными пояснениями",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "ЧТО МЕЖДУ ВАМИ?",
+          "subtitle": "Сравни ваши натальные карты",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "future",
+          "file": "06-future.jpg",
+          "title": "ПЛАНИРУЙ. СМОТРИ НА ДНИ.",
+          "subtitle": "Календарь, личные прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "ТВОЯ КАРТА. БОЛЬШЕ ДЕТАЛЕЙ.",
+          "subtitle": "Сильные планеты и особенности твоей карты",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "ВКЛЮЧИ МОРЕ. ВЫДОХНИ.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    "ZH": {
+      "label": "Ж",
+      "name": "Воздух",
+      "folder": "ZH-air",
+      "theme": "air",
+      "font": "Manrope",
+      "tone": "Светлый",
+      "people": false,
+      "planets": false,
+      "order": [
+        "today",
+        "zodiac",
+        "natal",
+        "future",
+        "compatibility",
+        "matrix",
+        "profile",
+        "sounds"
+      ],
+      "idea": "Белый с голубым, спокойная типографика, часы, наушники, сердца и волна. Первым личный прогноз, гороскоп по знаку вторым.",
+      "id": "ZH",
+      "images": [
+        {
+          "number": 1,
+          "key": "today",
+          "file": "01-today.jpg",
+          "title": "Личный прогноз на твой день",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 2,
+          "key": "zodiac",
+          "file": "02-zodiac.jpg",
+          "title": "Твой знак. Твой прогноз.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Натальная карта с расшифровкой",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "Дни впереди — перед глазами",
+          "subtitle": "Календарь, личные прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Как вы подходите друг другу",
+          "subtitle": "Сравни ваши натальные карты",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Матрица судьбы по твоей дате",
+          "subtitle": "По дате рождения, с понятными пояснениями",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Твоя карта в деталях",
+          "subtitle": "Сильные планеты и особенности твоей карты",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Время тишины и любимых звуков",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    "Z": {
+      "label": "З",
+      "name": "Красный журнал",
+      "folder": "Z-red-editorial",
+      "theme": "red",
+      "font": "Rubik",
+      "tone": "Яркий",
+      "people": false,
+      "planets": false,
+      "order": [
+        "zodiac",
+        "natal",
+        "today",
+        "compatibility",
+        "future",
+        "matrix",
+        "profile",
+        "sounds"
+      ],
+      "idea": "Красный с молочным, широкая журнальная типографика, крупная цифра 12 и белые поля. Яркий графический вход без людей и планет.",
+      "id": "Z",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "ТВОЙ ЗНАК. ТВОЙ ГОРОСКОП.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "natal",
+          "file": "02-natal.jpg",
+          "title": "НАТАЛЬНАЯ КАРТА В ДЕТАЛЯХ.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 3,
+          "key": "today",
+          "file": "03-today.jpg",
+          "title": "ЛИЧНЫЙ ПРОГНОЗ НА ДЕНЬ.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 4,
+          "key": "compatibility",
+          "file": "04-compatibility.jpg",
+          "title": "КАК ВЫ ПОДХОДИТЕ?",
+          "subtitle": "Сравни ваши натальные карты",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 5,
+          "key": "future",
+          "file": "05-future.jpg",
+          "title": "СМОТРИ НА ДНИ ВПЕРЁД.",
+          "subtitle": "Календарь, личные прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "ТВОЯ ДАТА. ТВОЯ МАТРИЦА.",
+          "subtitle": "По дате рождения, с понятными пояснениями",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "ИЗ ЧЕГО ТВОЯ КАРТА?",
+          "subtitle": "Сильные планеты и особенности твоей карты",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "МОРЕ. ДОЖДЬ. ВРЕМЯ ВЫДОХНУТЬ.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    "I": {
+      "label": "И",
+      "name": "Лавандовая студия",
+      "folder": "I-lavender-studio",
+      "theme": "lavender",
+      "font": "Manrope",
+      "tone": "Светлый",
+      "people": false,
+      "planets": true,
+      "order": [
+        "natal",
+        "zodiac",
+        "today",
+        "matrix",
+        "compatibility",
+        "future",
+        "profile",
+        "sounds"
+      ],
+      "idea": "Светлая лаванда, мягкие объёмные планеты, наклонные белые экраны и маленькие подписи. Мягкий вариант космической темы.",
+      "id": "I",
+      "images": [
+        {
+          "number": 1,
+          "key": "natal",
+          "file": "01-natal.jpg",
+          "title": "Твоя карта простыми словами",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 2,
+          "key": "zodiac",
+          "file": "02-zodiac.jpg",
+          "title": "Твой знак. Твой гороскоп.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 3,
+          "key": "today",
+          "file": "03-today.jpg",
+          "title": "Личный прогноз на каждый день",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 4,
+          "key": "matrix",
+          "file": "04-matrix.jpg",
+          "title": "Твоя дата. Твоя матрица.",
+          "subtitle": "По дате рождения, с понятными пояснениями",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Что между вами?",
+          "subtitle": "Сравни ваши натальные карты",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "future",
+          "file": "06-future.jpg",
+          "title": "Планы есть. А что по дням?",
+          "subtitle": "Календарь, личные прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Детали твоей натальной карты",
+          "subtitle": "Сильные планеты и особенности твоей карты",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Включи звуки. Отдохни.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    "K": {
+      "label": "К",
+      "name": "Люди и небо",
+      "folder": "K-people-night",
+      "theme": "night",
+      "font": "Playfair Display",
+      "tone": "Тёмный",
+      "people": true,
+      "planets": false,
+      "order": [
+        "zodiac",
+        "today",
+        "natal",
+        "compatibility",
+        "future",
+        "matrix",
+        "profile",
+        "sounds"
+      ],
+      "idea": "Тёмный сливовый фон, крупный портрет, кремовые заголовки с засечками и реальные экраны. Портрет показывает пользователя приложения.",
+      "id": "K",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Твой знак. Твой день.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "Гороскоп лично для тебя",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Твоя карта простыми словами",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "compatibility",
+          "file": "04-compatibility.jpg",
+          "title": "Что между вами?",
+          "subtitle": "Сравни ваши натальные карты",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 5,
+          "key": "future",
+          "file": "05-future.jpg",
+          "title": "Твои дни перед глазами",
+          "subtitle": "Календарь, личные прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Твоя дата. Твоя матрица.",
+          "subtitle": "По дате рождения, с понятными пояснениями",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Детали твоей карты",
+          "subtitle": "Сильные планеты и особенности твоей карты",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Пауза. Включи звуки.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    "L": {
+      "label": "Л",
+      "name": "Синий плакат",
+      "folder": "L-blue-poster",
+      "theme": "blue",
+      "font": "Unbounded",
+      "tone": "Яркий",
+      "people": false,
+      "planets": false,
+      "order": [
+        "zodiac",
+        "today",
+        "natal",
+        "compatibility",
+        "matrix",
+        "future",
+        "profile",
+        "sounds"
+      ],
+      "idea": "Чистый кобальтовый цвет, огромные формы и жёлтая лента. Знаки зодиака сразу и короткие заголовки на каждом кадре.",
+      "id": "L",
+      "images": [
+        {
+          "number": 1,
+          "key": "zodiac",
+          "file": "01-zodiac.jpg",
+          "title": "Гороскоп твоего знака",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 2,
+          "key": "today",
+          "file": "02-today.jpg",
+          "title": "Твой день. Личный прогноз.",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Твоя карта. Понятный разбор.",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "compatibility",
+          "file": "04-compatibility.jpg",
+          "title": "Как вы подходите?",
+          "subtitle": "Сравни ваши натальные карты",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 5,
+          "key": "matrix",
+          "file": "05-matrix.jpg",
+          "title": "Твоя дата. Твоя матрица.",
+          "subtitle": "По дате рождения, с понятными пояснениями",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 6,
+          "key": "future",
+          "file": "06-future.jpg",
+          "title": "Смотри дни заранее",
+          "subtitle": "Календарь, личные прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Твоя карта в деталях",
+          "subtitle": "Сильные планеты и особенности твоей карты",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Включи море. Выдохни.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    },
+    "M": {
+      "label": "М",
+      "name": "Крафт",
+      "folder": "M-kraft",
+      "theme": "kraft",
+      "font": "Caveat",
+      "tone": "Светлый",
+      "people": false,
+      "planets": false,
+      "order": [
+        "today",
+        "zodiac",
+        "natal",
+        "future",
+        "compatibility",
+        "matrix",
+        "profile",
+        "sounds"
+      ],
+      "idea": "Бумага, рукописный шрифт, небольшие пометки и крупные экраны. Тёплая повседневная подача без людей и объёмных планет.",
+      "id": "M",
+      "images": [
+        {
+          "number": 1,
+          "key": "today",
+          "file": "01-today.jpg",
+          "title": "Почитай свой личный гороскоп",
+          "subtitle": "Прогноз по твоей натальной карте",
+          "name": "Личный гороскоп",
+          "premium": false,
+          "screen": "assets/screens/02-today-readable.png"
+        },
+        {
+          "number": 2,
+          "key": "zodiac",
+          "file": "02-zodiac.jpg",
+          "title": "Выбери знак. Узнай свой прогноз.",
+          "subtitle": "Выбери свой знак и читай прогноз на сегодня",
+          "name": "Гороскоп по знаку",
+          "premium": false,
+          "screen": "assets/screens/09-zodiac-horoscope.jpg"
+        },
+        {
+          "number": 3,
+          "key": "natal",
+          "file": "03-natal.jpg",
+          "title": "Твоя карта простыми словами",
+          "subtitle": "По дате, времени и месту рождения",
+          "name": "Натальная карта",
+          "premium": false,
+          "screen": "assets/screens/01-natal-map.jpg"
+        },
+        {
+          "number": 4,
+          "key": "future",
+          "file": "04-future.jpg",
+          "title": "А что там с днями впереди?",
+          "subtitle": "Календарь, личные прогнозы на неделю и месяц",
+          "name": "Календарь",
+          "premium": true,
+          "screen": "assets/screens/03-future.jpg"
+        },
+        {
+          "number": 5,
+          "key": "compatibility",
+          "file": "05-compatibility.jpg",
+          "title": "Что между вами?",
+          "subtitle": "Сравни ваши натальные карты",
+          "name": "Совместимость",
+          "premium": true,
+          "screen": "assets/screens/04-compatibility.jpg"
+        },
+        {
+          "number": 6,
+          "key": "matrix",
+          "file": "06-matrix.jpg",
+          "title": "Твоя дата. Твоя матрица.",
+          "subtitle": "По дате рождения, с понятными пояснениями",
+          "name": "Матрица судьбы",
+          "premium": false,
+          "screen": "assets/screens/08-matrix.jpg"
+        },
+        {
+          "number": 7,
+          "key": "profile",
+          "file": "07-profile.jpg",
+          "title": "Давай посмотрим на твою карту",
+          "subtitle": "Сильные планеты и особенности твоей карты",
+          "name": "Профиль карты",
+          "premium": false,
+          "screen": "assets/screens/06-natal-profile.jpg"
+        },
+        {
+          "number": 8,
+          "key": "sounds",
+          "file": "08-sounds.jpg",
+          "title": "Море включено. Можно выдохнуть.",
+          "subtitle": "Звуки природы для сна и отдыха",
+          "name": "Звуки для отдыха",
+          "premium": false,
+          "screen": "assets/screens/10-sounds.jpg"
+        }
+      ]
+    }
+  },
+  "checks": [
+    {
+      "variant": "G",
+      "file": "01-natal.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 314483,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 447.234375,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "G",
+      "file": "02-zodiac.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 331711,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 447.234375,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "G",
+      "file": "03-today.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 344886,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 447.234375,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "G",
+      "file": "04-compatibility.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 295672,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 447.234375,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "G",
+      "file": "05-matrix.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 287238,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 447.234375,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "G",
+      "file": "06-future.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 302581,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 447.234375,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "G",
+      "file": "07-profile.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 329211,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 447.234375,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "G",
+      "file": "08-sounds.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 291877,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 447.234375,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "D",
+      "file": "01-zodiac.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 376447,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 521.953125,
+        "fonts": [
+          "Onest",
+          "Cormorant"
+        ]
+      }
+    },
+    {
+      "variant": "D",
+      "file": "02-today.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 375459,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 491.234375,
+        "fonts": [
+          "Onest",
+          "Cormorant"
+        ]
+      }
+    },
+    {
+      "variant": "D",
+      "file": "03-compatibility.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 263345,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 491.234375,
+        "fonts": [
+          "Onest",
+          "Cormorant"
+        ]
+      }
+    },
+    {
+      "variant": "D",
+      "file": "04-natal.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 226973,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 481.640625,
+        "fonts": [
+          "Onest",
+          "Cormorant"
+        ]
+      }
+    },
+    {
+      "variant": "D",
+      "file": "05-future.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 208162,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 491.234375,
+        "fonts": [
+          "Onest",
+          "Cormorant"
+        ]
+      }
+    },
+    {
+      "variant": "D",
+      "file": "06-matrix.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 193390,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 491.234375,
+        "fonts": [
+          "Onest",
+          "Cormorant"
+        ]
+      }
+    },
+    {
+      "variant": "D",
+      "file": "07-profile.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 229538,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 491.234375,
+        "fonts": [
+          "Onest",
+          "Cormorant"
+        ]
+      }
+    },
+    {
+      "variant": "D",
+      "file": "08-sounds.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 224259,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 491.234375,
+        "fonts": [
+          "Onest",
+          "Cormorant"
+        ]
+      }
+    },
+    {
+      "variant": "E",
+      "file": "01-zodiac.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 250988,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 534.65625,
+        "fonts": [
+          "Onest",
+          "Oswald"
+        ]
+      }
+    },
+    {
+      "variant": "E",
+      "file": "02-natal.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 223731,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 541.03125,
+        "fonts": [
+          "Onest",
+          "Oswald"
+        ]
+      }
+    },
+    {
+      "variant": "E",
+      "file": "03-today.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 262724,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 498.625,
+        "fonts": [
+          "Onest",
+          "Oswald"
+        ]
+      }
+    },
+    {
+      "variant": "E",
+      "file": "04-matrix.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 211196,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 541.03125,
+        "fonts": [
+          "Onest",
+          "Oswald"
+        ]
+      }
+    },
+    {
+      "variant": "E",
+      "file": "05-compatibility.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 206381,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 541.03125,
+        "fonts": [
+          "Onest",
+          "Oswald"
+        ]
+      }
+    },
+    {
+      "variant": "E",
+      "file": "06-future.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 223309,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 541.03125,
+        "fonts": [
+          "Onest",
+          "Oswald"
+        ]
+      }
+    },
+    {
+      "variant": "E",
+      "file": "07-profile.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 243623,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 498.625,
+        "fonts": [
+          "Onest",
+          "Oswald"
+        ]
+      }
+    },
+    {
+      "variant": "E",
+      "file": "08-sounds.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 235383,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 541.03125,
+        "fonts": [
+          "Onest",
+          "Oswald"
+        ]
+      }
+    },
+    {
+      "variant": "ZH",
+      "file": "01-today.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 302885,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 457.125,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "ZH",
+      "file": "02-zodiac.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 257844,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 457.125,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "ZH",
+      "file": "03-natal.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 278409,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 457.125,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "ZH",
+      "file": "04-future.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 254984,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 457.125,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "ZH",
+      "file": "05-compatibility.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 222937,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 457.125,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "ZH",
+      "file": "06-matrix.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 234709,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 457.125,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "ZH",
+      "file": "07-profile.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 277104,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 457.125,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "ZH",
+      "file": "08-sounds.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 267600,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 457.125,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "Z",
+      "file": "01-zodiac.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 254669,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 464.078125,
+        "fonts": [
+          "Onest",
+          "Rubik"
+        ]
+      }
+    },
+    {
+      "variant": "Z",
+      "file": "02-natal.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 219986,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 464.078125,
+        "fonts": [
+          "Onest",
+          "Rubik"
+        ]
+      }
+    },
+    {
+      "variant": "Z",
+      "file": "03-today.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 258398,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 464.078125,
+        "fonts": [
+          "Onest",
+          "Rubik"
+        ]
+      }
+    },
+    {
+      "variant": "Z",
+      "file": "04-compatibility.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 197370,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 464.078125,
+        "fonts": [
+          "Onest",
+          "Rubik"
+        ]
+      }
+    },
+    {
+      "variant": "Z",
+      "file": "05-future.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 209571,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 464.078125,
+        "fonts": [
+          "Onest",
+          "Rubik"
+        ]
+      }
+    },
+    {
+      "variant": "Z",
+      "file": "06-matrix.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 200015,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 464.078125,
+        "fonts": [
+          "Onest",
+          "Rubik"
+        ]
+      }
+    },
+    {
+      "variant": "Z",
+      "file": "07-profile.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 232919,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 464.078125,
+        "fonts": [
+          "Onest",
+          "Rubik"
+        ]
+      }
+    },
+    {
+      "variant": "Z",
+      "file": "08-sounds.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 235954,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 443.921875,
+        "fonts": [
+          "Onest",
+          "Rubik"
+        ]
+      }
+    },
+    {
+      "variant": "I",
+      "file": "01-natal.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 234403,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 465.40625,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "I",
+      "file": "02-zodiac.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 227306,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 465.40625,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "I",
+      "file": "03-today.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 263684,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 465.40625,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "I",
+      "file": "04-matrix.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 202633,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 465.40625,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "I",
+      "file": "05-compatibility.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 186592,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 465.40625,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "I",
+      "file": "06-future.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 206942,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 465.40625,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "I",
+      "file": "07-profile.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 247283,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 465.40625,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "I",
+      "file": "08-sounds.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 217074,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 465.40625,
+        "fonts": [
+          "Onest",
+          "Manrope"
+        ]
+      }
+    },
+    {
+      "variant": "K",
+      "file": "01-zodiac.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 280518,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 492.6875,
+        "fonts": [
+          "Onest",
+          "Playfair"
+        ]
+      }
+    },
+    {
+      "variant": "K",
+      "file": "02-today.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 336163,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 492.6875,
+        "fonts": [
+          "Onest",
+          "Playfair"
+        ]
+      }
+    },
+    {
+      "variant": "K",
+      "file": "03-natal.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 232534,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 463.3125,
+        "fonts": [
+          "Onest",
+          "Playfair"
+        ]
+      }
+    },
+    {
+      "variant": "K",
+      "file": "04-compatibility.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 193328,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 492.6875,
+        "fonts": [
+          "Onest",
+          "Playfair"
+        ]
+      }
+    },
+    {
+      "variant": "K",
+      "file": "05-future.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 210654,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 492.6875,
+        "fonts": [
+          "Onest",
+          "Playfair"
+        ]
+      }
+    },
+    {
+      "variant": "K",
+      "file": "06-matrix.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 199950,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 492.6875,
+        "fonts": [
+          "Onest",
+          "Playfair"
+        ]
+      }
+    },
+    {
+      "variant": "K",
+      "file": "07-profile.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 232506,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 492.6875,
+        "fonts": [
+          "Onest",
+          "Playfair"
+        ]
+      }
+    },
+    {
+      "variant": "K",
+      "file": "08-sounds.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 226325,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 492.6875,
+        "fonts": [
+          "Onest",
+          "Playfair"
+        ]
+      }
+    },
+    {
+      "variant": "L",
+      "file": "01-zodiac.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 264408,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 444.296875,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "L",
+      "file": "02-today.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 251592,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 444.296875,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "L",
+      "file": "03-natal.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 226755,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 444.296875,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "L",
+      "file": "04-compatibility.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 190051,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 444.296875,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "L",
+      "file": "05-matrix.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 192038,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 444.296875,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "L",
+      "file": "06-future.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 201993,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 444.296875,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "L",
+      "file": "07-profile.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 224428,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 444.296875,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "L",
+      "file": "08-sounds.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 218097,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 444.296875,
+        "fonts": [
+          "Onest",
+          "Unbounded"
+        ]
+      }
+    },
+    {
+      "variant": "M",
+      "file": "01-today.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 432933,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 490.765625,
+        "fonts": [
+          "Onest",
+          "Caveat"
+        ]
+      }
+    },
+    {
+      "variant": "M",
+      "file": "02-zodiac.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 422308,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 474.109375,
+        "fonts": [
+          "Onest",
+          "Caveat"
+        ]
+      }
+    },
+    {
+      "variant": "M",
+      "file": "03-natal.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 393499,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 490.765625,
+        "fonts": [
+          "Onest",
+          "Caveat"
+        ]
+      }
+    },
+    {
+      "variant": "M",
+      "file": "04-future.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 373281,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 490.765625,
+        "fonts": [
+          "Onest",
+          "Caveat"
+        ]
+      }
+    },
+    {
+      "variant": "M",
+      "file": "05-compatibility.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 358801,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 490.765625,
+        "fonts": [
+          "Onest",
+          "Caveat"
+        ]
+      }
+    },
+    {
+      "variant": "M",
+      "file": "06-matrix.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 361300,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 490.765625,
+        "fonts": [
+          "Onest",
+          "Caveat"
+        ]
+      }
+    },
+    {
+      "variant": "M",
+      "file": "07-profile.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 407378,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 476.203125,
+        "fonts": [
+          "Onest",
+          "Caveat"
+        ]
+      }
+    },
+    {
+      "variant": "M",
+      "file": "08-sounds.jpg",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 399583,
+      "layout": {
+        "headlineWidth": 950,
+        "available": 950,
+        "copyBottom": 476.203125,
+        "fonts": [
+          "Onest",
+          "Caveat"
+        ]
+      }
+    }
+  ],
+  "source": "directions-masters.html",
+  "prompts": [
+    "directions-prompts.json",
+    "directions-more-prompts.json"
+  ],
+  "tool": "built-in imagegen for planet, people and everyday object assets; native HTML/CSS for text, layout and real UI screenshots",
+  "unchanged": "A, B, V and V1-V4 remain available",
+  "hypothesis": "Nine new full screenshot sets; sixteen total including A, B, V and V1-V4. No forecast of conversion performance.",
+  "references": "reference-audit.json",
+  "fontSources": [
+    {
+      "family": "Unbounded",
+      "license": "assets/type/*-OFL.txt",
+      "source": "https://github.com/google/fonts/tree/main/ofl/unbounded"
+    },
+    {
+      "family": "Cormorant Garamond",
+      "license": "assets/type/*-OFL.txt",
+      "source": "https://github.com/google/fonts/tree/main/ofl/cormorantgaramond"
+    },
+    {
+      "family": "Oswald",
+      "license": "assets/type/*-OFL.txt",
+      "source": "https://github.com/google/fonts/tree/main/ofl/oswald"
+    },
+    {
+      "family": "Manrope",
+      "license": "assets/type/*-OFL.txt",
+      "source": "https://github.com/google/fonts/tree/main/ofl/manrope"
+    },
+    {
+      "family": "Rubik",
+      "license": "assets/type/*-OFL.txt",
+      "source": "https://github.com/google/fonts/tree/main/ofl/rubik"
+    },
+    {
+      "family": "Manrope",
+      "license": "assets/type/*-OFL.txt",
+      "source": "https://github.com/google/fonts/tree/main/ofl/manrope"
+    },
+    {
+      "family": "Playfair Display",
+      "license": "assets/type/*-OFL.txt",
+      "source": "https://github.com/google/fonts/tree/main/ofl/playfairdisplay"
+    },
+    {
+      "family": "Unbounded",
+      "license": "assets/type/*-OFL.txt",
+      "source": "https://github.com/google/fonts/tree/main/ofl/unbounded"
+    },
+    {
+      "family": "Caveat",
+      "license": "assets/type/*-OFL.txt",
+      "source": "https://github.com/google/fonts/tree/main/ofl/caveat"
+    }
+  ],
+  "assets": [
+    "assets/directions/planets.png",
+    "assets/directions/people.jpg",
+    "assets/directions/objects.png",
+    "assets/directions/pastel-planets.png",
+    "assets/directions/portrait.png",
+    "assets/directions/kraft-paper.png"
+  ]
+}

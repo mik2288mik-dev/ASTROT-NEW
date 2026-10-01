@@ -247,7 +247,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v57-grounded-today+week-month',
+  'personal-forecast-feed.v58-spoken-today+week-month',
 );
 export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v32-grounded-today';
 /** Input/cache identity, not an astrological calculation version. */
@@ -407,11 +407,17 @@ export function isCurrentPersonalForecastPeriodKey(
 // Keep today's reading and the next four local calendar days ready in advance.
 export const PERSONAL_FORECAST_ROLLING_DAY_COUNT = 5;
 export const MAX_FUTURE_FORECAST_DAYS = 30;
+/** Free readers open today and tomorrow; NEBO+ opens the whole 30-day horizon. */
+export const FREE_FORECAST_DAYS = 2;
 
 /** Calendar dates, independent of DST and the device's own timezone. */
-export function getPersonalForecastDayHorizon(timezone?: string | null, now = new Date()): string[] {
+export function getPersonalForecastDayHorizon(
+  timezone?: string | null,
+  now = new Date(),
+  count = PERSONAL_FORECAST_ROLLING_DAY_COUNT,
+): string[] {
   const keys = [getPersonalForecastPeriodKey('day', now, normalizeForecastTimezone(timezone))];
-  while (keys.length < PERSONAL_FORECAST_ROLLING_DAY_COUNT) {
+  while (keys.length < count) {
     keys.push(getNextPersonalForecastPeriodKey('day', keys[keys.length - 1], timezone));
   }
   return keys;
@@ -436,7 +442,7 @@ export function getPersonalForecastPeriodAccess(input: {
   const today = getPersonalForecastPeriodKey('day', now, timezone);
   const offset = (Date.parse(`${input.periodKey}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / 86_400_000;
   if (!Number.isInteger(offset) || offset < 0 || offset > MAX_FUTURE_FORECAST_DAYS) return 'outside_horizon';
-  return offset === 0 || input.accessTier === 'premium' ? 'allowed' : 'premium_required';
+  return offset < FREE_FORECAST_DAYS || input.accessTier === 'premium' ? 'allowed' : 'premium_required';
 }
 
 function parsePeriodKey(period: PersonalForecastPeriod, periodKey: string) {

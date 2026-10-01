@@ -1,0 +1,292 @@
+Browser tab: 3, Title: "‎Приложение «Литрес: Книги и аудиокниги» — App Store", URL: "https://apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429".
+1 AXWebArea ‎Приложение «Литрес: Книги и аудиокниги» — App Store, URL: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429
+	2 container
+		3 container Description: App Store, ID: app-store-icon-container
+		4 button (collapsed) App Store, ID: popover-1-target, Secondary Actions: Expand
+			5 text для iPhone
+			6 image
+		7 container search-input-form
+			8 text Поиск
+			9 search text field (settable) Поиск, ID: search-input__text-field
+		10 container navigation
+			11 content list
+				12 checkbox Сегодня, Value: 0
+				13 checkbox Игры, Value: 0
+				14 checkbox Приложения, Value: 0
+				15 checkbox Arcade, Value: 0
+			16 content list Категории
+				17 checkbox Категории, Value: 0
+				18 checkbox Фото и видео, Value: 0
+				19 checkbox Здоровье и фитнес, Value: 0
+				20 checkbox Производительность, Value: 0
+				21 checkbox Развлечения, Value: 0
+				22 checkbox Экшен, Value: 0
+				23 checkbox Приключения, Value: 0
+				24 checkbox Головоломки, Value: 0
+				25 checkbox Инди, Value: 0
+	26 container
+		27 container
+			28 heading Литрес: Книги и аудиокниги, Value: 1
+				29 text Литрес: Книги и аудиокниги
+			30 text Чтение книг онлайн и оффлайн
+			31 text Бесплатно · Встроенные покупки
+			32 button Поделиться
+		33 content list
+			34 link Description: ОЦЕНОК: 277 ТЫС. Количество звезд: 4,7, Value: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429#productRatings
+			35 link Description: ВОЗРАСТ 13+ лет (г.), Value: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429#information
+			36 link Description: РЕЙТИНГ номер 3 Книги, Value: apps.apple.com/ru/iphone/charts/6018?chart=top-free
+			37 link Description: РАЗРАБОТЧИК LitRes OOO, Value: apps.apple.com/ru/developer/litres-ooo/id420377436?platform=iphone
+			38 link Description: ЯЗЫК RU и еще 6, Value: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429#information
+			39 link Description: РАЗМЕР 72,4 МБ, Value: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429#information
+		40 container Description: iPhone Предпросмотр приложений и снимки экрана, ID: product_media_phone_
+			41 container
+				42 button (disabled) Предыдущая страница
+					43 image
+				44 content list
+					45 container Снимок экрана
+					46 container Снимок экрана
+					47 container Снимок экрана
+					48 container Снимок экрана
+				49 button Следующая страница
+					50 image
+		51 button iPhone, iPad, Apple Watch
+			52 text iPhone, iPad, Apple Watch
+		53 container
+			54 text Теперь читать и слушать книги и подкасты в приложении Литрес можно по подписке!
+Неудобно читать? Переключайтесь на аудио и слушайте с того же места, где остановили чтение
+
+Литрес — крупнейший сервис электронных и аудиокниг в России*, где вы всегда найдёте что почитать: эксклюзивы, бестселлеры, новинки и классика литературы. Более 1 миллиона электронных книг в текстовом и аудиоформате ждут вас!
+
+С ПРИЛОЖЕНИЕМ ЛИТРЕС ВЫ СМОЖЕТЕ
+
+- Первым читать новинки: большинство электронных книг появляются в Литрес одновременно или до выхода бумажной версии.
+- Получать умные рекомендации на основе истории чтения и вашей электронной библиотеки.
+- Искать электронные книги, аудиокниги, подкасты по всем категориям.
+- Читать отзывы читателей и писать свои, подписываться на авторов или становиться книжным критиком.
+- Участвовать в единой программе лояльности с книжными магазинами «Читай-город» и «Буквоед», получать кешбэк до 15% и оплачивать покупки бонусами до 100%, что делает чтение ещё более выгодным и приятным.
+
+ФУНКЦИИ И ОСОБЕННОСТИ ЛИТРЕС
+
+- Удобная читалка книг с гибкими настройками: меняйте яркость, размер шрифта и цвет фона.
+- Плеер аудиокниг с возможностью изменения скорости воспроизведения и прослушивания в фоновом режиме.
+- Таймер сна для комфортного прослушивания аудиокниг и подкастов.
+- Создание личной библиотеки: добавляйте книги в свою личную коллекцию, чтобы удобно организовывать свой список для чтения. 
+- Офлайн-режим: возможность скачивать книги и аудиокниги для чтения или прослушивания без доступа к интернету.
+- Плавный переход между текстом и аудио: если у вас есть электронная книга и ее аудиоверсия, нажмите “Перейти к тексту/аудио” и продолжите чтение в читалке или прослушивание аудиокниги с того же места.
+- Синхронизация чтения между вашими устройствами и компьютером.
+
+ЛИТРЕС НА РАЗНЫХ УСТРОЙСТВАХ
+
+Читайте и слушайте книги:
+— на смартфонах и планшетах
+— на электронных книгах
+— на смарт-ТВ
+
+Войдите в тот же аккаунт Литрес — библиотека, покупки и прогресс чтения уже будут внутри. Начните книгу в телефоне, продолжите на электронной книге и включайте аудиокниги дома на smart-TV.
+
+ДЛЯ КОГО ЭТО ПРИЛОЖЕНИЕ
+
+- Для тех, кто любит читать, но не всегда находит время. Читайте и слушайте книги, где бы вы ни были.
+- Для водителей и путешественников: погружайтесь в захватывающие истории, пока едете или летите.  
+- Для тех, кто занимается спортом. Тренируйся под нон-фикшн, фантастику или любимые романы. 
+
+В одном приложении — электронные и аудиокниги. Читай вечером с планшета, слушай утром с телефона — прогресс всегда синхронизирован. 
+
+ЧИТАЙТЕ И СЛУШАЙТЕ В ЛЮБОМ ФОРМАТЕ
+
+Подписка «Легкое чтение» — доступ к 340 000 электронных книг и  аудиокниг и подкастов за 199 ₽. Художественная литература, нон-фикшн, популярные жанры
+
+Подписка «Большая коллекция» - доступ к 800 000 книг, аудиокниг и подкастов. 
+Пробный период бесплатно, далее 449 ₽.
+
+Подписка «Книжная вселенная» - доступ к более чем 800 000 книг, аудиокниг и подкастов + 1 000 новинок и эксклюзивов каждый месяц за 699 ₽. 
+1 раз в месяц - любая книга до 700 ₽ из всего каталога Литрес. 
+
+Прочитайте фрагмент бесплатно или прослушайте его в формате аудио перед покупкой.
+Купленные книги и аудиокниги останутся в вашей коллекции навсегда — их можно скачать и читать даже без интернета.
+
+Более 140 жанров, включая зарубежную литературу, фантастику и фэнтези, художественную литературу, любовные романы и истории, ужасы, подкасты, комиксы и многое другое.
+
+ИЗВЕСТНЫЕ АВТОРЫ
+
+Вадим Зеланд, Сергей Лукьяненко, Дина Рубина, Татьяна Мужицкая, Виктор Дашкевич, Алексей Ключевский, Михаил Лабковский, Роберт Грин, Наполеон Хилл, Гэри Чепмен и многие другие.
+
+Скачайте Литрес прямо сейчас и откройте для себя мир литературы!
+
+Наша команда каждый день работает над улучшением приложения. Если вы столкнулись с какой-либо проблемой или у вас появилась интересная идея, пишите нам на почту - help@litres.ru.
+
+*Согласно данным российских сервисов цифровых книг в отчете о рынке цифровых книг России по итогам 2024 года ООО «Джейсон энд Партнерс Консалтинг».
+			55 button еще
+		56 container Description: События, ID: appEvents
+			57 heading События, Value: 2
+				58 text События
+			59 content list
+				60 container
+					61 text ПРОХОДИТ СЕЙЧАС
+					62 link Description: «Гипотеза любви», Value: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429?eventid=6810995896
+				63 container
+					64 text УЖЕ ДОСТУПНО
+					65 link Description: «Сера» Калли Харт , Value: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429?eventid=6810996480
+				66 container
+					67 text ПРОХОДИТ СЕЙЧАС
+					68 link Description: «Тайный дневник Верити», Value: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429?eventid=6818979501
+		69 container Description: Оценки и отзывы, ID: productRatings
+			70 link Description: Оценки и отзывы, Value: apps.apple.com/ru/app/438441429?see-all=reviews&platform=iphone
+			71 content list
+				72 container
+					73 text 4,7 из 5 Оценок: 277 тыс.
+					74 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					75 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					76 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					77 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					78 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.other.one**
+		79 container
+			80 button (disabled) Предыдущая страница
+				81 image
+			82 content list
+				83 container Хорошее приложение
+					84 heading Хорошее приложение, Value: 3, ID: review-1802243223-title
+						85 text Хорошее приложение
+					86 content list Количество звезд: 5
+					87 text 21.09.2017
+					88 text AmyKehah
+					89 text Много бесплатных книг, а те, что платные по доступной цене. Если не успел дочитать книгу, всегда можешь вернуться к тому месту на котором остановился(и не надо пролистывать уже прочитанные страницы). Очень удобное приложение.
+				90 container Отличное приложение
+					91 heading Отличное приложение, Value: 3, ID: review-1810415201-title
+						92 text Отличное приложение
+					93 content list Количество звезд: 5
+					94 text 26.09.2017
+					95 text <Elle>
+					96 container
+						97 text Удобное приложение, красивое оформление, интуитивный интерфейс. Плюсом для меня является то, что можно отрегулировать яркость, поменять фон страниц, размер шрифта. Коллекция большая, можно найти книги на любой вкус! Большая часть книг, заинтересовавших меня, платные. Но это несомненно дешевле, чем покупать их в бумажном виде! Прежде чем покупать книгу, можно прочитать ознакомительный фрагмент (довольно большой), а потом для себя уже решать подходит ли книга, заинтересовала ли. Спасибо!
+						98 button еще
+			99 button Следующая страница
+				100 image
+		101 container Description: Что нового, ID: mostRecentVersion
+			102 button Что нового
+				103 heading Что нового, Value: 2
+					104 text Что нового
+			105 container Что нового
+				106 text – Исправления и улучшения
+
+Если у вас есть пожелания или вопросы по работе приложения, если вы столкнулись с проблемой – купили книгу, а она не скачалась, или появились проблемы со списанием денег – пожалуйста, напишите нам прямо из приложения (Профиль => Сообщить о проблеме).
+				107 text Версия 4.93.0
+				108 text -3 дн.
+		109 container Description: Конфиденциальность приложения, ID: privacyHeader
+			110 button Конфиденциальность приложения
+				111 link Description: Конфиденциальность приложения, Value: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429#
+			112 container
+				113 text Разработчик  LitRes OOO  указал, что в соответствии с политикой конфиденциальности приложения данные могут обрабатываться так, как описано ниже. Подробные сведения доступны в 
+				114 link Description: Политика конфиденциальности разработчика, Value: litres.ru/pages/litres_oferta/
+				115 text .
+		116 content list
+			117 container Данные, используе­мые для отслежи­вания информации
+				118 heading Данные, используе­мые для отслежи­вания информации, Value: 3
+					119 text Данные, используе­мые для отслежи­вания информации
+				120 text Следующие данные могут использоваться для отслеживания информации о пользователе в приложениях и на сайтах, принадлежащих другим компаниям:
+				121 content list
+					122 text Данные об использова­нии
+			123 container Связанные с пользова­телем данные
+				124 heading Связанные с пользова­телем данные, Value: 3
+					125 text Связанные с пользова­телем данные
+				126 text Может вестись сбор следующих данных, которые связаны с личностью пользователя:
+				127 content list
+					128 text Покупки
+					129 text Контактные данные
+					130 text История поиска
+					131 text Идентифика­торы
+					132 text Данные об использова­нии
+			133 container Не связанные с пользова­телем данные
+				134 heading Не связанные с пользова­телем данные, Value: 3
+					135 text Не связанные с пользова­телем данные
+				136 text Может вестись сбор следующих данных, которые не связаны с личностью пользователя:
+				137 content list
+					138 text Идентифика­торы
+					139 text Данные об использова­нии
+					140 text Диагностика
+		141 container
+			142 text Разработчик может использовать различные способы обработки конфиденциальных данных в зависимости от таких факторов, как Ваш возраст и функции, которыми Вы пользуетесь. 
+			143 link Description: Подробнее, Value: apps.apple.com/ru/iphone/story/id1538632801
+		144 container Description: Универсальный доступ, ID: accessibilityHeader
+			145 heading Универсальный доступ, Value: 2
+				146 text Универсальный доступ
+			147 container
+				148 text Разработчик пока не предоставил сведений о функциях универсального доступа, поддерживаемых в этом приложении. 
+				149 link Description: Подробнее, Value: apps.apple.com/story/id1814164299
+		150 container Description: Информация, ID: information
+			151 heading Информация, Value: 2
+				152 text Информация
+			153 definition list
+				154 container Провайдер
+					155 text Провайдер
+				156 text LitRes OOO
+				157 container Размер
+					158 text Размер
+				159 text 72,4 МБ
+				160 container Категория
+					161 text Категория
+				162 text Книги
+				163 container Совместимость
+					164 text Совместимость
+				165 button (collapsed) Требуется iOS 18.0 или новее., Secondary Actions: Expand
+					166 text Требуется iOS 18.0 или новее.
+					167 image
+				168 container Языки
+					169 text Языки
+				170 button (collapsed) русский и еще 6, Secondary Actions: Expand
+					171 text русский и еще 6
+					172 image
+				173 container Возраст
+					174 text Возраст
+				175 button (collapsed) 13+, Secondary Actions: Expand
+					176 text 13+
+					177 image
+				178 container Встроенные покупки
+					179 text Встроенные покупки
+				180 button (collapsed) Да, Secondary Actions: Expand
+					181 text Да
+					182 image
+				183 container Авторские права
+					184 text Авторские права
+				185 text © 2026, LitRes
+		186 container notPurchasedLinks
+			187 link Description: Сайт разработчика ↗, Value: litres.ru/
+			188 link Description: Конфиденциальность ↗, Value: litres.ru/pages/litres_oferta/
+			189 link Description: Лицензионное соглашение, Value: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429#
+		190 container Description: Еще от LitRes OOO, ID: moreByDeveloper
+			191 link Description: Еще от LitRes OOO, Value: apps.apple.com/ru/developer/litres-ooo/id420377436
+			192 content list
+				193 link Description: Смотреть Литрес: Аудиокниги онлайн Слушайте лучшие аудиокниги, Value: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%BE%D0%BD%D0%BB%D0%B0%D0%B9%D0%BD/id529094166
+				194 link Description: Смотреть Книгоед (Knigoed) – книжная викторина, вопросы по книгам, угадай книгу Словесные, Value: apps.apple.com/ru/app/%D0%BA%D0%BD%D0%B8%D0%B3%D0%BE%D0%B5%D0%B4-knigoed-%D0%BA%D0%BD%D0%B8%D0%B6%D0%BD%D0%B0%D1%8F-%D0%B2%D0%B8%D0%BA%D1%82%D0%BE%D1%80%D0%B8%D0%BD%D0%B0-%D0%B2%D0%BE%D0%BF%D1%80%D0%BE%D1%81%D1%8B-%D0%BF%D0%BE-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B0%D0%BC/id906413881
+		195 container Description: Вам может также понравиться, ID: similarItems
+			196 link Description: Вам может также понравиться, Value: apps.apple.com/ru/app/438441429?see-all=customers-also-bought-apps&platform=iphone
+			197 container
+				198 button (disabled) Предыдущая страница
+					199 image
+				200 content list
+					201 link Description: Смотреть MyBook: Книги и аудиокниги Онлайн библиотека: чтение книг, Value: apps.apple.com/ru/app/mybook-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id556540446
+					202 link Description: Смотреть Книги без Интернета 2026 Читай и слушай книги, Value: apps.apple.com/ru/app/%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B1%D0%B5%D0%B7-%D0%B8%D0%BD%D1%82%D0%B5%D1%80%D0%BD%D0%B5%D1%82%D0%B0-2026/id430330715
+					203 link Description: Смотреть КИОН Строки: книги и аудио Электронные и аудиокниги, Value: apps.apple.com/ru/app/%D0%BA%D0%B8%D0%BE%D0%BD-%D1%81%D1%82%D1%80%D0%BE%D0%BA%D0%B8-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE/id1035268144
+					204 link Description: Смотреть Яндекс Книги: читать и слушать Чтение и прослушивание книг, Value: apps.apple.com/ru/app/%D1%8F%D0%BD%D0%B4%D0%B5%D0%BA%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D1%87%D0%B8%D1%82%D0%B0%D1%82%D1%8C-%D0%B8-%D1%81%D0%BB%D1%83%D1%88%D0%B0%D1%82%D1%8C/id6443391664
+					205 link Description: Смотреть Литнет – Электронные Книги Литературная Платформа, Value: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D0%BD%D0%B5%D1%82-%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D1%8B%D0%B5-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id1529082338
+					206 link Description: Смотреть Читай-город: книжный магазин Купить книги, канцы и сувениры, Value: apps.apple.com/ru/app/%D1%87%D0%B8%D1%82%D0%B0%D0%B9-%D0%B3%D0%BE%D1%80%D0%BE%D0%B4-%D0%BA%D0%BD%D0%B8%D0%B6%D0%BD%D1%8B%D0%B9-%D0%BC%D0%B0%D0%B3%D0%B0%D0%B7%D0%B8%D0%BD/id1483452031
+					207 link Description: Смотреть eBoox - Читалка книг fb2 ePub Читайте книги удобно!, Value: apps.apple.com/ru/app/eboox-%D1%87%D0%B8%D1%82%D0%B0%D0%BB%D0%BA%D0%B0-%D0%BA%D0%BD%D0%B8%D0%B3-fb2-epub/id1489172068
+					208 link Description: Смотреть FBReader: читалка fb2, ePub Та самая читалка, Value: apps.apple.com/ru/app/fbreader-%D1%87%D0%B8%D1%82%D0%B0%D0%BB%D0%BA%D0%B0-fb2-epub/id1067172178
+					209 link Description: Смотреть Буквоед: книжный магазин Книги, подарки, канцтовары, Value: apps.apple.com/ru/app/%D0%B1%D1%83%D0%BA%D0%B2%D0%BE%D0%B5%D0%B4-%D0%BA%D0%BD%D0%B8%D0%B6%D0%BD%D1%8B%D0%B9-%D0%BC%D0%B0%D0%B3%D0%B0%D0%B7%D0%B8%D0%BD/id913071694
+				210 button Следующая страница
+					211 image
+		212 container
+			213 button Россия
+			214 content list
+				215 link Description: Страница доступна на этом языке: English (UK), Value: …
+				216 link Description: Страница доступна на этом языке: Українська, Value: …
+			217 text Copyright © 2026
+			218 link Description: Apple Inc., Value: apple.com/ru/
+			219 text Все права защищены.
+			220 content list
+				221 link Description: Условия пользования интернет-сервисами, Value: apple.com/legal/internet-services/
+				222 link Description: App Store и конфи­денциальность, Value: apple.com/legal/privacy/data/ru/app-store/
+				223 link Description: Предупреждение об использовании файлов cookie, Value: …
+				224 link Description: Поддержка, Value: …
+
+The focused UI element is 1 AXWebArea ‎Приложение «Литрес: Книги и аудиокниги» — App Store, URL: apps.apple.com/ru/app/%D0%BB%D0%B8%D1%82%D1%80%D0%B5%D1%81-%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8-%D0%B8-%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8/id438441429

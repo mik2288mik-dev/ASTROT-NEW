@@ -6,12 +6,14 @@ import type {
   NatalUnifiedReading,
   NatalUnifiedReadingTier,
 } from '../../lib/natalReading/unifiedReading';
+import { projectNatalUnifiedReadingForTier } from '../../lib/natalReading/unifiedReading';
 import {
   ensureNatalUnifiedReading,
   getNatalUnifiedReadingCached,
 } from '../../services/natalUnifiedReadingService';
 import styles from './NatalSection.module.css';
-import { NatalPlusEntry } from './NatalPlusEntry';
+import { PremiumHook } from '../premium/PremiumHook';
+import { SIGN_LOCATIVE_RU } from '../../lib/natalMoments';
 
 type Props = {
   profile: UserProfile;
@@ -21,6 +23,7 @@ type Props = {
   isPremium: boolean;
   savedPerson?: boolean;
   canPromotePremium?: boolean;
+  uiPreview?: { reading: NatalUnifiedReading | null };
   requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
 };
 
@@ -34,6 +37,15 @@ type LoadState = {
 function canonical(chart: NatalChartData): NatalChartDataV2 | null {
   const value = chart as unknown as NatalChartDataV2;
   return value?.schemaVersion === 'natal-chart-data-v2' ? value : null;
+}
+
+/** «Венера в Скорпионе и Марс в Козероге — что это значит для тебя». */
+function natalHookTitle(chart: NatalChartDataV2): string {
+  const venus = SIGN_LOCATIVE_RU[chart.positions?.venus?.sign ?? ''];
+  const mars = SIGN_LOCATIVE_RU[chart.positions?.mars?.sign ?? ''];
+  return venus && mars
+    ? `Венера в ${venus} и Марс в ${mars} — что это значит для тебя`
+    : 'Дальше — весь рассказ о тебе и разбор по темам';
 }
 
 function errorText(language: 'ru' | 'en'): string {
@@ -51,6 +63,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   savedPerson = false,
   canPromotePremium = true,
   requestPremium,
+  uiPreview,
 }) => {
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const userId = profile.id ? String(profile.id) : '';
@@ -61,6 +74,8 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   );
   const [retryToken, setRetryToken] = useState(0);
   const tier: NatalUnifiedReadingTier = isPremium ? 'premium' : 'free';
+  const preview = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
+    ? uiPreview : undefined;
   const identity = useMemo(
     () => JSON.stringify([
       userId,
@@ -80,6 +95,11 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   });
 
   useEffect(() => {
+    if (preview) {
+      setState({ identity, reading: preview.reading ? projectNatalUnifiedReadingForTier(preview.reading, tier) : null,
+        loading: false, error: preview.reading ? null : errorText(language) });
+      return;
+    }
     if (!v2 || !userId) {
       setState({ identity, reading: null, loading: false, error: errorText(language) });
       return;
@@ -106,7 +126,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
         }));
       });
     return () => { cancelled = true; };
-  }, [chartData, chartId, identity, language, tier, userId, v2]);
+  }, [chartData, chartId, identity, language, tier, userId, v2, preview]);
 
   if (savedPerson && !isPremium) {
     return (
@@ -139,7 +159,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   if (mode === 'topics' && !isPremium) {
     return (
       <article className={styles.overview}>
-        <div className={styles.topics}>
+        <div className={`${styles.topics} ${styles.topicsTextOnly}`}>
           {interpretation.topics.map((topic) => (
             <button
               key={topic.key}
@@ -195,19 +215,20 @@ export const NatalUnifiedReport: React.FC<Props> = ({
             </section>
           ))}
           {!isPremium && canPromotePremium ? (
-            <NatalPlusEntry
-              title={language === 'ru' ? 'Продолжение рассказа — с Premium' : 'Continue the full story with Premium'}
+            <PremiumHook
+              title={natalHookTitle(v2)}
+              items={interpretation.topics.slice(0, 5).map((topic) => (
+                `${topic.title} — по ${topic.evidenceIds.length} ${topic.evidenceIds.length === 1 ? 'факту' : 'фактам'} твоей карты`
+              ))}
+              cta="Читать весь рассказ"
+              note="Это продолжение того же рассказа, а не другой текст"
               onOpen={() => void requestPremium('deep_natal', {
                 placement: 'deep_natal',
                 featureKey: 'natal_deep',
                 triggerType: 'locked_feature',
                 returnView: 'chart',
               })}
-            >
-              {language === 'ru'
-                ? 'Это начало полного рассказа о тебе. Premium открывает продолжение и разбор по темам.'
-                : 'This is the beginning of the same full reading. Premium unlocks the rest and the topic view.'}
-            </NatalPlusEntry>
+            />
           ) : null}
         </div>
       ) : (

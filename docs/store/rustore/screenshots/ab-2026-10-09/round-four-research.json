@@ -1,0 +1,155 @@
+{
+  "date": "2026-10-10",
+  "method": "Новый разбор сохранённых официальных галерей пяти приложений, выбранных пользователем. Прошлые художественные макеты и рисунки не использовались для новых композиций.",
+  "references": [
+    {
+      "name": "Astrocode",
+      "url": "https://apps.apple.com/ru/app/astrocode/id1342547303",
+      "proof": "assets/references/round-two/as-ru-astrocode.jpg",
+      "firstThree": "N26-reference-first-three.jpg",
+      "comparison": "N26-reference-vs-NEBO.jpg"
+    },
+    {
+      "name": "Stargaze",
+      "url": "https://apps.apple.com/ru/app/stargaze/id6449580660",
+      "proof": "assets/references/round-two/as-ru-stargaze.jpg",
+      "firstThree": "N27-reference-first-three.jpg",
+      "comparison": "N27-reference-vs-NEBO.jpg"
+    },
+    {
+      "name": "Moonly",
+      "url": "https://apps.apple.com/ru/app/moonly/id1489889871",
+      "proof": "assets/references/round-two/as-ru-moonly.jpg",
+      "firstThree": "N28-reference-first-three.jpg",
+      "comparison": "N28-reference-vs-NEBO.jpg"
+    },
+    {
+      "name": "Литрес",
+      "url": "https://apps.apple.com/ru/app/litres/id438441429",
+      "proof": "assets/references/round-two/as-ru-litres.jpg",
+      "firstThree": "N29-reference-first-three.jpg",
+      "comparison": "N29-reference-vs-NEBO.jpg"
+    },
+    {
+      "name": "Forest",
+      "url": "https://apps.apple.com/ru/app/forest/id866450515",
+      "proof": "assets/references/round-two/as-ru-forest.jpg",
+      "firstThree": "N30-reference-first-three.jpg",
+      "comparison": "N30-reference-vs-NEBO.jpg"
+    }
+  ],
+  "source": {
+    "name": "Apple — asset best practices",
+    "url": "https://developer.apple.com/app-store/asset-best-practices/",
+    "take": "Настоящий интерфейс, ясная главная идея, короткий читаемый текст и поля вокруг важных элементов."
+  },
+  "decisions": [
+    {
+      "id": "N26",
+      "reference": "as-ru-astrocode",
+      "composition": "По схеме Astrocode: самостоятельная обложка с новым золотым звёздным рисунком, затем целый телефон с заголовком сверху и целый телефон с подписью снизу. Спокойные рамки и одинаковый свет связывают серию.",
+      "palette": [
+        "#092259",
+        "#ffffff",
+        "#f8c578"
+      ],
+      "font": "Manrope",
+      "sequence": [
+        "Личный гороскоп",
+        "Натальная карта",
+        "Гороскоп по знаку",
+        "Матрица судьбы",
+        "Календарь прогнозов",
+        "Совместимость",
+        "Разбор карты",
+        "Звуки природы"
+      ]
+    },
+    {
+      "id": "N27",
+      "reference": "as-ru-stargaze",
+      "composition": "По схеме Stargaze: два новых фотопортрета, золотые вытянутые надписи и крупный телефон через стык первых кадров. Второй целый телефон показывает гороскоп по знаку; дальше — большие устройства на звёздном фоне.",
+      "palette": [
+        "#0b112e",
+        "#ffe0a2",
+        "#5b67f1"
+      ],
+      "font": "Oswald",
+      "sequence": [
+        "Натальная карта",
+        "Гороскоп по знаку",
+        "Личный гороскоп",
+        "Совместимость",
+        "Матрица судьбы",
+        "Календарь прогнозов",
+        "Разбор карты",
+        "Звуки природы"
+      ]
+    },
+    {
+      "id": "N28",
+      "reference": "as-ru-moonly",
+      "composition": "По схеме Moonly: чёрные корпуса, крупные целые экраны, белая типографика и новые глянцевые небесные фигурки. Декор проходит перед краями устройств и создаёт глубину; текст приложения остаётся внутри телефона.",
+      "palette": [
+        "#16141f",
+        "#ffffff",
+        "#cf95fa"
+      ],
+      "font": "Golos Text",
+      "sequence": [
+        "Личный гороскоп",
+        "Натальная карта",
+        "Гороскоп по знаку",
+        "Календарь прогнозов",
+        "Совместимость",
+        "Матрица судьбы",
+        "Разбор карты",
+        "Звуки природы"
+      ]
+    },
+    {
+      "id": "N29",
+      "reference": "as-ru-litres",
+      "composition": "По схеме Литрес: первый кадр — новый живой фотопостер, следующие — целые светлые телефоны на насыщенном синем фоне. Крупные подписи, оранжевые предметные стикеры и направляющие стрелки показывают одну функцию за раз.",
+      "palette": [
+        "#5045cf",
+        "#ffffff",
+        "#ff973d"
+      ],
+      "font": "Onest",
+      "sequence": [
+        "Личный гороскоп",
+        "Натальная карта",
+        "Гороскоп по знаку",
+        "Звуки природы",
+        "Календарь прогнозов",
+        "Матрица судьбы",
+        "Совместимость",
+        "Разбор карты"
+      ]
+    },
+    {
+      "id": "N30",
+      "reference": "as-ru-forest",
+      "composition": "По схеме Forest: светлая зелёная сцена с новой миниатюрной природой. Целые телефоны стоят под разными углами над островками; тени, перспектива и передний план связывают интерфейс с пространством.",
+      "palette": [
+        "#def6d9",
+        "#135d4d",
+        "#57b982"
+      ],
+      "font": "Nunito Sans",
+      "sequence": [
+        "Гороскоп по знаку",
+        "Натальная карта",
+        "Личный гороскоп",
+        "Звуки природы",
+        "Матрица судьбы",
+        "Совместимость",
+        "Календарь прогнозов",
+        "Разбор карты"
+      ]
+    }
+  ],
+  "artwork": "6 совершенно новых изображений, созданных встроенным image_gen. Ни один прежний рисунок не вставлен в новую серию.",
+  "interface": "В исходных макетах используются полные файлы экранов assets/screens/*.jpg и *.png внутри корпусов телефонов. Отдельные вырезки текста, схем или карточек не используются. N26 начинается с самостоятельной рисованной обложки; личный экран показан вместе с профилем карты в кадре 7."
+}

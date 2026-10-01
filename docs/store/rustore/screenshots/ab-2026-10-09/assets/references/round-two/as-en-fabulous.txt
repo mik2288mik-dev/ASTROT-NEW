@@ -1,0 +1,277 @@
+Browser tab: 3, Title: "‎Fabulous: Daily Habit Tracker App - App Store", URL: "https://apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303".
+1 AXWebArea ‎Fabulous: Daily Habit Tracker App - App Store, URL: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303
+	2 container
+		3 container Description: App Store, ID: app-store-icon-container
+		4 button (collapsed) App Store, ID: popover-1-target, Secondary Actions: Expand
+			5 text for iPhone
+			6 image
+		7 container search-input-form
+			8 text Search
+			9 search text field (settable) Search, ID: search-input__text-field
+		10 container navigation
+			11 content list
+				12 checkbox Today, Value: 0
+				13 checkbox Games, Value: 0
+				14 checkbox Apps, Value: 0
+				15 checkbox Arcade, Value: 0
+			16 content list Categories
+				17 checkbox Categories, Value: 0
+				18 checkbox Photo & Video, Value: 0
+				19 checkbox Health & Fitness, Value: 0
+				20 checkbox Productivity, Value: 0
+				21 checkbox Entertainment, Value: 0
+				22 checkbox Action, Value: 0
+				23 checkbox Adventure, Value: 0
+				24 checkbox Puzzle, Value: 0
+				25 checkbox Indie, Value: 0
+	26 container
+		27 container
+			28 heading Fabulous: Daily Habit Tracker, Value: 1
+				29 text Fabulous: Daily Habit Tracker
+			30 text Morning Routines & ADHD Help
+			31 text Free · In‑App Purchases
+			32 button Share
+		33 container
+			34 button (disabled) Previous Page
+				35 image
+			36 content list
+				37 link Description: 89K RATINGS 4.4 Stars, Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303#productRatings
+				38 link Description: AWARDS Editors’ Choice Apps, Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303#productRatings
+				39 link Description: AGE RATING 9+ Years, Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303#information
+				40 link Description: CATEGORY Health & Fitness, Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303#information
+				41 link Description: DEVELOPER Fabulous, Value: apps.apple.com/us/developer/fabulous/id1203637302?platform=iphone
+				42 link Description: LANGUAGE EN + 6 More, Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303#information
+			43 button Next Page
+				44 image
+		45 container Description: iPhone App Previews and Screenshots, ID: product_media_phone_
+			46 container
+				47 button (disabled) Previous Page
+					48 image
+				49 content list
+					50 container Screenshot
+					51 container Screenshot
+					52 container Screenshot
+					53 container Screenshot
+				54 button Next Page
+					55 image
+		56 button iPhone, Apple Watch
+			57 text iPhone, Apple Watch
+		58 container
+			59 text Welcome to the world of Fabulous. Unlock the power of habits and routines. Prioritize your mental health, build healthy habits and improve your life one step at a time. Fabulous started as a habit tracker, but it evolved into a self-improvement, coaching, and mental health platform. Our goal is to make healthy routines an inseparable part of your life. 
+
+How does Fabulous work?
+1 - Add structure to your life - Improve your life with a healthy morning routine that provides a system for your everyday life.
+2 - Create healthy habits - Use a daily planner to remember important tasks. Your habits sculpt the person you will become — choose them wisely.
+3 - Focus on deep work - Learn how to tune out all the noise and concentrate on the task. 
+4 - Join a community - Live challenges will introduce you to other Fabulous members worldwide embarking on the same journey as you. Find motivation by connecting with hundreds of members all across the globe. 
+5 - Learn how to be grateful - Keep your gratitude journal and listen to positive daily affirmations. 
+
+Fabulous is an all-in-one routine & self-care app for everyday life:
+– Listen to the daily coaching series.
+– Write your to-do list.
+– Journal your thoughts.
+– Do short workouts and breathing exercises.
+– Listen to daily affirmations and meditation sessions.
+– Keep your gratitude journal.
+– Monitor your mental wellbeing.
+– Use the goal-tracker to monitor progress.
+ 
+Upgrade your planner for exciting additional features that will take the habit tracking to a new level. Achieve your health and productivity goals today with science-proven features:
+– Coaching series grouped by topics: anxiety, self-love, productivity, or depression.
+– Unlimited habits for your morning and evening routines.
+– New Premium Journeys for better mental health, self-care, and fitness.
+– Personal one-on-one coaching for better motivation and focus.
+ 
+Top 4 reasons to try the Fabulous app: 
+1 - Need the motivation to build an indestructible morning routine?
+2 - Have an irregular sleep cycle and want to learn how to get a good sleep?
+3 - Want to increase your energy level, so you focus the entire day?
+4 - Want to improve your mental health through mindfulness so you can cope with anxiety?
+
+Scientifically proven, morning routines are essential to a successful life. No excuses! Start changing your life today and save money using behavioral science. Install Fabulous to get personalized daily habits and achieve your goals.
+
+Pricing in different countries may vary, and actual charges may be converted to your local currency depending on the country of residence. You can always see the exact price in the app. The subscription will automatically renew unless turned off in your iTunes Account Settings at least 24 hours before the current period ends. When you feel the Premium plan is not what you need, you can cancel your subscription at any time. 
+
+If you have any questions, visit our website at www.thefabulous.co and click "Contact Us" at the bottom.
+
+ Build and track your habits, set goals, learn how to meditate, and build healthy routines. Your journey to self-improvement and better mental health starts today!
+
+This day will come and go. That much is certain.
+Making it count? Well, that's up to you!
+
+-------
+
+Read our full terms and conditions and our privacy policy at: https://www.thefabulous.co/terms.html
+			60 button more
+		61 container Description: Ratings & Reviews, ID: productRatings
+			62 link Description: Ratings & Reviews, Value: apps.apple.com/us/app/1203637303?see-all=reviews&platform=iphone
+			63 content list
+				64 container
+					65 text 4.4 out of 5 89K Ratings
+					66 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					67 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					68 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					69 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.one.other**
+					70 container **ASE.Web.Platform.Shared.Ratings.Review.StarsAria.other.one**
+		71 container
+			72 button (disabled) Previous Page
+				73 image
+			74 content list
+				75 container
+					76 heading Editors’ Choice, Value: 3
+						77 text Editors’ Choice
+					78 text We all have a list of things we’d love to do better or more efficiently, but actually making changes to our lives can take a huge amount of effort. Fabulous is an app with an easygoing approach to self-improvement. It helps you forge new habits by providing science-based advice and daily activities that are really easy to do. You’ll pick a “Journey” when you start—like losing weight or concentrating better. With your goal defined, Fabulous gives you simple daily steps.
+					79 button more
+				80 container Fabulous indeed!
+					81 heading Fabulous indeed!, Value: 3, ID: review-11820010673-title
+						82 text Fabulous indeed!
+					83 content list 5 Stars
+					84 text 10/11/2024
+					85 text Keithrube1
+					86 container
+						87 text I was seeking an app to help me stay on schedule. As an entrepreneur with ADHD it is often very challenging. From going to bed at a reasonable hour, each night, to waking up at a reasonable hour, to having balanced structured meals that are healthy, to have my spiritual time, exercise time, and just me time. I also needed to find time to do service, which helps me get out of myself by helping others. I’ve never had a structured schedule, my whole entire life and I’m 55 years old when I started the section on evening routine and I was about to type in the fourth change that I wanted to make the app actually would not let me, I loved that it said we never want to take on more than we should. I’ve only been using for less than a week and I can tell you I’m going to bed now. Two hours earlier. I am making it to the office earlier. I am doing better with the morning routine but I still have a long way to go. I actually stopped working. Looked at the app clicked it and that is something different. One of the best things this App has suggested to me was on my iPhone pro 14 max to take any interesting and fun apps off of the homepage. It’s worked. It literally works I just keepspiritual thing on there, my daily calendar, reminders list or to do list. I have a long way to go with this app is reminded me is that there is absolutely no rush. I will appreciate life more by doing certain things less get the app and pay for it. Well worth it.
+						88 button more
+						89 text Developer Response
+						90 text Thank you for your kind words! We are glad to hear that the App has been helping you stay on schedule. We are so happy to hear that you have been able to make positive changes in your life and that you are enjoying the App. We appreciate your feedback and we will continue to improve our App to make it even more helpful and enjoyable. The Fabulous Member Care team.
+						91 button more
+			92 button Next Page
+				93 image
+		94 container Description: What’s New, ID: mostRecentVersion
+			95 button What’s New
+				96 heading What’s New, Value: 2
+					97 text What’s New
+			98 container What’s New
+				99 text We’ve been perfecting the details so you can stay focused on your goals. This update includes minor bug fixes and performance improvements. Building habits with us has never been better.
+				100 text Version 24.0.1
+				101 text Sep 28
+		102 container Description: App Privacy, ID: privacyHeader
+			103 button App Privacy
+				104 link Description: App Privacy, Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303#
+			105 container
+				106 text The developer,  Fabulous , indicated that the app’s privacy practices may include handling of data as described below. For more information, see the 
+				107 link Description: Developer’s Privacy Policy, Value: thefabulous.co/terms.html
+				108 text .
+		109 content list
+			110 container Data Used to Track You
+				111 heading Data Used to Track You, Value: 3
+					112 text Data Used to Track You
+				113 text The following data may be used to track you across apps and websites owned by other companies:
+				114 content list
+					115 text Contact Info
+			116 container Data Not Linked to You
+				117 heading Data Not Linked to You, Value: 3
+					118 text Data Not Linked to You
+				119 text The following data may be collected but it is not linked to your identity:
+				120 content list
+					121 text Location
+					122 text Contact Info
+					123 text Usage Data
+		124 container
+			125 text Privacy practices may vary, for example, based on the features you use or your age. 
+			126 link Description: Learn More, Value: apps.apple.com/us/iphone/story/id1538632801
+		127 container Description: Accessibility, ID: accessibilityHeader
+			128 heading Accessibility, Value: 2
+				129 text Accessibility
+			130 container
+				131 text The developer has not yet indicated which accessibility features this app supports. 
+				132 link Description: Learn More, Value: apps.apple.com/story/id1814164299
+		133 container Description: Information, ID: information
+			134 heading Information, Value: 2
+				135 text Information
+			136 definition list
+				137 container Seller
+					138 text Seller
+				139 text Fabulous
+				140 container Size
+					141 text Size
+				142 text 660.6 MB
+				143 container Category
+					144 text Category
+				145 text Health & Fitness
+				146 container Compatibility
+					147 text Compatibility
+				148 button (collapsed) Requires iOS 17.0 or later., Secondary Actions: Expand
+					149 text Requires iOS 17.0 or later.
+					150 image
+				151 container Languages
+					152 text Languages
+				153 button (collapsed) English and 6 more, Secondary Actions: Expand
+					154 text English and 6 more
+					155 image
+				156 container Age Rating
+					157 text Age Rating
+				158 button (collapsed) 9+, Secondary Actions: Expand
+					159 text 9+
+					160 image
+				161 container In-App Purchases
+					162 text In-App Purchases
+				163 button (collapsed) Yes, Secondary Actions: Expand
+					164 text Yes
+					165 image
+				166 container Copyright
+					167 text Copyright
+				168 text © 2024 Fabulous SAS
+		169 container notPurchasedLinks
+			170 link Description: Developer Website ↗, Value: thefabulous.co/
+			171 link Description: Privacy Policy ↗, Value: thefabulous.co/terms.html
+		172 container Description: Featured In, ID: featuredIn
+			173 heading Featured In, Value: 2
+				174 text Featured In
+			175 content list
+				176 link Description: Find Support for Your Self‑Care Journey, Value: apps.apple.com/us/iphone/story/id1827354499
+		177 container Description: More by Fabulous, ID: moreByDeveloper
+			178 link Description: More by Fabulous, Value: apps.apple.com/us/developer/fabulous/id1203637302
+			179 container
+				180 button (disabled) Previous Page
+					181 image
+				182 content list
+					183 link Description: View Clarify: Focus & Task Manager Concentration, To-Do & Timer, Value: apps.apple.com/us/app/clarify-focus-task-manager/id1670958524
+					184 link Description: View Ambiance by Fabulous Relaxing Sounds & White Noise, Value: apps.apple.com/us/app/ambiance-by-fabulous/id6450173656
+					185 link Description: View Shape: Lose Weight, Fast Healthy Fasting Tracker, Value: apps.apple.com/us/app/shape-lose-weight-fast/id1629419955
+					186 link Description: View Elixir: Find Balance & Purpose Goal Setting & Personal Growth, Value: apps.apple.com/us/app/elixir-find-balance-purpose/id1670957793
+					187 link Description: View Lumiere: Anxiety & Stress Aid CBT, Self-Care & Affirmations, Value: apps.apple.com/us/app/lumiere-anxiety-stress-aid/id1670958073
+					188 link Description: View Lune: Bedtime Sleep Routine Better Habits for Calm Nights, Value: apps.apple.com/us/app/lune-bedtime-sleep-routine/id6478384948
+					189 link Description: View Enchant: Affirmations,Hypnosis Soothe Anxiety, Create Change, Value: apps.apple.com/us/app/enchant-affirmations-hypnosis/id6480585774
+					190 link Description: View Fountain: Daily Book Summaries Self-Improvement Made Easy, Value: apps.apple.com/us/app/fountain-daily-book-summaries/id6511246638
+					191 link Description: View HabitatZero AI Planner, Notes & Tasks, Value: apps.apple.com/us/app/habitatzero/id6800705458
+				192 button Next Page
+					193 image
+		194 container Description: You Might Also Like, ID: similarItems
+			195 link Description: You Might Also Like, Value: apps.apple.com/us/app/1203637303?see-all=customers-also-bought-apps&platform=iphone
+			196 container
+				197 button (disabled) Previous Page
+					198 image
+				199 content list
+					200 link Description: View stoic. journal & mental health AI journaling, Gratitude diary, Value: apps.apple.com/us/app/stoic-journal-mental-health/id1312926037
+					201 link Description: View Eden: Daily Routine Planner Self care habit tracker, to do, Value: apps.apple.com/us/app/eden-daily-routine-planner/id1589243137
+					202 link Description: View Inflow - Manage Your ADHD Build focus, routine & habits, Value: apps.apple.com/us/app/inflow-manage-your-adhd/id1528183849
+					203 link Description: View Rootd: Panic Attacks & Anxiety Stress Relief CBT Relax Games, Value: apps.apple.com/us/app/rootd-panic-attacks-anxiety/id1289018369
+					204 link Description: View (Not Boring) Habits Science-backed habit tracker, Value: apps.apple.com/us/app/not-boring-habits/id1593891243
+					205 link Description: View Clarity: CBT Self Help Journal Mood Tracker & Thought Diary, Value: apps.apple.com/us/app/clarity-cbt-self-help-journal/id1010391170
+					206 link Description: View Open: Breathwork + Meditation A Mindfulness Studio, Value: apps.apple.com/us/app/open-breathwork-meditation/id1482725254
+					207 link Description: View Shmoody: Mood & Habit Tracker Self-Care & Positive Change, Value: apps.apple.com/us/app/shmoody-mood-habit-tracker/id1534196157
+					208 link Description: View Tangerine: Self-care & Goals Habits. Mood Tracker. Journal., Value: apps.apple.com/us/app/tangerine-self-care-goals/id1468882685
+				209 button Next Page
+					210 image
+		211 container
+			212 button United States
+			213 content list
+				214 link Description: This page is available in Español (México), Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303?l=es-MX
+				215 link Description: This page is available in العربية, Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303?l=ar
+				216 link Description: This page is available in Русский, Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303?l=ru
+				217 link Description: This page is available in 简体中文, Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303?l=zh-Hans-CN
+				218 link Description: This page is available in Français (France), Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303?l=fr-FR
+				219 link Description: This page is available in 한국어, Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303?l=ko
+				220 link Description: This page is available in Português (Brazil), Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303?l=pt-BR
+				221 link Description: This page is available in Tiếng Việt, Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303?l=vi
+				222 link Description: This page is available in 繁體中文 (台灣), Value: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303?l=zh-Hant-TW
+			223 text Copyright © 2026
+			224 link Description: Apple Inc., Value: apple.com/
+			225 text All rights reserved.
+			226 content list
+				227 link Description: Internet Service Terms, Value: apple.com/legal/internet-services/
+				228 link Description: App Store & Privacy, Value: apple.com/legal/privacy/data/en/app-store/
+				229 link Description: Cookie Warning, Value: apple.com/privacy/use-of-cookies/
+				230 link Description: Support, Value: support.apple.com/billing
+
+The focused UI element is 1 AXWebArea ‎Fabulous: Daily Habit Tracker App - App Store, URL: apps.apple.com/us/app/fabulous-daily-habit-tracker/id1203637303

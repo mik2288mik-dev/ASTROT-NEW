@@ -109,8 +109,9 @@ describe('Today minimal navigation shell', () => {
     expect(clock).toContain('<time');
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
     expect(styles).toContain('.today-bottom-navigation::before');
-    expect(styles).toContain('text-align: left');
-    expect(styles).not.toContain('text-align: justify');
+    // The reading is set justified with a first-line indent, like a printed page.
+    expect(styles).toContain('text-align: justify !important');
+    expect(styles).toContain('text-indent: 1.25em');
     expect(styles).toContain('width: min(calc(100% - 2rem), 40rem) !important');
     expect(styles).toContain('margin-inline: auto');
     expect(read('components/PersonalForecastFeed/TodayEditorialFeed.tsx')).not.toContain('today-minimal-closing-label');

@@ -1,0 +1,128 @@
+{
+  "App.tsx -> ./views/AuthGate": {
+    "id": "App.tsx -> ./views/AuthGate",
+    "files": [
+      "static/chunks/_pages-dir-browser_views_AuthGate_tsx.js"
+    ]
+  },
+  "App.tsx -> ./views/Onboarding": {
+    "id": "App.tsx -> ./views/Onboarding",
+    "files": [
+      "static/chunks/_pages-dir-browser_views_Onboarding_tsx.js"
+    ]
+  },
+  "App.tsx -> ./views/Paywall": {
+    "id": "App.tsx -> ./views/Paywall",
+    "files": [
+      "static/chunks/_pages-dir-browser_views_Paywall_tsx.js"
+    ]
+  },
+  "App.tsx -> ./views/PersonalityReport": {
+    "id": "App.tsx -> ./views/PersonalityReport",
+    "files": [
+      "static/chunks/_pages-dir-browser_views_PersonalityReport_tsx.js"
+    ]
+  },
+  "App.tsx -> ./views/admin2/AdminApp": {
+    "id": "App.tsx -> ./views/admin2/AdminApp",
+    "files": [
+      "static/chunks/_pages-dir-browser_views_admin2_AdminApp_tsx.js"
+    ]
+  },
+  "App.tsx -> ./views/v2/AstrologyEncyclopedia": {
+    "id": "App.tsx -> ./views/v2/AstrologyEncyclopedia",
+    "files": []
+  },
+  "App.tsx -> ./views/v2/HoroscopeReader": {
+    "id": "App.tsx -> ./views/v2/HoroscopeReader",
+    "files": [
+      "static/chunks/_pages-dir-browser_views_v2_HoroscopeReader_tsx.js"
+    ]
+  },
+  "App.tsx -> ./views/v2/MatrixRoom": {
+    "id": "App.tsx -> ./views/v2/MatrixRoom",
+    "files": [
+      "static/chunks/_pages-dir-browser_views_v2_MatrixRoom_tsx.js"
+    ]
+  },
+  "App.tsx -> ./views/v2/NatalMagazine": {
+    "id": "App.tsx -> ./views/v2/NatalMagazine",
+    "files": [
+      "static/chunks/_pages-dir-browser_views_v2_NatalMagazine_tsx.js"
+    ]
+  },
+  "App.tsx -> ./views/v2/UnionRoom": {
+    "id": "App.tsx -> ./views/v2/UnionRoom",
+    "files": [
+      "static/chunks/_pages-dir-browser_views_v2_UnionRoom_tsx.js"
+    ]
+  },
+  "components\\NatalReading\\NatalCalculationProof.tsx -> astronomy-engine": {
+    "id": "components\\NatalReading\\NatalCalculationProof.tsx -> astronomy-engine",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_astronomy-engine_esm_astronomy_js.js"
+    ]
+  },
+  "components\\NatalReading\\NatalHighlights.tsx -> astronomy-engine": {
+    "id": "components\\NatalReading\\NatalHighlights.tsx -> astronomy-engine",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_astronomy-engine_esm_astronomy_js.js"
+    ]
+  },
+  "components\\PersonalForecastFeed\\FutureInviteCard.tsx -> astronomy-engine": {
+    "id": "components\\PersonalForecastFeed\\FutureInviteCard.tsx -> astronomy-engine",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_astronomy-engine_esm_astronomy_js.js"
+    ]
+  },
+  "components\\PersonalForecastFeed\\FutureView.tsx -> astronomy-engine": {
+    "id": "components\\PersonalForecastFeed\\FutureView.tsx -> astronomy-engine",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_astronomy-engine_esm_astronomy_js.js"
+    ]
+  },
+  "components\\PersonalForecastFeed\\TodaySkyMonitor.tsx -> astronomy-engine": {
+    "id": "components\\PersonalForecastFeed\\TodaySkyMonitor.tsx -> astronomy-engine",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_astronomy-engine_esm_astronomy_js.js"
+    ]
+  },
+  "node_modules\\@capacitor\\app\\dist\\esm\\index.js -> ./web": {
+    "id": "node_modules\\@capacitor\\app\\dist\\esm\\index.js -> ./web",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_capacitor_app_dist_esm_web_js.js"
+    ]
+  },
+  "node_modules\\@capacitor\\preferences\\dist\\esm\\index.js -> ./web": {
+    "id": "node_modules\\@capacitor\\preferences\\dist\\esm\\index.js -> ./web",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_capacitor_preferences_dist_esm_web_js.js"
+    ]
+  },
+  "node_modules\\next\\dist\\client\\index.js -> ../pages/_app": {
+    "id": "node_modules\\next\\dist\\client\\index.js -> ../pages/_app",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_next_dist_pages__app_js.js"
+    ]
+  },
+  "node_modules\\next\\dist\\client\\index.js -> ../pages/_error": {
+    "id": "node_modules\\next\\dist\\client\\index.js -> ../pages/_error",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_next_dist_pages__error_js.js"
+    ]
+  },
+  "pages\\index.tsx -> ../components/ui-preview/UiPreviewApp": {
+    "id": "pages\\index.tsx -> ../components/ui-preview/UiPreviewApp",
+    "files": [
+      "static/chunks/_pages-dir-browser_components_ui-preview_UiPreviewApp_tsx.js"
+    ]
+  },
+  "services\\astrologyService.ts -> ./chartService": {
+    "id": "services\\astrologyService.ts -> ./chartService",
+    "files": []
+  },
+  "services\\storageService.ts -> ./natalUnifiedReadingService": {
+    "id": "services\\storageService.ts -> ./natalUnifiedReadingService",
+    "files": []
+  }
+}

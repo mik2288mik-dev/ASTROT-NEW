@@ -1216,8 +1216,8 @@ export const Settings: React.FC<SettingsProps> = ({
                     <section className="settings-detail-panel" aria-label={settingsTitle.notifications}>
                         {nativeNotifications ? <p className="settings-helper-text">
                             {profile.language === 'en'
-                                ? 'Useful news, then quiet. At most one notification a day, only while NEBO is closed.'
-                                : 'Сообщим по делу — и отстанем. Не больше одного уведомления в день, только пока NEBO свёрнуто.'}
+                                ? 'Morning horoscope, holidays, full moons and news. Usually one or two a day, only while NEBO is closed.'
+                                : 'Гороскоп по утрам, праздники, полнолуния и новости. Обычно одно-два в день и только пока NEBO свёрнуто.'}
                         </p> : null}
                         <div className="settings-toggle-row">
                             <label htmlFor="settings-notifications-toggle">{profile.language === 'en' ? 'Notifications' : nativeNotifications ? 'Уведомлять по делу' : 'Уведомления'}</label>
@@ -1247,21 +1247,21 @@ export const Settings: React.FC<SettingsProps> = ({
                                     className="settings-selection-row" aria-pressed={notificationMode === mode} disabled={notificationBusy}
                                     onClick={() => void saveNativeNotif({ mode })}>
                                     <span>{profile.language === 'en'
-                                        ? mode === 'important' ? 'Only a finished result' : 'Also a daily forecast reminder'
-                                        : mode === 'important' ? 'Только готовый результат' : 'Ещё прогноз раз в день'}</span>
+                                        ? mode === 'important' ? 'Only the important ones' : 'Everything, incl. morning horoscope'
+                                        : mode === 'important' ? 'Только важное' : 'Всё, включая гороскоп по утрам'}</span>
                                     {notificationMode === mode ? <Check aria-hidden size={16} /> : null}
                                 </button>)}
                             </div>
                             <p className="settings-helper-text">{profile.language === 'en'
-                                ? 'If a calculation finishes after you leave NEBO, we can tell you. Tap to open the result.'
-                                : 'Если расчёт закончится, пока NEBO свёрнуто, сообщим. Нажмёшь — откроется результат.'}</p>
+                                ? 'Important: a finished result, your birthday, holidays and news. Tap to open the right screen.'
+                                : 'Важное — готовый результат, день рождения, праздники и новости. Нажмёшь — откроется нужный экран.'}</p>
                             {notificationMode === 'daily' ? <p className="settings-helper-text">{profile.language === 'en'
-                                ? 'A reminder after 9 am, outside quiet hours, in your phone’s time zone. Already read today’s forecast? We skip it.'
-                                : 'Напомним после 09:00, вне тихих часов, по времени телефона. Уже прочитал прогноз за сегодня? Тогда молчим.'}</p> : null}
+                                ? 'Plus a morning horoscope for your sign and a daytime nudge — outside quiet hours, in your phone’s time zone.'
+                                : 'Плюс утром гороскоп по знаку и днём что-нибудь интересное — вне тихих часов, по времени телефона.'}</p> : null}
                             <div className="settings-detail-section settings-detail-section--separated">
                                 <p className="settings-helper-text">{profile.language === 'en' ? 'For example' : 'Например'}</p>
-                                <strong>{profile.language === 'en' ? 'Your personal forecast is ready' : 'Личный прогноз готов'}</strong>
-                                <p>{profile.language === 'en' ? 'Open Today. The text is there; the wait is over.' : 'Открой «Сегодня». Текст на месте — ожидание закончилось.'}</p>
+                                <strong>{profile.language === 'en' ? 'Good morning!' : 'Доброе утро!'}</strong>
+                                <p>{profile.language === 'en' ? 'Today’s horoscope is ready. Take a look over coffee' : 'Гороскоп на сегодня уже готов. Глянь, пока пьёшь кофе'}</p>
                             </div>
                         </div> : null}
                         {notifEnabled ? (

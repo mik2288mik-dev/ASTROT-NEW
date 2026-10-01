@@ -230,7 +230,9 @@ describe('unified natal interpretation', () => {
     const reading = buildNatalInterpretation(chart);
     expect(reading.evidence.some(item => item.id === 'aspect:asc-dsc-axis')).toBe(true);
     expect(reading.meanings.some(item => item.evidenceIds.includes('aspect:asc-dsc-axis'))).toBe(false);
-    const wheelAspect = buildMapData(chart).aspects.find(item => item.fromKey === 'ascendant')!;
+    // The axis is hidden from the on-screen list but stays explainable.
+    expect(buildMapData(chart).aspects.some(item => item.fromKey === 'ascendant' && item.toKey === 'descendant')).toBe(false);
+    const wheelAspect = buildMapData(chart).allAspects.find(item => item.fromKey === 'ascendant')!;
     const explanation = explainMapSelection(chart, { kind: 'aspect', id: wheelAspect.id })!;
     expect(explanation.meaning).toContain('всегда 180°');
     expect(explanation.meaning).not.toMatch(/тебе|ты выбираешь|иногда|трудно/);

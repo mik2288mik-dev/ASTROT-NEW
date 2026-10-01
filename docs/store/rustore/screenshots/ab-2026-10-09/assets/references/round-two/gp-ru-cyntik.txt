@@ -1,0 +1,175 @@
+Browser tab: 3, Title: "Приложения в Google Play – Нумерология Cyntik AI", URL: "https://play.google.com/store/apps/details?id=com.bankdobra.Numerology&hl=ru".
+1 AXWebArea Приложения в Google Play – Нумерология Cyntik AI, URL: play.google.com/store/apps/details?id=com.bankdobra.Numerology&hl=ru
+	2 container yDmH0d
+		3 container
+			4 container Заголовок страницы
+				5 link Description: Логотип Google Play, Value: play.google.com/store/games
+				6 container Главная панель навигации
+					7 tab group
+						8 tab (selectable, settable, boolean) Игры, Value: 0, ID: 11
+						9 tab (selected, settable, boolean) Приложения, Value: 1
+						10 tab (selectable, settable, boolean) Книги, Value: 0, ID: 5
+						11 tab (selectable, settable, boolean) Детям, Value: 0, ID: 13
+				12 button Поиск
+				13 button Справочный центр
+				14 pop up button (collapsed) Description: Открыть меню аккаунта, Secondary Actions: Expand
+		15 container
+			16 container
+				17 heading Нумерология Cyntik AI, Value: 1
+					18 text Нумерология Cyntik AI
+				19 link Description: Lisin Dmitry, Value: play.google.com/store/apps/dev?id=6178610280961835229
+				20 text Есть реклама  ·  Покупки в приложении
+				21 container Информационные значки
+					22 container
+						23 image Средняя оценка: 4,0 из 5
+						24 text Отзывы: 807
+					25 container
+						26 text 100 тыс.+ (количество скачиваний)
+			27 button Установить
+				28 text Установить
+			29 button Поделиться
+				30 text Поделиться
+			31 button Добавить в список желаний
+				32 text Добавить в список желаний
+			33 container
+				34 content list
+					35 button Скриншот
+					36 button Скриншот
+					37 button Скриншот
+					38 button Скриншот
+					39 button Скриншот
+					40 button Скриншот
+					41 button Скриншот
+					42 button Скриншот
+				43 container
+					44 heading Описание, Value: 2
+						45 text Описание
+					46 button Подробнее об игре "Описание"
+				47 container Нумерология и ИИ: характер, совместимость и прогноз по дате рождения
+					48 text Нумерология и ИИ: характер, совместимость и прогноз по дате рождения
+				49 text Последнее обновление
+				50 text 8 окт. 2026 г.
+				51 container
+					52 link Description: Стиль жизни, Value: play.google.com/store/apps/category/LIFESTYLE
+				53 container
+					54 heading Безопасность данных, Value: 2
+						55 text Безопасность данных
+					56 link Description: Подробнее об игре "Безопасность данных", Value: play.google.com/store/apps/datasafety?id=com.bankdobra.Numerology
+				57 text Чтобы контролировать безопасность, нужно знать, как разработчики собирают ваши данные и передают их третьим лицам. Методы обеспечения безопасности и конфиденциальности могут зависеть от того, как вы используете приложение, а также от вашего региона и возраста. Информация ниже предоставлена разработчиком и в будущем может измениться.
+				58 content list
+					59 container
+						60 text Это приложение может передавать указанные типы данных третьим лицам Местоположение, Личная информация и ещё 4
+					61 container
+						62 text Это приложение может собирать указанные типы данных Местоположение, Личная информация и Финансовые данные
+					63 text Данные шифруются при передаче
+					64 text Вы можете запросить удаление данных
+				65 container
+					66 link Description: Подробнее о безопасности данных, Value: play.google.com/store/apps/datasafety?id=com.bankdobra.Numerology
+				67 container
+					68 heading Оценки и отзывы, Value: 2
+						69 text Оценки и отзывы
+					70 button Подробнее об игре "Оценки и отзывы"
+					71 button Оценки и отзывы проверены
+						72 text Оценки и отзывы проверены
+				73 content list
+					74 checkbox Description: Телефон, Value: 1, ID: formFactor_2
+					75 checkbox Description: Планшет, Value: 0, ID: formFactor_3
+				76 image Средняя оценка: 4,0 из 5
+				77 text 792 отзыва
+				78 image 537 отзывов с рейтингом 5
+				79 image 37 отзывов с рейтингом 4
+				80 image 22 отзыва с рейтингом 3
+				81 image 37 отзывов с рейтингом 2
+				82 image 150 отзывов с рейтингом 1
+				83 container
+					84 text Наталья Ромашкина
+					85 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+					86 image Средняя оценка: 5 из 5
+					87 text 29 июня 2021 г.
+				88 text Отличное приложение для тех, кто изучает нумерологию по системе Идеал. Всё кратко, по сути. Удобный интерфейс, без нагромождения. Для краткой характеристики матрицы - информации достаточно. Для более подробной информации, необходимо обучаться, конечно же :) Жаль, что нет опции сохранения расчёта. Спасибо разработчикам!
+				89 text 76 человек отметили этот отзыв как полезный.
+				90 container
+					91 text Вам помогла эта информация?
+					92 checkbox Description: Да, Value: 0, ID: efec3b21-50eb-4039-8baf-1989a5269253::1
+					93 checkbox Description: Нет, Value: 0, ID: efec3b21-50eb-4039-8baf-1989a5269253::2
+				94 text Lisin Dmitry
+				95 text 29 июня 2021 г.
+				96 text Наталья, спасибо за отзыв. Для вас делаем все возможное!
+				97 container
+					98 text Наталья Тангочина
+					99 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+					100 image Средняя оценка: 1 из 5
+					101 text 2 августа 2025 г.
+				102 text Здравствуйте. Большая проблема! Приложение не активно. Скачала на новый телефон. Кнопка разрешить уведомления не активна. Ранее я пользовалась им на др телефоне. А кроме рекламных обоев, нет нужной информации - как активировать приложение. Что делать? Подскажите 02.08.2025 проблема с приложением осталась. Просто заставки. Никаких активных кнопок!
+				103 text 12 человек отметили этот отзыв как полезный.
+				104 container
+					105 text Вам помогла эта информация?
+					106 checkbox Description: Да, Value: 0, ID: 60f86124-8544-45ac-a6ad-9c944987240e::1
+					107 checkbox Description: Нет, Value: 0, ID: 60f86124-8544-45ac-a6ad-9c944987240e::2
+				108 text Lisin Dmitry
+				109 text 25 июля 2025 г.
+				110 text Спасибо за отзыв, но вы что-то путаете. У нас нет никакой рекламы в приложении. Тем более обоев! )
+				111 container
+					112 text Элина Г
+					113 pop up button (collapsed) Description: Ещё, Secondary Actions: Expand
+					114 image Средняя оценка: 5 из 5
+					115 text 28 января 2023 г.
+				116 text Разработчикам спасибо за пояснения, поэтому меняю количество звёзд на 5. А что касается даты рождения, точнее, описания - такое ощущение, что описывают совсем другого человека. По квадрату Пифагора совпадений с моим характером однозначно больше, но приложение, конечно, в этом не виновато.
+				117 text 4 человека отметили этот отзыв как полезный.
+				118 container
+					119 text Вам помогла эта информация?
+					120 checkbox Description: Да, Value: 0, ID: 512f33a4-7d71-4337-86bd-a532dfc3d923::1
+					121 checkbox Description: Нет, Value: 0, ID: 512f33a4-7d71-4337-86bd-a532dfc3d923::2
+				122 text Lisin Dmitry
+				123 text 27 января 2023 г.
+				124 text Спасибо за отзыв, Элина. Это не КВАДРАТ ПИФАГОРА! Это нумерология Сидоровой. Вы, наверное, путаете ее с Пифагором. Нет, это не Пифагор. Совершенно другая матрица и описание. Погрузитесь и исправьте оценку. Обращайтесь в телеграмм @lisin для бесплатной пробной версией.
+				125 button Все отзывы
+					126 text Все отзывы
+				127 heading Новое в приложении, Value: 2
+					128 text Новое в приложении
+				129 container
+					130 text Новый функционал — Умный анализ графика! Экспорт PDF
+					131 text Исправлены ошибки
+			132 link Description: Пожаловаться (откроется в новом окне), Value: support.google.com/googleplay/?p=report_content
+			133 image Возрастные ограничения
+			134 text 3+
+			135 text Покупки из приложения
+			136 link Description: Подробнее о возрастных ограничениях (ссылка откроется в новом окне), Value: support.google.com/googleplay?p=appgame_ratings
+			137 container developer-contacts-heading
+				138 heading Поддержка приложения, Value: 2
+					139 text Поддержка приложения
+				140 button (collapsed) Description: Развернуть, Secondary Actions: Expand
+			141 container
+				142 heading Lisin Dmitry: другие приложения, Value: 2
+					143 text Lisin Dmitry: другие приложения
+				144 container
+					145 link Description: Подробнее об игре "Lisin Dmitry: другие приложения", Value: play.google.com/store/apps/dev?id=6178610280961835229
+				146 link Description: Биеннале Lisin Dmitry, Value: play.google.com/store/apps/details?id=ru.leesin.ruarts
+				147 link Description: Телепат Lisin Dmitry Средняя оценка: 3,7 из 5, Value: play.google.com/store/apps/details?id=ru.leesin.telepath
+				148 link Description: Быстрая Нумерология 69 Lisin Dmitry Средняя оценка: 3,2 из 5, Value: play.google.com/store/apps/details?id=ru.leesin.Numerology1
+			149 container
+				150 heading Похожие приложения, Value: 2
+					151 text Похожие приложения
+				152 container
+					153 link Description: Подробнее об игре "Похожие приложения", Value: play.google.com/store/apps/collection/cluster?gsr=SowBaixqc3cyRVljMU5NUDkxZ3dQSFZ6MEJZOTI1ZVk4YklIUHB3VnV0bnVTR1I4PcICWAocChhjb20uYmFua2RvYnJhLk51bWVyb2xvZ3kQBxgIMAE4AEosCAEQABog0J3Rg9C80LXRgNC-0LvQvtCz0LjRjyBDeW50aWsgQUkgACgAMABQAFgBYACwEgA%3D:S:ANO1ljKtKA8
+				154 link Description: BeeDone: Игровой планер СДВГ Youcef EL KAMEL Средняя оценка: 2,5 из 5, Value: play.google.com/store/apps/details?id=com.beedone
+				155 link Description: DanceBody Workout Miniviber, Value: play.google.com/store/apps/details?id=com.tealth.fundance
+				156 link Description: Numerology - Angel Numbers Runes & Tarot, Value: play.google.com/store/apps/details?id=numerology.numerologyapp.freenumerology
+		157 container
+			158 text Google Play
+			159 link Description: Play Pass, Value: play.google.com/store/pass/getstarted
+			160 link Description: Play Points, Value: play.google.com/store/points/enroll
+			161 link Description: Подарочные карты, Value: play.google.com/about/giftcards
+			162 link Description: Использовать, Value: play.google.com/redeem
+			163 link Description: Правила возврата платежей, Value: support.google.com/googleplay/answer/134336
+			164 text Дети и семья
+			165 link Description: Руководство для родителей, Value: support.google.com/googleplay?p=pff_parentguide
+			166 link Description: Семейный доступ, Value: support.google.com/googleplay/answer/7007852
+			167 link Description: Условия использования, Value: play.google.com/intl/ru_ru/about/play-terms.html
+			168 link Description: Конфиденциальность, Value: policies.google.com/privacy
+			169 link Description: О Google Play, Value: support.google.com/googleplay/?p=about_play
+			170 link Description: Для разработчиков, Value: developer.android.com/index.html
+			171 link Description: Google Store, Value: store.google.com/?playredirect=true&utm_source=play&utm_medium=google_oo&utm_campaign=GS106288
+			172 text Все цены указаны с учетом НДС. Россия (Русский)
+
+The focused UI element is 1 AXWebArea Приложения в Google Play – Нумерология Cyntik AI, URL: play.google.com/store/apps/details?id=com.bankdobra.Numerology&hl=ru

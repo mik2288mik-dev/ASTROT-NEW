@@ -2,7 +2,7 @@ import type { StrictJsonSchema } from '../openaiResponses';
 import type { CalculatedCompatibility } from './compatibilityEngine';
 import { selectCompatibilityWriterEvidence } from './compatibilityNarrative';
 import type { RelationshipContext } from './relationshipContext';
-import { COMPATIBILITY_STORY_TOPICS, compatibilityTopicTitle } from './storyTopics';
+import { ALL_COMPATIBILITY_QUESTION_IDS } from './compatibilityQuestions';
 import { getCompatibilitySystemPrompt } from '../voice/contracts/compatibility';
 
 export const COMPATIBILITY_STORY_SCHEMA: StrictJsonSchema = {
@@ -14,12 +14,12 @@ export const COMPATIBILITY_STORY_SCHEMA: StrictJsonSchema = {
       items: {
         type: 'object',
         properties: {
-          topic: { type: 'string', enum: [...COMPATIBILITY_STORY_TOPICS] },
+          questionId: { type: 'string', enum: [...ALL_COMPATIBILITY_QUESTION_IDS] },
           text: { type: 'string' },
           evidenceIds: { type: 'array', items: { type: 'string' } },
           direction: { type: 'string', enum: ['mutual', 'subject_to_partner', 'partner_to_subject'] },
         },
-        required: ['topic', 'text', 'evidenceIds', 'direction'],
+        required: ['questionId', 'text', 'evidenceIds', 'direction'],
         additionalProperties: false,
       },
     },
@@ -39,6 +39,11 @@ const RELATIONSHIP_BRIEFS: Record<RelationshipContext, string> = {
   work: 'Не добавляй романтику: разбирай только совместную работу, решения и договорённости.',
 };
 
+/** Questions the charts can honestly answer; the rest are shown as «мало данных» without prose. */
+export function answerableCompatibilityQuestions(calculated: CalculatedCompatibility) {
+  return calculated.questions.filter((question) => question.score != null);
+}
+
 export function buildCompatibilityStoryPrompt(input: {
   language: 'ru' | 'en';
   calculated: CalculatedCompatibility;
@@ -49,28 +54,32 @@ export function buildCompatibilityStoryPrompt(input: {
   const evidence = selectCompatibilityWriterEvidence(input.calculated);
   const availableIds = new Set(evidence.map((item) => item.id));
   
-  const limitedEvidence = evidence.length < 6;
+  const questions = answerableCompatibilityQuestions(input.calculated);
   const readerRules = input.language === 'ru'
     ? 'Пиши по-русски и обращайся к первому человеку на «ты». При unspecified пиши нейтрально: не приписывай человеку мужской или женский род. Пол меняет обращение, но не назначает характер.'
     : 'Write natural, direct English and address the first person as “you”. When gender is unspecified, use neutral wording and do not infer a gender. Gender changes grammar only, not personality.';
   const system = `${getCompatibilitySystemPrompt(input.language)}
 
 ${RELATIONSHIP_BRIEFS[input.calculated.relationshipContext]}
-${readerRules}
-${limitedEvidence
-    ? 'Сделай короткий вывод и 3 коротких раздела.'
-    : 'Сделай короткий вывод и 4 коротких раздела.'}${input.revisionReason
-    ? `\n\nPREVIOUS OUTPUT WAS REJECTED for ${input.revisionReason}. Correct that exact issue before returning JSON; do not repeat it.`
+${readerRules}${input.revisionReason
+    ? `
+
+PREVIOUS OUTPUT WAS REJECTED for ${input.revisionReason}. Correct that exact issue before returning JSON; do not repeat it.`
     : ''}`;
-  
+  const plan = new Map(input.calculated.sectionPlan.map((item) => [item.id, item]));
+
   return {
     system,
     user: JSON.stringify({
       people: { subject: input.subject, partner: input.partner },
       relationshipContext: input.calculated.relationshipContext,
-      chapterGuide: COMPATIBILITY_STORY_TOPICS.map((topic) => ({ topic, title: compatibilityTopicTitle(topic, input.calculated.relationshipContext, input.language) })),
       calculationLevel: input.calculated.calculationLevel,
-      requiredSections: limitedEvidence ? '3' : '4',
+      questions: questions.map((question) => ({
+        questionId: question.id,
+        question: question.question,
+        answer: question.answerLabel,
+        evidenceIds: (plan.get(question.id)?.evidenceIds || []).filter((id) => availableIds.has(id)),
+      })),
       themes: input.calculated.dimensions.map((item) => ({
         id: item.id, label: item.label,
         supportedBy: item.supportiveEvidenceIds.filter((id) => availableIds.has(id)),

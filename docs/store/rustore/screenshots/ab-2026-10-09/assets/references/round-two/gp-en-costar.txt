@@ -1,0 +1,161 @@
+Browser tab: 3, Title: "Co–Star Personalized Astrology - Apps on Google Play", URL: "https://play.google.com/store/apps/details?id=com.costarastrology&hl=en".
+1 AXWebArea Co–Star Personalized Astrology - Apps on Google Play, URL: play.google.com/store/apps/details?id=com.costarastrology&hl=en
+	2 container yDmH0d
+		3 container
+			4 container Page Header
+				5 link Description: Google Play logo, Value: play.google.com/store/games
+				6 container Main
+					7 tab group
+						8 tab (selectable, settable, boolean) Games, Value: 0, ID: 11
+						9 tab (selected, settable, boolean) Apps, Value: 1
+						10 tab (selectable, settable, boolean) Books, Value: 0, ID: 5
+						11 tab (selectable, settable, boolean) Kids, Value: 0, ID: 13
+				12 button Search
+				13 button Help Center
+				14 pop up button (collapsed) Description: Open account menu, Secondary Actions: Expand
+		15 container
+			16 container
+				17 heading Co–Star Personalized Astrology, Value: 1
+					18 text Co–Star Personalized Astrology
+				19 link Description: Co–Star Astrology Society, Value: play.google.com/store/apps/developer?id=Co%E2%80%93Star+Astrology+Society
+				20 text In-app purchases
+				21 container Information badges
+					22 container
+						23 image Rated 4.1 stars out of five stars
+						24 text 96.2K reviews
+					25 container
+						26 text 5M+ Downloads
+			27 button Install
+				28 text Install
+			29 button Share
+				30 text Share
+			31 button Add to wishlist
+				32 text Add to wishlist
+			33 container
+				34 content list
+					35 button Screenshot image
+					36 button Screenshot image
+					37 button Screenshot image
+					38 button Screenshot image
+					39 button Screenshot image
+					40 button Screenshot image
+				41 container
+					42 heading About this app, Value: 2
+						43 text About this app
+					44 button See more information on About this app
+				45 container Horoscopes from the Void
+					46 text Horoscopes from the Void
+				47 text Updated on
+				48 text Sep 4, 2026
+				49 container
+					50 link Description: Lifestyle, Value: play.google.com/store/apps/category/LIFESTYLE
+				51 container
+					52 heading Data safety, Value: 2
+						53 text Data safety
+					54 link Description: See more information on Data safety, Value: play.google.com/store/apps/datasafety?id=com.costarastrology
+				55 text Safety starts with understanding how developers collect and share your data. Data privacy and security practices may vary based on your use, region, and age. The developer provided this information and may update it over time.
+				56 content list
+					57 container
+						58 text No data shared with third parties
+						59 link Description: Learn more, Value: support.google.com/googleplay?p=data-safety&hl=en
+						60 text  about how developers declare sharing
+					61 container
+						62 text This app may collect these data types Personal info, Messages and 3 others
+					63 text Data is encrypted in transit
+					64 text You can request that data be deleted
+				65 container
+					66 link Description: See more details on data safety, Value: play.google.com/store/apps/datasafety?id=com.costarastrology
+				67 container
+					68 heading Ratings and reviews, Value: 2
+						69 text Ratings and reviews
+					70 button See more information on Ratings and reviews
+					71 button Ratings and reviews are verified
+						72 text Ratings and reviews are verified
+				73 content list
+					74 checkbox Description: Phone, Value: 1, ID: formFactor_2
+					75 checkbox Description: Desktop, Value: 0, ID: formFactor_5
+					76 checkbox Description: Tablet, Value: 0, ID: formFactor_3
+				77 image Rated 4.1 stars out of five stars
+				78 text 95K reviews
+				79 image 66,462 reviews for star rating 5
+				80 image 6,613 reviews for star rating 4
+				81 image 2,818 reviews for star rating 3
+				82 image 3,794 reviews for star rating 2
+				83 image 15,179 reviews for star rating 1
+				84 container
+					85 text annushka
+					86 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+					87 image Rated 2 stars out of five stars
+					88 text January 2, 2021
+				89 text I love how detailed the horoscope is, but the app doesn't seem to be working properly on my end. When I open the app, it has a blank page, with "chart" in the top left corner and "add" in the top right one, despite the fact that I have added my friend AND she can see the compatibility thing on her end. I have nothing but white blank page and my chart, yet only when I specifically click on the section. No scrollable timeline here, no dynamic time, date and weather display, sadly. Nothing.
+				90 text 82 people found this review helpful
+				91 container
+					92 text Did you find this helpful?
+					93 checkbox Description: Yes, Value: 0, ID: d7bb194f-308f-4f6b-81bf-56c662b7cb65::1
+					94 checkbox Description: No, Value: 0, ID: d7bb194f-308f-4f6b-81bf-56c662b7cb65::2
+				95 container
+					96 text Sasha Matthews
+					97 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+					98 image Rated 2 stars out of five stars
+					99 text April 20, 2026
+				100 text I used to have this app for a time and just recently decided to come back to it after a long break. It would not allow me to log in through FB. It recognised I had an acc, requested permission through FB, and then redirected me back to the same login page. Over and over. I didn't have FB app so I even got that to troubleshoot - still no login. Faulty for being unable to access existing account. Not a good enough app for me to care to try more
+				101 text 10 people found this review helpful
+				102 container
+					103 text Did you find this helpful?
+					104 checkbox Description: Yes, Value: 0, ID: e406e080-eb63-4b79-9efa-12d93bf5315d::1
+					105 checkbox Description: No, Value: 0, ID: e406e080-eb63-4b79-9efa-12d93bf5315d::2
+				106 container
+					107 text Madison
+					108 pop up button (collapsed) Description: More review actions, Secondary Actions: Expand
+					109 image Rated 2 stars out of five stars
+					110 text September 4, 2026
+				111 text It’s honestly so sad to see how much Co–Star has changed. This app used to be open and allowed you to dive deep into your readings for free. Now, you have to pay $8.99 a month or $49.99 a year just to access in-depth readings. Everything feels like it’s about money now. I understand needing premium features, but locking away so much of what made the app useful is disappointing. I’ll be looking for a new astrology app.
+				112 text 2 people found this review helpful
+				113 container
+					114 text Did you find this helpful?
+					115 checkbox Description: Yes, Value: 0, ID: 3b228768-025d-4297-9537-ebd3852cffd1::1
+					116 checkbox Description: No, Value: 0, ID: 3b228768-025d-4297-9537-ebd3852cffd1::2
+				117 button See all reviews
+					118 text See all reviews
+				119 heading What’s new, Value: 2
+					120 text What’s new
+				121 text To improve is to change. To be perfect is to change often. Update to the latest version to see bug fixes.
+			122 link Description: Flag as inappropriate (opens in new window), Value: support.google.com/googleplay/?p=report_content
+			123 image Content rating
+			124 text Rated for 12+
+			125 text Parental Guidance Recommended
+			126 text Users Interact, In-App Purchases
+			127 link Description: Learn more about content ratings (opens in new window), Value: support.google.com/googleplay?p=appgame_ratings
+			128 container developer-contacts-heading
+				129 heading App support, Value: 2
+					130 text App support
+				131 button (collapsed) Expand
+			132 container
+				133 heading Similar apps, Value: 2
+					134 text Similar apps
+				135 container
+					136 link Description: See more information on Similar apps, Value: play.google.com/store/apps/collection/cluster?gsr=SocBaixWM1NvZGEzdlQxVm9CaVRaaVQ2SUdsQ0VLMXdpY2h4QXFoMW4xUTRIRSswPcICUwoXChNjb20uY29zdGFyYXN0cm9sb2d5EAcYCDABOABKLAgBEAAaIENv4oCTU3RhciBQZXJzb25hbGl6ZWQgQXN0cm9sb2d5IAAoADAAUABYAWAAsBIA:S:ANO1ljKeIVk
+				137 link Description: ASL Bloom - Sign Language SignLab Rated 4.7 stars out of five stars, Value: play.google.com/store/apps/details?id=com.toleio.us
+				138 link Description: Moon Phase Calendar - MoonX LLC VIBES Rated 4.3 stars out of five stars, Value: play.google.com/store/apps/details?id=by.olion.Moon
+				139 link Description: The Pattern: Astrology Pattern Home, Inc. Rated 4.0 stars out of five stars, Value: play.google.com/store/apps/details?id=com.thepattern.app
+				140 link Description: Zodiac & Horoscope: CosmicVibe Mysterious Apps LLC Rated 4.7 stars out of five stars, Value: play.google.com/store/apps/details?id=com.vetrov.cosmicvibe
+				141 link Description: Numerology - Angel Numbers Runes & Tarot, Value: play.google.com/store/apps/details?id=numerology.numerologyapp.freenumerology
+				142 link Description: Dimensional Personality Test Dimensional Interactive Rated 3.7 stars out of five stars, Value: play.google.com/store/apps/details?id=com.dimensional.dimensional
+		143 container
+			144 text Google Play
+			145 link Description: Play Pass, Value: play.google.com/store/pass/getstarted
+			146 link Description: Play Points, Value: play.google.com/store/points/enroll
+			147 link Description: Gift cards, Value: play.google.com/about/giftcards
+			148 link Description: Redeem, Value: play.google.com/redeem
+			149 link Description: Refund policy, Value: support.google.com/googleplay/answer/134336
+			150 text Kids & family
+			151 link Description: Parent Guide, Value: support.google.com/googleplay?p=pff_parentguide
+			152 link Description: Family sharing, Value: support.google.com/googleplay/answer/7007852
+			153 link Description: Terms of Service, Value: play.google.com/intl/en-US_ru/about/play-terms.html
+			154 link Description: Privacy, Value: policies.google.com/privacy
+			155 link Description: About Google Play, Value: support.google.com/googleplay/?p=about_play
+			156 link Description: Developers, Value: developer.android.com/index.html
+			157 link Description: Google Store, Value: store.google.com/?playredirect=true&utm_source=play&utm_medium=google_oo&utm_campaign=GS106288
+			158 text All prices include VAT. Russia (English (United States))
+
+The focused UI element is 1 AXWebArea Co–Star Personalized Astrology - Apps on Google Play, URL: play.google.com/store/apps/details?id=com.costarastrology&hl=en
