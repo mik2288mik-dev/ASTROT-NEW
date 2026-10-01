@@ -2,11 +2,11 @@ import { NATAL_INTERPRETATION_VERSION, type NatalMeaningTopic } from '../natalIn
 
 export const NATAL_UNIFIED_READING_CONTRACT_VERSION = 'natal-unified-reading-v2';
 // Provenance for new writing, never an expiry rule for a saved reading.
-export const NATAL_UNIFIED_READING_PROMPT_VERSION = `${NATAL_UNIFIED_READING_CONTRACT_VERSION}.writer.v6`;
+export const NATAL_UNIFIED_READING_PROMPT_VERSION = `${NATAL_UNIFIED_READING_CONTRACT_VERSION}.writer.v7`;
 // One explicitly requested editorial replacement. Never derive this from the
 // global voice version: routine deployments must not rewrite saved reports.
-export const NATAL_PREVIOUS_COPY_REVISION = 'conversational-reading-20260930';
-export const NATAL_COPY_REVISION = 'conversational-reading-20260930-r2';
+export const NATAL_PREVIOUS_COPY_REVISION = 'conversational-reading-20260930-r2';
+export const NATAL_COPY_REVISION = 'conversational-reading-20261001-journal-v1';
 export const NATAL_UNIFIED_READING_CACHE_KEY = 'natal.unified-reading.v3';
 
 export type NatalUnifiedReadingTier = 'free' | 'premium';
