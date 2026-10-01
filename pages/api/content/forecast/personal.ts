@@ -119,6 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
   const userId = String(auth.userId);
+  diagnostic.setUser(userId);
   const [user, birthSettings] = await Promise.all([
     db.users.get(userId, { hydratePrimaryChart: false }),
     birthProfileRepository.get(userId),

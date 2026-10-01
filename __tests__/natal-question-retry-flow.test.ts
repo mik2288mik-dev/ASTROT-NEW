@@ -83,6 +83,7 @@ jest.mock('../lib/serverOperationalDiagnostics', () => ({
   startServerOperationalDiagnostic: jest.fn(() => ({
     log: jest.fn(),
     error: jest.fn(),
+    setUser: jest.fn(),
   })),
 }));
 

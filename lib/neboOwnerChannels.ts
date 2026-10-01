@@ -1,6 +1,12 @@
 import { getPool } from './db';
 import type { TelegramReplyMarkup } from './telegramBot';
-import { neboServerLabel, type NeboOwnerChannel } from './neboOps';
+import {
+  ERROR_REASONS,
+  getNeboOwnerChannelConfig,
+  neboServerLabel,
+  OPERATION_TITLES,
+  type NeboOwnerChannel,
+} from './neboOps';
 import { collectNeboCoreStats, collectNeboStats, neboReportPeriod, previousPeriod, type NeboReportKind } from './neboOpsStats';
 
 /** Menus and on-demand reports of the dedicated payments, support and errors bots. */
@@ -40,11 +46,21 @@ export function neboChannelMenu(channel: NeboOwnerChannel): NeboChannelReply {
     };
   }
   if (channel === 'support') {
+    // Until a dedicated errors bot exists, errors arrive here and so do their buttons.
+    const hostsErrors = !getNeboOwnerChannelConfig('errors');
     return {
-      text: [`✉️ NEBO · Обращения · 🖥 ${server}`, '', 'Сюда приходит каждое обращение из приложения — с полным текстом.'].join('\n'),
+      text: [
+        `✉️ NEBO · Обращения · 🖥 ${server}`,
+        '',
+        'Сюда приходит каждое обращение из приложения — с полным текстом.',
+        ...(hostsErrors ? ['Пока нет отдельного бота ошибок, ошибки приходят тоже сюда.'] : []),
+      ].join('\n'),
       replyMarkup: { inline_keyboard: [
-        [{ text: '📬 Открытые обращения', callback_data: 'ch:sup:open' }],
-        [{ text: '🗂 Последние 10', callback_data: 'ch:sup:latest' }],
+        [{ text: '📬 Открытые обращения', callback_data: 'ch:sup:open' }, { text: '🗂 Последние 10', callback_data: 'ch:sup:latest' }],
+        ...(hostsErrors ? [
+          [{ text: '📋 Ошибки за сутки', callback_data: 'ch:err:day' }, { text: '📋 За 7 дней', callback_data: 'ch:err:week' }],
+          [{ text: '🩺 Состояние сервера', callback_data: 'ch:err:health' }],
+        ] : []),
       ] },
     };
   }
@@ -118,7 +134,13 @@ export async function buildErrorsSummary(days: 1 | 7): Promise<string> {
   const total = result.rows.reduce((sum, row) => sum + Number(row.count), 0);
   const lines = [title, `Всего: ${total}`, ''];
   for (const row of result.rows) {
-    lines.push(`${row.event_type === 'ai_error' ? '🤖' : '🚨'} ×${row.count} · ${row.place} · ${row.error_code}`, `   последняя: ${msk(row.last_at)}`);
+    const where = OPERATION_TITLES[String(row.place)] || String(row.place);
+    const reason = ERROR_REASONS[String(row.error_code)] || String(row.error_code);
+    lines.push(
+      `${row.event_type === 'ai_error' ? '🤖' : '🚨'} ${row.count} раз · ${where}`,
+      `   ${reason}`,
+      `   последний раз: ${msk(row.last_at)}`,
+    );
   }
   return lines.join('\n').slice(0, 3_800);
 }

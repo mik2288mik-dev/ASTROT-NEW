@@ -53,6 +53,8 @@ export type ServerOperationalDiagnostic = {
     fields?: ServerDiagnosticFields,
   ): void;
   error(stage: string, error: unknown, fallback: string, fields?: ServerDiagnosticFields): void;
+  /** Attach the authenticated account so an owner alert can say whose request failed. */
+  setUser(userId: string | number | null | undefined): void;
 };
 
 export function startServerOperationalDiagnostic(
@@ -66,6 +68,7 @@ export function startServerOperationalDiagnostic(
   // Correlation headers may come from the client and cannot deduplicate reports.
   const reportId = randomUUID();
   let ownerErrorQueued = false;
+  let ownerUserId: string | null = null;
   const startedAt = Date.now();
   res.setHeader(NEBO_TRACE_HEADER, traceId);
 
@@ -116,6 +119,7 @@ export function startServerOperationalDiagnostic(
     queueOwnerDiagnostic({
       eventKey: `ai:${reportId}`,
       eventType: 'ai_error',
+      userId: ownerUserId,
       occurredAt: new Date(),
       payload: {
         operation: event,
@@ -135,6 +139,10 @@ export function startServerOperationalDiagnostic(
   return {
     traceId,
     log: (stage, status, fields) => emit(stage, status, fields),
+    setUser: (userId) => {
+      const value = userId === null || userId === undefined ? '' : String(userId);
+      ownerUserId = /^-?\d{1,20}$/.test(value) ? value : null;
+    },
     error: (stage, error, fallback, fields = {}) => emit(stage, 'error', {
       ...fields,
       httpStatus: fields.httpStatus ?? diagnosticHttpStatus(error),

@@ -30,7 +30,7 @@ async function reply(channel: NeboOwnerChannel, data: string): Promise<string | 
   if (channel === 'support') {
     if (data === 'ch:sup:open') return buildSupportList(true);
     if (data === 'ch:sup:latest') return buildSupportList(false);
-    return null;
+    // The support bot also hosts error reports while no dedicated errors bot exists.
   }
   if (data === 'ch:err:day') return buildErrorsSummary(1);
   if (data === 'ch:err:week') return buildErrorsSummary(7);
