@@ -51,6 +51,7 @@ type SendResult = {
   error?: string;
   retryAfterSeconds?: number;
   deferred?: boolean;
+  detail?: string;
 };
 
 const MAX_ATTEMPTS = 12;
@@ -576,7 +577,8 @@ async function sendNeboOpsWithConfig(
         return { ok: false, error: 'TELEGRAM_RATE_LIMIT', retryAfterSeconds: seconds };
       }
       return { ok: false, error: response.status === 401 ? 'TELEGRAM_UNAUTHORIZED'
-        : response.status === 403 ? 'TELEGRAM_FORBIDDEN' : response.status === 400 ? 'TELEGRAM_BAD_REQUEST' : 'TELEGRAM_UNAVAILABLE' };
+        : response.status === 403 ? 'TELEGRAM_FORBIDDEN' : response.status === 400 ? 'TELEGRAM_BAD_REQUEST' : 'TELEGRAM_UNAVAILABLE',
+        detail: `HTTP ${response.status} ${String(data?.description || '')}`.replace(/\d{5,}:[A-Za-z0-9_-]{20,}/g, '<token>').slice(0, 160) };
     } catch {
       return { ok: false, error: 'TELEGRAM_NETWORK_ERROR' };
     }
@@ -593,20 +595,41 @@ async function sendNeboOpsWithConfig(
   }
 }
 
+function withoutWebAppButtons(markup: TelegramReplyMarkup): TelegramReplyMarkup | undefined {
+  const keyboard = (markup as { inline_keyboard?: Array<Array<Record<string, unknown>>> }).inline_keyboard;
+  if (!Array.isArray(keyboard)) return undefined;
+  const rows = keyboard.map((row) => row.filter((button) => !button.web_app)).filter((row) => row.length);
+  return { inline_keyboard: rows } as TelegramReplyMarkup;
+}
+
 export async function sendNeboOpsTextWithConfig(
   config: NeboOpsConfig | null,
   message: string,
-  options?: { replyMarkup?: TelegramReplyMarkup },
+  options?: { replyMarkup?: TelegramReplyMarkup; interactive?: boolean },
 ): Promise<SendResult> {
-  return sendNeboOpsWithConfig(config, 'sendMessage', {
+  const send = (replyMarkup?: TelegramReplyMarkup) => sendNeboOpsWithConfig(config, 'sendMessage', {
     text: message.slice(0, 3_800),
     disable_web_page_preview: true,
-    reply_markup: options?.replyMarkup,
+    reply_markup: replyMarkup,
   });
+  if (!options?.interactive) return send(options?.replyMarkup);
+  // A reply to the owner's tap must arrive: wait for the shared sender instead
+  // of dropping it, and fall back to a menu without the Mini App button.
+  let result = await send(options.replyMarkup);
+  for (let attempt = 0; attempt < 8 && !result.ok && result.deferred; attempt++) {
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(3, Math.max(1, result.retryAfterSeconds || 1)) * 1_000));
+    result = await send(options.replyMarkup);
+  }
+  if (!result.ok && result.error === 'TELEGRAM_BAD_REQUEST' && options.replyMarkup) {
+    result = await send(withoutWebAppButtons(options.replyMarkup));
+  }
+  if (!result.ok) rememberWorkerError(worker(), new Error(`REPLY_FAILED:${result.error || 'UNKNOWN'} ${result.detail || ''}`.trim()));
+  return result;
 }
 
+/** Messages the owner asked for (menu, reports): retried until the shared sender is free. */
 export async function sendNeboOpsText(message: string, options?: { replyMarkup?: TelegramReplyMarkup }): Promise<SendResult> {
-  return sendNeboOpsTextWithConfig(getNeboOpsConfig(), message, options);
+  return sendNeboOpsTextWithConfig(getNeboOpsConfig(), message, { ...options, interactive: true });
 }
 
 export async function sendNeboOpsPhotoWithConfig(config: NeboOpsConfig | null, photoUrl: string, caption: string): Promise<SendResult> {
@@ -773,7 +796,7 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
         [row.id, lease, MAX_ATTEMPTS, sent.error || 'DELIVERY_FAILED', delay, sent.deferred ? 1 : 0],
       );
       result.failed++;
-      rememberWorkerError(worker(), new Error(`SEND_FAILED:${row.event_type}:${sent.error || 'UNKNOWN'}`));
+      rememberWorkerError(worker(), new Error(`SEND_FAILED:${row.event_type}:${sent.error || 'UNKNOWN'} ${'detail' in sent && sent.detail ? sent.detail : ''}`.trim()));
       if (sent.retryAfterSeconds || sent.error === 'TELEGRAM_UNAUTHORIZED' || sent.error === 'TELEGRAM_FORBIDDEN') break;
     }
   }

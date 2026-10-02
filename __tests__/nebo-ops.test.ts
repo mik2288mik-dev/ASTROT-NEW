@@ -464,7 +464,7 @@ describe('Telegram response validation', () => {
     { ok: true, result: { message_id: 1.5 } },
   ])('does not report HTTP 200 with invalid Telegram data as delivered: %j', async (body) => {
     fetchMock.mockResolvedValue(telegramResponse(200, body));
-    await expect(sendNeboOpsText('Проверка')).resolves.toEqual({ ok: false, error: 'TELEGRAM_UNAVAILABLE' });
+    await expect(sendNeboOpsText('Проверка')).resolves.toMatchObject({ ok: false, error: 'TELEGRAM_UNAVAILABLE' });
   });
 
   it('does not leak raw network errors', async () => {

@@ -63,16 +63,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   acknowledgeAndRun(res, async () => {
     const menu = neboChannelMenu(channel);
     if (!callback?.id) {
-      await sendNeboOpsTextWithConfig(config, menu.text, { replyMarkup: menu.replyMarkup });
+      await sendNeboOpsTextWithConfig(config, menu.text, { replyMarkup: menu.replyMarkup, interactive: true });
       return;
     }
     await telegramApiRequest(config.token, 'answerCallbackQuery', { callback_query_id: callback.id, text: 'Собираю…' },
       { signal: AbortSignal.timeout(8_000) }).catch(() => undefined);
     try {
       const text = await reply(channel, String(callback.data || ''));
-      await sendNeboOpsTextWithConfig(config, text || menu.text, { replyMarkup: menu.replyMarkup });
+      await sendNeboOpsTextWithConfig(config, text || menu.text, { replyMarkup: menu.replyMarkup, interactive: true });
     } catch {
-      await sendNeboOpsTextWithConfig(config, '⚠️ Не получилось собрать данные. Попробуй ещё раз через минуту.');
+      await sendNeboOpsTextWithConfig(config, '⚠️ Не получилось собрать данные. Попробуй ещё раз через минуту.', { interactive: true });
     }
   }, `${channel} command`);
 }
