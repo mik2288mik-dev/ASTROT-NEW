@@ -80,6 +80,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
        (SELECT MAX(created_at) FROM notification_logs) AS last_logged_at`,
   ).then((result) => result.rows[0]).catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'query_failed' }));
 
+  // ?visitors=1: distinct accounts seen today (Moscow) per source, to verify «заходили».
+  let visitors: unknown = undefined;
+  if (req.query.visitors === '1') {
+    visitors = await getPool().query(
+      `WITH b AS (SELECT (date_trunc('day', NOW() AT TIME ZONE 'Europe/Moscow') AT TIME ZONE 'Europe/Moscow') AS s)
+       SELECT
+         (SELECT COUNT(DISTINCT user_id) FROM user_app_events, b WHERE occurred_at >= (b.s AT TIME ZONE 'UTC'))::int AS app_events,
+         (SELECT COUNT(DISTINCT user_id) FROM app_sessions, b WHERE created_at >= (b.s AT TIME ZONE 'UTC'))::int AS new_auth_sessions,
+         (SELECT COUNT(DISTINCT user_id) FROM user_sessions, b WHERE last_seen_at >= (b.s AT TIME ZONE 'UTC'))::int AS session_last_seen,
+         (SELECT COUNT(DISTINCT user_id) FROM nebo_ops_outbox, b WHERE event_type IN ('login', 'activity') AND occurred_at >= b.s)::int AS owner_visit_facts,
+         (SELECT COUNT(*) FROM users, b WHERE created_at >= b.s)::int AS new_users`,
+    ).then((result) => result.rows[0]).catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'failed' }));
+  }
+
   // ?push=1: why the planner does or does not queue pushes (dry run, nothing is sent).
   let pushDiagnosis: unknown = undefined;
   if (req.query.push === '1') {
@@ -130,5 +144,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     outbox,
     pushes,
     ...(pushDiagnosis === undefined ? {} : { pushDiagnosis }),
+    ...(visitors === undefined ? {} : { visitors }),
   });
 }
