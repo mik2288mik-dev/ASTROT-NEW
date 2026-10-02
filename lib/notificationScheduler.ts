@@ -61,9 +61,13 @@ type SchedulerStatus = {
   lastPlannerJob: string | null;
   lastPlannerAt: string | null;
   dispatchIntervalMs: number;
+  lastDispatchError?: string | null;
 };
 
-const status: SchedulerStatus = {
+// Kept on globalThis: API routes and instrumentation are separate bundles, and the
+// owner status check must see the scheduler that actually runs in this process.
+const schedulerGlobal = globalThis as typeof globalThis & { __neboSchedulerStatusV1?: SchedulerStatus };
+const status: SchedulerStatus = schedulerGlobal.__neboSchedulerStatusV1 ??= {
   started: false,
   startedAt: null,
   lastDispatchAt: null,
@@ -73,6 +77,7 @@ const status: SchedulerStatus = {
   lastPlannerJob: null,
   lastPlannerAt: null,
   dispatchIntervalMs: DISPATCH_INTERVAL_MS,
+  lastDispatchError: null,
 };
 
 export function getSchedulerStatus(): SchedulerStatus {
@@ -93,9 +98,12 @@ async function runOnce(job: string, slotKey: string, fn: () => Promise<unknown>)
 }
 
 let dispatching = false;
+let dispatchingSince = 0;
 async function dispatchTick() {
-  if (dispatching) return;
+  // A hung send must not block every later dispatch: after 10 minutes start anew.
+  if (dispatching && Date.now() - dispatchingSince < 10 * 60_000) return;
   dispatching = true;
+  dispatchingSince = Date.now();
   try {
     const result = await dispatchScheduledNotifications(new Date(), 100);
     status.lastDispatchAt = new Date().toISOString();
@@ -105,6 +113,7 @@ async function dispatchTick() {
   } catch (error) {
     status.lastDispatchAt = new Date().toISOString();
     status.lastDispatchOk = false;
+    status.lastDispatchError = (error instanceof Error ? error.message : String(error)).slice(0, 200);
     console.warn('[cron] dispatch failed:', error instanceof Error ? error.message : error);
   }
 

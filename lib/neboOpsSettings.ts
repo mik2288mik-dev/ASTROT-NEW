@@ -1,6 +1,7 @@
 import { getPool } from './db';
 import type { TelegramReplyMarkup } from './telegramBot';
 import { telegramApiRequest } from './telegramRelay';
+import { neboOpsWebhookBase } from './neboOpsWebhook';
 
 export type NeboOpsPreferenceKey = 'notify_logins' | 'notify_payments' | 'notify_paywalls' | 'notify_support';
 export type NeboOpsPreferences = {
@@ -125,7 +126,7 @@ export async function ensureNeboOpsBotSetup(token: string): Promise<void> {
   if (setupStarted) return;
   setupStarted = true;
   const secret = String(process.env.NEBO_OPS_WEBHOOK_SECRET || '').trim();
-  const base = String(process.env.NEBO_OPS_PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/$/, '');
+  const base = neboOpsWebhookBase() || '';
   if (secret.length < 32 || !base.startsWith('https://')) { setupStarted = false; return; }
   try {
     const responses = await Promise.all([
@@ -150,7 +151,7 @@ export async function ensureNeboOwnerChannelBotSetup(
   token: string,
 ): Promise<void> {
   const secret = String(process.env.NEBO_OPS_WEBHOOK_SECRET || '').trim();
-  const base = String(process.env.NEBO_OPS_PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/$/, '');
+  const base = neboOpsWebhookBase() || '';
   if (secret.length < 32 || !base.startsWith('https://')) return;
   try {
     const responses = await Promise.all([

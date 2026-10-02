@@ -10,8 +10,10 @@ import {
 } from '../../../lib/neboOwnerChannels';
 import type { NeboReportKind } from '../../../lib/neboOpsStats';
 import { telegramApiRequest } from '../../../lib/telegramRelay';
+import { acknowledgeAndRun, forwardNeboOpsRequest, isRepeatedTelegramUpdate } from '../../../lib/neboOpsWebhook';
 
 type Update = {
+  update_id?: number;
   message?: { text?: string; from?: { id?: number }; chat?: { id?: number } };
   callback_query?: { id?: string; data?: string; from?: { id?: number }; message?: { chat?: { id?: number } } };
 };
@@ -40,6 +42,7 @@ async function reply(channel: NeboOwnerChannel, data: string): Promise<string | 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+  if (await forwardNeboOpsRequest(req, res)) return;
   const channel = req.query.channel === 'payments' || req.query.channel === 'support' || req.query.channel === 'errors'
     ? req.query.channel
     : null;
@@ -55,21 +58,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const fromId = String(callback?.from?.id ?? update.message?.from?.id ?? '');
   const chatId = String(callback?.message?.chat?.id ?? update.message?.chat?.id ?? '');
   if (fromId !== config.chatId || chatId !== config.chatId) return res.status(200).json({ ok: true });
+  if (isRepeatedTelegramUpdate(channel, update.update_id)) return res.status(200).json({ ok: true });
 
-  if (callback?.id) {
+  acknowledgeAndRun(res, async () => {
+    const menu = neboChannelMenu(channel);
+    if (!callback?.id) {
+      await sendNeboOpsTextWithConfig(config, menu.text, { replyMarkup: menu.replyMarkup });
+      return;
+    }
     await telegramApiRequest(config.token, 'answerCallbackQuery', { callback_query_id: callback.id, text: 'Собираю…' },
       { signal: AbortSignal.timeout(8_000) }).catch(() => undefined);
     try {
       const text = await reply(channel, String(callback.data || ''));
-      const menu = neboChannelMenu(channel);
       await sendNeboOpsTextWithConfig(config, text || menu.text, { replyMarkup: menu.replyMarkup });
     } catch {
       await sendNeboOpsTextWithConfig(config, '⚠️ Не получилось собрать данные. Попробуй ещё раз через минуту.');
     }
-    return res.status(200).json({ ok: true });
-  }
-
-  const menu = neboChannelMenu(channel);
-  await sendNeboOpsTextWithConfig(config, menu.text, { replyMarkup: menu.replyMarkup });
-  return res.status(200).json({ ok: true });
+  }, `${channel} command`);
 }
