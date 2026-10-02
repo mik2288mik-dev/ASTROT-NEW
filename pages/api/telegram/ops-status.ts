@@ -157,7 +157,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         getNotificationDeliveryHealth().catch((error) => ({ error: String(error?.message || error).slice(0, 200) })),
         ownerUser ? probeOwnerNotifications(ownerUser).catch((error) => ({ error: String(error?.message || error).slice(0, 200) })) : null,
       ]);
-      return { queue, ownerFound: Boolean(ownerUser), health, ownerProbe: probe };
+      // Последний след владельца по каждому источнику — видно, из чего складывается «дней без захода».
+      const ownerActivity = ownerUser ? (await pool.query(
+        `SELECT
+           (SELECT MAX(occurred_at) FROM user_app_events WHERE user_id = $1::bigint
+              AND COALESCE(source, '') NOT IN ('rustore_callback', 'entitlement_expiry')) AS app_events,
+           (SELECT MAX(GREATEST(created_at, last_seen_at)) FROM app_sessions WHERE user_id = $1::bigint) AS app_sessions,
+           (SELECT MAX(last_seen_at) FROM user_sessions WHERE user_id = $1::bigint) AS user_sessions,
+           (SELECT MAX(occurred_at) FROM nebo_ops_outbox WHERE user_id = $1::bigint AND event_type IN ('login', 'activity')) AS ops_visits`,
+        [ownerUser],
+      ).catch((error) => ({ rows: [{ error: String(error?.message || error).slice(0, 200) }] }))).rows[0] : null;
+      return { queue, ownerFound: Boolean(ownerUser), ownerActivity, health, ownerProbe: probe };
     })().catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'failed' }));
   }
 
