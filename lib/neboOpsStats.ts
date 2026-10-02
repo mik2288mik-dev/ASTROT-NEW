@@ -126,7 +126,8 @@ const EVENTS = `ev AS (
 // a new auth session, the per-session «last seen» row, or an owner-bot visit/login fact.
 const VISITORS = `visitors AS (
   SELECT user_id FROM ev WHERE user_id IS NOT NULL
-  UNION SELECT s.user_id FROM app_sessions s CROSS JOIN bounds b WHERE s.created_at >= b.su AND s.created_at < b.eu
+  UNION SELECT s.user_id FROM app_sessions s CROSS JOIN bounds b
+    WHERE (s.created_at >= b.su AND s.created_at < b.eu) OR (s.last_seen_at >= b.su AND s.last_seen_at < b.eu)
   UNION SELECT us.user_id FROM user_sessions us CROSS JOIN bounds b
     WHERE (us.last_seen_at >= b.su AND us.last_seen_at < b.eu) OR (us.started_at >= b.su AND us.started_at < b.eu)
   UNION SELECT o.user_id FROM nebo_ops_outbox o CROSS JOIN bounds b
