@@ -86,22 +86,43 @@ export function renderNeboOpsMenu(prefs: NeboOpsPreferences, server = ''): { tex
   const adminButton = /^https:\/\//.test(appOrigin)
     ? [[{ text: '🛠 Админка: всё подробно', web_app: { url: `${appOrigin}/?view=admin` } }]]
     : [];
+  const off = [
+    !prefs.notify_logins && 'входы', !prefs.notify_payments && 'оплаты',
+    !prefs.notify_paywalls && 'экран оплаты', !prefs.notify_support && 'обращения',
+  ].filter(Boolean);
   return {
     text: [
-      `⚙️ NEBO · Бот событий${server ? ` · 🖥 ${server}` : ''}`,
+      `🌌 NEBO · Бот событий${server ? ` · 🖥 ${server}` : ''}`,
       '',
-      'Отчёты — кнопками ниже. Галочка = уведомление приходит.',
-      `Отчёт каждый день: ${hour(prefs.daily_report_hour)}`,
-      `Отчёт за неделю: воскресенье, ${hour(prefs.weekly_report_hour)}`,
+      'Что посмотреть — кнопками ниже. Команда /user ID — карточка любого человека.',
+      off.length ? `⚠️ Сейчас выключены уведомления: ${off.join(', ')} (⚙️ Настройки)` : '✅ Все уведомления включены',
+      `Отчёт каждый день: ${hour(prefs.daily_report_hour)} · за неделю: вс, ${hour(prefs.weekly_report_hour)}`,
     ].join('\n'),
     replyMarkup: { inline_keyboard: [
       [{ text: '📊 Сегодня', callback_data: 'ops:report:today' }, { text: '📅 Вчера', callback_data: 'ops:report:yesterday' }],
       [{ text: '📈 7 дней + график', callback_data: 'ops:report:week' }, { text: '🗓 30 дней + график', callback_data: 'ops:report:month' }],
+      [{ text: '👥 Кто заходил', callback_data: 'ops:latest' }, { text: '💎 Подписчики', callback_data: 'ops:premium' }],
+      [{ text: '🩺 Состояние сервера', callback_data: 'ops:health' }, { text: '⚙️ Настройки', callback_data: 'ops:settings' }],
+      ...adminButton,
+    ] },
+  };
+}
+
+/** Switches live in their own screen so the main menu stays about the app, not the bot. */
+export function renderNeboOpsSettingsMenu(prefs: NeboOpsPreferences): { text: string; replyMarkup: TelegramReplyMarkup } {
+  return {
+    text: [
+      '⚙️ Настройки уведомлений',
+      '',
+      'Галочка — уведомление приходит. Нажми, чтобы включить или выключить.',
+      'Время отчётов — нажимай, пока не выберешь нужное (21:00 → 23:00 → выкл).',
+    ].join('\n'),
+    replyMarkup: { inline_keyboard: [
       [{ text: `${on(prefs.notify_logins)} Входы`, callback_data: 'ops:toggle:notify_logins' }, { text: `${on(prefs.notify_paywalls)} Экран оплаты`, callback_data: 'ops:toggle:notify_paywalls' }],
       [{ text: `${on(prefs.notify_payments)} Оплаты`, callback_data: 'ops:toggle:notify_payments' }, { text: `${on(prefs.notify_support)} Обращения`, callback_data: 'ops:toggle:notify_support' }],
       [{ text: `⏰ Каждый день · ${hour(prefs.daily_report_hour)}`, callback_data: 'ops:schedule:daily' }],
       [{ text: `⏰ Неделя · ${hour(prefs.weekly_report_hour)}`, callback_data: 'ops:schedule:weekly' }],
-      ...adminButton,
+      [{ text: '← Назад в меню', callback_data: 'ops:menu' }],
     ] },
   };
 }
@@ -131,7 +152,7 @@ export async function ensureNeboOpsBotSetup(token: string): Promise<void> {
   try {
     const responses = await Promise.all([
       telegramApiRequest(token, 'setWebhook', { url: `${base}/api/telegram/ops-webhook`, secret_token: secret, allowed_updates: ['message', 'callback_query'], drop_pending_updates: false }, { signal: AbortSignal.timeout(8_000) }),
-      telegramApiRequest(token, 'setMyCommands', { commands: [{ command: 'menu', description: 'Меню и настройки' }, { command: 'report', description: 'Отчёт за сегодня' }, { command: 'week', description: 'Отчёт за 7 дней с графиком' }, { command: 'month', description: 'Отчёт за 30 дней с графиком' }] }, { signal: AbortSignal.timeout(8_000) }),
+      telegramApiRequest(token, 'setMyCommands', { commands: [{ command: 'menu', description: 'Меню' }, { command: 'report', description: 'Отчёт за сегодня' }, { command: 'week', description: 'Отчёт за 7 дней с графиком' }, { command: 'month', description: 'Отчёт за 30 дней с графиком' }, { command: 'who', description: 'Кто заходил последним' }, { command: 'premium', description: 'Подписчики Premium' }, { command: 'user', description: 'Карточка человека: /user ID' }] }, { signal: AbortSignal.timeout(8_000) }),
     ]);
     const failures = failedTelegramSetupOperations(responses);
     if (failures.length) {

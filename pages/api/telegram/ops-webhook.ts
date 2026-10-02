@@ -7,9 +7,12 @@ import {
   cycleNeboOpsReportSchedule,
   getNeboOpsPreferences,
   renderNeboOpsMenu,
+  renderNeboOpsSettingsMenu,
   toggleNeboOpsPreference,
   type NeboOpsPreferenceKey,
 } from '../../../lib/neboOpsSettings';
+import { buildLatestVisitors, buildPremiumList, buildUserCard } from '../../../lib/neboOpsInsights';
+import { buildHealthSummary } from '../../../lib/neboOwnerChannels';
 import { acknowledgeAndRun, forwardNeboOpsRequest, isRepeatedTelegramUpdate } from '../../../lib/neboOpsWebhook';
 
 type OpsUpdate = {
@@ -36,6 +39,15 @@ async function sendMenu() {
   await sendNeboOpsText(menu.text, { replyMarkup: menu.replyMarkup });
 }
 
+async function sendSettings() {
+  const menu = renderNeboOpsSettingsMenu(await getNeboOpsPreferences());
+  await sendNeboOpsText(menu.text, { replyMarkup: menu.replyMarkup });
+}
+
+async function sendView(build: () => Promise<string>) {
+  await sendNeboOpsText(await build().catch(() => '⚠️ Не получилось собрать данные. Попробуй ещё раз через минуту.'));
+}
+
 async function sendReport(kind: NeboReportKind) {
   if (!(await sendNeboOpsBusinessReport(kind))) {
     await sendNeboOpsText('⚠️ Не удалось отправить отчёт. Попробуй ещё раз через минуту.');
@@ -50,22 +62,33 @@ async function handleUpdate(update: OpsUpdate, config: NeboOpsConfig): Promise<v
     if (toggleMatch) {
       await toggleNeboOpsPreference(toggleMatch[1] as NeboOpsPreferenceKey);
       await answerCallback(config.token, callback.id, 'Настройка сохранена');
-      await sendMenu();
+      await sendSettings();
     } else if (data === 'ops:schedule:daily' || data === 'ops:schedule:weekly') {
       await cycleNeboOpsReportSchedule(data.endsWith('daily') ? 'daily' : 'weekly');
       await answerCallback(config.token, callback.id, 'Расписание обновлено');
-      await sendMenu();
+      await sendSettings();
     } else if (/^ops:report:(today|yesterday|week|month)$/.test(data)) {
       await answerCallback(config.token, callback.id, 'Собираю отчёт…');
       await sendReport(data.slice('ops:report:'.length) as NeboReportKind);
+    } else if (data === 'ops:settings') {
+      await answerCallback(config.token, callback.id, 'Настройки');
+      await sendSettings();
+    } else if (data === 'ops:latest' || data === 'ops:premium' || data === 'ops:health') {
+      await answerCallback(config.token, callback.id, 'Собираю…');
+      await sendView(data === 'ops:latest' ? () => buildLatestVisitors(10)
+        : data === 'ops:premium' ? buildPremiumList : buildHealthSummary);
     } else {
-      await answerCallback(config.token, callback.id, 'Меню обновлено');
+      await answerCallback(config.token, callback.id, 'Меню');
       await sendMenu();
     }
     return;
   }
-  const command = String(update.message?.text || '').trim().split(/\s+/)[0].toLowerCase().replace(/@[^\s]+$/, '');
-  if (command === '/report') await sendReport('today');
+  const words = String(update.message?.text || '').trim().split(/\s+/);
+  const command = words[0].toLowerCase().replace(/@[^\s]+$/, '');
+  if (command === '/user') await sendView(() => buildUserCard(words[1] || ''));
+  else if (command === '/who') await sendView(() => buildLatestVisitors(15));
+  else if (command === '/premium') await sendView(buildPremiumList);
+  else if (command === '/report') await sendReport('today');
   else if (command === '/yesterday') await sendReport('yesterday');
   else if (command === '/week') await sendReport('week');
   else if (command === '/month') await sendReport('month');
