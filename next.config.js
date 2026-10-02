@@ -16,6 +16,8 @@ if (isMobileBuild && !mobileDistributionChannels.has(distributionChannel)) {
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Lets a second local dev server build into its own folder instead of fighting over .next.
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // Live View is the visual source of truth; keep Next's corner badge off the app navigation.
   devIndicators: false,
   output: isMobileBuild ? 'export' : 'standalone',

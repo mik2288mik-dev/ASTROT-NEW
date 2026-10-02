@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import {
+  TODAY_AUTUMN_BROADCAST_PRESETS,
   TODAY_BROADCAST_PRESETS,
   TODAY_BROADCASTS_PER_DAY,
   TODAY_CLOCK_PRESETS,
@@ -29,55 +30,68 @@ describe('Today visual presets', () => {
     expect(mechanical.every((preset) => preset.glow === false)).toBe(true);
   });
 
-  it('ships exactly 21 local photo broadcasts', () => {
+  it('ships local summer and autumn photo pools', () => {
     expect(TODAY_BROADCAST_PRESETS).toHaveLength(21);
-    expect(TODAY_BROADCASTS_PER_DAY).toBe(3);
-    expect(new Set(TODAY_BROADCAST_PRESETS.map((preset) => preset.id)).size).toBe(21);
-    expect(new Set(TODAY_BROADCAST_PRESETS.map((preset) => preset.imageSrc)).size).toBe(21);
-    expect(TODAY_BROADCAST_PRESETS.every((preset) => (
+    expect(TODAY_AUTUMN_BROADCAST_PRESETS).toHaveLength(10);
+    expect(TODAY_BROADCASTS_PER_DAY).toBe(4);
+    const all = [...TODAY_BROADCAST_PRESETS, ...TODAY_AUTUMN_BROADCAST_PRESETS];
+    expect(new Set(all.map((preset) => preset.id)).size).toBe(all.length);
+    expect(new Set(all.map((preset) => preset.imageSrc)).size).toBe(all.length);
+    expect(all.every((preset) => (
       preset.labelRu.trim().length > 0 && preset.labelEn.trim().length > 0
     ))).toBe(true);
-    expect(TODAY_BROADCAST_PRESETS.every((preset) => (
+    expect(all.every((preset) => (
       preset.imageSrc.startsWith('/assets/today-broadcasts/v1/')
       && fs.existsSync(path.join(ROOT, 'public', preset.imageSrc.slice(1)))
     ))).toBe(true);
   });
 
-  it('returns one deterministic three-photo playlist for a calendar day', () => {
+  it('returns one deterministic four-photo playlist for a calendar day', () => {
     const first = resolveTodayBroadcasts('2026-09-01');
     const repeated = resolveTodayBroadcasts('2026-09-01');
     const timestamped = resolveTodayBroadcasts('2026-09-01T23:59:00+03:00');
 
-    expect(first).toHaveLength(3);
-    expect(new Set(first.map((preset) => preset.id)).size).toBe(3);
+    expect(first).toHaveLength(4);
+    expect(new Set(first.map((preset) => preset.id)).size).toBe(4);
     expect(repeated.map((preset) => preset.id)).toEqual(first.map((preset) => preset.id));
     expect(timestamped.map((preset) => preset.id)).toEqual(first.map((preset) => preset.id));
   });
 
-  it('uses every photo once over seven consecutive days and repeats on day eight', () => {
-    const days = Array.from({ length: 8 }, (_, index) => (
-      `2026-09-${String(index + 1).padStart(2, '0')}`
+  it('shows the autumn pool from September to November and summer otherwise', () => {
+    const autumnIds = new Set<string>(TODAY_AUTUMN_BROADCAST_PRESETS.map((preset) => preset.id));
+    for (const day of ['2026-09-15', '2026-10-02', '2026-11-30']) {
+      expect(resolveTodayBroadcasts(day).every((preset) => autumnIds.has(preset.id))).toBe(true);
+    }
+    for (const day of ['2026-08-31', '2026-12-01', '2026-06-10']) {
+      expect(resolveTodayBroadcasts(day).some((preset) => autumnIds.has(preset.id))).toBe(false);
+    }
+  });
+
+  it('rolls through every autumn photo within five days and never doubles a portrait', () => {
+    const days = Array.from({ length: 6 }, (_, index) => (
+      `2026-10-${String(index + 1).padStart(2, '0')}`
     ));
     const playlists = days.map((day) => resolveTodayBroadcasts(day));
-    const firstWeekIds = playlists.slice(0, 7).flatMap((playlist) => (
-      playlist.map((preset) => preset.id)
-    ));
+    const portraitIds = new Set<string>(TODAY_AUTUMN_BROADCAST_PRESETS
+      .filter((_, index) => index % 2 === 0)
+      .map((preset) => preset.id));
 
-    expect(playlists.slice(0, 7).every((playlist) => playlist.length === 3)).toBe(true);
-    expect(new Set(firstWeekIds).size).toBe(21);
-    for (let index = 1; index < 7; index += 1) {
-      const previous = new Set(playlists[index - 1].map((preset) => preset.id));
-      expect(playlists[index].every((preset) => !previous.has(preset.id))).toBe(true);
+    expect(new Set(playlists.slice(0, 5).flat().map((preset) => preset.id)).size).toBe(10);
+    for (const playlist of playlists) {
+      for (let index = 1; index < playlist.length; index += 1) {
+        expect(portraitIds.has(playlist[index].id) && portraitIds.has(playlist[index - 1].id)).toBe(false);
+      }
     }
-    expect(playlists[7].map((preset) => preset.id)).toEqual(
+    expect(playlists[5].map((preset) => preset.id)).toEqual(
       playlists[0].map((preset) => preset.id),
     );
   });
 
-  it('cycles only within today\'s three broadcasts', () => {
+  it('cycles only within the four broadcasts of the day', () => {
     expect(nextTodayBroadcastIndex(0)).toBe(1);
     expect(nextTodayBroadcastIndex(1)).toBe(2);
-    expect(nextTodayBroadcastIndex(2)).toBe(0);
+    expect(nextTodayBroadcastIndex(2)).toBe(3);
+    expect(nextTodayBroadcastIndex(3)).toBe(0);
   });
 
   it('ships ten to fifteen distinct decorative line compositions', () => {
@@ -104,7 +118,7 @@ describe('Today visual presets', () => {
     );
 
     expect(source).not.toContain('Math.random');
-    expect(source).toContain('TODAY_BROADCAST_PRESETS.length');
+    expect(source).toContain('pool.length');
     expect(source).toContain('TODAY_CLOCK_PRESETS.length');
     expect(source).toContain('TODAY_LINE_PRESETS.length');
   });

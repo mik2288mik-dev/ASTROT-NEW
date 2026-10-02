@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
 import { isRenderableTodaySection } from './editorialLayout';
@@ -17,6 +17,7 @@ type TodayEditorialFeedProps = {
   tone: PersonalForecastAstrologerBrief['tone'];
   personalAttribution?: string | null;
   onRequestPremium: () => void;
+  footer?: ReactNode;
 };
 
 function resolveTitle(section?: ForecastSection): string {
@@ -83,6 +84,7 @@ export function TodayEditorialFeed({
   tone,
   personalAttribution,
   onRequestPremium,
+  footer,
 }: TodayEditorialFeedProps) {
   const renderableSections = useMemo(
     () => sections.filter((section) => isRenderableTodaySection(section, lockedSectionIds)),
@@ -154,6 +156,7 @@ export function TodayEditorialFeed({
           ))}
         </div>
       </section>
+      {footer}
     </article>
   );
 }

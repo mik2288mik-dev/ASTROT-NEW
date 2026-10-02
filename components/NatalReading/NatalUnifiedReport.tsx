@@ -11,7 +11,8 @@ import {
   getNatalUnifiedReadingCached,
 } from '../../services/natalUnifiedReadingService';
 import styles from './NatalSection.module.css';
-import { NatalPlusEntry } from './NatalPlusEntry';
+import { PremiumHook } from '../premium/PremiumHook';
+import { SIGN_LOCATIVE_RU } from '../../lib/natalMoments';
 
 type Props = {
   profile: UserProfile;
@@ -34,6 +35,15 @@ type LoadState = {
 function canonical(chart: NatalChartData): NatalChartDataV2 | null {
   const value = chart as unknown as NatalChartDataV2;
   return value?.schemaVersion === 'natal-chart-data-v2' ? value : null;
+}
+
+/** «Венера в Скорпионе и Марс в Козероге — что это значит для тебя». */
+function natalHookTitle(chart: NatalChartDataV2): string {
+  const venus = SIGN_LOCATIVE_RU[chart.positions?.venus?.sign ?? ''];
+  const mars = SIGN_LOCATIVE_RU[chart.positions?.mars?.sign ?? ''];
+  return venus && mars
+    ? `Венера в ${venus} и Марс в ${mars} — что это значит для тебя`
+    : 'Дальше — весь рассказ о тебе и разбор по темам';
 }
 
 function errorText(language: 'ru' | 'en'): string {
@@ -195,19 +205,20 @@ export const NatalUnifiedReport: React.FC<Props> = ({
             </section>
           ))}
           {!isPremium && canPromotePremium ? (
-            <NatalPlusEntry
-              title={language === 'ru' ? 'Продолжение рассказа — с Premium' : 'Continue the full story with Premium'}
+            <PremiumHook
+              title={natalHookTitle(v2)}
+              items={interpretation.topics.slice(0, 5).map((topic) => (
+                `${topic.title} — по ${topic.evidenceIds.length} ${topic.evidenceIds.length === 1 ? 'факту' : 'фактам'} твоей карты`
+              ))}
+              cta="Читать весь рассказ"
+              note="Это продолжение того же рассказа, а не другой текст"
               onOpen={() => void requestPremium('deep_natal', {
                 placement: 'deep_natal',
                 featureKey: 'natal_deep',
                 triggerType: 'locked_feature',
                 returnView: 'chart',
               })}
-            >
-              {language === 'ru'
-                ? 'Это начало полного рассказа о тебе. Premium открывает продолжение и разбор по темам.'
-                : 'This is the beginning of the same full reading. Premium unlocks the rest and the topic view.'}
-            </NatalPlusEntry>
+            />
           ) : null}
         </div>
       ) : (

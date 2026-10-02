@@ -407,11 +407,19 @@ export function isCurrentPersonalForecastPeriodKey(
 // Keep today's reading and the next four local calendar days ready in advance.
 export const PERSONAL_FORECAST_ROLLING_DAY_COUNT = 5;
 export const MAX_FUTURE_FORECAST_DAYS = 30;
+/** Free readers open today and tomorrow; NEBO+ opens the whole 30-day horizon. */
+export const FREE_FORECAST_DAYS = 2;
+/** NEBO+ day readings are prepared this many days ahead, so «Будущее» opens without waiting. */
+export const PREMIUM_FORECAST_PREWARM_DAYS = MAX_FUTURE_FORECAST_DAYS;
 
 /** Calendar dates, independent of DST and the device's own timezone. */
-export function getPersonalForecastDayHorizon(timezone?: string | null, now = new Date()): string[] {
+export function getPersonalForecastDayHorizon(
+  timezone?: string | null,
+  now = new Date(),
+  count = PERSONAL_FORECAST_ROLLING_DAY_COUNT,
+): string[] {
   const keys = [getPersonalForecastPeriodKey('day', now, normalizeForecastTimezone(timezone))];
-  while (keys.length < PERSONAL_FORECAST_ROLLING_DAY_COUNT) {
+  while (keys.length < count) {
     keys.push(getNextPersonalForecastPeriodKey('day', keys[keys.length - 1], timezone));
   }
   return keys;
@@ -436,7 +444,7 @@ export function getPersonalForecastPeriodAccess(input: {
   const today = getPersonalForecastPeriodKey('day', now, timezone);
   const offset = (Date.parse(`${input.periodKey}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / 86_400_000;
   if (!Number.isInteger(offset) || offset < 0 || offset > MAX_FUTURE_FORECAST_DAYS) return 'outside_horizon';
-  return offset === 0 || input.accessTier === 'premium' ? 'allowed' : 'premium_required';
+  return offset < FREE_FORECAST_DAYS || input.accessTier === 'premium' ? 'allowed' : 'premium_required';
 }
 
 function parsePeriodKey(period: PersonalForecastPeriod, periodKey: string) {

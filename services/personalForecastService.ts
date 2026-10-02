@@ -16,6 +16,7 @@ import {
   type PersonalForecastAccessPayload,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
+  FREE_FORECAST_DAYS,
 } from '../lib/personalForecastContract';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
@@ -464,7 +465,7 @@ export function readLastSavedPersonalForecast(input: {
 /** Fetch only already prepared readings. Missing dates never start paid generation here. */
 export async function primePersonalForecastDayHorizon(profile: UserProfile): Promise<PersonalForecastClientResult[]> {
   const dates = getPersonalForecastDayHorizon(profile.birthTimezone);
-  const accessibleDates = hasActivePremium(profile) ? dates : dates.slice(0, 1);
+  const accessibleDates = hasActivePremium(profile) ? dates : dates.slice(0, FREE_FORECAST_DAYS);
   const results = await Promise.allSettled(accessibleDates.map((periodKey) => loadPersonalForecast({
     profile, period: 'day', periodKey, options: { cacheOnly: true },
   })));

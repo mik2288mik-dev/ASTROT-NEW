@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, LockKeyhole } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { computeMatrix, type MatrixLifeArea, type MatrixPosition } from '../../lib/matrixOfDestiny';
 import { getArcana, MATRIX_SUBTITLE, MATRIX_TITLE } from '../../lib/matrixArcana';
@@ -10,8 +10,14 @@ import { EditorialProfileButton } from '../../components/editorial/EditorialScre
 import { ACTION_FEEDBACK, showActionFeedback } from '../../components/lumia-ui/ActionFeedback';
 import styles from './MatrixRoom.module.css';
 import scrollStyles from './MatrixRoomScrollFix.module.css';
+import { hasActivePremium } from '../../lib/accessMatrix';
+import { PremiumHook } from '../../components/premium/PremiumHook';
 
-type Props = { profile: UserProfile; onBack: () => void; onOpenProfile?: () => void; onOpenCharts?: () => void; embedded?: boolean };
+type Props = { profile: UserProfile; onBack: () => void; onOpenProfile?: () => void; onOpenCharts?: () => void; embedded?: boolean; onRequestPremium?: () => void };
+
+/** Free: the diagram, every number, the character theme. NEBO+: money, love, life stages and the full reading. */
+const PREMIUM_THEMES = new Set<Theme>(['money', 'love', 'age']);
+const PREMIUM_POINTS = new Set(['money', 'love']);
 type Theme = 'character' | 'money' | 'love' | 'age';
 type Point = { id: string; value: number; label: string; hint: string; formula: string; copy: string; place: string };
 type Screen = { kind: 'home' } | { kind: 'point'; point: Point } | { kind: 'theme'; theme: Theme } | { kind: 'full' };
@@ -41,7 +47,9 @@ function Diagram({ points, selected, onSelect }: { points: Point[]; selected: st
   </div>;
 }
 
-export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false }: Props) {
+export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false, onRequestPremium }: Props) {
+  const locked = Boolean(onRequestPremium) && !hasActivePremium(profile);
+  const requestPremium = () => { lumiaSelectionHaptic(); onRequestPremium?.(); };
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
   const [date, setDate] = useState(toDateInputValue(profile.birthDate || ''));
@@ -89,6 +97,13 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false }:
   </div>;
 
   const theme = screen.kind === 'theme' ? themes[screen.theme] : null;
+  const moneyNumber = result.lifeAreas.find((item) => item.key === 'money')?.arcana;
+  const loveNumber = result.lifeAreas.find((item) => item.key === 'love')?.arcana;
+  const lockedLead = (key: Theme) => key === 'money'
+    ? `Твоё число денег — ${moneyNumber}. Что оно значит — в NEBO+`
+    : key === 'love'
+      ? `Твоё число отношений — ${loveNumber}. Что оно значит — в NEBO+`
+      : 'Три этапа жизни по твоей дате — в NEBO+';
   const chapters = [
     ['main', ru ? 'Главное' : 'Main', ru ? 'Главный вектор' : 'Main direction', selected.copy, ru ? 'Центр схемы помогает заметить повторяющийся способ действовать. Это не ярлык и не предсказание.' : 'The center helps notice a repeating pattern, not label you.'],
     ['character', ru ? 'Характер' : 'Character', themes.character.title, themes.character.lead, themes.character.blocks[1][1]],
@@ -106,9 +121,14 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false }:
       {screen.kind === 'home' && <>
         <p className={styles.dateLine}>{ru ? 'Дата рождения' : 'Birth date'} <strong>{date.split('-').reverse().join('.')}</strong></p>
         <details className={styles.recalculate}><summary>{ru ? 'Изменить дату' : 'Change date'}</summary><div><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /><button type="button" onClick={calculate}>{ru ? 'Пересчитать' : 'Recalculate'}</button></div></details>
-        <section className={styles.matrixBlock}><p className={styles.eyebrow}>{ru ? 'Твоя матрица' : 'Your matrix'}</p><Diagram points={points} selected={selectedId} onSelect={(point) => { lumiaSelectionHaptic(); setSelectedId(point.id); }} /><div className={styles.selection}><b>{selected.value}</b><span><strong>{selected.label}</strong><small style={{ fontSize: 13, fontWeight: 600 }}>{selected.formula}</small></span><button type="button" onClick={() => { lumiaSelectionHaptic(); setScreen({ kind: 'point', point: selected }); }}>{ru ? 'Разобрать' : 'Open'}</button></div></section>
-        <section className={styles.themes}><h1>{ru ? 'Разбор' : 'Reading'}</h1><p>{ru ? 'Нажми на тему или число — откроем отдельный разбор.' : 'Choose a theme or a number for its own reading.'}</p>{(Object.keys(themes) as Theme[]).map((key) => <button type="button" className={styles.themeRow} style={{ gridTemplateColumns: 'minmax(0, 1fr) 18px' }} key={key} onClick={() => { lumiaSelectionHaptic(); setScreen({ kind: 'theme', theme: key }); }}><span><strong>{themes[key].title}</strong><small>{themes[key].lead}</small></span><ChevronRight aria-hidden="true" /></button>)}</section>
-        <section className={styles.fullCard}><p>{ru ? 'Полный разбор' : 'Full reading'}</p><h2>{ru ? 'Собрать всё вместе' : 'See the whole picture'}</h2><span>{ru ? 'Восемь глав: от главной точки до итога.' : 'Eight chapters, from the main point to the takeaway.'}</span><button type="button" onClick={() => { lumiaSelectionHaptic(); setScreen({ kind: 'full' }); }}>{ru ? 'Открыть полный разбор' : 'Open full reading'}</button></section>
+        <section className={styles.matrixBlock}><p className={styles.eyebrow}>{ru ? 'Твоя матрица' : 'Your matrix'}</p><Diagram points={points} selected={selectedId} onSelect={(point) => { lumiaSelectionHaptic(); setSelectedId(point.id); }} /><div className={styles.selection}><b>{selected.value}</b><span><strong>{selected.label}</strong><small style={{ fontSize: 13, fontWeight: 600 }}>{selected.formula}</small></span><button type="button" onClick={() => { if (locked && PREMIUM_POINTS.has(selected.id)) { requestPremium(); return; } lumiaSelectionHaptic(); setScreen({ kind: 'point', point: selected }); }}>{locked && PREMIUM_POINTS.has(selected.id) ? 'NEBO+' : (ru ? 'Разобрать' : 'Open')}</button></div></section>
+        <section className={styles.themes}><h1>{ru ? 'Разбор' : 'Reading'}</h1><p>{ru ? 'Нажми на тему или число — откроем отдельный разбор.' : 'Choose a theme or a number for its own reading.'}</p>{(Object.keys(themes) as Theme[]).map((key) => { const closed = locked && PREMIUM_THEMES.has(key); return <button type="button" className={styles.themeRow} style={{ gridTemplateColumns: 'minmax(0, 1fr) 18px' }} key={key} onClick={() => { if (closed) { requestPremium(); return; } lumiaSelectionHaptic(); setScreen({ kind: 'theme', theme: key }); }}><span><strong>{themes[key].title}</strong><small>{closed ? lockedLead(key) : themes[key].lead}</small></span>{closed ? <LockKeyhole aria-hidden="true" size={16} /> : <ChevronRight aria-hidden="true" />}</button>; })}</section>
+        {locked ? <PremiumHook
+          title={`Деньги — ${moneyNumber}, отношения — ${loveNumber}: что это значит для тебя`}
+          items={['Деньги: как ты зарабатываешь и на что легче тратить', 'Отношения: что для тебя важно рядом с человеком', 'По возрастам: три этапа жизни', 'Полный разбор: восемь глав от главного до итога']}
+          cta="Открыть матрицу целиком"
+          onOpen={requestPremium}
+        /> : <section className={styles.fullCard}><p>{ru ? 'Полный разбор' : 'Full reading'}</p><h2>{ru ? 'Собрать всё вместе' : 'See the whole picture'}</h2><span>{ru ? 'Восемь глав: от главной точки до итога.' : 'Eight chapters, from the main point to the takeaway.'}</span><button type="button" onClick={() => { lumiaSelectionHaptic(); setScreen({ kind: 'full' }); }}>{ru ? 'Открыть полный разбор' : 'Open full reading'}</button></section>}
       </>}
       {screen.kind === 'point' && <article className={styles.detail}><p className={styles.eyebrow}>{ru ? 'Точка матрицы' : 'Matrix point'}</p><h1>{screen.point.label}</h1><p className={styles.lead}>{screen.point.hint}</p><section className={styles.formula}><small>{ru ? 'Как посчитано' : 'How it is calculated'}</small><strong>{screen.point.formula}</strong></section><section><h2>{ru ? 'Что здесь видно' : 'What this shows'}</h2><p>{screen.point.copy}</p></section><section><h2>{ru ? 'Как читать эту точку' : 'How to read this point'}</h2><p>{ru ? 'Смотри на неё вместе с соседними числами: тогда схема остаётся понятной и не превращается в набор ярлыков.' : 'Read it with the nearby numbers, not as a label on its own.'}</p></section><button type="button" className={styles.secondary} onClick={goHome}>{ru ? 'Вернуться к матрице' : 'Back to matrix'}</button></article>}
       {screen.kind === 'theme' && theme && <article className={styles.detail}><p className={styles.eyebrow}>{ru ? 'Разбор' : 'Reading'}</p><h1>{theme.title}</h1><p className={styles.lead}>{theme.lead}</p>{theme.blocks.map(([heading, copy]) => <section key={heading}><h2>{heading}</h2><p>{copy}</p></section>)}<button type="button" className={styles.secondary} onClick={goHome}>{ru ? 'Вернуться к матрице' : 'Back to matrix'}</button></article>}
