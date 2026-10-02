@@ -31,6 +31,25 @@ const RECENT_OPEN_MINUTES = 60;
 const FREE_DAILY_LIMIT = 2;
 const PREMIUM_DAILY_LIMIT = 4;
 const IGNORED_LIMIT = 5;
+
+/**
+ * Все следы захода человека в приложение — те же источники, что считает бот аналитики
+ * (lib/neboOpsStats.ts VISITORS): события экранов, сессии входа (Android-приложение
+ * при возврате из фона часто не пишет событий, но обновляет сессию) и факты захода
+ * в outbox бота. Раньше бралась только user_app_events → активный в Android-приложении
+ * человек выглядел «неактивным N дней» и попадал под игнор-мьют пушей.
+ * Время — наивный UTC, как в остальных таблицах.
+ */
+function userActivitySql(userExpr: string): string {
+  return `
+    SELECT e.occurred_at AS at FROM user_app_events e
+      WHERE e.user_id = ${userExpr} AND COALESCE(e.source, '') NOT IN ('rustore_callback', 'entitlement_expiry')
+    UNION ALL SELECT s.last_seen_at FROM app_sessions s WHERE s.user_id = ${userExpr}
+    UNION ALL SELECT s.created_at FROM app_sessions s WHERE s.user_id = ${userExpr}
+    UNION ALL SELECT us.last_seen_at FROM user_sessions us WHERE us.user_id = ${userExpr}
+    UNION ALL SELECT o.occurred_at AT TIME ZONE 'UTC' FROM nebo_ops_outbox o
+      WHERE o.user_id = ${userExpr} AND o.event_type IN ('login', 'activity')`;
+}
 // Жёсткий предохранитель против спама: ни один юзер не получает два пуша ближе, чем за столько часов.
 // 3ч → за световой день (окна 8–21 локально) помещается до 4 пушей для премиума: утро/день/вечер
 // (≈9:00 → 12:00 → 15:00 → 18:00). Free остаётся на 2/день (лимит), разрыв тот же. Действует на
@@ -95,7 +114,7 @@ type RecipientRow = {
   premiumUntil: string | null;
   hasActivePremiumEntitlement: boolean;
   lastLogin: string | null;
-  /** Реальная последняя активность: max(last_login, created_at, последнее событие в user_app_events). */
+  /** Реальная последняя активность: max(last_login, created_at, последний след захода — см. userActivitySql). */
   lastActivity: string | null;
   language: string;
   chartId: number | null;
@@ -860,7 +879,7 @@ async function listRecipients(limit = 250, telegramOnly = false): Promise<Recipi
             GREATEST(
               u.last_login,
               u.created_at,
-              (SELECT MAX(e.occurred_at) FROM user_app_events e WHERE e.user_id = u.id)
+              (SELECT MAX(a.at) FROM (${userActivitySql('u.id')}) a)
             ) AS last_activity,
             COALESCE(u.language, 'ru') AS language,
             nc.id AS chart_id,
@@ -976,7 +995,7 @@ export async function buildPersonalizationContext(userId: string, now = new Date
             GREATEST(
               u.last_login,
               u.created_at,
-              (SELECT MAX(e.occurred_at) FROM user_app_events e WHERE e.user_id = u.id)
+              (SELECT MAX(a.at) FROM (${userActivitySql('u.id')}) a)
             ) AS last_activity,
             COALESCE(u.language, 'ru') AS language, nc.id AS chart_id, nc.timezone AS chart_timezone
      FROM users u
@@ -1054,10 +1073,9 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
        WHERE e.notification_id = ls.id AND e.event_type IN ('clicked', 'opened_app', 'opened_target_screen')
      )
        AND NOT EXISTS (
-         SELECT 1 FROM user_app_events ae
-         WHERE ae.user_id = $1
-           AND ae.occurred_at > ls.sent_at
-           AND ae.occurred_at <= ls.sent_at + INTERVAL '36 hours'
+         SELECT 1 FROM (${userActivitySql('$1::bigint')}) ae
+         WHERE ae.at > ls.sent_at
+           AND ae.at <= ls.sent_at + INTERVAL '36 hours'
        )`,
     [user.id]
   ).catch(() => ({ rows: [{ ignored: 0 }] } as any));
@@ -1096,8 +1114,8 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
     preparedDailyCard,
     recentScreens: recent,
     lockedBlockEvents: Number(locked.rows[0]?.count || 0),
-    // Неактивность считаем от РЕАЛЬНОЙ активности (последнее событие в user_app_events,
-    // которое пишется на каждый screen_view), а НЕ от last_login — он нигде не обновляется
+    // Неактивность считаем от РЕАЛЬНОЙ активности (последний след захода по всем источникам,
+    // см. userActivitySql), а НЕ от last_login — он нигде не обновляется
     // и всегда NULL → давал daysInactive=999 → активные (в т.ч. премиум) юзеры ошибочно
     // попадали в сегмент inactive_14_days и получали реактивационные пуши.
     daysInactive: dateDiffDays(user.lastActivity ?? user.lastLogin, now),
