@@ -94,6 +94,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ).then((result) => result.rows[0]).catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'failed' }));
   }
 
+  // ?visitors=2: every table with a user_id and a timestamp — distinct accounts that left
+  // any trace today (Moscow) and in the last 7 days. Independent check of «заходили».
+  let traces: unknown = undefined;
+  if (req.query.visitors === '2') {
+    traces = await (async () => {
+      const pool = getPool();
+      const columns = (await pool.query(
+        `SELECT c.table_name, c.column_name, c.data_type
+         FROM information_schema.columns c
+         JOIN information_schema.columns u ON u.table_schema = c.table_schema AND u.table_name = c.table_name AND u.column_name = 'user_id'
+         JOIN information_schema.tables t ON t.table_schema = c.table_schema AND t.table_name = c.table_name AND t.table_type = 'BASE TABLE'
+         WHERE c.table_schema = 'public'
+           AND c.column_name IN ('created_at', 'updated_at', 'occurred_at', 'last_seen_at', 'sent_at', 'requested_at')
+           AND c.data_type IN ('timestamp without time zone', 'timestamp with time zone')`,
+      )).rows as Array<{ table_name: string; column_name: string; data_type: string }>;
+      const start = `(date_trunc('day', NOW() AT TIME ZONE 'Europe/Moscow') AT TIME ZONE 'Europe/Moscow')`;
+      const perTable: Record<string, unknown> = {};
+      const parts: string[] = [];
+      for (const col of columns) {
+        if (!/^[a-z_][a-z0-9_]*$/.test(col.table_name) || !/^[a-z_]+$/.test(col.column_name)) continue;
+        const bound = (expr: string) => (col.data_type === 'timestamp with time zone' ? `(${expr})` : `((${expr}) AT TIME ZONE 'UTC')`);
+        const where = (from: string) => `"${col.column_name}" >= ${bound(from)}`;
+        const counts = (await pool.query(
+          `SELECT COUNT(DISTINCT user_id) FILTER (WHERE ${where(start)})::int AS today,
+                  COUNT(DISTINCT user_id) FILTER (WHERE ${where(`NOW() - INTERVAL '7 days'`)})::int AS week
+           FROM "${col.table_name}"`,
+        ).catch((error) => ({ rows: [{ today: -1, week: -1, error: String(error?.message || error).slice(0, 120) }] }))).rows[0];
+        perTable[`${col.table_name}.${col.column_name}`] = counts;
+        parts.push(`SELECT user_id::text AS id, "${col.column_name}" >= ${bound(start)} AS today FROM "${col.table_name}"
+                    WHERE user_id IS NOT NULL AND ${where(`NOW() - INTERVAL '7 days'`)}`);
+      }
+      const total = parts.length ? (await pool.query(
+        `SELECT COUNT(DISTINCT id) FILTER (WHERE today)::int AS today, COUNT(DISTINCT id)::int AS week
+         FROM (${parts.join(' UNION ALL ')}) x`,
+      ).catch((error) => ({ rows: [{ today: -1, week: -1, error: String(error?.message || error).slice(0, 120) }] }))).rows[0] : null;
+      return { anyTrace: total, perTable };
+    })().catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'failed' }));
+  }
+
   // ?push=1: why the planner does or does not queue pushes (dry run, nothing is sent).
   let pushDiagnosis: unknown = undefined;
   if (req.query.push === '1') {
@@ -145,5 +184,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     pushes,
     ...(pushDiagnosis === undefined ? {} : { pushDiagnosis }),
     ...(visitors === undefined ? {} : { visitors }),
+    ...(traces === undefined ? {} : { traces }),
   });
 }
