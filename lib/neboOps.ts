@@ -830,6 +830,39 @@ async function connectWakeupListener(): Promise<void> {
 }
 
 let lastAlarmCheckAt = 0;
+let lastVisitScanAt = 0;
+
+/**
+ * Every app activity after 30 quiet minutes is a visit, whatever the client did on
+ * open (a resumed native app does not re-register its session). Queue one owner
+ * «открыл приложение» per such visit unless a visit or login was already queued.
+ */
+export async function queueDetectedNeboVisits(): Promise<number> {
+  if (!isNeboOpsEnabled()) return 0;
+  const result = await getPool().query(
+    `WITH starts AS (
+       SELECT e.id, e.user_id, e.section, e.occurred_at
+       FROM user_app_events e
+       WHERE e.user_id IS NOT NULL AND e.occurred_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '15 minutes'
+         AND COALESCE(e.source, '') NOT IN ('rustore_callback', 'entitlement_expiry')
+         AND NOT EXISTS (SELECT 1 FROM user_app_events p WHERE p.user_id = e.user_id
+           AND p.occurred_at < e.occurred_at AND p.occurred_at >= e.occurred_at - INTERVAL '30 minutes')
+     )
+     INSERT INTO nebo_ops_outbox (event_key, event_type, user_id, payload_json, occurred_at, status)
+     SELECT 'visit-ev:' || s.id, 'activity', s.user_id,
+            jsonb_strip_nulls(COALESCE((SELECT o.payload_json - 'eventType' - 'section' - 'isFirstLogin' FROM nebo_ops_outbox o
+               WHERE o.user_id = s.user_id AND o.event_type IN ('login', 'activity') AND o.payload_json ? 'appVersion'
+               ORDER BY o.occurred_at DESC LIMIT 1), '{}'::jsonb)
+              || jsonb_build_object('eventType', 'app_open', 'section', s.section)),
+            s.occurred_at AT TIME ZONE 'UTC', 'pending'
+     FROM starts s
+     WHERE NOT EXISTS (SELECT 1 FROM nebo_ops_outbox q WHERE q.user_id = s.user_id
+       AND (q.event_type = 'login' OR (q.event_type = 'activity' AND q.payload_json->>'eventType' IN ('app_open', 'app_opened')))
+       AND q.occurred_at >= (s.occurred_at AT TIME ZONE 'UTC') - INTERVAL '30 minutes')
+     ON CONFLICT (event_key) DO NOTHING`,
+  );
+  return result.rowCount || 0;
+}
 
 export function wakeNeboOpsDelivery(): void {
   if (!isNeboOpsEnabled() || !getNeboOpsConfig()) return;
@@ -861,6 +894,14 @@ export function wakeNeboOpsDelivery(): void {
         } catch (error) {
           rememberWorkerError(state, error);
           console.warn('[nebo-ops] scheduled report deferred');
+        }
+      }
+      if (Date.now() - lastVisitScanAt >= 60_000) {
+        lastVisitScanAt = Date.now();
+        try {
+          if (await queueDetectedNeboVisits()) state.requested = true;
+        } catch (error) {
+          rememberWorkerError(state, error);
         }
       }
       if (Date.now() - lastAlarmCheckAt >= 5 * 60_000) {
