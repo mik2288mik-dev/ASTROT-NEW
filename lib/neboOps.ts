@@ -829,6 +829,8 @@ async function connectWakeupListener(): Promise<void> {
   }
 }
 
+let lastAlarmCheckAt = 0;
+
 export function wakeNeboOpsDelivery(): void {
   if (!isNeboOpsEnabled() || !getNeboOpsConfig()) return;
   if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') return;
@@ -859,6 +861,15 @@ export function wakeNeboOpsDelivery(): void {
         } catch (error) {
           rememberWorkerError(state, error);
           console.warn('[nebo-ops] scheduled report deferred');
+        }
+      }
+      if (Date.now() - lastAlarmCheckAt >= 5 * 60_000) {
+        lastAlarmCheckAt = Date.now();
+        try {
+          const { collectNeboAlarms } = await import('./neboOpsInsights');
+          for (const alarm of await collectNeboAlarms()) await sendNeboOpsText(alarm);
+        } catch (error) {
+          rememberWorkerError(state, error);
         }
       }
       if (Date.now() - state.lastCleanupAt > 60 * 60 * 1000) {
