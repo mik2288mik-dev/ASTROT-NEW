@@ -6,7 +6,7 @@ import { getPremiumPlan } from './premiumPricing';
 /**
  * Single source of owner-facing numbers. Every bot report, chart and summary
  * reads these definitions, so the same period always produces the same counts:
- * - «заходили» — distinct accounts with an app event or a new session in the period;
+ * - «заходили» — distinct accounts with any visit trace in the period (see VISITORS);
  * - «новые» — accounts created in the period; «вернулись» = заходили − новые;
  * - «покупки» — RuStore purchases made in the period (trials and refunds excluded),
  *   valued at the list price of the purchased plan.
@@ -122,9 +122,15 @@ const EVENTS = `ev AS (
   WHERE e.occurred_at >= b.su AND e.occurred_at < b.eu
     AND COALESCE(e.source, '') NOT IN ('rustore_callback', 'entitlement_expiry')
 )`;
+// A visit leaves a trace in different places depending on the client: app events,
+// a new auth session, the per-session «last seen» row, or an owner-bot visit/login fact.
 const VISITORS = `visitors AS (
   SELECT user_id FROM ev WHERE user_id IS NOT NULL
   UNION SELECT s.user_id FROM app_sessions s CROSS JOIN bounds b WHERE s.created_at >= b.su AND s.created_at < b.eu
+  UNION SELECT us.user_id FROM user_sessions us CROSS JOIN bounds b
+    WHERE (us.last_seen_at >= b.su AND us.last_seen_at < b.eu) OR (us.started_at >= b.su AND us.started_at < b.eu)
+  UNION SELECT o.user_id FROM nebo_ops_outbox o CROSS JOIN bounds b
+    WHERE o.user_id IS NOT NULL AND o.event_type IN ('login', 'activity') AND o.occurred_at >= b.s AND o.occurred_at < b.e
 )`;
 const PURCHASES = `purchases AS (
   SELECT p.user_id, p.external_product_id FROM store_purchases p CROSS JOIN bounds b

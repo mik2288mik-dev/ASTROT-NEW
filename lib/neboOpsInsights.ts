@@ -28,10 +28,13 @@ function device(payload: Record<string, unknown> | null | undefined): string {
 
 export async function buildLatestVisitors(limit = 10): Promise<string> {
   const result = await getPool().query(
-    `WITH last_seen AS (
-       SELECT user_id, MAX(occurred_at) AS seen FROM user_app_events
+    `WITH traces AS (
+       SELECT user_id, occurred_at AS seen FROM user_app_events
        WHERE user_id IS NOT NULL AND occurred_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '7 days'
-       GROUP BY user_id ORDER BY seen DESC LIMIT $1
+       UNION ALL SELECT user_id, last_seen_at FROM user_sessions
+       WHERE last_seen_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '7 days'
+     ), last_seen AS (
+       SELECT user_id, MAX(seen) AS seen FROM traces GROUP BY user_id ORDER BY seen DESC LIMIT $1
      )
      SELECT u.id, u.name, u.auth_provider, u.created_at, ls.seen AT TIME ZONE 'UTC' AS seen,
             (SELECT o.payload_json FROM nebo_ops_outbox o
@@ -88,7 +91,8 @@ export async function buildUserCard(rawId: string): Promise<string> {
   const pool = getPool();
   const user = (await pool.query(
     `SELECT u.id, u.name, u.language, u.auth_provider, u.platform, u.created_at, u.premium_until,
-            (SELECT MAX(occurred_at) AT TIME ZONE 'UTC' FROM user_app_events e WHERE e.user_id = u.id) AS last_seen,
+            GREATEST((SELECT MAX(occurred_at) FROM user_app_events e WHERE e.user_id = u.id),
+                     (SELECT MAX(last_seen_at) FROM user_sessions us WHERE us.user_id = u.id)) AT TIME ZONE 'UTC' AS last_seen,
             (SELECT COUNT(DISTINCT ((e.occurred_at AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow')::date)
                FROM user_app_events e WHERE e.user_id = u.id)::int AS visit_days,
             (SELECT COUNT(*) FROM store_purchases sp WHERE sp.user_id = u.id AND sp.status NOT IN ('store_trial', 'refunded'))::int AS paid,
