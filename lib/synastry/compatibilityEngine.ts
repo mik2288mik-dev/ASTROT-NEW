@@ -11,13 +11,19 @@ import { getCompatScore } from './compatScore';
 import type { CompatibilityPairLevel } from './compatibilityInput';
 import type { RelationshipContext } from './relationshipContext';
 import {
+  answerCompatibilityQuestions,
+  compatibilityQuestionsFor,
+  type CompatibilityQuestionAnswer,
+} from './compatibilityQuestions';
+import {
   computeSynastryAspects,
   type SynastryAspect,
   type SynastryAspectKey,
   type SynastryBodyKey,
+  longitudeSamples,
 } from './synastryAspects';
 
-export const COMPATIBILITY_ENGINE_VERSION = 'compatibility-engine.v1';
+export const COMPATIBILITY_ENGINE_VERSION = 'compatibility-engine.v2';
 
 type SynastryChart = NatalChartData | NatalChartDataV2;
 type Language = 'ru' | 'en';
@@ -42,6 +48,8 @@ export type CalculatedCompatibility = {
   evidence: CompatibilityEvidence[];
   directionalPatterns: CompatibilityDirectionalPattern[];
   sectionPlan: CompatibilitySectionPlanItem[];
+  /** The questions of the chosen relationship type with engine-owned short answers. */
+  questions: CompatibilityQuestionAnswer[];
   limitations: string[];
   aspects: SynastryAspect[];
 };
@@ -126,54 +134,6 @@ const CONTEXT_DIMENSIONS: Record<CalculationContext, DimensionDefinition[]> = {
     { id: 'role_balance', weight: 0.95 },
     { id: 'responsibility', weight: 1.05 },
     { id: 'pressure_response', weight: 0.9 },
-  ],
-};
-
-const SECTION_DEFINITIONS: Record<CalculationContext, Array<Omit<CompatibilitySectionPlanItem, 'evidenceIds'> & { titleEn: string }>> = {
-  romance: [
-    { id: 'between_you', title: 'Что между вами', titleEn: 'What happens between you', dimensionIds: ['emotional_closeness', 'attraction'] },
-    { id: 'brings_closer', title: 'Что вас сближает', titleEn: 'What brings you closer', dimensionIds: ['emotional_closeness', 'stability'] },
-    { id: 'emotional_closeness', title: 'Эмоциональная близость', titleEn: 'Emotional closeness', dimensionIds: ['emotional_closeness'] },
-    { id: 'attraction', title: 'Притяжение', titleEn: 'Attraction', dimensionIds: ['attraction'] },
-    { id: 'communication', title: 'Как вы общаетесь', titleEn: 'How you communicate', dimensionIds: ['communication'] },
-    { id: 'tension', title: 'Где начинается напряжение', titleEn: 'Where tension starts', dimensionIds: ['conflict_ease'] },
-    { id: 'trust_boundaries', title: 'Доверие и границы', titleEn: 'Trust and boundaries', dimensionIds: ['trust_boundaries'] },
-  ],
-  relationship: [
-    { id: 'between_you', title: 'Что между вами', titleEn: 'What happens between you', dimensionIds: ['emotional_closeness', 'stability'] },
-    { id: 'emotional_closeness', title: 'Эмоциональная близость', titleEn: 'Emotional closeness', dimensionIds: ['emotional_closeness'] },
-    { id: 'communication', title: 'Как вы общаетесь', titleEn: 'How you communicate', dimensionIds: ['communication'] },
-    { id: 'conflicts', title: 'Как вы проживаете конфликты', titleEn: 'How you handle conflict', dimensionIds: ['conflict_ease'] },
-    { id: 'everyday_life', title: 'Быт и привычки', titleEn: 'Everyday life and habits', dimensionIds: ['everyday_life'] },
-    { id: 'personal_space', title: 'Личное пространство', titleEn: 'Personal space', dimensionIds: ['autonomy'] },
-    { id: 'stability', title: 'Что делает связь устойчивее', titleEn: 'What makes the bond steadier', dimensionIds: ['stability'] },
-  ],
-  friendship: [
-    { id: 'friendship_basis', title: 'На чём держится дружба', titleEn: 'What holds the friendship', dimensionIds: ['shared_interest', 'mutual_support'] },
-    { id: 'authenticity', title: 'Насколько легко быть собой', titleEn: 'How easy it is to be yourselves', dimensionIds: ['authenticity'] },
-    { id: 'communication_humor', title: 'Общение и юмор', titleEn: 'Communication and humor', dimensionIds: ['communication'] },
-    { id: 'support', title: 'Поддержка', titleEn: 'Support', dimensionIds: ['mutual_support'] },
-    { id: 'trust', title: 'Доверие', titleEn: 'Trust', dimensionIds: ['trust_boundaries'] },
-    { id: 'boundaries', title: 'Личные границы', titleEn: 'Personal boundaries', dimensionIds: ['trust_boundaries', 'authenticity'] },
-    { id: 'friction', title: 'Где появляются трения', titleEn: 'Where friction appears', dimensionIds: ['conflict_ease'] },
-  ],
-  family: [
-    { id: 'bond_structure', title: 'Как устроена ваша связь', titleEn: 'How your bond works', dimensionIds: ['emotional_closeness', 'role_balance'] },
-    { id: 'emotional_contact', title: 'Эмоциональный контакт', titleEn: 'Emotional contact', dimensionIds: ['emotional_closeness'] },
-    { id: 'support', title: 'Поддержка', titleEn: 'Support', dimensionIds: ['mutual_support'] },
-    { id: 'roles_expectations', title: 'Роли и ожидания', titleEn: 'Roles and expectations', dimensionIds: ['role_balance'] },
-    { id: 'boundaries', title: 'Границы', titleEn: 'Boundaries', dimensionIds: ['trust_boundaries'] },
-    { id: 'recurring_arguments', title: 'Почему повторяются споры', titleEn: 'Why arguments repeat', dimensionIds: ['conflict_ease'] },
-    { id: 'common_language', title: 'Как проще находить общий язык', titleEn: 'How to find common ground', dimensionIds: ['communication'] },
-  ],
-  work: [
-    { id: 'work_together', title: 'Как вы работаете вместе', titleEn: 'How you work together', dimensionIds: ['work_rhythm', 'role_balance'] },
-    { id: 'decisions', title: 'Как принимаете решения', titleEn: 'How you make decisions', dimensionIds: ['decision_making'] },
-    { id: 'communication', title: 'Как общаетесь', titleEn: 'How you communicate', dimensionIds: ['communication'] },
-    { id: 'pace', title: 'Темп работы', titleEn: 'Work pace', dimensionIds: ['work_rhythm'] },
-    { id: 'roles', title: 'Распределение ролей', titleEn: 'Roles', dimensionIds: ['role_balance'] },
-    { id: 'responsibility', title: 'Ответственность', titleEn: 'Responsibility', dimensionIds: ['responsibility'] },
-    { id: 'under_pressure', title: 'Что происходит под давлением', titleEn: 'What happens under pressure', dimensionIds: ['pressure_response'] },
   ],
 };
 
@@ -355,12 +315,8 @@ function readPosition(chart: SynastryChart, key: SynastryBodyKey): { longitude?:
   return (source.positions?.[key] || (chart as unknown as Record<string, any>)[key] || null) as any;
 }
 
-function positionLongitude(chart: SynastryChart, key: SynastryBodyKey): number | null {
-  const position = readPosition(chart, key);
-  if (!position || position.reliability === 'variable_in_range') return null;
-  return typeof position.longitude === 'number' && Number.isFinite(position.longitude)
-    ? ((position.longitude % 360) + 360) % 360
-    : null;
+function positionSamples(chart: SynastryChart, key: SynastryBodyKey): number[] | null {
+  return longitudeSamples(readPosition(chart, key) as Parameters<typeof longitudeSamples>[0]);
 }
 
 function chartQuality(chart: SynastryChart): { anglesReliable: boolean; housesReliable: boolean } {
@@ -411,12 +367,15 @@ function buildAngleEvidence(
   ];
   for (const { source, target, direction } of directions) {
     for (const bodyKey of ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn'] as SynastryBodyKey[]) {
-      const body = positionLongitude(source, bodyKey);
-      if (body == null) continue;
+      const samples = positionSamples(source, bodyKey);
+      if (!samples) continue;
       for (const angleKey of ['ascendant', 'mc'] as const) {
         const angle = angleData(target, angleKey);
         if (!angle) continue;
-        const contact = closestAngleAspect(body, angle.longitude);
+        const contacts = samples.map((body) => closestAngleAspect(body, angle.longitude));
+        const contact = contacts.every((item) => item && item.aspect === contacts[0]!.aspect)
+          ? contacts.reduce((worst, item) => (item!.orb > worst!.orb ? item : worst), contacts[0])
+          : null;
         if (!contact || contact.strength < 0.08) continue;
         const tension = contact.aspect === 'square' || contact.aspect === 'opposition';
         const dimensionEffects: DimensionEffect = angleKey === 'ascendant'
@@ -491,19 +450,22 @@ function buildHouseEvidence(
   subjectChart: SynastryChart,
   partnerChart: SynastryChart,
   language: Language,
+  names: { subject: string; partner: string },
 ): CompatibilityEvidence[] {
   const output: CompatibilityEvidence[] = [];
   const labelKey = language === 'en' ? 'en' : 'ru';
   const directions = [
-    { source: subjectChart, target: partnerChart, direction: 'subject_to_partner' as const },
-    { source: partnerChart, target: subjectChart, direction: 'partner_to_subject' as const },
+    { source: subjectChart, target: partnerChart, direction: 'subject_to_partner' as const, owner: names.subject, host: names.partner },
+    { source: partnerChart, target: subjectChart, direction: 'partner_to_subject' as const, owner: names.partner, host: names.subject },
   ];
-  for (const { source, target, direction } of directions) {
+  for (const { source, target, direction, owner, host } of directions) {
     for (const bodyKey of ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn'] as SynastryBodyKey[]) {
-      const longitude = positionLongitude(source, bodyKey);
-      if (longitude == null) continue;
-      const house = houseForLongitude(target, longitude);
-      if (!house) continue;
+      const samples = positionSamples(source, bodyKey);
+      if (!samples) continue;
+      const houses = samples.map((longitude) => houseForLongitude(target, longitude));
+      const house = houses[0];
+      // Without a birth time the body may cross a house cusp during the day — then the house is unknown.
+      if (!house || houses.some((item) => item !== house)) continue;
       const timeStable = (source as any).birthTimeQuality === 'approximate'
         || (target as any).birthTimeQuality === 'approximate'
         || readPosition(source, bodyKey)?.reliability === 'stable_in_range';
@@ -512,8 +474,8 @@ function buildHouseEvidence(
         type: 'house_overlay',
         direction,
         label: language === 'ru'
-          ? `${PLANET_LABELS[bodyKey][labelKey]} одного человека попадает в ${house}-й дом другого`
-          : `One person's ${PLANET_LABELS[bodyKey][labelKey]} falls in the other person's house ${house}`,
+          ? `${PLANET_LABELS[bodyKey][labelKey]} (${owner}) — в ${house}-м доме карты (${host})`
+          : `${PLANET_LABELS[bodyKey][labelKey]} (${owner}) — in house ${house} of the chart (${host})`,
         weight: 0.28,
         reliability: timeStable ? 'stable_in_range' : 'exact',
         dimensionEffects: houseEffects(house),
@@ -634,6 +596,7 @@ function buildDirectionalPatterns(
   language: Language,
 ): CompatibilityDirectionalPattern[] {
   const output: CompatibilityDirectionalPattern[] = [];
+  const seen = new Set<string>();
   const candidateAspects = evidence
     .filter((item) => item.type === 'aspect' && item.technical?.subjectKey && item.technical.partnerKey)
     .sort((first, second) => second.weight - first.weight);
@@ -661,6 +624,9 @@ function buildDirectionalPatterns(
       target = subjectKey;
     }
     if (!direction || !agent || !target) continue;
+    // One message per «who → whom + planet»: repeating the same idea reads as filler.
+    const seenKey = `${direction}:${agent}`;
+    if (seen.has(seenKey)) continue;
 
     let fact = '';
     if (language === 'en') {
@@ -671,14 +637,22 @@ function buildDirectionalPatterns(
       if (agent === 'neptune') fact = `${sourceName} makes ${targetName}'s response more sensitive to nuance${hard ? ', so unspoken expectations need especially clear verification' : ', which can deepen mutual understanding'}.`;
       if (agent === 'pluto') fact = `${sourceName} intensifies the impact of ${targetName}'s reactions${hard ? '; pressure and boundaries therefore matter more than usual' : ', giving the interaction unusual depth'}.`;
     } else {
-      if (agent === 'mars') fact = `Инициатива ${sourceName} напрямую влияет на ${target === 'mercury' ? `то, как ${targetName} объясняет решения` : `скорость реакции ${targetName}`}${hard ? ': под давлением разница темпа может превращаться в трение' : ' и помогает быстрее переходить от слов к действию'}.`;
-      if (agent === 'saturn') fact = `Правила и границы ${sourceName} заметно влияют на то, как ${targetName} воспринимает ${target === 'moon' || target === 'venus' ? 'поддержку и близость' : 'общую ответственность'}${hard ? ': структура временами может ощущаться тяжелее, чем задумано' : ' и делают договорённости надёжнее'}.`;
-      if (agent === 'jupiter') fact = `${sourceName} чаще расширяет для ${targetName} пространство вариантов; этот контакт поддерживает и ободряет, но не решает исход за пару.`;
-      if (agent === 'uranus') fact = `${sourceName} включает у ${targetName} потребность в большей свободе и другом темпе${hard ? ', из-за чего предсказуемость может сбиваться' : ', помогая связи оставаться гибкой'}.`;
-      if (agent === 'neptune') fact = `${sourceName} делает реакцию ${targetName} чувствительнее к нюансам${hard ? ', поэтому непроизнесённые ожидания особенно важно проверять словами' : ', и это может углублять взаимопонимание'}.`;
-      if (agent === 'pluto') fact = `${sourceName} усиливает вес реакций ${targetName}${hard ? ': поэтому давление и границы здесь важнее обычного' : ', придавая взаимодействию особую глубину'}.`;
+      // Names stay in the nominative case: Russian names cannot be declined reliably.
+      if (agent === 'mars') fact = target === 'mercury'
+        ? `${sourceName} быстрее переходит к делу, и это влияет на то, как ${targetName} объясняет свои решения. ${hard ? 'Когда времени мало, разная скорость приводит к спорам.' : 'Вместе вам проще перейти от разговоров к делу.'}`
+        : `${sourceName} быстрее переходит к делу, и это влияет на то, как быстро ${targetName} отвечает и реагирует. ${hard ? 'Когда времени мало, разная скорость приводит к спорам.' : 'Вместе вам проще перейти от разговоров к делу.'}`;
+      if (agent === 'saturn') fact = `${sourceName} приносит в пару правила и порядок. ${targetName} чувствует это ${target === 'moon' || target === 'venus' ? 'в том, как получает поддержку и заботу' : 'в общих обязанностях'}. ${hard ? 'Иногда эти правила кажутся слишком строгими.' : 'Благодаря этому договорённости выполняются.'}`;
+      if (agent === 'jupiter') fact = `${sourceName} обычно поддерживает и подбадривает. ${targetName} рядом чувствует больше уверенности и видит больше вариантов.`;
+      if (agent === 'uranus') fact = `${sourceName} приносит в пару перемены и неожиданные решения. ${targetName} рядом хочет больше свободы и другого темпа${hard ? ', поэтому планы чаще меняются в последний момент.' : ', и это помогает не застревать в рутине.'}`;
+      if (agent === 'neptune') fact = hard
+        ? `${sourceName} и ${targetName} часто понимают друг друга без слов, но так же легко понимают неправильно. Ожидания лучше говорить прямо.`
+        : `${sourceName} и ${targetName} хорошо чувствуют настроение друг друга даже без слов.`;
+      if (agent === 'pluto') fact = hard
+        ? `${sourceName} сильно влияет на настроение и решения в паре. ${targetName} остро реагирует на давление, поэтому важно не настаивать и спокойно принимать отказ.`
+        : `${sourceName} сильно влияет на настроение и решения в паре, и ${targetName} это ценит: отношения получаются серьёзными.`;
     }
     if (!fact) continue;
+    seen.add(seenKey);
     output.push({
       id: `direction:${output.length + 1}:${item.id}`,
       direction,
@@ -696,9 +670,9 @@ function buildDirectionalPatterns(
     output.push({
       id: 'direction:mutual-loop',
       direction: 'mutual',
-      title: language === 'ru' ? 'Повторяющийся цикл' : 'Repeating loop',
+      title: language === 'ru' ? 'Один и тот же спор' : 'Repeating loop',
       fact: language === 'ru'
-        ? 'Влияние идёт в обе стороны: реакция одного усиливает ответ другого, поэтому один и тот же сценарий может быстро повторяться, если не назвать конкретный предмет разговора.'
+        ? 'Вы влияете друг на друга одинаково сильно, поэтому один и тот же спор легко повторяется. Помогает обсуждать конкретный случай, а не характер друг друга.'
         : 'The influence runs both ways: one response amplifies the other, so the same loop can repeat quickly unless the pair names the concrete issue at hand.',
       evidenceIds: ids,
     });
@@ -711,7 +685,7 @@ function buildLimitations(input: CompatibilityEngineInput): string[] {
   const limitations: string[] = [];
   if (input.calculationLevel === 'reduced') {
     limitations.push(ru
-      ? 'Точное время рождения известно не для обоих: ненадёжные дома, Асцендент и MC не использовались.'
+      ? 'Время рождения известно не у обоих. Дома и Асцендент считаем только там, где время есть, а Луну и другие быстрые планеты проверяем на весь день рождения.'
       : 'Exact birth time is not known for both people, so unreliable houses, Ascendant and MC were excluded.');
   }
   if (input.calculationLevel === 'date_only') {
@@ -742,7 +716,7 @@ function buildSectionPlan(
   evidence: CompatibilityEvidence[],
   language: Language,
 ): CompatibilitySectionPlanItem[] {
-  return SECTION_DEFINITIONS[calculationContext(context)].map((definition) => {
+  return compatibilityQuestionsFor(context).map((definition) => {
     const evidenceIds = evidence
       .map((item) => ({
         id: item.id,
@@ -754,7 +728,7 @@ function buildSectionPlan(
       .map((item) => item.id);
     return {
       id: definition.id,
-      title: language === 'ru' ? definition.title : definition.titleEn,
+      title: language === 'ru' ? definition.ru : definition.en,
       dimensionIds: definition.dimensionIds,
       evidenceIds,
     };
@@ -763,11 +737,13 @@ function buildSectionPlan(
 
 export function calculateCompatibility(input: CompatibilityEngineInput): CalculatedCompatibility {
   const language: Language = input.language === 'en' ? 'en' : 'ru';
+  const subjectName = input.subjectName?.trim() || (language === 'ru' ? 'Первый человек' : 'First person');
+  const partnerName = input.partnerName?.trim() || (language === 'ru' ? 'Второй человек' : 'Second person');
   const aspects = computeSynastryAspects(input.subjectChart, input.partnerChart);
   const evidence = [
     ...buildAspectEvidence(aspects, language),
     ...(input.subjectChart && input.partnerChart ? buildAngleEvidence(input.subjectChart, input.partnerChart, language) : []),
-    ...(input.subjectChart && input.partnerChart ? buildHouseEvidence(input.subjectChart, input.partnerChart, language) : []),
+    ...(input.subjectChart && input.partnerChart ? buildHouseEvidence(input.subjectChart, input.partnerChart, language, { subject: subjectName, partner: partnerName }) : []),
     ...buildLimitedSignEvidence(input),
   ];
   const definitions = CONTEXT_DIMENSIONS[calculationContext(input.relationshipContext)];
@@ -786,8 +762,6 @@ export function calculateCompatibility(input: CompatibilityEngineInput): Calcula
     .filter((dimension) => dimension.confidence > 0)
     .sort((first, second) => first.score - second.score || second.confidence - first.confidence)
     .slice(0, 2);
-  const subjectName = input.subjectName?.trim() || (language === 'ru' ? 'Первый человек' : 'First person');
-  const partnerName = input.partnerName?.trim() || (language === 'ru' ? 'Второй человек' : 'Second person');
 
   return {
     engineVersion: COMPATIBILITY_ENGINE_VERSION,
@@ -801,6 +775,7 @@ export function calculateCompatibility(input: CompatibilityEngineInput): Calcula
     evidence,
     directionalPatterns: buildDirectionalPatterns(evidence, subjectName, partnerName, language),
     sectionPlan: buildSectionPlan(input.relationshipContext, evidence, language),
+    questions: answerCompatibilityQuestions(input.relationshipContext, dimensions, language),
     limitations: buildLimitations(input),
     aspects,
   };
