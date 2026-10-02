@@ -43,6 +43,8 @@ export type CalendarDay = {
   moonQuarter: MoonQuarter | null;
   eclipse: boolean;
   mercuryRetrograde: boolean;
+  /** Sign the Moon is in at local noon, e.g. «Рыбах». */
+  moonSignIn: string;
   tone: DayTone;
   personal: PersonalEvent[];
   sky: SkyEvent[];
@@ -69,6 +71,8 @@ export function formatDayRu(dayKey: string): string {
   const [, month, day] = dayKey.split('-').map(Number);
   return `${day} ${MONTHS_GENITIVE_RU[month - 1] ?? ''}`;
 }
+
+const SIGN_IN_RU = ['Овне', 'Тельце', 'Близнецах', 'Раке', 'Льве', 'Деве', 'Весах', 'Скорпионе', 'Стрельце', 'Козероге', 'Водолее', 'Рыбах'];
 
 const QUARTER_ANGLE: Record<MoonQuarter, number> = { new: 0, first: 90, full: 180, last: 270 };
 const QUARTER_COPY: Record<MoonQuarter, { headline: string; body: string }> = {
@@ -186,6 +190,7 @@ export function buildFutureMonth(
       moonQuarter: null,
       eclipse: false,
       mercuryRetrograde: signedDistance(mercuryLater, mercuryNow) < 0,
+      moonSignIn: SIGN_IN_RU[Math.floor(longitude(engine, 'Moon', noon) / 30)],
       tone: null,
       personal: [],
       sky: [],
@@ -333,4 +338,46 @@ export function natalPointsFromChart(chart: unknown): NatalPoints | null {
   const ascendant = value.angles?.ascendant?.longitude;
   if (value.chartQuality?.ascendantReliable && typeof ascendant === 'number') points.ascendant = ascendant;
   return Object.keys(points).length ? points : null;
+}
+
+export type DayGoal = 'meeting' | 'talk' | 'purchase' | 'rest';
+
+export const DAY_GOALS: ReadonlyArray<{ id: DayGoal; label: string }> = [
+  { id: 'meeting', label: 'Встреча' },
+  { id: 'talk', label: 'Важный разговор' },
+  { id: 'purchase', label: 'Покупка' },
+  { id: 'rest', label: 'Отдых' },
+];
+
+/**
+ * Days that suit a goal, with the reason. Plain rules over the same events
+ * the calendar shows: Venus, the Sun or Jupiter on your side for meetings;
+ * the same plus a direct Mercury for talks; Venus or Jupiter and a direct
+ * Mercury for purchases; quiet days without events for rest. Days where hard
+ * transits outweigh good ones never qualify.
+ */
+export function pickDays(month: FutureMonth, goal: DayGoal, fromKey: string): Array<{ dayKey: string; reason: string }> {
+  const days = month.days.filter((day) => day.dayKey >= fromKey);
+  const good = (day: CalendarDay, planets: TransitPlanet[]) => day.personal.find((event) => event.tone === 'good' && planets.includes(event.planet));
+  // A day counts when its good transits outweigh the hard ones.
+  const outweighed = (day: CalendarDay) => {
+    const goodCount = day.personal.filter((event) => event.tone === 'good').length;
+    return goodCount <= day.personal.length - goodCount;
+  };
+  const picks: Array<{ dayKey: string; reason: string }> = [];
+  for (const day of days) {
+    if (goal === 'meeting') {
+      const event = good(day, ['Venus', 'Sun', 'Jupiter']);
+      if (event && !outweighed(day)) picks.push({ dayKey: day.dayKey, reason: event.headline });
+    } else if (goal === 'talk') {
+      const event = good(day, ['Sun', 'Jupiter', 'Saturn', 'Venus']);
+      if (event && !outweighed(day) && !day.mercuryRetrograde) picks.push({ dayKey: day.dayKey, reason: `${event.headline}, Меркурий идёт прямо` });
+    } else if (goal === 'purchase') {
+      const event = good(day, ['Venus', 'Jupiter']);
+      if (event && !outweighed(day) && !day.mercuryRetrograde) picks.push({ dayKey: day.dayKey, reason: event.headline });
+    } else if (!day.personal.length && !day.moonQuarter && !day.eclipse) {
+      picks.push({ dayKey: day.dayKey, reason: `Спокойный день, Луна в ${day.moonSignIn}` });
+    }
+  }
+  return goal === 'rest' ? picks.slice(0, 6) : picks;
 }

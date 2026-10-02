@@ -7,10 +7,11 @@ import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { projectSignHoroscopeForWire } from '../../../../lib/horoscope/signWireCompatibility';
+import { withRequestTelemetry } from '../../../../lib/requestTelemetry';
 
 export const config = { maxDuration: 90 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   let userId: string;
@@ -50,3 +51,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     stale: snapshot.stale,
   });
 }
+
+export default withRequestTelemetry('/api/content/horoscope/sign-weekly', handler);

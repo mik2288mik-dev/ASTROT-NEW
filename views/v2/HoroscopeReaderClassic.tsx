@@ -29,6 +29,7 @@ import { ZodiacIllustration, zodiacIllustrationUrl } from '../../components/icon
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
 import { canAccessFeature } from '../../lib/accessMatrix';
 import { LzSignPickerSheet } from '../../components/lumia-ui/v2/LzSignPickerSheet';
+import { reportClientError } from '../../services/clientErrorReport';
 import { PersonalForecastPremiumGate } from '../../components/PersonalForecastFeed/PersonalForecastPremiumGate';
 import {
   EditorialCurve,
@@ -200,7 +201,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
             ? current
             : { ...current, [readingKey]: selectedReading });
         }
-      } catch {
+      } catch (error) {
+        reportClientError('sign-horoscope', error, `${period} ${periodKey} ${sign}`);
         if (active && !readLocalSignHoroscope(period, sign, periodKey, language)) {
           setReadings((current) => current[readingKey] === null
             ? current

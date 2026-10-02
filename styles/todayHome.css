@@ -2712,3 +2712,127 @@
   font-size: 0.86rem;
   font-weight: 650;
 }
+
+/* «Будущее»: best days line and the day picker. */
+.future-day.is-picked {
+  box-shadow: inset 0 0 0 2px #1f9d6b;
+}
+
+.future-best {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  margin: 0.7rem 0 0;
+  color: var(--today-copy);
+  font-size: 0.8rem;
+}
+
+.future-best b {
+  font-weight: 650;
+}
+
+.future-planner {
+  margin-top: 1rem;
+}
+
+.future-planner h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.future-goals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.future-goals button {
+  min-height: 2.3rem;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid #e3e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--today-ink);
+  font: inherit;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.future-goals button.is-active {
+  border-color: #1f9d6b;
+  background: #e5f6ee;
+  color: #16835a;
+  font-weight: 650;
+}
+
+.future-picks {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.future-picks button {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  border-radius: 0.8rem;
+  background: #f4f6fa;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.future-picks b {
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.future-picks span {
+  color: #5f5a54;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+/* «Будущее»: short version of a day reading. */
+.future-brief {
+  margin-top: 0.75rem;
+}
+
+.future-brief h4 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.future-brief p {
+  margin: 0;
+  color: var(--today-copy);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.future-brief .future-brief-closing {
+  margin-top: 0.5rem;
+  color: var(--today-ink);
+  font-weight: 600;
+}
+
+.future-more {
+  margin-top: 0.6rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #2d7ff0;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+}

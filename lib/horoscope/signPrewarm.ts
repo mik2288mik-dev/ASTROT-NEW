@@ -6,6 +6,7 @@ import { logForecastDeliveryMetric } from '../forecastDeliveryMetrics';
 import { getCachedSignHoroscopes } from './signCache';
 import { fillMissingSignHoroscopes } from './signOrchestrator';
 import { buildSignHoroscopeLockKey } from './signGenerationLock';
+import { recordTechnicalError } from '../errorLogger';
 
 export interface SignPrewarmTarget {
   period: SignHoroscopePeriod;
@@ -142,6 +143,12 @@ export async function prewarmSignMonth(input: {
       result.failed += 1;
       console.warn('[sign-month-prewarm] target failed:', target.period, target.periodKey,
         error instanceof Error ? error.message : String(error));
+      // Visible in admin «Ошибки»: the job stops here, so later targets stay empty.
+      void recordTechnicalError({
+        endpoint: 'job:sign-month',
+        errorCode: 'SIGN_MONTH_TARGET_FAILED',
+        message: `${target.period} ${target.periodKey} stopped month ${targetMonthKey}: ${error instanceof Error ? error.message : String(error)}`,
+      });
       break;
     }
   }

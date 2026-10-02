@@ -309,7 +309,10 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
       let lastError: unknown = null;
       let retryReason: string | undefined = undefined;
 
-      for (let attempt = 1; attempt <= 2; attempt++) {
+      // The day writer is held to the strict NEBO voice validator, so it gets one
+      // more chance before the reader sees an error; weeks and months keep two.
+      const maxAttempts = input.period === 'day' ? 3 : 2;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
           const generated = await generatePersonalForecastPackage({
             natal, userId: input.userId, profile: input.profile as UserProfile,

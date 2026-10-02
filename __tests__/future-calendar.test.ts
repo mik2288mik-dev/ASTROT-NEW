@@ -1,5 +1,5 @@
 import * as Astronomy from 'astronomy-engine';
-import { buildFutureMonth, futureHorizonDays } from '../lib/futureCalendar';
+import { buildFutureMonth, futureHorizonDays, pickDays } from '../lib/futureCalendar';
 
 // Natal points of the 22.12.2010 Dmitrov chart.
 const NATAL = { sun: 270.5856, moon: 106.2408, venus: 224.9361, mars: 281.1003, ascendant: 99.1125 };
@@ -37,5 +37,16 @@ describe('future calendar', () => {
     expect(futureHorizonDays({ productId: 'premium_month' })).toBe(30);
     expect(futureHorizonDays({ startsAt: '2026-01-01', endsAt: '2027-01-01' })).toBe(365);
     expect(futureHorizonDays(null)).toBe(30);
+  });
+
+  it('picks days for a goal and names the Moon sign of each day', () => {
+    const month = buildFutureMonth(Astronomy, 2026, 10, NATAL, 'Europe/Moscow');
+    expect(month.days[1].moonSignIn).toBe('Близнецах');
+    expect(pickDays(month, 'meeting', '2026-10-02').map((pick) => pick.dayKey)).toEqual(['2026-10-24']);
+    // Mercury turns retrograde on the 24th, so it is not a day to sign or buy.
+    expect(pickDays(month, 'purchase', '2026-10-02')).toEqual([]);
+    const rest = pickDays(month, 'rest', '2026-10-02');
+    expect(rest.length).toBeGreaterThan(0);
+    expect(rest.every((pick) => !['2026-10-07', '2026-10-09', '2026-10-10'].includes(pick.dayKey))).toBe(true);
   });
 });
