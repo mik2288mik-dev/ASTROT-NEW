@@ -66,6 +66,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
          (SELECT row_to_json(d) FROM (SELECT next_send_at, cooldown_until FROM nebo_ops_delivery_state WHERE id = 1) d) AS delivery_state`,
     ).then((result) => result.rows[0]).catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'query_failed' })),
   ]);
+  // User-facing pushes of the main bot: counts by status and the commonest error texts.
+  const pushes = await getPool().query(
+    `SELECT
+       (SELECT COALESCE(jsonb_object_agg(status, n), '{}'::jsonb) FROM (
+          SELECT status, COUNT(*)::int AS n FROM notification_logs
+          WHERE created_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '48 hours' GROUP BY status) s) AS by_status_48h,
+       (SELECT COALESCE(jsonb_agg(jsonb_build_object('error', e, 'n', n) ORDER BY n DESC), '[]'::jsonb) FROM (
+          SELECT LEFT(REGEXP_REPLACE(error, '\\d{5,}', '#', 'g'), 100) AS e, COUNT(*)::int AS n FROM notification_logs
+          WHERE created_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '48 hours' AND error IS NOT NULL
+          GROUP BY 1 ORDER BY 2 DESC LIMIT 6) x) AS top_errors_48h,
+       (SELECT MAX(sent_at) FROM notification_logs WHERE status = 'sent') AS last_sent_at,
+       (SELECT MAX(created_at) FROM notification_logs) AS last_logged_at`,
+  ).then((result) => result.rows[0]).catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'query_failed' }));
 
   return res.status(200).json({
     server: neboServerLabel(),
@@ -87,5 +100,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     worker: getNeboOpsWorkerStatus(),
     scheduler: getSchedulerStatus(),
     outbox,
+    pushes,
   });
 }
