@@ -9,6 +9,7 @@ import {
   neboServerLabel,
 } from '../../../lib/neboOps';
 import { getSchedulerStatus } from '../../../lib/notificationScheduler';
+import { getNeboOpsPreferences } from '../../../lib/neboOpsSettings';
 import { telegramApiRequest, telegramRelayAuthorized, useTelegramRelay } from '../../../lib/telegramRelay';
 
 /**
@@ -45,8 +46,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!statusAuthorized(req)) return res.status(404).end();
 
   const ops = getNeboOpsConfig();
-  const [telegram, outbox] = await Promise.all([
+  const [telegram, preferences, outbox] = await Promise.all([
     telegramReachable(ops?.token),
+    getNeboOpsPreferences(),
     getPool().query(
       `SELECT
          (SELECT COALESCE(jsonb_object_agg(status, n), '{}'::jsonb) FROM (
@@ -81,6 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       publicUrl: String(process.env.NEBO_OPS_PUBLIC_URL || '') || null,
     },
     telegram,
+    preferences,
     worker: getNeboOpsWorkerStatus(),
     scheduler: getSchedulerStatus(),
     outbox,
