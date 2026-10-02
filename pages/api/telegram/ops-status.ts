@@ -80,6 +80,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
        (SELECT MAX(created_at) FROM notification_logs) AS last_logged_at`,
   ).then((result) => result.rows[0]).catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'query_failed' }));
 
+  // ?push=1: why the planner does or does not queue pushes (dry run, nothing is sent).
+  let pushDiagnosis: unknown = undefined;
+  if (req.query.push === '1') {
+    pushDiagnosis = await (async () => {
+      const pool = getPool();
+      const queue = (await pool.query(
+        `SELECT
+           (SELECT COALESCE(jsonb_object_agg(status, n), '{}'::jsonb) FROM (
+              SELECT status, COUNT(*)::int AS n FROM scheduled_notifications
+              WHERE scheduled_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '72 hours' GROUP BY status) s) AS by_status_72h,
+           (SELECT MAX(sent_at) FROM scheduled_notifications) AS last_sent_at,
+           (SELECT MAX(scheduled_at) FROM scheduled_notifications) AS last_scheduled_at`,
+      )).rows[0];
+      const owner = String(process.env.OWNER_ID || '').trim();
+      const ownerUser = owner ? (await pool.query(
+        `SELECT COALESCE(
+           (SELECT user_id::text FROM account_identities WHERE provider = 'telegram' AND provider_subject = $1 LIMIT 1),
+           (SELECT id::text FROM users WHERE id::text = $1 LIMIT 1)) AS id`, [owner],
+      )).rows[0]?.id : null;
+      const { getNotificationDeliveryHealth, probeOwnerNotifications } = await import('../../../services/notificationRetentionService');
+      const [health, probe] = await Promise.all([
+        getNotificationDeliveryHealth().catch((error) => ({ error: String(error?.message || error).slice(0, 200) })),
+        ownerUser ? probeOwnerNotifications(ownerUser).catch((error) => ({ error: String(error?.message || error).slice(0, 200) })) : null,
+      ]);
+      return { queue, ownerFound: Boolean(ownerUser), health, ownerProbe: probe };
+    })().catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'failed' }));
+  }
+
   return res.status(200).json({
     server: neboServerLabel(),
     commit: String(process.env.RAILWAY_GIT_COMMIT_SHA || process.env.NEBO_DEPLOY_MARKER || '').slice(0, 12) || null,
@@ -101,5 +129,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     scheduler: getSchedulerStatus(),
     outbox,
     pushes,
+    ...(pushDiagnosis === undefined ? {} : { pushDiagnosis }),
   });
 }
