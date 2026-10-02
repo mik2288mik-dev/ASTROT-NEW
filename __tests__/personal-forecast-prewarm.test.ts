@@ -226,17 +226,16 @@ describe('personal forecast rolling prewarm', () => {
     expect(injected.ensure).toHaveBeenCalledTimes(2);
   });
 
-  it('prepares five days, then the current Premium Week and Month, then the rest of the 30-day future', () => {
+  it('prepares five days before the current Premium Week and Month across a calendar boundary', () => {
     const targets = buildPersonalForecastPrewarmTargets({
       accessTier: 'premium',
       timezone: 'Europe/Moscow',
       now: new Date('2026-08-28T09:00:00.000Z'),
     });
-    expect(targets.filter((target) => target.period === 'day')).toHaveLength(30);
+    // Later «Будущее» days are generated only when the reader asks for them.
+    expect(targets.filter((target) => target.period === 'day')).toHaveLength(5);
     expect(targets.slice(0, 5).every((target) => target.period === 'day')).toBe(true);
-    expect(targets.slice(5, 7).map((target) => target.period)).toEqual(['week', 'month']);
-    expect(targets[7]).toEqual({ accessTier: 'premium', period: 'day', periodKey: '2026-09-02' });
-    expect(targets[targets.length - 1].periodKey).toBe('2026-09-26');
+    expect(targets.slice(5).map((target) => target.period)).toEqual(['week', 'month']);
     expect(targets.filter((target) => target.period === 'week').map((target) => target.periodKey))
       .toEqual(['2026-W35']);
     expect(targets.filter((target) => target.period === 'month').map((target) => target.periodKey))
@@ -274,17 +273,15 @@ describe('personal forecast rolling prewarm', () => {
       loadUser: jest.fn(async (userId) => ({ userId, profile, accessTier: 'premium' as const })),
       prewarm: jest.fn(async () => ({ ...empty, generated: [{}] })),
     };
-    // Each Premium visit fills the pass target and tops up one distant «Будущее» day.
     expect(await prewarmPersonalForecastIncrement({ now, userLimit: 2 }, injected))
-      .toEqual({ scanned: 2, generated: 4, inProgress: 0, failed: 0 });
+      .toEqual({ scanned: 2, generated: 2, inProgress: 0, failed: 0 });
     expect(await prewarmPersonalForecastIncrement({ now, userLimit: 2 }, injected))
-      .toEqual({ scanned: 1, generated: 2, inProgress: 0, failed: 0 });
-    const passCalls = () => (injected.prewarm as jest.Mock).mock.calls.filter((call) => call[0].targetIndex !== undefined);
-    const distantCalls = (injected.prewarm as jest.Mock).mock.calls.filter((call) => call[0].targetIndex === undefined);
-    expect(passCalls().slice(0, 3).every((call) => call[0].targetIndex === 0)).toBe(true);
-    expect(distantCalls.every((call) => call[0].maxMissingGenerations === 1 && call[0].notBeforeDayKey === '2026-09-13')).toBe(true);
+      .toEqual({ scanned: 1, generated: 1, inProgress: 0, failed: 0 });
+    expect((injected.prewarm as jest.Mock).mock.calls.slice(0, 3).every((call) => call[0].targetIndex === 0))
+      .toBe(true);
     await prewarmPersonalForecastIncrement({ now, userLimit: 2 }, injected);
-    expect(passCalls().slice(3).every((call) => call[0].targetIndex === 1)).toBe(true);
+    expect((injected.prewarm as jest.Mock).mock.calls.slice(3).every((call) => call[0].targetIndex === 1))
+      .toBe(true);
     expect(injected.listUsers).toHaveBeenLastCalledWith('', 2, now);
   });
 

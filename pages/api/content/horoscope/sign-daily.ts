@@ -6,6 +6,7 @@ import {
   normalizeZodiacKey,
 } from '../../../../lib/horoscope/signDaily';
 import { projectSignHoroscopeForWire } from '../../../../lib/horoscope/signWireCompatibility';
+import { withRequestTelemetry } from '../../../../lib/requestTelemetry';
 
 export const config = { maxDuration: 90 };
 
@@ -19,7 +20,7 @@ function readLanguage(req: NextApiRequest): Language {
   return raw === 'en' ? 'en' : 'ru';
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -52,3 +53,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     stale: snapshot.stale,
   });
 }
+
+export default withRequestTelemetry('/api/content/horoscope/sign-daily', handler);

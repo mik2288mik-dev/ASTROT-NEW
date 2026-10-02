@@ -18,7 +18,6 @@ import {
   buildPersonalForecastBirthProfileFingerprint,
   PERSONAL_FORECAST_ROLLING_DAY_COUNT,
   FREE_FORECAST_DAYS,
-  PREMIUM_FORECAST_PREWARM_DAYS,
   getPersonalForecastDayHorizon,
   getPersonalForecastPeriodKey,
   isPersonalForecastPeriodAllowedForTier,
@@ -110,9 +109,9 @@ function uniqueTargets(targets: PersonalForecastPrewarmTarget[]): PersonalForeca
 
 /**
  * Target order is the fill order and the scheduler's pass index:
- * Premium = five nearest days, the current week and month, then the rest of
- * the 30-day «Будущее»; Free = what a free reader can open (today and
- * tomorrow), or the rolling days when it backs an expiring subscription.
+ * Premium = five nearest days, then the current week and month; Free = what a
+ * free reader can open (today and tomorrow), or the rolling days when it backs
+ * an expiring subscription. Later «Будущее» days are generated only on request.
  */
 export function buildPersonalForecastPrewarmTargets(input: {
   accessTier: PersonalForecastGenerationTier;
@@ -128,19 +127,12 @@ export function buildPersonalForecastPrewarmTargets(input: {
       .slice(0, input.freeDayLimit ?? PERSONAL_FORECAST_ROLLING_DAY_COUNT)
       .map(dayTarget);
   }
-  const days = getPersonalForecastDayHorizon(timezone, now, PREMIUM_FORECAST_PREWARM_DAYS);
   return uniqueTargets([
-    ...days.slice(0, PERSONAL_FORECAST_ROLLING_DAY_COUNT).map(dayTarget),
+    ...getPersonalForecastDayHorizon(timezone, now).map(dayTarget),
     { accessTier: 'premium', period: 'week', periodKey: getPersonalForecastPeriodKey('week', now, timezone) },
     { accessTier: 'premium', period: 'month', periodKey: getPersonalForecastPeriodKey('month', now, timezone) },
-    ...days.slice(PERSONAL_FORECAST_ROLLING_DAY_COUNT).map(dayTarget),
   ]);
 }
-
-/** Core Premium targets (rolling days, week, month); everything after is the distant future. */
-const PREMIUM_CORE_TARGETS = PERSONAL_FORECAST_ROLLING_DAY_COUNT + 2;
-/** Distant «Будущее» days fill a few at a time per visit, so a release causes no burst. */
-const DISTANT_DAYS_PER_TRIGGER = 5;
 
 /** Only stable validator codes go into metrics; provider messages may contain private data. */
 function prewarmErrorCode(error: unknown): string {
@@ -379,16 +371,7 @@ async function prewarmTriggeredHorizon(input: {
   const primary = await prewarmPersonalForecastHorizon({
     ...input,
     notAfterDayKey: input.accessTier === 'premium' ? freeFrom || undefined : undefined,
-    maxTargets: input.accessTier === 'premium' ? PREMIUM_CORE_TARGETS : undefined,
   });
-  if (input.accessTier === 'premium' && !freeFrom) {
-    const distant = await prewarmPersonalForecastHorizon({
-      ...input,
-      notBeforeDayKey: getPersonalForecastDayHorizon(input.profile.birthTimezone, new Date(), PREMIUM_FORECAST_PREWARM_DAYS)[PERSONAL_FORECAST_ROLLING_DAY_COUNT],
-      maxMissingGenerations: Math.min(input.maxMissingGenerations ?? DISTANT_DAYS_PER_TRIGGER, DISTANT_DAYS_PER_TRIGGER),
-    });
-    failed = failed || Boolean(distant.failed.length);
-  }
   const fallback = freeFrom ? await prewarmPersonalForecastHorizon({
     ...input, accessTier: 'free', notBeforeDayKey: freeFrom,
   }) : null;
@@ -525,9 +508,8 @@ let scheduledInFlight: Promise<{ scanned: number; generated: number; inProgress:
 const SCHEDULED_BATCH_SIZE = 8;
 const SCHEDULED_CONCURRENCY = 1;
 // Five rolling days, then the two current Premium periods. Free users simply
-// have no work in the final passes. The distant Premium days of «Будущее» are
-// not extra passes: each Premium visit tops up one missing distant day.
-const SCHEDULED_TARGET_PASSES = PREMIUM_CORE_TARGETS;
+// have no work in the final passes.
+const SCHEDULED_TARGET_PASSES = PERSONAL_FORECAST_ROLLING_DAY_COUNT + 2;
 
 /** Reconcile logged-in accounts in date order. Missing items are retried on
  * later passes; the cache and generation locks deduplicate overlapping runs. */
@@ -576,18 +558,6 @@ export function prewarmPersonalForecastIncrement(
             result.generated += filled.generated.length;
             result.inProgress += filled.inProgress.length;
             result.failed += filled.failed.length;
-          }
-          if (user.accessTier === 'premium' && !user.freeFallbackFromDayKey) {
-            const distant = await runtime.prewarm({
-              ...user,
-              reason: 'scheduled_refresh',
-              now,
-              maxMissingGenerations: 1,
-              notBeforeDayKey: getPersonalForecastDayHorizon(user.profile.birthTimezone, now, PREMIUM_FORECAST_PREWARM_DAYS)[PERSONAL_FORECAST_ROLLING_DAY_COUNT],
-            });
-            result.generated += distant.generated.length;
-            result.inProgress += distant.inProgress.length;
-            result.failed += distant.failed.length;
           }
           if (user.freeFallbackFromDayKey && targetDay && targetDay >= user.freeFallbackFromDayKey) {
             const fallback = await runtime.prewarm({

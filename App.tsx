@@ -70,6 +70,7 @@ import {
 import type { PremiumPlanId } from './lib/premiumPricing';
 import { getAdminStatus } from './services/adminService';
 import { useProductActivity } from './services/useProductActivity';
+import { reportClientError } from './services/clientErrorReport';
 import {
     clearQueuedUserAppEvents,
     recordNotificationAttribution,
@@ -780,6 +781,7 @@ const App: React.FC = () => {
         const safetyTimer = window.setTimeout(() => {
             if (cancelled || safetyCleared) return;
             console.error('[App] Startup exceeded safety budget - unlocking loading UI');
+            reportClientError('startup', { code: 'STARTUP_TIMEOUT' });
             startupVisible = true;
             safetyCleared = true;
             setStartupError('Не удалось подготовить данные NEBO. Попробуй ещё раз.');
@@ -1074,6 +1076,7 @@ const App: React.FC = () => {
                         : 'Сессия завершена. Войди снова — старый аккаунт и его данные никуда не пропали.');
                     setStartupError(null);
                 } else {
+                    reportClientError('startup', error);
                     setStartupError(
                         error?.message === 'PERSONAL_FORECAST_STARTUP_FAILED'
                             ? 'Не удалось подготовить личный гороскоп. Попробуй ещё раз.'
@@ -2444,13 +2447,22 @@ const App: React.FC = () => {
     if (startupError) {
         return (
             <div className="fixed inset-0 flex h-[100dvh] items-center justify-center bg-white px-6 text-[#1f1f1f]">
-                <div className="max-w-sm text-center">
-                    <NeboLogo className="mb-6" size="large" priority />
-                    <h1 className="mb-3 font-serif text-[2rem] leading-none">Не удалось открыть профиль</h1>
-                    <p className="mb-6 text-[15px] leading-relaxed text-[#4f4b45]">{startupError}</p>
+                {/* App.tsx sits outside Tailwind's content globs, so this screen styles itself inline. */}
+                <div style={{ display: 'flex', width: '100%', maxWidth: 360, flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                    {/* The logo art is taller than its box; clip it so it never covers the heading. */}
+                    <div style={{ display: 'flex', width: '100%', height: 112, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 20 }}>
+                        <NeboLogo size="standard" priority />
+                    </div>
+                    <h1 style={{ position: 'relative', zIndex: 1, margin: '0 0 12px', fontSize: 26, fontWeight: 650, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+                        Не удалось открыть профиль
+                    </h1>
+                    <p style={{ margin: '0 0 20px', fontSize: 15, lineHeight: 1.55, color: '#4f4b45' }}>{startupError}</p>
+                    <p style={{ width: '100%', margin: '0 0 24px', padding: '12px 16px', borderRadius: 16, background: '#f4f6fa', fontSize: 14, lineHeight: 1.45, color: '#45413d' }}>
+                        Если включён VPN — выключи его и попробуй ещё раз. Иногда VPN мешает приложению подключиться.
+                    </p>
                     <button
                         type="button"
-                        className="rounded-full border border-[#1f1f1f] px-6 py-3 text-[15px] font-medium text-[#1f1f1f]"
+                        style={{ width: '100%', maxWidth: 280, minHeight: 48, padding: '12px 24px', border: 0, borderRadius: 999, background: '#1f1f1f', color: '#fff', fontSize: 15, fontWeight: 650, cursor: 'pointer' }}
                         onClick={retryStartup}
                     >
                         Попробовать снова

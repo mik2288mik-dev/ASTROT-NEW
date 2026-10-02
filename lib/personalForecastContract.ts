@@ -247,7 +247,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v57-grounded-today+week-month',
+  'personal-forecast-feed.v58-spoken-today+week-month',
 );
 export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v32-grounded-today';
 /** Input/cache identity, not an astrological calculation version. */
@@ -409,8 +409,6 @@ export const PERSONAL_FORECAST_ROLLING_DAY_COUNT = 5;
 export const MAX_FUTURE_FORECAST_DAYS = 30;
 /** Free readers open today and tomorrow; NEBO+ opens the whole 30-day horizon. */
 export const FREE_FORECAST_DAYS = 2;
-/** NEBO+ day readings are prepared this many days ahead, so «Будущее» opens without waiting. */
-export const PREMIUM_FORECAST_PREWARM_DAYS = MAX_FUTURE_FORECAST_DAYS;
 
 /** Calendar dates, independent of DST and the device's own timezone. */
 export function getPersonalForecastDayHorizon(
