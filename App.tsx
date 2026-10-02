@@ -2528,6 +2528,7 @@ const App: React.FC = () => {
         currentDateKey,
         onCreateNatalChart: openBottomNatal,
         onOpenSynastry: openSynastryFromHome,
+        onOpenMatrix: () => navigateTo('matrix'),
         onOpenHoroscope: openBottomZodiac,
         requestedPeriod: dashboardPeriod,
         onPeriodChange: setDashboardPeriod,
@@ -2662,6 +2663,7 @@ const App: React.FC = () => {
                             profile={profile}
                             onBack={() => navigateTo('services', { replace: true })}
                             onOpenProfile={openProfileSheet}
+                            onRequestPremium={() => { void requestPremium('matrix', { placement: 'matrix', featureKey: 'matrix_full', triggerType: 'locked_feature' }); }}
                         />
                     </div>
                 ) : view === 'horoscope' ? (

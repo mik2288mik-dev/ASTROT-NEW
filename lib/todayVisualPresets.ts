@@ -35,11 +35,7 @@ export type TodayBroadcastPreset = Readonly<{
   labelEn: string;
 }>;
 
-export type TodayBroadcastDay = readonly [
-  TodayBroadcastPreset,
-  TodayBroadcastPreset,
-  TodayBroadcastPreset,
-];
+export type TodayBroadcastDay = readonly TodayBroadcastPreset[];
 
 export type TodayLineDot = Readonly<{
   cx: number;
@@ -236,7 +232,7 @@ export const TODAY_CLOCK_PRESETS: readonly TodayClockPreset[] = [
   },
 ] as const;
 
-export const TODAY_BROADCASTS_PER_DAY = 3 as const;
+export const TODAY_BROADCASTS_PER_DAY = 4 as const;
 
 export const TODAY_BROADCAST_PRESETS = [
   {
@@ -367,7 +363,73 @@ export const TODAY_BROADCAST_PRESETS = [
   },
 ] as const satisfies readonly TodayBroadcastPreset[];
 
-export type TodayBroadcastId = (typeof TODAY_BROADCAST_PRESETS)[number]['id'];
+/** Autumn pool (September–November). Order alternates portrait and scene shots so a day never repeats one face. */
+export const TODAY_AUTUMN_BROADCAST_PRESETS = [
+  {
+    id: 'autumn-pie-baking',
+    imageSrc: '/assets/today-broadcasts/v1/autumn-01-pie-baking.webp',
+    labelRu: 'Испеки что-нибудь к чаю',
+    labelEn: 'Bake something for tea',
+  },
+  {
+    id: 'autumn-leaf-bicycle',
+    imageSrc: '/assets/today-broadcasts/v1/autumn-02-leaf-bicycle.webp',
+    labelRu: 'Прокатись по осеннему городу',
+    labelEn: 'Ride through the autumn city',
+  },
+  {
+    id: 'autumn-orange-umbrella',
+    imageSrc: '/assets/today-broadcasts/v1/autumn-03-orange-umbrella.webp',
+    labelRu: 'Погуляй даже в дождь',
+    labelEn: 'Take a walk, even in the rain',
+  },
+  {
+    id: 'autumn-puddle-dog',
+    imageSrc: '/assets/today-broadcasts/v1/autumn-04-puddle-dog.webp',
+    labelRu: 'Позволь себе подурачиться',
+    labelEn: 'Let yourself be silly',
+  },
+  {
+    id: 'autumn-cafe-reading',
+    imageSrc: '/assets/today-broadcasts/v1/autumn-05-cafe-reading.webp',
+    labelRu: 'Найди час на книгу',
+    labelEn: 'Find an hour for a book',
+  },
+  {
+    id: 'autumn-window-cat',
+    imageSrc: '/assets/today-broadcasts/v1/autumn-06-window-cat.webp',
+    labelRu: 'Посиди у окна без телефона',
+    labelEn: 'Sit by the window without your phone',
+  },
+  {
+    id: 'autumn-coffee-walk',
+    imageSrc: '/assets/today-broadcasts/v1/autumn-07-coffee-walk.webp',
+    labelRu: 'Возьми кофе с собой и пройдись',
+    labelEn: 'Grab a coffee and walk',
+  },
+  {
+    id: 'autumn-riverside-scooter',
+    imageSrc: '/assets/today-broadcasts/v1/autumn-08-riverside-scooter.webp',
+    labelRu: 'Выберись на набережную',
+    labelEn: 'Get out to the riverside',
+  },
+  {
+    id: 'autumn-friends-pizza',
+    imageSrc: '/assets/today-broadcasts/v1/autumn-09-friends-pizza.webp',
+    labelRu: 'Позови друзей на ужин',
+    labelEn: 'Invite friends for dinner',
+  },
+  {
+    id: 'autumn-market-apples',
+    imageSrc: '/assets/today-broadcasts/v1/autumn-10-market-apples.webp',
+    labelRu: 'Загляни на рынок за яблоками',
+    labelEn: 'Pick up apples at the market',
+  },
+] as const satisfies readonly TodayBroadcastPreset[];
+
+export type TodayBroadcastId =
+  | (typeof TODAY_BROADCAST_PRESETS)[number]['id']
+  | (typeof TODAY_AUTUMN_BROADCAST_PRESETS)[number]['id'];
 
 export const TODAY_LINE_PRESETS: readonly TodayLinePreset[] = [
   {
@@ -442,16 +504,22 @@ function positiveModulo(value: number, divisor: number): number {
   return ((value % divisor) + divisor) % divisor;
 }
 
-export function resolveTodayBroadcasts(periodKey: string): TodayBroadcastDay {
-  const rotationDays = TODAY_BROADCAST_PRESETS.length / TODAY_BROADCASTS_PER_DAY;
-  const dayIndex = positiveModulo(dayOrdinal(periodKey), rotationDays);
-  const start = dayIndex * TODAY_BROADCASTS_PER_DAY;
+function broadcastPoolForDay(periodKey: string): readonly TodayBroadcastPreset[] {
+  const month = Number(periodKey.match(/^\d{4}-(\d{2})/)?.[1]);
+  return month >= 9 && month <= 11
+    ? TODAY_AUTUMN_BROADCAST_PRESETS
+    : TODAY_BROADCAST_PRESETS;
+}
 
-  return [
-    TODAY_BROADCAST_PRESETS[start],
-    TODAY_BROADCAST_PRESETS[start + 1],
-    TODAY_BROADCAST_PRESETS[start + 2],
-  ];
+/** A rolling window of four photos; the next day starts where today ended. */
+export function resolveTodayBroadcasts(periodKey: string): TodayBroadcastDay {
+  const pool = broadcastPoolForDay(periodKey);
+  const start = positiveModulo(dayOrdinal(periodKey) * TODAY_BROADCASTS_PER_DAY, pool.length);
+
+  return Array.from(
+    { length: TODAY_BROADCASTS_PER_DAY },
+    (_, offset) => pool[(start + offset) % pool.length],
+  );
 }
 
 export function nextTodayBroadcastIndex(currentIndex: number): number {

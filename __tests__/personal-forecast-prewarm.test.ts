@@ -124,20 +124,18 @@ describe('personal forecast rolling prewarm', () => {
     expect(isPersonalForecastPeriodAllowedForTier('free', 'month')).toBe(false);
   });
 
-  it('does not regenerate cached rolling days', async () => {
-    const cached = new Set([
-      'free:day:2026-08-25',
-      'free:day:2026-08-26',
-      'free:day:2026-08-27',
-    ]);
+  it('does not regenerate cached rolling days and prepares only what Free can open', async () => {
+    const cached = new Set(['free:day:2026-08-25']);
     const injected = runtime({ cached });
     const result = await prewarmPersonalForecastHorizon({
       userId: 'user-1', profile, accessTier: 'free', reason: 'app_open',
       now: new Date('2026-08-25T09:00:00.000Z'),
     }, injected);
-    expect(result.cached).toHaveLength(3);
-    expect(result.generated).toHaveLength(2);
-    expect(injected.ensure).toHaveBeenCalledTimes(2);
+    // Free opens today and tomorrow only, so nothing beyond them is generated.
+    expect(result.targets.map((target) => target.periodKey)).toEqual(['2026-08-25', '2026-08-26']);
+    expect(result.cached).toHaveLength(1);
+    expect(result.generated).toHaveLength(1);
+    expect(injected.ensure).toHaveBeenCalledTimes(1);
   });
 
   it('does not use a Premium package to satisfy Free Today', async () => {
@@ -187,7 +185,7 @@ describe('personal forecast rolling prewarm', () => {
     release();
     const [firstResult, secondResult] = await Promise.all([first, second]);
     expect(firstResult).toBe(secondResult);
-    expect(injected.ensure).toHaveBeenCalledTimes(5);
+    expect(injected.ensure).toHaveBeenCalledTimes(2);
   });
 
   it('does not coalesce a changed birth profile with an older in-flight horizon', async () => {
@@ -224,18 +222,21 @@ describe('personal forecast rolling prewarm', () => {
     const complete = prewarmPersonalForecastHorizon(input, injected);
     release();
     await Promise.all([incremental, complete]);
-    expect(cached.size).toBe(5);
-    expect(injected.ensure).toHaveBeenCalledTimes(5);
+    expect(cached.size).toBe(2);
+    expect(injected.ensure).toHaveBeenCalledTimes(2);
   });
 
-  it('prepares five days before the current Premium Week and Month across a calendar boundary', () => {
+  it('prepares five days, then the current Premium Week and Month, then the rest of the 30-day future', () => {
     const targets = buildPersonalForecastPrewarmTargets({
       accessTier: 'premium',
       timezone: 'Europe/Moscow',
       now: new Date('2026-08-28T09:00:00.000Z'),
     });
-    expect(targets.filter((target) => target.period === 'day')).toHaveLength(5);
+    expect(targets.filter((target) => target.period === 'day')).toHaveLength(30);
     expect(targets.slice(0, 5).every((target) => target.period === 'day')).toBe(true);
+    expect(targets.slice(5, 7).map((target) => target.period)).toEqual(['week', 'month']);
+    expect(targets[7]).toEqual({ accessTier: 'premium', period: 'day', periodKey: '2026-09-02' });
+    expect(targets[targets.length - 1].periodKey).toBe('2026-09-26');
     expect(targets.filter((target) => target.period === 'week').map((target) => target.periodKey))
       .toEqual(['2026-W35']);
     expect(targets.filter((target) => target.period === 'month').map((target) => target.periodKey))
@@ -254,7 +255,9 @@ describe('personal forecast rolling prewarm', () => {
     expect(MAX_FUTURE_FORECAST_DAYS).toBe(30);
     for (const accessTier of ['free', 'premium'] as const) {
       expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-08' })).toBe('allowed');
-      expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-09' })).toBe(accessTier === 'premium' ? 'allowed' : 'premium_required');
+      // Tomorrow is free too; from the day after, the future belongs to NEBO+.
+      expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-09' })).toBe('allowed');
+      expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-10' })).toBe(accessTier === 'premium' ? 'allowed' : 'premium_required');
       expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-10-08' })).toBe(accessTier === 'premium' ? 'allowed' : 'premium_required');
       for (const periodKey of ['2026-09-07', '2026-10-09', '2026-09-31', 'garbage']) {
         expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey })).toBe('outside_horizon');
@@ -271,15 +274,17 @@ describe('personal forecast rolling prewarm', () => {
       loadUser: jest.fn(async (userId) => ({ userId, profile, accessTier: 'premium' as const })),
       prewarm: jest.fn(async () => ({ ...empty, generated: [{}] })),
     };
+    // Each Premium visit fills the pass target and tops up one distant «Будущее» day.
     expect(await prewarmPersonalForecastIncrement({ now, userLimit: 2 }, injected))
-      .toEqual({ scanned: 2, generated: 2, inProgress: 0, failed: 0 });
+      .toEqual({ scanned: 2, generated: 4, inProgress: 0, failed: 0 });
     expect(await prewarmPersonalForecastIncrement({ now, userLimit: 2 }, injected))
-      .toEqual({ scanned: 1, generated: 1, inProgress: 0, failed: 0 });
-    expect((injected.prewarm as jest.Mock).mock.calls.slice(0, 3).every((call) => call[0].targetIndex === 0))
-      .toBe(true);
+      .toEqual({ scanned: 1, generated: 2, inProgress: 0, failed: 0 });
+    const passCalls = () => (injected.prewarm as jest.Mock).mock.calls.filter((call) => call[0].targetIndex !== undefined);
+    const distantCalls = (injected.prewarm as jest.Mock).mock.calls.filter((call) => call[0].targetIndex === undefined);
+    expect(passCalls().slice(0, 3).every((call) => call[0].targetIndex === 0)).toBe(true);
+    expect(distantCalls.every((call) => call[0].maxMissingGenerations === 1 && call[0].notBeforeDayKey === '2026-09-13')).toBe(true);
     await prewarmPersonalForecastIncrement({ now, userLimit: 2 }, injected);
-    expect((injected.prewarm as jest.Mock).mock.calls.slice(3).every((call) => call[0].targetIndex === 1))
-      .toBe(true);
+    expect(passCalls().slice(3).every((call) => call[0].targetIndex === 1)).toBe(true);
     expect(injected.listUsers).toHaveBeenLastCalledWith('', 2, now);
   });
 

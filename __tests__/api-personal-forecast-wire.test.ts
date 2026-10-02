@@ -128,7 +128,8 @@ describe('forecast API wire negotiation and entitlement', () => {
       (getPremiumEntitlementState as jest.Mock).mockResolvedValue({ isPremium: false });
       for (const version of [undefined, PERSONAL_FORECAST_CONTRACT_VERSION]) {
         for (const method of ['GET', 'POST'] as const) {
-          const denied = await request({ period: 'day', periodKey: '2026-09-09', method, version });
+          // Today and tomorrow are free; the day after belongs to NEBO+.
+          const denied = await request({ period: 'day', periodKey: '2026-09-10', method, version });
           expect(denied.status).toBe(403);
           expect(denied.body).not.toHaveProperty('forecast');
         }

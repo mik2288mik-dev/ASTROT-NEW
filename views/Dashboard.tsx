@@ -29,6 +29,11 @@ import {
 import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
 import { PersonalForecastPremiumGate } from '../components/PersonalForecastFeed/PersonalForecastPremiumGate';
 import { TodayEditorialFeed } from '../components/PersonalForecastFeed/TodayEditorialFeed';
+import { TodayExploreCards } from '../components/PersonalForecastFeed/TodayExploreCards';
+import { TodaySkyMonitor } from '../components/PersonalForecastFeed/TodaySkyMonitor';
+import { FutureView } from '../components/PersonalForecastFeed/FutureView';
+import { FutureInviteCard } from '../components/PersonalForecastFeed/FutureInviteCard';
+import { futureHorizonDays } from '../lib/futureCalendar';
 import { TodayCalendarClock } from '../components/PersonalForecastFeed/TodayCalendarClock';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
@@ -42,6 +47,8 @@ type DashboardProps = {
   requestedPeriod?: PersonalForecastPeriod;
   onPeriodChange?: (period: PersonalForecastPeriod) => void;
   onOpenCharts?: () => void;
+  onOpenSynastry?: () => void;
+  onOpenMatrix?: () => void;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
@@ -131,6 +138,8 @@ export const Dashboard = memo<DashboardProps>(({
   requestedPeriod,
   onPeriodChange,
   onOpenCharts,
+  onOpenSynastry,
+  onOpenMatrix,
   onRequestPremium,
   onPremiumAnalytics,
   scrollRef,
@@ -182,14 +191,15 @@ export const Dashboard = memo<DashboardProps>(({
   const periodLabels: Record<PersonalForecastPeriod, string> = {
     day: language === 'ru' ? 'Сегодня' : 'Today',
     week: language === 'ru' ? 'Неделя' : 'Week',
-    month: language === 'ru' ? 'Месяц' : 'Month',
+    // The month tab is the «Будущее» calendar; the month reading lives inside it.
+    month: language === 'ru' ? 'Будущее' : 'Future',
   };
   const activePeriodTitle = periodLabels[activePeriod];
   const personalForecastNote: Record<PersonalForecastPeriod, string> = language === 'ru'
     ? {
         day: 'Личный прогноз на сегодня — по твоим данным рождения.',
         week: 'Личный прогноз на неделю — по твоим данным рождения.',
-        month: 'Личный прогноз на месяц — по твоим данным рождения.',
+        month: 'Календарь вперёд — Луна, ретрограды и твои личные дни.',
       }
     : {
         day: 'Your personal forecast for today — based on your birth details.',
@@ -601,7 +611,7 @@ export const Dashboard = memo<DashboardProps>(({
           : personalForecastNote[activePeriod]}
       </p>
 
-      {activePeriod !== 'day' ? (
+      {activePeriod === 'week' ? (
       <div className="forecast-feed-reading-header">
         <div
           className="forecast-feed-date-zone"
@@ -638,6 +648,28 @@ export const Dashboard = memo<DashboardProps>(({
             {language === 'ru' ? 'Создать карту' : 'Create a chart'}
           </button>
         </section>
+      ) : activePeriod === 'month' ? (
+        <FutureView
+          profile={profile}
+          premium={premium}
+          horizonDays={futureHorizonDays(profile.premiumEntitlement)}
+          todayKey={periodKeys.day}
+          onRequestPremium={requestPremium}
+          monthReading={premium && forecast?.period === 'month' ? (
+            <article className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed" data-forecast-period="month" lang={language}>
+              {storySections.map((section) => (
+                <ForecastSectionBlock
+                  key={`future-month:${forecast.periodKey}:${section.id}`}
+                  section={section}
+                  period="month"
+                  language={language}
+                  locked={lockedSectionIds.has(section.id)}
+                  onRequestPremium={requestPremium}
+                />
+              ))}
+            </article>
+          ) : null}
+        />
       ) : !premium && activePeriod !== 'day' ? (
         <PersonalForecastPremiumGate
           period={activePeriod}
@@ -656,6 +688,27 @@ export const Dashboard = memo<DashboardProps>(({
           tone={forecast.meta.astrologerBrief.tone}
           personalAttribution={personalForecastAttribution}
           onRequestPremium={requestPremium}
+          footer={(
+            <>
+            <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
+            <FutureInviteCard
+              userId={String(profile.id || 'guest')}
+              todayKey={periodKeys.day}
+              timezone={timezone}
+              premium={premium}
+              onOpen={() => { onPeriodChange?.('month'); }}
+            />
+            <TodayExploreCards
+              language={language}
+              userId={String(profile.id || 'guest')}
+              birthDate={profile.birthDate}
+              premium={premium}
+              onOpenNatal={onCreateNatalChart}
+              onOpenCompatibility={onOpenSynastry}
+              onOpenMatrix={onOpenMatrix}
+            />
+            </>
+          )}
         />
       ) : forecast ? (
         <article

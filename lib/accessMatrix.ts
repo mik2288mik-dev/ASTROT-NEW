@@ -37,7 +37,8 @@ export type FeatureKey =
   | 'natal_money'
   | 'natal_family'
   | 'natal_how_others_see_you'
-  | 'deep_report';
+  | 'deep_report'
+  | 'matrix_full';
 
 export type FeatureAccessStatus =
   | 'allowed'
@@ -135,6 +136,7 @@ export const CANONICAL_ACCESS_CONTRACT = {
       'natal_family',
       'natal_how_others_see_you',
       'deep_report',
+      'matrix_full',
     ] as const satisfies readonly FeatureKey[],
     ownChartLimit: 1,
     additionalSavedPeopleLimit: 20,
@@ -174,6 +176,7 @@ const FEATURE_DETAILS: Record<FeatureKey, Omit<FeatureAccessConfig, 'key' | 'tie
   natal_family: { needsChart: true, label: 'Natal family section' },
   natal_how_others_see_you: { needsChart: true, label: 'How others see you section' },
   deep_report: { needsChart: true, label: 'Deep report' },
+  matrix_full: { needsChart: false, label: 'Full destiny matrix' },
 };
 
 function buildTierEntries(tier: FeatureTier, keys: readonly FeatureKey[]): FeatureAccessConfig[] {

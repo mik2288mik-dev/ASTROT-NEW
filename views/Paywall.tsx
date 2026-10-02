@@ -80,6 +80,7 @@ const CONTEXT_COPY: Record<PaywallContext['placement'], { ru: string; en: string
     ru: 'Личные прогнозы, подробные разборы и совместимость по картам.',
     en: 'Personal forecasts, detailed readings, and two-chart compatibility.',
   },
+  matrix: { ru: 'Откроется матрица целиком: деньги, отношения, возрасты и полный разбор.', en: 'The full matrix will open: money, relationships, life stages and the full reading.' },
   week: { ru: 'Откроется твоя личная неделя.', en: 'Your personal week will open.' },
   month: { ru: 'Откроется твой личный месяц.', en: 'Your personal month will open.' },
   deep_natal: { ru: 'Откроются все разделы твоей натальной карты.', en: 'Every topic in your natal chart will open.' },

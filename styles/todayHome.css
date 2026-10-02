@@ -12,7 +12,7 @@
   scroll-padding-bottom: var(--lumia-bottom-tab-clearance);
 }
 
-/* The reference uses a single hairline, never a raised tab-bar capsule. */
+/* Plain white bar, no hairline and no raised capsule. */
 .today-bottom-navigation.lumia-bottom-tab-shell {
   right: 0;
   bottom: 0;
@@ -36,31 +36,7 @@
 }
 
 .today-bottom-navigation::before {
-  position: absolute;
-  top: 1rem;
-  right: max(
-    1.25rem,
-    env(safe-area-inset-right, 0px),
-    var(--tg-content-safe-area-inset-right, 0px),
-    var(--tg-safe-area-inset-right, 0px)
-  );
-  left: max(
-    1.25rem,
-    env(safe-area-inset-left, 0px),
-    var(--tg-content-safe-area-inset-left, 0px),
-    var(--tg-safe-area-inset-left, 0px)
-  );
-  z-index: 2;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(57, 53, 48, 0.18) 14%,
-    rgba(57, 53, 48, 0.18) 86%,
-    transparent
-  );
-  content: '';
-  pointer-events: none;
+  display: none;
 }
 
 .today-bottom-nav-bar.lumia-bottom-tab-bar {
@@ -1173,9 +1149,10 @@
   font-weight: 400 !important;
   letter-spacing: -0.018em !important;
   line-height: 1.55 !important;
-  text-align: left !important;
-  -webkit-hyphens: none;
-  hyphens: none;
+  text-align: justify !important;
+  text-align-last: left;
+  -webkit-hyphens: auto;
+  hyphens: auto;
   overflow-wrap: normal;
 }
 
@@ -1310,10 +1287,11 @@
   font-weight: 400;
   letter-spacing: -0.018em;
   line-height: 1.55 !important;
-  text-align: left !important;
+  text-align: justify !important;
+  text-align-last: left;
   text-wrap: wrap !important;
-  -webkit-hyphens: none;
-  hyphens: none;
+  -webkit-hyphens: auto;
+  hyphens: auto;
   overflow-wrap: normal;
 }
 
@@ -1321,8 +1299,16 @@
   .today-minimal-reading
   .forecast-feed-section-text,
 .forecast-period-editorial-feed:lang(ru)
+  .forecast-feed-section-text.is-story-opening,
+.forecast-period-editorial-feed:lang(ru)
   .forecast-feed-section-text.is-story-continuation {
-  text-indent: 0;
+  text-indent: 1.25em;
+}
+
+/* Russian book style: the first-line indent separates paragraphs, so no extra gap. */
+#__next .today-minimal-feed:lang(ru) .today-minimal-reading .forecast-feed-section-copy > p + p,
+#__next .forecast-period-editorial-feed:lang(ru) .forecast-feed-section-copy > p + p {
+  margin-top: 0;
 }
 
 .today-minimal-feed:lang(en) .forecast-feed-section-text,
@@ -1352,7 +1338,7 @@
     .forecast-feed-section-text.is-story-opening,
   .forecast-period-editorial-feed:lang(ru)
     .forecast-feed-section-text.is-story-continuation {
-    text-align: left !important;
+    text-align: justify !important;
   }
 }
 
@@ -1860,10 +1846,6 @@
     color: var(--today-muted);
   }
 
-  .today-bottom-navigation::before {
-    background: rgba(45, 42, 38, 0.58);
-  }
-
   .today-minimal-reading-main,
   .today-minimal-reading-block {
     border-color: currentColor;
@@ -1891,4 +1873,842 @@
     transition-delay: 0ms;
   }
 
+}
+
+/* Home: navigation cards under the personal day reading, painted as the sky at three times of day. */
+.today-explore {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin: 0 auto;
+  padding: 1.25rem 0 2rem;
+  border-top: 1px solid rgba(41, 39, 36, 0.1);
+}
+
+.today-explore-heading {
+  margin: 0 0 0.85rem;
+  color: var(--today-ink);
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.today-explore-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.today-explore-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 13.4rem;
+  overflow: hidden;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.9rem 0.95rem 1rem;
+  border: 0;
+  border-radius: 1.25rem;
+  color: #fff;
+  text-align: left;
+  text-shadow: 0 1px 2px rgba(20, 30, 60, 0.12);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms ease;
+}
+
+.today-explore-card:active {
+  transform: scale(0.98);
+}
+
+.today-explore-card:focus-visible {
+  outline: 2px solid var(--today-ink);
+  outline-offset: 2px;
+}
+
+/* Clear day sky. */
+.today-explore-card.is-natal {
+  grid-column: 1 / -1;
+  min-height: 10rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  padding-right: 0.8rem;
+  background: linear-gradient(180deg, #2d7ff0 0%, #4f98f2 60%, #78b4f4 100%);
+}
+
+/* Sunset. */
+.today-explore-card.is-compatibility {
+  background: linear-gradient(180deg, #ec7558 0%, #f0896a 55%, #f4a47c 100%);
+}
+
+/* Evening sky. */
+.today-explore-card.is-matrix {
+  background: linear-gradient(180deg, #26357a 0%, #4b4f9e 55%, #9a76a8 100%);
+}
+
+.today-explore-copy {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.22rem;
+  padding-right: 1.1rem;
+}
+
+.today-explore-copy.is-bottom {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: 0.6rem;
+}
+
+.today-explore-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.3rem;
+  padding: 0.14rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+
+.today-explore-title {
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.today-explore-fact {
+  margin-top: 0.35rem;
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.today-explore-caption {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.78rem;
+  line-height: 1.38;
+}
+
+.today-explore-wheel {
+  flex: 0 0 auto;
+  width: 6.9rem;
+  height: 6.9rem;
+  align-self: flex-start;
+}
+
+.today-explore-wheel .is-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-width: 1;
+}
+
+.today-explore-wheel .is-soft {
+  stroke: rgba(255, 255, 255, 0.4);
+}
+
+.today-explore-wheel .is-core {
+  fill: rgba(255, 255, 255, 0.14);
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1;
+}
+
+.today-explore-wheel .is-sector {
+  fill: rgba(255, 255, 255, 0.36);
+}
+
+.today-explore-wheel .is-tick {
+  stroke: rgba(255, 255, 255, 0.45);
+  stroke-width: 1;
+}
+
+.today-explore-wheel .is-planet {
+  fill: #fff;
+}
+
+.today-explore-wheel .is-dim {
+  fill-opacity: 0.55;
+}
+
+.today-explore-signs {
+  display: flex;
+  align-items: center;
+}
+
+.today-explore-sign {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ee7d5f;
+  border-radius: 50%;
+  background: #ffe3cf;
+  color: #b8502d;
+}
+
+.today-explore-sign + .today-explore-sign {
+  margin-left: -0.6rem;
+}
+
+.today-explore-sign.is-own {
+  background: #fff;
+  color: #d8603f;
+}
+
+.today-explore-sign.is-add {
+  border: 1.5px dashed rgba(255, 255, 255, 0.9);
+  background: transparent;
+  color: #fff;
+}
+
+.today-explore-pairs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.today-explore-pair b {
+  font-weight: 650;
+}
+
+.today-explore-number-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.today-explore-number {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #3a3f8a;
+  font-size: 1.05rem;
+  font-weight: 650;
+  text-shadow: none;
+}
+
+.today-explore-number-label {
+  font-size: 0.7rem;
+  line-height: 1.25;
+  opacity: 0.82;
+}
+
+.today-explore-keyword {
+  display: block;
+  margin: 0.65rem 0 0.2rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.today-explore-keyword::first-letter {
+  text-transform: uppercase;
+}
+
+.today-explore-arrow {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.9rem;
+  color: #fff;
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today-explore-card {
+    transition: none;
+  }
+}
+
+/* Home: «Небо сегодня» — Moon phases and Mercury, painted as the evening sky. */
+.today-sky {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin: 0 auto;
+  padding: 1.25rem 0 0.4rem;
+  border-top: 1px solid rgba(41, 39, 36, 0.1);
+}
+
+.today-sky + .today-explore {
+  border-top: 0;
+}
+
+.today-sky-card {
+  padding: 1rem 0.95rem 1.05rem;
+  border-radius: 1.35rem;
+  background: linear-gradient(180deg, #1f2b6b 0%, #3d4594 60%, #8a6fa8 100%);
+  color: #fff;
+}
+
+.today-sky-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.today-sky-glyph {
+  width: 3rem;
+  height: 3rem;
+  flex: none;
+}
+
+.today-sky-copy {
+  min-width: 0;
+}
+
+.today-sky-copy p {
+  margin: 0;
+}
+
+.today-sky-kicker {
+  font-size: 0.72rem;
+  opacity: 0.82;
+}
+
+.today-sky-title {
+  margin-top: 0.1rem !important;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.today-sky-text {
+  margin-top: 0.2rem !important;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  opacity: 0.93;
+}
+
+.today-sky-calendar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-sky-calendar li {
+  padding: 0.4rem 0.2rem;
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 0.66rem;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.today-sky-calendar li.is-next {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.today-sky-calendar b {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.today-sky-personal {
+  display: inline-block;
+  margin: 0.6rem 0 0;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.today-sky-divider {
+  height: 1px;
+  margin: 0.85rem 0;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.today-sky-timeline {
+  position: relative;
+  height: 0.38rem;
+  margin: 0.75rem 0 0.3rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.today-sky-timeline i {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: #f4a47c;
+}
+
+.today-sky-timeline em {
+  position: absolute;
+  top: -0.25rem;
+  left: 0;
+  width: 2px;
+  height: 0.88rem;
+  border-radius: 1px;
+  background: #fff;
+}
+
+.today-sky-timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.66rem;
+  opacity: 0.82;
+}
+
+/* «Будущее»: month calendar with sky events and personal days. */
+.future-view {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin: 0 auto;
+  padding: 0.5rem 0 2rem;
+  color: var(--today-ink);
+}
+
+.future-month-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.future-month-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.future-month-header button {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: #f4f6fa;
+  color: var(--today-ink);
+  cursor: pointer;
+}
+
+.future-month-header button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.future-access {
+  display: inline-block;
+  margin: 0.55rem 0 0.8rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: #eef3fd;
+  color: #2d6fd6;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.future-weekdays,
+.future-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.22rem;
+}
+
+.future-weekdays {
+  margin-bottom: 0.3rem;
+  color: var(--today-muted);
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.future-day {
+  position: relative;
+  display: flex;
+  height: 2.9rem;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.35rem 0 0;
+  border: 0;
+  border-radius: 0.75rem;
+  background: #f6f7fa;
+  color: var(--today-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.future-day.is-past {
+  background: transparent;
+  color: #c9c5bf;
+  cursor: default;
+}
+
+.future-day.is-today {
+  box-shadow: inset 0 0 0 2px #2d7ff0;
+  font-weight: 650;
+}
+
+.future-day.is-selected {
+  background: #2d7ff0;
+  color: #fff;
+  font-weight: 650;
+}
+
+.future-day-number {
+  font-size: 0.86rem;
+  line-height: 1.1;
+}
+
+.future-day-marks {
+  display: flex;
+  min-height: 0.7rem;
+  align-items: center;
+  gap: 0.15rem;
+  margin-top: 0.22rem;
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+.future-dot {
+  display: inline-block;
+  width: 0.36rem;
+  height: 0.36rem;
+  border-radius: 50%;
+}
+
+.future-dot.is-good { background: #1f9d6b; }
+.future-dot.is-hard { background: #e0704f; }
+.future-dot.is-hidden { background: #9a76a8; }
+
+.future-day.is-selected .future-dot { box-shadow: 0 0 0 1.5px #fff; }
+
+.future-retro {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.15rem;
+  left: 0.2rem;
+  height: 0.18rem;
+  border-radius: 999px;
+  background: #f4a47c;
+}
+
+.future-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin: 0.6rem 0 0;
+  color: var(--today-muted);
+  font-size: 0.7rem;
+}
+
+.future-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.future-retro-sample {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.18rem;
+  border-radius: 999px;
+  background: #f4a47c;
+}
+
+.future-hint,
+.future-status {
+  margin: 0.9rem 0 0;
+  color: var(--today-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.future-day-sheet {
+  margin-top: 0.9rem;
+  padding: 0.75rem;
+  border: 1px solid #e6e9ef;
+  border-radius: 1.3rem;
+}
+
+.future-day-hero {
+  padding: 0.85rem 0.9rem;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, #2d7ff0 0%, #4f98f2 60%, #78b4f4 100%);
+  color: #fff;
+}
+
+.future-day-hero p {
+  margin: 0;
+  font-size: 0.75rem;
+  opacity: 0.88;
+}
+
+.future-day-hero h3 {
+  margin: 0.1rem 0 0;
+  font-size: 1.3rem;
+  font-weight: 650;
+}
+
+.future-day-hero span {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.84rem;
+  line-height: 1.42;
+}
+
+.future-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.55rem;
+}
+
+.future-chip {
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: #f4f6fa;
+  color: #55504a;
+  font-size: 0.72rem;
+}
+
+.future-chip.is-good { background: #e5f6ee; color: #16835a; }
+.future-chip.is-hard { background: #fdeae4; color: #c0532f; }
+
+.future-read {
+  display: flex;
+  width: 100%;
+  min-height: 2.9rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  border: 0;
+  border-radius: 0.9rem;
+  background: #2d7ff0;
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.future-read.is-locked {
+  background: #eef0fb;
+  color: #3a3f8a;
+}
+
+.future-reading {
+  margin-top: 0.75rem;
+}
+
+.future-summary {
+  margin-top: 1rem;
+  padding: 0.95rem;
+  border-radius: 1.3rem;
+  background: linear-gradient(180deg, #26357a 0%, #4b4f9e 60%, #9a76a8 100%);
+  color: #fff;
+}
+
+.future-summary p {
+  margin: 0;
+  font-size: 0.74rem;
+  opacity: 0.85;
+}
+
+.future-summary h3 {
+  margin: 0.15rem 0 0.3rem;
+  font-size: 1.1rem;
+  font-weight: 650;
+}
+
+.future-summary span {
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.future-important {
+  margin-top: 1.2rem;
+}
+
+.future-important h3,
+.future-month-reading h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.future-event {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border: 0;
+  border-top: 1px solid #eef0f3;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.future-event-date {
+  flex: none;
+  width: 2.6rem;
+  color: var(--today-muted);
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+.future-event-date b {
+  display: block;
+  color: var(--today-ink);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.future-event-copy strong {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.future-event-copy small {
+  display: block;
+  margin-top: 0.15rem;
+  color: #5f5a54;
+  font-size: 0.76rem;
+  line-height: 1.38;
+}
+
+.future-tag {
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 500;
+  vertical-align: 0.1rem;
+}
+
+.future-tag.is-good { background: #e5f6ee; color: #16835a; }
+.future-tag.is-hard { background: #fdeae4; color: #c0532f; }
+
+.future-month-reading {
+  margin-top: 1.4rem;
+}
+
+/* Home invitation into «Будущее». */
+.future-invite {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin: 0 auto;
+  padding: 0.8rem 0 0.4rem;
+}
+
+.future-invite + .today-explore {
+  border-top: 0;
+}
+
+.future-invite-card {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 1rem 0.95rem;
+  border: 0;
+  border-radius: 1.35rem;
+  background: linear-gradient(180deg, #ec7558 0%, #f0896a 55%, #f4a47c 100%);
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.future-invite-kicker {
+  font-size: 0.74rem;
+  opacity: 0.88;
+}
+
+.future-invite-title {
+  font-size: 1.08rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.future-invite-next {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  opacity: 0.95;
+}
+
+.future-invite-week {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.future-invite-week > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.35rem 0 0.4rem;
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.future-invite-week > span.is-today {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.future-invite-week small {
+  font-size: 0.62rem;
+  opacity: 0.85;
+}
+
+.future-invite-week b {
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.future-invite-week i {
+  display: block;
+  width: 0.36rem;
+  height: 0.36rem;
+  border-radius: 50%;
+}
+
+.future-invite-week i.is-good { background: #fff; }
+.future-invite-week i.is-hard { background: #4b2a6b; }
+.future-invite-week i.is-hidden { background: rgba(255, 255, 255, 0.7); }
+
+.future-invite-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 0.3rem;
+  font-size: 0.86rem;
+  font-weight: 650;
 }

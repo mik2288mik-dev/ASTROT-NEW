@@ -8,6 +8,10 @@ import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { InteractiveNatalMap } from '../../components/NatalReading/InteractiveNatalMap';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import { NatalUnifiedReport } from '../../components/NatalReading/NatalUnifiedReport';
+import { NatalHighlights } from '../../components/NatalReading/NatalHighlights';
+import { NatalProfileTab } from '../../components/NatalReading/NatalProfileTab';
+import { NatalCalculationProof } from '../../components/NatalReading/NatalCalculationProof';
+import { isCanonicalNatalChart } from '../../lib/natalCalculationProof';
 
 
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
@@ -43,7 +47,7 @@ type NatalMagazineProps = {
   };
 };
 
-export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix';
+export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix' | 'profile';
 
 export function isSavedPersonChartSubject(
   chartSubject: Pick<ChartListItem, 'subject_type' | 'is_primary'> | null | undefined,
@@ -172,10 +176,11 @@ export function NatalMagazine({
   const header = (
     <>
       <AppTopBar title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} rightAction={onOpenCharts ? <button type="button" className="app-top-bar-action" aria-label={`Выбрать сохранённую карту: ${subjectName || 'Моя карта'}`} onClick={onOpenCharts}><MonoAvatar initial={(subjectName || '?').slice(0,1)} size={36}/></button> : undefined}/>
-      {data ? <nav className={`${styles.navigation} editorial-tabs`} aria-label="Вкладки натальной карты">
+      {data ? <nav className={`${styles.navigation} editorial-tabs`} aria-label="Вкладки натальной карты" style={{ '--editorial-tab-count': 4 } as React.CSSProperties}>
         {([
           { id: 'foundation', label: 'Обзор' },
           { id: 'map', label: 'Карта' },
+          { id: 'profile', label: 'Профиль' },
           { id: 'ask', label: 'Спросить' },
         ] as const).map(tab => {
           const active = tab.id === normalizedActiveTab || (tab.id === 'foundation' && normalizedActiveTab === 'explore');
@@ -240,6 +245,7 @@ export function NatalMagazine({
     chartSubject?.calculation_version || data.calculationVersion || 'unknown',
   ].join(':');
   const birthLine = [formatDisplayDate(data.birth?.localDate || subjectBirthDate, language), (data.birth ? data.birth.localTime : subjectBirthTime)?.slice(0, 5) || 'Время не указано', data.birth?.place || subjectBirthPlace].filter(Boolean).join(' · ');
+  const canonicalChart = isCanonicalNatalChart(data) ? data : null;
   const person = <header className={styles.personInline}><h1>{subjectName || 'Моя карта'}</h1><p title={birthLine}>{birthLine}</p></header>;
 
   return (
@@ -260,9 +266,24 @@ export function NatalMagazine({
         />
       ) : null}
 
+      {normalizedActiveTab === 'map' && canonicalChart ? (
+        <section className={styles.content}>
+          <NatalCalculationProof key={`proof:${reportSubjectKey}`} chart={canonicalChart} name={subjectName || 'Моя карта'} />
+        </section>
+      ) : null}
+
+      {normalizedActiveTab === 'profile' ? (
+        <section className={styles.content}>
+          {person}
+          {canonicalChart ? <NatalProfileTab key={`profile:${reportSubjectKey}`} chart={canonicalChart} /> : null}
+        </section>
+      ) : null}
+
       {normalizedActiveTab === 'foundation' || normalizedActiveTab === 'explore' ? (
         <section className={styles.content}>
           {person}
+          {canonicalChart ? <NatalHighlights key={`highlights:${reportSubjectKey}`} chart={canonicalChart} /> : null}
+          {canonicalChart ? <h2 className={styles.readingHeading}>Рассказ о тебе</h2> : null}
           <div className={styles.mode} role="group" aria-label="Как читать обзор">{(['story','topics'] as const).map(mode => <button type="button" key={mode} aria-pressed={overviewMode === mode} onClick={() => {setOverviewMode(mode); if (mode === 'story') selectTab('foundation');}}>{mode === 'story' ? 'Рассказ' : 'По темам'}</button>)}</div>
           <NatalUnifiedReport
             key={`unified:${reportSubjectKey}`}

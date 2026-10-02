@@ -302,6 +302,7 @@ describe('feature access matrix', () => {
       'blind_spot',
       'daily_sign_horoscope',
       'deep_report',
+      'matrix_full',
       'moon_calendar',
       'natal_anger',
       'natal_basic',
