@@ -205,6 +205,7 @@ dependencies {
     rustoreImplementation platform('ru.rustore.sdk:bom:2026.08.01')
     rustoreImplementation 'ru.rustore.sdk:pay'
     rustoreImplementation 'ru.rustore.sdk:appupdate'
+    rustoreImplementation 'ru.rustore.sdk:review'
 }
 
 apply from: 'capacitor.build.gradle'

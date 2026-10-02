@@ -27,6 +27,9 @@ public class MainActivity extends BridgeActivity {
         if (isRuStorePaymentsEnabled()) {
             registerRuStorePlugin();
         }
+        if (isRuStoreBuild()) {
+            registerFlavorPlugin("ru.tvoygoroskop.app.rustore.RuStoreReviewPlugin");
+        }
         super.onCreate(savedInstanceState);
         NativeDiagnosticsPlugin.mark(this, "activity_onCreate_after_capacitor");
         if (isRuStorePaymentsEnabled() && savedInstanceState == null) proceedRuStoreIntent(getIntent());
@@ -79,6 +82,15 @@ public class MainActivity extends BridgeActivity {
 
     private boolean isRuStorePaymentsEnabled() {
         return isRuStoreBuild() && BuildConfig.RUSTORE_PAYMENTS_ENABLED;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void registerFlavorPlugin(String className) {
+        try {
+            registerPlugin((Class<? extends Plugin>) Class.forName(className));
+        } catch (ClassNotFoundException ignored) {
+            // The class exists only in the flavor that ships it.
+        }
     }
 
     @SuppressWarnings("unchecked")
