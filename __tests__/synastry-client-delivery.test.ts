@@ -15,7 +15,7 @@ import { calculateExtendedSynastry } from '../services/astrologyService';
 import { calculateCompatibility } from '../lib/synastry/compatibilityEngine';
 import { buildCompatibilityResult, selectCompatibilityWriterEvidence } from '../lib/synastry/compatibilityNarrative';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
-import { compatibilityStory } from './fixtures/compatibilityStory';
+import { compatibilityStoryFor } from './fixtures/compatibilityStory';
 
 const originalFetch = globalThis.fetch;
 const profile = { id: 'delivery-owner', name: 'Анна', language: 'ru' } as UserProfile;
@@ -23,7 +23,7 @@ const calculated = calculateCompatibility({
   subjectChart: canonicalNatalChart(), partnerChart: canonicalNatalChart(),
   calculationLevel: 'full', relationshipContext: 'romance', language: 'ru',
 });
-const story = buildCompatibilityResult(calculated, compatibilityStory(selectCompatibilityWriterEvidence(calculated)));
+const story = buildCompatibilityResult(calculated, compatibilityStoryFor(calculated));
 const payload = { result: story, fromCache: false, subjectChartId: 1, partnerChartId: 2, calculationLevel: 'full' };
 
 function requestReading() {

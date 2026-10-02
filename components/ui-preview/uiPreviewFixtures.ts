@@ -344,7 +344,7 @@ export const UI_PREVIEW_COMPATIBILITY: {
   },
   deepResult: {
     schemaVersion: 'compatibility-v2',
-    engineVersion: 'compatibility-engine.v1',
+    engineVersion: 'compatibility-engine.v2',
     overallScore: 78,
     compatibilityScore: 78,
     verdict: 'Сильная связь',

@@ -30,7 +30,7 @@ describe('UI Preview compatibility adapter', () => {
     expect(preview).toContain('{ resultState: state }');
     expect(fixtures).toContain('UI_PREVIEW_COMPATIBILITY');
     expect(fixtures).toContain("schemaVersion: 'compatibility-v2'");
-    expect(fixtures).toContain("engineVersion: 'compatibility-engine.v1'");
+    expect(fixtures).toContain("engineVersion: 'compatibility-engine.v2'");
     expect(fixtures).toContain("calculationVersion: 'ui-preview-fixture.v1'");
     expect(fixtures).toContain('closing: {');
     expect(fixtures).toContain('один хочет прояснить всё сейчас, второй просит паузу');

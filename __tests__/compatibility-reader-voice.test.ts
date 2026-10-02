@@ -4,7 +4,7 @@ import {
   type CompatibilityNarrativeInput,
 } from '../lib/synastry/compatibilityNarrative';
 import { canonicalNatalChart } from './fixtures/canonicalNatalChart';
-import { compatibilityStory } from './fixtures/compatibilityStory';
+import { answerableQuestionIds, compatibilityStoryFor } from './fixtures/compatibilityStory';
 
 const calculated = calculateCompatibility({
   subjectChart: canonicalNatalChart(), partnerChart: canonicalNatalChart({ birthDate: '1990-08-22' }),
@@ -14,7 +14,7 @@ const context: CompatibilityNarrativeInput = {
   subjectName: 'Лина', subjectGender: 'female', partnerName: 'Саша', partnerGender: 'unspecified', language: 'ru',
 };
 function candidate(addition = '') {
-  const writer = compatibilityStory(selectCompatibilityWriterEvidence(calculated));
+  const writer = compatibilityStoryFor(calculated);
   if (addition) writer.paragraphs[0].text += ` ${addition}`;
   return writer;
 }
@@ -37,7 +37,7 @@ describe('compatibility reader perspective and explicit grammatical gender', () 
     'Саша слушает, пока коллега говорит, что он готов.',
     'Для Саши важен готовый результат, а тебе интересно обсудить детали.',
   ])('keeps neutral grammar and unrelated masculine nouns valid: %s', (addition) => {
-    expect(buildCompatibilityResult(calculated, candidate(addition), context).storyParagraphs).toHaveLength(4);
+    expect(buildCompatibilityResult(calculated, candidate(addition), context).storyParagraphs).toHaveLength(answerableQuestionIds(calculated).length);
   });
 
   it.each([
@@ -59,7 +59,7 @@ describe('compatibility reader perspective and explicit grammatical gender', () 
     for (const paragraph of writer.paragraphs) {
       paragraph.text = paragraph.text.replace(/(?:^|[^\p{L}])(ты|тебя|тебе|тобой|тобою|твой|твоя|твоё|твое|твои|твоего|твоей|твоих|твоему|твоим|твою|твоими)(?=$|[^\p{L}])/giu, ' Лина');
     }
-    expect(buildCompatibilityResult(calculated, writer, context).storyParagraphs).toHaveLength(4);
+    expect(buildCompatibilityResult(calculated, writer, context).storyParagraphs).toHaveLength(answerableQuestionIds(calculated).length);
   });
 
   it('keeps third-person phrasing as a voice concern instead of a delivery failure', () => {
@@ -67,29 +67,29 @@ describe('compatibility reader perspective and explicit grammatical gender', () 
     writer.paragraphs[0].text += ' Лина замечает детали.';
     writer.paragraphs[1].text += ' Лине интересно продолжить разговор.';
     writer.paragraphs[2].text += ' С Линой можно обсудить другой вариант.';
-    expect(buildCompatibilityResult(calculated, writer, context).storyParagraphs).toHaveLength(4);
+    expect(buildCompatibilityResult(calculated, writer, context).storyParagraphs).toHaveLength(answerableQuestionIds(calculated).length);
     expect(buildCompatibilityResult(calculated, candidate('Лина, ты можешь увидеть разницу.'), context).storyParagraphs?.[0].text).toContain('Лина, ты');
   });
 
   it('does not mistake a partner with the same first name for third-person narration of the reader', () => {
     const writer = candidate('Саша замечает детали. Саша предлагает новый вариант. Саше интересно продолжить разговор.');
-    expect(buildCompatibilityResult(calculated, writer, { ...context, subjectName: 'Саша' }).storyParagraphs).toHaveLength(4);
+    expect(buildCompatibilityResult(calculated, writer, { ...context, subjectName: 'Саша' }).storyParagraphs).toHaveLength(answerableQuestionIds(calculated).length);
   });
 
   it('does not treat the nameless-person placeholder as a real given name', () => {
     const writer = candidate('Первый вариант можно обсудить. Первый шаг не обязательно заканчивает разговор. Первый ответ бывает коротким.');
-    expect(buildCompatibilityResult(calculated, writer, { ...context, subjectName: 'Первый человек' }).storyParagraphs).toHaveLength(4);
+    expect(buildCompatibilityResult(calculated, writer, { ...context, subjectName: 'Первый человек' }).storyParagraphs).toHaveLength(answerableQuestionIds(calculated).length);
   });
 
   it('allows English third-person phrasing when the supplied gender is unknown', () => {
     const english = { ...context, language: 'en' as const, subjectName: 'Lina', partnerName: 'Sasha' };
-    expect(buildCompatibilityResult(calculated, candidate(), english).storyParagraphs).toHaveLength(4);
+    expect(buildCompatibilityResult(calculated, candidate(), english).storyParagraphs).toHaveLength(answerableQuestionIds(calculated).length);
     expect(buildCompatibilityResult(calculated, candidate('You may enjoy the conversation. Sasha, he can offer another idea.'), { ...english, partnerGender: 'male' }).storyParagraphs?.[0].text).toContain('he can');
     expect(buildCompatibilityResult(calculated, candidate('You may enjoy the conversation. Sasha, she can offer another idea.'), { ...english, partnerGender: 'female' }).storyParagraphs?.[0].text).toContain('she can');
     expect(buildCompatibilityResult(calculated, candidate('You may enjoy the conversation. Sasha, he can offer another idea.'), english).storyParagraphs?.[0].text).toContain('he can');
   });
 
   it('preserves the old evidence-only validator contract for callers without reader context', () => {
-    expect(buildCompatibilityResult(calculated, candidate('Саша способен ответить.')).storyParagraphs).toHaveLength(4);
+    expect(buildCompatibilityResult(calculated, candidate('Саша способен ответить.')).storyParagraphs).toHaveLength(answerableQuestionIds(calculated).length);
   });
 });
