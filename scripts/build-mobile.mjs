@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { parseEnv } from 'node:util';
+import { optimizeMobileImages } from './optimize-mobile-images.mjs';
 
 const BUILD_ENV_NAMES = [
   'NEXT_PUBLIC_API_URL',
@@ -93,6 +94,8 @@ if (result.status !== 0) process.exit(result.status ?? 1);
 
 const outputDirectory = path.resolve('out');
 if (!fs.existsSync(outputDirectory)) fail('Next did not produce the static mobile output directory.');
+// Images dominate the APK size; shrink the copies that go into it.
+await optimizeMobileImages(outputDirectory);
 
 const sourceCommitOverride = [
   process.env.SOURCE_COMMIT,

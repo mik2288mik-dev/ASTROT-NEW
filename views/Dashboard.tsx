@@ -10,6 +10,7 @@ import { LoaderCircle, RefreshCw } from 'lucide-react';
 import { useReducedMotion } from 'framer-motion';
 import type { UserProfile } from '../types';
 import { hasActivePremium } from '../lib/accessMatrix';
+import { noteForecastSeenForReview } from '../services/rustoreReview';
 import {
   buildPersonalForecastBirthProfileFingerprint,
   formatPersonalForecastDateLabel,
@@ -497,6 +498,7 @@ export const Dashboard = memo<DashboardProps>(({
     const key = `${String(profile.id || 'guest')}:${forecast.periodKey}`;
     if (firstValueSeenRef.current.has(key)) return;
     firstValueSeenRef.current.add(key);
+    noteForecastSeenForReview();
     onPremiumAnalytics?.('first_value_viewed', {
       placement: 'today',
       featureKey: 'personal_daily',
