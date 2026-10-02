@@ -1,9 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { renderNeboChartPng, verifyNeboChart } from '../../../lib/neboOpsChart';
 import { collectNeboDailySeries } from '../../../lib/neboOpsStats';
+import { forwardNeboOpsRequest } from '../../../lib/neboOpsWebhook';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).end();
+  if (await forwardNeboOpsRequest(req, res)) return;
   const days = Number(req.query.days);
   const stamp = String(req.query.t || '');
   const signature = String(req.query.sig || '');

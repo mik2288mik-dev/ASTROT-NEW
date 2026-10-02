@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import sharp from 'sharp';
 import type { NeboDayPoint } from './neboOpsStats';
+import { neboOpsWebhookBase } from './neboOpsWebhook';
 
 /**
  * Owner charts are fetched by Telegram from our own API (the Bot API relay only
@@ -28,8 +29,8 @@ export function verifyNeboChart(days: number, stamp: string, signature: string, 
 
 /** `stamp` only busts Telegram's URL cache; the chart always shows data up to now. */
 export function neboChartUrl(days: number, now = new Date(), env: NodeJS.ProcessEnv = process.env): string | null {
-  const base = String(env.NEBO_OPS_PUBLIC_URL || '').trim().replace(/\/$/, '');
-  if (!base.startsWith('https://') || secret(env).length < 32) return null;
+  const base = neboOpsWebhookBase(env);
+  if (!base || secret(env).length < 32) return null;
   const stamp = String(Math.floor(now.getTime() / 60_000));
   return `${base}/api/telegram/ops-chart?days=${days}&t=${stamp}&sig=${signNeboChart(days, stamp, env)}`;
 }

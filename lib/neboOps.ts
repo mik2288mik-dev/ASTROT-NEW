@@ -504,13 +504,36 @@ type WorkerState = {
   started: boolean; running: boolean; requested: boolean; connecting: boolean;
   listener: PoolClient | null; timer: ReturnType<typeof setInterval> | null;
   lastCleanupAt: number; lastReportCheckAt: number; configurationWarning: boolean;
+  runningSince: number; lastRunAt: number; lastSent: number; lastFailed: number;
+  lastError: string | null; lastErrorAt: number;
 };
 const processState = globalThis as typeof globalThis & { __neboOpsWorkerV2?: WorkerState };
 function worker(): WorkerState {
   return processState.__neboOpsWorkerV2 ??= {
     started: false, running: false, requested: false, connecting: false,
     listener: null, timer: null, lastCleanupAt: 0, lastReportCheckAt: 0, configurationWarning: false,
+    runningSince: 0, lastRunAt: 0, lastSent: 0, lastFailed: 0, lastError: null, lastErrorAt: 0,
   };
+}
+
+const iso = (ms: number) => (ms ? new Date(ms).toISOString() : null);
+
+/** What the owner-bot worker is doing in this process (no secrets, for the status check). */
+export function getNeboOpsWorkerStatus() {
+  const state = worker();
+  return {
+    started: state.started, running: state.running, runningSince: iso(state.runningSince),
+    listener: Boolean(state.listener), lastRunAt: iso(state.lastRunAt), lastSent: state.lastSent,
+    lastFailed: state.lastFailed, lastError: state.lastError, lastErrorAt: iso(state.lastErrorAt),
+    lastReportCheckAt: iso(state.lastReportCheckAt),
+  };
+}
+
+function rememberWorkerError(state: WorkerState, error: unknown): void {
+  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  // Bot tokens can appear in fetch URLs; never keep them.
+  state.lastError = message.replace(/\d{5,}:[A-Za-z0-9_-]{20,}/g, '<token>').slice(0, 300);
+  state.lastErrorAt = Date.now();
 }
 
 /** All messages use the verified owner chat and share the per-chat rate limit. */
@@ -750,6 +773,7 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
         [row.id, lease, MAX_ATTEMPTS, sent.error || 'DELIVERY_FAILED', delay, sent.deferred ? 1 : 0],
       );
       result.failed++;
+      rememberWorkerError(worker(), new Error(`SEND_FAILED:${row.event_type}:${sent.error || 'UNKNOWN'}`));
       if (sent.retryAfterSeconds || sent.error === 'TELEGRAM_UNAUTHORIZED' || sent.error === 'TELEGRAM_FORBIDDEN') break;
     }
   }
@@ -787,13 +811,19 @@ export function wakeNeboOpsDelivery(): void {
   if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') return;
   const state = worker();
   state.requested = true;
-  if (state.running) return;
+  // A hung await (database or network) must not freeze delivery forever.
+  if (state.running && Date.now() - state.runningSince < 3 * 60_000) return;
+  if (state.running) rememberWorkerError(state, new Error('DELIVERY_RUN_STUCK_RESTARTED'));
   state.running = true;
+  state.runningSince = Date.now();
   void (async () => {
     try {
       do {
         state.requested = false;
         const result = await processNeboOpsOutbox();
+        state.lastRunAt = Date.now();
+        state.lastSent += result.sent;
+        state.lastFailed += result.failed;
         if (result.claimed === MAX_BATCH) state.requested = true;
       } while (state.requested && getNeboOpsConfig());
       // Scheduled reports live here, not in the notification dispatcher, so a
@@ -803,7 +833,8 @@ export function wakeNeboOpsDelivery(): void {
         try {
           const { maybeSendScheduledNeboOpsReports } = await import('./neboOpsReports');
           await maybeSendScheduledNeboOpsReports(new Date(state.lastReportCheckAt));
-        } catch {
+        } catch (error) {
+          rememberWorkerError(state, error);
           console.warn('[nebo-ops] scheduled report deferred');
         }
       }
@@ -816,7 +847,8 @@ export function wakeNeboOpsDelivery(): void {
         );
         state.lastCleanupAt = Date.now();
       }
-    } catch {
+    } catch (error) {
+      rememberWorkerError(state, error);
       console.warn('[nebo-ops] delivery deferred; durable queue will retry');
     } finally {
       state.running = false;
