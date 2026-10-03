@@ -37,6 +37,7 @@ import { readingOpeningLines } from '../lib/futurePeriodTeaser';
 import { HomeEntryTiles } from '../components/home/HomeEntryTiles';
 import { ForYouBlock } from '../components/home/ForYouBlock';
 import type { ForYouAction } from '../lib/forYou';
+import { ListenForecastButton } from '../components/audio/ListenForecastButton';
 import { FutureInviteCard } from '../components/PersonalForecastFeed/FutureInviteCard';
 import { futureHorizonDays } from '../lib/futureCalendar';
 import { TodayCalendarClock } from '../components/PersonalForecastFeed/TodayCalendarClock';
@@ -695,6 +696,12 @@ export const Dashboard = memo<DashboardProps>(({
             canPromotePremium={canPromotePremium}
           />
         ) : readerForecast ? (
+          <>
+          <ListenForecastButton
+            source={{ type: 'personal_forecast', period, periodKey: readerForecast.periodKey }}
+            language={language}
+            premium={premium}
+          />
           <article
             className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed"
             data-forecast-period={period}
@@ -716,6 +723,7 @@ export const Dashboard = memo<DashboardProps>(({
               </p>
             ) : null}
           </article>
+          </>
         ) : periodState.phase === 'error' ? (
           <section className="forecast-feed-status" aria-live="polite">
             <h2>{language === 'ru' ? 'Готовим твой прогноз' : 'Preparing your forecast'}</h2>
@@ -873,6 +881,14 @@ export const Dashboard = memo<DashboardProps>(({
           tone={forecast.meta.astrologerBrief.tone}
           personalAttribution={personalForecastAttribution}
           onRequestPremium={requestPremium}
+          listen={(
+            <ListenForecastButton
+              source={{ type: 'personal_forecast', period: 'day', periodKey: forecast.periodKey }}
+              language={language}
+              premium={premium}
+              onRequestPremium={canPromotePremium ? requestPremium : undefined}
+            />
+          )}
           footer={(
             <>
             <ForYouBlock
