@@ -45,6 +45,13 @@
 
     </application>
 
+    <!-- Dictation opens the system speech recognizer (Android 11+ package visibility). -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />

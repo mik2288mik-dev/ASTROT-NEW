@@ -10,6 +10,7 @@ import ru.tvoygoroskop.app.auth.NativeIdentityAuthPlugin;
 import ru.tvoygoroskop.app.diagnostics.NativeDiagnosticsPlugin;
 import ru.tvoygoroskop.app.analytics.MyTrackerPlugin;
 import ru.tvoygoroskop.app.notifications.NativeNotificationsPlugin;
+import ru.tvoygoroskop.app.speech.NativeSpeechPlugin;
 
 /** Android entry point for the public RuStore application identity. */
 public class MainActivity extends BridgeActivity {
@@ -22,6 +23,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NativeIdentityAuthPlugin.class);
         registerPlugin(MyTrackerPlugin.class);
         registerPlugin(NativeNotificationsPlugin.class);
+        registerPlugin(NativeSpeechPlugin.class);
         if (isRuStoreBuild()) registerRuStoreUpdatePlugin();
         if (isRuStorePaymentsEnabled()) {
             registerRuStorePlugin();
