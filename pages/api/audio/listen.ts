@@ -10,6 +10,9 @@ import { buildForecastListenScript } from '../../../lib/tts/forecastListenScript
 import { TTS_DEFAULT_VOICE } from '../../../lib/tts/openaiSpeech';
 import { ensureAudio } from '../../../lib/tts/ttsStore';
 import { findSleepStory } from '../../../lib/sleepStories';
+import { findStorySeries } from '../../../lib/stories/series';
+import { listEpisodes, moscowDayKey } from '../../../lib/stories/repository';
+import { releasedEpisodeNumbers } from '../../../lib/stories/access';
 
 export const config = { api: { bodyParser: { sizeLimit: '4kb' } }, maxDuration: 120 };
 
@@ -29,7 +32,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const auth = await requireAppUser(req, { allowGuest: true });
     const userId = String(auth.userId);
-    const source = (req.body || {}).source as { type?: unknown; period?: unknown; periodKey?: unknown; id?: unknown; language?: unknown } | undefined;
+    const source = (req.body || {}).source as { type?: unknown; period?: unknown; periodKey?: unknown; id?: unknown; language?: unknown; seriesId?: unknown; number?: unknown } | undefined;
+    if (source?.type === 'story_episode') {
+      // One narrator per series; the episode is voiced once for all listeners (NEBO+).
+      const series = typeof source.seriesId === 'string' ? findStorySeries(source.seriesId) : null;
+      const number = Number(source.number);
+      if (!series || !Number.isSafeInteger(number)) return res.status(400).json({ code: 'LISTEN_SOURCE_INVALID' });
+      if (!(await getPremiumEntitlementState(userId)).isPremium) return res.status(403).json({ code: 'LISTEN_PREMIUM_REQUIRED' });
+      const episodes = await listEpisodes(series.id);
+      const episode = episodes.find((item) => item.number === number);
+      if (!episode || !releasedEpisodeNumbers(episodes, moscowDayKey()).includes(number)) return res.status(404).json({ code: 'EPISODE_NOT_RELEASED' });
+      const ticket = await ensureAudio({ text: `${episode.title}.\n\n${episode.body}`, voice: series.narrator, style: 'story', ttlDays: null });
+      return res.status(200).json({ audioId: ticket.id, durationSec: ticket.durationSec, cached: ticket.cached });
+    }
     if (source?.type === 'sleep_story') {
       // Authored stories: voiced once for everyone, kept without expiry.
       const story = typeof source.id === 'string' ? findSleepStory(source.id) : null;

@@ -1,0 +1,312 @@
+/* «Рассказы»: daily story series in a magazine layout. */
+.stories-room {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 42rem;
+  margin: 0 auto;
+  color: #292724;
+}
+
+.stories-intro,
+.stories-list,
+.stories-series-head,
+.stories-episodes,
+.stories-reader,
+.stories-status,
+.stories-gate {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.stories-intro h1 {
+  margin: 0.4rem 0 0.35rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.stories-intro p,
+.stories-tagline {
+  margin: 0 0 1rem;
+  color: #45413d;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.stories-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.stories-card {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem;
+  border: 1px solid rgba(41, 39, 36, 0.08);
+  border-radius: 1.3rem;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(41, 39, 36, 0.05);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stories-card-cover {
+  width: 4.8rem;
+  height: 6.2rem;
+  border-radius: 0.9rem;
+}
+
+.stories-card-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.2rem;
+}
+
+.stories-card-copy small,
+.stories-kicker {
+  margin: 0;
+  color: #77716a;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stories-card-copy strong {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.stories-card-copy span {
+  color: #5f5a54;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.stories-card-copy em {
+  color: #2d6fd8;
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.stories-series-head {
+  display: grid;
+  justify-items: start;
+  gap: 0.2rem;
+  margin-bottom: 1rem;
+}
+
+.stories-cover {
+  width: 8rem;
+  height: 10.4rem;
+  margin-bottom: 0.6rem;
+  border-radius: 1.1rem;
+  box-shadow: 0 12px 28px rgba(41, 39, 36, 0.12);
+}
+
+.stories-title {
+  margin: 0.25rem 0 0.4rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+}
+
+.stories-primary,
+.stories-secondary {
+  display: inline-flex;
+  min-height: 2.9rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.3rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.stories-primary {
+  border: 0;
+  background: #292724;
+  color: #fff;
+}
+
+.stories-secondary {
+  border: 1px solid rgba(41, 39, 36, 0.16);
+  background: #fff;
+  color: #292724;
+}
+
+.stories-episodes {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.stories-episodes button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.75rem 0;
+  border: 0;
+  border-top: 1px solid #eef0f3;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stories-episode-number {
+  display: inline-flex;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #f1eee9;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.stories-episode-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.1rem;
+}
+
+.stories-episode-copy strong {
+  font-size: 0.95rem;
+}
+
+.stories-episode-copy small {
+  color: #77716a;
+  font-size: 0.76rem;
+}
+
+.stories-status {
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  color: #5f5a54;
+  font-size: 0.9rem;
+}
+
+.stories-status p {
+  margin: 0;
+}
+
+.stories-gate {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+  padding: 1.4rem 1rem;
+  border-radius: 1.3rem;
+  background: #f6f3ee;
+  text-align: center;
+}
+
+.stories-gate h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.stories-gate p {
+  margin: 0 0 0.4rem;
+  color: #5f5a54;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+/* Reader. */
+.stories-reader {
+  padding-bottom: 2rem;
+}
+
+.stories-listen {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.4rem 0 1.4rem;
+}
+
+.stories-listen-button {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 2.6rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 1rem;
+  border: 1px solid rgba(41, 39, 36, 0.14);
+  border-radius: 999px;
+  background: #fff;
+  color: #292724;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.stories-listen-button small {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #f1eee9;
+  color: #77716a;
+  font-size: 0.66rem;
+}
+
+.stories-body p {
+  margin: 0 0 1.05em;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.08rem;
+  line-height: 1.72;
+  color: #2f2c29;
+}
+
+.stories-body p.is-first::first-letter {
+  float: left;
+  margin: 0.08em 0.12em 0 0;
+  font-size: 3.2em;
+  font-weight: 700;
+  line-height: 0.85;
+  color: #292724;
+}
+
+.stories-body p.is-hook {
+  margin-top: 1.4em;
+  padding: 0.9rem 1rem;
+  border-left: 3px solid #292724;
+  border-radius: 0 0.9rem 0.9rem 0;
+  background: #f6f3ee;
+  font-style: italic;
+}
+
+.stories-next {
+  margin-top: 1.4rem;
+  color: #5f5a54;
+  font-size: 0.9rem;
+}
+
+.stories-card:focus-visible,
+.stories-primary:focus-visible,
+.stories-secondary:focus-visible,
+.stories-episodes button:focus-visible,
+.stories-listen-button:focus-visible {
+  outline: 2px solid #292724;
+  outline-offset: 2px;
+}

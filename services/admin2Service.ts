@@ -348,6 +348,29 @@ async function req<T>(path: string, opts: { method?: string; body?: any } = {}):
   return payload as T;
 }
 
+export type AdminStoryEpisode = {
+  seriesId: string;
+  number: number;
+  releaseDate: string;
+  status: 'ready' | 'needs_review' | 'approved' | 'hold';
+  title: string;
+  body: string;
+  summary: string;
+  facts: string[];
+  hook: string;
+  issues: string[];
+  reviewedByHuman: boolean;
+  reviewedAt: string | null;
+  updatedAt: string;
+  released: boolean;
+};
+export type AdminStoriesOverview = {
+  today: string;
+  bufferDays: number;
+  generationEnabled: boolean;
+  series: Array<{ id: string; title: string; genre: string; episodes: AdminStoryEpisode[] }>;
+};
+
 export const admin2Auth = {
   hasTelegramAuth: () => !!telegramInitData().trim(),
   getStoredDevAuth,
@@ -462,6 +485,11 @@ export const admin2 = {
     req<{ ok: boolean; template: AdminNotificationTemplate }>('/api/admin/v2/notifications/templates', { method: 'POST', body }),
   deleteNotificationTemplate: (id: number) =>
     req<{ ok: boolean }>(`/api/admin/v2/notifications/templates/${id}`, { method: 'DELETE' }),
+  stories: () => req<AdminStoriesOverview>('/api/admin/v2/stories'),
+  updateStoryEpisode: (body: { seriesId: string; number: number; title?: string; body?: string; hook?: string; action: 'save' | 'approve' | 'hold' | 'release' }) =>
+    req<{ ok: boolean; episode: AdminStoryEpisode }>('/api/admin/v2/stories', { method: 'PATCH', body }),
+  generateStories: (seriesId?: string) => req<{ ok: boolean }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'generate', seriesId } }),
+  rewriteStoryEpisode: (seriesId: string, number: number) => req<{ ok: boolean; written: number }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'rewrite', seriesId, number } }),
   appPush: () => req<AdminAppPushOverview>('/api/admin/v2/app-push'),
   sendAppPush: (body: AdminAppPushDraft) => req<{ ok: boolean; id: number }>('/api/admin/v2/app-push', { method: 'POST', body }),
   cancelAppPush: (id: number) => req<{ ok: boolean }>('/api/admin/v2/app-push', { method: 'DELETE', body: { id } }),

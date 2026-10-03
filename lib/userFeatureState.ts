@@ -9,7 +9,7 @@ import { getPool } from './db';
 import { USER_FEATURE_STATE_SCHEMA_SQL } from './userFeatureStateSchema';
 
 /** Features that may store records; anything else is rejected. */
-export const USER_FEATURES = ['for_you', 'wishes', 'month_review', 'tests', 'mood_week'] as const;
+export const USER_FEATURES = ['for_you', 'wishes', 'month_review', 'tests', 'mood_week', 'stories'] as const;
 export type UserFeature = typeof USER_FEATURES[number];
 
 export const USER_FEATURE_VALUE_MAX_BYTES = 8_192;
