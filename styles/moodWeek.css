@@ -1,0 +1,459 @@
+/* «Неделя настроения». */
+.tests-list--extra {
+  margin-top: 0.7rem;
+}
+
+.mood-room {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 42rem;
+  margin: 0 auto;
+  color: #292724;
+}
+
+.mood-intro,
+.mood-active,
+.mood-report,
+.mood-history,
+.mood-ready,
+.mood-room > .mood-private {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.mood-kicker {
+  margin: 0.3rem 0 0;
+  color: #77716a;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mood-title {
+  margin: 0.3rem 0 0.6rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.mood-intro p,
+.mood-summary {
+  margin: 0 0 1rem;
+  color: #45413d;
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.mood-ready {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.4rem;
+  margin-bottom: 0.8rem;
+  padding: 0.9rem 1rem;
+  border: 0;
+  border-radius: 1.15rem;
+  background: linear-gradient(140deg, #eef3fd 0%, #f4eefb 100%);
+  color: #292724;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mood-ready strong {
+  font-size: 1rem;
+}
+
+.mood-ready span {
+  color: #5f5a54;
+  font-size: 0.84rem;
+}
+
+.mood-times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 0;
+}
+
+.mood-times legend {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.mood-times label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #77716a;
+}
+
+.mood-times select {
+  min-height: 2.8rem;
+  padding: 0 0.8rem;
+  border: 1px solid rgba(41, 39, 36, 0.16);
+  border-radius: 0.9rem;
+  background: #fff;
+  color: #292724;
+  font: inherit;
+  font-size: 1rem;
+}
+
+.mood-times .mood-note,
+.mood-times .mood-error {
+  grid-column: 1 / -1;
+}
+
+.mood-note,
+.mood-private {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.4rem 0;
+  color: #77716a;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.mood-note svg,
+.mood-private svg {
+  flex: none;
+  margin-top: 0.1rem;
+}
+
+.mood-error {
+  margin: 0;
+  color: #9a4a2f;
+  font-size: 0.82rem;
+}
+
+.mood-primary {
+  width: 100%;
+  min-height: 3rem;
+  margin: 0.4rem 0 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: #292724;
+  color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.mood-primary:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.mood-link {
+  min-height: 2.5rem;
+  margin: 0.4rem 0 1.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #77716a;
+  font: inherit;
+  font-size: 0.84rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mood-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+}
+
+.mood-day {
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: 0.4rem 0;
+  border-radius: 0.8rem;
+  background: #f6f4f0;
+  font-size: 0.72rem;
+}
+
+.mood-day small {
+  color: #77716a;
+}
+
+.mood-day.is-today {
+  background: #292724;
+  color: #fff;
+}
+
+.mood-day.is-today small {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.mood-day.is-future {
+  opacity: 0.45;
+}
+
+.mood-slots {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.mood-slot {
+  padding: 0.85rem 0.9rem;
+  border: 1px solid rgba(41, 39, 36, 0.08);
+  border-radius: 1.15rem;
+  background: #fff;
+}
+
+.mood-slot.is-current {
+  border-color: #292724;
+  box-shadow: 0 8px 22px rgba(41, 39, 36, 0.07);
+}
+
+.mood-slot header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.mood-slot header small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #77716a;
+  font-size: 0.76rem;
+}
+
+.mood-slot.is-done header small {
+  color: #16835a;
+}
+
+.mood-slot-later {
+  margin: 0;
+  color: #a39d95;
+  font-size: 0.84rem;
+}
+
+.mood-scale + .mood-scale {
+  margin-top: 0.6rem;
+}
+
+.mood-scale-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #5f5a54;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.mood-scale-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.mood-scale-option {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem 0.1rem;
+  border: 0;
+  border-radius: 0.8rem;
+  background: transparent;
+  color: #45413d;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mood-scale-dot {
+  display: inline-flex;
+  width: 2.3rem;
+  height: 2.3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #f1eee9;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.mood-scale-option small {
+  font-size: 0.64rem;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.mood-scale-option.is-1.is-chosen .mood-scale-dot { background: #c0532f; color: #fff; }
+.mood-scale-option.is-2.is-chosen .mood-scale-dot { background: #e08a52; color: #fff; }
+.mood-scale-option.is-3.is-chosen .mood-scale-dot { background: #b9a37a; color: #fff; }
+.mood-scale-option.is-4.is-chosen .mood-scale-dot { background: #5aa47b; color: #fff; }
+.mood-scale-option.is-5.is-chosen .mood-scale-dot { background: #16835a; color: #fff; }
+
+.mood-scale-option:focus-visible,
+.mood-primary:focus-visible,
+.mood-ready:focus-visible,
+.mood-history button:focus-visible {
+  outline: 2px solid #292724;
+  outline-offset: 2px;
+}
+
+/* Report. */
+.mood-chart,
+.mood-insight {
+  margin-bottom: 1.2rem;
+}
+
+.mood-chart h2,
+.mood-insight h2,
+.mood-history h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.mood-insight p {
+  margin: 0 0 0.9rem;
+  color: #45413d;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.mood-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+  align-items: end;
+}
+
+.mood-bar {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+}
+
+.mood-bar small {
+  color: #77716a;
+  font-size: 0.7rem;
+}
+
+.mood-bar.is-best small {
+  color: #16835a;
+  font-weight: 700;
+}
+
+.mood-bar.is-worst small {
+  color: #c0532f;
+  font-weight: 700;
+}
+
+.mood-bar-track {
+  display: flex;
+  width: 100%;
+  height: 7rem;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.15rem;
+  border-radius: 0.6rem;
+  background: #f6f4f0;
+}
+
+.mood-bar-mood,
+.mood-bar-power {
+  width: 38%;
+  border-radius: 0.4rem 0.4rem 0 0;
+}
+
+.mood-bar-mood { background: #292724; }
+.mood-bar-power { background: #6fa8f5; }
+
+.mood-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0;
+  color: #77716a;
+  font-size: 0.76rem;
+}
+
+.mood-legend i {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 0.2rem;
+}
+
+.mood-legend i.is-mood { background: #292724; }
+.mood-legend i.is-power { margin-left: 0.6rem; background: #6fa8f5; }
+
+.mood-slots-report {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mood-slots-report li {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr 2rem;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.84rem;
+}
+
+.mood-line-track {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f1eee9;
+}
+
+.mood-line-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #292724;
+}
+
+.mood-slots-report b {
+  text-align: right;
+}
+
+.mood-history ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mood-history button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border: 0;
+  border-top: 1px solid #eef0f3;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mood-history b {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #292724;
+  color: #fff;
+  font-size: 0.7rem;
+}

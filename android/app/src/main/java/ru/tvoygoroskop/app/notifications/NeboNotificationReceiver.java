@@ -76,12 +76,14 @@ public class NeboNotificationReceiver extends BroadcastReceiver {
     }
 
     static boolean validRoute(String value) {
-        return "today".equals(value) || "natal".equals(value) || "horoscope".equals(value) || "compatibility".equals(value);
+        return "today".equals(value) || "natal".equals(value) || "horoscope".equals(value) || "compatibility".equals(value)
+            || "mood".equals(value);
     }
 
     private static boolean validKind(String value) {
         return "daily".equals(value) || "ready".equals(value) || "invite".equals(value) || "comeback".equals(value)
-            || "holiday".equals(value) || "birthday".equals(value) || "season".equals(value) || "sky".equals(value);
+            || "holiday".equals(value) || "birthday".equals(value) || "season".equals(value) || "sky".equals(value)
+            || "mood".equals(value);
     }
 
     static boolean hasRuntimePermission(Context context) {

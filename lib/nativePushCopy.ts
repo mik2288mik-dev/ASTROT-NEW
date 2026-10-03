@@ -6,7 +6,7 @@
  */
 import type { ZodiacSign } from './zodiac-utils';
 
-export type PushRoute = 'today' | 'natal' | 'horoscope' | 'compatibility';
+export type PushRoute = 'today' | 'natal' | 'horoscope' | 'compatibility' | 'mood';
 export type PushCopy = { title: string; body: string; route: PushRoute };
 export type SkyEventKind = 'full_moon' | 'new_moon' | 'mercury_rx_start' | 'mercury_rx_end';
 type Lang = 'ru' | 'en';
@@ -218,6 +218,31 @@ export function seasonCopy(lang: Lang, sign: ZodiacSign): PushCopy {
   if (lang === 'en') return { title: `${SIGN_EN[sign]} season is here`, body: 'It’s your time. Check your horoscope', route: 'horoscope' };
   return make(['Начался сезон {season}', 'Это твоё время года. Загляни в гороскоп'], 'horoscope', lang, sign);
 }
+// ───────────── Неделя настроения ─────────────
+const MOOD_MORNING_RU: Line[] = [
+  ['Как ты сегодня?', 'Две отметки — и утро записано в неделю настроения'],
+  ['Пять секунд на себя', 'Отметь настроение и силы — это всё'],
+  ['Доброе утро', 'Как спалось? Отметь настроение — неделя ждёт'],
+  ['Утренняя отметка', 'Честно: как оно сейчас? Никто, кроме тебя, не увидит'],
+];
+const MOOD_EVENING_RU: Line[] = [
+  ['Как прошёл день?', 'Отметь вечер — и дневную отметку, если её ещё нет'],
+  ['Вечерняя отметка', 'Пять секунд: настроение и силы. Отчёт уже собирается'],
+  ['Отметься перед отдыхом', 'Как ты к вечеру? Две кнопки — и всё'],
+  ['Минутка для недели настроения', 'Отметь, как сейчас. Даже «так себе» — тоже честно'],
+];
+const MOOD_MORNING_EN: Line[] = [
+  ['How are you today?', 'Two taps and the morning is in your mood week'],
+  ['Five seconds for you', 'Mark your mood and strength — that is all'],
+];
+const MOOD_EVENING_EN: Line[] = [
+  ['How was the day?', 'Mark the evening — and the daytime, if you missed it'],
+  ['Evening check-in', 'Five seconds: mood and strength. The report is building'],
+];
+export function moodCopy(lang: Lang, evening: boolean, seed: number): PushCopy {
+  const list = lang === 'en' ? (evening ? MOOD_EVENING_EN : MOOD_MORNING_EN) : (evening ? MOOD_EVENING_RU : MOOD_MORNING_RU);
+  return make(pick(list, seed), 'mood', lang, null);
+}
 export function readyCopy(lang: Lang, route: 'today' | 'natal'): PushCopy {
   if (lang === 'en') {
     return route === 'today'
@@ -230,7 +255,8 @@ export function readyCopy(lang: Lang, route: 'today' | 'natal'): PushCopy {
 }
 
 /** Готовые заготовки для ручной отправки из админки (быстрая вставка). */
-export const ADMIN_PUSH_PRESETS: Array<{ label: string; title: string; body: string; route: PushRoute }> = [
+/** Manual admin messages also reach installed APKs, which know only the first four routes. */
+export const ADMIN_PUSH_PRESETS: Array<{ label: string; title: string; body: string; route: Exclude<PushRoute, 'mood'> }> = [
   { label: 'Доброе утро', title: 'Доброе утро', body: 'Гороскоп на сегодня уже ждёт', route: 'horoscope' },
   { label: 'Совместимость', title: 'Проверь совместимость', body: 'Узнай, насколько вы подходите друг другу', route: 'compatibility' },
   { label: 'Натальная карта', title: 'Твоя натальная карта', body: 'Узнай о себе то, чего не скажет обычный гороскоп', route: 'natal' },

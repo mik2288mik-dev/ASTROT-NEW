@@ -132,6 +132,8 @@ import {
 import { pollForPaymentEntitlement } from './lib/paymentEntitlementPolling';
 import { isReadableNatalChart } from './lib/readableNatalChart';
 import { noteCompatibilityOpened } from './lib/interestSignals';
+import { TestsRoom } from './views/v2/TestsRoom';
+import { MoodWeekRoom } from './views/v2/MoodWeekRoom';
 import {
     canRestorePaywallFocus,
     getPaywallFocusableElements,
@@ -377,6 +379,8 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     }, [androidUpdate.allowNavigation]);
     useProductActivity({ enabled: Boolean(profile?.id), accountKey: profile?.id, screen: view });
     const [onboardingInitialStep, setOnboardingInitialStep] = useState<'stories' | 'birth'>('stories');
+    /** «Продолжить тест» from home opens this test inside «Тесты о себе». */
+    const [testsInitialId, setTestsInitialId] = useState<string | null>(null);
     /** «Уточни время рождения»: the birth form opens with the saved details filled in. */
     const [onboardingPrefillSaved, setOnboardingPrefillSaved] = useState(false);
     const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
@@ -2444,9 +2448,10 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             if (route === 'today') openBottomToday();
             else if (route === 'natal') openBottomNatal();
             else if (route === 'horoscope') openBottomZodiac();
+            else if (route === 'mood') navigateTo('mood');
             else openSynastryFromHome();
         });
-    }, [loading, profile?.id, profile?.legalAcknowledgements, authSessionMode, nativeActive, nativeTapVersion, openBottomToday, openBottomNatal, openBottomZodiac, openSynastryFromHome, setPaywallContext]);
+    }, [loading, profile?.id, profile?.legalAcknowledgements, authSessionMode, nativeActive, nativeTapVersion, openBottomToday, openBottomNatal, openBottomZodiac, openSynastryFromHome, setPaywallContext, navigateTo]);
 
     // Один раз после онбординга — системный запрос на уведомления, когда человек уже на главной.
     useEffect(() => {
@@ -2577,6 +2582,11 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         onOpenSynastry: openSynastryFromHome,
         onOpenMatrix: () => navigateTo('matrix'),
         onEditBirthTime: openBirthTimeEdit,
+        onOpenTests: (testId?: string) => {
+            setTestsInitialId(testId ?? null);
+            navigateTo('tests');
+        },
+        onOpenMood: () => navigateTo('mood'),
         onOpenPair: (chartId: string, name: string) => openSynastryWithPrefill({
             source: 'saved-chart',
             partnerChartId: Number(chartId),
@@ -2709,6 +2719,20 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             language={profile.language === 'en' ? 'en' : 'ru'}
                             onOpen={openBottomNatal}
                         />
+                    </div>
+                ) : view === 'tests' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        <TestsRoom
+                            profile={profile}
+                            initialTestId={testsInitialId}
+                            onBack={() => { void handleBack(); }}
+                            onOpenNatal={openBottomNatal}
+                            onOpenMood={() => navigateTo('mood')}
+                        />
+                    </div>
+                ) : view === 'mood' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        <MoodWeekRoom profile={profile} onBack={() => { void handleBack(); }} />
                     </div>
                 ) : view === 'matrix' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
