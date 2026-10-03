@@ -22,6 +22,9 @@ import { PremiumHook } from '../premium/PremiumHook';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
 import { isRenderableTodaySection } from './editorialLayout';
 import { loadExploreCharts, peekExploreCharts } from './exploreCharts';
+import { buildMonthTeaser, buildWeekTeaser } from '../../lib/futurePeriodTeaser';
+
+export type FuturePeriodTeasers = { week: string[]; month: string[] };
 
 type FutureViewProps = {
   profile: UserProfile;
@@ -31,8 +34,14 @@ type FutureViewProps = {
   /** Today in the person's timezone, YYYY-MM-DD. */
   todayKey: string;
   onRequestPremium: () => void;
-  /** The AI month reading for the current month, shown to NEBO+ under the calendar. */
-  monthReading?: ReactNode;
+  /** Last day of the current week, YYYY-MM-DD: the range of the week card. */
+  weekEndKey: string;
+  language?: 'ru' | 'en';
+  /**
+   * The week and month reading cards, shown first. They get opening lines built
+   * from the person's calendar (null until the calendar is calculated).
+   */
+  renderPeriodCards?: (teasers: FuturePeriodTeasers | null) => ReactNode;
 };
 
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
@@ -74,7 +83,7 @@ function importantDaysWord(count: number): string {
   return 'важных дней';
 }
 
-export function FutureView({ profile, premium, horizonDays, todayKey, onRequestPremium, monthReading }: FutureViewProps) {
+export function FutureView({ profile, premium, horizonDays, todayKey, onRequestPremium, weekEndKey, language = 'ru', renderPeriodCards }: FutureViewProps) {
   const timezone = profile.birthTimezone || 'Europe/Moscow';
   const [todayYear, todayMonth] = todayKey.split('-').map(Number);
   const [cursor, setCursor] = useState({ year: todayYear, month: todayMonth });
@@ -110,6 +119,19 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
     () => (engine ? buildFutureMonth(engine, cursor.year, cursor.month, natal, timezone) : null),
     [cursor.month, cursor.year, engine, natal, timezone],
   );
+
+  const teasers: FuturePeriodTeasers | null = useMemo(() => {
+    if (!engine) return null;
+    const current = buildFutureMonth(engine, todayYear, todayMonth, natal, timezone);
+    const days = weekEndKey.slice(0, 7) === todayKey.slice(0, 7)
+      ? current.days
+      : [...current.days, ...buildFutureMonth(engine, Number(weekEndKey.slice(0, 4)), Number(weekEndKey.slice(5, 7)), natal, timezone).days];
+    const monthEnd = current.days[current.days.length - 1].dayKey;
+    return {
+      week: buildWeekTeaser({ days, fromKey: todayKey, toKey: weekEndKey, hasNatal: Boolean(natal), language }),
+      month: buildMonthTeaser({ days: current.days, fromKey: todayKey, toKey: monthEnd, hasNatal: Boolean(natal), language, month: todayMonth }),
+    };
+  }, [engine, language, natal, timezone, todayKey, todayMonth, todayYear, weekEndKey]);
 
   const shift = (step: number) => {
     setSelectedKey(null);
@@ -175,7 +197,12 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
   }, [selectedKey]);
 
   if (!month) {
-    return <p className="future-status" role="status">Считаем твой календарь…</p>;
+    return (
+      <div className="future-view">
+        {renderPeriodCards?.(null)}
+        <p className="future-status" role="status">Считаем твой календарь…</p>
+      </div>
+    );
   }
 
   const leading = month.days[0].weekday;
@@ -227,6 +254,7 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
 
   return (
     <div className="future-view">
+      {renderPeriodCards?.(teasers)}
       <header className="future-month-header">
         <button type="button" onClick={() => shift(-1)} disabled={!canGoBack} aria-label="Предыдущий месяц"><ChevronLeft size={20} /></button>
         <h2>{monthNameRu(cursor.month)} {cursor.year}</h2>
@@ -403,7 +431,10 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
             >
               <span className="future-event-date"><b>{Number(event.dayKey.slice(8))}</b>{WEEKDAYS[(new Date(`${event.dayKey}T12:00:00Z`).getUTCDay() + 6) % 7]}</span>
               <span className="future-event-copy">
-                <strong>{event.headline}{'tone' in event ? <em className={`future-tag is-${event.tone}`}>лично</em> : null}</strong>
+                <strong className="future-event-headline">
+                  <span>{event.headline}</span>
+                  {'tone' in event ? <>{' '}<em className={`future-tag is-${event.tone}`}>лично</em></> : null}
+                </strong>
                 <small>{event.body}</small>
               </span>
             </button>
@@ -411,12 +442,6 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
         </section>
       ) : null}
 
-      {isCurrentMonth && monthReading ? (
-        <section className="future-month-reading" aria-label={`Прогноз на ${monthNameRu(cursor.month).toLowerCase()}`}>
-          <h3>Прогноз на {monthNameRu(cursor.month).toLowerCase()}</h3>
-          {monthReading}
-        </section>
-      ) : null}
     </div>
   );
 }
