@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { CosmicSheet } from '../lumia-ui/CosmicSheet';
+import { DictationButton } from '../lumia-ui/DictationButton';
+import { appendDictatedText } from '../../services/dictation';
 
 export type WishItem = { id: string; text: string; done?: boolean };
 export type WishRecord = { items: WishItem[]; savedAt: string };
@@ -65,6 +67,12 @@ export function WishesSheet({ open, language, dateLabel, initial, onSave, onClos
                 const text = event.target.value;
                 setItems((current) => current.map((entry) => (entry.id === item.id ? { ...entry, text } : entry)));
               }}
+            />
+            <DictationButton
+              language={language}
+              onText={(text) => setItems((current) => current.map((entry) => (
+                entry.id === item.id ? { ...entry, text: appendDictatedText(entry.text, text, WISH_MAX_LENGTH) } : entry
+              )))}
             />
             {items.length > 1 ? (
               <button

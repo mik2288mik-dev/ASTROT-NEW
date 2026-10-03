@@ -60,6 +60,8 @@ import {
     getNativeNotificationSettings, openNativeNotificationSettings, saveNativeNotificationSettings,
 } from '../services/nativeNotifications';
 import type { NativeNotificationSettings } from '../lib/nativeNotificationPolicy';
+import { DictationButton } from '../components/lumia-ui/DictationButton';
+import { appendDictatedText } from '../services/dictation';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
 function notificationFlagsFor(frequency: NotificationFrequency) {
@@ -1660,6 +1662,11 @@ export const Settings: React.FC<SettingsProps> = ({
                                         }}
                                     />
                                     <div id="settings-feedback-message-hint" className="settings-feedback-field-meta">
+                                        <DictationButton
+                                            language={profile.language === 'en' ? 'en' : 'ru'}
+                                            className="settings-feedback-dictation"
+                                            onText={(text) => setFeedbackMessage((current) => appendDictatedText(current, text, 4000))}
+                                        />
                                         <span>{profile.language === 'en' ? 'At least 10 characters' : 'Минимум 10 символов'}</span>
                                         <span>{feedbackMessage.length}/4000</span>
                                     </div>
