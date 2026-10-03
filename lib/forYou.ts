@@ -15,7 +15,8 @@ export type ForYouRuleId =
   | 'pair'
   | 'compatibility'
   | 'love_week'
-  | 'birth_time';
+  | 'birth_time'
+  | 'test_unfinished';
 
 export type ForYouAction =
   | { type: 'premium' }
@@ -25,7 +26,8 @@ export type ForYouAction =
   | { type: 'pair'; chartId: string; name: string }
   | { type: 'compatibility' }
   | { type: 'week' }
-  | { type: 'birth_time' };
+  | { type: 'birth_time' }
+  | { type: 'test'; testId: string };
 
 export type ForYouOffer = {
   id: ForYouRuleId;
@@ -58,6 +60,8 @@ export type ForYouContext = {
   reviewedMonths: ReadonlySet<string>;
   /** Occurrence keys the person hid. */
   dismissed: ReadonlySet<string>;
+  /** A test started and not finished. */
+  unfinishedTest?: { id: string; title: string; answered: number; total: number; updatedAt: string } | null;
 };
 
 export const FOR_YOU_LIMIT = 3;
@@ -245,6 +249,20 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
         : 'You often read about love and close people. The week reading shows when to talk and when to give each other space.',
       cta: ru ? 'Читать неделю' : 'Read the week',
       action: { type: 'week' },
+    });
+  }
+
+  if (context.unfinishedTest) {
+    const test = context.unfinishedTest;
+    offers.push({
+      id: 'test_unfinished',
+      occurrence: `test:${test.id}:${test.updatedAt.slice(0, 10)}`,
+      title: ru ? 'Продолжить тест' : 'Continue the test',
+      body: ru
+        ? `«${test.title}»: отвечено ${test.answered} из ${test.total}. Осталось совсем немного — результат уже ждёт.`
+        : `«${test.title}» — ${test.answered} of ${test.total} answered. Almost there, the result is waiting.`,
+      cta: ru ? 'Продолжить' : 'Continue',
+      action: { type: 'test', testId: test.id },
     });
   }
 

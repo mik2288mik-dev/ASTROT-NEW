@@ -8,6 +8,7 @@ import { loadFeatureState, peekFeatureState, saveFeatureState } from '../../serv
 import { loadExploreCharts, peekExploreCharts } from '../PersonalForecastFeed/exploreCharts';
 import { WishesSheet, type WishItem, type WishRecord } from './WishesSheet';
 import { MonthReviewSheet, type MonthReviewRecord } from './MonthReviewSheet';
+import { findSelfTest } from '../../lib/selfTests/engine';
 
 export const FOR_YOU_IMAGES: Record<ForYouRuleId, string> = {
   premium_ending: '/assets/for-you/premium.webp',
@@ -19,6 +20,7 @@ export const FOR_YOU_IMAGES: Record<ForYouRuleId, string> = {
   compatibility: '/assets/for-you/compatibility.webp',
   love_week: '/assets/for-you/love-week.webp',
   birth_time: '/assets/for-you/birth-time.webp',
+  test_unfinished: '/assets/for-you/test.webp',
 };
 
 const MONTHS_GEN_RU = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -67,6 +69,7 @@ export function ForYouBlock({
   );
   const [wishes, setWishes] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'wishes'));
   const [reviews, setReviews] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'month_review'));
+  const [tests, setTests] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'tests'));
   const [people, setPeople] = useState<Array<{ id: string; name: string }>>([]);
   const [sky, setSky] = useState<UpcomingSky>({ newMoonKey: null, mercuryRetroKey: null });
   const [sheet, setSheet] = useState<{ type: 'wishes'; newMoonKey: string } | { type: 'month_review'; monthKey: string } | null>(null);
@@ -78,6 +81,7 @@ export function ForYouBlock({
     });
     void loadFeatureState(userId, 'wishes').then((items) => { if (active) setWishes(items); });
     void loadFeatureState(userId, 'month_review').then((items) => { if (active) setReviews(items); });
+    void loadFeatureState(userId, 'tests').then((items) => { if (active) setTests(items); });
     const toPeople = (charts: ReturnType<typeof peekExploreCharts>) => (charts ?? [])
       .filter((chart) => !chart.is_primary && !chart.archived_at && chart.name)
       .map((chart) => ({ id: String(chart.id), name: chart.name.trim().split(/\s+/u)[0] }));
@@ -89,6 +93,22 @@ export function ForYouBlock({
       .catch(() => { skyEngine = null; });
     return () => { active = false; };
   }, [timezone, todayKey, userId]);
+
+  const unfinishedTest = useMemo(() => {
+    const entries = Object.entries(tests)
+      .filter(([key]) => key.startsWith('progress:'))
+      .map(([key, value]) => ({ test: findSelfTest(key.slice('progress:'.length)), progress: value as { answers?: unknown[]; updatedAt?: string } | null }))
+      .filter((entry) => entry.test && Array.isArray(entry.progress?.answers) && entry.progress!.answers!.length > 0)
+      .sort((a, b) => String(b.progress?.updatedAt).localeCompare(String(a.progress?.updatedAt)));
+    const latest = entries[0];
+    return latest?.test ? {
+      id: latest.test.id,
+      title: latest.test.title[language],
+      answered: latest.progress!.answers!.length,
+      total: latest.test.questions.length,
+      updatedAt: String(latest.progress?.updatedAt || new Date().toISOString()),
+    } : null;
+  }, [language, tests]);
 
   const offers = useMemo(() => buildForYouOffers({
     language,
@@ -106,7 +126,8 @@ export function ForYouBlock({
     wishKeys: new Set(Object.keys(wishes)),
     reviewedMonths: new Set(Object.keys(reviews)),
     dismissed: new Set(Object.keys(dismissed)),
-  }), [birthDate, birthTimeKnown, dismissed, language, people, premium, premiumAutoRenew, premiumEndsAt, reviews, sky, todayKey, userId, weekKey, wishes]);
+    unfinishedTest,
+  }), [birthDate, birthTimeKnown, dismissed, language, people, premium, premiumAutoRenew, premiumEndsAt, reviews, sky, todayKey, unfinishedTest, userId, weekKey, wishes]);
 
   const hide = useCallback((offer: ForYouOffer) => {
     const next = Object.fromEntries(

@@ -59,6 +59,8 @@ type DashboardProps = {
   onEditBirthTime?: () => void;
   /** Opens compatibility with a saved person. */
   onOpenPair?: (chartId: string, name: string) => void;
+  /** Opens «Тесты о себе», optionally continuing one test. */
+  onOpenTests?: (testId?: string) => void;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
@@ -158,6 +160,7 @@ export const Dashboard = memo<DashboardProps>(({
   onOpenMatrix,
   onEditBirthTime,
   onOpenPair,
+  onOpenTests,
   onRequestPremium,
   onPremiumAnalytics,
   scrollRef,
@@ -611,6 +614,7 @@ export const Dashboard = memo<DashboardProps>(({
     else if (action.type === 'compatibility') onOpenSynastry?.();
     else if (action.type === 'pair') onOpenPair?.(action.chartId, action.name);
     else if (action.type === 'birth_time') onEditBirthTime?.();
+    else if (action.type === 'test') onOpenTests?.(action.testId);
     else if (action.type === 'week') {
       if (!premium) {
         requestPremiumFor('week');
@@ -626,7 +630,7 @@ export const Dashboard = memo<DashboardProps>(({
         returnView: 'dashboard',
       });
     }
-  }, [onEditBirthTime, onOpenPair, onOpenSynastry, onPeriodChange, onRequestPremium, openFuture, premium, requestPremiumFor]);
+  }, [onEditBirthTime, onOpenPair, onOpenSynastry, onOpenTests, onPeriodChange, onRequestPremium, openFuture, premium, requestPremiumFor]);
 
   const futureReading = useCallback((period: FutureReader) => {
     const periodState = periodStates[period].contextKey === productContextKey
@@ -820,6 +824,7 @@ export const Dashboard = memo<DashboardProps>(({
             { id: 'future', onOpen: () => openFuture() },
             { id: 'compatibility', onOpen: onOpenSynastry },
             { id: 'matrix', onOpen: onOpenMatrix },
+            { id: 'tests', onOpen: onOpenTests ? () => onOpenTests() : undefined },
           ]}
         />
       ) : null}
