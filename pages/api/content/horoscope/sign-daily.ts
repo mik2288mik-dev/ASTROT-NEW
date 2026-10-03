@@ -6,6 +6,7 @@ import {
   normalizeZodiacKey,
 } from '../../../../lib/horoscope/signDaily';
 import { projectSignHoroscopeForWire } from '../../../../lib/horoscope/signWireCompatibility';
+import { resolveSignHoroscopeRequestVersion } from '../../../../lib/horoscope/signClientCompatibility';
 import { withRequestTelemetry } from '../../../../lib/requestTelemetry';
 
 export const config = { maxDuration: 90 };
@@ -29,6 +30,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const date = readDate(req);
   const language = readLanguage(req);
   const userAgent = String(req.headers?.['user-agent'] || '');
+  const schemaVersion = await resolveSignHoroscopeRequestVersion(
+    req, req.method === 'GET' ? req.query.schemaVersion : req.body?.schemaVersion,
+  );
+  if (!schemaVersion) return res.status(400).json({ code: 'SIGN_HOROSCOPE_FORMAT_UNSUPPORTED' });
 
   // Today is public Free content, but callers may only access the current
   // Moscow day. All periods are prepared by the explicit monthly job.
@@ -48,7 +53,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(404).json({ error: 'NOT_FOUND', code: 'SIGN_HOROSCOPE_NOT_READY' });
   }
   return res.status(200).json({
-    reading: projectSignHoroscopeForWire(snapshot.reading, userAgent),
+    reading: projectSignHoroscopeForWire(snapshot.reading, userAgent, schemaVersion),
     source: snapshot.stale ? 'stale' : 'cache',
     stale: snapshot.stale,
   });
