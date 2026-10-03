@@ -34,6 +34,7 @@ import { diagnosticErrorCode } from '../../../../lib/diagnosticTrace';
 import { startServerOperationalDiagnostic } from '../../../../lib/serverOperationalDiagnostics';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { rememberNativeSignReader } from '../../../../lib/horoscope/signClientCompatibility';
+import { hasWeekGift } from '../../../../lib/forecastGifts';
 
 export const config = { maxDuration: 180 };
 
@@ -152,7 +153,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const periodKey = requestedPeriodKey
     || getPersonalForecastPeriodKey(period, new Date(), timezone);
   const entitlement = await getPremiumEntitlementState(userId);
-  const accessTier = entitlement.isPremium ? 'premium' as const : 'free' as const;
+  // A gifted week (seven days in a row, a year with NEBO) opens the current week reading as for NEBO+.
+  const weekGift = !entitlement.isPremium && period === 'week'
+    && getPersonalForecastPeriodAccess({ accessTier: 'premium', period, periodKey, timezone }) === 'allowed'
+    && await hasWeekGift(userId, periodKey).catch(() => false);
+  const premiumAccess = entitlement.isPremium || weekGift;
+  const accessTier = premiumAccess ? 'premium' as const : 'free' as const;
   const periodAccess = getPersonalForecastPeriodAccess({ accessTier, period, periodKey, timezone });
   if (periodAccess === 'outside_horizon') {
     diagnostic.log('validation', 'error', { period, httpStatus: 400, errorCode: 'PERSONAL_FORECAST_PERIOD_KEY_INVALID' });
@@ -189,7 +195,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ) {
           diagnostic.log('cache_read', 'cache_hit', { period, source: 'cache', httpStatus: 200 });
           return res.status(200).json(
-            responsePayload(cached.forecast, entitlement.isPremium, 'cache', wireVersion, wirePromptVersion),
+            responsePayload(cached.forecast, premiumAccess, 'cache', wireVersion, wirePromptVersion),
           );
         }
       }
@@ -206,7 +212,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         diagnostic.log('stale_read', 'cache_hit', { period, source: 'stale', httpStatus: 200 });
         return res.status(200).json(responsePayload(
           stale.forecast,
-          entitlement.isPremium,
+          premiumAccess,
           'stale',
           wireVersion,
           wirePromptVersion,
@@ -270,7 +276,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     return res.status(200).json(responsePayload(
       generated.value,
-      entitlement.isPremium,
+      premiumAccess,
       generated.fromCache ? 'cache' : 'generated',
       wireVersion,
       wirePromptVersion,
@@ -287,7 +293,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       diagnostic.log('stale_read', 'cache_hit', { period, source: 'stale', httpStatus: 200 });
       return res.status(200).json(responsePayload(
         staleFallback.forecast,
-        entitlement.isPremium,
+        premiumAccess,
         'stale',
         wireVersion,
         wirePromptVersion,
