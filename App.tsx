@@ -131,6 +131,7 @@ import {
 } from './lib/paymentProfile';
 import { pollForPaymentEntitlement } from './lib/paymentEntitlementPolling';
 import { isReadableNatalChart } from './lib/readableNatalChart';
+import { noteCompatibilityOpened } from './lib/interestSignals';
 import {
     canRestorePaywallFocus,
     getPaywallFocusableElements,
@@ -376,6 +377,8 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     }, [androidUpdate.allowNavigation]);
     useProductActivity({ enabled: Boolean(profile?.id), accountKey: profile?.id, screen: view });
     const [onboardingInitialStep, setOnboardingInitialStep] = useState<'stories' | 'birth'>('stories');
+    /** «Уточни время рождения»: the birth form opens with the saved details filled in. */
+    const [onboardingPrefillSaved, setOnboardingPrefillSaved] = useState(false);
     const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
     const [navigationSheet, setNavigationSheetState] = useState<LumiaNavigationSheetId | null>(null);
     const setNavigationSheet = useCallback((sheet: LumiaNavigationSheetId | null) => {
@@ -2285,9 +2288,10 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
 
     const openSynastryWithPrefill = useCallback((prefill: SynastryPrefill) => {
         if (!gateFeatureAccess('synastry_by_charts', 'synastry')) return;
+        if (profile?.id) noteCompatibilityOpened(String(profile.id), prefill?.partnerChartId ?? null);
         setSynastryPrefill(prefill);
         navigateTo('synastry');
-    }, [gateFeatureAccess, navigateTo]);
+    }, [gateFeatureAccess, navigateTo, profile?.id]);
 
     const openPersonalityReport = useCallback(() => {
         if (!chartData) {
@@ -2311,9 +2315,19 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     }, [navigateTo]);
 
     const openSynastryFromHome = useCallback(() => {
+        if (profile?.id) noteCompatibilityOpened(String(profile.id));
         setSynastryPrefill(null);
         navigateTo('synastry');
-    }, [navigateTo]);
+    }, [navigateTo, profile?.id]);
+
+    const openBirthTimeEdit = useCallback(() => {
+        setOnboardingPrefillSaved(true);
+        openNatalSetupOnboarding('dashboard', 'dashboard');
+    }, [openNatalSetupOnboarding]);
+
+    useEffect(() => {
+        if (view !== 'onboarding') setOnboardingPrefillSaved(false);
+    }, [view]);
 
     const openProfileSheet = useCallback(() => {
         setNavigationSheet('profile');
@@ -2537,7 +2551,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                     <Onboarding
                         onComplete={handleOnboardingComplete}
                         initialStep={hasPendingOnboardingDraft ? 'birth' : onboardingInitialStep}
-                        initialProfile={hasPendingOnboardingDraft ? profile : undefined}
+                        initialProfile={hasPendingOnboardingDraft || onboardingPrefillSaved ? profile : undefined}
                         onSkip={() => {
                             setDashboardPeriod('day');
                             setView('dashboard');
@@ -2562,6 +2576,12 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         onCreateNatalChart: openBottomNatal,
         onOpenSynastry: openSynastryFromHome,
         onOpenMatrix: () => navigateTo('matrix'),
+        onEditBirthTime: openBirthTimeEdit,
+        onOpenPair: (chartId: string, name: string) => openSynastryWithPrefill({
+            source: 'saved-chart',
+            partnerChartId: Number(chartId),
+            partnerName: name,
+        }),
         onOpenHoroscope: openBottomZodiac,
         requestedPeriod: dashboardPeriod,
         onPeriodChange: setDashboardPeriod,
