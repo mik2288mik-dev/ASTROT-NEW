@@ -1383,7 +1383,8 @@ export type ViewState =
   | 'settings'
   | 'admin'
   | 'charts'
-  | 'tests';
+  | 'tests'
+  | 'mood';
 
 // Cached text types
 export interface CachedText<T = any> {

@@ -4,7 +4,7 @@ import { apiFetch, getApiBaseUrl } from './apiClient';
 import {
   isNativeNotificationQuiet, localNotificationDayKey, makeNativeReadyNotification, NATIVE_NOTIFICATION_ROUTES,
   normalizeNativeNotificationSettings, normalizeSkyEvents, planNativeNotifications, resolveNotificationSign,
-  type NativeNotificationPlan, type NativeNotificationRoute, type NativeNotificationSettings,
+  type NativeMoodWeek, type NativeNotificationPlan, type NativeNotificationRoute, type NativeNotificationSettings,
 } from '../lib/nativeNotificationPolicy';
 
 type Permission = 'granted' | 'prompt' | 'denied' | 'unavailable';
@@ -123,6 +123,7 @@ async function schedulePlan(current: Context, settings: NativeNotificationSettin
     ...current, settings, readDate: readDate(current.accountId),
     profile: { sign: resolveNotificationSign(current.selectedSign, current.birthDate), name: current.name, birthDate: current.birthDate },
     skyEvents: normalizeSkyEvents(read(current.accountId, 'sky-events')),
+    moodWeek: read(current.accountId, 'mood-week') as NativeMoodWeek | null,
   });
   const earliestReadyAt = Date.now() + 2000;
   const ready = pendingReady && pendingReady.accountId === current.accountId
@@ -196,6 +197,24 @@ export async function offerNativeNotificationsOnce(accountId: string): Promise<v
     if (permission !== 'granted' && permission !== 'prompt') return;
     await saveNativeNotificationSettings(accountId, { enabled: true, mode: 'daily' }, true);
   } catch { /* Отказ или смена аккаунта — остаёмся выключенными. */ }
+}
+/**
+ * «Неделя настроения» reminders. Starting a week also offers notifications once
+ * (the person asked for reminders), then the plan is rebuilt.
+ */
+export async function setNativeMoodWeek(accountId: string, week: NativeMoodWeek | null): Promise<'scheduled' | 'off' | 'unavailable'> {
+  if (!nativeNotificationsAvailable() || context?.accountId !== accountId) return 'unavailable';
+  write(accountId, 'mood-week', week);
+  if (week && !preferences(accountId).enabled) {
+    try {
+      await saveNativeNotificationSettings(accountId, { enabled: true, mode: preferences(accountId).mode }, true);
+    } catch {
+      return 'off';
+    }
+  }
+  const version = generation;
+  await enqueue(() => sync(version)).catch(() => undefined);
+  return preferences(accountId).enabled ? 'scheduled' : 'off';
 }
 export async function openNativeNotificationSettings(): Promise<void> {
   if (!nativeNotificationsAvailable() || (await Native.openSettings()).status !== 'opened') throw new Error('unavailable');

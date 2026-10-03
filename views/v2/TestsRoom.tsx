@@ -37,6 +37,8 @@ type TestsRoomProps = {
   /** Opens a test right away (e.g. «Продолжить тест» from home). */
   initialTestId?: string | null;
   onOpenNatal?: () => void;
+  /** «Неделя настроения» lives next to the tests. */
+  onOpenMood?: () => void;
 };
 
 function asProgress(value: unknown): Progress | null {
@@ -50,7 +52,7 @@ function asResult(value: unknown): SavedResult | null {
 }
 
 /** «Тесты о себе»: personal, never shared. Results and unfinished tests are kept in the profile. */
-export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal }: TestsRoomProps) {
+export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenMood }: TestsRoomProps) {
   const ru = profile.language !== 'en';
   const language: 'ru' | 'en' = ru ? 'ru' : 'en';
   const userId = String(profile.id || 'guest');
@@ -257,6 +259,19 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal }: Tests
           );
         })}
       </div>
+      {onOpenMood ? (
+        <div className="tests-list tests-list--extra">
+          <button type="button" className="tests-card" onClick={onOpenMood}>
+            <AssetSlot src="/assets/tests/mood-week.webp" className="tests-card-art" />
+            <span className="tests-card-copy">
+              <strong>{ru ? 'Неделя настроения' : 'Mood week'}</strong>
+              <small>{ru ? '7 дней по четыре отметки — и отчёт, когда тебе лучше и труднее' : '7 days, four check-ins a day — and a report on your ups and downs'}</small>
+              <span className="tests-card-meta">{ru ? '5 секунд в день, четыре раза' : '5 seconds, four times a day'}</span>
+            </span>
+            <ChevronRight size={18} aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
       {history.length ? (
         <section className="tests-history" aria-labelledby="tests-history-title">
           <h2 id="tests-history-title">{ru ? 'Мои результаты' : 'My results'}</h2>

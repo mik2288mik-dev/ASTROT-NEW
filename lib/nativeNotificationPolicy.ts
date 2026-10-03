@@ -1,5 +1,5 @@
 import {
-  birthdayCopy, comebackCopy, holidayCopy, inviteCopy, morningCopy, readyCopy, seasonCopy, skyEventCopy,
+  birthdayCopy, comebackCopy, holidayCopy, inviteCopy, moodCopy, morningCopy, readyCopy, seasonCopy, skyEventCopy,
   type PushCopy, type PushRoute, type SkyEventKind,
 } from './nativePushCopy';
 import { APPROXIMATE_SUN_SIGN_DATES, ZODIAC_SIGNS, type ZodiacSign } from './zodiac-utils';
@@ -11,7 +11,7 @@ export type NativeNotificationSettings = {
   quietStart: string;
   quietEnd: string;
 };
-export type NativeNotificationKind = 'daily' | 'invite' | 'comeback' | 'holiday' | 'birthday' | 'season' | 'sky' | 'ready';
+export type NativeNotificationKind = 'daily' | 'invite' | 'comeback' | 'holiday' | 'birthday' | 'season' | 'sky' | 'ready' | 'mood';
 export type NativeNotificationRoute = PushRoute;
 export type NativeNotificationPlan = {
   id: number; title: string; body: string; at: number; expiresAt: number;
@@ -26,7 +26,9 @@ export type NativeNotificationProfile = {
   /** YYYY-MM-DD */
   birthDate?: string;
 };
-export const NATIVE_NOTIFICATION_ROUTES: readonly NativeNotificationRoute[] = ['today', 'natal', 'horoscope', 'compatibility'];
+export const NATIVE_NOTIFICATION_ROUTES: readonly NativeNotificationRoute[] = ['today', 'natal', 'horoscope', 'compatibility', 'mood'];
+/** «Неделя настроения»: seven days from startDayKey, two reminders at the chosen times. */
+export type NativeMoodWeek = { startDayKey: string; reminderTimes: [string, string] };
 export const DEFAULT_NATIVE_NOTIFICATION_SETTINGS: NativeNotificationSettings = {
   enabled: false, mode: 'daily', quietStart: '22:00', quietEnd: '09:00',
 };
@@ -114,7 +116,7 @@ function slotTime(day: Date, preferredMinute: number, settings: NativeNotificati
 
 /** Три окна дня: утро, обед, вечер. Между ними больше трёх часов (нативный минимум). */
 type Window = 0 | 1 | 2;
-type Candidate = { kind: NativeNotificationKind; copy: PushCopy; window: Window; event: boolean };
+type Candidate = { kind: NativeNotificationKind; copy: PushCopy; window: Window; event: boolean; minute?: number };
 /** Ритм первой недели: где-то два, где-то один — чтобы не было ощущения конвейера. */
 const RHYTHM = [2, 1, 2, 2, 1, 2, 1];
 
@@ -129,6 +131,7 @@ const RHYTHM = [2, 1, 2, 2, 1, 2, 1];
 export function planNativeNotifications(input: {
   accountId: string; language: 'ru' | 'en'; isSetup: boolean; settings: NativeNotificationSettings;
   readDate?: string; now?: Date; profile?: NativeNotificationProfile; skyEvents?: NativeSkyEvent[];
+  moodWeek?: NativeMoodWeek | null;
 }): NativeNotificationPlan[] {
   const now = input.now || new Date();
   if (!input.accountId || !input.isSetup || !input.settings.enabled || !Number.isFinite(now.getTime())) return [];
@@ -168,10 +171,15 @@ export function planNativeNotifications(input: {
       events.push({ kind: 'sky', copy: skyEventCopy(lang, event.kind, seed), window: evening ? 2 : 1, event: true });
     }
 
-    // Обычные поводы.
+    // Обычные поводы. В неделю настроения два её напоминания заменяют обычные — лимит дня не растёт.
     const routine: Candidate[] = [];
+    const moodTimes = moodWeekTimes(input.moodWeek, dayKey);
     const comebackDays = offset === 3 || offset === 7 || offset === 14 ? offset as 3 | 7 | 14 : null;
-    if (comebackDays) routine.push({ kind: 'comeback', copy: comebackCopy(lang, comebackDays, seed), window: 1, event: false });
+    if (moodTimes) {
+      moodTimes.forEach((minute, index) => routine.push({
+        kind: 'mood', copy: moodCopy(lang, index === 1, seed + index), window: minute < 12 * 60 ? 0 : minute < 17 * 60 ? 1 : 2, event: false, minute,
+      }));
+    } else if (comebackDays) routine.push({ kind: 'comeback', copy: comebackCopy(lang, comebackDays, seed), window: 1, event: false });
     else if (everyday && active && offset > 0) {
       const count = RHYTHM[(offset + userSeed) % RHYTHM.length];
       const morning = count === 2 || seed % 2 === 0;
@@ -184,7 +192,7 @@ export function planNativeNotifications(input: {
       routine.push({ kind: 'daily', copy: morningCopy(lang, sign, weekday, seed), window: 0, event: false });
     }
 
-    const cap = !active ? 1 : events.length ? NATIVE_MAX_PER_DAY : 2;
+    const cap = moodTimes ? (events.length ? NATIVE_MAX_PER_DAY : 2) : !active ? 1 : events.length ? NATIVE_MAX_PER_DAY : 2;
     const taken = new Map<Window, Candidate>();
     for (const candidate of [...events, ...routine]) {
       if (taken.size >= cap) break;
@@ -195,12 +203,14 @@ export function planNativeNotifications(input: {
     }
 
     for (const [window, slot] of [...taken.entries()].sort((a, b) => a[0] - b[0])) {
-      const at = slotTime(day, windowMinute(window, slot.kind), input.settings);
+      const at = slotTime(day, slot.minute ?? windowMinute(window, slot.kind), input.settings);
       // Сегодня зовём только на то, что будет не раньше чем через 3 часа: человек только что был в приложении.
       if (!at || at.getTime() <= now.getTime() + (offset === 0 ? 3 * HOUR : 0)) continue;
       const atKey = localNotificationDayKey(at);
       if (slot.kind === 'daily' && atKey === input.readDate) continue;
       if (!everyday && (slot.kind === 'daily' || slot.kind === 'invite')) continue;
+      // Неделя настроения — выбор самого человека, поэтому её напоминания идут и в режиме «только важное».
+      if (slot.kind === 'mood' && !moodTimes) continue;
       const endOfDay = new Date(at.getFullYear(), at.getMonth(), at.getDate(), 21).getTime();
       result.push({
         id: 700000 + (number % 10000) * 4 + window,
@@ -211,6 +221,18 @@ export function planNativeNotifications(input: {
     }
   }
   return result;
+}
+
+/** Reminder minutes of the mood week for this day, or null outside the week. */
+function moodWeekTimes(week: NativeMoodWeek | null | undefined, dayKey: string): number[] | null {
+  if (!week || !/^\d{4}-\d{2}-\d{2}$/.test(week.startDayKey)) return null;
+  const start = Date.parse(`${week.startDayKey}T12:00:00Z`);
+  const offset = Math.round((Date.parse(`${dayKey}T12:00:00Z`) - start) / (24 * HOUR));
+  if (!Number.isFinite(offset) || offset < 0 || offset > 6) return null;
+  const times = week.reminderTimes.map(notificationTimeMinutes);
+  if (times.some((value) => value === null)) return null;
+  const [first, second] = times as number[];
+  return second - first >= 180 && first >= 9 * 60 && second <= 21 * 60 ? [first, second] : null;
 }
 
 export function makeNativeReadyNotification(input: {

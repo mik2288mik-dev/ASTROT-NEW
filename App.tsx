@@ -133,6 +133,7 @@ import { pollForPaymentEntitlement } from './lib/paymentEntitlementPolling';
 import { isReadableNatalChart } from './lib/readableNatalChart';
 import { noteCompatibilityOpened } from './lib/interestSignals';
 import { TestsRoom } from './views/v2/TestsRoom';
+import { MoodWeekRoom } from './views/v2/MoodWeekRoom';
 import {
     canRestorePaywallFocus,
     getPaywallFocusableElements,
@@ -2447,9 +2448,10 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             if (route === 'today') openBottomToday();
             else if (route === 'natal') openBottomNatal();
             else if (route === 'horoscope') openBottomZodiac();
+            else if (route === 'mood') navigateTo('mood');
             else openSynastryFromHome();
         });
-    }, [loading, profile?.id, profile?.legalAcknowledgements, authSessionMode, nativeActive, nativeTapVersion, openBottomToday, openBottomNatal, openBottomZodiac, openSynastryFromHome, setPaywallContext]);
+    }, [loading, profile?.id, profile?.legalAcknowledgements, authSessionMode, nativeActive, nativeTapVersion, openBottomToday, openBottomNatal, openBottomZodiac, openSynastryFromHome, setPaywallContext, navigateTo]);
 
     // Один раз после онбординга — системный запрос на уведомления, когда человек уже на главной.
     useEffect(() => {
@@ -2584,6 +2586,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             setTestsInitialId(testId ?? null);
             navigateTo('tests');
         },
+        onOpenMood: () => navigateTo('mood'),
         onOpenPair: (chartId: string, name: string) => openSynastryWithPrefill({
             source: 'saved-chart',
             partnerChartId: Number(chartId),
@@ -2724,7 +2727,12 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             initialTestId={testsInitialId}
                             onBack={() => { void handleBack(); }}
                             onOpenNatal={openBottomNatal}
+                            onOpenMood={() => navigateTo('mood')}
                         />
+                    </div>
+                ) : view === 'mood' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        <MoodWeekRoom profile={profile} onBack={() => { void handleBack(); }} />
                     </div>
                 ) : view === 'matrix' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>

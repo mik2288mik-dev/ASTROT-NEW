@@ -16,7 +16,8 @@ export type ForYouRuleId =
   | 'compatibility'
   | 'love_week'
   | 'birth_time'
-  | 'test_unfinished';
+  | 'test_unfinished'
+  | 'mood_report';
 
 export type ForYouAction =
   | { type: 'premium' }
@@ -27,7 +28,8 @@ export type ForYouAction =
   | { type: 'compatibility' }
   | { type: 'week' }
   | { type: 'birth_time' }
-  | { type: 'test'; testId: string };
+  | { type: 'test'; testId: string }
+  | { type: 'mood' };
 
 export type ForYouOffer = {
   id: ForYouRuleId;
@@ -62,6 +64,8 @@ export type ForYouContext = {
   dismissed: ReadonlySet<string>;
   /** A test started and not finished. */
   unfinishedTest?: { id: string; title: string; answered: number; total: number; updatedAt: string } | null;
+  /** Start day of a finished «Неделя настроения» whose report was not opened yet. */
+  moodReportReady?: string | null;
 };
 
 export const FOR_YOU_LIMIT = 3;
@@ -249,6 +253,19 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
         : 'You often read about love and close people. The week reading shows when to talk and when to give each other space.',
       cta: ru ? 'Читать неделю' : 'Read the week',
       action: { type: 'week' },
+    });
+  }
+
+  if (context.moodReportReady) {
+    offers.push({
+      id: 'mood_report',
+      occurrence: `mood:${context.moodReportReady}`,
+      title: ru ? 'Твой отчёт готов' : 'Your report is ready',
+      body: ru
+        ? 'Неделя настроения закончилась. Посмотри, когда тебе было лучше всего и совпало ли это с прогнозом.'
+        : 'Your mood week is over. See when you felt best and whether it matched the forecast.',
+      cta: ru ? 'Открыть отчёт' : 'Open the report',
+      action: { type: 'mood' },
     });
   }
 

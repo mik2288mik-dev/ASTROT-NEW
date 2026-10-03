@@ -23,7 +23,7 @@ const SCREENS: Record<string, string> = {
   matrix: 'Матрица судьбы', questions: 'Вопросы', premium: 'Premium', paywall: 'Premium',
   onboarding: 'Знакомство', encyclopedia: 'Энциклопедия', support: 'Поддержка', saved: 'Сохранённое',
   natal: 'Натальная карта', compatibility: 'Совместимость', personal_forecast: 'Личный прогноз',
-  tests: 'Тесты',
+  tests: 'Тесты', mood: 'Неделя настроения',
 };
 const n = (value: unknown) => Number(value || 0);
 const nullable = (value: unknown) => value == null ? null : n(value);

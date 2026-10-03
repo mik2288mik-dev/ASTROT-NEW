@@ -9,6 +9,7 @@ import { loadExploreCharts, peekExploreCharts } from '../PersonalForecastFeed/ex
 import { WishesSheet, type WishItem, type WishRecord } from './WishesSheet';
 import { MonthReviewSheet, type MonthReviewRecord } from './MonthReviewSheet';
 import { findSelfTest } from '../../lib/selfTests/engine';
+import { isMoodWeekFinished, type MoodWeek } from '../../lib/moodWeek';
 
 export const FOR_YOU_IMAGES: Record<ForYouRuleId, string> = {
   premium_ending: '/assets/for-you/premium.webp',
@@ -21,6 +22,7 @@ export const FOR_YOU_IMAGES: Record<ForYouRuleId, string> = {
   love_week: '/assets/for-you/love-week.webp',
   birth_time: '/assets/for-you/birth-time.webp',
   test_unfinished: '/assets/for-you/test.webp',
+  mood_report: '/assets/for-you/mood-report.webp',
 };
 
 const MONTHS_GEN_RU = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -70,6 +72,7 @@ export function ForYouBlock({
   const [wishes, setWishes] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'wishes'));
   const [reviews, setReviews] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'month_review'));
   const [tests, setTests] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'tests'));
+  const [moodWeeks, setMoodWeeks] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'mood_week'));
   const [people, setPeople] = useState<Array<{ id: string; name: string }>>([]);
   const [sky, setSky] = useState<UpcomingSky>({ newMoonKey: null, mercuryRetroKey: null });
   const [sheet, setSheet] = useState<{ type: 'wishes'; newMoonKey: string } | { type: 'month_review'; monthKey: string } | null>(null);
@@ -82,6 +85,7 @@ export function ForYouBlock({
     void loadFeatureState(userId, 'wishes').then((items) => { if (active) setWishes(items); });
     void loadFeatureState(userId, 'month_review').then((items) => { if (active) setReviews(items); });
     void loadFeatureState(userId, 'tests').then((items) => { if (active) setTests(items); });
+    void loadFeatureState(userId, 'mood_week').then((items) => { if (active) setMoodWeeks(items); });
     const toPeople = (charts: ReturnType<typeof peekExploreCharts>) => (charts ?? [])
       .filter((chart) => !chart.is_primary && !chart.archived_at && chart.name)
       .map((chart) => ({ id: String(chart.id), name: chart.name.trim().split(/\s+/u)[0] }));
@@ -110,6 +114,14 @@ export function ForYouBlock({
     } : null;
   }, [language, tests]);
 
+  const moodReportReady = useMemo(() => {
+    const latest = Object.values(moodWeeks)
+      .map((value) => value as MoodWeek | null)
+      .filter((week): week is MoodWeek => Boolean(week && typeof week.startDayKey === 'string'))
+      .sort((a, b) => b.startDayKey.localeCompare(a.startDayKey))[0];
+    return latest && isMoodWeekFinished(latest, todayKey) && !latest.reportSeenAt ? latest.startDayKey : null;
+  }, [moodWeeks, todayKey]);
+
   const offers = useMemo(() => buildForYouOffers({
     language,
     todayKey,
@@ -127,7 +139,8 @@ export function ForYouBlock({
     reviewedMonths: new Set(Object.keys(reviews)),
     dismissed: new Set(Object.keys(dismissed)),
     unfinishedTest,
-  }), [birthDate, birthTimeKnown, dismissed, language, people, premium, premiumAutoRenew, premiumEndsAt, reviews, sky, todayKey, unfinishedTest, userId, weekKey, wishes]);
+    moodReportReady,
+  }), [birthDate, birthTimeKnown, dismissed, language, moodReportReady, people, premium, premiumAutoRenew, premiumEndsAt, reviews, sky, todayKey, unfinishedTest, userId, weekKey, wishes]);
 
   const hide = useCallback((offer: ForYouOffer) => {
     const next = Object.fromEntries(
