@@ -17,7 +17,10 @@ export type ForYouRuleId =
   | 'love_week'
   | 'birth_time'
   | 'test_unfinished'
-  | 'mood_report';
+  | 'mood_report'
+  | 'streak_gift'
+  | 'anniversary_gift'
+  | 'streak_progress';
 
 export type ForYouAction =
   | { type: 'premium' }
@@ -29,7 +32,8 @@ export type ForYouAction =
   | { type: 'week' }
   | { type: 'birth_time' }
   | { type: 'test'; testId: string }
-  | { type: 'mood' };
+  | { type: 'mood' }
+  | { type: 'gift'; reason: 'streak' | 'anniversary' };
 
 export type ForYouOffer = {
   id: ForYouRuleId;
@@ -66,6 +70,8 @@ export type ForYouContext = {
   unfinishedTest?: { id: string; title: string; answered: number; total: number; updatedAt: string } | null;
   /** Start day of a finished «Неделя настроения» whose report was not opened yet. */
   moodReportReady?: string | null;
+  /** Server-checked gifts: a week reading for seven days in a row or a year with NEBO. */
+  gift?: { streak: number; daysToGift: number; claimable: 'streak' | 'anniversary' | null; hasWeekGift: boolean } | null;
 };
 
 export const FOR_YOU_LIMIT = 3;
@@ -132,6 +138,31 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
   const ru = context.language === 'ru';
   const offers: ForYouOffer[] = [];
   const { todayKey } = context;
+
+  const gift = context.premium ? null : context.gift;
+  if (gift?.claimable === 'anniversary') {
+    offers.push({
+      id: 'anniversary_gift',
+      occurrence: `anniversary:${todayKey.slice(0, 4)}`,
+      title: ru ? 'Год вместе с NEBO' : 'A year with NEBO',
+      body: ru
+        ? 'Спасибо, что ты с нами. Небольшой подарок: разбор твоей недели — бесплатно, просто так.'
+        : 'Thank you for being with us. A small gift: your week reading — free, just because.',
+      cta: ru ? 'Открыть подарок' : 'Open the gift',
+      action: { type: 'gift', reason: 'anniversary' },
+    });
+  } else if (gift?.claimable === 'streak') {
+    offers.push({
+      id: 'streak_gift',
+      occurrence: `streak:${context.weekKey}`,
+      title: ru ? `${gift.streak} ${pluralDaysRu(gift.streak)} подряд` : `${gift.streak} days in a row`,
+      body: ru
+        ? 'Ты заглядываешь каждый день — это приятно. Держи разбор недели в подарок.'
+        : 'You drop by every day — that is lovely. Here is your week reading as a gift.',
+      cta: ru ? 'Открыть неделю' : 'Open the week',
+      action: { type: 'gift', reason: 'streak' },
+    });
+  }
 
   if (context.premium && context.premiumEndsAt && context.premiumAutoRenew !== true) {
     const endKey = context.premiumEndsAt.slice(0, 10);
@@ -280,6 +311,19 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
         : `«${test.title}» — ${test.answered} of ${test.total} answered. Almost there, the result is waiting.`,
       cta: ru ? 'Продолжить' : 'Continue',
       action: { type: 'test', testId: test.id },
+    });
+  }
+
+  if (gift && !gift.claimable && !gift.hasWeekGift && gift.streak >= 4 && gift.daysToGift > 0 && gift.daysToGift <= 2) {
+    offers.push({
+      id: 'streak_progress',
+      occurrence: `streak-progress:${todayKey}`,
+      title: ru ? `Уже ${gift.streak} ${pluralDaysRu(gift.streak)} подряд` : `${gift.streak} days in a row`,
+      body: ru
+        ? `Если заглянешь ещё ${gift.daysToGift === 1 ? 'завтра' : 'пару дней'}, откроем тебе разбор недели в подарок. А не получится — ничего страшного.`
+        : `Drop by ${gift.daysToGift === 1 ? 'tomorrow' : 'for two more days'} and we will open your week reading as a gift. And if not — no worries.`,
+      cta: ru ? 'Что в разборе недели' : 'What is in the week reading',
+      action: { type: 'future' },
     });
   }
 

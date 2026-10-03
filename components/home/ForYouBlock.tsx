@@ -23,6 +23,9 @@ export const FOR_YOU_IMAGES: Record<ForYouRuleId, string> = {
   birth_time: '/assets/for-you/birth-time.webp',
   test_unfinished: '/assets/for-you/test.webp',
   mood_report: '/assets/for-you/mood-report.webp',
+  streak_gift: '/assets/for-you/gift.webp',
+  anniversary_gift: '/assets/for-you/gift.webp',
+  streak_progress: '/assets/for-you/streak.webp',
 };
 
 const MONTHS_GEN_RU = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -42,6 +45,7 @@ type ForYouBlockProps = {
   premium: boolean;
   premiumEndsAt: string | null;
   premiumAutoRenew: boolean | null;
+  gift?: { streak: number; daysToGift: number; claimable: 'streak' | 'anniversary' | null; hasWeekGift: boolean } | null;
   /** Actions that leave the block: navigation, store, week reading. */
   onAction: (action: Exclude<ForYouAction, { type: 'wishes' } | { type: 'month_review' }>) => void;
 };
@@ -63,6 +67,7 @@ export function ForYouBlock({
   premium,
   premiumEndsAt,
   premiumAutoRenew,
+  gift,
   onAction,
 }: ForYouBlockProps) {
   const ru = language === 'ru';
@@ -140,7 +145,8 @@ export function ForYouBlock({
     dismissed: new Set(Object.keys(dismissed)),
     unfinishedTest,
     moodReportReady,
-  }), [birthDate, birthTimeKnown, dismissed, language, moodReportReady, people, premium, premiumAutoRenew, premiumEndsAt, reviews, sky, todayKey, unfinishedTest, userId, weekKey, wishes]);
+    gift,
+  }), [gift, birthDate, birthTimeKnown, dismissed, language, moodReportReady, people, premium, premiumAutoRenew, premiumEndsAt, reviews, sky, todayKey, unfinishedTest, userId, weekKey, wishes]);
 
   const hide = useCallback((offer: ForYouOffer) => {
     const next = Object.fromEntries(

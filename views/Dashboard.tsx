@@ -38,6 +38,8 @@ import { HomeEntryTiles } from '../components/home/HomeEntryTiles';
 import { ForYouBlock } from '../components/home/ForYouBlock';
 import type { ForYouAction } from '../lib/forYou';
 import { ListenForecastButton } from '../components/audio/ListenForecastButton';
+import { DailyQuestionCard } from '../components/home/DailyQuestionCard';
+import { claimWeekGift, loadGiftStatus, type GiftStatus } from '../services/giftService';
 import { FutureInviteCard } from '../components/PersonalForecastFeed/FutureInviteCard';
 import { futureHorizonDays } from '../lib/futureCalendar';
 import { TodayCalendarClock } from '../components/PersonalForecastFeed/TodayCalendarClock';
@@ -181,6 +183,7 @@ export const Dashboard = memo<DashboardProps>(({
   const activePeriod: PersonalForecastPeriod = requestedPeriod === 'week' ? 'month' : requestedPeriod || 'day';
   const [futureReader, setFutureReader] = useState<FutureReader | null>(requestedPeriod === 'week' ? 'week' : null);
   const [futureMonthKey, setFutureMonthKey] = useState<string | undefined>(undefined);
+  const [giftStatus, setGiftStatus] = useState<GiftStatus | null>(null);
   const timezone = normalizeForecastTimezone(profile.birthTimezone);
   const requestsRef = useRef<Partial<Record<PersonalForecastPeriod, PeriodRequest>>>({});
   const firstValueSeenRef = useRef<Set<string>>(new Set());
@@ -308,7 +311,8 @@ export const Dashboard = memo<DashboardProps>(({
     options?: { retry?: boolean; cacheOnly?: boolean },
   ) => {
     if (!profile.name.trim() || !profile.birthDate.trim()) return;
-    if (!premium && period !== 'day') {
+    const giftedWeek = period === 'week' && giftStatus?.weekGift?.periodKey === periodKeys.week;
+    if (!premium && period !== 'day' && !giftedWeek) {
       setPeriodStates((current) => ({
         ...current,
         [period]: emptyPeriodState(),
@@ -412,7 +416,17 @@ export const Dashboard = memo<DashboardProps>(({
     });
     requestEntry.promise = request;
     requestsRef.current[period] = requestEntry;
-  }, [periodKeys, premium, productContextKey, profile]);
+  }, [giftStatus?.weekGift?.periodKey, periodKeys, premium, productContextKey, profile]);
+
+  useEffect(() => {
+    if (premium || !profile.birthDate.trim()) {
+      setGiftStatus(null);
+      return;
+    }
+    let active = true;
+    void loadGiftStatus().then((status) => { if (active) setGiftStatus(status); }).catch(() => undefined);
+    return () => { active = false; };
+  }, [premium, productContextKey, profile.birthDate]);
 
   useEffect(() => {
     loadPeriod(activePeriod);
@@ -486,9 +500,10 @@ export const Dashboard = memo<DashboardProps>(({
   }, [onPeriodChange, requestedPeriod]);
 
   // «Будущее» opens with both NEBO+ readings: the week one loads next to the month.
+  const weekGifted = !premium && giftStatus?.weekGift?.periodKey === periodKeys.week;
   useEffect(() => {
-    if (activePeriod === 'month' && premium) loadPeriod('week');
-  }, [activePeriod, loadPeriod, premium, productContextKey]);
+    if (activePeriod === 'month' && (premium || weekGifted)) loadPeriod('week');
+  }, [activePeriod, loadPeriod, premium, productContextKey, weekGifted]);
 
   const handlePeriodTabKeyDown = useCallback((
     event: React.KeyboardEvent<HTMLButtonElement>,
@@ -632,6 +647,14 @@ export const Dashboard = memo<DashboardProps>(({
       }
       setFutureReader('week');
       onPeriodChange?.('month');
+    } else if (action.type === 'gift') {
+      void claimWeekGift(action.reason)
+        .then((claimed) => {
+          setGiftStatus((current) => (current ? { ...current, claimable: null, weekGift: claimed.weekGift } : current));
+          setFutureReader('week');
+          onPeriodChange?.('month');
+        })
+        .catch(() => { void loadGiftStatus().then(setGiftStatus).catch(() => undefined); });
     } else if (action.type === 'premium') {
       void onRequestPremium?.('for_you', {
         placement: 'for_you',
@@ -653,7 +676,7 @@ export const Dashboard = memo<DashboardProps>(({
   }, [periodKeys, periodStates, productContextKey]);
 
   const futureCardData = useCallback((period: FutureReader, teaser: readonly string[]): FuturePeriodCardData => {
-    if (!premium) return { phase: 'locked', opening: '', teaser };
+    if (!premium && !(period === 'week' && weekGifted)) return { phase: 'locked', opening: '', teaser };
     const { state: periodState, ready } = futureReading(period);
     if (ready) {
       const overview = ready.forecast.overview;
@@ -664,7 +687,7 @@ export const Dashboard = memo<DashboardProps>(({
       return { phase: 'ready', opening: readingOpeningLines(prose), teaser };
     }
     return { phase: periodState.phase === 'error' ? 'error' : 'loading', opening: '', teaser };
-  }, [futureReading, premium]);
+  }, [futureReading, premium, weekGifted]);
 
   useEffect(() => {
     if (activePeriod !== 'month' || premium || !canPromotePremium) return;
@@ -702,7 +725,7 @@ export const Dashboard = memo<DashboardProps>(({
             ? (language === 'ru' ? 'Твоя неделя' : 'Your week')
             : (language === 'ru' ? `Твой ${monthName}` : `Your ${monthName}`)}
         </h1>
-        {!premium ? (
+        {!premium && !(period === 'week' && weekGifted) ? (
           <PersonalForecastPremiumGate
             period={period}
             language={language}
@@ -880,7 +903,7 @@ export const Dashboard = memo<DashboardProps>(({
               month={futureCardData('month', teasers?.month ?? [])}
               canPromotePremium={canPromotePremium}
               onRead={(period) => {
-                if (premium) setFutureReader(period);
+                if (premium || (period === 'week' && weekGifted)) setFutureReader(period);
                 else requestPremiumFor(period);
               }}
               onRetry={(period) => loadPeriod(period, { retry: true, cacheOnly: true })}
@@ -919,8 +942,10 @@ export const Dashboard = memo<DashboardProps>(({
               premium={premium}
               premiumEndsAt={profile.premiumEntitlement?.endsAt ?? null}
               premiumAutoRenew={profile.premiumEntitlement?.autoRenew ?? null}
+              gift={giftStatus ? { streak: giftStatus.streak, daysToGift: giftStatus.daysToGift, claimable: giftStatus.claimable, hasWeekGift: Boolean(giftStatus.weekGift) } : null}
               onAction={handleForYouAction}
             />
+            <DailyQuestionCard language={language} />
             <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
             <FutureInviteCard
               userId={String(profile.id || 'guest')}
