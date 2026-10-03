@@ -1,0 +1,76 @@
+/* Microphone next to text fields: dictation through the system recognizer. */
+.dictation {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  align-self: center;
+}
+
+.dictation .dictation-button {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #f1eee9;
+  color: #292724;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dictation .dictation-button.is-listening {
+  background: #c0532f;
+  color: #fff;
+  animation: dictation-pulse 1.4s ease-in-out infinite;
+}
+
+.dictation .dictation-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.dictation .dictation-button:focus-visible {
+  outline: 2px solid #292724;
+  outline-offset: 2px;
+}
+
+.dictation-notice {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  right: 0;
+  z-index: 2;
+  width: max-content;
+  max-width: 14rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.6rem;
+  background: #292724;
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.review-note-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.settings-feedback-dictation {
+  margin-right: auto;
+}
+
+@keyframes dictation-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192, 83, 47, 0.35); }
+  50% { box-shadow: 0 0 0 0.45rem rgba(192, 83, 47, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dictation .dictation-button.is-listening {
+    animation: none;
+  }
+}

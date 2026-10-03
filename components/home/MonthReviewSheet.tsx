@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { CosmicSheet } from '../lumia-ui/CosmicSheet';
 import type { WishItem } from './WishesSheet';
+import { DictationButton } from '../lumia-ui/DictationButton';
+import { appendDictatedText } from '../../services/dictation';
 
 export type MonthReviewRecord = { note: string; came: number; planned: number; savedAt: string };
 
@@ -83,7 +85,10 @@ export function MonthReviewSheet({ open, language, monthLabel, wishGroups, onSav
         </p>
       )}
       <label className="review-note">
-        <span>{ru ? 'Одна хорошая вещь за месяц' : 'One good thing this month'}</span>
+        <span className="review-note-label">
+          {ru ? 'Одна хорошая вещь за месяц' : 'One good thing this month'}
+          <DictationButton language={language} onText={(text) => setNote((current) => appendDictatedText(current, text, 280))} />
+        </span>
         <textarea
           value={note}
           maxLength={280}

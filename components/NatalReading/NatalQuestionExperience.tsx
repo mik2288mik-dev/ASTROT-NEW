@@ -18,6 +18,8 @@ import {
   NatalEvidenceSheet,
   type NatalExplanationTarget,
 } from './NatalEvidenceSheet';
+import { DictationButton } from '../lumia-ui/DictationButton';
+import { appendDictatedText } from '../../services/dictation';
 
 type Props = {
   compact?: boolean;
@@ -340,6 +342,11 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                   : 'Write your question…'}
                 disabled={inputDisabled}
                 aria-describedby={`${compact ? '' : 'natal-question-example '}natal-v3-question-status natal-v3-question-warning`}
+              />
+              <DictationButton
+                language={language}
+                disabled={inputDisabled}
+                onText={(text) => setQuestionText((current) => appendDictatedText(current, text, 300))}
               />
               <button
                 type="submit"
