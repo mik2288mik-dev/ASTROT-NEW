@@ -22,7 +22,7 @@ describe('personal forecast header and shared navigation', () => {
     expect(dashboard).toContain('EditorialChartsButton');
     expect(dashboard).toContain('Открыть мои карты');
     expect(dashboard).toContain('role="tablist"');
-    expect(dashboard).toContain('activeDateValue');
+    expect(dashboard).toContain('weekLabel');
     expect(logo).toContain("/assets/brand/nebo-cloud-logo.png");
     expect(fs.existsSync(path.join(ROOT, 'public/assets/brand/nebo-cloud-logo.png'))).toBe(true);
     expect(loading).toContain('<NeboLogo decorative size="loading" priority />');

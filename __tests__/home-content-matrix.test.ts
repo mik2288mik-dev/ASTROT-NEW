@@ -43,7 +43,8 @@ describe('mvp home surface', () => {
     expect(app).toContain('<Dashboard {...dashboardProps}');
     expect(app).toContain('onRequestPremium: requestPremium');
     expect(dashboard).toContain("const FORECAST_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month']");
-    expect(dashboard).toContain("const activePeriod: PersonalForecastPeriod = requestedPeriod || 'day';");
+    expect(dashboard).toContain("const HOME_TABS: readonly PersonalForecastPeriod[] = ['day', 'month'];");
+    expect(dashboard).toContain("const activePeriod: PersonalForecastPeriod = requestedPeriod === 'week' ? 'month' : requestedPeriod || 'day';");
     expect(dashboard).toContain('TodayEditorialFeed');
     expect(dashboard).toContain('ForecastSectionBlock');
     expect(dashboard).not.toContain('FreshTabs');
