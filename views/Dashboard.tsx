@@ -6,14 +6,13 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { LoaderCircle, RefreshCw } from 'lucide-react';
+import { ChevronLeft, LoaderCircle, RefreshCw } from 'lucide-react';
 import { useReducedMotion } from 'framer-motion';
 import type { UserProfile } from '../types';
 import { hasActivePremium } from '../lib/accessMatrix';
 import { noteForecastSeenForReview } from '../services/rustoreReview';
 import {
   buildPersonalForecastBirthProfileFingerprint,
-  formatPersonalForecastDateLabel,
   getPersonalForecastPeriodKey,
   normalizeForecastTimezone,
   resolvePersonalForecastWindow,
@@ -33,6 +32,8 @@ import { TodayEditorialFeed } from '../components/PersonalForecastFeed/TodayEdit
 import { TodayExploreCards } from '../components/PersonalForecastFeed/TodayExploreCards';
 import { TodaySkyMonitor } from '../components/PersonalForecastFeed/TodaySkyMonitor';
 import { FutureView } from '../components/PersonalForecastFeed/FutureView';
+import { FuturePeriodCards, type FuturePeriodCardData } from '../components/PersonalForecastFeed/FuturePeriodCards';
+import { readingOpeningLines } from '../lib/futurePeriodTeaser';
 import { FutureInviteCard } from '../components/PersonalForecastFeed/FutureInviteCard';
 import { futureHorizonDays } from '../lib/futureCalendar';
 import { TodayCalendarClock } from '../components/PersonalForecastFeed/TodayCalendarClock';
@@ -81,6 +82,12 @@ type PeriodRequest = {
 };
 
 const FORECAST_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month'];
+/**
+ * The home switcher has two tabs: «Сегодня» and «Будущее». The week reading
+ * lives inside «Будущее» next to the month one; `requestedPeriod: 'week'` opens it there.
+ */
+const HOME_TABS: readonly PersonalForecastPeriod[] = ['day', 'month'];
+type FutureReader = 'week' | 'month';
 const FORECAST_RECOVERY_DELAYS_MS = [3_000, 8_000, 15_000, 30_000, 60_000] as const;
 
 function emptyPeriodState(): PeriodState {
@@ -149,7 +156,8 @@ export const Dashboard = memo<DashboardProps>(({
   const reduceMotion = useReducedMotion();
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const premium = hasActivePremium(profile);
-  const activePeriod: PersonalForecastPeriod = requestedPeriod || 'day';
+  const activePeriod: PersonalForecastPeriod = requestedPeriod === 'week' ? 'month' : requestedPeriod || 'day';
+  const [futureReader, setFutureReader] = useState<FutureReader | null>(requestedPeriod === 'week' ? 'week' : null);
   const timezone = normalizeForecastTimezone(profile.birthTimezone);
   const requestsRef = useRef<Partial<Record<PersonalForecastPeriod, PeriodRequest>>>({});
   const firstValueSeenRef = useRef<Set<string>>(new Set());
@@ -182,34 +190,40 @@ export const Dashboard = memo<DashboardProps>(({
     ),
     [activePeriod, periodKeys, timezone],
   );
-  const activeDateLines = useMemo(
-    () => formatPersonalForecastDateLabel(activeWindow, language)
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean),
-    [activeWindow, language],
-  );
   const periodLabels: Record<PersonalForecastPeriod, string> = {
     day: language === 'ru' ? 'Сегодня' : 'Today',
     week: language === 'ru' ? 'Неделя' : 'Week',
-    // The month tab is the «Будущее» calendar; the month reading lives inside it.
+    // The month tab is «Будущее»: week and month readings, then the calendar.
     month: language === 'ru' ? 'Будущее' : 'Future',
   };
-  const activePeriodTitle = periodLabels[activePeriod];
   const personalForecastNote: Record<PersonalForecastPeriod, string> = language === 'ru'
     ? {
         day: 'Личный прогноз на сегодня — по твоим данным рождения.',
         week: 'Личный прогноз на неделю — по твоим данным рождения.',
-        month: 'Календарь вперёд — Луна, ретрограды и твои личные дни.',
+        month: 'Твоя неделя, твой месяц и календарь вперёд — по твоим данным рождения.',
       }
     : {
         day: 'Your personal forecast for today — based on your birth details.',
         week: 'Your personal forecast for the week — based on your birth details.',
-        month: 'Your personal forecast for the month — based on your birth details.',
+        month: 'Your week, your month and the calendar ahead — based on your birth details.',
       };
-  const activeDateValue = activePeriod === 'day'
-    ? activeDateLines[activeDateLines.length - 1]
-    : activeDateLines.join(' ');
+  const weekWindow = useMemo(
+    () => resolvePersonalForecastWindow('week', periodKeys.week, timezone),
+    [periodKeys.week, timezone],
+  );
+  const monthWindow = useMemo(
+    () => resolvePersonalForecastWindow('month', periodKeys.month, timezone),
+    [periodKeys.month, timezone],
+  );
+  const weekLabel = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+    return `${fmt.format(new Date(`${weekWindow.periodStart}T12:00:00Z`))} — ${fmt.format(new Date(`${weekWindow.periodEnd}T12:00:00Z`))}`;
+  }, [language, weekWindow]);
+  const monthName = useMemo(() => {
+    const name = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', timeZone: 'UTC' })
+      .format(new Date(`${monthWindow.periodStart}T12:00:00Z`));
+    return language === 'ru' ? name.toLowerCase() : `${name[0].toUpperCase()}${name.slice(1)}`;
+  }, [language, monthWindow]);
   const personalForecastAttribution = useMemo(
     () => formatPersonalForecastAttribution({
       profile: {
@@ -426,28 +440,48 @@ export const Dashboard = memo<DashboardProps>(({
     setFocusedPeriod(activePeriod);
   }, [activePeriod]);
 
+  useEffect(() => {
+    if (requestedPeriod === 'week') setFutureReader('week');
+    else if (requestedPeriod !== 'month') setFutureReader(null);
+  }, [requestedPeriod]);
+
+  useEffect(() => {
+    scrollRef?.current?.scrollTo({ top: 0, behavior: 'auto' });
+  }, [futureReader, scrollRef]);
+
   const selectPeriod = useCallback((period: PersonalForecastPeriod) => {
-    if (period === activePeriod) return;
+    if (period === activePeriod && !futureReader) return;
     lumiaSelectionHaptic();
+    setFutureReader(null);
     onPeriodChange?.(period);
-  }, [activePeriod, onPeriodChange]);
+  }, [activePeriod, futureReader, onPeriodChange]);
+
+  const closeFutureReader = useCallback(() => {
+    setFutureReader(null);
+    if (requestedPeriod === 'week') onPeriodChange?.('month');
+  }, [onPeriodChange, requestedPeriod]);
+
+  // «Будущее» opens with both NEBO+ readings: the week one loads next to the month.
+  useEffect(() => {
+    if (activePeriod === 'month' && premium) loadPeriod('week');
+  }, [activePeriod, loadPeriod, premium, productContextKey]);
 
   const handlePeriodTabKeyDown = useCallback((
     event: React.KeyboardEvent<HTMLButtonElement>,
     period: PersonalForecastPeriod,
   ) => {
-    const currentIndex = FORECAST_PERIODS.indexOf(period);
+    const currentIndex = HOME_TABS.indexOf(period);
     let nextIndex: number | null = null;
-    if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % FORECAST_PERIODS.length;
+    if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % HOME_TABS.length;
     if (event.key === 'ArrowLeft') {
-      nextIndex = (currentIndex - 1 + FORECAST_PERIODS.length) % FORECAST_PERIODS.length;
+      nextIndex = (currentIndex - 1 + HOME_TABS.length) % HOME_TABS.length;
     }
     if (event.key === 'Home') nextIndex = 0;
-    if (event.key === 'End') nextIndex = FORECAST_PERIODS.length - 1;
+    if (event.key === 'End') nextIndex = HOME_TABS.length - 1;
     if (nextIndex === null) return;
 
     event.preventDefault();
-    const nextPeriod = FORECAST_PERIODS[nextIndex];
+    const nextPeriod = HOME_TABS[nextIndex];
     setFocusedPeriod(nextPeriod);
     periodTabRefs.current[nextPeriod]?.focus();
   }, []);
@@ -515,39 +549,157 @@ export const Dashboard = memo<DashboardProps>(({
     promoSeenRef.current.add(key);
     onPremiumAnalytics?.('premium_promo_impression', {
       placement: activePeriod,
-      featureKey: activePeriod === 'week' ? 'personal_weekly' : 'personal_monthly',
+      featureKey: 'personal_monthly',
       periodKey: forecast.periodKey,
     });
   }, [activePeriod, canPromotePremium, forecast, lockedSectionIds.size, onPremiumAnalytics, profile.id]);
 
-  const requestPremium = useCallback(() => {
-    if (activePeriod !== 'day') {
+  const requestPremiumFor = useCallback((targetPeriod: PersonalForecastPeriod) => {
+    const targetKey = targetPeriod === activePeriod
+      ? forecast?.periodKey || periodKeys[targetPeriod]
+      : periodKeys[targetPeriod];
+    if (targetPeriod !== 'day') {
       onPremiumAnalytics?.('locked_feature_tapped', {
-        placement: activePeriod,
-        featureKey: activePeriod === 'week' ? 'personal_weekly' : 'personal_monthly',
-        periodKey: periodKeys[activePeriod],
+        placement: targetPeriod,
+        featureKey: targetPeriod === 'week' ? 'personal_weekly' : 'personal_monthly',
+        periodKey: periodKeys[targetPeriod],
       });
     } else {
       onPremiumAnalytics?.('premium_promo_clicked', {
         placement: 'today',
         featureKey: 'personal_daily_full',
-        periodKey: forecast?.periodKey || periodKeys.day,
+        periodKey: targetKey,
       });
     }
     void onRequestPremium?.('personal_forecast_feed', {
-      period: activePeriod,
-      periodKey: forecast?.periodKey || periodKeys[activePeriod],
-      placement: activePeriod === 'day' ? 'today' : activePeriod,
-      featureKey: activePeriod === 'day'
+      period: targetPeriod,
+      periodKey: targetKey,
+      placement: targetPeriod === 'day' ? 'today' : targetPeriod,
+      featureKey: targetPeriod === 'day'
         ? 'personal_daily_full'
-        : activePeriod === 'week'
+        : targetPeriod === 'week'
           ? 'personal_weekly'
           : 'personal_monthly',
-      triggerType: activePeriod === 'day' ? 'inline_promo' : 'locked_feature',
+      triggerType: targetPeriod === 'day' ? 'inline_promo' : 'locked_feature',
       returnView: 'dashboard',
       returnScrollAnchor: 'personal-forecast-reading',
     });
   }, [activePeriod, forecast?.periodKey, onPremiumAnalytics, onRequestPremium, periodKeys]);
+  const requestPremium = useCallback(() => requestPremiumFor(activePeriod), [activePeriod, requestPremiumFor]);
+
+  const futureReading = useCallback((period: FutureReader) => {
+    const periodState = periodStates[period].contextKey === productContextKey
+      ? periodStates[period]
+      : emptyPeriodState();
+    const ready = periodState.result
+      ? selectActiveReadyPersonalForecast(period, periodStates, periodKeys[period])
+      : null;
+    return { state: periodState, ready };
+  }, [periodKeys, periodStates, productContextKey]);
+
+  const futureCardData = useCallback((period: FutureReader, teaser: readonly string[]): FuturePeriodCardData => {
+    if (!premium) return { phase: 'locked', opening: '', teaser };
+    const { state: periodState, ready } = futureReading(period);
+    if (ready) {
+      const overview = ready.forecast.overview;
+      const prose = overview.contentBlocks
+        .filter((block) => block.role !== 'action')
+        .map((block) => block.text)
+        .join(' ') || overview.text;
+      return { phase: 'ready', opening: readingOpeningLines(prose), teaser };
+    }
+    return { phase: periodState.phase === 'error' ? 'error' : 'loading', opening: '', teaser };
+  }, [futureReading, premium]);
+
+  useEffect(() => {
+    if (activePeriod !== 'month' || premium || !canPromotePremium) return;
+    const key = `${String(profile.id || 'guest')}:${periodKeys.week}:future-cards`;
+    if (promoSeenRef.current.has(key)) return;
+    promoSeenRef.current.add(key);
+    onPremiumAnalytics?.('premium_promo_impression', {
+      placement: 'future',
+      featureKey: 'personal_weekly',
+      periodKey: periodKeys.week,
+    });
+  }, [activePeriod, canPromotePremium, onPremiumAnalytics, periodKeys.week, premium, profile.id]);
+
+  const renderFutureReader = (period: FutureReader) => {
+    const { state: periodState, ready } = futureReading(period);
+    const readerForecast = ready?.forecast || null;
+    const readerSections = readerForecast ? [readerForecast.overview, ...readerForecast.sections] : [];
+    const readerLocked = new Set(ready?.lockedSectionIds || []);
+    const readerAttribution = formatPersonalForecastAttribution({
+      profile: { name: profile.name, birthDate: profile.birthDate },
+      window: period === 'week' ? weekWindow : monthWindow,
+      language,
+    });
+    return (
+      <section className="future-reader" aria-labelledby="future-reader-title">
+        <button type="button" className="future-reader-back" onClick={closeFutureReader}>
+          <ChevronLeft size={18} aria-hidden="true" />
+          {language === 'ru' ? 'Будущее' : 'Future'}
+        </button>
+        <p className="future-reader-kicker">
+          {period === 'week' ? weekLabel : `${monthName} ${monthWindow.periodStart.slice(0, 4)}`}
+        </p>
+        <h1 id="future-reader-title" className="future-reader-title">
+          {period === 'week'
+            ? (language === 'ru' ? 'Твоя неделя' : 'Your week')
+            : (language === 'ru' ? `Твой ${monthName}` : `Your ${monthName}`)}
+        </h1>
+        {!premium ? (
+          <PersonalForecastPremiumGate
+            period={period}
+            language={language}
+            onRequestPremium={() => requestPremiumFor(period)}
+            canPromotePremium={canPromotePremium}
+          />
+        ) : readerForecast ? (
+          <article
+            className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed"
+            data-forecast-period={period}
+            lang={language}
+          >
+            {readerSections.map((section) => (
+              <ForecastSectionBlock
+                key={`${period}:${readerForecast.periodKey}:${section.id}`}
+                section={section}
+                period={period}
+                language={language}
+                locked={readerLocked.has(section.id)}
+                onRequestPremium={() => requestPremiumFor(period)}
+              />
+            ))}
+            {readerAttribution ? (
+              <p className="today-period-personal-note forecast-personal-attribution">
+                {readerAttribution}
+              </p>
+            ) : null}
+          </article>
+        ) : periodState.phase === 'error' ? (
+          <section className="forecast-feed-status" aria-live="polite">
+            <h2>{language === 'ru' ? 'Готовим твой прогноз' : 'Preparing your forecast'}</h2>
+            <button type="button" onClick={() => loadPeriod(period, { retry: true, cacheOnly: true })}>
+              <RefreshCw size={17} aria-hidden />
+              {language === 'ru' ? 'Проверить' : 'Check again'}
+            </button>
+          </section>
+        ) : (
+          <section
+            className="forecast-feed-status forecast-feed-status--loading is-loading"
+            aria-live="polite"
+            aria-busy="true"
+            aria-label={loadingLabel(period, language)}
+          >
+            <div className="forecast-feed-loading-indicator" aria-hidden>
+              <LoaderCircle className="forecast-feed-loading-spinner" size={28} strokeWidth={2} />
+            </div>
+            <p className="forecast-feed-loading-label">{loadingLabel(period, language)}</p>
+          </section>
+        )}
+      </section>
+    );
+  };
 
   return (
     <div
@@ -576,7 +728,7 @@ export const Dashboard = memo<DashboardProps>(({
         aria-label={language === 'ru' ? 'Период личного прогноза' : 'Personal forecast period'}
       >
         <div className="today-period-tabs" role="presentation">
-          {FORECAST_PERIODS.map((period) => (
+          {HOME_TABS.map((period) => (
             <button
               key={period}
               id={`today-period-tab-${period}`}
@@ -613,26 +765,6 @@ export const Dashboard = memo<DashboardProps>(({
           : personalForecastNote[activePeriod]}
       </p>
 
-      {activePeriod === 'week' ? (
-      <div className="forecast-feed-reading-header">
-        <div
-          className="forecast-feed-date-zone"
-          aria-label={`${activePeriodTitle} ${activeDateValue}`}
-        >
-          <div className="forecast-feed-date-cluster">
-            <p className="forecast-feed-date">
-              <time
-                className="forecast-feed-date-value"
-                dateTime={activeWindow.periodStart}
-              >
-                {activeDateValue}
-              </time>
-            </p>
-          </div>
-        </div>
-      </div>
-      ) : null}
-
       <div
         id="today-period-panel"
         role="tabpanel"
@@ -650,34 +782,33 @@ export const Dashboard = memo<DashboardProps>(({
             {language === 'ru' ? 'Создать карту' : 'Create a chart'}
           </button>
         </section>
+      ) : activePeriod === 'month' && futureReader ? (
+        renderFutureReader(futureReader)
       ) : activePeriod === 'month' ? (
         <FutureView
           profile={profile}
           premium={premium}
           horizonDays={futureHorizonDays(profile.premiumEntitlement)}
           todayKey={periodKeys.day}
-          onRequestPremium={requestPremium}
-          monthReading={premium && forecast?.period === 'month' ? (
-            <article className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed" data-forecast-period="month" lang={language}>
-              {storySections.map((section) => (
-                <ForecastSectionBlock
-                  key={`future-month:${forecast.periodKey}:${section.id}`}
-                  section={section}
-                  period="month"
-                  language={language}
-                  locked={lockedSectionIds.has(section.id)}
-                  onRequestPremium={requestPremium}
-                />
-              ))}
-            </article>
-          ) : null}
-        />
-      ) : !premium && activePeriod !== 'day' ? (
-        <PersonalForecastPremiumGate
-          period={activePeriod}
+          weekEndKey={weekWindow.periodEnd}
           language={language}
           onRequestPremium={requestPremium}
-          canPromotePremium={canPromotePremium}
+          renderPeriodCards={(teasers) => (
+            <FuturePeriodCards
+              language={language}
+              weekLabel={weekLabel}
+              monthName={monthName}
+              year={Number(monthWindow.periodStart.slice(0, 4))}
+              week={futureCardData('week', teasers?.week ?? [])}
+              month={futureCardData('month', teasers?.month ?? [])}
+              canPromotePremium={canPromotePremium}
+              onRead={(period) => {
+                if (premium) setFutureReader(period);
+                else requestPremiumFor(period);
+              }}
+              onRetry={(period) => loadPeriod(period, { retry: true, cacheOnly: true })}
+            />
+          )}
         />
       ) : forecast && activePeriod === 'day' ? (
         <TodayEditorialFeed
