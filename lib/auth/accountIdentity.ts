@@ -160,7 +160,7 @@ export async function resolveVerifiedIdentity(
       const activeSession = await client.query(
         `SELECT session_id FROM app_sessions
          WHERE session_id = $1 AND user_id = $2
-           AND revoked_at IS NULL AND expires_at > NOW()
+           AND revoked_at IS NULL AND (session_kind = 'native' OR expires_at > NOW())
          FOR SHARE`,
         [requiredSessionId, requiredUserId],
       );
@@ -394,8 +394,10 @@ export async function assertAppSessionActive(
      WHERE session_id = $1 AND user_id = $2
        AND session_version = $3
        AND revoked_at IS NULL
-       AND expires_at > clock_timestamp()
-       AND (session_version = 1 OR absolute_expires_at > clock_timestamp())
+       AND (session_kind = 'native' OR (
+         expires_at > clock_timestamp()
+         AND (session_version = 1 OR absolute_expires_at > clock_timestamp())
+       ))
      RETURNING session_id`,
     [sessionId, userId, sessionVersion],
   );

@@ -20,6 +20,7 @@ import {
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   LEGACY_SESSION_TTL_SECONDS,
+  NATIVE_SESSION_EXPIRES_AT,
   REFRESH_ABSOLUTE_TTL_SECONDS,
   REFRESH_IDLE_TTL_SECONDS,
   createAccessSessionToken,
@@ -207,7 +208,7 @@ function buildSessionPlan(input: {
 }): SessionPlan {
   const now = Math.floor(Date.now() / 1000);
   if (!input.refreshCapable || !process.env.DATABASE_URL) {
-    const expiresAt = now + LEGACY_SESSION_TTL_SECONDS;
+    const expiresAt = input.provider === 'native' ? NATIVE_SESSION_EXPIRES_AT : now + LEGACY_SESSION_TTL_SECONDS;
     const token = createLegacySessionToken({ ...input, exp: expiresAt });
     return {
       token,
@@ -219,8 +220,8 @@ function buildSessionPlan(input: {
     };
   }
 
-  const absoluteExpiresAt = now + REFRESH_ABSOLUTE_TTL_SECONDS;
-  const refreshExpiresAt = Math.min(now + REFRESH_IDLE_TTL_SECONDS, absoluteExpiresAt);
+  const absoluteExpiresAt = input.provider === 'native' ? NATIVE_SESSION_EXPIRES_AT : now + REFRESH_ABSOLUTE_TTL_SECONDS;
+  const refreshExpiresAt = input.provider === 'native' ? NATIVE_SESSION_EXPIRES_AT : Math.min(now + REFRESH_IDLE_TTL_SECONDS, absoluteExpiresAt);
   const expiresAt = Math.min(now + ACCESS_TOKEN_TTL_SECONDS, absoluteExpiresAt);
   const refreshToken = createRefreshSessionToken({
     userId: input.userId,
