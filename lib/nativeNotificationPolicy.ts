@@ -1,5 +1,5 @@
 import {
-  birthdayCopy, comebackCopy, holidayCopy, inviteCopy, moodCopy, morningCopy, readyCopy, seasonCopy, skyEventCopy,
+  birthdayCopy, comebackCopy, holidayCopy, inviteCopy, moodCopy, morningCopy, readyCopy, seasonCopy, skyEventCopy, storyCopy,
   type PushCopy, type PushRoute, type SkyEventKind,
 } from './nativePushCopy';
 import { APPROXIMATE_SUN_SIGN_DATES, ZODIAC_SIGNS, type ZodiacSign } from './zodiac-utils';
@@ -11,7 +11,7 @@ export type NativeNotificationSettings = {
   quietStart: string;
   quietEnd: string;
 };
-export type NativeNotificationKind = 'daily' | 'invite' | 'comeback' | 'holiday' | 'birthday' | 'season' | 'sky' | 'ready' | 'mood';
+export type NativeNotificationKind = 'daily' | 'invite' | 'comeback' | 'holiday' | 'birthday' | 'season' | 'sky' | 'ready' | 'mood' | 'story';
 export type NativeNotificationRoute = PushRoute;
 export type NativeNotificationPlan = {
   id: number; title: string; body: string; at: number; expiresAt: number;
@@ -26,7 +26,7 @@ export type NativeNotificationProfile = {
   /** YYYY-MM-DD */
   birthDate?: string;
 };
-export const NATIVE_NOTIFICATION_ROUTES: readonly NativeNotificationRoute[] = ['today', 'natal', 'horoscope', 'compatibility', 'mood'];
+export const NATIVE_NOTIFICATION_ROUTES: readonly NativeNotificationRoute[] = ['today', 'natal', 'horoscope', 'compatibility', 'mood', 'stories'];
 /** «Неделя настроения»: seven days from startDayKey, two reminders at the chosen times. */
 export type NativeMoodWeek = { startDayKey: string; reminderTimes: [string, string] };
 export const DEFAULT_NATIVE_NOTIFICATION_SETTINGS: NativeNotificationSettings = {
@@ -132,6 +132,8 @@ export function planNativeNotifications(input: {
   accountId: string; language: 'ru' | 'en'; isSetup: boolean; settings: NativeNotificationSettings;
   readDate?: string; now?: Date; profile?: NativeNotificationProfile; skyEvents?: NativeSkyEvent[];
   moodWeek?: NativeMoodWeek | null;
+  /** Last time the person read a series episode (epoch ms); readers get «Вышла новая серия». */
+  storyReadAt?: number | null;
 }): NativeNotificationPlan[] {
   const now = input.now || new Date();
   if (!input.accountId || !input.isSetup || !input.settings.enabled || !Number.isFinite(now.getTime())) return [];
@@ -185,7 +187,11 @@ export function planNativeNotifications(input: {
       const morning = count === 2 || seed % 2 === 0;
       const invite = count === 2 || !morning;
       if (morning) routine.push({ kind: 'daily', copy: morningCopy(lang, sign, weekday, seed), window: 0, event: false });
-      if (invite) routine.push({ kind: 'invite', copy: inviteCopy(lang, seed), window: seed % 2 === 0 ? 1 : 2, event: false });
+      // Кто читает сериал, вместо общего «загляни» получает «вышла новая серия» — не чаще одного в день.
+      const following = typeof input.storyReadAt === 'number' && day.getTime() - input.storyReadAt < 4 * 24 * HOUR;
+      if (invite) routine.push(following
+        ? { kind: 'story', copy: storyCopy(lang, seed), window: 2, event: false }
+        : { kind: 'invite', copy: inviteCopy(lang, seed), window: seed % 2 === 0 ? 1 : 2, event: false });
     } else if (everyday && offset === 0) {
       routine.push({ kind: 'invite', copy: inviteCopy(lang, seed), window: 2, event: false });
     } else if (everyday && offset === 10) {

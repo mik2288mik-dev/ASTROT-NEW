@@ -124,6 +124,7 @@ async function schedulePlan(current: Context, settings: NativeNotificationSettin
     profile: { sign: resolveNotificationSign(current.selectedSign, current.birthDate), name: current.name, birthDate: current.birthDate },
     skyEvents: normalizeSkyEvents(read(current.accountId, 'sky-events')),
     moodWeek: read(current.accountId, 'mood-week') as NativeMoodWeek | null,
+    storyReadAt: typeof read(current.accountId, 'story-read-at') === 'number' ? read(current.accountId, 'story-read-at') as number : null,
   });
   const earliestReadyAt = Date.now() + 2000;
   const ready = pendingReady && pendingReady.accountId === current.accountId
@@ -215,6 +216,16 @@ export async function setNativeMoodWeek(accountId: string, week: NativeMoodWeek 
   const version = generation;
   await enqueue(() => sync(version)).catch(() => undefined);
   return preferences(accountId).enabled ? 'scheduled' : 'off';
+}
+/** Reading a series episode switches the daily «загляни» to «Вышла новая серия». */
+export function noteNativeStoryRead(accountId: string): void {
+  if (!nativeNotificationsAvailable() || context?.accountId !== accountId) return;
+  const previous = read(accountId, 'story-read-at');
+  const today = localNotificationDayKey();
+  if (typeof previous === 'number' && localNotificationDayKey(new Date(previous)) === today) return;
+  write(accountId, 'story-read-at', Date.now());
+  const version = generation;
+  void enqueue(() => sync(version)).catch(() => undefined);
 }
 export async function openNativeNotificationSettings(): Promise<void> {
   if (!nativeNotificationsAvailable() || (await Native.openSettings()).status !== 'opened') throw new Error('unavailable');

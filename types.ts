@@ -1385,7 +1385,8 @@ export type ViewState =
   | 'charts'
   | 'tests'
   | 'mood'
-  | 'sounds';
+  | 'sounds'
+  | 'stories';
 
 // Cached text types
 export interface CachedText<T = any> {

@@ -65,6 +65,8 @@ type DashboardProps = {
   onOpenMood?: () => void;
   /** Opens «Звуки»: pause, calm sounds, music and sleep stories. */
   onOpenSounds?: () => void;
+  /** Opens «Рассказы»: daily story series. */
+  onOpenStories?: () => void;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
@@ -167,6 +169,7 @@ export const Dashboard = memo<DashboardProps>(({
   onOpenTests,
   onOpenMood,
   onOpenSounds,
+  onOpenStories,
   onRequestPremium,
   onPremiumAnalytics,
   scrollRef,
@@ -833,6 +836,7 @@ export const Dashboard = memo<DashboardProps>(({
             { id: 'matrix', onOpen: onOpenMatrix },
             { id: 'tests', onOpen: onOpenTests ? () => onOpenTests() : undefined },
             { id: 'sounds', onOpen: onOpenSounds },
+            { id: 'stories', onOpen: onOpenStories },
           ]}
         />
       ) : null}

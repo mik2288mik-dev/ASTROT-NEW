@@ -29,6 +29,7 @@ import '../styles/compatibilityPicker.css';
 import '../styles/selfTests.css';
 import '../styles/moodWeek.css';
 import '../styles/sounds.css';
+import '../styles/stories.css';
 import '../styles/uiPreview.css';
 import '../styles/sharedShellFinal.css';
 import '../styles/natalMeaningMap.css';

@@ -19,6 +19,7 @@ import { processPendingRuStoreEvents } from './rustorePayments';
 import { processSupportDeliveryOutbox } from './supportOutbox';
 import { ensureNeboOpsWorker } from './neboOps';
 import { processOwnerCriticalAlerts } from './ownerCriticalAlerts';
+import { ensureAllStoryBuffers, storyGenerationEnabled } from './stories/repository';
 
 const MSK_TZ = 'Europe/Moscow';
 const DISPATCH_INTERVAL_MS = 3 * 60 * 1000; // отправка очереди каждые 3 минуты
@@ -156,6 +157,8 @@ function plannerTick() {
   const due = (h: number, m: number) => hour > h || (hour === h && minute >= m);
   // «Карта дня» — контент на день, генерим раз в сутки утром по Москве (для пуша есть фолбэк).
   if (due(6, 30)) void runOnce('daily-card-generator', dateKey, () => generateDailyCards(new Date(), { limit: 250 }));
+  // Сериалы: держим запас серий на 10 дней вперёд. Только основной сервер (не relay OpenAI).
+  if (due(3, 20) && storyGenerationEnabled()) void runOnce('story-episodes', dateKey, () => ensureAllStoryBuffers());
 
   // ЕДИНЫЙ «катящийся» планировщик — каждые 30 минут, КРУГЛОСУТОЧНО. Предлагает весь дневной набор,
   // а КОГДА и ЧТО придёт конкретному юзеру решают ЛОКАЛЬНЫЕ окна (candidateAllowed): утро 8–12 —

@@ -6,7 +6,7 @@
  */
 import type { ZodiacSign } from './zodiac-utils';
 
-export type PushRoute = 'today' | 'natal' | 'horoscope' | 'compatibility' | 'mood';
+export type PushRoute = 'today' | 'natal' | 'horoscope' | 'compatibility' | 'mood' | 'stories';
 export type PushCopy = { title: string; body: string; route: PushRoute };
 export type SkyEventKind = 'full_moon' | 'new_moon' | 'mercury_rx_start' | 'mercury_rx_end';
 type Lang = 'ru' | 'en';
@@ -243,6 +243,20 @@ export function moodCopy(lang: Lang, evening: boolean, seed: number): PushCopy {
   const list = lang === 'en' ? (evening ? MOOD_EVENING_EN : MOOD_MORNING_EN) : (evening ? MOOD_EVENING_RU : MOOD_MORNING_RU);
   return make(pick(list, seed), 'mood', lang, null);
 }
+// ───────────── Сериалы ─────────────
+const STORY_RU: Line[] = [
+  ['Вышла новая серия', 'Твой сериал продолжается — чем же всё кончилось вчера?'],
+  ['Новая серия уже здесь', 'Пять минут чтения — и узнаешь, что было дальше'],
+  ['Продолжение готово', 'Герои не стали ждать: сегодня новая серия'],
+  ['Сериал ждёт', 'Новая серия вышла. Самое время для пяти минут истории'],
+];
+const STORY_EN: Line[] = [
+  ['A new episode is out', 'Your series continues — how did yesterday end?'],
+  ['The next episode is here', 'A five-minute read to find out what happened next'],
+];
+export function storyCopy(lang: Lang, seed: number): PushCopy {
+  return make(pick(lang === 'en' ? STORY_EN : STORY_RU, seed), 'stories', lang, null);
+}
 export function readyCopy(lang: Lang, route: 'today' | 'natal'): PushCopy {
   if (lang === 'en') {
     return route === 'today'
@@ -256,7 +270,7 @@ export function readyCopy(lang: Lang, route: 'today' | 'natal'): PushCopy {
 
 /** Готовые заготовки для ручной отправки из админки (быстрая вставка). */
 /** Manual admin messages also reach installed APKs, which know only the first four routes. */
-export const ADMIN_PUSH_PRESETS: Array<{ label: string; title: string; body: string; route: Exclude<PushRoute, 'mood'> }> = [
+export const ADMIN_PUSH_PRESETS: Array<{ label: string; title: string; body: string; route: Exclude<PushRoute, 'mood' | 'stories'> }> = [
   { label: 'Доброе утро', title: 'Доброе утро', body: 'Гороскоп на сегодня уже ждёт', route: 'horoscope' },
   { label: 'Совместимость', title: 'Проверь совместимость', body: 'Узнай, насколько вы подходите друг другу', route: 'compatibility' },
   { label: 'Натальная карта', title: 'Твоя натальная карта', body: 'Узнай о себе то, чего не скажет обычный гороскоп', route: 'natal' },

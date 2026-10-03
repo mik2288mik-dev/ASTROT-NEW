@@ -135,6 +135,7 @@ import { noteCompatibilityOpened } from './lib/interestSignals';
 import { TestsRoom } from './views/v2/TestsRoom';
 import { MoodWeekRoom } from './views/v2/MoodWeekRoom';
 import { SoundsRoom } from './views/v2/SoundsRoom';
+import { StoriesRoom } from './views/v2/StoriesRoom';
 import {
     canRestorePaywallFocus,
     getPaywallFocusableElements,
@@ -2450,6 +2451,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             else if (route === 'natal') openBottomNatal();
             else if (route === 'horoscope') openBottomZodiac();
             else if (route === 'mood') navigateTo('mood');
+            else if (route === 'stories') navigateTo('stories');
             else openSynastryFromHome();
         });
     }, [loading, profile?.id, profile?.legalAcknowledgements, authSessionMode, nativeActive, nativeTapVersion, openBottomToday, openBottomNatal, openBottomZodiac, openSynastryFromHome, setPaywallContext, navigateTo]);
@@ -2589,6 +2591,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         },
         onOpenMood: () => navigateTo('mood'),
         onOpenSounds: () => navigateTo('sounds'),
+        onOpenStories: () => navigateTo('stories'),
         onOpenPair: (chartId: string, name: string) => openSynastryWithPrefill({
             source: 'saved-chart',
             partnerChartId: Number(chartId),
@@ -2738,6 +2741,14 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             profile={profile}
                             onBack={() => { void handleBack(); }}
                             onRequestPremium={premiumPromotionAllowed ? () => { void requestPremium('sounds', { placement: 'sounds', featureKey: 'sleep_stories', triggerType: 'locked_feature', returnView: 'sounds' }); } : undefined}
+                        />
+                    </div>
+                ) : view === 'stories' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        <StoriesRoom
+                            profile={profile}
+                            onBack={() => { void handleBack(); }}
+                            onRequestPremium={premiumPromotionAllowed ? () => { void requestPremium('stories', { placement: 'stories', featureKey: 'story_series', triggerType: 'locked_feature', returnView: 'stories' }); } : undefined}
                         />
                     </div>
                 ) : view === 'mood' ? (

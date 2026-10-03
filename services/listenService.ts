@@ -3,7 +3,8 @@ import { getTelegramInitDataHeaders } from './sessionService';
 
 export type ListenSource =
   | { type: 'personal_forecast'; period: 'day' | 'week' | 'month'; periodKey: string }
-  | { type: 'sleep_story'; id: string; language: 'ru' | 'en' };
+  | { type: 'sleep_story'; id: string; language: 'ru' | 'en' }
+  | { type: 'story_episode'; seriesId: string; number: number };
 export type ListenTicket = { src: string; durationSec: number };
 export type ListenError = Error & { code?: string; status?: number };
 
