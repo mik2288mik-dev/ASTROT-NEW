@@ -43,6 +43,8 @@ import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppEntryAnnouncement } from './components/AppEntryAnnouncement';
+import { AndroidUpdatePrompt } from './components/AndroidUpdatePrompt';
+import { useAndroidUpdateGate } from './services/useAndroidUpdateGate';
 import { AppTopBar, AppTopBarSettingsProvider } from './components/lumia-ui/AppTopBar';
 import { ACTION_FEEDBACK, ActionFeedbackHost, showActionFeedback } from './components/lumia-ui/ActionFeedback';
 import { NeboLogo } from './components/brand/NeboLogo';
@@ -349,7 +351,7 @@ function millisecondsUntilNextForecastDay(now: Date, timezone: string): number {
     return Math.max(250, (upper - start) + 50);
 }
 
-const App: React.FC = () => {
+const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGate> }> = ({ androidUpdate }) => {
     useDisableAppZoom();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [nativeActive, setNativeActive] = useState(true);
@@ -367,11 +369,18 @@ const App: React.FC = () => {
     const [startupRetryNonce, setStartupRetryNonce] = useState(0);
     const [authSessionMode, setAuthSessionModeState] = useState<AuthSessionMode>('automatic');
     const [authGateMessage, setAuthGateMessage] = useState<string | null>(null);
-    const [view, setView] = useState<ViewState>('onboarding');
+    const [view, setViewState] = useState<ViewState>('onboarding');
+    const setView = useCallback((nextView: ViewState) => {
+        if (androidUpdate.allowNavigation(nextView)) setViewState(nextView);
+        else setViewState('dashboard');
+    }, [androidUpdate.allowNavigation]);
     useProductActivity({ enabled: Boolean(profile?.id), accountKey: profile?.id, screen: view });
     const [onboardingInitialStep, setOnboardingInitialStep] = useState<'stories' | 'birth'>('stories');
     const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
-    const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
+    const [navigationSheet, setNavigationSheetState] = useState<LumiaNavigationSheetId | null>(null);
+    const setNavigationSheet = useCallback((sheet: LumiaNavigationSheetId | null) => {
+        if (!sheet || androidUpdate.allowNavigation('menu')) setNavigationSheetState(sheet);
+    }, [androidUpdate.allowNavigation]);
     const [serviceTab, setServiceTab] = useState<ServiceTab>('knowledge');
     const [serviceStoreContext] = useState<PaywallContext>(() => createPaywallContextFromRequest({
         source: 'settings',
@@ -381,9 +390,10 @@ const App: React.FC = () => {
     const [paywallContext, setPaywallContextState] = useState<PaywallContext | null>(null);
     const paywallContextRef = useRef<PaywallContext | null>(null);
     const setPaywallContext = useCallback((nextContext: PaywallContext | null) => {
+        if (nextContext && !androidUpdate.allowNavigation('paywall')) return;
         paywallContextRef.current = nextContext;
         setPaywallContextState(nextContext);
-    }, []);
+    }, [androidUpdate.allowNavigation]);
     paywallContextRef.current = paywallContext;
     const [premiumContinuation, setPremiumContinuation] = useState<PaywallContext | null>(null);
     const [pendingPremiumRecovery, setPendingPremiumRecovery] = useState<{
@@ -428,6 +438,14 @@ const App: React.FC = () => {
     const firstValueReachedRef = useRef(false);
     const navigationHistoryRef = useRef<ViewState[]>([]);
     activeProfileUserIdRef.current = profile?.id ? String(profile.id) : '';
+
+    useEffect(() => {
+        if (!androidUpdate.required) return;
+        setNavigationSheetState(null);
+        setPaywallContext(null);
+        navigationHistoryRef.current = [];
+        if (view !== 'onboarding') setViewState('dashboard');
+    }, [androidUpdate.required, view, setPaywallContext]);
 
     useEffect(() => {
         const accountKey = profile?.id ? String(profile.id) : '';
@@ -1979,6 +1997,7 @@ const App: React.FC = () => {
     }, []);
 
     const openNatalSetupOnboarding = useCallback((returnView?: ViewState, targetView: ViewState = 'chart') => {
+        if (!androidUpdate.allowNavigation(targetView)) return;
         const currentView = viewRef.current;
         const safeReturnView =
             returnView && returnView !== 'onboarding' && returnView !== 'paywall'
@@ -1998,7 +2017,7 @@ const App: React.FC = () => {
         setChartReturnView(safeReturnView === 'chart' ? 'dashboard' : safeReturnView);
         setOnboardingInitialStep('birth');
         setView('onboarding');
-    }, []);
+    }, [androidUpdate.allowNavigation]);
 
     const getFeatureAccess = useCallback((featureKey: FeatureKey) => (
         canAccessFeature(featureKey, profile, {
@@ -2008,6 +2027,7 @@ const App: React.FC = () => {
     ), [activeChartId, chartData, primaryChartId, profile]);
 
     const gateFeatureAccess = useCallback((featureKey: FeatureKey, targetView: ViewState) => {
+        if (!androidUpdate.allowNavigation(targetView)) return false;
         const access = getFeatureAccess(featureKey);
         if (access.allowed) return true;
 
@@ -2038,10 +2058,11 @@ const App: React.FC = () => {
         }
 
         return false;
-    }, [getFeatureAccess, openNatalSetupOnboarding]);
+    }, [androidUpdate.allowNavigation, getFeatureAccess, openNatalSetupOnboarding]);
 
     const navigateTo = useCallback((newView: ViewState, options?: { replace?: boolean }) => {
         if (!profile) return;
+        if (!androidUpdate.allowNavigation(newView)) return;
         const currentView = viewRef.current;
 
         if (PRIMARY_CHART_NAVIGATION_VIEWS.has(newView)) {
@@ -2071,7 +2092,7 @@ const App: React.FC = () => {
         }
 
         setView(newView);
-    }, [getFeatureAccess, openNatalSetupOnboarding, profile, pushReturnView]);
+    }, [androidUpdate.allowNavigation, getFeatureAccess, openNatalSetupOnboarding, profile, pushReturnView]);
 
     const refreshPrimaryChartState = useCallback(async () => {
         if (!profile?.id) return;
@@ -2886,7 +2907,7 @@ const App: React.FC = () => {
                 </div>
             ) : null}
 
-            {!paywallContext && !navigationSheet ? (
+            {!paywallContext && !navigationSheet && !androidUpdate.promptOpen ? (
                 <AppEntryAnnouncement
                     announcement={appEntryAnnouncement}
                     onClose={closeAppEntryAnnouncement}
@@ -2913,8 +2934,23 @@ const App: React.FC = () => {
                     />
                 </>
             ) : null}
+
         </div>
         </AppTopBarSettingsProvider>
+    );
+};
+
+const App: React.FC = () => {
+    const androidUpdate = useAndroidUpdateGate();
+    return (
+        <>
+            <AppContent androidUpdate={androidUpdate} />
+            <AndroidUpdatePrompt
+                open={androidUpdate.promptOpen}
+                versionName={androidUpdate.policy?.versionName}
+                onClose={androidUpdate.dismiss}
+            />
+        </>
     );
 };
 

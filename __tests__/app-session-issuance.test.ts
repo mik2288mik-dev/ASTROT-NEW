@@ -24,6 +24,7 @@ jest.mock('../lib/auth/accountIdentity', () => ({
 }));
 
 import { createAppUserSession, verifyAppSessionToken } from '../lib/auth/appAuth';
+import { ACCESS_TOKEN_TTL_SECONDS, NATIVE_SESSION_EXPIRES_AT } from '../lib/auth/sessionTokens';
 
 const originalDatabaseUrl = process.env.DATABASE_URL;
 
@@ -77,6 +78,22 @@ describe('app session issuance account guard', () => {
       kind: 'web',
       sessionVersion: 2,
     })).resolves.toMatchObject({ sessionVersion: 2 });
+  });
+
+  it('issues persistent native credentials while keeping access tokens short', async () => {
+    mockClientQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('SELECT is_blocked')) return { rowCount: 1, rows: [{ is_blocked: false }] };
+      return { rowCount: 1, rows: [] };
+    });
+    const native = await createAppUserSession({ userId: '42', kind: 'native', sessionVersion: 2 });
+    expect(native.refreshExpiresAt).toBe(NATIVE_SESSION_EXPIRES_AT);
+    expect(native.absoluteExpiresAt).toBe(NATIVE_SESSION_EXPIRES_AT);
+    const access = verifyAppSessionToken(native.token)!;
+    expect(access.exp - access.issuedAt!).toBe(ACCESS_TOKEN_TTL_SECONDS);
+    const legacy = await createAppUserSession({ userId: '42', kind: 'native', sessionVersion: 1 });
+    expect(legacy.expiresAt).toBe(NATIVE_SESSION_EXPIRES_AT);
+    const web = await createAppUserSession({ userId: '42', kind: 'web', sessionVersion: 2 });
+    expect(web.absoluteExpiresAt).toBeLessThan(NATIVE_SESSION_EXPIRES_AT);
   });
 
   it.each([

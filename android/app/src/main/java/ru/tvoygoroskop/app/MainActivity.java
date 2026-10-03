@@ -1,6 +1,5 @@
 package ru.tvoygoroskop.app;
 
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 
@@ -14,7 +13,6 @@ import ru.tvoygoroskop.app.notifications.NativeNotificationsPlugin;
 
 /** Android entry point for the public RuStore application identity. */
 public class MainActivity extends BridgeActivity {
-    private Object ruStoreUpdateBridge;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -24,6 +22,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NativeIdentityAuthPlugin.class);
         registerPlugin(MyTrackerPlugin.class);
         registerPlugin(NativeNotificationsPlugin.class);
+        if (isRuStoreBuild()) registerRuStoreUpdatePlugin();
         if (isRuStorePaymentsEnabled()) {
             registerRuStorePlugin();
         }
@@ -33,7 +32,6 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         NativeDiagnosticsPlugin.mark(this, "activity_onCreate_after_capacitor");
         if (isRuStorePaymentsEnabled() && savedInstanceState == null) proceedRuStoreIntent(getIntent());
-        startRuStoreUpdateCheck();
     }
 
     @Override
@@ -64,7 +62,6 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onDestroy() {
-        stopRuStoreUpdateCheck();
         super.onDestroy();
     }
 
@@ -112,26 +109,13 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    private void startRuStoreUpdateCheck() {
-        if (!isRuStoreBuild() || ruStoreUpdateBridge != null) return;
+    @SuppressWarnings("unchecked")
+    private void registerRuStoreUpdatePlugin() {
         try {
             Class<?> bridgeClass = Class.forName("ru.tvoygoroskop.app.rustore.RuStoreUpdateBridge");
-            Object bridge = bridgeClass.getConstructor(Context.class).newInstance(this);
-            ruStoreUpdateBridge = bridge;
-            bridgeClass.getMethod("start").invoke(bridge);
+            registerPlugin((Class<? extends Plugin>) bridgeClass);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
-            ruStoreUpdateBridge = null;
-        }
-    }
-
-    private void stopRuStoreUpdateCheck() {
-        Object bridge = ruStoreUpdateBridge;
-        ruStoreUpdateBridge = null;
-        if (bridge == null) return;
-        try {
-            bridge.getClass().getMethod("stop").invoke(bridge);
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
-            // Update cleanup is best-effort and must never affect app shutdown.
+            // The update plugin exists only in the RuStore flavor.
         }
     }
 }

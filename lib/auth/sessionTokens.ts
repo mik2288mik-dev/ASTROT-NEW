@@ -6,6 +6,9 @@ export const LEGACY_SESSION_TTL_SECONDS = 60 * 24 * 60 * 60;
 export const REFRESH_IDLE_TTL_SECONDS = 90 * 24 * 60 * 60;
 export const REFRESH_ABSOLUTE_TTL_SECONDS = 365 * 24 * 60 * 60;
 export const REFRESH_CONCURRENCY_GRACE_SECONDS = 30;
+// Numeric wire compatibility with installed APKs; native families are revoked
+// explicitly rather than expired by idle/absolute timers. PostgreSQL/JS-safe.
+export const NATIVE_SESSION_EXPIRES_AT = 253402300799; // 9999-12-31T23:59:59Z
 
 const ACCESS_TOKEN_PREFIX = 'a2';
 const REFRESH_TOKEN_PREFIX = 'r2';
