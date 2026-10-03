@@ -7,6 +7,7 @@ import {
   buildCanonicalNatalInputHash,
   buildLegacyCanonicalNatalInputHash,
   isCanonicalNatalChartDataComplete,
+  isSameBirthClockTime,
 } from './natalChartCanonical';
 import { natalChartV2Repository } from './natalChartV2Repository';
 import {
@@ -316,7 +317,7 @@ async function hasCurrentSavedChart(userId: string, profile: PersonalForecastRaw
   // details still match; do not force a recalculation just for prewarming.
   return chart.input_hash === buildLegacyCanonicalNatalInputHash(input)
     && birth.localDate === profile.birthDate
-    && (birth.time?.localTime || undefined) === (profile.birthTime || undefined);
+    && isSameBirthClockTime(birth.time?.localTime, profile.birthTime);
 }
 
 /** A Premium package cannot be read after expiry because the cache is tier-scoped. */

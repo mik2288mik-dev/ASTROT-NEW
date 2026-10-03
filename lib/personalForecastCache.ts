@@ -1,5 +1,5 @@
 import { natalChartV2Repository } from './natalChartV2Repository';
-import { isCanonicalNatalChartDataComplete, buildCanonicalNatalInputHash, buildLegacyCanonicalNatalInputHash } from './natalChartCanonical';
+import { isCanonicalNatalChartDataComplete, buildCanonicalNatalInputHash, buildLegacyCanonicalNatalInputHash, isSameBirthClockTime } from './natalChartCanonical';
 import type { ContentInterpretation, UserProfile } from '../types';
 import { PERSONAL_FORECAST_VOICE_VERSION } from './appVoice';
 import { getUnifiedContentModel } from './appSettings';
@@ -286,7 +286,7 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
         if (savedChart.input_hash === expectedLegacyHash) {
           if (
               natal.birth.localDate === input.profile.birthDate &&
-              (natal.birth.time?.localTime || undefined) === (input.profile.birthTime || undefined) &&
+              isSameBirthClockTime(natal.birth.time?.localTime, input.profile.birthTime) &&
               natal.birth.latitude !== undefined &&
               natal.birth.longitude !== undefined &&
               natal.birth.timezone !== undefined

@@ -37,6 +37,18 @@ export function normalizeCoordinateForStorage(value: number): number {
   return Number(value.toFixed(6));
 }
 
+/**
+ * Saved charts keep birth time as "HH:MM", while users.birth_time is a SQL TIME
+ * and reads back as "HH:MM:SS". Compare only the clock minutes.
+ */
+export function isSameBirthClockTime(left?: string | null, right?: string | null): boolean {
+  const clock = (value?: string | null) => {
+    const match = /^(\d{1,2}):(\d{2})/.exec(String(value || '').trim());
+    return match ? `${match[1].padStart(2, '0')}:${match[2]}` : undefined;
+  };
+  return clock(left) === clock(right);
+}
+
 export function buildCanonicalNatalInputHash(input: {
   birthDate: string;
   birthPlace?: string;
