@@ -4,7 +4,7 @@ jest.mock('../services/sessionService', () => ({ getTelegramInitDataHeaders: () 
 import { apiFetch } from '../services/apiClient';
 import { loadPersonalForecast, primePersonalForecastDayHorizon, clearPersonalForecastSessionCache } from '../services/personalForecastService';
 import { personalForecastFixture } from './personal-forecast-fixture';
-import { PERSONAL_FORECAST_CONTRACT_VERSION } from '../lib/personalForecastContract';
+import { PERSONAL_FORECAST_CONTRACT_VERSION, PERSONAL_FORECAST_PROMPT_VERSION } from '../lib/personalForecastContract';
 import { LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION, projectPersonalForecastForWire } from '../lib/personalForecastWireCompatibility';
 
 const mockedFetch = apiFetch as jest.Mock;
@@ -62,6 +62,8 @@ describe('personal forecast cache miss generation', () => {
     for (const [url] of mockedFetch.mock.calls) {
       expect(new URL(url, 'https://nebo.invalid').searchParams.get('contractVersion'))
         .toBe(PERSONAL_FORECAST_CONTRACT_VERSION);
+      expect(new URL(url, 'https://nebo.invalid').searchParams.get('promptVersion'))
+        .toBe(PERSONAL_FORECAST_PROMPT_VERSION);
     }
     expect(mockedFetch.mock.calls.map(([, options]) => options.method)).toEqual(['GET', 'POST', 'GET']);
   });

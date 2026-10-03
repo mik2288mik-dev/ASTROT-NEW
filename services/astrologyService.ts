@@ -273,7 +273,7 @@ export const getCachedDailySignHoroscope = async (
   const local = readLocalSignHoroscope('today', sign, date, language);
   if (local?.periodKey === date) return local;
 
-  const params = new URLSearchParams({ sign, date, language });
+  const params = new URLSearchParams({ sign, date, language, schemaVersion: 'sign-horoscope-reading-v5' });
   const url = `${API_BASE_URL}/api/content/horoscope/sign-daily?${params.toString()}`;
   log.info('[getCachedDailySignHoroscope] Starting request', { sign, date, language });
 
@@ -321,7 +321,7 @@ export const getCachedWeeklySignHoroscope = async (
 ): Promise<SignHoroscopeReadingV2 | null> => {
   const local = readLocalSignHoroscope('week', sign, periodKey, language);
   if (local?.periodKey === periodKey) return local;
-  const params = new URLSearchParams({ sign, periodKey, language });
+  const params = new URLSearchParams({ sign, periodKey, language, schemaVersion: 'sign-horoscope-reading-v5' });
   const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-weekly?${params}`, {
     method: 'GET',
     credentials: 'include',
@@ -357,7 +357,7 @@ export const getCachedMonthlySignHoroscope = async (
 ): Promise<SignHoroscopeReadingV2 | null> => {
   const local = readLocalSignHoroscope('month', sign, periodKey, language);
   if (local?.periodKey === periodKey) return local;
-  const params = new URLSearchParams({ sign, periodKey, language });
+  const params = new URLSearchParams({ sign, periodKey, language, schemaVersion: 'sign-horoscope-reading-v5' });
   const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-monthly?${params}`, {
     method: 'GET',
     credentials: 'include',

@@ -22,6 +22,7 @@ import { getPersonalForecastGenerationDiagnosticCode } from '../../../../lib/per
 import {
   projectPersonalForecastForWire,
   resolvePersonalForecastWireVersion,
+  resolvePersonalForecastWirePromptVersion,
 } from '../../../../lib/personalForecastWireCompatibility';
 import {
   buildPersonalForecastPrewarmProfile,
@@ -32,6 +33,7 @@ import { db } from '../../../../lib/db';
 import { diagnosticErrorCode } from '../../../../lib/diagnosticTrace';
 import { startServerOperationalDiagnostic } from '../../../../lib/serverOperationalDiagnostics';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
+import { rememberNativeSignReader } from '../../../../lib/horoscope/signClientCompatibility';
 
 export const config = { maxDuration: 180 };
 
@@ -85,6 +87,7 @@ function responsePayload(
   isPremium: boolean,
   source: PersonalForecastAccessPayload['source'],
   wireVersion: string,
+  promptVersion: string,
 ) {
   const sliced = slicePersonalForecastForAccess(forecast, isPremium);
   return projectPersonalForecastForWire({
@@ -93,7 +96,7 @@ function responsePayload(
     lockedSectionIds: sliced.lockedSectionIds,
     periodLocked: sliced.periodLocked,
     source,
-  }, wireVersion);
+  }, wireVersion, promptVersion);
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -110,7 +113,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const wireVersion = resolvePersonalForecastWireVersion(
     req.method === 'GET' ? (contractVersionInput === undefined ? undefined : readSingleQueryValue(contractVersionInput)) : contractVersionInput,
   );
-  if (!wireVersion) {
+  const promptVersionInput = req.method === 'GET'
+    ? req.query.promptVersion
+    : (req.body?.promptVersion ?? req.query.promptVersion);
+  const wirePromptVersion = wireVersion
+    ? resolvePersonalForecastWirePromptVersion(wireVersion, promptVersionInput)
+    : null;
+  if (!wireVersion || !wirePromptVersion) {
     diagnostic.log('validation', 'error', { httpStatus: 400, errorCode: 'PERSONAL_FORECAST_CONTRACT_UNSUPPORTED' });
     return res.status(400).json({
       error: 'Unsupported personal forecast format. Update the application.',
@@ -120,6 +129,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const userId = String(auth.userId);
   diagnostic.setUser(userId);
+  await rememberNativeSignReader(req, auth, wireVersion);
   const [user, birthSettings] = await Promise.all([
     db.users.get(userId, { hydratePrimaryChart: false }),
     birthProfileRepository.get(userId),
@@ -179,7 +189,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ) {
           diagnostic.log('cache_read', 'cache_hit', { period, source: 'cache', httpStatus: 200 });
           return res.status(200).json(
-            responsePayload(cached.forecast, entitlement.isPremium, 'cache', wireVersion),
+            responsePayload(cached.forecast, entitlement.isPremium, 'cache', wireVersion, wirePromptVersion),
           );
         }
       }
@@ -199,6 +209,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           entitlement.isPremium,
           'stale',
           wireVersion,
+          wirePromptVersion,
         ));
       }
     }
@@ -262,6 +273,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       entitlement.isPremium,
       generated.fromCache ? 'cache' : 'generated',
       wireVersion,
+      wirePromptVersion,
     ));
   } catch (error) {
     const diagnosticCode = getPersonalForecastGenerationDiagnosticCode(error);
@@ -278,6 +290,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         entitlement.isPremium,
         'stale',
         wireVersion,
+        wirePromptVersion,
       ));
     }
 

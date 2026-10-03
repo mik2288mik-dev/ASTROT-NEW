@@ -285,6 +285,7 @@ function buildUrl(input: {
     period: input.period,
     periodKey: input.periodKey,
     contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
+    promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
   });
   return `/api/content/forecast/personal?${params.toString()}`;
 }

@@ -1,4 +1,5 @@
 jest.mock('../lib/auth/appAuth', () => ({ requireAppUser: jest.fn() }));
+jest.mock('../lib/horoscope/signClientCompatibility', () => ({ rememberNativeSignReader: jest.fn() }));
 jest.mock('../lib/contentArchitecture', () => ({ getPremiumEntitlementState: jest.fn() }));
 jest.mock('../lib/personalForecastCache', () => ({
   ensurePersonalForecast: jest.fn(), getCompatibleStalePersonalForecast: jest.fn(), getCachedPersonalForecast: jest.fn(),
@@ -18,7 +19,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAppUser } from '../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../lib/contentArchitecture';
 import { ensurePersonalForecast, getCachedPersonalForecast, getCompatibleStalePersonalForecast } from '../lib/personalForecastCache';
-import { PERSONAL_FORECAST_CONTRACT_VERSION, isPersonalForecastPackage, type PersonalForecastPeriod } from '../lib/personalForecastContract';
+import { PERSONAL_FORECAST_CONTRACT_VERSION, PERSONAL_FORECAST_PROMPT_VERSION, isPersonalForecastPackage, type PersonalForecastPeriod } from '../lib/personalForecastContract';
 import { LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION, RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION } from '../lib/personalForecastWireCompatibility';
 import { db } from '../lib/db';
 import handler from '../pages/api/content/forecast/personal';
@@ -28,6 +29,7 @@ async function request(input: {
   period: PersonalForecastPeriod;
   method?: 'GET' | 'POST';
   version?: unknown;
+  promptVersion?: unknown;
   periodKey?: string;
 }) {
   const result: { status: number; body: any } = { status: 200, body: null };
@@ -37,7 +39,7 @@ async function request(input: {
   } as unknown as NextApiResponse;
   await handler({
     method: input.method || 'GET', headers: {},
-    query: { period: input.period, ...(input.periodKey ? { periodKey: input.periodKey } : {}), ...(input.version === undefined ? {} : { contractVersion: input.version }) },
+    query: { period: input.period, ...(input.periodKey ? { periodKey: input.periodKey } : {}), ...(input.version === undefined ? {} : { contractVersion: input.version }), ...(input.promptVersion === undefined ? {} : { promptVersion: input.promptVersion }) },
     body: { period: input.period, ...(input.periodKey ? { periodKey: input.periodKey } : {}) },
   } as unknown as NextApiRequest, response);
   return result;
@@ -75,7 +77,7 @@ describe('forecast API wire negotiation and entitlement', () => {
   it.each<PersonalForecastPeriod>(['day', 'week', 'month'])('serves a strict current Premium %s package on explicit negotiation', async (period) => {
     const forecast = personalForecastFixture(period);
     (getCachedPersonalForecast as jest.Mock).mockResolvedValue({ forecast });
-    const result = await request({ period, version: PERSONAL_FORECAST_CONTRACT_VERSION });
+    const result = await request({ period, version: PERSONAL_FORECAST_CONTRACT_VERSION, promptVersion: PERSONAL_FORECAST_PROMPT_VERSION });
     expect(result.status).toBe(200);
     expect(isPersonalForecastPackage(result.body.forecast)).toBe(true);
     expect(result.body.forecast.meta.contractVersion).toBe(PERSONAL_FORECAST_CONTRACT_VERSION);
@@ -120,6 +122,26 @@ describe('forecast API wire negotiation and entitlement', () => {
     expect(db.users.get).not.toHaveBeenCalled();
     expect(getCachedPersonalForecast).not.toHaveBeenCalled();
     expect(ensurePersonalForecast).not.toHaveBeenCalled();
+  });
+
+  it.each(['cache', 'stale', 'generated'] as const)('keeps the installed 1.0.5 prompt identity on the %s path', async (source) => {
+    const forecast = personalForecastFixture();
+    if (source === 'cache') (getCachedPersonalForecast as jest.Mock).mockResolvedValue({ forecast });
+    if (source === 'stale') (getCompatibleStalePersonalForecast as jest.Mock).mockResolvedValue({ forecast });
+    (ensurePersonalForecast as jest.Mock).mockResolvedValue({ status: 'ready', value: forecast, fromCache: false });
+    const result = await request({ period: 'day', method: source === 'generated' ? 'POST' : 'GET', version: 'personal-forecast-feed-v34-direct-prose' });
+    expect(result.status).toBe(200);
+    expect(result.body.forecast.meta.promptVersion).toBe('personal-forecast-feed.v57-grounded-today+week-month+forecast-voice.16');
+    expect(result.body.forecast.meta.currentGeneration.promptVersion).toBe(PERSONAL_FORECAST_PROMPT_VERSION);
+    expect(forecast.meta.promptVersion).toBe(PERSONAL_FORECAST_PROMPT_VERSION);
+  });
+
+  it('rejects unsupported prompt identities before reading personal content', async () => {
+    const result = await request({ period: 'day', version: PERSONAL_FORECAST_CONTRACT_VERSION, promptVersion: 'unknown-prompt' });
+    expect(result.status).toBe(400);
+    expect(result.body.code).toBe('PERSONAL_FORECAST_CONTRACT_UNSUPPORTED');
+    expect(db.users.get).not.toHaveBeenCalled();
+    expect(getCachedPersonalForecast).not.toHaveBeenCalled();
   });
 
   it('gates future dates before cache access for both installed and current clients', async () => {
