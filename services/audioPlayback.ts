@@ -17,6 +17,8 @@ export type AudioPlaybackState = {
   rate: number;
   loop: boolean;
   error: boolean;
+  /** Epoch ms when the sleep timer fades the track out. */
+  sleepAt: number | null;
 };
 
 const INITIAL: AudioPlaybackState = {
@@ -30,6 +32,7 @@ const INITIAL: AudioPlaybackState = {
   rate: 1,
   loop: false,
   error: false,
+  sleepAt: null,
 };
 
 let state: AudioPlaybackState = INITIAL;
@@ -121,7 +124,43 @@ export function setPlaybackVolume(volume: number): void {
   audio().volume = Math.min(1, Math.max(0, volume));
 }
 
+let sleepTimer: ReturnType<typeof setTimeout> | null = null;
+let fadeTimer: ReturnType<typeof setInterval> | null = null;
+
+function clearSleepTimer() {
+  if (sleepTimer) clearTimeout(sleepTimer);
+  if (fadeTimer) clearInterval(fadeTimer);
+  sleepTimer = null;
+  fadeTimer = null;
+}
+
+/** Sleep timer: after N minutes the volume fades over ten seconds and the track pauses. */
+export function setSleepTimer(minutes: number | null): void {
+  clearSleepTimer();
+  if (element) element.volume = 1;
+  if (!minutes) {
+    emit({ sleepAt: null });
+    return;
+  }
+  const sleepAt = Date.now() + minutes * 60_000;
+  sleepTimer = setTimeout(() => {
+    let step = 0;
+    fadeTimer = setInterval(() => {
+      step += 1;
+      if (element) element.volume = Math.max(0, 1 - step / 20);
+      if (step >= 20) {
+        clearSleepTimer();
+        element?.pause();
+        if (element) element.volume = 1;
+        emit({ sleepAt: null });
+      }
+    }, 500);
+  }, Math.max(0, minutes * 60_000 - 10_000));
+  emit({ sleepAt });
+}
+
 export function stopPlayback(): void {
+  clearSleepTimer();
   if (element) {
     element.pause();
     element.removeAttribute('src');

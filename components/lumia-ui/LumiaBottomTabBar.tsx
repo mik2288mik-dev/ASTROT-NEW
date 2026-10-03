@@ -47,6 +47,7 @@ export const LUMIA_BOTTOM_NAV_VIEWS: readonly ViewState[] = [
   'charts',
   'tests',
   'mood',
+  'sounds',
 ];
 const NATAL_VIEWS: ViewState[] = ['chart', 'matrix', 'personality'];
 const SERVICE_VIEWS: ViewState[] = ['services', 'encyclopedia', 'settings', 'charts'];

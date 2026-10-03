@@ -134,6 +134,7 @@ import { isReadableNatalChart } from './lib/readableNatalChart';
 import { noteCompatibilityOpened } from './lib/interestSignals';
 import { TestsRoom } from './views/v2/TestsRoom';
 import { MoodWeekRoom } from './views/v2/MoodWeekRoom';
+import { SoundsRoom } from './views/v2/SoundsRoom';
 import {
     canRestorePaywallFocus,
     getPaywallFocusableElements,
@@ -2587,6 +2588,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             navigateTo('tests');
         },
         onOpenMood: () => navigateTo('mood'),
+        onOpenSounds: () => navigateTo('sounds'),
         onOpenPair: (chartId: string, name: string) => openSynastryWithPrefill({
             source: 'saved-chart',
             partnerChartId: Number(chartId),
@@ -2728,6 +2730,14 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onBack={() => { void handleBack(); }}
                             onOpenNatal={openBottomNatal}
                             onOpenMood={() => navigateTo('mood')}
+                        />
+                    </div>
+                ) : view === 'sounds' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        <SoundsRoom
+                            profile={profile}
+                            onBack={() => { void handleBack(); }}
+                            onRequestPremium={premiumPromotionAllowed ? () => { void requestPremium('sounds', { placement: 'sounds', featureKey: 'sleep_stories', triggerType: 'locked_feature', returnView: 'sounds' }); } : undefined}
                         />
                     </div>
                 ) : view === 'mood' ? (

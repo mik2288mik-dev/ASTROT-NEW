@@ -1,0 +1,311 @@
+/* «Звуки»: pause, calm sounds, music and sleep stories. */
+.sounds-room {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 42rem;
+  margin: 0 auto;
+  color: #292724;
+}
+
+.sounds-pause,
+.sounds-section,
+.sounds-timer,
+.sounds-room > .sounds-note {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.sounds-pause {
+  margin-top: 0.3rem;
+  padding: 1.1rem 1rem 1rem;
+  border-radius: 1.4rem;
+  background: linear-gradient(160deg, #eef4fb 0%, #f3eefb 100%);
+  text-align: center;
+}
+
+.sounds-pause h2,
+.sounds-section h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sounds-pause > p {
+  margin: 0 0 0.6rem;
+  color: #5f5a54;
+  font-size: 0.86rem;
+}
+
+.sounds-breath {
+  position: relative;
+  display: grid;
+  width: 12rem;
+  height: 12rem;
+  margin: 0.4rem auto 0.6rem;
+  place-items: center;
+}
+
+.sounds-breath-circle {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: radial-gradient(circle at 40% 35%, #ffffff 0%, #cfe0f7 45%, #b9c8f0 100%);
+  box-shadow: 0 18px 40px rgba(90, 110, 170, 0.22);
+  transform: scale(0.62);
+  transition: transform 4s ease-in-out;
+}
+
+.sounds-breath.is-inhale .sounds-breath-circle {
+  transform: scale(1);
+  transition-duration: 4s;
+}
+
+.sounds-breath.is-exhale .sounds-breath-circle {
+  transform: scale(0.62);
+  transition-duration: 6s;
+}
+
+.sounds-breath-label {
+  position: relative;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.sounds-breath-label strong {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.sounds-breath-label small {
+  color: #5f5a54;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sounds-pause-left {
+  margin: 0 0 0.5rem;
+  color: #5f5a54;
+  font-size: 0.82rem;
+}
+
+.sounds-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.sounds-chip {
+  min-height: 2.3rem;
+  padding: 0 0.9rem;
+  border: 1px solid rgba(41, 39, 36, 0.14);
+  border-radius: 999px;
+  background: #fff;
+  color: #292724;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sounds-chip.is-active {
+  border-color: #292724;
+  background: #292724;
+  color: #fff;
+}
+
+.sounds-primary {
+  width: 100%;
+  min-height: 3rem;
+  margin-top: 0.8rem;
+  border: 0;
+  border-radius: 999px;
+  background: #292724;
+  color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sounds-section {
+  margin-top: 1.4rem;
+}
+
+.sounds-note {
+  margin: 0 0 0.6rem;
+  color: #77716a;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.sounds-note--bottom {
+  margin-top: 1.2rem;
+  margin-bottom: 1.4rem;
+}
+
+.sounds-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.sounds-tile {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 0.4rem 0.6rem;
+  border: 1px solid rgba(41, 39, 36, 0.08);
+  border-radius: 1.15rem;
+  background: #fff;
+  color: #292724;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sounds-tile.is-active {
+  border-color: #292724;
+  box-shadow: 0 8px 20px rgba(41, 39, 36, 0.1);
+}
+
+.sounds-tile-art {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 1rem;
+}
+
+.sounds-tile-state {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  color: #77716a;
+}
+
+.sounds-tile.is-active .sounds-tile-state {
+  color: #292724;
+}
+
+.sounds-list,
+.sounds-stories {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sounds-row,
+.sounds-story-main {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(41, 39, 36, 0.08);
+  border-radius: 1.1rem;
+  background: #fff;
+  color: #292724;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sounds-row.is-active,
+.sounds-story.is-active .sounds-story-main {
+  border-color: #292724;
+}
+
+.sounds-row-icon {
+  display: inline-flex;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #f1eee9;
+}
+
+.sounds-row-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.sounds-row-copy strong {
+  font-size: 0.95rem;
+}
+
+.sounds-row-copy small {
+  color: #5f5a54;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.sounds-row-copy em {
+  color: #8a847d;
+  font-size: 0.74rem;
+  font-style: normal;
+}
+
+.sounds-story {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.sounds-sleep-timer {
+  justify-content: flex-start;
+}
+
+.sounds-timer {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 1.1rem;
+  background: #f6f4f0;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.sounds-timer .sounds-chips {
+  justify-content: flex-start;
+}
+
+.sounds-stop {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 2.3rem;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: #292724;
+  color: #fff;
+  font: inherit;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.sounds-chip:focus-visible,
+.sounds-primary:focus-visible,
+.sounds-tile:focus-visible,
+.sounds-row:focus-visible,
+.sounds-story-main:focus-visible,
+.sounds-stop:focus-visible {
+  outline: 2px solid #292724;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sounds-breath-circle {
+    transition-duration: 0s !important;
+  }
+}
