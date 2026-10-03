@@ -7,7 +7,7 @@ export const ACTIVITY_SCREENS = [
   'dashboard', 'horoscope', 'chart', 'synastry', 'menu', 'settings', 'charts',
   'people', 'future', 'matrix', 'questions', 'premium', 'paywall', 'onboarding',
   'encyclopedia', 'support', 'saved', 'natal', 'compatibility', 'personal_forecast',
-  'tests', 'mood',
+  'tests', 'mood', 'sounds',
 ] as const;
 export type ActivityScreen = typeof ACTIVITY_SCREENS[number];
 export function activityScreen(value: unknown): ActivityScreen | null {

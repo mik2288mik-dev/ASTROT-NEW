@@ -9,6 +9,7 @@ import { isCurrentPersonalForecastPeriodKey, normalizeForecastTimezone, type Per
 import { buildForecastListenScript } from '../../../lib/tts/forecastListenScript';
 import { TTS_DEFAULT_VOICE } from '../../../lib/tts/openaiSpeech';
 import { ensureAudio } from '../../../lib/tts/ttsStore';
+import { findSleepStory } from '../../../lib/sleepStories';
 
 export const config = { api: { bodyParser: { sizeLimit: '4kb' } }, maxDuration: 120 };
 
@@ -28,7 +29,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const auth = await requireAppUser(req, { allowGuest: true });
     const userId = String(auth.userId);
-    const source = (req.body || {}).source as { type?: unknown; period?: unknown; periodKey?: unknown } | undefined;
+    const source = (req.body || {}).source as { type?: unknown; period?: unknown; periodKey?: unknown; id?: unknown; language?: unknown } | undefined;
+    if (source?.type === 'sleep_story') {
+      // Authored stories: voiced once for everyone, kept without expiry.
+      const story = typeof source.id === 'string' ? findSleepStory(source.id) : null;
+      if (!story) return res.status(400).json({ code: 'LISTEN_SOURCE_INVALID' });
+      if (!story.free && !(await getPremiumEntitlementState(userId)).isPremium) {
+        return res.status(403).json({ code: 'LISTEN_PREMIUM_REQUIRED' });
+      }
+      const language = source.language === 'en' ? 'en' : 'ru';
+      const ticket = await ensureAudio({ text: story.text[language], voice: story.voice, style: 'sleep', ttlDays: null });
+      return res.status(200).json({ audioId: ticket.id, durationSec: ticket.durationSec, cached: ticket.cached });
+    }
     const period = source?.period;
     if (source?.type !== 'personal_forecast' || (period !== 'day' && period !== 'week' && period !== 'month') || typeof source.periodKey !== 'string') {
       return res.status(400).json({ code: 'LISTEN_SOURCE_INVALID' });

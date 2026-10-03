@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Headphones, LoaderCircle, LockKeyhole } from 'lucide-react';
 import { requestListen, type ListenSource } from '../../services/listenService';
+
+type ForecastListenSource = Extract<ListenSource, { type: 'personal_forecast' }>;
 import { playTrack, togglePlayback, unlockPlayback, useAudioPlayback } from '../../services/audioPlayback';
 import { AudioMiniPlayer } from './AudioMiniPlayer';
 
 type ListenForecastButtonProps = {
-  source: ListenSource;
+  source: ForecastListenSource;
   language: 'ru' | 'en';
   premium: boolean;
   /** Opens NEBO+ for people without it (omit when promotion is not allowed). */
