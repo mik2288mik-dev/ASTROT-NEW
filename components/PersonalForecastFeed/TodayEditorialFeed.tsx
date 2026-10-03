@@ -17,6 +17,8 @@ type TodayEditorialFeedProps = {
   tone: PersonalForecastAstrologerBrief['tone'];
   personalAttribution?: string | null;
   onRequestPremium: () => void;
+  /** «Слушать прогноз», shown above the reading. */
+  listen?: ReactNode;
   footer?: ReactNode;
 };
 
@@ -84,6 +86,7 @@ export function TodayEditorialFeed({
   tone,
   personalAttribution,
   onRequestPremium,
+  listen,
   footer,
 }: TodayEditorialFeedProps) {
   const renderableSections = useMemo(
@@ -141,6 +144,7 @@ export function TodayEditorialFeed({
         aria-labelledby="today-reading-title"
       >
         <div className="today-minimal-reading-main">
+          {listen}
           {visibleSections.map((section) => (
             <StoryFragment
               key={`day:${periodKey}:${section.id}`}
