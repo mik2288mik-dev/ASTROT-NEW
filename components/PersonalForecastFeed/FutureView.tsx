@@ -42,6 +42,8 @@ type FutureViewProps = {
    * from the person's calendar (null until the calendar is calculated).
    */
   renderPeriodCards?: (teasers: FuturePeriodTeasers | null) => ReactNode;
+  /** Month to open first, YYYY-MM (e.g. the birthday month); kept within the open range. */
+  initialMonthKey?: string;
 };
 
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
@@ -83,10 +85,16 @@ function importantDaysWord(count: number): string {
   return 'важных дней';
 }
 
-export function FutureView({ profile, premium, horizonDays, todayKey, onRequestPremium, weekEndKey, language = 'ru', renderPeriodCards }: FutureViewProps) {
+export function FutureView({ profile, premium, horizonDays, todayKey, onRequestPremium, weekEndKey, language = 'ru', renderPeriodCards, initialMonthKey }: FutureViewProps) {
   const timezone = profile.birthTimezone || 'Europe/Moscow';
   const [todayYear, todayMonth] = todayKey.split('-').map(Number);
-  const [cursor, setCursor] = useState({ year: todayYear, month: todayMonth });
+  const [cursor, setCursor] = useState(() => {
+    const lastKey = addDays(todayKey, premium ? horizonDays : 30).slice(0, 7);
+    const wanted = initialMonthKey && initialMonthKey > todayKey.slice(0, 7)
+      ? (initialMonthKey < lastKey ? initialMonthKey : lastKey)
+      : todayKey.slice(0, 7);
+    return { year: Number(wanted.slice(0, 4)), month: Number(wanted.slice(5, 7)) };
+  });
   const [engine, setEngine] = useState<typeof import('astronomy-engine') | null>(null);
   const [natal, setNatal] = useState<NatalPoints | null>(() => natalPointsFromChart(
     peekExploreCharts(String(profile.id || 'guest'))?.find((chart) => chart.is_primary)?.chart_data ?? null,

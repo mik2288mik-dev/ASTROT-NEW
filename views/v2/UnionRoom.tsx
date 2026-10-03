@@ -11,6 +11,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import type { BirthTimeQuality, NatalChartData, SynastryResult, UserProfile } from '../../types';
+import { noteLoveInterest } from '../../lib/interestSignals';
 import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibility';
 import { getZodiacSign } from '../../constants';
 import { getProfilePremiumUntil, hasActivePremium } from '../../lib/accessMatrix';
@@ -1622,6 +1623,7 @@ Check our compatibility from your side in NEBO.`
                   onChange={(focus, context) => {
                     setRelationshipFocus(focus);
                     setRelationshipContext(context);
+                    if (focus === 'love' || focus === 'relationships' || focus === 'ex') noteLoveInterest(String(profile.id || 'guest'));
                   }}
                   ru={ru}
                   compact
@@ -1697,6 +1699,7 @@ Check our compatibility from your side in NEBO.`
                   onChange={(focus, context) => {
                     setRelationshipFocus(focus);
                     setRelationshipContext(context);
+                    if (focus === 'love' || focus === 'relationships' || focus === 'ex') noteLoveInterest(String(profile.id || 'guest'));
                   }}
                   ru={ru}
                   compact

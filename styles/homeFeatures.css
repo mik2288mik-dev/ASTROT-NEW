@@ -1,0 +1,357 @@
+/* Home: entries into every section, a sideways row under the header. */
+.home-entry-tiles {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 42rem;
+  margin: 0.15rem auto 0.6rem;
+}
+
+.home-entry-tiles-row {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.15rem 1rem 0.35rem;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.home-entry-tiles-row::-webkit-scrollbar {
+  display: none;
+}
+
+.home-entry-tiles-row li {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.home-entry-tile {
+  display: flex;
+  width: 5.1rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--today-ink, #292724);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-entry-tile-icon {
+  width: 4.1rem;
+  height: 4.1rem;
+  border-radius: 1.25rem;
+  box-shadow: 0 6px 16px rgba(41, 39, 36, 0.08);
+}
+
+.home-entry-tile-label {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-entry-tile:active .home-entry-tile-icon {
+  transform: scale(0.96);
+}
+
+.home-entry-tile:focus-visible {
+  outline: 2px solid var(--today-ink, #292724);
+  outline-offset: 3px;
+  border-radius: 1rem;
+}
+
+/* «Для тебя»: personal suggestions with «Скрыть». */
+.for-you {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin: 0 auto;
+  padding: 1.1rem 0 0.4rem;
+}
+
+.for-you-title {
+  margin: 0 0 0.65rem;
+  color: var(--today-ink, #292724);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.for-you-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.for-you-card {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 0.95rem;
+  border: 1px solid rgba(41, 39, 36, 0.08);
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(41, 39, 36, 0.05);
+  color: var(--today-ink, #292724);
+}
+
+.for-you-card-art {
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 1rem;
+}
+
+.for-you-card-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.for-you-card-copy h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.for-you-card-copy p {
+  margin: 0.3rem 0 0;
+  color: var(--today-copy, #45413d);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.for-you-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  margin-top: 0.7rem;
+}
+
+.for-you-card-cta {
+  display: inline-flex;
+  min-height: 2.4rem;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0 0.85rem 0 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--today-ink, #292724);
+  color: #fff;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.for-you-card-hide {
+  min-height: 2.4rem;
+  padding: 0 0.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--today-muted, #77716a);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.for-you-card-cta:focus-visible,
+.for-you-card-hide:focus-visible {
+  outline: 2px solid var(--today-ink, #292724);
+  outline-offset: 2px;
+}
+
+/* Sheets opened from «Для тебя»: plans for the month and the month review. */
+.home-sheet-primary {
+  width: 100%;
+  min-height: 3rem;
+  border: 0;
+  border-radius: 999px;
+  background: #292724;
+  color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.home-sheet-primary:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.home-sheet-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.home-sheet-note {
+  margin: 0.8rem 0 0;
+  color: #77716a;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.wishes-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wishes-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.wishes-number {
+  display: inline-flex;
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #f1eee9;
+  color: #45413d;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.wishes-item input {
+  min-width: 0;
+  min-height: 2.75rem;
+  flex: 1;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(41, 39, 36, 0.14);
+  border-radius: 0.9rem;
+  background: #fff;
+  color: #292724;
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.wishes-item input:focus {
+  border-color: #292724;
+  outline: none;
+}
+
+.wishes-remove,
+.wishes-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #77716a;
+  font: inherit;
+  cursor: pointer;
+}
+
+.wishes-remove {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: none;
+  border-radius: 999px;
+}
+
+.wishes-add {
+  gap: 0.35rem;
+  min-height: 2.6rem;
+  margin-top: 0.4rem;
+  padding: 0 0.3rem;
+  color: #292724;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.review-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.review-item {
+  display: flex;
+  width: 100%;
+  min-height: 2.9rem;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid rgba(41, 39, 36, 0.12);
+  border-radius: 0.95rem;
+  background: #fff;
+  color: #292724;
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.review-item.is-done {
+  border-color: #16835a;
+  background: #eef8f3;
+}
+
+.review-check {
+  display: inline-flex;
+  width: 1.4rem;
+  height: 1.4rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(41, 39, 36, 0.3);
+  border-radius: 0.45rem;
+  color: #fff;
+}
+
+.review-item.is-done .review-check {
+  border-color: #16835a;
+  background: #16835a;
+}
+
+.review-note {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.review-note textarea {
+  min-height: 5.5rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(41, 39, 36, 0.14);
+  border-radius: 0.9rem;
+  background: #fff;
+  color: #292724;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 400;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.review-note textarea:focus {
+  border-color: #292724;
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-entry-tile:active .home-entry-tile-icon {
+    transform: none;
+  }
+}

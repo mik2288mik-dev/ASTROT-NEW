@@ -57,6 +57,7 @@ export async function deleteAccountData(userId: string): Promise<AccountDeletion
       [userId],
     );
     await executeIfTable(client, 'promo_redemptions', 'DELETE FROM promo_redemptions WHERE user_id = $1', [userId]);
+    await executeIfTable(client, 'user_feature_state', 'DELETE FROM user_feature_state WHERE user_id = $1', [userId]);
     await executeIfTable(client, 'natal_content_legacy_archive', 'DELETE FROM natal_content_legacy_archive WHERE user_id = $1', [userId]);
     await executeIfTable(client, 'support_tickets', 'UPDATE support_tickets SET user_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1', [userId]);
     await executeIfTable(client, 'support_messages', 'UPDATE support_messages SET author_id = NULL WHERE author_id = $1', [userId]);
