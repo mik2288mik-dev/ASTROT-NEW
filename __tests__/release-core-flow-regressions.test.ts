@@ -28,7 +28,7 @@ describe('release-critical core flow regressions', () => {
     expect(onboarding).toContain("if (!profile) return 'exact'");
     expect(app).toContain('const hasPendingOnboardingDraft = !profile.isSetup');
     expect(app).toContain("initialStep={hasPendingOnboardingDraft ? 'birth' : onboardingInitialStep}");
-    expect(app).toContain('initialProfile={hasPendingOnboardingDraft ? profile : undefined}');
+    expect(app).toContain('initialProfile={hasPendingOnboardingDraft || onboardingPrefillSaved ? profile : undefined}');
   });
 
   it('persists a normalized non-empty profile name before committing UI or quota', () => {

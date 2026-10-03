@@ -34,6 +34,9 @@ import { TodaySkyMonitor } from '../components/PersonalForecastFeed/TodaySkyMoni
 import { FutureView } from '../components/PersonalForecastFeed/FutureView';
 import { FuturePeriodCards, type FuturePeriodCardData } from '../components/PersonalForecastFeed/FuturePeriodCards';
 import { readingOpeningLines } from '../lib/futurePeriodTeaser';
+import { HomeEntryTiles } from '../components/home/HomeEntryTiles';
+import { ForYouBlock } from '../components/home/ForYouBlock';
+import type { ForYouAction } from '../lib/forYou';
 import { FutureInviteCard } from '../components/PersonalForecastFeed/FutureInviteCard';
 import { futureHorizonDays } from '../lib/futureCalendar';
 import { TodayCalendarClock } from '../components/PersonalForecastFeed/TodayCalendarClock';
@@ -51,6 +54,10 @@ type DashboardProps = {
   onOpenCharts?: () => void;
   onOpenSynastry?: () => void;
   onOpenMatrix?: () => void;
+  /** Opens the birth details form to add the birth time. */
+  onEditBirthTime?: () => void;
+  /** Opens compatibility with a saved person. */
+  onOpenPair?: (chartId: string, name: string) => void;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
@@ -148,6 +155,8 @@ export const Dashboard = memo<DashboardProps>(({
   onOpenCharts,
   onOpenSynastry,
   onOpenMatrix,
+  onEditBirthTime,
+  onOpenPair,
   onRequestPremium,
   onPremiumAnalytics,
   scrollRef,
@@ -158,6 +167,7 @@ export const Dashboard = memo<DashboardProps>(({
   const premium = hasActivePremium(profile);
   const activePeriod: PersonalForecastPeriod = requestedPeriod === 'week' ? 'month' : requestedPeriod || 'day';
   const [futureReader, setFutureReader] = useState<FutureReader | null>(requestedPeriod === 'week' ? 'week' : null);
+  const [futureMonthKey, setFutureMonthKey] = useState<string | undefined>(undefined);
   const timezone = normalizeForecastTimezone(profile.birthTimezone);
   const requestsRef = useRef<Partial<Record<PersonalForecastPeriod, PeriodRequest>>>({});
   const firstValueSeenRef = useRef<Set<string>>(new Set());
@@ -453,6 +463,7 @@ export const Dashboard = memo<DashboardProps>(({
     if (period === activePeriod && !futureReader) return;
     lumiaSelectionHaptic();
     setFutureReader(null);
+    setFutureMonthKey(undefined);
     onPeriodChange?.(period);
   }, [activePeriod, futureReader, onPeriodChange]);
 
@@ -586,6 +597,35 @@ export const Dashboard = memo<DashboardProps>(({
     });
   }, [activePeriod, forecast?.periodKey, onPremiumAnalytics, onRequestPremium, periodKeys]);
   const requestPremium = useCallback(() => requestPremiumFor(activePeriod), [activePeriod, requestPremiumFor]);
+
+  const openFuture = useCallback((monthKey?: string) => {
+    lumiaSelectionHaptic();
+    setFutureMonthKey(monthKey);
+    setFutureReader(null);
+    onPeriodChange?.('month');
+  }, [onPeriodChange]);
+
+  const handleForYouAction = useCallback((action: Exclude<ForYouAction, { type: 'wishes' } | { type: 'month_review' }>) => {
+    if (action.type === 'future') openFuture(action.monthKey);
+    else if (action.type === 'compatibility') onOpenSynastry?.();
+    else if (action.type === 'pair') onOpenPair?.(action.chartId, action.name);
+    else if (action.type === 'birth_time') onEditBirthTime?.();
+    else if (action.type === 'week') {
+      if (!premium) {
+        requestPremiumFor('week');
+        return;
+      }
+      setFutureReader('week');
+      onPeriodChange?.('month');
+    } else if (action.type === 'premium') {
+      void onRequestPremium?.('for_you', {
+        placement: 'for_you',
+        featureKey: 'premium_renewal',
+        triggerType: 'inline_promo',
+        returnView: 'dashboard',
+      });
+    }
+  }, [onEditBirthTime, onOpenPair, onOpenSynastry, onPeriodChange, onRequestPremium, openFuture, premium, requestPremiumFor]);
 
   const futureReading = useCallback((period: FutureReader) => {
     const periodState = periodStates[period].contextKey === productContextKey
@@ -765,6 +805,17 @@ export const Dashboard = memo<DashboardProps>(({
           : personalForecastNote[activePeriod]}
       </p>
 
+      {activePeriod === 'day' ? (
+        <HomeEntryTiles
+          language={language}
+          tiles={[
+            { id: 'future', onOpen: () => openFuture() },
+            { id: 'compatibility', onOpen: onOpenSynastry },
+            { id: 'matrix', onOpen: onOpenMatrix },
+          ]}
+        />
+      ) : null}
+
       <div
         id="today-period-panel"
         role="tabpanel"
@@ -792,6 +843,7 @@ export const Dashboard = memo<DashboardProps>(({
           todayKey={periodKeys.day}
           weekEndKey={weekWindow.periodEnd}
           language={language}
+          initialMonthKey={futureMonthKey}
           onRequestPremium={requestPremium}
           renderPeriodCards={(teasers) => (
             <FuturePeriodCards
@@ -823,6 +875,19 @@ export const Dashboard = memo<DashboardProps>(({
           onRequestPremium={requestPremium}
           footer={(
             <>
+            <ForYouBlock
+              userId={String(profile.id || 'guest')}
+              language={language}
+              todayKey={periodKeys.day}
+              weekKey={periodKeys.week}
+              timezone={timezone}
+              birthDate={profile.birthDate}
+              birthTimeKnown={Boolean(profile.birthTime?.trim()) && profile.birthTimeMode !== 'unknown'}
+              premium={premium}
+              premiumEndsAt={profile.premiumEntitlement?.endsAt ?? null}
+              premiumAutoRenew={profile.premiumEntitlement?.autoRenew ?? null}
+              onAction={handleForYouAction}
+            />
             <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
             <FutureInviteCard
               userId={String(profile.id || 'guest')}

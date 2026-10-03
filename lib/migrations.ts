@@ -7,6 +7,7 @@ import { NATAL_READING_JOBS_SCHEMA } from './natalReading/jobSchema';
 import { NOTIFICATION_SCENARIO_SEEDS } from './notificationScenarioCatalog';
 import { RETENTION_NOTIFICATION_SCENARIO_SEEDS } from './retentionNotificationCatalog';
 import { APP_PUSH_SCHEMA_SQL } from './appPushSchema';
+import { USER_FEATURE_STATE_SCHEMA_SQL } from './userFeatureStateSchema';
 
 const DATABASE_URL = resolveDatabaseUrl();
 const MIGRATION_LOCK_KEY = 20260711;
@@ -4146,6 +4147,21 @@ async function mvp060AppPush(pool: Pool): Promise<void> {
   }
 }
 
+async function mvp061UserFeatureState(pool: Pool): Promise<void> {
+  const name = 'mvp_061_user_feature_state';
+  if (await isMigrationApplied(pool, name)) return;
+  await pool.query('BEGIN');
+  try {
+    await pool.query(USER_FEATURE_STATE_SCHEMA_SQL);
+    await markMigrationApplied(pool, name);
+    await pool.query('COMMIT');
+    log.info(`Migration ${name} applied`);
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    throw error;
+  }
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -4239,6 +4255,7 @@ export async function runMigrations(): Promise<void> {
     await mvp058NeboOpsPreferences(migrationDb);
     await mvp059UserAcquisitionKeys(migrationDb);
     await mvp060AppPush(migrationDb);
+    await mvp061UserFeatureState(migrationDb);
     if (!await isMigrationApplied(migrationDb, 'mvp060_natal_reading_preparation')) {
       await migrationDb.query(NATAL_READING_JOBS_SCHEMA);
       await markMigrationApplied(migrationDb, 'mvp060_natal_reading_preparation');
