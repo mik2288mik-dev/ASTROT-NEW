@@ -52,6 +52,7 @@
 }
 
 .audio-mini-player {
+  position: relative;
   display: grid;
   gap: 0.45rem;
   padding: 0.75rem 0.9rem;
@@ -60,6 +61,23 @@
   background: #fff;
   box-shadow: 0 8px 22px rgba(41, 39, 36, 0.06);
   color: var(--today-ink, #292724);
+}
+
+.audio-mini-player-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #77716a;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .audio-mini-player-controls {

@@ -6,8 +6,8 @@
 import { createHash } from 'crypto';
 
 export const TTS_MODEL = (process.env.OPENAI_TTS_MODEL || 'gpt-4o-mini-tts').trim();
-/** Default voice for forecasts: warm, calm, friendly. */
-export const TTS_DEFAULT_VOICE = (process.env.OPENAI_TTS_VOICE || 'coral').trim();
+/** Default voice for forecasts: marin, the most natural of the model's voices. */
+export const TTS_DEFAULT_VOICE = (process.env.OPENAI_TTS_VOICE || 'marin').trim();
 export const TTS_VOICES = ['coral', 'sage', 'nova', 'shimmer', 'ash', 'ballad', 'onyx', 'verse', 'alloy', 'echo', 'fable', 'marin', 'cedar'] as const;
 export type TtsVoice = typeof TTS_VOICES[number];
 
