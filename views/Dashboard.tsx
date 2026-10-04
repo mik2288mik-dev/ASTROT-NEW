@@ -641,7 +641,6 @@ export const Dashboard = memo<DashboardProps>(({
   }, [onPeriodChange]);
 
   const [giftPerson, setGiftPerson] = useState<GiftPerson | null>(null);
-  const [skyCoverScrolled, setSkyCoverScrolled] = useState(false);
 
   const handleForYouAction = useCallback((action: Exclude<ForYouAction, { type: 'wishes' } | { type: 'month_review' }>) => {
     if (action.type === 'person_gift') {
@@ -811,21 +810,6 @@ export const Dashboard = memo<DashboardProps>(({
     return matrix?.positions.find((position) => position.key === 'self')?.arcana ?? null;
   }, [language, profile.birthDate]);
 
-  useEffect(() => {
-    if (!skyCover) {
-      setSkyCoverScrolled(false);
-      return undefined;
-    }
-    const container = scrollRef?.current ?? null;
-    const target: HTMLElement | Window = container ?? window;
-    const check = () => {
-      const hero = document.querySelector('.sky-hero');
-      setSkyCoverScrolled(hero ? hero.getBoundingClientRect().bottom < 96 : false);
-    };
-    check();
-    target.addEventListener('scroll', check, { passive: true });
-    return () => target.removeEventListener('scroll', check);
-  }, [scrollRef, skyCover]);
 
   const periodSwitch = (
   <nav
@@ -875,7 +859,6 @@ export const Dashboard = memo<DashboardProps>(({
       )}
       center={periodSwitch}
       reserveSpace={reserveSpace}
-      className={skyCover ? `is-over-sky${skyCoverScrolled ? ' is-scrolled' : ''}` : undefined}
     />
   );
 
@@ -904,7 +887,7 @@ export const Dashboard = memo<DashboardProps>(({
         className="home-top"
         aria-label={language === 'ru' ? 'Личный гороскоп' : 'Personal horoscope'}
       >
-        {topBar(!skyCover)}
+        {topBar(true)}
       </section>
 
       {!skyCover ? (
