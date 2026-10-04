@@ -60,7 +60,9 @@ export function AudioMiniPlayer({ trackKey, language }: { trackKey: string; lang
       </div>
       {playback.error ? (
         <p className="audio-mini-player-error" role="alert">
-          {ru ? 'Не получилось включить звук. Проверь соединение и нажми ещё раз.' : 'Could not play the audio. Check the connection and tap again.'}
+          {playback.src === null
+            ? (ru ? 'Голос телефона не ответил. Проверь в настройках Android, что синтез речи включён.' : 'The phone voice did not respond. Check text-to-speech in the device settings.')
+            : (ru ? 'Не получилось включить звук. Проверь соединение и нажми ещё раз.' : 'Could not play the audio. Check the connection and tap again.')}
         </p>
       ) : null}
     </div>
