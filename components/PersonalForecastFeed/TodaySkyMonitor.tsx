@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { buildSkyMonitor, type SkyMonitor } from '../../lib/skyMonitor';
 import { loadExploreCharts, peekExploreCharts } from './exploreCharts';
 import type { ChartListItem } from '../../services/storageService';
+import { LiveSky } from '../home/LiveSky';
+import { useSkyNow } from '../home/useSkyNow';
 
 function housesFrom(charts: ChartListItem[] | null): number[] | null {
   const primary = charts?.find((chart) => chart.is_primary)?.chart_data as
@@ -60,6 +62,7 @@ function MercuryGlyph() {
 
 export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
   const [sky, setSky] = useState<SkyMonitor | null>(null);
+  const now = useSkyNow();
 
   useEffect(() => {
     let active = true;
@@ -84,19 +87,20 @@ export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
 
   if (!sky) return null;
   const { moon, mercury, calendar } = sky;
-  const now = Date.now();
+  const nowMs = Date.now();
   const window = mercury.window;
-  const timeline = window && window.start.getTime() - now < TIMELINE_DAYS * 86_400_000
+  const timeline = window && window.start.getTime() - nowMs < TIMELINE_DAYS * 86_400_000
     ? {
-        left: Math.max(0, ((window.start.getTime() - now) / (TIMELINE_DAYS * 86_400_000)) * 100),
-        width: Math.min(100, ((window.end.getTime() - Math.max(now, window.start.getTime())) / (TIMELINE_DAYS * 86_400_000)) * 100),
+        left: Math.max(0, ((window.start.getTime() - nowMs) / (TIMELINE_DAYS * 86_400_000)) * 100),
+        width: Math.min(100, ((window.end.getTime() - Math.max(nowMs, window.start.getTime())) / (TIMELINE_DAYS * 86_400_000)) * 100),
       }
     : null;
 
   return (
-    <section className="today-sky" aria-labelledby="today-sky-title">
+    <section id="today-sky" className="today-sky" aria-labelledby="today-sky-title">
       <h2 id="today-sky-title" className="today-explore-heading">Небо сегодня</h2>
-      <div className="today-sky-card">
+      <div className={`today-sky-card${now ? ' is-live' : ''}`}>
+        {now ? <LiveSky sunAltitude={now.sunAltitude} moonPhase={null} className="today-sky-canvas" /> : null}
         <div className="today-sky-row">
           <MoonGlyph illumination={moon.illumination} waxing={moon.waxing} />
           <div className="today-sky-copy">

@@ -25,9 +25,10 @@
     var(--tg-safe-area-inset-top, 0px),
     18px
   );
+  /* Telegram's content inset is measured from its safe area, so the two add up. */
   --app-top-bar-content-safe-top: max(
     var(--app-top-bar-device-safe-top),
-    var(--tg-content-safe-area-inset-top, 0px)
+    calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px))
   );
   --app-top-bar-safe-left: max(
     var(--fresh-page-x, 20px),
@@ -164,8 +165,7 @@
 .app-top-bar-spacer {
   --app-top-bar-content-safe-top: max(
     env(safe-area-inset-top, 0px),
-    var(--tg-content-safe-area-inset-top, 0px),
-    var(--tg-safe-area-inset-top, 0px),
+    calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)),
     18px
   );
   width: 100%;

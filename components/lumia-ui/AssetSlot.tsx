@@ -6,26 +6,24 @@ type AssetSlotProps = {
   className?: string;
   /** Rounded tile (default) or circle. */
   shape?: 'tile' | 'circle';
+  /** `contain` for a cut-out object on a coloured pad, `cover` for a photo. */
+  fit?: 'cover' | 'contain';
 };
 
 /**
  * A place for a designer image. Until the file exists (or when it fails to
- * load) it shows a calm neutral shape of the same size, so layouts never jump
- * and nothing looks broken. Decorative: meaning always lives in the text next to it.
+ * load) nothing is drawn at all — no grey stand-in — and the text next to it
+ * carries the meaning on its own.
  */
-export function AssetSlot({ src, className, shape = 'tile' }: AssetSlotProps) {
+export function AssetSlot({ src, className, shape = 'tile', fit = 'cover' }: AssetSlotProps) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const showImage = Boolean(src) && failedSrc !== src;
+  if (!src || failedSrc === src) return null;
   return (
     <span
-      className={['asset-slot', `is-${shape}`, showImage ? 'has-image' : 'is-empty', className].filter(Boolean).join(' ')}
+      className={['asset-slot', `is-${shape}`, `is-${fit}`, 'has-image', className].filter(Boolean).join(' ')}
       aria-hidden="true"
     >
-      {showImage ? (
-        <img src={src!} alt="" loading="lazy" decoding="async" draggable={false} onError={() => setFailedSrc(src!)} />
-      ) : (
-        <span className="asset-slot-placeholder" />
-      )}
+      <img src={src} alt="" loading="lazy" decoding="async" draggable={false} onError={() => setFailedSrc(src)} />
     </span>
   );
 }

@@ -81,7 +81,8 @@ describe('personal forecast screen layout', () => {
     expect(sectionBlock).toContain('resolveVisibleForecastTitle');
     expect(sectionBlock).not.toContain('{section.kind}');
     expect(sectionBlock).not.toContain('{section.sourceTopicKey}');
-    expect(today).toContain('className="today-minimal-story-title"');
+    // The title sits on the live sky cover (home mockup v1).
+    expect(today).toContain('<SkyHero');
     expect(today).toContain('className="today-minimal-closing-content"');
     expect(today).not.toContain('today-minimal-closing-label');
     expect(sectionBlock).not.toContain('forecast-period-advice-label');

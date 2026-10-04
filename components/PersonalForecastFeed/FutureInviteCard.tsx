@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { LiveSky } from '../home/LiveSky';
 import { ChevronRight } from 'lucide-react';
 import {
   buildFutureMonth,
@@ -75,7 +76,8 @@ export function FutureInviteCard({ userId, todayKey, timezone, premium, onOpen }
 
   return (
     <section className="future-invite" aria-labelledby="future-invite-title">
-      <button type="button" className="future-invite-card" onClick={onOpen}>
+      <button type="button" className="future-invite-card is-sky" onClick={onOpen}>
+        <LiveSky sunAltitude={40} className="future-invite-sky" />
         <span className="future-invite-kicker">Будущее</span>
         <span id="future-invite-title" className="future-invite-title">
           {preview.count ? `${importantDays(preview.count)} для тебя в ближайший месяц` : 'Календарь твоего месяца вперёд'}

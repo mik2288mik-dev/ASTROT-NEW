@@ -7,7 +7,12 @@ type AppTopBarProps = {
   subtitle?: string;
   onBack?: () => void;
   rightAction?: React.ReactNode;
+  /** An action on the left when there is no «Back». */
+  leftAction?: React.ReactNode;
+  /** Replaces the title, e.g. the «Сегодня | Будущее» switch on the home screen. */
+  center?: React.ReactNode;
   reserveSpace?: boolean;
+  className?: string;
 };
 
 type AppTopBarSettingsContextValue = { onOpenSettings: () => void } | null;
@@ -38,7 +43,10 @@ export function AppTopBar({
   subtitle,
   onBack,
   rightAction,
+  leftAction,
+  center,
   reserveSpace = true,
+  className,
 }: AppTopBarProps) {
   const isPersonalForecastHeader = title === 'NEBO';
   const isSignHoroscopeHeader = title === 'Гороскоп по знакам' || title === 'Гороскоп по знакам зодиака';
@@ -47,7 +55,7 @@ export function AppTopBar({
 
   return (
     <>
-      <div className="home-logo-bar app-top-bar">
+      <div className={className ? `home-logo-bar app-top-bar ${className}` : 'home-logo-bar app-top-bar'}>
         <div className="app-top-bar-side app-top-bar-side--start">
           {onBack ? (
             <button
@@ -58,9 +66,10 @@ export function AppTopBar({
             >
               <ChevronLeft aria-hidden strokeWidth={1.9} />
             </button>
-          ) : null}
+          ) : leftAction ?? null}
         </div>
 
+        {center ?? (
         <span
           className={`home-logo-wordmark app-top-bar-title${
             isPersonalForecastHeader ? ' app-top-bar-title--personal-forecast' : isSignHoroscopeHeader ? ' app-top-bar-title--sign-horoscope' : ''
@@ -77,6 +86,7 @@ export function AppTopBar({
             <><span>Гороскоп по знакам</span><span>зодиака</span></>
           ) : title}
         </span>
+        )}
 
         <div className={`app-top-bar-side app-top-bar-side--end${rightAction || showSettings ? ' has-actions' : ''}`}>
           {rightAction || showSettings ? (

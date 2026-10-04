@@ -79,6 +79,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/runtime-deps/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
+# Migrations run with tsx from source; lib/ imports shared types from the repo root.
+COPY --from=builder --chown=nextjs:nodejs /app/types.ts ./types.ts
 # Ensure Swiss Ephemeris native binary is always present in runtime image.
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/swisseph-v2/build ./node_modules/swisseph-v2/build
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public

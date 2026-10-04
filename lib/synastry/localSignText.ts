@@ -184,6 +184,15 @@ export function buildLocalPersonSnapshot(
       };
 }
 
+/** One line about how two Sun signs feel together — for small cards. */
+export function signPairTeaser(first: string, second: string, language: Language): string | null {
+  const a = normalizeZodiacKey(first)?.toLowerCase();
+  const b = normalizeZodiacKey(second)?.toLowerCase();
+  if (!a || !b || !ELEMENT[a] || !ELEMENT[b]) return null;
+  const dyn = DYNAMIC[elementPair(ELEMENT[a], ELEMENT[b])];
+  return language === 'en' ? dyn.attractEn : dyn.attract;
+}
+
 export function buildLocalSignCompatibility(
   first: string,
   second: string,
