@@ -47,6 +47,15 @@ export function SeasonCard({ userId, todayKey, onOpenFuture }: { userId: string;
           <svg viewBox="0 0 120 120"><path d="M95 18C60 18 25 40 22 82c-1 9 2 16 2 16s7-3 15-4c42-6 59-42 56-76z" fill="#f0a24a" /><path d="M24 98C42 70 62 52 90 26" stroke="#c4761f" strokeWidth="3" fill="none" /></svg>
         </span>
         ) : null}
+        {path.title === 'Твоя осень' ? (
+          <span className="season-falling" aria-hidden="true">
+            {[0, 1, 2, 3].map((index) => (
+              <svg key={index} viewBox="0 0 120 120" className={`season-fall is-${index}`}>
+                <path d="M95 18C60 18 25 40 22 82c-1 9 2 16 2 16s7-3 15-4c42-6 59-42 56-76z" fill={index % 2 ? '#e8893a' : '#f2b25c'} />
+              </svg>
+            ))}
+          </span>
+        ) : null}
         <span className="season-kicker">По твоей карте</span>
         <span className="season-headline">{path.headline}</span>
         <span className="season-steps">
