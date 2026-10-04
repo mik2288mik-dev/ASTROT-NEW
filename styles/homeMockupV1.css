@@ -24,29 +24,53 @@
   box-shadow: none !important;
 }
 
-.app-top-bar .today-period-tabs {
-  display: inline-flex;
-  width: auto;
-  min-height: 0;
+/* Period switch = one liquid-glass pill everywhere (home and sign horoscope):
+   a translucent track and a white «drop» on the chosen segment, like iOS. */
+.app-top-bar .today-period-tabs,
+.fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs {
+  display: inline-flex !important;
+  width: auto !important;
+  min-height: 0 !important;
   gap: 2px;
-  padding: 3px;
+  margin: 0 auto;
+  padding: 2px !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.6) !important;
   border-radius: 999px !important;
-  background: #f1efeb !important;
-  transform: none;
+  background: rgba(118, 118, 128, 0.14) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+  transform: none !important;
 }
 
-.app-top-bar .today-period-tabs > .today-period-tab {
-  min-height: 34px !important;
-  padding: 6px 16px;
+.app-top-bar .today-period-tabs > .today-period-tab,
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab {
+  min-height: 28px !important;
+  padding: 4px 15px !important;
   border-radius: 999px !important;
-  color: #6f6a63 !important;
-  font-size: 0.84rem;
-  font-weight: 600;
+  background: transparent !important;
+  color: #4a4742 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.1 !important;
+  transition: background-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
 }
 
-.app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'] {
-  background: #1f1d1a !important;
-  color: #fff !important;
+.app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'],
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active,
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] {
+  background: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.04) !important;
+  color: #1f1d1a !important;
+}
+
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab::after {
+  display: none !important;
+}
+
+.horo-reader-page .horo-reader-controls {
+  display: flex;
+  justify-content: center;
 }
 
 .app-top-bar .today-period-tab-underline {
