@@ -1,5 +1,5 @@
 /** The one OpenAI model used by all generated content except Zodiac. */
-export const OPENAI_LUNA_MODEL = 'gpt-5.6-luna' as const;
+export const OPENAI_LUNA_MODEL = 'gpt-6-luna' as const;
 
 /**
  * Legacy per-surface model selection has been removed. Zodiac has its own
