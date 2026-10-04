@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Headphones, LockKeyhole } from 'lucide-react';
-import { playSpeech, togglePlayback, useAudioPlayback } from '../../services/audioPlayback';
+import { Headphones, LoaderCircle, LockKeyhole } from 'lucide-react';
+import { playSpeech, playTrack, togglePlayback, unlockPlayback, useAudioPlayback } from '../../services/audioPlayback';
 import { speechAvailable } from '../../services/speechEngine';
+import { requestListen } from '../../services/listenService';
 import { AudioMiniPlayer } from './AudioMiniPlayer';
 
 type ListenForecastButtonProps = {
   /** Stable key of the reading, e.g. «forecast:day:2026-10-04». */
   trackKey: string;
   period: 'day' | 'week' | 'month';
+  /** Key of the reading's period, e.g. «2026-10-04», «2026-W40», «2026-10». */
+  periodKey: string;
   /** The text to read: built from the reading already on screen. */
   text: string;
   language: 'ru' | 'en';
@@ -23,41 +26,61 @@ const LABELS = {
 } as const;
 
 /**
- * «Слушать прогноз»: the phone's own voice reads the reading — free, offline,
- * with the mini player and lock-screen buttons. Hidden where no voice exists.
+ * «Слушать прогноз». NEBO+ hears a natural studio voice (OpenAI, voiced once
+ * on the server and cached); everyone else hears the phone's own voice, free
+ * and offline. If the studio voice fails, the phone's voice reads instead.
  */
-export function ListenForecastButton({ trackKey, period, text, language, premium, onRequestPremium }: ListenForecastButtonProps) {
+export function ListenForecastButton({ trackKey, period, periodKey, text, language, premium, onRequestPremium }: ListenForecastButtonProps) {
   const playback = useAudioPlayback();
-  const [available, setAvailable] = useState(false);
+  const [deviceVoice, setDeviceVoice] = useState(false);
+  const [preparing, setPreparing] = useState(false);
   const active = playback.trackKey === trackKey;
+  const title = LABELS[period][language];
 
   useEffect(() => {
     let alive = true;
-    void speechAvailable(language).then((value) => { if (alive) setAvailable(value); });
+    void speechAvailable(language).then((value) => { if (alive) setDeviceVoice(value); });
     return () => { alive = false; };
   }, [language]);
 
-  if (!available || !text.trim() || (!premium && !onRequestPremium)) return null;
+  if (!text.trim()) return null;
+  // Without NEBO+ and without a phone voice there is nothing to play; offer NEBO+ if allowed.
+  if (!premium && !deviceVoice && !onRequestPremium) return null;
 
-  const start = () => {
-    if (!premium) {
-      onRequestPremium?.();
-      return;
-    }
+  const readWithDeviceVoice = () => playSpeech({ trackKey, title, text, language });
+
+  const start = async () => {
     if (active) {
       togglePlayback();
       return;
     }
-    playSpeech({ trackKey, title: LABELS[period][language], text, language });
+    if (!premium) {
+      if (deviceVoice) readWithDeviceVoice();
+      else onRequestPremium?.();
+      return;
+    }
+    // Must run inside the tap, before the network request.
+    unlockPlayback();
+    setPreparing(true);
+    try {
+      const ticket = await requestListen({ type: 'personal_forecast', period, periodKey });
+      playTrack({ trackKey, src: ticket.src, title, durationHint: ticket.durationSec });
+    } catch {
+      if (deviceVoice) readWithDeviceVoice();
+    } finally {
+      setPreparing(false);
+    }
   };
 
   return (
     <div className="listen-forecast">
       {!active ? (
-        <button type="button" className="listen-forecast-button" onClick={start}>
-          {premium ? <Headphones size={18} aria-hidden="true" /> : <LockKeyhole size={16} aria-hidden="true" />}
-          <span>{LABELS[period][language]}</span>
-          {!premium ? <small>NEBO+</small> : null}
+        <button type="button" className="listen-forecast-button" onClick={() => { void start(); }} disabled={preparing}>
+          {preparing
+            ? <LoaderCircle className="audio-mini-player-spinner" size={18} aria-hidden="true" />
+            : !premium && !deviceVoice ? <LockKeyhole size={16} aria-hidden="true" /> : <Headphones size={18} aria-hidden="true" />}
+          <span>{preparing ? (language === 'ru' ? 'Готовлю голос…' : 'Preparing the voice…') : title}</span>
+          {!premium && !deviceVoice ? <small>NEBO+</small> : null}
         </button>
       ) : null}
       <AudioMiniPlayer trackKey={trackKey} language={language} />

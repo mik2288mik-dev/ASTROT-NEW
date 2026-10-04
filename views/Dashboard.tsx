@@ -751,6 +751,7 @@ export const Dashboard = memo<DashboardProps>(({
           <ListenForecastButton
             trackKey={`forecast:${period}:${readerForecast.periodKey}`}
             period={period}
+            periodKey={readerForecast.periodKey}
             text={buildForecastListenScript({ forecast: readerForecast, name: profile.name, language, lockedSectionIds: ready?.lockedSectionIds })}
             language={language}
             premium={premium}
@@ -965,6 +966,7 @@ export const Dashboard = memo<DashboardProps>(({
             <ListenForecastButton
               trackKey={`forecast:day:${forecast.periodKey}`}
               period="day"
+              periodKey={forecast.periodKey}
               text={buildForecastListenScript({ forecast, name: profile.name, language, lockedSectionIds: result?.lockedSectionIds })}
               language={language}
               premium={premium}

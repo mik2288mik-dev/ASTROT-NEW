@@ -1,6 +1,6 @@
 import React from 'react';
-import { LoaderCircle, Pause, Play, RotateCcw, RotateCw } from 'lucide-react';
-import { seekBy, seekTo, setPlaybackRate, togglePlayback, useAudioPlayback } from '../../services/audioPlayback';
+import { LoaderCircle, Pause, Play, RotateCcw, RotateCw, X } from 'lucide-react';
+import { seekBy, seekTo, setPlaybackRate, stopPlayback, togglePlayback, useAudioPlayback } from '../../services/audioPlayback';
 
 const RATES = [1, 1.25, 1.5, 0.85] as const;
 
@@ -9,7 +9,7 @@ function clock(seconds: number): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
-/** Pause, 15-second steps, a seek bar and speed for the track `trackKey`. */
+/** Pause, 15-second steps, a seek bar, speed and close for the track `trackKey`. */
 export function AudioMiniPlayer({ trackKey, language }: { trackKey: string; language: 'ru' | 'en' }) {
   const playback = useAudioPlayback();
   if (playback.trackKey !== trackKey) return null;
@@ -19,6 +19,9 @@ export function AudioMiniPlayer({ trackKey, language }: { trackKey: string; lang
 
   return (
     <div className="audio-mini-player" role="group" aria-label={ru ? 'Плеер' : 'Player'}>
+      <button type="button" className="audio-mini-player-close" onClick={stopPlayback} aria-label={ru ? 'Закрыть плеер' : 'Close the player'}>
+        <X size={16} aria-hidden="true" />
+      </button>
       <div className="audio-mini-player-controls">
         <button type="button" className="audio-mini-player-step" onClick={() => seekBy(-15)} aria-label={ru ? 'Назад на 15 секунд' : 'Back 15 seconds'}>
           <RotateCcw size={18} aria-hidden="true" />

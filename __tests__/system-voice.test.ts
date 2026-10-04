@@ -63,11 +63,20 @@ describe('system voice for forecasts', () => {
     expect(getPlaybackState().playing).toBe(false);
   });
 
-  it('uses the Android speech engine and no paid voice for forecasts', () => {
+  it('gives NEBO+ the studio voice and everyone else the phone voice', () => {
     expect(read('android/app/src/main/java/ru/tvoygoroskop/app/MainActivity.java')).toContain('registerPlugin(NativeTtsPlugin.class);');
     expect(read('android/app/src/main/AndroidManifest.xml')).toContain('android.intent.action.TTS_SERVICE');
     const button = read('components/audio/ListenForecastButton.tsx');
+    expect(button).toContain("requestListen({ type: 'personal_forecast', period, periodKey })");
     expect(button).toContain('playSpeech(');
-    expect(button).not.toContain('requestListen');
+    expect(read('components/audio/AudioMiniPlayer.tsx')).toContain('onClick={stopPlayback}');
+  });
+
+  it('closing the player resets it so the listen button comes back', () => {
+    playSpeech({ trackKey: 'forecast:day:2026-10-04', title: 'Слушать прогноз', text: 'Первое. Второе.', language: 'ru' });
+    expect(getPlaybackState().trackKey).toBe('forecast:day:2026-10-04');
+    stopPlayback();
+    expect(getPlaybackState().trackKey).toBeNull();
+    expect(getPlaybackState().playing).toBe(false);
   });
 });
