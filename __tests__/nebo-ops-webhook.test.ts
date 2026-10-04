@@ -81,8 +81,8 @@ describe('forwarding owner updates from the relay host', () => {
     expect(res.status).toHaveBeenCalledWith(502);
   });
 
-  it('does nothing on the server that owns the bots', async () => {
-    process.env.NEBO_OPS_TELEGRAM_ENABLED = '1';
+  it('does nothing on a server without a forward target', async () => {
+    delete process.env.NEBO_OPS_WEBHOOK_FORWARD_URL;
     await expect(forwardNeboOpsRequest({ method: 'POST', url: '/api/telegram/ops-webhook', headers: {}, body: {} } as unknown as NextApiRequest, response()))
       .resolves.toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();

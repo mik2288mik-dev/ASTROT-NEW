@@ -78,7 +78,7 @@ const PROVIDER_CODES = new Set([
   ...Object.keys(PROVIDER_LABELS), 'telegram_stars', 'rustore', 'rustore_pay',
 ]);
 const DISTRIBUTION_CHANNELS = new Set(['rustore', 'google_play', 'telegram', 'development']);
-const ACTIONS: Record<string, string> = {
+export const ACTIONS: Record<string, string> = {
   app_open: 'открыл приложение', app_opened: 'открыл приложение',
   paywall_view: 'открыл экран оплаты', purchase_failed: 'не смог оплатить — ошибка в приложении',
   restore_failed: 'не смог восстановить покупку', screen_view: 'открыл экран',
@@ -148,6 +148,12 @@ function daysWord(count: number): string {
   if (mod10 === 1 && mod100 !== 11) return 'день';
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'дня';
   return 'дней';
+}
+
+/** A secondary server (NEBO_OPS_ROLE=secondary) sends its own event cards only:
+ * no bot webhooks/commands, scheduled reports or alarms — the primary owns those. */
+export function isNeboOpsSecondary(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.NEBO_OPS_ROLE === 'secondary';
 }
 
 export function isNeboOpsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -363,7 +369,13 @@ function sourceLine(p: Payload, user: UserSummary): string | null {
 function footer(occurredAt: Date | string, p: Payload): string {
   const occurred = validDate(occurredAt);
   const version = p.serverVersion ? ` · сборка ${String(p.serverVersion).slice(0, 7)}` : '';
-  return `🕒 ${occurred ? moscowDateTime(occurred) : 'время не указано'} МСК · 🖥 ${neboServerLabel()}${version}`;
+  const time = occurred
+    ? new Intl.DateTimeFormat('ru-RU', {
+      timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    }).format(occurred)
+    : 'время не указано';
+  return `🕒 ${time} МСК · 🖥 ${neboServerLabel()}${version}`;
 }
 
 function renderPayment(row: Pick<OpsRow, 'event_type' | 'user_id' | 'occurred_at'>, user: UserSummary, p: Payload): string[] {
@@ -886,7 +898,7 @@ export function wakeNeboOpsDelivery(): void {
       } while (state.requested && getNeboOpsConfig());
       // Scheduled reports live here, not in the notification dispatcher, so a
       // slow push dispatch can never silence the owner's daily report.
-      if (Date.now() - state.lastReportCheckAt >= 60_000) {
+      if (!isNeboOpsSecondary() && Date.now() - state.lastReportCheckAt >= 60_000) {
         state.lastReportCheckAt = Date.now();
         try {
           const { maybeSendScheduledNeboOpsReports } = await import('./neboOpsReports');
@@ -904,7 +916,7 @@ export function wakeNeboOpsDelivery(): void {
           rememberWorkerError(state, error);
         }
       }
-      if (Date.now() - lastAlarmCheckAt >= 5 * 60_000) {
+      if (!isNeboOpsSecondary() && Date.now() - lastAlarmCheckAt >= 5 * 60_000) {
         lastAlarmCheckAt = Date.now();
         try {
           const { collectNeboAlarms } = await import('./neboOpsInsights');
@@ -945,10 +957,12 @@ export function ensureNeboOpsWorker(): void {
   state.configurationWarning = false;
   // Retry Telegram webhook/command registration on later server calls if a
   // transient Telegram failure occurred during the initial process startup.
-  void ensureNeboOpsBotSetup(config.token);
-  for (const channel of ['payments', 'support', 'errors'] as const) {
-    const channelConfig = getNeboOwnerChannelConfig(channel);
-    if (channelConfig) void ensureNeboOwnerChannelBotSetup(channel, channelConfig.token);
+  if (!isNeboOpsSecondary()) {
+    void ensureNeboOpsBotSetup(config.token);
+    for (const channel of ['payments', 'support', 'errors'] as const) {
+      const channelConfig = getNeboOwnerChannelConfig(channel);
+      if (channelConfig) void ensureNeboOwnerChannelBotSetup(channel, channelConfig.token);
+    }
   }
   if (state.started) return;
   state.started = true;

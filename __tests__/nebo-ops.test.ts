@@ -153,7 +153,7 @@ describe('operational data and message formatting', () => {
     expect(message.split('\n')).toEqual([
       '👤 Новый пользователь · @vk_38523093', '🙋 @vk_38523093 · ID 9000000003446',
       '📦 Приложение', '🔐 Вход: VK ID',
-      '🕒 04.09.2026, 19:03 МСК · 🖥 Timeweb',
+      '🕒 04.09.2026, 19:03:09 МСК · 🖥 Timeweb',
     ]);
     expect(message).not.toContain('PRIVATE_QUESTION');
     expect(message).not.toContain('MyTracker');
@@ -182,7 +182,7 @@ describe('operational data and message formatting', () => {
       '🔑 Михаил вошёл в аккаунт', '🙋 Михаил · ID -9001',
       '📱 Samsung SM-A515F · Android 13', '📦 NEBO 1.0.5 (8) · установлено из RuStore',
       '🔐 Вход: Яндекс ID', '📅 С нами с 08.09.2026 · заходил 12 дней', '🔓 Бесплатный доступ',
-      '🕒 04.09.2026, 19:03 МСК · 🖥 Timeweb',
+      '🕒 04.09.2026, 19:03:09 МСК · 🖥 Timeweb',
     ]);
   });
 
@@ -712,7 +712,7 @@ describe('AI generation error notifications', () => {
       '⏳ Ошибка старая — пришла с опозданием',
       '💡 Если повторяется часто — проверка слишком строгая или ИИ пишет не по правилам, нужно смотреть тексты.',
       '🔧 Для разработчика: PERSONAL_FORECAST_WRITER_VALIDATION_FAILED · HTTP 503 · trace forecast-day-42abc',
-      '🕒 24.09.2026, 18:54 МСК · 🖥 Timeweb · сборка abc1234',
+      '🕒 24.09.2026, 18:54:00 МСК · 🖥 Timeweb · сборка abc1234',
     ]);
     expect(message).not.toContain('PRIVATE_');
   });

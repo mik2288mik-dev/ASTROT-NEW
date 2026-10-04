@@ -11,7 +11,7 @@ import {
   toggleNeboOpsPreference,
   type NeboOpsPreferenceKey,
 } from '../../../lib/neboOpsSettings';
-import { buildLatestVisitors, buildPremiumList, buildUserCard } from '../../../lib/neboOpsInsights';
+import { buildActivityFeed, buildLatestVisitors, buildPremiumList, buildUserCard } from '../../../lib/neboOpsInsights';
 import { buildHealthSummary } from '../../../lib/neboOwnerChannels';
 import { acknowledgeAndRun, forwardNeboOpsRequest, isRepeatedTelegramUpdate } from '../../../lib/neboOpsWebhook';
 
@@ -73,9 +73,10 @@ async function handleUpdate(update: OpsUpdate, config: NeboOpsConfig): Promise<v
     } else if (data === 'ops:settings') {
       await answerCallback(config.token, callback.id, 'Настройки');
       await sendSettings();
-    } else if (data === 'ops:latest' || data === 'ops:premium' || data === 'ops:health') {
+    } else if (data === 'ops:latest' || data === 'ops:premium' || data === 'ops:health' || data === 'ops:feed') {
       await answerCallback(config.token, callback.id, 'Собираю…');
       await sendView(data === 'ops:latest' ? () => buildLatestVisitors(10)
+        : data === 'ops:feed' ? () => buildActivityFeed(40)
         : data === 'ops:premium' ? buildPremiumList : buildHealthSummary);
     } else {
       await answerCallback(config.token, callback.id, 'Меню');
@@ -87,6 +88,7 @@ async function handleUpdate(update: OpsUpdate, config: NeboOpsConfig): Promise<v
   const command = words[0].toLowerCase().replace(/@[^\s]+$/, '');
   if (command === '/user') await sendView(() => buildUserCard(words[1] || ''));
   else if (command === '/who') await sendView(() => buildLatestVisitors(15));
+  else if (command === '/feed') await sendView(() => buildActivityFeed(40));
   else if (command === '/premium') await sendView(buildPremiumList);
   else if (command === '/report') await sendReport('today');
   else if (command === '/yesterday') await sendReport('yesterday');

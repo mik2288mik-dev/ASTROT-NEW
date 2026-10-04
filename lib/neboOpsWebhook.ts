@@ -34,7 +34,7 @@ export function neboOpsWebhookBase(env: NodeJS.ProcessEnv = process.env): string
 /** On the relay host: pass the update to the server that owns the bots. */
 export async function forwardNeboOpsRequest(req: NextApiRequest, res: NextApiResponse): Promise<boolean> {
   const target = httpsOrigin(process.env.NEBO_OPS_WEBHOOK_FORWARD_URL);
-  if (!target || process.env.NEBO_OPS_TELEGRAM_ENABLED === '1') return false;
+  if (!target) return false;
   const path = String(req.url || '').split('#')[0];
   if (!/^\/api\/telegram\/(ops-webhook|owner-channel-webhook|ops-chart)(\?|$)/.test(path)) {
     res.status(404).end();

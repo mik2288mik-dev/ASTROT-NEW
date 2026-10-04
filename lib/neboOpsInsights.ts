@@ -1,5 +1,5 @@
 import { getPool } from './db';
-import { neboServerLabel } from './neboOps';
+import { ACTIONS, neboServerLabel } from './neboOps';
 import { CHANNEL_LABELS, planLabel, PROVIDER_LABELS, SCREEN_LABELS } from './neboOpsStats';
 
 /** On-demand owner views: who came in, who pays, one person, and quiet/error alarms. */
@@ -121,36 +121,97 @@ export async function buildUserCard(rawId: string): Promise<string> {
     `💳 Оплат: ${user.paid} · ✉️ обращений: ${user.tickets}`,
   );
   if (screens.length) lines.push(`🧭 Чаще всего: ${screens.map((s) => `${SCREEN_LABELS[s.section] || s.section} ${s.n}`).join(' · ')}`);
-  return lines.join('\n');
+  const recent = (await pool.query(
+    `SELECT event_type, section, occurred_at AT TIME ZONE 'UTC' AS at FROM user_app_events
+     WHERE user_id = $1 AND event_type <> 'activity_heartbeat' ORDER BY occurred_at DESC, id DESC LIMIT 15`, [id],
+  )).rows;
+  if (recent.length) {
+    lines.push('', '🕒 Последние действия:');
+    for (const row of recent.reverse()) lines.push(`${seconds(row.at)} · ${actionText(row.event_type, row.section)}`);
+  }
+  return lines.join('\n').slice(0, 3_800);
 }
 
-const alarmState = globalThis as typeof globalThis & { __neboOpsAlarmsV1?: Record<string, number> };
+function seconds(value: unknown): string {
+  const date = value instanceof Date ? value : new Date(String(value || ''));
+  if (!Number.isFinite(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: MSK, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).format(date);
+}
 
-/** Alarms the owner should not have to look for: a silent app and an error spike. */
+function actionText(eventType: unknown, section: unknown): string {
+  const screen = SCREEN_LABELS[String(section || '')];
+  if (eventType === 'screen_view') return `открыл экран «${screen || String(section || 'неизвестно')}»`;
+  const action = ACTIONS[String(eventType || '')] || String(eventType || 'действие');
+  return screen ? `${action} · ${screen}` : action;
+}
+
+/** Every recorded action of every person, newest first, to the second. */
+export async function buildActivityFeed(limit = 40): Promise<string> {
+  const result = await getPool().query(
+    `SELECT e.user_id, u.name, e.event_type, e.section, e.occurred_at AT TIME ZONE 'UTC' AS at
+     FROM user_app_events e LEFT JOIN users u ON u.id = e.user_id
+     WHERE e.occurred_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '48 hours'
+       AND COALESCE(e.source, '') NOT IN ('rustore_callback', 'entitlement_expiry')
+       AND e.event_type <> 'activity_heartbeat'
+     ORDER BY e.occurred_at DESC, e.id DESC LIMIT $1`,
+    [Math.max(5, Math.min(60, limit))],
+  );
+  if (!result.rows.length) return '🕒 За двое суток в приложении не было действий.';
+  const lines = [`🕒 Лента действий · последние ${result.rows.length} · 🖥 ${neboServerLabel()}`, ''];
+  let lastPerson = '';
+  for (const row of result.rows) {
+    const person = `${name(row.name)} · ID ${row.user_id ?? '—'}`;
+    if (person !== lastPerson) lines.push(`🙋 ${person}`);
+    lastPerson = person;
+    lines.push(`   ${seconds(row.at)} · ${actionText(row.event_type, row.section)}`);
+  }
+  lines.push('', 'Вся история человека: /user ID');
+  return lines.join('\n').slice(0, 3_800);
+}
+
+/**
+ * Alarms the owner should not have to look for. Each alarm is claimed once per
+ * window in the database, so restarts and parallel servers never repeat it.
+ */
+async function claimAlarm(key: string): Promise<boolean> {
+  const claimed = await getPool().query(
+    `INSERT INTO nebo_ops_outbox (event_key, event_type, payload_json, occurred_at, status, sent_at)
+     VALUES ($1, 'diagnostic', '{}'::jsonb, NOW(), 'sent', NOW())
+     ON CONFLICT (event_key) DO NOTHING RETURNING id`,
+    [key],
+  );
+  return (claimed.rowCount || 0) > 0;
+}
+
 export async function collectNeboAlarms(now = new Date()): Promise<string[]> {
-  const sent = (alarmState.__neboOpsAlarmsV1 ??= {});
-  const hour = Number(new Intl.DateTimeFormat('ru-RU', { timeZone: MSK, hour: '2-digit', hour12: false }).format(now));
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: MSK, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false })
+    .formatToParts(now).reduce<Record<string, string>>((acc, part) => ({ ...acc, [part.type]: part.value }), {});
+  const day = `${parts.year}-${parts.month}-${parts.day}`;
+  const hour = Number(parts.hour);
   const row = (await getPool().query(
     `SELECT
-       (SELECT COUNT(*) FROM user_app_events WHERE occurred_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '3 hours')::int AS events_3h,
-       (SELECT COUNT(*) FROM user_app_events WHERE occurred_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '7 days')::int AS events_7d,
+       (SELECT MAX(occurred_at) FROM user_app_events) AT TIME ZONE 'UTC' AS last_event,
+       (SELECT COUNT(DISTINCT user_id) FROM user_app_events
+          WHERE occurred_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '7 days')::int AS people_7d,
        (SELECT COUNT(*) FROM nebo_ops_outbox WHERE event_type IN ('ai_error', 'technical_error')
           AND occurred_at > NOW() - INTERVAL '15 minutes')::int AS errors_15m`,
   )).rows[0] || {};
   const alarms: string[] = [];
-  const due = (key: string, everyMs: number) => now.getTime() - (sent[key] || 0) > everyMs;
-  // Quiet hours are not suspicious; a usually busy app silent for three daytime hours is.
-  if (hour >= 10 && hour < 23 && Number(row.events_3h) === 0 && Number(row.events_7d) >= 50 && due('quiet', 6 * 3_600_000)) {
-    sent.quiet = now.getTime();
+  const lastEvent = row.last_event ? new Date(row.last_event).getTime() : 0;
+  const silentHours = lastEvent ? (now.getTime() - lastEvent) / 3_600_000 : Infinity;
+  // With a handful of daily users a quiet afternoon is normal; only a long daytime
+  // silence in an app that usually has dozens of people is worth a message, once a day.
+  if (hour >= 12 && hour < 22 && silentHours >= 8 && Number(row.people_7d) >= 30 && await claimAlarm(`alarm:quiet:${day}`)) {
     alarms.push([
-      '🚨 Тишина в приложении',
-      'Уже 3 часа днём ни одного действия пользователей, хотя обычно люди заходят.',
-      'Похоже, приложение или сервер недоступны. Проверь: открой приложение сам.',
+      '🚨 Долгая тишина в приложении',
+      `Уже ${Math.floor(silentHours)} ч ни одного действия пользователей, хотя за неделю заходило ${row.people_7d} человек.`,
+      'Проверь: открой приложение сам. Если оно работает — просто тихий день.',
       `🖥 ${neboServerLabel()}`,
     ].join('\n'));
   }
-  if (Number(row.errors_15m) >= 5 && due('errors', 3_600_000)) {
-    sent.errors = now.getTime();
+  if (Number(row.errors_15m) >= 5 && await claimAlarm(`alarm:errors:${day}:${hour}`)) {
     alarms.push([
       `🚨 Всплеск ошибок: ${row.errors_15m} за 15 минут`,
       'Что-то сломалось массово. Подробности — кнопка «Ошибки за сутки» в боте поддержки.',
