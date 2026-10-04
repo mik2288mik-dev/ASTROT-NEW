@@ -38,6 +38,7 @@ import { HomeEntryTiles } from '../components/home/HomeEntryTiles';
 import { ForYouBlock } from '../components/home/ForYouBlock';
 import type { ForYouAction } from '../lib/forYou';
 import { ListenForecastButton } from '../components/audio/ListenForecastButton';
+import { buildForecastListenScript } from '../lib/tts/forecastListenScript';
 import { DailyQuestionCard } from '../components/home/DailyQuestionCard';
 import { claimWeekGift, loadGiftStatus, type GiftStatus } from '../services/giftService';
 import { FutureInviteCard } from '../components/PersonalForecastFeed/FutureInviteCard';
@@ -735,7 +736,9 @@ export const Dashboard = memo<DashboardProps>(({
         ) : readerForecast ? (
           <>
           <ListenForecastButton
-            source={{ type: 'personal_forecast', period, periodKey: readerForecast.periodKey }}
+            trackKey={`forecast:${period}:${readerForecast.periodKey}`}
+            period={period}
+            text={buildForecastListenScript({ forecast: readerForecast, name: profile.name, language, lockedSectionIds: ready?.lockedSectionIds })}
             language={language}
             premium={premium}
           />
@@ -923,7 +926,9 @@ export const Dashboard = memo<DashboardProps>(({
           onRequestPremium={requestPremium}
           listen={(
             <ListenForecastButton
-              source={{ type: 'personal_forecast', period: 'day', periodKey: forecast.periodKey }}
+              trackKey={`forecast:day:${forecast.periodKey}`}
+              period="day"
+              text={buildForecastListenScript({ forecast, name: profile.name, language, lockedSectionIds: result?.lockedSectionIds })}
               language={language}
               premium={premium}
               onRequestPremium={canPromotePremium ? requestPremium : undefined}

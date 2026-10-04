@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { createSpeechSession, SPEECH_CHARS_PER_SECOND, splitIntoSentences, type SpeechSession } from './speechEngine';
 
 /**
  * One audio element for the whole app, so a new track always replaces the
@@ -75,7 +76,122 @@ export function unlockPlayback(): void {
   void player.play().then(() => player.pause()).catch(() => { unlocked = false; });
 }
 
+/**
+ * Reading text with the device's own voice behaves like a track: the same
+ * mini player, pause, 15-second steps (by sentences), speed and lock-screen buttons.
+ */
+type SpeechTrack = {
+  session: SpeechSession;
+  sentences: string[];
+  /** Start second of every sentence at rate 1. */
+  starts: number[];
+  total: number;
+  index: number;
+  playing: boolean;
+  sentenceStartedAt: number;
+  ticker: ReturnType<typeof setInterval> | null;
+};
+
+let speech: SpeechTrack | null = null;
+
+function speechSecond(track: SpeechTrack, index: number): number {
+  return (track.starts[index] ?? track.total) / state.rate;
+}
+
+function stopSpeechTicker(track: SpeechTrack) {
+  if (track.ticker) clearInterval(track.ticker);
+  track.ticker = null;
+}
+
+function disposeSpeech() {
+  if (!speech) return;
+  stopSpeechTicker(speech);
+  speech.session.dispose();
+  speech = null;
+}
+
+function startSpeechAt(track: SpeechTrack, index: number) {
+  track.index = Math.max(0, Math.min(index, track.sentences.length - 1));
+  track.playing = true;
+  track.sentenceStartedAt = Date.now();
+  track.session.play(track.index, state.rate);
+  stopSpeechTicker(track);
+  track.ticker = setInterval(() => {
+    if (!track.playing) return;
+    const next = track.index + 1 < track.sentences.length ? speechSecond(track, track.index + 1) : track.total / state.rate;
+    const now = speechSecond(track, track.index) + (Date.now() - track.sentenceStartedAt) / 1000;
+    emit({ currentTime: Math.min(now, next) });
+  }, 500);
+  emit({ playing: true, loading: false, error: false, currentTime: speechSecond(track, track.index) });
+}
+
+function haltSpeech(track: SpeechTrack) {
+  track.playing = false;
+  stopSpeechTicker(track);
+  track.session.halt();
+  emit({ playing: false });
+}
+
+/** Reads text aloud with the phone's voice. Tap-safe: no network involved. */
+export function playSpeech(input: { trackKey: string; title: string; text: string; language: 'ru' | 'en' }): void {
+  if (state.trackKey === input.trackKey && speech) {
+    if (!speech.playing) startSpeechAt(speech, speech.index);
+    return;
+  }
+  element?.pause();
+  disposeSpeech();
+  const sentences = splitIntoSentences(input.text);
+  if (!sentences.length) return;
+  const starts: number[] = [];
+  let chars = 0;
+  for (const sentence of sentences) {
+    starts.push(chars / SPEECH_CHARS_PER_SECOND);
+    chars += sentence.length + 1;
+  }
+  const track: SpeechTrack = {
+    session: null as unknown as SpeechSession,
+    sentences,
+    starts,
+    total: chars / SPEECH_CHARS_PER_SECOND,
+    index: 0,
+    playing: false,
+    sentenceStartedAt: Date.now(),
+    ticker: null,
+  };
+  track.session = createSpeechSession(sentences, input.language, {
+    onSentence: (index) => {
+      if (speech !== track) return;
+      track.index = index;
+      track.sentenceStartedAt = Date.now();
+      emit({ currentTime: speechSecond(track, index), playing: true, loading: false });
+    },
+    onEnd: () => {
+      if (speech !== track) return;
+      track.playing = false;
+      stopSpeechTicker(track);
+      track.index = 0;
+      emit({ playing: false, currentTime: track.total / state.rate });
+    },
+    onError: () => {
+      if (speech !== track) return;
+      haltSpeech(track);
+      emit({ error: true });
+    },
+  });
+  speech = track;
+  emit({ trackKey: input.trackKey, title: input.title, src: null, currentTime: 0, duration: track.total / state.rate, loop: false, error: false });
+  startSpeechAt(track, 0);
+}
+
+function speechIndexAt(track: SpeechTrack, seconds: number): number {
+  const at = seconds * state.rate;
+  let index = 0;
+  while (index + 1 < track.starts.length && track.starts[index + 1] <= at) index += 1;
+  return index;
+}
+
 export function playTrack(input: { trackKey: string; src: string; title: string; loop?: boolean; durationHint?: number }): void {
+  disposeSpeech();
   const player = audio();
   if (state.trackKey !== input.trackKey || state.src !== input.src) {
     player.src = input.src;
@@ -96,26 +212,52 @@ export function playTrack(input: { trackKey: string; src: string; title: string;
 }
 
 export function togglePlayback(): void {
+  if (speech) {
+    if (speech.playing) haltSpeech(speech);
+    else startSpeechAt(speech, speech.index);
+    return;
+  }
   const player = audio();
   if (player.paused) void player.play().catch(() => emit({ playing: false }));
   else player.pause();
 }
 
 export function pausePlayback(): void {
+  if (speech?.playing) haltSpeech(speech);
   element?.pause();
 }
 
 export function seekBy(seconds: number): void {
+  if (speech) {
+    seekTo(state.currentTime + seconds);
+    return;
+  }
   const player = audio();
   const duration = Number.isFinite(player.duration) ? player.duration : state.duration;
   player.currentTime = Math.min(Math.max(0, player.currentTime + seconds), duration || player.currentTime + seconds);
 }
 
 export function seekTo(seconds: number): void {
+  if (speech) {
+    const index = speechIndexAt(speech, Math.max(0, seconds));
+    if (speech.playing) startSpeechAt(speech, index);
+    else {
+      speech.index = index;
+      emit({ currentTime: speechSecond(speech, index) });
+    }
+    return;
+  }
   audio().currentTime = Math.max(0, seconds);
 }
 
 export function setPlaybackRate(rate: number): void {
+  if (speech) {
+    const track = speech;
+    emit({ rate, duration: track.total / rate });
+    if (track.playing) startSpeechAt(track, track.index);
+    else emit({ currentTime: speechSecond(track, track.index) });
+    return;
+  }
   audio().playbackRate = rate;
   emit({ rate });
 }
@@ -144,6 +286,12 @@ export function setSleepTimer(minutes: number | null): void {
   }
   const sleepAt = Date.now() + minutes * 60_000;
   sleepTimer = setTimeout(() => {
+    if (speech) {
+      clearSleepTimer();
+      pausePlayback();
+      emit({ sleepAt: null });
+      return;
+    }
     let step = 0;
     fadeTimer = setInterval(() => {
       step += 1;
@@ -161,6 +309,7 @@ export function setSleepTimer(minutes: number | null): void {
 
 export function stopPlayback(): void {
   clearSleepTimer();
+  disposeSpeech();
   if (element) {
     element.pause();
     element.removeAttribute('src');
