@@ -24,88 +24,45 @@
   box-shadow: none !important;
 }
 
-/* ── One switch for the whole app (Liquid Glass, as in iOS 26): a clear glass
-   track without any border, and a glass «lens» on the chosen segment with a
-   specular top edge and a soft shadow. Used by the home period switch, the
-   sign horoscope periods, natal sections, compatibility modes and the Menu. ── */
-html body .app-top-bar .today-period-tabs,
-html body .fresh-tabs,
-html body .editorial-tabs,
-html body .fresh-page .editorial-tabs,
-html body .fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs {
-  display: flex !important;
-  width: fit-content !important;
-  max-width: calc(100% - 32px) !important;
+/* Home period switch in the bar: the same underline tabs as the sign horoscope
+   («Сегодня | Неделя | Месяц»); every other switch keeps its original look. */
+.app-top-bar .today-period-tabs {
+  display: inline-flex !important;
+  width: auto !important;
   min-height: 0 !important;
-  gap: 2px !important;
-  margin: 0 auto !important;
-  padding: 2px !important;
+  gap: 18px;
+  margin: 0 auto;
+  padding: 0 !important;
   border: 0 !important;
-  border-radius: 999px !important;
-  background: rgba(120, 120, 128, 0.1) !important;
-  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.7), inset 0 -0.5px 0 rgba(0, 0, 0, 0.03) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
-  backdrop-filter: blur(14px) saturate(1.3);
-  transform: none !important;
-  grid-template-columns: none !important;
-}
-
-html body .app-top-bar .today-period-tabs > .today-period-tab,
-html body .fresh-tabs > .fresh-tab,
-html body .editorial-tabs > .editorial-tab,
-html body .fresh-page .editorial-tabs > .editorial-tab,
-html body .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab {
-  flex: 0 1 auto !important;
-  min-width: 0 !important;
-  min-height: 28px !important;
-  padding: 4px 14px !important;
-  border: 0 !important;
-  border-radius: 999px !important;
+  border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-  color: #55524c !important;
+  transform: none !important;
+}
+
+.app-top-bar .today-period-tabs > .today-period-tab {
+  position: relative;
+  min-height: 36px !important;
+  padding: 6px 2px !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #817b75 !important;
   font-size: 13px !important;
-  font-weight: 600 !important;
-  line-height: 1.1 !important;
-  white-space: nowrap;
-  transition: background-color 200ms ease, box-shadow 200ms ease, color 200ms ease;
+  font-weight: 480 !important;
 }
 
-html body .app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'],
-html body .fresh-tabs > .fresh-tab.active,
-html body .fresh-tabs > .fresh-tab[data-active='true'],
-html body .editorial-tabs > .editorial-tab.is-active,
-html body .fresh-page .editorial-tabs > .editorial-tab.is-active,
-html body .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.8)) !important;
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    0 0.5px 1.5px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.03) !important;
-  color: #1f1d1a !important;
-}
-
-html body .editorial-tabs > .editorial-tab::after,
-html body .fresh-tabs > .fresh-tab::after,
-html body .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab::after {
-  display: none !important;
-}
-
-.horo-reader-page .horo-reader-controls {
-  display: flex;
-  justify-content: center;
-}
-
-/* Below the bar the switch keeps a little air before the content. */
-html body .fresh-tabs,
-html body .editorial-tabs,
-html body .fresh-page .editorial-tabs {
-  margin-bottom: 14px !important;
+.app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'] {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #292724 !important;
+  font-weight: 680 !important;
 }
 
 .app-top-bar .today-period-tab-underline {
-  display: none;
+  display: block;
+  bottom: 0;
+  width: 48px;
+  height: 1px;
 }
 
 /* ── One top bar and one bottom bar for the whole app: the same light glass ── */
