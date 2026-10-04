@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { admin2, type AdminStoriesOverview, type AdminStoryEpisode } from '../../services/admin2Service';
+import { admin2, type AdminStoriesOverview, type AdminStoryEpisode, type AdminStorySeriesBible } from '../../services/admin2Service';
+import { EMPTY_SERIES, StorySeriesEditor } from './StorySeriesEditor';
+import { StoryPlanner } from './StoryPlanner';
 
 const card = 'admin2-card';
 const btnPrimary = 'admin2-button admin2-button--primary';
@@ -17,7 +19,14 @@ function wordCount(text: string): number {
   return (text.match(/[\p{L}\p{N}]+/gu) ?? []).length;
 }
 
-/** «Рассказы»: read, fix and release daily episodes before readers see them. */
+type View = 'episodes' | 'bible' | 'plan';
+
+function bibleOf(series: AdminStoriesOverview['series'][number]): AdminStorySeriesBible {
+  const { id, genre, title, tagline, narrator, world, characters, arcs, rules, style } = series;
+  return { id, genre, title, tagline, narrator, world, characters, arcs, rules, style: style ?? '' };
+}
+
+/** «Рассказы»: the series scripts, plots of upcoming episodes, and moderation before release. */
 export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canPublish: boolean }) {
   const [overview, setOverview] = useState<AdminStoriesOverview | null>(null);
   const [seriesId, setSeriesId] = useState<string | null>(null);
@@ -26,6 +35,9 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [view, setView] = useState<View>('episodes');
+  const [creating, setCreating] = useState(false);
+  const [rewriteNote, setRewriteNote] = useState('');
 
   const load = () => admin2.stories()
     .then((data) => {
@@ -72,23 +84,78 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
           {overview.series.map((item) => {
             const waiting = item.episodes.filter((ep) => ep.status === 'needs_review').length;
             return (
-              <button key={item.id} type="button" className={item.id === seriesId ? btnPrimary : btnGhost} onClick={() => { setSeriesId(item.id); setSelected(null); }}>
-                {item.title}{waiting ? ` · ждут: ${waiting}` : ''}
+              <button key={item.id} type="button" className={item.id === seriesId && !creating ? btnPrimary : btnGhost} onClick={() => { setSeriesId(item.id); setSelected(null); setCreating(false); }}>
+                {item.title}{!item.enabled ? ' · пауза' : ''}{waiting ? ` · ждут: ${waiting}` : ''}
               </button>
             );
           })}
           {canEdit ? (
-            <button type="button" className={btnGhost} disabled={busy} onClick={() => run(() => admin2.generateStories(seriesId ?? undefined), 'Запас серий пополняется — обновите через пару минут')}>
-              Пополнить запас
-            </button>
+            <>
+              <button type="button" className={creating ? btnPrimary : btnGhost} onClick={() => { setCreating(true); setSelected(null); }}>
+                + Новый сериал
+              </button>
+              <button type="button" className={btnGhost} disabled={busy} onClick={() => run(() => admin2.generateStories(seriesId ?? undefined), 'Запас серий пополняется — обновите через пару минут')}>
+                Пополнить запас
+              </button>
+            </>
           ) : null}
         </div>
         {notice ? <p className="mt-2 text-sm text-emerald-700">{notice}</p> : null}
         {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
       </div>
 
-      {series ? (
+      {creating ? (
         <div className={card}>
+          <p className="mb-3 text-base font-bold text-slate-800">Новый сериал</p>
+          <StorySeriesEditor
+            initial={EMPTY_SERIES}
+            enabled
+            isNew
+            builtIn={false}
+            edited={false}
+            busy={busy}
+            canEdit={canEdit}
+            onSave={(bible, on) => run(async () => {
+              await admin2.saveStorySeries(bible, on);
+              setCreating(false);
+              setSeriesId(bible.id);
+            }, 'Сериал создан — первые серии напишутся при «Пополнить запас» или ночью')}
+          />
+        </div>
+      ) : null}
+
+      {series && !creating ? (
+        <div className={card}>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {([['episodes', 'Серии'], ['bible', 'Сценарий'], ['plan', 'Сюжет следующих серий']] as const).map(([value, label]) => (
+              <button key={value} type="button" className={view === value ? btnPrimary : btnGhost} onClick={() => setView(value)}>{label}</button>
+            ))}
+          </div>
+          {view === 'bible' ? (
+            <StorySeriesEditor
+              initial={bibleOf(series)}
+              enabled={series.enabled}
+              isNew={false}
+              builtIn={series.builtIn}
+              edited={series.edited}
+              busy={busy}
+              canEdit={canEdit}
+              onSave={(bible, on) => run(() => admin2.saveStorySeries(bible, on), 'Сценарий сохранён — новые серии пишутся по нему')}
+              onReset={() => run(() => admin2.resetStorySeries(series.id), 'Вернули исходный сценарий')}
+            />
+          ) : null}
+          {view === 'plan' ? (
+            <StoryPlanner
+              seriesId={series.id}
+              lastNumber={lastNumber}
+              plans={series.plans}
+              canEdit={canEdit}
+              generationEnabled={overview.generationEnabled}
+              onChanged={load}
+            />
+          ) : null}
+          {view === 'episodes' ? (
+          <>
           <p className="mb-2 text-sm font-semibold text-slate-700">{series.title}: {series.episodes.length} серий, сегодня {overview.today}</p>
           {series.episodes.length === 0 ? <p className="text-sm text-slate-500">Серий ещё нет — нажмите «Пополнить запас».</p> : null}
           <div className="divide-y divide-slate-100">
@@ -109,10 +176,12 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
               </button>
             ))}
           </div>
+          </>
+          ) : null}
         </div>
       ) : null}
 
-      {episode && draft ? (
+      {view === 'episodes' && !creating && episode && draft ? (
         <div className={card}>
           <p className="mb-2 text-base font-bold text-slate-800">Серия № {episode.number} — {STATUS[episode.status]}</p>
           {episode.issues.length ? (
@@ -151,11 +220,17 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
               </>
             ) : null}
             {canEdit && episode.number === lastNumber && !episode.released ? (
-              <button type="button" className={btnGhost} disabled={busy} onClick={() => run(() => admin2.rewriteStoryEpisode(episode.seriesId, episode.number), 'Серия написана заново')}>
+              <button type="button" className={btnGhost} disabled={busy} onClick={() => run(() => admin2.rewriteStoryEpisode(episode.seriesId, episode.number, rewriteNote.trim() || undefined), 'Серия написана заново')}>
                 Написать заново
               </button>
             ) : null}
           </div>
+          {canEdit && episode.number === lastNumber && !episode.released ? (
+            <label className="mt-3 block text-sm">
+              Что изменить при переписывании (необязательно — станет планом этой серии)
+              <textarea className={inputCls} rows={3} placeholder="Например: сделай финал неожиданнее, пусть Глеб появится раньше" value={rewriteNote} onChange={(e) => setRewriteNote(e.target.value)} />
+            </label>
+          ) : null}
         </div>
       ) : null}
     </div>

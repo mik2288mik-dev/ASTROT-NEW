@@ -887,7 +887,8 @@ export const Dashboard = memo<DashboardProps>(({
         className="home-top"
         aria-label={language === 'ru' ? 'Личный гороскоп' : 'Personal horoscope'}
       >
-        {topBar(true)}
+        {/* On the sky cover the sky runs under the glass bar; elsewhere the bar reserves its space. */}
+        {topBar(!skyCover)}
       </section>
 
       {!skyCover ? (

@@ -10,7 +10,7 @@ import { buildForecastListenScript } from '../../../lib/tts/forecastListenScript
 import { TTS_DEFAULT_VOICE } from '../../../lib/tts/openaiSpeech';
 import { ensureAudio } from '../../../lib/tts/ttsStore';
 import { findSleepStory } from '../../../lib/sleepStories';
-import { findStorySeries } from '../../../lib/stories/series';
+import { findManagedSeries } from '../../../lib/stories/catalog';
 import { listEpisodes, moscowDayKey } from '../../../lib/stories/repository';
 import { releasedEpisodeNumbers } from '../../../lib/stories/access';
 
@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const source = (req.body || {}).source as { type?: unknown; period?: unknown; periodKey?: unknown; id?: unknown; language?: unknown; seriesId?: unknown; number?: unknown } | undefined;
     if (source?.type === 'story_episode') {
       // One narrator per series; the episode is voiced once for all listeners (NEBO+).
-      const series = typeof source.seriesId === 'string' ? findStorySeries(source.seriesId) : null;
+      const series = typeof source.seriesId === 'string' ? await findManagedSeries(source.seriesId) : null;
       const number = Number(source.number);
       if (!series || !Number.isSafeInteger(number)) return res.status(400).json({ code: 'LISTEN_SOURCE_INVALID' });
       if (!(await getPremiumEntitlementState(userId)).isPremium) return res.status(403).json({ code: 'LISTEN_PREMIUM_REQUIRED' });

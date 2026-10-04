@@ -3,7 +3,7 @@ import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { episodeAccess, releasedEpisodeNumbers } from '../../../../lib/stories/access';
 import { addFreeUnlock, listEpisodes, moscowDayKey, readUnlocks } from '../../../../lib/stories/repository';
-import { findStorySeries } from '../../../../lib/stories/series';
+import { findManagedSeries } from '../../../../lib/stories/catalog';
 
 /**
  * One episode. GET returns it when it is open; POST spends today's free
@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const user = await requireAppUser(req, { allowGuest: true });
     const userId = String(user.userId);
-    const series = findStorySeries(String(req.query.seriesId || ''));
+    const series = await findManagedSeries(String(req.query.seriesId || ''));
     const number = Number(req.query.number);
     if (!series || !Number.isSafeInteger(number) || number < 1) return res.status(404).json({ code: 'EPISODE_NOT_FOUND' });
     const today = moscowDayKey();

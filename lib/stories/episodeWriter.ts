@@ -39,7 +39,13 @@ export function episodeBeat(series: StorySeries, number: number): { arc: string;
   return { arc: arc.name, beat: arc.beats[round % arc.beats.length] };
 }
 
-export function buildEpisodePrompt(series: StorySeries, number: number, previous: readonly PreviousEpisode[]): { instructions: string; input: string } {
+export function buildEpisodePrompt(
+  series: StorySeries,
+  number: number,
+  previous: readonly PreviousEpisode[],
+  /** What must happen in this episode, chosen or written in the admin; replaces the arc beat. */
+  direction?: string | null,
+): { instructions: string; input: string } {
   const beat = episodeBeat(series, number);
   const recent = previous.slice(-12);
   const facts = previous.flatMap((episode) => episode.facts).slice(-40);
@@ -59,7 +65,10 @@ export function buildEpisodePrompt(series: StorySeries, number: number, previous
     ...series.characters.map((character) => `- ${character.name}${character.aliases.length ? ` (${character.aliases.join(', ')})` : ''}: ${character.role}`),
     'ПРАВИЛА СЕРИАЛА:',
     ...series.rules.map((rule) => `- ${rule}`),
-    `СЕРИЯ № ${number}. Линия: «${beat.arc}». Что должно произойти: ${beat.beat}.`,
+    series.style ? `СТИЛЬ И ТОН: ${series.style}` : '',
+    direction
+      ? `СЕРИЯ № ${number}. Сюжет этой серии задан автором — следуй ему: ${direction}`
+      : `СЕРИЯ № ${number}. Линия: «${beat.arc}». Что должно произойти: ${beat.beat}.`,
     recent.length ? 'ЧТО УЖЕ БЫЛО (по порядку):' : 'Это первая серия: познакомь читателя с героями и миром через действие, а не описание.',
     ...recent.map((episode) => `- Серия ${episode.number} «${episode.title}»: ${episode.summary}`),
     facts.length ? 'ВАЖНЫЕ ФАКТЫ, КОТОРЫЕ НЕЛЬЗЯ НАРУШАТЬ:' : '',
