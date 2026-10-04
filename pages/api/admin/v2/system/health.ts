@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { handleAdminError } from '../../../../../lib/adminAuth';
 import { getAdminContext, roleHasPermission } from '../../../../../lib/admin/rbac';
 import { getPool } from '../../../../../lib/db';
+import { OPENAI_LUNA_MODEL } from '../../../../../lib/openai-models';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -67,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const providers = {
       openai: {
         configured: Boolean(process.env.OPENAI_API_KEY),
-        model: 'gpt-5.6-luna',
+        model: OPENAI_LUNA_MODEL,
       },
       deepseek: {
         configured: Boolean(process.env.DEEPSEEK_API_KEY),
