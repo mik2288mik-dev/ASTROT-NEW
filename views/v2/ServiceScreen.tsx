@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ChevronRight, Gift } from 'lucide-react';
+import React, { useRef, useState } from 'react';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import {
   EditorialChartsButton,
@@ -8,8 +7,6 @@ import {
 } from '../../components/editorial/EditorialScreenChrome';
 import type { UserProfile } from '../../types';
 import { AstrologyEncyclopedia } from './AstrologyEncyclopedia';
-import { GiftIdeasSheet, type GiftPerson } from '../../components/home/GiftIdeasSheet';
-import { loadExploreCharts } from '../../components/PersonalForecastFeed/exploreCharts';
 
 export type ServiceTab = 'matrix' | 'knowledge' | 'store';
 
@@ -48,20 +45,6 @@ export function ServiceScreen({
   const rootRef = useRef<HTMLDivElement>(null);
   const activeTab = controlledTab ?? internalTab;
   const ru = profile.language !== 'en';
-  const [giftOpen, setGiftOpen] = useState(false);
-  const [giftPeople, setGiftPeople] = useState<GiftPerson[]>([]);
-
-  useEffect(() => {
-    if (!giftOpen) return undefined;
-    let active = true;
-    void loadExploreCharts(String(profile.id || 'guest')).then((charts) => {
-      if (!active) return;
-      setGiftPeople(charts
-        .filter((chart) => !chart.is_primary && !chart.archived_at && chart.subject_type !== 'self' && chart.name?.trim())
-        .map((chart) => ({ name: chart.name.trim().split(/\s+/u)[0], chart: chart.chart_data ?? null, relation: chart.relation_label ?? null })));
-    });
-    return () => { active = false; };
-  }, [giftOpen, profile.id]);
 
   const selectTab = (tab: ServiceTab) => {
     if (tab === 'matrix') {
@@ -81,16 +64,6 @@ export function ServiceScreen({
         title={ru ? 'Меню' : 'Menu'}
         rightAction={<EditorialChartsButton label={ru ? 'Открыть мои карты' : 'Open my charts'} onClick={onOpenCharts} />}
       />
-      {ru ? (
-        <button type="button" className="service-gift-entry" onClick={() => setGiftOpen(true)}>
-          <span className="service-gift-entry-icon" aria-hidden="true"><Gift size={20} strokeWidth={1.8} /></span>
-          <span className="service-gift-entry-copy">
-            <b>Что подарить?</b>
-            <span>Идеи подарков по карте человека или по знаку — бесплатно</span>
-          </span>
-          <ChevronRight size={18} aria-hidden="true" />
-        </button>
-      ) : null}
       <EditorialTabs
         className="services-screen-tabs"
         label={ru ? 'Сервисные разделы' : 'Service sections'}
@@ -109,7 +82,6 @@ export function ServiceScreen({
           {premiumStoreContent}
         </div>
       ) : null}
-      <GiftIdeasSheet open={giftOpen} person={null} people={giftPeople} onClose={() => setGiftOpen(false)} />
     </div>
   );
 }

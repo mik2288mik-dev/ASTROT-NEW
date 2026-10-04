@@ -262,7 +262,6 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
 
   return (
     <div className="future-view">
-      {renderPeriodCards?.(teasers)}
       <header className="future-month-header">
         <button type="button" onClick={() => shift(-1)} disabled={!canGoBack} aria-label="Предыдущий месяц"><ChevronLeft size={20} /></button>
         <h2>{monthNameRu(cursor.month)} {cursor.year}</h2>
@@ -294,6 +293,9 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
           {cautionDays.length ? <span><b>Осторожно:</b> {cautionDays.join(', ')}</span> : null}
         </p>
       ) : null}
+
+      {/* Calendar first (mockup v1), then the week and month readings. */}
+      {renderPeriodCards?.(teasers)}
 
       {natal ? (
         <section className="future-planner" aria-labelledby="future-planner-title">

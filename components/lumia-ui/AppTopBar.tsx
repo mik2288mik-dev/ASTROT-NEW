@@ -52,6 +52,9 @@ export function AppTopBar({
   const isSignHoroscopeHeader = title === 'Гороскоп по знакам' || title === 'Гороскоп по знакам зодиака';
   const settings = useContext(AppTopBarSettingsContext);
   const showSettings = Boolean(settings) && title !== 'Настройки' && title !== 'Settings' && title !== 'Premium';
+  // One layout everywhere: profile on the left, settings on the right (as on the home screen).
+  const startAction = onBack ? null : leftAction ?? rightAction ?? null;
+  const endAction = onBack || leftAction ? rightAction : null;
 
   return (
     <>
@@ -66,7 +69,7 @@ export function AppTopBar({
             >
               <ChevronLeft aria-hidden strokeWidth={1.9} />
             </button>
-          ) : leftAction ?? null}
+          ) : startAction}
         </div>
 
         {center ?? (
@@ -88,10 +91,10 @@ export function AppTopBar({
         </span>
         )}
 
-        <div className={`app-top-bar-side app-top-bar-side--end${rightAction || showSettings ? ' has-actions' : ''}`}>
-          {rightAction || showSettings ? (
+        <div className={`app-top-bar-side app-top-bar-side--end${endAction || showSettings ? ' has-actions' : ''}`}>
+          {endAction || showSettings ? (
             <div className="app-top-bar-actions">
-              {rightAction}
+              {endAction}
               {showSettings ? (
                 <button
                   className="app-top-bar-action app-top-bar-settings-button"

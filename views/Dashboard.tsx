@@ -900,14 +900,12 @@ export const Dashboard = memo<DashboardProps>(({
       className={`fresh-page home-screen forecast-feed-page lumia-main-scroll lumia-bottom-tab-scroll is-${activePeriod}${skyCover ? ' has-sky-cover' : ''}`}
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
-      {!skyCover ? (
-        <section
-          className="home-top"
-          aria-label={language === 'ru' ? 'Личный гороскоп' : 'Personal horoscope'}
-        >
-          {topBar(true)}
-        </section>
-      ) : null}
+      <section
+        className="home-top"
+        aria-label={language === 'ru' ? 'Личный гороскоп' : 'Personal horoscope'}
+      >
+        {topBar(!skyCover)}
+      </section>
 
       {!skyCover ? (
         <p className="today-period-personal-note">
@@ -978,7 +976,6 @@ export const Dashboard = memo<DashboardProps>(({
           tone={forecast.meta.astrologerBrief.tone}
           personalAttribution={personalForecastAttribution}
           onRequestPremium={requestPremium}
-          top={topBar(false)}
           afterHero={entryTiles}
           listen={(
             <ListenForecastButton

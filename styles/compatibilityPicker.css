@@ -226,21 +226,11 @@
   flex: none;
 }
 
-/* WebKit (Telegram on iPhone) also deflates the sticky area by scroll-padding,
-   which lifted the button into the middle of the screen; the offset below already
-   clears the tab bar, so the padding is dropped on this screen. */
-.lumia-main-scroll:has(.compat-entry-submit-bar) {
-  scroll-padding-bottom: 0;
-}
-
-/* «Сравнить нас» stays reachable above the bottom navigation. */
+/* «Сравнить нас» follows the form. As a sticky bar it floated over the people
+   in Telegram on iPhone, so it is a plain block now. */
 .compat-entry-submit-bar {
-  position: sticky;
-  bottom: calc(var(--today-bottom-nav-height, 0rem) + var(--lumia-bottom-tab-safe-bottom, 0px) + 0.6rem);
-  z-index: 5;
-  margin: 0.5rem -1rem 0;
-  padding: 0.6rem 1rem 0.2rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 38%);
+  margin: 0.75rem 0 0;
+  padding: 0;
 }
 
 .compat-entry-submit-bar .compat-entry-submit {

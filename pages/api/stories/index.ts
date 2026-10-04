@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 import { episodeAccess, releasedEpisodeNumbers } from '../../../lib/stories/access';
-import { listEpisodes, moscowDayKey, readUnlocks } from '../../../lib/stories/repository';
+import { ensureEpisodeBuffer, listEpisodes, moscowDayKey, readUnlocks, storyGenerationEnabled } from '../../../lib/stories/repository';
 import { STORY_SERIES } from '../../../lib/stories/series';
 
 /** Series with released episodes and what this person can open today. */
@@ -17,6 +17,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const series = await Promise.all(STORY_SERIES.map(async (item) => {
       const episodes = await listEpisodes(item.id);
       const released = new Set(releasedEpisodeNumbers(episodes, today));
+      // A new series must not wait for the nightly job: write the first episodes now
+      // (in the background; the next visit shows them). Runs once per series at a time.
+      if (!released.size && storyGenerationEnabled()) {
+        void ensureEpisodeBuffer(item.id).catch((error: unknown) => {
+          console.warn('[stories] first episodes failed', item.id, error instanceof Error ? error.message : error);
+        });
+      }
       const usedToday = unlocks.some((unlock) => unlock.seriesId === item.id && unlock.unlockedOn === today);
       return {
         id: item.id,
