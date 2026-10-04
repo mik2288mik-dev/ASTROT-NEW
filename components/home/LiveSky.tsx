@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from 'react';
+import { useEffect, useRef } from 'react';
 import { skyPaletteForSunAltitude, type Rgb } from '../../lib/skyPalette';
 
 type LiveSkyProps = {
@@ -9,8 +9,6 @@ type LiveSkyProps = {
   /** Настоящие облака-картинки (прозрачный фон). Плывут медленно; если файлов нет — небо чистое. */
   clouds?: string[];
   className?: string;
-  /** Element whose centre marks where the Moon hangs (a tap target over it). Top-right corner when absent. */
-  moonAnchorRef?: RefObject<HTMLElement | null>;
 };
 
 const css = ([r, g, b]: Rgb, a = 1) => `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a})`;
@@ -30,7 +28,7 @@ const STARS = (() => {
   }));
 })();
 
-function moonDisk(radius: number, dpr: number): HTMLCanvasElement {
+export function moonDisk(radius: number, dpr: number): HTMLCanvasElement {
   const size = Math.ceil(radius * 2 * dpr);
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
@@ -62,7 +60,7 @@ function moonDisk(radius: number, dpr: number): HTMLCanvasElement {
   return canvas;
 }
 
-function litPath(cx: number, cy: number, r: number, phase: number): Path2D {
+export function litPath(cx: number, cy: number, r: number, phase: number): Path2D {
   const f = (((phase % 360) + 360) % 360) / 360;
   const rx = r * Math.cos(2 * Math.PI * f);
   const waxing = f < 0.5;
@@ -72,7 +70,7 @@ function litPath(cx: number, cy: number, r: number, phase: number): Path2D {
 }
 
 /** Ясное небо за содержимым карточки: цвет по Солнцу, звёзды ночью, Луна в настоящей фазе. */
-export function LiveSky({ sunAltitude, moonPhase = null, clouds = [], className, moonAnchorRef }: LiveSkyProps) {
+export function LiveSky({ sunAltitude, moonPhase = null, clouds = [], className }: LiveSkyProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const cloudKey = clouds.join('|');
 
@@ -126,11 +124,8 @@ export function LiveSky({ sunAltitude, moonPhase = null, clouds = [], className,
       }
       if (moonPhase !== null && Number.isFinite(moonPhase) && width >= 40) {
         const r = Math.min(26, width * 0.07);
-        const anchor = moonAnchorRef?.current;
-        const hostBox = host.getBoundingClientRect();
-        const anchorBox = anchor?.getBoundingClientRect();
-        const cx = anchorBox && anchorBox.width ? anchorBox.left - hostBox.left + anchorBox.width / 2 : width - r * 2.1;
-        const cy = anchorBox && anchorBox.height ? anchorBox.top - hostBox.top + anchorBox.height / 2 : r * 2.1;
+        const cx = width - r * 2.1;
+        const cy = r * 2.1;
         disk ??= moonDisk(r, dpr);
         if (palette.stars > 0.3) {
           const halo = ctx.createRadialGradient(cx, cy, r, cx, cy, r * 4);
@@ -165,4 +160,42 @@ export function LiveSky({ sunAltitude, moonPhase = null, clouds = [], className,
   }, [sunAltitude, moonPhase, cloudKey]);
 
   return <canvas ref={canvasRef} className={className ? `live-sky ${className}` : 'live-sky'} aria-hidden="true" />;
+}
+
+/**
+ * The Moon on its own small canvas, sized by its box — so it always sits exactly
+ * where CSS puts it, even when Telegram changes the safe areas after loading.
+ */
+export function MoonCanvas({ phase, night = false, className }: { phase: number; night?: boolean; className?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return undefined;
+    const draw = () => {
+      const size = Math.min(canvas.clientWidth, canvas.clientHeight);
+      if (size < 4) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(size * dpr);
+      canvas.height = Math.round(size * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, size, size);
+      const r = size / 2 - 1;
+      const disk = moonDisk(r, dpr);
+      ctx.globalAlpha = night ? 0.14 : 0.06; // earthshine on the dark part
+      ctx.drawImage(disk, size / 2 - r, size / 2 - r, r * 2, r * 2);
+      ctx.save();
+      ctx.clip(litPath(size / 2, size / 2, r, phase));
+      ctx.globalAlpha = 1;
+      ctx.drawImage(disk, size / 2 - r, size / 2 - r, r * 2, r * 2);
+      ctx.restore();
+    };
+    draw();
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(draw) : null;
+    observer?.observe(canvas);
+    return () => observer?.disconnect();
+  }, [night, phase]);
+
+  return <canvas ref={canvasRef} className={className} aria-hidden="true" />;
 }

@@ -15,7 +15,7 @@ type AssetSlotProps = {
  * load) nothing is drawn at all — no grey stand-in — and the text next to it
  * carries the meaning on its own.
  */
-export function AssetSlot({ src, className, shape = 'tile', fit = 'cover' }: AssetSlotProps) {
+export function AssetSlot({ src, className, shape = 'tile', fit = 'contain' }: AssetSlotProps) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   if (!src || failedSrc === src) return null;
   return (
