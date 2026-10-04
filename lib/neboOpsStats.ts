@@ -63,6 +63,8 @@ export const SCREEN_LABELS: Record<string, string> = {
   settings: 'Настройки', menu: 'Меню', services: 'Меню', onboarding: 'Знакомство',
   premium: 'Premium', paywall: 'Premium', encyclopedia: 'Энциклопедия',
   charts: 'Сохранённые карты', personality: 'Разбор карты', natal_story: 'Разбор карты',
+  natal: 'Натальная карта', matrix: 'Матрица судьбы', sounds: 'Звуки', tests: 'Тесты', stories: 'Истории',
+  future: 'Будущее', knowledge: 'Энциклопедия',
 };
 const PLAN_LABELS: Record<string, string> = {
   premium_week: 'Неделя', premium_month: 'Месяц', premium_quarter: '3 месяца', premium_year: 'Год',

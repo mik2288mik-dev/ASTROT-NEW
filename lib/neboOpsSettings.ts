@@ -101,7 +101,8 @@ export function renderNeboOpsMenu(prefs: NeboOpsPreferences, server = ''): { tex
     replyMarkup: { inline_keyboard: [
       [{ text: '📊 Сегодня', callback_data: 'ops:report:today' }, { text: '📅 Вчера', callback_data: 'ops:report:yesterday' }],
       [{ text: '📈 7 дней + график', callback_data: 'ops:report:week' }, { text: '🗓 30 дней + график', callback_data: 'ops:report:month' }],
-      [{ text: '👥 Кто заходил', callback_data: 'ops:latest' }, { text: '💎 Подписчики', callback_data: 'ops:premium' }],
+      [{ text: '👥 Кто заходил', callback_data: 'ops:latest' }, { text: '🕒 Лента действий', callback_data: 'ops:feed' }],
+      [{ text: '💎 Подписчики', callback_data: 'ops:premium' }],
       [{ text: '🩺 Состояние сервера', callback_data: 'ops:health' }, { text: '⚙️ Настройки', callback_data: 'ops:settings' }],
       ...adminButton,
     ] },
@@ -152,7 +153,7 @@ export async function ensureNeboOpsBotSetup(token: string): Promise<void> {
   try {
     const responses = await Promise.all([
       telegramApiRequest(token, 'setWebhook', { url: `${base}/api/telegram/ops-webhook`, secret_token: secret, allowed_updates: ['message', 'callback_query'], drop_pending_updates: false }, { signal: AbortSignal.timeout(8_000) }),
-      telegramApiRequest(token, 'setMyCommands', { commands: [{ command: 'menu', description: 'Меню' }, { command: 'report', description: 'Отчёт за сегодня' }, { command: 'week', description: 'Отчёт за 7 дней с графиком' }, { command: 'month', description: 'Отчёт за 30 дней с графиком' }, { command: 'who', description: 'Кто заходил последним' }, { command: 'premium', description: 'Подписчики Premium' }, { command: 'user', description: 'Карточка человека: /user ID' }] }, { signal: AbortSignal.timeout(8_000) }),
+      telegramApiRequest(token, 'setMyCommands', { commands: [{ command: 'menu', description: 'Меню' }, { command: 'report', description: 'Отчёт за сегодня' }, { command: 'week', description: 'Отчёт за 7 дней с графиком' }, { command: 'month', description: 'Отчёт за 30 дней с графиком' }, { command: 'who', description: 'Кто заходил последним' }, { command: 'feed', description: 'Лента действий до секунды' }, { command: 'premium', description: 'Подписчики Premium' }, { command: 'user', description: 'Карточка человека: /user ID' }] }, { signal: AbortSignal.timeout(8_000) }),
     ]);
     const failures = failedTelegramSetupOperations(responses);
     if (failures.length) {
