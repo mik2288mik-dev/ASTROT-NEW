@@ -24,53 +24,84 @@
   box-shadow: none !important;
 }
 
-/* Period switch = one liquid-glass pill everywhere (home and sign horoscope):
-   a translucent track and a white «drop» on the chosen segment, like iOS. */
-.app-top-bar .today-period-tabs,
-.fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs {
-  display: inline-flex !important;
-  width: auto !important;
+/* ── One switch for the whole app (Liquid Glass, as in iOS 26): a clear glass
+   track without any border, and a glass «lens» on the chosen segment with a
+   specular top edge and a soft shadow. Used by the home period switch, the
+   sign horoscope periods, natal sections, compatibility modes and the Menu. ── */
+html body .app-top-bar .today-period-tabs,
+html body .fresh-tabs,
+html body .editorial-tabs,
+html body .fresh-page .editorial-tabs,
+html body .fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs {
+  display: flex !important;
+  width: fit-content !important;
+  max-width: calc(100% - 32px) !important;
   min-height: 0 !important;
-  gap: 2px;
-  margin: 0 auto;
+  gap: 2px !important;
+  margin: 0 auto !important;
   padding: 2px !important;
-  border: 0.5px solid rgba(255, 255, 255, 0.6) !important;
+  border: 0 !important;
   border-radius: 999px !important;
-  background: rgba(118, 118, 128, 0.14) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(1.15);
-  backdrop-filter: blur(16px) saturate(1.15);
+  background: rgba(120, 120, 128, 0.1) !important;
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.7), inset 0 -0.5px 0 rgba(0, 0, 0, 0.03) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
   transform: none !important;
+  grid-template-columns: none !important;
 }
 
-.app-top-bar .today-period-tabs > .today-period-tab,
-.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab {
+html body .app-top-bar .today-period-tabs > .today-period-tab,
+html body .fresh-tabs > .fresh-tab,
+html body .editorial-tabs > .editorial-tab,
+html body .fresh-page .editorial-tabs > .editorial-tab,
+html body .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
   min-height: 28px !important;
-  padding: 4px 15px !important;
+  padding: 4px 14px !important;
+  border: 0 !important;
   border-radius: 999px !important;
   background: transparent !important;
-  color: #4a4742 !important;
+  box-shadow: none !important;
+  color: #55524c !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   line-height: 1.1 !important;
-  transition: background-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
+  white-space: nowrap;
+  transition: background-color 200ms ease, box-shadow 200ms ease, color 200ms ease;
 }
 
-.app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'],
-.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active,
-.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] {
-  background: rgba(255, 255, 255, 0.94) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.04) !important;
+html body .app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'],
+html body .fresh-tabs > .fresh-tab.active,
+html body .fresh-tabs > .fresh-tab[data-active='true'],
+html body .editorial-tabs > .editorial-tab.is-active,
+html body .fresh-page .editorial-tabs > .editorial-tab.is-active,
+html body .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.8)) !important;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 0.5px 1.5px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.03) !important;
   color: #1f1d1a !important;
 }
 
-.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab::after {
+html body .editorial-tabs > .editorial-tab::after,
+html body .fresh-tabs > .fresh-tab::after,
+html body .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab::after {
   display: none !important;
 }
 
 .horo-reader-page .horo-reader-controls {
   display: flex;
   justify-content: center;
+}
+
+/* Below the bar the switch keeps a little air before the content. */
+html body .fresh-tabs,
+html body .editorial-tabs,
+html body .fresh-page .editorial-tabs {
+  margin-bottom: 14px !important;
 }
 
 .app-top-bar .today-period-tab-underline {
