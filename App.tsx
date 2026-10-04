@@ -136,6 +136,7 @@ import { TestsRoom } from './views/v2/TestsRoom';
 import { MoodWeekRoom } from './views/v2/MoodWeekRoom';
 import { SoundsRoom } from './views/v2/SoundsRoom';
 import { StoriesRoom } from './views/v2/StoriesRoom';
+import { startMediaSessionBridge } from './services/mediaSessionBridge';
 import {
     canRestorePaywallFocus,
     getPaywallFocusableElements,
@@ -2325,6 +2326,11 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         setSynastryPrefill(null);
         navigateTo('synastry');
     }, [navigateTo, profile?.id]);
+
+    // Lock-screen controls for forecasts, stories and calm sounds (Android media notification / browser Media Session).
+    const mediaLanguageRef = useRef<'ru' | 'en'>('ru');
+    mediaLanguageRef.current = profile?.language === 'en' ? 'en' : 'ru';
+    useEffect(() => startMediaSessionBridge(() => mediaLanguageRef.current), []);
 
     const openBirthTimeEdit = useCallback(() => {
         setOnboardingPrefillSaved(true);

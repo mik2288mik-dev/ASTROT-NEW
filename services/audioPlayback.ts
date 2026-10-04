@@ -169,11 +169,15 @@ export function stopPlayback(): void {
   emit({ ...INITIAL, rate: state.rate });
 }
 
-function subscribe(listener: () => void): () => void {
+export function subscribePlayback(listener: () => void): () => void {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
 }
 
+export function getPlaybackState(): AudioPlaybackState {
+  return state;
+}
+
 export function useAudioPlayback(): AudioPlaybackState {
-  return useSyncExternalStore(subscribe, () => state, () => INITIAL);
+  return useSyncExternalStore(subscribePlayback, () => state, () => INITIAL);
 }
