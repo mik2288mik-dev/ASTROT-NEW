@@ -24,6 +24,8 @@ export type StorySeries = {
   /** Long story lines; episode beats rotate through them. */
   arcs: Array<{ name: string; beats: string[] }>;
   rules: string[];
+  /** Extra tone and style notes for the writer (set in the admin). */
+  style?: string;
 };
 
 export const STORY_SERIES: readonly StorySeries[] = [

@@ -5,8 +5,9 @@
 import type { Pool } from 'pg';
 import { getPool } from '../db';
 import { createLunaStructuredResponse, OPENAI_LUNA_MODEL } from '../openaiResponses';
-import { STORY_SCHEMA_SQL } from './schema';
-import { findStorySeries, STORY_SERIES, type StorySeries } from './series';
+import { ensureStorySchema } from './schema';
+import type { StorySeries } from './series';
+import { findManagedSeries, loadStorySeries, readPlans } from './catalog';
 import {
   buildEpisodePrompt,
   checkEpisodeConsistency,
@@ -20,14 +21,7 @@ import { releasedEpisodeNumbers, type EpisodeRow } from './access';
 /** Days of episodes kept ready, today included, so a failed day never leaves a gap. */
 export const STORY_BUFFER_DAYS = 10;
 
-let schemaReady: Promise<void> | null = null;
-export function ensureStorySchema(pool: Pool = getPool()): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = pool.query(STORY_SCHEMA_SQL).then(() => undefined);
-    schemaReady.catch(() => { schemaReady = null; });
-  }
-  return schemaReady;
-}
+export { ensureStorySchema };
 
 export function moscowDayKey(date = new Date()): string {
   return new Date(date.getTime() + 3 * 3_600_000).toISOString().slice(0, 10);
@@ -77,11 +71,11 @@ export async function listEpisodes(seriesId: string, pool: Pool = getPool()): Pr
   return result.rows.map(toEpisode);
 }
 
-type Writer = (series: StorySeries, number: number, previous: PreviousEpisode[]) => Promise<WrittenEpisode | null>;
+type Writer = (series: StorySeries, number: number, previous: PreviousEpisode[], direction?: string | null) => Promise<WrittenEpisode | null>;
 
 /** Writes the next episode with the project's cheap model. */
-export const writeEpisodeWithAi: Writer = async (series, number, previous) => {
-  const prompt = buildEpisodePrompt(series, number, previous);
+export const writeEpisodeWithAi: Writer = async (series, number, previous, direction) => {
+  const prompt = buildEpisodePrompt(series, number, previous, direction);
   const result = await createLunaStructuredResponse({
     ...prompt,
     maxOutputTokens: 6_000,
@@ -103,10 +97,11 @@ export function ensureEpisodeBuffer(seriesId: string, options: { today?: string;
   const existing = running.get(seriesId);
   if (existing) return existing;
   const task = (async () => {
-    const series = findStorySeries(seriesId);
-    if (!series) return 0;
+    const series = await findManagedSeries(seriesId);
+    if (!series) return 0; // unknown or paused in the admin
     const pool = getPool();
     const episodes = await listEpisodes(seriesId, pool);
+    const plans = new Map((await readPlans(seriesId, pool)).map((plan) => [plan.number, plan.direction]));
     const today = options.today ?? moscowDayKey();
     const writer = options.writer ?? writeEpisodeWithAi;
     let written = 0;
@@ -116,7 +111,7 @@ export function ensureEpisodeBuffer(seriesId: string, options: { today?: string;
       const releaseDate = last ? addDays(last.releaseDate < today ? addDays(today, -1) : last.releaseDate, 1) : today;
       if (releaseDate > addDays(today, STORY_BUFFER_DAYS - 1)) break;
       const number = (last?.number ?? 0) + 1;
-      const episode = await writer(series, number, previous);
+      const episode = await writer(series, number, previous, plans.get(number) ?? null);
       if (!episode) break;
       const issues = checkEpisodeConsistency(series, episode, previous);
       const status = issues.length ? 'needs_review' : 'ready';
@@ -144,7 +139,7 @@ export function storyGenerationEnabled(env: NodeJS.ProcessEnv = process.env): bo
 
 export async function ensureAllStoryBuffers(): Promise<Record<string, number>> {
   const result: Record<string, number> = {};
-  for (const series of STORY_SERIES) {
+  for (const series of await loadStorySeries()) {
     try {
       result[series.id] = await ensureEpisodeBuffer(series.id);
     } catch (error) {

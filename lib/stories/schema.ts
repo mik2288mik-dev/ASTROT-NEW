@@ -1,3 +1,6 @@
+import type { Pool } from 'pg';
+import { getPool } from '../db';
+
 /** Daily story series: episodes and free unlocks (migration and ensureStorySchema). */
 export const STORY_SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS story_episodes (
@@ -29,4 +32,30 @@ export const STORY_SCHEMA_SQL = `
     PRIMARY KEY (user_id, series_id, number)
   );
   CREATE INDEX IF NOT EXISTS story_unlocks_day_idx ON story_unlocks (user_id, series_id, unlocked_on);
+  CREATE TABLE IF NOT EXISTS story_series_config (
+    series_id TEXT PRIMARY KEY,
+    data JSONB NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INTEGER NOT NULL DEFAULT 100,
+    updated_by TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  CREATE TABLE IF NOT EXISTS story_episode_plans (
+    series_id TEXT NOT NULL,
+    number INTEGER NOT NULL CHECK (number > 0),
+    direction TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'own',
+    created_by TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (series_id, number)
+  );
 `;
+
+let schemaReady: Promise<void> | null = null;
+export function ensureStorySchema(pool: Pool = getPool()): Promise<void> {
+  if (!schemaReady) {
+    schemaReady = pool.query(STORY_SCHEMA_SQL).then(() => undefined);
+    schemaReady.catch(() => { schemaReady = null; });
+  }
+  return schemaReady;
+}

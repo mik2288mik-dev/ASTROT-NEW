@@ -364,11 +364,33 @@ export type AdminStoryEpisode = {
   updatedAt: string;
   released: boolean;
 };
+export type AdminStoryCharacter = { name: string; aliases: string[]; role: string; gender: 'female' | 'male' | 'animal' | 'machine' };
+export type AdminStorySeriesBible = {
+  id: string;
+  genre: 'detective' | 'romance' | 'scifi' | 'comedy';
+  title: string;
+  tagline: string;
+  narrator: string;
+  world: string;
+  characters: AdminStoryCharacter[];
+  arcs: Array<{ name: string; beats: string[] }>;
+  rules: string[];
+  style?: string;
+};
+export type AdminStoryPlan = { number: number; direction: string; source: 'ai' | 'own'; createdAt: string };
+export type AdminStoryVariant = { title: string; synopsis: string };
 export type AdminStoriesOverview = {
   today: string;
   bufferDays: number;
   generationEnabled: boolean;
-  series: Array<{ id: string; title: string; genre: string; episodes: AdminStoryEpisode[] }>;
+  series: Array<AdminStorySeriesBible & {
+    enabled: boolean;
+    custom: boolean;
+    edited: boolean;
+    builtIn: boolean;
+    plans: AdminStoryPlan[];
+    episodes: AdminStoryEpisode[];
+  }>;
 };
 
 export const admin2Auth = {
@@ -489,7 +511,12 @@ export const admin2 = {
   updateStoryEpisode: (body: { seriesId: string; number: number; title?: string; body?: string; hook?: string; action: 'save' | 'approve' | 'hold' | 'release' }) =>
     req<{ ok: boolean; episode: AdminStoryEpisode }>('/api/admin/v2/stories', { method: 'PATCH', body }),
   generateStories: (seriesId?: string) => req<{ ok: boolean }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'generate', seriesId } }),
-  rewriteStoryEpisode: (seriesId: string, number: number) => req<{ ok: boolean; written: number }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'rewrite', seriesId, number } }),
+  rewriteStoryEpisode: (seriesId: string, number: number, direction?: string) => req<{ ok: boolean; written: number }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'rewrite', seriesId, number, direction } }),
+  saveStorySeries: (series: AdminStorySeriesBible, enabled: boolean) => req<{ ok: boolean }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'save_series', series, enabled } }),
+  resetStorySeries: (seriesId: string) => req<{ ok: boolean }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'reset_series', seriesId } }),
+  proposeStoryVariants: (seriesId: string, number: number, hint?: string) => req<{ ok: boolean; variants: AdminStoryVariant[] }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'propose', seriesId, number, hint } }),
+  saveStoryPlan: (seriesId: string, number: number, direction: string, source: 'ai' | 'own') => req<{ ok: boolean }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'plan', seriesId, number, direction, source } }),
+  deleteStoryPlan: (seriesId: string, number: number) => req<{ ok: boolean }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'delete_plan', seriesId, number } }),
   appPush: () => req<AdminAppPushOverview>('/api/admin/v2/app-push'),
   sendAppPush: (body: AdminAppPushDraft) => req<{ ok: boolean; id: number }>('/api/admin/v2/app-push', { method: 'POST', body }),
   cancelAppPush: (id: number) => req<{ ok: boolean }>('/api/admin/v2/app-push', { method: 'DELETE', body: { id } }),

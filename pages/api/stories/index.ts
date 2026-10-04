@@ -3,7 +3,7 @@ import { requireAppUser } from '../../../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 import { episodeAccess, releasedEpisodeNumbers } from '../../../lib/stories/access';
 import { ensureEpisodeBuffer, listEpisodes, moscowDayKey, readUnlocks, storyGenerationEnabled } from '../../../lib/stories/repository';
-import { STORY_SERIES } from '../../../lib/stories/series';
+import { loadStorySeries } from '../../../lib/stories/catalog';
 
 /** Series with released episodes and what this person can open today. */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const userId = String(user.userId);
     const today = moscowDayKey();
     const [entitlement, unlocks] = await Promise.all([getPremiumEntitlementState(userId), readUnlocks(userId)]);
-    const series = await Promise.all(STORY_SERIES.map(async (item) => {
+    const series = await Promise.all((await loadStorySeries()).map(async (item) => {
       const episodes = await listEpisodes(item.id);
       const released = new Set(releasedEpisodeNumbers(episodes, today));
       // A new series must not wait for the nightly job: write the first episodes now

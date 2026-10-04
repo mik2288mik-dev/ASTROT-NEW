@@ -55,9 +55,9 @@
 
 /* ── One top bar and one bottom bar for the whole app: the same light glass ── */
 :root {
-  --nebo-glass-bg: rgba(255, 255, 255, 0.74);
+  --nebo-glass-bg: rgba(255, 255, 255, 0.5);
   /* Low saturation keeps colours under the glass true (no tinted band). */
-  --nebo-glass-filter: blur(20px) saturate(1.1);
+  --nebo-glass-filter: blur(24px) saturate(1.1);
   --nebo-glass-line: rgba(23, 23, 23, 0.07);
 }
 
@@ -107,7 +107,8 @@
   overflow: hidden;
   box-sizing: border-box;
   min-height: 360px;
-  padding: 22px 20px 34px;
+  /* The sky starts at the very top, under the glass bar (bar height + a gap). */
+  padding: calc(var(--home-safe-top) + 54px + 18px) 20px 34px;
   background: linear-gradient(180deg, #2c62b8 0%, #4a86da 48%, #86b4ea 82%, #c7dcf5 100%);
   color: #fff;
 }
@@ -138,7 +139,7 @@
 
 .sky-hero-moon {
   position: absolute;
-  top: 16px;
+  top: calc(var(--home-safe-top) + 54px + 10px);
   right: 16px;
   z-index: 2;
   width: 56px;

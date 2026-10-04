@@ -3,6 +3,8 @@ jest.mock('../lib/db', () => ({
   getPool: () => ({
     query: async (sql: string, params: unknown[] = []) => {
       if (sql.includes('CREATE TABLE')) return { rows: [] };
+      // Admin-managed scripts and plans: none in this test, so the built-in series is used.
+      if (sql.includes('FROM story_series_config') || sql.includes('FROM story_episode_plans')) return { rows: [] };
       if (sql.startsWith('SELECT * FROM story_episodes')) {
         return { rows: rows.filter((row) => row.series_id === params[0]).sort((a, b) => Number(a.number) - Number(b.number)) };
       }
