@@ -6,34 +6,40 @@ import { AssetSlot } from '../../components/lumia-ui/AssetSlot';
 import { AudioMiniPlayer } from '../../components/audio/AudioMiniPlayer';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
-import { MUSIC_PIECES, SOUNDSCAPES, type MusicPiece, type Soundscape } from '../../lib/soundscapes/synth';
+import {
+  MUSIC_TRACKS,
+  SOUND_GROUP_LABELS,
+  SOUND_GROUPS,
+  findAmbientTrack,
+  tracksOfGroup,
+  type SoundGroup,
+} from '../../lib/soundscapes/library';
 import { SLEEP_STORIES, type SleepStory } from '../../lib/sleepStories';
-import { playMusic, playSoundscape, setAmbientTimer, stopAmbient, useAmbientState } from '../../services/ambientPlayer';
+import { playMusic, playSoundscape, setAmbientTimer, setMusicQueue, stopAmbient, useAmbientState } from '../../services/ambientPlayer';
 import { pausePlayback, playTrack, setSleepTimer, togglePlayback, unlockPlayback, useAudioPlayback } from '../../services/audioPlayback';
 import { requestListen } from '../../services/listenService';
 import { estimateSpeechSeconds } from '../../lib/tts/openaiSpeech';
 
-const SOUND_LABELS: Record<Soundscape, { ru: string; en: string }> = {
-  rain: { ru: 'Дождь', en: 'Rain' },
-  cafe: { ru: 'Кафе', en: 'Café' },
-  forest: { ru: 'Лес', en: 'Forest' },
-  sea: { ru: 'Море', en: 'Sea' },
-  fire: { ru: 'Камин', en: 'Fireplace' },
-};
-
-const MUSIC_LABELS: Record<MusicPiece, { title: { ru: string; en: string }; note: { ru: string; en: string } }> = {
-  morning: { title: { ru: 'Тихое утро', en: 'Quiet morning' }, note: { ru: 'светлые долгие аккорды', en: 'bright, long chords' } },
-  evening: { title: { ru: 'Вечерний свет', en: 'Evening light' }, note: { ru: 'мягко и немного грустно', en: 'soft and a little wistful' } },
-  waves: { title: { ru: 'Медленные волны', en: 'Slow waves' }, note: { ru: 'очень медленно, для засыпания', en: 'very slow, for falling asleep' } },
-};
-
-export const SOUND_IMAGES: Record<Soundscape, string> = {
+export const SOUND_IMAGES: Record<SoundGroup, string> = {
   rain: '/assets/sounds/rain.webp',
-  cafe: '/assets/sounds/cafe.webp',
   forest: '/assets/sounds/forest.webp',
+  stream: '/assets/sounds/stream.webp',
   sea: '/assets/sounds/sea.webp',
   fire: '/assets/sounds/fire.webp',
+  cafe: '/assets/sounds/cafe.webp',
+  night: '/assets/sounds/night.webp',
 };
+
+const RECORDED_MUSIC = MUSIC_TRACKS.filter((track) => track.kind === 'file').map((track) => track.id);
+// A recorded piece flows into the next one, like a calm playlist.
+setMusicQueue((id) => {
+  const index = RECORDED_MUSIC.indexOf(id);
+  return index === -1 ? null : RECORDED_MUSIC[(index + 1) % RECORDED_MUSIC.length];
+});
+
+function groupOf(trackId: string | null): SoundGroup | null {
+  return trackId ? findAmbientTrack(trackId)?.group ?? null : null;
+}
 
 const BREATH = { inhale: 4, exhale: 6 };
 const PAUSE_SECONDS = 180;
@@ -44,7 +50,7 @@ function clock(seconds: number): string {
 }
 
 /** «Пауза на 3 минуты»: a slow breathing rhythm with a calm sound. */
-function BreathingPause({ language, soundscape, onSoundChange }: { language: 'ru' | 'en'; soundscape: Soundscape; onSoundChange: (value: Soundscape) => void }) {
+function BreathingPause({ language, soundscape, onSoundChange }: { language: 'ru' | 'en'; soundscape: SoundGroup; onSoundChange: (value: SoundGroup) => void }) {
   const ru = language === 'ru';
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -68,7 +74,7 @@ function BreathingPause({ language, soundscape, onSoundChange }: { language: 'ru
 
   const start = () => {
     lumiaSelectionHaptic();
-    playSoundscape(soundscape);
+    playSoundscape(tracksOfGroup(soundscape)[0].id);
     setAmbientTimer(PAUSE_SECONDS / 60);
     setStartedAt(Date.now());
     setNow(Date.now());
@@ -93,16 +99,16 @@ function BreathingPause({ language, soundscape, onSoundChange }: { language: 'ru
       </div>
       {startedAt ? <p className="sounds-pause-left">{ru ? `Осталось ${clock(PAUSE_SECONDS - elapsed)}` : `${clock(PAUSE_SECONDS - elapsed)} left`}</p> : null}
       <div className="sounds-chips" role="radiogroup" aria-label={ru ? 'Звук для паузы' : 'Sound for the pause'}>
-        {SOUNDSCAPES.map((kind) => (
+        {SOUND_GROUPS.map((group) => (
           <button
-            key={kind}
+            key={group}
             type="button"
             role="radio"
-            aria-checked={soundscape === kind}
-            className={`sounds-chip${soundscape === kind ? ' is-active' : ''}`}
-            onClick={() => { onSoundChange(kind); if (startedAt) playSoundscape(kind); }}
+            aria-checked={soundscape === group}
+            className={`sounds-chip${soundscape === group ? ' is-active' : ''}`}
+            onClick={() => { onSoundChange(group); if (startedAt) playSoundscape(tracksOfGroup(group)[0].id); }}
           >
-            {SOUND_LABELS[kind][language]}
+            {SOUND_GROUP_LABELS[group][language]}
           </button>
         ))}
       </div>
@@ -126,7 +132,8 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
   const premium = hasActivePremium(profile);
   const ambient = useAmbientState();
   const playback = useAudioPlayback();
-  const [pauseSound, setPauseSound] = useState<Soundscape>('rain');
+  const [pauseSound, setPauseSound] = useState<SoundGroup>('rain');
+  const activeGroup = groupOf(ambient.soundscape);
   const [storyPhase, setStoryPhase] = useState<{ id: string; state: 'preparing' | 'error' } | null>(null);
   const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
 
@@ -172,36 +179,60 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
       <section className="sounds-section" aria-labelledby="sounds-scapes-title">
         <h2 id="sounds-scapes-title">{ru ? 'Спокойные звуки' : 'Calm sounds'}</h2>
         <div className="sounds-grid">
-          {SOUNDSCAPES.map((kind) => {
-            const active = ambient.soundscape === kind;
+          {SOUND_GROUPS.map((group) => {
+            const active = activeGroup === group;
             return (
               <button
-                key={kind}
+                key={group}
                 type="button"
                 className={`sounds-tile${active ? ' is-active' : ''}`}
                 aria-pressed={active}
-                onClick={() => { lumiaSelectionHaptic(); if (!active) pausePlayback(); playSoundscape(active ? null : kind); }}
+                onClick={() => { lumiaSelectionHaptic(); if (!active) pausePlayback(); playSoundscape(active ? null : tracksOfGroup(group)[0].id); }}
               >
-                <AssetSlot src={SOUND_IMAGES[kind]} className="sounds-tile-art" />
-                <span>{SOUND_LABELS[kind][language]}</span>
-                {active ? <Pause className="sounds-tile-state" size={16} aria-hidden="true" /> : <Play className="sounds-tile-state" size={16} aria-hidden="true" />}
+                <AssetSlot src={SOUND_IMAGES[group]} className="sounds-tile-art" />
+                <span>{SOUND_GROUP_LABELS[group][language]}</span>
+                {active && ambient.loading
+                  ? <LoaderCircle className="sounds-tile-state audio-mini-player-spinner" size={16} aria-hidden="true" />
+                  : active ? <Pause className="sounds-tile-state" size={16} aria-hidden="true" /> : <Play className="sounds-tile-state" size={16} aria-hidden="true" />}
               </button>
             );
           })}
         </div>
+        {activeGroup ? (
+          <div className="sounds-variants" role="radiogroup" aria-label={ru ? 'Вариант звука' : 'Sound variant'}>
+            {tracksOfGroup(activeGroup).map((track) => (
+              <button
+                key={track.id}
+                type="button"
+                role="radio"
+                aria-checked={ambient.soundscape === track.id}
+                className={`sounds-chip${ambient.soundscape === track.id ? ' is-active' : ''}`}
+                onClick={() => { lumiaSelectionHaptic(); playSoundscape(track.id); }}
+              >
+                {track.title[language]}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {ambient.error ? (
+          <p className="listen-forecast-error" role="alert">
+            {ru ? 'Запись не загрузилась. Проверь интернет или выбери вариант «без интернета».' : 'The recording did not load. Check the connection or pick an offline variant.'}
+          </p>
+        ) : null}
+        <p className="sounds-note">{ru ? 'Настоящие записи загружаются один раз и потом играют без интернета.' : 'Real recordings download once and then play offline.'}</p>
       </section>
 
       <section className="sounds-section" aria-labelledby="sounds-music-title">
         <h2 id="sounds-music-title">{ru ? 'Спокойная музыка' : 'Calm music'}</h2>
-        <p className="sounds-note">{ru ? 'Мелодия каждый раз складывается заново — можно включить вместе со звуком.' : 'The melody is composed anew each time — you can mix it with a sound.'}</p>
+        <p className="sounds-note">{ru ? 'Фортепианная классика идёт подряд, как плейлист. Можно включить вместе со звуком.' : 'Piano classics play one after another. You can mix them with a sound.'}</p>
         <ul className="sounds-list">
-          {MUSIC_PIECES.map((piece) => {
-            const active = ambient.music === piece;
+          {MUSIC_TRACKS.map((track) => {
+            const active = ambient.music === track.id;
             return (
-              <li key={piece}>
-                <button type="button" className={`sounds-row${active ? ' is-active' : ''}`} aria-pressed={active} onClick={() => { lumiaSelectionHaptic(); if (!active) pausePlayback(); playMusic(active ? null : piece); }}>
+              <li key={track.id}>
+                <button type="button" className={`sounds-row${active ? ' is-active' : ''}`} aria-pressed={active} onClick={() => { lumiaSelectionHaptic(); if (!active) pausePlayback(); playMusic(active ? null : track.id); }}>
                   <span className="sounds-row-icon" aria-hidden="true">{active ? <Pause size={16} /> : <Play size={16} />}</span>
-                  <span className="sounds-row-copy"><strong>{MUSIC_LABELS[piece].title[language]}</strong><small>{MUSIC_LABELS[piece].note[language]}</small></span>
+                  <span className="sounds-row-copy"><strong>{track.title[language]}</strong><small>{track.note[language]}</small></span>
                 </button>
               </li>
             );

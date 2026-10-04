@@ -11,6 +11,7 @@ import ru.tvoygoroskop.app.diagnostics.NativeDiagnosticsPlugin;
 import ru.tvoygoroskop.app.analytics.MyTrackerPlugin;
 import ru.tvoygoroskop.app.notifications.NativeNotificationsPlugin;
 import ru.tvoygoroskop.app.speech.NativeSpeechPlugin;
+import ru.tvoygoroskop.app.media.NativeMediaSessionPlugin;
 
 /** Android entry point for the public RuStore application identity. */
 public class MainActivity extends BridgeActivity {
@@ -24,6 +25,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(MyTrackerPlugin.class);
         registerPlugin(NativeNotificationsPlugin.class);
         registerPlugin(NativeSpeechPlugin.class);
+        registerPlugin(NativeMediaSessionPlugin.class);
         if (isRuStoreBuild()) registerRuStoreUpdatePlugin();
         if (isRuStorePaymentsEnabled()) {
             registerRuStorePlugin();

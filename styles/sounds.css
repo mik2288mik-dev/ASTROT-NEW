@@ -309,3 +309,17 @@
     transition-duration: 0s !important;
   }
 }
+
+/* Variants of the chosen sound: real recordings and offline ones. */
+.sounds-variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+@media (min-width: 30rem) {
+  .sounds-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
