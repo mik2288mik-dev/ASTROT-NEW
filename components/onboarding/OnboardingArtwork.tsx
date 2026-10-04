@@ -11,7 +11,23 @@ export const MeouSpark: React.FC<{ className?: string }> = ({ className = '' }) 
   </svg>
 );
 
-export const DayClockArtwork: React.FC = () => (
+const CLOCK_MONTHS = ['ЯНВ', 'ФЕВ', 'МАР', 'АПР', 'МАЙ', 'ИЮН', 'ИЮЛ', 'АВГ', 'СЕН', 'ОКТ', 'НОЯ', 'ДЕК'];
+const CLOCK_WEEKDAYS = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
+
+/** The clock on the first onboarding screen shows the phone's real date and time. */
+function useClockNow(): Date {
+  const [now, setNow] = React.useState(() => new Date());
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 20_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  return now;
+}
+
+export const DayClockArtwork: React.FC = () => {
+  const now = useClockNow();
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  return (
   <svg className="meou-day-art" viewBox="0 0 360 338" aria-hidden="true" focusable="false">
     <defs>
       <linearGradient id="meou-clock-shell" x1="0" y1="0" x2="1" y2="1">
@@ -42,15 +58,15 @@ export const DayClockArtwork: React.FC = () => (
       <rect x="45" y="18" width="207" height="126" rx="13" fill="#1b1b1b" />
       <rect x="51" y="24" width="195" height="114" rx="9" fill="url(#meou-clock-screen)" stroke="#4e4e4e" strokeWidth="1.2" />
       <path d="M57 30H238" stroke="#868686" strokeOpacity="0.42" />
-      <text x="109" y="66" fill="#f2f0ed" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="300" letterSpacing="1">18</text>
-      <text x="150" y="66" fill="#f2f0ed" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="300" letterSpacing="1">АВГ</text>
-      <text x="92" y="112" fill="#f2f0ed" fontFamily="Arial, sans-serif" fontSize="25" fontWeight="300" letterSpacing="0.5">ПН / 09:41</text>
+      <text x="148.5" y="66" textAnchor="middle" fill="#f2f0ed" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="300" letterSpacing="1">{now.getDate()}  {CLOCK_MONTHS[now.getMonth()]}</text>
+      <text x="148.5" y="112" textAnchor="middle" fill="#f2f0ed" fontFamily="Arial, sans-serif" fontSize="25" fontWeight="300" letterSpacing="0.5">{CLOCK_WEEKDAYS[now.getDay()]} / {time}</text>
       <rect x="56" y="162" width="13" height="18" rx="3" fill="#9e9992" />
       <rect x="226" y="162" width="13" height="18" rx="3" fill="#9e9992" />
       <rect x="69" y="160" width="159" height="5" rx="2.5" fill="#cdc6be" />
     </g>
   </svg>
-);
+  );
+};
 
 const signs: ZodiacSignKey[] = [
   'aries', 'pisces', 'aquarius', 'capricorn', 'sagittarius', 'scorpio',

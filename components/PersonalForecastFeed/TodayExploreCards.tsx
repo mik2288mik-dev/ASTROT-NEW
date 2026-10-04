@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Lock, Plus } from 'lucide-react';
 import { ZodiacIcon } from '../icons/ZodiacIcon';
 import { getZodiacSign } from '../../constants';
+import { signPairTeaser } from '../../lib/synastry/localSignText';
 import { computeMatrix } from '../../lib/matrixOfDestiny';
 import { getArcana } from '../../lib/matrixArcana';
 import {
@@ -208,6 +209,9 @@ export function TodayExploreCards({
                     {getZodiacSign(language, ownSign)} {copy.and} <b>{getZodiacSign(language, person.sign)}</b>
                   </span>
                 ))}
+                {signPairTeaser(ownSign, people[0].sign, language) ? (
+                  <span className="today-explore-caption today-explore-teaser">{signPairTeaser(ownSign, people[0].sign, language)}</span>
+                ) : null}
               </span>
             ) : null}
             <span className="today-explore-copy is-bottom">

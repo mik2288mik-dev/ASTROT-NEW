@@ -2,10 +2,7 @@ import { useMemo, type ReactNode } from 'react';
 import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
 import { isRenderableTodaySection } from './editorialLayout';
-import {
-  TodayCalendarClock,
-  type TodayClockSignal,
-} from './TodayCalendarClock';
+import { SkyHero } from '../home/SkyHero';
 
 type TodayEditorialFeedProps = {
   sections: readonly ForecastSection[];
@@ -17,20 +14,18 @@ type TodayEditorialFeedProps = {
   tone: PersonalForecastAstrologerBrief['tone'];
   personalAttribution?: string | null;
   onRequestPremium: () => void;
-  /** «Слушать прогноз», shown above the reading. */
+  /** «Слушать прогноз», shown on the sky under the opening text. */
   listen?: ReactNode;
+  /** The top bar, drawn over the sky cover. */
+  top?: ReactNode;
+  /** Right under the cover: the entries into every section. */
+  afterHero?: ReactNode;
   footer?: ReactNode;
 };
 
 function resolveTitle(section?: ForecastSection): string {
   if (!section || section.kind !== 'overview') return '';
   return section.title?.replace(/\s+/gu, ' ').trim() || '';
-}
-
-function clockSignalForTone(tone: PersonalForecastAstrologerBrief['tone']): TodayClockSignal {
-  if (tone === 'favorable') return 'green';
-  if (tone === 'demanding') return 'red';
-  return 'yellow';
 }
 
 function StoryFragment({
@@ -79,14 +74,13 @@ function StoryFragment({
 export function TodayEditorialFeed({
   sections,
   lockedSectionIds,
-  userId,
   periodKey,
-  timezone,
   language,
-  tone,
   personalAttribution,
   onRequestPremium,
   listen,
+  top,
+  afterHero,
   footer,
 }: TodayEditorialFeedProps) {
   const renderableSections = useMemo(
@@ -107,59 +101,70 @@ export function TodayEditorialFeed({
   );
   const overview = visibleSections.find((section) => section.kind === 'overview');
   const title = resolveTitle(overview);
-  const clockSignal = clockSignalForTone(tone);
+  const rest = visibleSections.filter((section) => section !== overview);
+  const scrollToSky = () => {
+    document.getElementById('today-sky')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
     <article
       className="forecast-feed-story forecast-editorial-reading today-editorial-feed today-minimal-feed"
-      data-today-layout="calendar-editorial"
+      data-today-layout="sky-cover"
       lang={language}
     >
-      <section
-        className="today-minimal-hero"
-        aria-labelledby="today-reading-title"
+      <SkyHero
+        dayKey={periodKey}
+        language={language}
+        top={top}
+        kicker={language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
+        title={title || undefined}
+        titleId="today-reading-title"
+        onMoon={scrollToSky}
       >
-        <div className="today-minimal-composition">
-          {title ? (
-            <h1 id="today-reading-title" className="today-minimal-story-title">
-              {title}
-            </h1>
-          ) : (
-            <h1 id="today-reading-title" className="sr-only">
-              {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
-            </h1>
-          )}
-          <TodayCalendarClock
-            userId={userId}
-            periodKey={periodKey}
-            timezone={timezone}
-            language={language}
-            signal={clockSignal}
-          />
-        </div>
-      </section>
-
-      <section
-        className="today-minimal-reading"
-        aria-labelledby="today-reading-title"
-      >
-        <div className="today-minimal-reading-main">
-          {listen}
-          {visibleSections.map((section) => (
+        {!title ? (
+          <h1 id="today-reading-title" className="sr-only">
+            {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
+          </h1>
+        ) : null}
+        {overview ? (
+          <div className="sky-hero-text">
             <StoryFragment
-              key={`day:${periodKey}:${section.id}`}
-              section={section}
+              section={overview}
               language={language}
               locked={false}
               onRequestPremium={onRequestPremium}
-              closing={section.id === closingSectionId}
-              personalAttribution={section.id === closingSectionId
-                ? personalAttribution
-                : null}
+              closing={overview.id === closingSectionId}
+              personalAttribution={null}
             />
-          ))}
-        </div>
-      </section>
+          </div>
+        ) : null}
+        {listen ? <div className="sky-hero-listen">{listen}</div> : null}
+      </SkyHero>
+
+      {afterHero}
+
+      {rest.length ? (
+        <section
+          className="today-minimal-reading"
+          aria-labelledby="today-reading-title"
+        >
+          <div className="today-minimal-reading-main">
+            {rest.map((section) => (
+              <StoryFragment
+                key={`day:${periodKey}:${section.id}`}
+                section={section}
+                language={language}
+                locked={false}
+                onRequestPremium={onRequestPremium}
+                closing={section.id === closingSectionId}
+                personalAttribution={section.id === closingSectionId
+                  ? personalAttribution
+                  : null}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
       {footer}
     </article>
   );

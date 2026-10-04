@@ -1,0 +1,1038 @@
+/* Home, mockup v1 (2026-10-04): live sky cover, sticker tiles, «Сегодня о тебе»,
+   «Ты и твои люди», «Твоя осень», «Что подарить?». Loaded after the older home sheets. */
+
+:root {
+  --home-safe-top: max(
+    env(safe-area-inset-top, 0px),
+    calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)),
+    18px
+  );
+}
+
+/* ── Top bar: «Сегодня | Будущее» pill, profile left, settings right ── */
+.app-top-bar .today-period-navigation {
+  position: static;
+  display: flex;
+  width: auto;
+  min-width: 0;
+  flex: 0 1 auto;
+  justify-content: center;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.app-top-bar .today-period-tabs {
+  display: inline-flex;
+  width: auto;
+  min-height: 0;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px !important;
+  background: #f1efeb !important;
+  transform: none;
+}
+
+.app-top-bar .today-period-tabs > .today-period-tab {
+  min-height: 34px !important;
+  padding: 6px 16px;
+  border-radius: 999px !important;
+  color: #6f6a63 !important;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'] {
+  background: #1f1d1a !important;
+  color: #fff !important;
+}
+
+.app-top-bar .today-period-tab-underline {
+  display: none;
+}
+
+/* Over the sky the bar is see-through with white icons until the cover scrolls away. */
+.app-top-bar.is-over-sky {
+  transition: background-color 200ms ease, box-shadow 200ms ease, color 200ms ease;
+}
+
+.app-top-bar.is-over-sky:not(.is-scrolled) {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #fff;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.app-top-bar.is-over-sky:not(.is-scrolled) .app-top-bar-action,
+.app-top-bar.is-over-sky:not(.is-scrolled) .editorial-profile-button {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+}
+
+.app-top-bar.is-over-sky:not(.is-scrolled) .today-period-tabs {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.app-top-bar.is-over-sky:not(.is-scrolled) .today-period-tabs > .today-period-tab {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.app-top-bar.is-over-sky:not(.is-scrolled) .today-period-tabs > .today-period-tab[aria-selected='true'] {
+  background: #fff !important;
+  color: #1f1d1a !important;
+}
+
+/* ── Sky cover ── */
+.home-screen.has-sky-cover {
+  padding-top: 0 !important;
+}
+
+.home-screen.has-sky-cover #today-period-panel > .today-editorial-feed {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.sky-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-sizing: border-box;
+  min-height: 360px;
+  padding: calc(var(--home-safe-top) + 66px) 20px 34px;
+  background: linear-gradient(180deg, #2c62b8 0%, #4a86da 48%, #86b4ea 82%, #c7dcf5 100%);
+  color: #fff;
+}
+
+.sky-hero.is-night {
+  background: linear-gradient(180deg, #070c1d 0%, #121e40 55%, #22335c 100%);
+}
+
+.sky-hero::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  z-index: 0;
+  height: 28px;
+  background: linear-gradient(rgba(255, 255, 255, 0), #fff);
+  content: '';
+  pointer-events: none;
+}
+
+.sky-hero-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+}
+
+.sky-hero-moon {
+  position: absolute;
+  top: calc(var(--home-safe-top) + 64px);
+  right: 16px;
+  z-index: 2;
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sky-hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 40rem;
+  margin: 0 auto;
+  text-shadow: 0 1px 12px rgba(0, 10, 40, 0.3);
+}
+
+.sky-hero-date {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding-right: 64px;
+}
+
+.sky-hero-date,
+.sky-hero-date b,
+.sky-hero-kicker,
+.sky-hero-title {
+  color: #fff !important;
+}
+
+.sky-hero-date b {
+  font-size: 58px;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+}
+
+.sky-hero-date span {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  opacity: 0.95;
+}
+
+.sky-hero-kicker {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.sky-hero-title {
+  margin: 4px 0 10px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+}
+
+.sky-hero-text,
+.sky-hero-text * {
+  color: #fff !important;
+}
+
+.sky-hero-text > *,
+.sky-hero-text section,
+.sky-hero-text article,
+.sky-hero-text div {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.sky-hero-text {
+  margin-top: 6px;
+}
+
+.sky-hero-text p {
+  margin: 0 0 8px !important;
+  font-size: 15.5px;
+  line-height: 1.5;
+  text-indent: 0 !important;
+}
+
+.sky-hero-listen {
+  margin-top: 4px;
+}
+
+.sky-hero-text .today-minimal-closing,
+.sky-hero-text .today-minimal-closing-content {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.sky-hero-listen button {
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #fff !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.sky-hero.is-compact {
+  min-height: 0;
+  margin: 8px 16px 12px;
+  padding: 18px 18px 20px;
+  border-radius: 24px;
+}
+
+.sky-hero.is-compact::after {
+  display: none;
+}
+
+.sky-hero.is-compact .sky-hero-moon {
+  top: 12px;
+  right: 12px;
+}
+
+.sky-hero-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.sky-hero-loading p {
+  margin: 0;
+}
+
+/* ── Entry tiles: sticker on a soft pad, live code for the matrix ── */
+.home-entry-tiles {
+  margin-top: 10px;
+}
+
+.home-entry-tile {
+  width: 5.5rem;
+}
+
+.home-entry-tile-label {
+  font-size: 0.7rem;
+  letter-spacing: -0.01em;
+}
+
+.home-entry-tile-pad {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f4f2ee;
+}
+
+.home-entry-tile.is-future .home-entry-tile-pad { background: #eaf1fc; }
+.home-entry-tile.is-compatibility .home-entry-tile-pad { background: #fcede6; }
+.home-entry-tile.is-tests .home-entry-tile-pad { background: #eaf6ee; }
+.home-entry-tile.is-sounds .home-entry-tile-pad { background: #f1eefa; }
+.home-entry-tile.is-stories .home-entry-tile-pad { background: #fdf3e2; }
+
+.home-entry-tile-art {
+  width: 82%;
+  height: 82%;
+  border-radius: 0;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.14));
+}
+
+.home-entry-tile-matrix {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #030805;
+}
+
+.home-entry-tile-matrix .matrix-rain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.home-entry-tile-matrix b {
+  position: relative;
+  color: #b8ffc8;
+  font-size: 26px;
+  font-weight: 800;
+  text-shadow: 0 0 12px rgba(64, 214, 110, 0.9);
+}
+
+.asset-slot.is-contain {
+  background: transparent;
+}
+
+.asset-slot.is-contain img {
+  object-fit: contain;
+}
+
+/* ── «Небо сегодня» on the real sky ── */
+.today-sky-card.is-live {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.today-sky-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+}
+
+.today-sky-card.is-live .today-sky-calendar li,
+.today-sky-card.is-live .today-sky-personal {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* ── «Будущее» card on a day sky ── */
+.future-invite-card.is-sky {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.future-invite-sky {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── «Сегодня о тебе» ── */
+.about-you,
+.people-block,
+.season {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin: 0 auto;
+  padding: 1.1rem 0 0.4rem;
+}
+
+.about-you-heading small {
+  margin-left: 6px;
+  color: #9a948c;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.about-you-card,
+.people-block-card {
+  padding: 16px;
+  border: 1px solid rgba(41, 39, 36, 0.08);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(41, 39, 36, 0.05);
+  color: #292724;
+}
+
+.about-you-kicker,
+.people-block-kicker,
+.season-kicker {
+  margin: 0;
+  color: #c4512e;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.about-you-title {
+  margin: 4px 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.about-you-text {
+  margin: 0;
+  color: #4b4741;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.about-you-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.about-you-facts > div {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f7f5f1;
+}
+
+.about-you-facts b {
+  display: block;
+  font-size: 14.5px;
+}
+
+.about-you-facts span {
+  display: block;
+  margin-top: 2px;
+  color: #6f6a63;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.about-you-task {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px 14px 14px 12px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #fff4ea, #ffe6d4);
+}
+
+.about-you-check {
+  display: inline-flex;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1f1d1a;
+  border-radius: 999px;
+  background: #fff;
+  color: transparent;
+  cursor: pointer;
+}
+
+.about-you-task.is-done .about-you-check {
+  border-color: #2a8a5f;
+  background: #2a8a5f;
+  color: #fff;
+}
+
+.about-you-pickme {
+  position: absolute;
+  top: 54px;
+  left: 22px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  animation: about-pickme 1.6s ease-in-out infinite;
+}
+
+.about-you-pickme svg {
+  width: 30px;
+  height: 30px;
+}
+
+.about-you-pickme em {
+  color: #c4512e;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+@keyframes about-pickme {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-you-pickme { animation: none; }
+}
+
+.about-you-task-text {
+  margin: 3px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.about-you-task.is-done .about-you-task-text {
+  color: #6f6a63;
+  text-decoration: line-through;
+}
+
+.about-you-why {
+  margin: 6px 0 0;
+  color: #6f6a63;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.about-you-streak {
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #fff;
+  color: #2a7a45;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── «Для тебя»: wide cards swiped sideways ── */
+.for-you {
+  width: 100%;
+  max-width: 42rem;
+}
+
+.for-you-title {
+  padding: 0 1rem;
+}
+
+.for-you-list {
+  display: flex;
+  gap: 12px;
+  padding: 2px 1rem 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.for-you-list::-webkit-scrollbar {
+  display: none;
+}
+
+.for-you-card {
+  position: relative;
+  flex: 0 0 86%;
+  min-height: 168px;
+  flex-direction: column;
+  border: 0;
+  background: linear-gradient(160deg, #fff4ec, #ffe0cd);
+  scroll-snap-align: center;
+}
+
+.for-you-card:nth-child(3n + 2) { background: linear-gradient(160deg, #eef4ff, #d6e5ff); }
+.for-you-card:nth-child(3n + 3) { background: linear-gradient(160deg, #f4f1ff, #e1d9ff); }
+
+.for-you-card:only-child {
+  flex-basis: 100%;
+}
+
+.for-you-card-art {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 4.4rem;
+  height: 4.4rem;
+  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.14));
+}
+
+.for-you-card-copy h3 {
+  padding-right: 4.6rem;
+  font-size: 1.05rem;
+}
+
+.for-you-card-copy p {
+  padding-right: 3.2rem;
+}
+
+/* ── «Ты и твои люди» ── */
+.people-block-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.people-block-tune {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #f1efeb;
+  color: #292724;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.people-block-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #f7f5f1;
+  color: #4b4741;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+.people-block-empty button,
+.people-btn {
+  flex: none;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: #1f1d1a;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.people-btn.is-light {
+  background: #f1efeb;
+  color: #1f1d1a;
+}
+
+.people-block-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 14px;
+  scrollbar-width: none;
+}
+
+.people-chip {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 50px;
+  height: 50px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.people-chip.is-active {
+  border-color: #1f1d1a;
+}
+
+.people-chip i {
+  position: absolute;
+  top: 54px;
+  left: 50%;
+  max-width: 64px;
+  overflow: hidden;
+  color: #6f6a63;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.people-chip.is-add {
+  border: 2px dashed rgba(41, 39, 36, 0.25);
+  background: #fff;
+  color: #6f6a63;
+}
+
+.people-fact {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px 13px;
+  border: 0;
+  border-radius: 14px;
+  background: #f7f5f1;
+  color: #292724;
+  font: inherit;
+  text-align: left;
+}
+
+.people-fact b {
+  display: block;
+  font-size: 14.5px;
+}
+
+.people-fact span {
+  display: block;
+  margin-top: 2px;
+  color: #5f5a52;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.people-fact.is-locked {
+  padding-right: 70px;
+  cursor: pointer;
+}
+
+.people-fact.is-locked em,
+.people-fact.is-locked svg {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.people-fact.is-locked em {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #1f1d1a;
+  color: #fff;
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.people-gift {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px 13px;
+  border: 0;
+  border-radius: 14px;
+  background: #fdeef3;
+  color: #8c2f52;
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.people-gift span {
+  flex: 1;
+}
+
+.people-block-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.people-tune {
+  display: grid;
+  gap: 4px;
+}
+
+.people-tune-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 2px;
+  border-bottom: 1px solid #ece8e2;
+  font-size: 15px;
+}
+
+.people-tune-row small {
+  color: #9a948c;
+}
+
+.people-tune-row input {
+  width: 22px;
+  height: 22px;
+  accent-color: #1f1d1a;
+}
+
+.people-tune-label {
+  margin: 14px 0 0;
+  color: #9a948c;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ── «Что подарить?» ── */
+.gift-sheet-options {
+  display: grid;
+  gap: 8px;
+}
+
+.gift-sheet-label {
+  margin-top: 6px;
+  color: #6f6a63;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gift-sheet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gift-sheet-chips button {
+  padding: 8px 12px;
+  border: 1.5px solid #ece8e2;
+  border-radius: 999px;
+  background: #fff;
+  color: #292724;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gift-sheet-chips button.is-on {
+  border-color: #1f1d1a;
+  background: #1f1d1a;
+  color: #fff;
+}
+
+.gift-sheet-portrait {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #fff4ea, #ffe2cc);
+  color: #4b4741;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.gift-sheet-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gift-sheet-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid #ece8e2;
+}
+
+.gift-sheet-art {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: #f7f5f1;
+}
+
+.gift-sheet-item b {
+  display: block;
+  font-size: 15px;
+}
+
+.gift-sheet-item span {
+  display: block;
+  margin-top: 2px;
+  color: #5f5a52;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.gift-sheet-item em {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef6ee;
+  color: #2a7a45;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.service-gift-entry {
+  display: flex;
+  box-sizing: border-box;
+  width: min(calc(100% - 32px), 620px);
+  align-items: center;
+  gap: 12px;
+  margin: 4px auto 10px;
+  padding: 14px;
+  border: 0;
+  border-radius: 18px;
+  background: #fdeef3;
+  color: #292724;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.service-gift-entry-icon {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #fff;
+  color: #c43d6b;
+}
+
+.service-gift-entry-copy {
+  flex: 1;
+}
+
+.service-gift-entry-copy b {
+  display: block;
+  font-size: 15px;
+}
+
+.service-gift-entry-copy span {
+  display: block;
+  color: #6f6a63;
+  font-size: 12.5px;
+}
+
+/* ── «Твоя осень» ── */
+.season-card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  overflow: hidden;
+  padding: 16px;
+  border: 0;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #fff6ea, #ffe7c9);
+  color: #292724;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.season-leaf {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 92px;
+  height: 92px;
+  opacity: 0.9;
+  transform: rotate(12deg);
+}
+
+.season-kicker {
+  color: #b5651d;
+}
+
+.season-headline {
+  max-width: 260px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.28;
+}
+
+.season-steps {
+  display: grid;
+  width: 100%;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.season-step {
+  display: flex;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.season-step b {
+  flex: none;
+  min-width: 52px;
+  color: #b5651d;
+}
+
+.season-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+  color: #b5651d;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+/* ── «Узнать о себе больше»: one line on the pair card ── */
+.today-explore-teaser {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+}

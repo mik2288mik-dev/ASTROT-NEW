@@ -8,7 +8,7 @@ import { getCharts, type ChartListItem } from '../../services/storageService';
 const STORAGE_PREFIX = 'nebo.explore.charts.v1:';
 const chartsCache = new Map<string, Promise<ChartListItem[]>>();
 
-type StoredChart = Pick<ChartListItem, 'id' | 'name' | 'is_primary' | 'subject_type' | 'archived_at' | 'chart_data'>;
+type StoredChart = Pick<ChartListItem, 'id' | 'name' | 'is_primary' | 'subject_type' | 'archived_at' | 'chart_data' | 'birth_date' | 'relation_label'>;
 
 function readStored(userId: string): ChartListItem[] | null {
   try {
@@ -22,8 +22,8 @@ function readStored(userId: string): ChartListItem[] | null {
 
 function writeStored(userId: string, charts: ChartListItem[]): void {
   try {
-    const compact: StoredChart[] = charts.map(({ id, name, is_primary, subject_type, archived_at, chart_data }) => (
-      { id, name, is_primary, subject_type, archived_at, chart_data }
+    const compact: StoredChart[] = charts.map(({ id, name, is_primary, subject_type, archived_at, chart_data, birth_date, relation_label }) => (
+      { id, name, is_primary, subject_type, archived_at, chart_data, birth_date, relation_label }
     ));
     window.localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(compact));
   } catch {

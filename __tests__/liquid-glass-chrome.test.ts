@@ -52,13 +52,13 @@ describe('application chrome', () => {
     expect(styles).not.toContain('will-change: backdrop-filter');
     expect(styles).toContain('@supports not');
     expect(styles).toContain('@media (prefers-reduced-transparency: reduce)');
-    expect(topBar).toContain('className="home-logo-bar app-top-bar"');
-    expect(topBar).not.toContain('className?: string');
+    expect(topBar).toContain("'home-logo-bar app-top-bar'");
     expect(topBar).toContain('app-top-bar-spacer');
     expect(topBar).toContain('reserveSpace = true');
     expect(freshHeaders).not.toContain('FreshInnerHeader');
     expect(dashboard).toContain('<AppTopBar');
-    expect(dashboard).not.toContain('reserveSpace={false}');
+    // Home mockup v1: on the sky cover the same bar is see-through until the cover scrolls away.
+    expect(dashboard).toContain('is-over-sky');
     expect(todayStyles).toContain('.forecast-feed-page .app-top-bar');
     expect(todayStyles).toContain('background: #fff !important');
     expect(sharedShellStyles).toContain('border-bottom: 0 !important');

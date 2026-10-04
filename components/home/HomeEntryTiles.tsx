@@ -1,5 +1,6 @@
 import React from 'react';
 import { AssetSlot } from '../lumia-ui/AssetSlot';
+import { MatrixRain } from './MatrixRain';
 
 export type HomeEntryTileId = 'future' | 'compatibility' | 'matrix' | 'tests' | 'sounds' | 'stories';
 
@@ -30,7 +31,16 @@ export const HOME_TILE_ICONS: Record<HomeEntryTileId, string> = {
  * Entries into every section, right under the home header. The row scrolls
  * sideways; a tile appears only when its section can be opened.
  */
-export function HomeEntryTiles({ tiles, language }: { tiles: readonly HomeEntryTile[]; language: 'ru' | 'en' }) {
+export function HomeEntryTiles({
+  tiles,
+  language,
+  matrixNumber = null,
+}: {
+  tiles: readonly HomeEntryTile[];
+  language: 'ru' | 'en';
+  /** «Твой характер» from the matrix of destiny, shown on the live code tile. */
+  matrixNumber?: number | null;
+}) {
   const visible = tiles.filter((tile) => tile.onOpen);
   if (!visible.length) return null;
   return (
@@ -39,7 +49,16 @@ export function HomeEntryTiles({ tiles, language }: { tiles: readonly HomeEntryT
         {visible.map((tile) => (
           <li key={tile.id}>
             <button type="button" className={`home-entry-tile is-${tile.id}`} onClick={tile.onOpen}>
-              <AssetSlot src={HOME_TILE_ICONS[tile.id]} className="home-entry-tile-icon" />
+              {tile.id === 'matrix' ? (
+                <span className="home-entry-tile-icon home-entry-tile-matrix" aria-hidden="true">
+                  <MatrixRain />
+                  {matrixNumber ? <b>{matrixNumber}</b> : null}
+                </span>
+              ) : (
+                <span className="home-entry-tile-icon home-entry-tile-pad" aria-hidden="true">
+                  <AssetSlot src={HOME_TILE_ICONS[tile.id]} fit="contain" className="home-entry-tile-art" />
+                </span>
+              )}
               <span className="home-entry-tile-label">{LABELS[tile.id][language]}</span>
             </button>
           </li>

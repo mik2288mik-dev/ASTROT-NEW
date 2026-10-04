@@ -36,6 +36,12 @@ import { FuturePeriodCards, type FuturePeriodCardData } from '../components/Pers
 import { readingOpeningLines } from '../lib/futurePeriodTeaser';
 import { HomeEntryTiles } from '../components/home/HomeEntryTiles';
 import { ForYouBlock } from '../components/home/ForYouBlock';
+import { TodayAboutYou } from '../components/home/TodayAboutYou';
+import { PeopleBlock } from '../components/home/PeopleBlock';
+import { SeasonCard } from '../components/home/SeasonCard';
+import { GiftIdeasSheet, type GiftPerson } from '../components/home/GiftIdeasSheet';
+import { peekExploreCharts } from '../components/PersonalForecastFeed/exploreCharts';
+import { computeMatrix } from '../lib/matrixOfDestiny';
 import type { ForYouAction } from '../lib/forYou';
 import { ListenForecastButton } from '../components/audio/ListenForecastButton';
 import { buildForecastListenScript } from '../lib/tts/forecastListenScript';
@@ -43,7 +49,7 @@ import { DailyQuestionCard } from '../components/home/DailyQuestionCard';
 import { claimWeekGift, loadGiftStatus, type GiftStatus } from '../services/giftService';
 import { FutureInviteCard } from '../components/PersonalForecastFeed/FutureInviteCard';
 import { futureHorizonDays } from '../lib/futureCalendar';
-import { TodayCalendarClock } from '../components/PersonalForecastFeed/TodayCalendarClock';
+import { SkyHero } from '../components/home/SkyHero';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { lumiaSelectionHaptic } from '../lib/haptics';
@@ -634,7 +640,15 @@ export const Dashboard = memo<DashboardProps>(({
     onPeriodChange?.('month');
   }, [onPeriodChange]);
 
+  const [giftPerson, setGiftPerson] = useState<GiftPerson | null>(null);
+  const [skyCoverScrolled, setSkyCoverScrolled] = useState(false);
+
   const handleForYouAction = useCallback((action: Exclude<ForYouAction, { type: 'wishes' } | { type: 'month_review' }>) => {
+    if (action.type === 'person_gift') {
+      const chart = peekExploreCharts(String(profile.id || 'guest'))?.find((item) => String(item.id) === action.chartId);
+      setGiftPerson({ name: action.name, chart: chart?.chart_data ?? null, relation: chart?.relation_label ?? null });
+      return;
+    }
     if (action.type === 'future') openFuture(action.monthKey);
     else if (action.type === 'compatibility') onOpenSynastry?.();
     else if (action.type === 'pair') onOpenPair?.(action.chartId, action.name);
@@ -664,7 +678,7 @@ export const Dashboard = memo<DashboardProps>(({
         returnView: 'dashboard',
       });
     }
-  }, [onEditBirthTime, onOpenMood, onOpenPair, onOpenSynastry, onOpenTests, onPeriodChange, onRequestPremium, openFuture, premium, requestPremiumFor]);
+  }, [onEditBirthTime, onOpenMood, onOpenPair, onOpenSynastry, onOpenTests, onPeriodChange, onRequestPremium, openFuture, premium, profile.id, requestPremiumFor]);
 
   const futureReading = useCallback((period: FutureReader) => {
     const periodState = periodStates[period].contextKey === productContextKey
@@ -789,83 +803,123 @@ export const Dashboard = memo<DashboardProps>(({
     );
   };
 
+  const skyCover = Boolean(
+    forecast && activePeriod === 'day' && profile.name.trim() && profile.birthDate.trim(),
+  );
+  const matrixNumber = useMemo(() => {
+    const matrix = profile.birthDate ? computeMatrix(profile.birthDate, language) : null;
+    return matrix?.positions.find((position) => position.key === 'self')?.arcana ?? null;
+  }, [language, profile.birthDate]);
+
+  useEffect(() => {
+    if (!skyCover) {
+      setSkyCoverScrolled(false);
+      return undefined;
+    }
+    const container = scrollRef?.current ?? null;
+    const target: HTMLElement | Window = container ?? window;
+    const check = () => {
+      const hero = document.querySelector('.sky-hero');
+      setSkyCoverScrolled(hero ? hero.getBoundingClientRect().bottom < 96 : false);
+    };
+    check();
+    target.addEventListener('scroll', check, { passive: true });
+    return () => target.removeEventListener('scroll', check);
+  }, [scrollRef, skyCover]);
+
+  const periodSwitch = (
+  <nav
+    className="today-period-navigation"
+    role="tablist"
+    aria-label={language === 'ru' ? 'Период личного прогноза' : 'Personal forecast period'}
+  >
+    <div className="today-period-tabs" role="presentation">
+      {HOME_TABS.map((period) => (
+        <button
+          key={period}
+          id={`today-period-tab-${period}`}
+          type="button"
+          className="today-period-tab"
+          role="tab"
+          ref={(node) => {
+            periodTabRefs.current[period] = node;
+          }}
+          aria-controls="today-period-panel"
+          aria-selected={period === activePeriod}
+          tabIndex={period === focusedPeriod ? 0 : -1}
+          onFocus={() => setFocusedPeriod(period)}
+          onKeyDown={(event) => handlePeriodTabKeyDown(event, period)}
+          onClick={() => selectPeriod(period)}
+        >
+          <span>{periodLabels[period]}</span>
+          {period === activePeriod ? (
+            <span
+              className="today-period-tab-underline"
+              aria-hidden="true"
+            />
+          ) : null}
+        </button>
+      ))}
+    </div>
+  </nav>
+  );
+
+  const topBar = (reserveSpace: boolean) => (
+    <AppTopBar
+      title="NEBO"
+      leftAction={(
+        <EditorialChartsButton
+          label={language === 'ru' ? 'Открыть мои карты' : 'Open my charts'}
+          onClick={onOpenCharts}
+        />
+      )}
+      center={periodSwitch}
+      reserveSpace={reserveSpace}
+      className={skyCover ? `is-over-sky${skyCoverScrolled ? ' is-scrolled' : ''}` : undefined}
+    />
+  );
+
+  const entryTiles = (
+    <HomeEntryTiles
+      language={language}
+      matrixNumber={matrixNumber}
+      tiles={[
+        { id: 'future', onOpen: () => openFuture() },
+        { id: 'compatibility', onOpen: onOpenSynastry },
+        { id: 'matrix', onOpen: onOpenMatrix },
+        { id: 'tests', onOpen: onOpenTests ? () => onOpenTests() : undefined },
+        { id: 'sounds', onOpen: onOpenSounds },
+        { id: 'stories', onOpen: onOpenStories },
+      ]}
+    />
+  );
+
   return (
     <div
       id="personal-forecast-reading"
-      className={`fresh-page home-screen forecast-feed-page lumia-main-scroll lumia-bottom-tab-scroll is-${activePeriod}`}
+      className={`fresh-page home-screen forecast-feed-page lumia-main-scroll lumia-bottom-tab-scroll is-${activePeriod}${skyCover ? ' has-sky-cover' : ''}`}
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
-      <section
-        className="home-top"
-        aria-label={language === 'ru' ? 'Личный гороскоп' : 'Personal horoscope'}
-      >
-        <AppTopBar
-          title="NEBO"
-          rightAction={(
-            <EditorialChartsButton
-              label={language === 'ru' ? 'Открыть мои карты' : 'Open my charts'}
-              onClick={onOpenCharts}
-            />
-          )}
-        />
-      </section>
-
-      <nav
-        className="today-period-navigation"
-        role="tablist"
-        aria-label={language === 'ru' ? 'Период личного прогноза' : 'Personal forecast period'}
-      >
-        <div className="today-period-tabs" role="presentation">
-          {HOME_TABS.map((period) => (
-            <button
-              key={period}
-              id={`today-period-tab-${period}`}
-              type="button"
-              className="today-period-tab"
-              role="tab"
-              ref={(node) => {
-                periodTabRefs.current[period] = node;
-              }}
-              aria-controls="today-period-panel"
-              aria-selected={period === activePeriod}
-              tabIndex={period === focusedPeriod ? 0 : -1}
-              onFocus={() => setFocusedPeriod(period)}
-              onKeyDown={(event) => handlePeriodTabKeyDown(event, period)}
-              onClick={() => selectPeriod(period)}
-            >
-              <span>{periodLabels[period]}</span>
-              {period === activePeriod ? (
-                <span
-                  className="today-period-tab-underline"
-                  aria-hidden="true"
-                />
-              ) : null}
-            </button>
-          ))}
-        </div>
-      </nav>
-
-      <p className="today-period-personal-note">
-        {savedDayForecast
-          ? (language === 'ru'
-            ? 'Готовим твой прогноз на сегодня. Ниже — последний сохранённый.'
-            : 'Preparing today’s forecast. The last saved one is below.')
-          : personalForecastNote[activePeriod]}
-      </p>
-
-      {activePeriod === 'day' ? (
-        <HomeEntryTiles
-          language={language}
-          tiles={[
-            { id: 'future', onOpen: () => openFuture() },
-            { id: 'compatibility', onOpen: onOpenSynastry },
-            { id: 'matrix', onOpen: onOpenMatrix },
-            { id: 'tests', onOpen: onOpenTests ? () => onOpenTests() : undefined },
-            { id: 'sounds', onOpen: onOpenSounds },
-            { id: 'stories', onOpen: onOpenStories },
-          ]}
-        />
+      {!skyCover ? (
+        <section
+          className="home-top"
+          aria-label={language === 'ru' ? 'Личный гороскоп' : 'Personal horoscope'}
+        >
+          {topBar(true)}
+        </section>
       ) : null}
+
+      {!skyCover ? (
+        <p className="today-period-personal-note">
+          {savedDayForecast
+            ? (language === 'ru'
+              ? 'Готовим твой прогноз на сегодня. Ниже — последний сохранённый.'
+              : 'Preparing today’s forecast. The last saved one is below.')
+            : personalForecastNote[activePeriod]}
+        </p>
+      ) : null}
+
+      {activePeriod === 'day' && !skyCover ? entryTiles : null}
 
       <div
         id="today-period-panel"
@@ -924,6 +978,8 @@ export const Dashboard = memo<DashboardProps>(({
           tone={forecast.meta.astrologerBrief.tone}
           personalAttribution={personalForecastAttribution}
           onRequestPremium={requestPremium}
+          top={topBar(false)}
+          afterHero={entryTiles}
           listen={(
             <ListenForecastButton
               trackKey={`forecast:day:${forecast.periodKey}`}
@@ -936,6 +992,15 @@ export const Dashboard = memo<DashboardProps>(({
           )}
           footer={(
             <>
+            <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
+            <TodayAboutYou
+              userId={String(profile.id || 'guest')}
+              todayKey={periodKeys.day}
+              birthDate={profile.birthDate}
+              birthTime={profile.birthTime}
+              birthTimeKnown={Boolean(profile.birthTime?.trim()) && profile.birthTimeMode !== 'unknown'}
+              task={storySections.find((section) => !lockedSectionIds.has(section.id) && section.actionText?.trim())?.actionText?.trim() ?? null}
+            />
             <ForYouBlock
               userId={String(profile.id || 'guest')}
               language={language}
@@ -951,13 +1016,25 @@ export const Dashboard = memo<DashboardProps>(({
               onAction={handleForYouAction}
             />
             <DailyQuestionCard language={language} />
-            <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
+            <PeopleBlock
+              userId={String(profile.id || 'guest')}
+              todayKey={periodKeys.day}
+              premium={premium}
+              onOpenPair={onOpenPair}
+              onAddPerson={onOpenSynastry}
+              onGift={setGiftPerson}
+            />
             <FutureInviteCard
               userId={String(profile.id || 'guest')}
               todayKey={periodKeys.day}
               timezone={timezone}
               premium={premium}
               onOpen={() => { onPeriodChange?.('month'); }}
+            />
+            <SeasonCard
+              userId={String(profile.id || 'guest')}
+              todayKey={periodKeys.day}
+              onOpenFuture={() => openFuture()}
             />
             <TodayExploreCards
               language={language}
@@ -997,22 +1074,16 @@ export const Dashboard = memo<DashboardProps>(({
         </article>
       ) : savedDayForecast ? (
         <>
-          <section
-            className="today-minimal-hero today-minimal-loading"
-            aria-label={language === 'ru' ? 'Сегодня' : 'Today'}
+          <SkyHero
+            dayKey={periodKeys.day}
+            language={language}
+            kicker={language === 'ru' ? 'Готовим прогноз на сегодня' : 'Preparing today’s forecast'}
+            compact
           >
             <h1 className="sr-only">
               {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
             </h1>
-            <div className="today-minimal-composition">
-              <TodayCalendarClock
-                userId={String(profile.id || 'guest')}
-                periodKey={periodKeys.day}
-                timezone={timezone}
-                language={language}
-              />
-            </div>
-          </section>
+          </SkyHero>
           <article
             className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed"
             data-forecast-period="day"
@@ -1033,39 +1104,33 @@ export const Dashboard = memo<DashboardProps>(({
           </article>
         </>
       ) : activePeriod === 'day' ? (
-        <section
-          className="today-minimal-hero today-minimal-loading"
-          aria-live="polite"
-          aria-busy={state.phase === 'loading'}
-          aria-label={language === 'ru' ? 'Сегодня' : 'Today'}
-        >
-          <h1 className="sr-only">
-            {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
-          </h1>
-          <div className="today-minimal-composition">
-            <TodayCalendarClock
-              userId={String(profile.id || 'guest')}
-              periodKey={periodKeys.day}
-              timezone={timezone}
-              language={language}
-            />
-            <div className="today-minimal-loading-copy" role="status">
+        <div aria-live="polite" aria-busy={state.phase === 'loading'}>
+          <SkyHero
+            dayKey={periodKeys.day}
+            language={language}
+            kicker={language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
+            compact
+          >
+            <h1 className="sr-only">
+              {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
+            </h1>
+            <div className="sky-hero-loading" role="status">
               {state.phase === 'error' ? (
                 <p>{language === 'ru' ? 'Готовим твой прогноз' : 'Preparing your forecast'}</p>
               ) : (
                 <>
                   <LoaderCircle
                     className="forecast-feed-loading-spinner"
-                    size={23}
-                    strokeWidth={1.5}
+                    size={20}
+                    strokeWidth={1.8}
                     aria-hidden
                   />
                   <p>{loadingLabel(activePeriod, language)}</p>
                 </>
               )}
             </div>
-          </div>
-        </section>
+          </SkyHero>
+        </div>
       ) : state.phase === 'error' ? (
         <section className="forecast-feed-status" aria-live="polite">
           <h1>{language === 'ru' ? 'Готовим твой прогноз' : 'Preparing your forecast'}</h1>
@@ -1088,6 +1153,7 @@ export const Dashboard = memo<DashboardProps>(({
         </section>
       )}
       </div>
+      <GiftIdeasSheet person={giftPerson} onClose={() => setGiftPerson(null)} />
     </div>
   );
 });

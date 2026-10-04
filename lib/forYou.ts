@@ -9,6 +9,7 @@ import type { InterestSignals } from './interestSignals';
 export type ForYouRuleId =
   | 'premium_ending'
   | 'birthday'
+  | 'person_birthday'
   | 'new_moon'
   | 'mercury'
   | 'month_review'
@@ -33,7 +34,8 @@ export type ForYouAction =
   | { type: 'birth_time' }
   | { type: 'test'; testId: string }
   | { type: 'mood' }
-  | { type: 'gift'; reason: 'streak' | 'anniversary' };
+  | { type: 'gift'; reason: 'streak' | 'anniversary' }
+  | { type: 'person_gift'; chartId: string; name: string };
 
 export type ForYouOffer = {
   id: ForYouRuleId;
@@ -57,7 +59,7 @@ export type ForYouContext = {
   premiumEndsAt: string | null;
   premiumAutoRenew: boolean | null;
   signals: InterestSignals;
-  savedPeople: ReadonlyArray<{ id: string; name: string }>;
+  savedPeople: ReadonlyArray<{ id: string; name: string; birthDate?: string | null }>;
   newMoonKey: string | null;
   mercuryRetroKey: string | null;
   /** Wishes saved per new moon day. */
@@ -198,6 +200,29 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
         action: { type: 'future', monthKey: birthday.slice(0, 7) },
       });
     }
+  }
+
+  // A saved person's birthday: «Что подарить?» shows up only when it is near.
+  const nearBirthday = context.savedPeople
+    .map((person) => ({ person, key: person.birthDate ? nextBirthdayKey(person.birthDate, todayKey) : null }))
+    .filter((item): item is { person: typeof item.person; key: string } => Boolean(item.key))
+    .map((item) => ({ ...item, left: daysBetweenKeys(todayKey, item.key) }))
+    .filter((item) => item.left >= 0 && item.left <= 21)
+    .sort((a, b) => a.left - b.left)[0];
+  if (nearBirthday) {
+    const { person, key, left } = nearBirthday;
+    offers.push({
+      id: 'person_birthday',
+      occurrence: `person_birthday:${person.id}:${key.slice(0, 4)}`,
+      title: ru
+        ? (left === 0 ? `${person.name}: день рождения сегодня` : `${person.name}: день рождения через ${left} ${pluralDaysRu(left)}`)
+        : (left === 0 ? `${person.name}'s birthday is today` : `${person.name}'s birthday in ${left} ${left === 1 ? 'day' : 'days'}`),
+      body: ru
+        ? 'Подберём подарок по карте, вашим отношениям и бюджету — бесплатно.'
+        : 'We will pick a gift by the chart, your relationship and budget — free.',
+      cta: ru ? 'Что подарить?' : 'Gift ideas',
+      action: { type: 'person_gift', chartId: person.id, name: person.name },
+    });
   }
 
   if (context.newMoonKey && !context.wishKeys.has(context.newMoonKey)) {

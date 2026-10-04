@@ -16,6 +16,7 @@ import { FREE_SAVED_PERSON_LIMIT, hasActivePremium, PREMIUM_SAVED_PERSON_LIMIT }
 import { getAccessibleSavedPersonIds, getChartSubjectType, isSelfChart } from '../lib/chartAccessPolicy';
 import type { PaywallContext } from '../lib/paywallContext';
 import type { BirthTimeMode } from '../lib/birthTime';
+import { GiftIdeasSheet, type GiftPerson } from '../components/home/GiftIdeasSheet';
 import {
   MonoButton,
   MonoFadeIn,
@@ -93,6 +94,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [giftPerson, setGiftPerson] = useState<GiftPerson | null>(null);
   const [addName, setAddName] = useState('');
   const [addDate, setAddDate] = useState('');
   const [addTime, setAddTime] = useState('');
@@ -427,6 +429,15 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                 : getText(lang, 'charts.open_chart')}
             </MonoButton>
           ) : null}
+          {!isPrimary && lang === 'ru' && chart.chart_data ? (
+            <MonoButton
+              variant="outline"
+              className="!min-h-[44px] !px-3 !text-[13px]"
+              onClick={() => setGiftPerson({ name: chart.name.trim().split(/\s+/u)[0], chart: chart.chart_data, relation: chart.relation_label ?? null })}
+            >
+              Что подарить?
+            </MonoButton>
+          ) : null}
           {!isPrimary && onUseInSynastry && !isLocked ? (
             <MonoButton
               variant="outline"
@@ -679,6 +690,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           ) : null}
         </section>
       </div>
+      <GiftIdeasSheet person={giftPerson} onClose={() => setGiftPerson(null)} />
     </main>
   );
 };
