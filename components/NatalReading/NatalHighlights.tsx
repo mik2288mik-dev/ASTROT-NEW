@@ -11,6 +11,7 @@ import {
   type NatalMoment,
 } from '../../lib/natalMoments';
 import { ZodiacIcon } from '../icons/ZodiacIcon';
+import { planetArtStyle } from './planetArt';
 import styles from './NatalHighlights.module.css';
 
 const TILE_TONE: Record<'sun' | 'moon' | 'ascendant', string> = {
@@ -148,7 +149,7 @@ export function NatalHighlights({ chart }: { chart: NatalChartDataV2 }) {
           <h2 id="natal-big-three" className={styles.heading}>Главное о тебе</h2>
           <div className={styles.bigThree}>
             {bigThree.map((tile) => (
-              <div key={tile.key} className={`${styles.tile} ${TILE_TONE[tile.key]}`}>
+              <div key={tile.key} className={`${styles.tile} ${TILE_TONE[tile.key]} ${styles.withArt}`} style={planetArtStyle(tile.key)}>
                 <span className={styles.tileIcon} aria-hidden="true">
                   <ZodiacIcon sign={tile.sign} size={18} strokeWidth={1.7} />
                 </span>
