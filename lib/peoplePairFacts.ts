@@ -51,7 +51,16 @@ function longitude(position: PlanetPosition | null | undefined): number | null {
   return Number.isFinite(value) ? ((value % 360) + 360) % 360 : null;
 }
 
-export function buildPairFacts(mine: NatalChartData | null | undefined, theirs: NatalChartData | null | undefined, limit = 2): PairFact[] {
+function dayNumber(dayKey: string): number {
+  const [y, m, d] = dayKey.split('-').map(Number);
+  return Math.floor(Date.UTC(y || 1970, (m || 1) - 1, d || 1) / 86_400_000);
+}
+
+/**
+ * The tightest contacts of two saved charts. With `dayKey` the window slides over all real
+ * contacts of the pair, so the block shows different ones every day instead of the same two.
+ */
+export function buildPairFacts(mine: NatalChartData | null | undefined, theirs: NatalChartData | null | undefined, limit = 2, dayKey?: string): PairFact[] {
   if (!mine || !theirs) return [];
   const found: Array<{ key: string; orb: number; fact: PairFact }> = [];
   for (const a of BODIES) {
@@ -84,9 +93,10 @@ export function buildPairFacts(mine: NatalChartData | null | undefined, theirs: 
     }
   }
   const seen = new Set<string>();
-  return found
+  const unique = found
     .sort((x, y) => x.orb - y.orb)
-    .filter((item) => (seen.has(item.key) ? false : (seen.add(item.key), true)))
-    .slice(0, limit)
-    .map((item) => item.fact);
+    .filter((item) => (seen.has(item.key) ? false : (seen.add(item.key), true)));
+  if (!dayKey || unique.length <= limit) return unique.slice(0, limit).map((item) => item.fact);
+  const start = dayNumber(dayKey) % unique.length;
+  return Array.from({ length: limit }, (_, offset) => unique[(start + offset) % unique.length].fact);
 }

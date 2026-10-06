@@ -55,8 +55,11 @@ export function transitFactOfDay(chart: NatalChartData | null | undefined, trans
   if (!chart || !transits) return null;
   const aspects = detectTransitAspects(chart, transits, { limit: 60 })
     .filter((item) => item.transitPlanet in TRANSIT_THEME_RU && item.natalPlanet in NATAL_INS_RU);
-  const pick = aspects[0];
-  if (!pick) return null;
+  if (!aspects.length) return null;
+  // The tightest aspect can hold for days (a slow planet to the Ascendant), so the card would look frozen:
+  // rotate through the three closest ones by day, so every new day shows a different one.
+  const pool = aspects.slice(0, Math.min(3, aspects.length));
+  const pick = pool[dayIndex(transits.date) % pool.length];
   return {
     kicker: 'Сегодня в твоей карте',
     title: `${TRANSIT_NAME_RU[pick.transitPlanet]} и ${NATAL_POSS_RU[pick.natalPlanet]}: ${TONE_WORD_RU[pick.tone]}`,

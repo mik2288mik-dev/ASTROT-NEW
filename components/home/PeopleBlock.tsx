@@ -70,8 +70,8 @@ export function PeopleBlock({ userId, todayKey, premium, onOpenPair, onAddPerson
   const visible = people.filter((chart) => !settings.hidden.includes(String(chart.id)));
   const selected = visible.find((chart) => String(chart.id) === selectedId) ?? visible[0] ?? null;
   const facts = useMemo(
-    () => (settings.facts && self && selected ? buildPairFacts(self.chart_data, selected.chart_data) : []),
-    [self, selected, settings.facts],
+    () => (settings.facts && self && selected ? buildPairFacts(self.chart_data, selected.chart_data, 2, todayKey) : []),
+    [self, selected, settings.facts, todayKey],
   );
 
   const save = (next: PeopleSettings) => {
