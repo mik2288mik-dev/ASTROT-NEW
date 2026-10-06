@@ -7,6 +7,7 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 describe('first-run onboarding completion flow', () => {
   it('keeps the accepted welcome flow and reaches personal Today before any Premium surface', () => {
     const onboarding = read('views/Onboarding.tsx');
+    const showcase = read('components/onboarding/OnboardingShowcase.tsx');
     const logo = read('components/brand/NeboLogo.tsx');
     const logoBridge = read('components/onboarding/MeouLogo.tsx');
     const artwork = read('components/onboarding/OnboardingArtwork.tsx');
@@ -20,20 +21,18 @@ describe('first-run onboarding completion flow', () => {
     for (const preserved of [
       'className="meou-onboarding antialiased"',
       '<MeouLogo className="meou-onboarding-logo" fullCloud />',
-      '<DayClockArtwork />',
-      '<NatalWheelArtwork />',
-      '<PeopleArtwork />',
       'CityAutocomplete',
-      'Создать личный прогноз',
       'Немного данных —',
       'Рассчитать вашу карту',
     ]) {
       expect(onboarding).toContain(preserved);
     }
-    expect(onboarding).toContain("const introScreens: OnboardingScreen[] = ['day', 'self', 'people']");
+    expect(onboarding).toContain("const introScreens: OnboardingScreen[] = ['hello', 'natal', 'future', 'compat', 'calm', 'more']");
     expect(onboarding).toContain("const welcomeScreens: OnboardingScreen[] = [...introScreens, 'choice']");
     expect(onboarding).toContain('const nextScreen = welcomeScreens[currentIndex + direction]');
-    expect(onboarding).toContain("initialStep === 'birth' ? 'birth' : 'day'");
+    expect(onboarding).toContain("initialStep === 'birth' ? 'birth' : 'hello'");
+    expect(showcase).toContain('Создать мой прогноз');
+    expect(onboarding).toContain('<VideoBackground');
     expect(onboarding).not.toContain('const STORIES: Story[]');
     expect(onboarding).not.toContain('nextStory');
     expect(onboarding).not.toContain("setStep('birth')");

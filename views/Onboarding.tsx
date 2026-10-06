@@ -3,15 +3,13 @@ import type { UserProfile } from '../types';
 import { ensureTelegramFullscreen } from '../lib/telegramFullscreen';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
 import { MeouLogo } from '../components/onboarding/MeouLogo';
+import { OnboardingReady, OnboardingShowcase, type ShowcaseSlide } from '../components/onboarding/OnboardingShowcase';
 import { VideoBackground } from '../components/lumia-ui/VideoBackground';
 import type { VideoBackgroundId } from '../lib/videoBackgrounds';
 import {
   BirthOrbitArtwork,
-  ChoiceOrbitArtwork,
-  DayClockArtwork,
   MeouSpark,
   NatalWheelArtwork,
-  PeopleArtwork,
 } from '../components/onboarding/OnboardingArtwork';
 import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTime';
 import { validateDate, validateName } from '../lib/validation';
@@ -19,7 +17,7 @@ import { onboardingCalculationStatus } from '../lib/onboardingCalculationStatus'
 import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
 
 type OnboardingStart = 'stories' | 'birth';
-type OnboardingScreen = 'day' | 'self' | 'people' | 'choice' | 'birth' | 'calculating';
+type OnboardingScreen = 'hello' | 'natal' | 'future' | 'compat' | 'calm' | 'more' | 'choice' | 'birth' | 'calculating';
 type FieldKey = 'name' | 'date' | 'time' | 'place';
 type ErrorField = FieldKey | null;
 
@@ -31,11 +29,19 @@ interface OnboardingProps {
   onSignIn: () => void;
 }
 
-const introScreens: OnboardingScreen[] = ['day', 'self', 'people'];
+const introScreens: OnboardingScreen[] = ['hello', 'natal', 'future', 'compat', 'calm', 'more'];
 const welcomeScreens: OnboardingScreen[] = [...introScreens, 'choice'];
 const welcomeScreenCount = welcomeScreens.length;
-// The clips that were here did not fit the screens; they come back once fitting ones exist.
-const SCREEN_VIDEOS: Partial<Record<OnboardingScreen, VideoBackgroundId>> = {};
+// One calm looping clip behind every welcome screen; the poster shows first and when the clip cannot play.
+const SCREEN_VIDEOS: Partial<Record<OnboardingScreen, VideoBackgroundId>> = {
+  hello: 'onboarding-day',
+  natal: 'onboarding-self',
+  future: 'onboarding-future',
+  compat: 'onboarding-people',
+  calm: 'breathing',
+  more: 'onboarding-more',
+  choice: 'onboarding-choice',
+};
 const initialTimeMode = (profile?: UserProfile): Exclude<BirthTimeMode, 'range'> => {
   if (!profile) return 'exact';
   if (profile?.birthTimeMode === 'unknown' || !profile?.birthTime) return 'unknown';
@@ -75,7 +81,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   onSignIn,
 }) => {
 
-  const [screen, setScreen] = useState<OnboardingScreen>(initialStep === 'birth' ? 'birth' : 'day');
+  const [screen, setScreen] = useState<OnboardingScreen>(initialStep === 'birth' ? 'birth' : 'hello');
   const [name, setName] = useState(initialProfile?.name || '');
   const [gender, setGender] = useState<'male' | 'female' | 'unspecified'>(initialProfile?.gender || 'unspecified');
   const [date, setDate] = useState(initialProfile?.birthDate || '');
@@ -343,7 +349,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
       data-onboarding-phase={isWelcome ? 'welcome' : 'setup'}
       data-onboarding-screen={screen}
     >
-      {SCREEN_VIDEOS[screen] ? <VideoBackground key={screen} id={SCREEN_VIDEOS[screen] as VideoBackgroundId} scrim="light" /> : null}
+      {SCREEN_VIDEOS[screen] ? <VideoBackground key={screen} id={SCREEN_VIDEOS[screen] as VideoBackgroundId} scrim="bottom" /> : null}
       <div
         className="meou-onboarding-shell"
         onClick={isIntro
@@ -360,8 +366,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({
         </header>
         {isIntro ? (
           <section
-            className={`meou-story meou-story--${screen}`}
-            role="button"
+            className={`meou-story meou-story--showcase meou-story--${screen}`}
+            role="group"
             tabIndex={0}
             aria-label="Тап слева — назад, справа — вперёд"
             onKeyDown={(event) => {
@@ -386,52 +392,15 @@ export const Onboarding: React.FC<OnboardingProps> = ({
               else retreatStory();
             }}
           >
-            <div className="meou-story-copy">
-              {screen === 'day' ? <h1>Твой день.<br />Без воды<span>.</span></h1> : null}
-              {screen === 'self' ? <h1>Разберём,<br />как ты устроен<span>.</span></h1> : null}
-              {screen === 'people' ? <h1>Сравниваем<br />людей,<br />не картинки<span>.</span></h1> : null}
-            </div>
-
-            {screen === 'day' ? (
-              <>
-                <DayClockArtwork />
-                <p className="meou-story-description">Сегодня, неделя и месяц —<br />персонально по твоим данным.</p>
-                <div className="meou-swipe-hint" aria-hidden="true"><span />Свайп, чтобы продолжить</div>
-              </>
-            ) : null}
-
-            {screen === 'self' ? (
-              <>
-                <NatalWheelArtwork />
-                <p className="meou-story-description">Сильные стороны, привычные<br />реакции и важные детали<br />расчёта — простыми словами.</p>
-              </>
-            ) : null}
-
-            {screen === 'people' ? (
-              <>
-                <PeopleArtwork />
-                <p className="meou-story-description">Партнёр, друг или новый<br />знакомый — по данным<br />рождения или быстро по знакам.</p>
-              </>
-            ) : null}
+            <button type="button" className="ob-skip" onClick={() => setScreen('choice')}>Пропустить</button>
+            <OnboardingShowcase slide={screen as ShowcaseSlide} />
+            <button type="button" className="ob-next" onClick={advanceStory}>Дальше</button>
           </section>
         ) : null}
 
         {screen === 'choice' ? (
-          <section className="meou-choice">
-            <ChoiceOrbitArtwork />
-            <h1>Как начнём?</h1>
-            <div className="meou-choice-actions">
-              <button type="button" className="meou-button meou-button--primary" onClick={() => setScreen('birth')}>
-                Создать личный прогноз
-              </button>
-              <p>Имя, дата, место и время —<br />если знаешь</p>
-              <button type="button" className="meou-button meou-button--secondary" onClick={onSkip}>
-                Смотреть без данных
-              </button>
-              <button type="button" className="meou-sign-in" onClick={onSignIn}>
-                Уже есть аккаунт — <span>войти</span>
-              </button>
-            </div>
+          <section className="meou-choice meou-choice--ready">
+            <OnboardingReady onCreate={() => setScreen('birth')} onLook={onSkip} onSignIn={onSignIn} />
           </section>
         ) : null}
 
