@@ -7,18 +7,16 @@ type VideoBackgroundProps = {
   className?: string;
   /** `bottom` darkens the lower part under light text, `light` veils the whole clip under dark text. */
   scrim?: 'bottom' | 'light' | 'none';
+  /** Show the poster only, never the clip. */
+  still?: boolean;
 };
 
 type ConnectionInfo = { saveData?: boolean; effectiveType?: string };
 
-const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
-
-/** The poster alone is shown when the person asked for less motion or less data. */
+/** The poster alone is shown on a data saver or a very slow connection. The system's «less animation» switch is not
+    followed here: these muted backgrounds are the look of the screens. */
 function motionAllowed(): boolean {
   if (typeof window === 'undefined') return false;
-  try {
-    if (window.matchMedia?.(REDUCED_MOTION).matches) return false;
-  } catch { /* no matchMedia: keep going */ }
   const connection = (navigator as Navigator & { connection?: ConnectionInfo }).connection;
   if (connection?.saveData) return false;
   if (connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g') return false;
@@ -30,7 +28,7 @@ function motionAllowed(): boolean {
  * clip is requested only after the block has been on screen, plays only while
  * it is on screen, and quietly gives way to the poster if it cannot load.
  */
-export function VideoBackground({ id, className, scrim = 'bottom' }: VideoBackgroundProps) {
+export function VideoBackground({ id, className, scrim = 'bottom', still = false }: VideoBackgroundProps) {
   const host = useRef<HTMLSpanElement | null>(null);
   const video = useRef<HTMLVideoElement | null>(null);
   const [motion, setMotion] = useState(false);
@@ -40,11 +38,7 @@ export function VideoBackground({ id, className, scrim = 'bottom' }: VideoBackgr
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    const update = () => setMotion(motionAllowed());
-    update();
-    const query = typeof window.matchMedia === 'function' ? window.matchMedia(REDUCED_MOTION) : null;
-    query?.addEventListener?.('change', update);
-    return () => query?.removeEventListener?.('change', update);
+    setMotion(motionAllowed());
   }, []);
 
   useEffect(() => {
@@ -65,7 +59,7 @@ export function VideoBackground({ id, className, scrim = 'bottom' }: VideoBackgr
     return () => observer.disconnect();
   }, [id]);
 
-  const showVideo = motion && seen && !failed;
+  const showVideo = motion && seen && !failed && !still;
   useEffect(() => {
     const element = video.current;
     if (!element) return;

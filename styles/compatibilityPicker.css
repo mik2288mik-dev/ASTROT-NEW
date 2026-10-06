@@ -192,26 +192,26 @@
 .compat-context-tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .compat-context-tile {
   display: flex;
-  min-height: 4.6rem;
-  flex-direction: column;
+  min-height: 2.6rem;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.6rem 0.35rem;
+  padding: 0.4rem 0.4rem;
   border: 1px solid rgba(23, 23, 23, 0.1);
-  border-radius: 1rem;
+  border-radius: 0.85rem;
   background: #fff;
   color: #45413d;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   font-weight: 600;
-  line-height: 1.2;
-  text-align: center;
+  line-height: 1.15;
+  text-align: left;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -224,6 +224,8 @@
 
 .compat-context-tile-icon {
   flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
 /* «Сравнить нас» follows the form. As a sticky bar it floated over the people
@@ -379,3 +381,16 @@
     transition: none;
   }
 }
+
+/* Each kind of relationship has its own colour. */
+.compat-context-tile { --tile-tint: #f3f3f3; --tile-ink: #45413d; --tile-from: #171717; --tile-to: #171717; border-color: transparent; background: var(--tile-tint); }
+.compat-context-tile .compat-context-tile-icon { color: var(--tile-ink); }
+.compat-context-tile.is-love { --tile-tint: #ffe8ee; --tile-ink: #e0436b; --tile-from: #ff7a9a; --tile-to: #e0436b; }
+.compat-context-tile.is-relationships { --tile-tint: #ffe9e0; --tile-ink: #e8602c; --tile-from: #ff9a62; --tile-to: #e8602c; }
+.compat-context-tile.is-friendship { --tile-tint: #fff3d6; --tile-ink: #d58a00; --tile-from: #ffc245; --tile-to: #e8960a; }
+.compat-context-tile.is-family { --tile-tint: #e2f6e9; --tile-ink: #25985a; --tile-from: #5fd08b; --tile-to: #25985a; }
+.compat-context-tile.is-work { --tile-tint: #e3eeff; --tile-ink: #2f6fe0; --tile-from: #6fa2ff; --tile-to: #2f6fe0; }
+.compat-context-tile.is-active { border-color: transparent; background: linear-gradient(135deg, var(--tile-from), var(--tile-to)); color: #fff; box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14); }
+.compat-context-tile.is-active .compat-context-tile-icon { color: #fff; }
+
+canvas.today-sky-glyph { display: block; border-radius: 999px; filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.28)); }

@@ -34,13 +34,8 @@ interface OnboardingProps {
 const introScreens: OnboardingScreen[] = ['day', 'self', 'people'];
 const welcomeScreens: OnboardingScreen[] = [...introScreens, 'choice'];
 const welcomeScreenCount = welcomeScreens.length;
-const SCREEN_VIDEOS: Partial<Record<OnboardingScreen, VideoBackgroundId>> = {
-  day: 'onboarding-day',
-  self: 'onboarding-self',
-  people: 'onboarding-people',
-  choice: 'onboarding-choice',
-  birth: 'onboarding-birth',
-};
+// The clips that were here did not fit the screens; they come back once fitting ones exist.
+const SCREEN_VIDEOS: Partial<Record<OnboardingScreen, VideoBackgroundId>> = {};
 const initialTimeMode = (profile?: UserProfile): Exclude<BirthTimeMode, 'range'> => {
   if (!profile) return 'exact';
   if (profile?.birthTimeMode === 'unknown' || !profile?.birthTime) return 'unknown';

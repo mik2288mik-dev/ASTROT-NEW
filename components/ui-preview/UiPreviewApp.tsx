@@ -713,6 +713,10 @@ export default function UiPreviewApp() {
         onTabChange={setServiceTab}
         onOpenCharts={openCharts}
         onOpenMatrix={() => navigate('matrix')}
+        onOpenTests={() => undefined}
+        onOpenSounds={() => undefined}
+        onOpenAntistress={() => undefined}
+        onOpenStories={() => undefined}
         premiumStoreContent={(
           <PaywallScene
             embedded

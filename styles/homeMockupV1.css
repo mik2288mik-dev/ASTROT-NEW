@@ -67,9 +67,9 @@
 
 /* ── One top bar and one bottom bar for the whole app: the same light glass ── */
 :root {
-  --nebo-glass-bg: rgba(255, 255, 255, 0.5);
-  /* Low saturation keeps colours under the glass true (no tinted band). */
-  --nebo-glass-filter: blur(24px) saturate(1.1);
+  --nebo-glass-bg: rgba(255, 255, 255, 0.1);
+  /* Clear glass: a light blur only, no tint, so the page shows through. */
+  --nebo-glass-filter: blur(5px);
   --nebo-glass-line: rgba(23, 23, 23, 0.07);
 }
 
@@ -1089,12 +1089,125 @@
   to { transform: rotate(360deg); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .season-fall,
-  .season-leaf,
-  .today-explore-wheel {
-    animation: none;
-  }
 
-  .season-fall { display: none; }
+/* The bar is clear glass: white ink over a dark sky, dark ink over a light one. */
+[data-bar-ink='light'] .app-top-bar,
+[data-bar-ink='light'] .app-top-bar .app-top-bar-action,
+[data-bar-ink='light'] .app-top-bar .app-top-bar-title {
+  color: #fff !important;
 }
+
+[data-bar-ink='light'] .app-top-bar svg {
+  color: #fff;
+  stroke: currentColor;
+}
+
+[data-bar-ink='light'] .app-top-bar .today-period-tabs > .today-period-tab {
+  color: rgba(255, 255, 255, 0.66) !important;
+}
+
+[data-bar-ink='light'] .app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'] {
+  color: #fff !important;
+}
+
+[data-bar-ink='light'] .app-top-bar .today-period-tab-underline {
+  background: #fff !important;
+}
+
+/* Cards lift off the page with one soft shadow, the same everywhere. */
+:root { --nebo-card-shadow: 0 12px 28px rgba(22, 32, 70, 0.2), 0 3px 8px rgba(22, 32, 70, 0.12); }
+.today-explore-card,
+.today-sky-card,
+.season-card,
+.about-you-card,
+.for-you-card,
+.future-invite-card,
+.future-period-cards > *,
+.tests-card,
+.stories-card,
+.sounds-tile,
+.people-block-card,
+.lumia-home-passport-card,
+[class*='NatalHighlights_tile__'],
+[class*='NatalHighlights_moment__'] {
+  box-shadow: var(--nebo-card-shadow);
+}
+
+/* ── Cards on real scenes: blurred picture under a colour wash, slowly drifting ── */
+.future-invite-card.is-sky .future-invite-sky { display: none; }
+.future-invite-card.is-sky,
+.season-card.is-autumn,
+.today-explore-card.is-natal,
+.today-explore-card.is-compatibility,
+.today-explore-card.is-matrix {
+  isolation: isolate;
+  background: var(--scene-base);
+}
+.future-invite-card.is-sky::before,
+.season-card.is-autumn::before,
+.today-explore-card.is-natal::before,
+.today-explore-card.is-compatibility::before,
+.today-explore-card.is-matrix::before {
+  position: absolute;
+  inset: -12px;
+  z-index: -2;
+  background: var(--scene-image) center / cover no-repeat;
+  filter: blur(2px) saturate(1.1);
+  animation: nebo-scene-drift 14s ease-in-out infinite alternate;
+  content: '';
+  pointer-events: none;
+}
+.future-invite-card.is-sky::after,
+.season-card.is-autumn::after,
+.today-explore-card.is-natal::after,
+.today-explore-card.is-compatibility::after,
+.today-explore-card.is-matrix::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(160deg, var(--scene-a), var(--scene-b));
+  content: '';
+  pointer-events: none;
+}
+@keyframes nebo-scene-drift {
+  from { transform: scale(1.04) translate(8px, 4px); }
+  to { transform: scale(1.18) translate(-14px, -9px); }
+}
+.future-invite-card.is-sky { --scene-base: #2a64d8; --scene-image: url('/assets/card-scenes/future.webp'); --scene-a: rgba(28, 92, 224, 0.74); --scene-b: rgba(18, 54, 150, 0.82); }
+.season-card.is-autumn { --scene-base: #b9561a; --scene-image: url('/assets/card-scenes/autumn.webp'); --scene-a: rgba(226, 112, 24, 0.7); --scene-b: rgba(142, 52, 8, 0.82); color: #fff; }
+.season-card.is-autumn .season-kicker,
+.season-card.is-autumn .season-headline,
+.season-card.is-autumn .season-cta { color: #fff; text-shadow: 0 1px 8px rgba(30, 14, 4, 0.5); }
+.season-card.is-autumn .season-leaf { display: none; }
+.today-explore-card.is-natal { --scene-base: #3b3fc4; --scene-image: url('/assets/card-scenes/natal.webp'); --scene-a: rgba(64, 76, 224, 0.72); --scene-b: rgba(40, 36, 150, 0.82); }
+.today-explore-card.is-compatibility { --scene-base: #d6455f; --scene-image: url('/assets/card-scenes/compatibility.webp'); --scene-a: rgba(238, 84, 108, 0.7); --scene-b: rgba(168, 36, 72, 0.82); }
+.today-explore-card.is-matrix { --scene-base: #6a38b8; --scene-image: url('/assets/card-scenes/matrix.webp'); --scene-a: rgba(122, 64, 214, 0.72); --scene-b: rgba(64, 28, 140, 0.84); }
+
+/* Entry tiles: a little bigger, with the next one peeking out to show the row scrolls. */
+.home-entry-tile { width: 6.3rem; }
+.home-entry-tile-icon { width: 5.2rem; height: 5.2rem; }
+.home-entry-tile-label { font-size: 0.74rem; }
+.home-entry-tiles-row { gap: 0.55rem; }
+
+/* The slow motion on the home cards (drifting picture, falling leaves, turning wheel) is part of the look, so it keeps
+   playing even where the system asks for less animation; the global reduced-motion rule is overridden for it only. */
+@media (prefers-reduced-motion: reduce) {
+  .future-invite-card.is-sky::before,
+  .season-card.is-autumn::before,
+  .today-explore-card.is-natal::before,
+  .today-explore-card.is-compatibility::before,
+  .today-explore-card.is-matrix::before { animation-duration: 14s !important; animation-iteration-count: infinite !important; }
+  .season-card .season-fall.is-0 { animation-duration: 11s !important; animation-iteration-count: infinite !important; }
+  .season-card .season-fall.is-1 { animation-duration: 13s !important; animation-iteration-count: infinite !important; }
+  .season-card .season-fall.is-2 { animation-duration: 10s !important; animation-iteration-count: infinite !important; }
+  .season-card .season-fall.is-3 { animation-duration: 14s !important; animation-iteration-count: infinite !important; }
+  .today-explore-card .today-explore-wheel { animation-duration: 120s !important; animation-iteration-count: infinite !important; }
+}
+
+/* Entry tiles: each one is its own button with its own shadow. */
+.home-entry-tile-icon { box-shadow: var(--nebo-card-shadow) !important; background-clip: padding-box; }
+.home-entry-tiles-row { gap: 0.9rem; padding-bottom: 0.9rem; }
+.home-entry-tiles, .home-entry-tiles-row { border: 0; }
+
+/* No hairline between the entry tiles and «Небо сегодня»: the shadows already separate them. */
+.today-sky { border-top: 0; }

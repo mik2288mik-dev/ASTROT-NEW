@@ -10,6 +10,8 @@ import {
 } from './services/nativeNotifications';
 import { UserProfile, NatalChartData, ViewState } from './types';
 import { ServiceScreen } from './views/v2/ServiceScreen';
+import { AntistressRoom } from './views/v2/AntistressRoom';
+import { useCardShadows } from './components/lumia-ui/useCardShadows';
 import type { ServiceTab } from './views/v2/ServiceScreen';
 import { Settings } from './views/Settings';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
@@ -358,6 +360,7 @@ function millisecondsUntilNextForecastDay(now: Date, timezone: string): number {
 }
 
 const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGate> }> = ({ androidUpdate }) => {
+    useCardShadows();
     useDisableAppZoom();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [nativeActive, setNativeActive] = useState(true);
@@ -2597,6 +2600,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         },
         onOpenMood: () => navigateTo('mood'),
         onOpenSounds: () => navigateTo('sounds'),
+        onOpenAntistress: () => navigateTo('antistress'),
         onOpenStories: () => navigateTo('stories'),
         onOpenPair: (chartId: string, name: string) => openSynastryWithPrefill({
             source: 'saved-chart',
@@ -2677,10 +2681,13 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     );
 
     return (
-        <AppTopBarSettingsProvider onOpenSettings={() => {
-            setNavigationSheet(null);
-            if (viewRef.current !== 'settings') navigateTo('settings');
-        }}>
+        <AppTopBarSettingsProvider
+            onOpenSettings={() => {
+                setNavigationSheet(null);
+                if (viewRef.current !== 'settings') navigateTo('settings');
+            }}
+            onStepBack={view !== 'dashboard' ? () => { void handleBack(); } : null}
+        >
         <div
             className={`lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
                 showsBottomNavigation ? 'has-today-bottom-navigation' : ''
@@ -2747,6 +2754,14 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             profile={profile}
                             onBack={() => { void handleBack(); }}
                             onRequestPremium={premiumPromotionAllowed ? () => { void requestPremium('sounds', { placement: 'sounds', featureKey: 'sleep_stories', triggerType: 'locked_feature', returnView: 'sounds' }); } : undefined}
+                        />
+                    </div>
+                ) : view === 'antistress' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        <AntistressRoom
+                            profile={profile}
+                            onBack={() => { void handleBack(); }}
+                            onOpenSounds={() => navigateTo('sounds')}
                         />
                     </div>
                 ) : view === 'stories' ? (
@@ -2869,6 +2884,10 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onTabChange={setServiceTab}
                             onOpenCharts={openProfileCharts}
                             onOpenMatrix={() => navigateTo('matrix')}
+                            onOpenTests={() => { setTestsInitialId(null); navigateTo('tests'); }}
+                            onOpenSounds={() => navigateTo('sounds')}
+                            onOpenAntistress={() => navigateTo('antistress')}
+                            onOpenStories={() => navigateTo('stories')}
                             premiumStoreContent={(
                                 <Paywall
                                     embedded

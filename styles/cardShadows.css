@@ -1,0 +1,56 @@
+/* One soft shadow under every card and tile in the app (the flat editorial rules switched them off). */
+:root { --nebo-card-shadow: 0 12px 28px rgba(22, 32, 70, 0.2), 0 3px 8px rgba(22, 32, 70, 0.12); }
+
+:is(
+  [class$='-card'], [class*='-card '], [class$='-tile'], [class*='-tile '],
+  [class*='_card__'], [class*='_tile__'], [class*='_moment__'], [class*='_panel__'],
+  .people-fact, .people-gift, .people-btn, .daily-question, .daily-question-option,
+  .season-step, .today-sky-personal, .listen-forecast-button, .for-you-card-cta,
+  .tests-card, .stories-card, .sounds-tile, .sounds-row, .sounds-story-main,
+  .compat-context-tile, .compat-sign-card, .mood-ready, .mood-report, .service-card, .services-card
+):not(.video-bg):not(.asset-slot):not(.home-entry-tile):not([class*='-card-']):not([class*='-tile-']) {
+  box-shadow: var(--nebo-card-shadow) !important;
+}
+
+/* The header ink changes smoothly between white (over the sky) and dark (over the page). */
+.app-top-bar, .app-top-bar .app-top-bar-action, .app-top-bar .app-top-bar-title,
+.app-top-bar .today-period-tab, .app-top-bar svg { transition: color 0.25s ease; }
+
+/* Bottom bar ink over dark content. */
+[data-nav-ink='light'] .lumia-bottom-tab-bar .today-bottom-nav-action,
+[data-nav-ink='light'] .lumia-bottom-tab-bar .today-bottom-nav-label,
+[data-nav-ink='light'] .lumia-bottom-tab-bar .today-bottom-nav-action svg {
+  color: #fff !important;
+}
+.lumia-bottom-tab-bar .today-bottom-nav-action,
+.lumia-bottom-tab-bar .today-bottom-nav-label { transition: color 0.25s ease; }
+
+/* One vertical rhythm on the home feed: the same gap above every block. */
+.home-entry-tiles { margin-top: 0.6rem; margin-bottom: 0; }
+.home-entry-tiles-row { padding-bottom: 0.9rem; margin-bottom: -0.5rem; }
+.today-sky,
+.about-you,
+.for-you,
+.people-block,
+.season,
+.today-explore { padding-top: 1.25rem; padding-bottom: 0.4rem; }
+.future-invite { padding-top: 1.25rem; }
+.today-explore { padding-bottom: 2rem; }
+
+/* Menu sections: six entries in two rows. */
+.services-screen-tabs { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; height: auto !important; min-height: 0 !important; }
+.services-screen-tabs .editorial-tab { min-height: 2.6rem; white-space: normal; }
+
+/* No hairlines between the home blocks. */
+.today-sky, .about-you, .for-you, .people-block, .season, .today-explore, .future-invite { border-top: 0 !important; }
+
+/* The series header already has its own picture behind it: no second cover inside it. */
+.stories-series-head.video-hero .stories-cover { display: none; }
+
+/* «Антистресс» tile on the home row. */
+.home-entry-tile.is-antistress .home-entry-tile-pad { background: #e3f5f3; }
+.home-entry-tile-art-img { width: 82%; height: 82%; object-fit: contain; filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.14)); }
+.home-entry-tile-fallback { color: #1c9c8f; }
+
+/* Everything the shell recognises as a card or tile (see components/lumia-ui/useCardShadows.ts). */
+[data-nebo-card] { box-shadow: var(--nebo-card-shadow) !important; }

@@ -41,7 +41,6 @@ import { PeopleBlock } from '../components/home/PeopleBlock';
 import { SeasonCard } from '../components/home/SeasonCard';
 import { GiftIdeasSheet, type GiftPerson } from '../components/home/GiftIdeasSheet';
 import { peekExploreCharts } from '../components/PersonalForecastFeed/exploreCharts';
-import { computeMatrix } from '../lib/matrixOfDestiny';
 import type { ForYouAction } from '../lib/forYou';
 import { ListenForecastButton } from '../components/audio/ListenForecastButton';
 import { buildForecastListenScript } from '../lib/tts/forecastListenScript';
@@ -74,6 +73,7 @@ type DashboardProps = {
   onOpenMood?: () => void;
   /** Opens «Звуки»: pause, calm sounds, music and sleep stories. */
   onOpenSounds?: () => void;
+  onOpenAntistress?: () => void;
   /** Opens «Рассказы»: daily story series. */
   onOpenStories?: () => void;
   onRequestPremium?: (
@@ -178,6 +178,7 @@ export const Dashboard = memo<DashboardProps>(({
   onOpenTests,
   onOpenMood,
   onOpenSounds,
+  onOpenAntistress,
   onOpenStories,
   onRequestPremium,
   onPremiumAnalytics,
@@ -806,11 +807,6 @@ export const Dashboard = memo<DashboardProps>(({
   const skyCover = Boolean(
     forecast && activePeriod === 'day' && profile.name.trim() && profile.birthDate.trim(),
   );
-  const matrixNumber = useMemo(() => {
-    const matrix = profile.birthDate ? computeMatrix(profile.birthDate, language) : null;
-    return matrix?.positions.find((position) => position.key === 'self')?.arcana ?? null;
-  }, [language, profile.birthDate]);
-
 
   const periodSwitch = (
   <nav
@@ -866,11 +862,11 @@ export const Dashboard = memo<DashboardProps>(({
   const entryTiles = (
     <HomeEntryTiles
       language={language}
-      matrixNumber={matrixNumber}
       tiles={[
         { id: 'future', onOpen: () => openFuture() },
         { id: 'compatibility', onOpen: onOpenSynastry },
         { id: 'matrix', onOpen: onOpenMatrix },
+        { id: 'antistress', onOpen: onOpenAntistress },
         { id: 'tests', onOpen: onOpenTests ? () => onOpenTests() : undefined },
         { id: 'sounds', onOpen: onOpenSounds },
         { id: 'stories', onOpen: onOpenStories },
