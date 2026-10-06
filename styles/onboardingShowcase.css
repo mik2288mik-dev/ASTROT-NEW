@@ -292,3 +292,15 @@
 .meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button::before,
 .meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button::after { display: none !important; content: none !important; }
 
+/* The location pin is drawn by the field's pseudo elements; centre it on the 48px input, 16px from the edge. */
+.meou-onboarding[data-onboarding-screen='birth'] .meou-city-field::after {
+  top: auto !important;
+  right: 16px !important;
+  bottom: 16.4px !important;
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-city-field::before {
+  top: auto !important;
+  right: 21.1px !important;
+  bottom: 21.9px !important;
+}
+
