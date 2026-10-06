@@ -149,13 +149,22 @@ export function NatalHighlights({ chart }: { chart: NatalChartDataV2 }) {
           <h2 id="natal-big-three" className={styles.heading}>Главное о тебе</h2>
           <div className={styles.bigThree}>
             {bigThree.map((tile) => (
-              <div key={tile.key} className={`${styles.tile} ${TILE_TONE[tile.key]} ${styles.withArt}`} style={planetArtStyle(tile.key)}>
-                <span className={styles.tileIcon} aria-hidden="true">
-                  <ZodiacIcon sign={tile.sign} size={18} strokeWidth={1.7} />
-                </span>
-                <span className={styles.tileLabel}>{tile.label}</span>
-                <span className={styles.tileSign}>{tile.signLabel}</span>
-                <span className={styles.tileTrait}>{tile.role}: {tile.trait}</span>
+              // The Ascendant is a sign, not a planet: it shows the sign itself.
+              <div
+                key={tile.key}
+                className={`${styles.tile} ${TILE_TONE[tile.key]} ${tile.key === 'ascendant' ? styles.signArt : styles.withArt}`}
+                style={tile.key === 'ascendant' ? undefined : planetArtStyle(tile.key)}
+              >
+                {tile.key === 'ascendant' ? (
+                  <span className={styles.signGlyph} aria-hidden="true">
+                    <ZodiacIcon sign={tile.sign} size={54} strokeWidth={1.5} />
+                  </span>
+                ) : null}
+                <div className={styles.artText}>
+                  <span className={styles.tileLabel}>{tile.label}</span>
+                  <span className={styles.tileSign}>{tile.signLabel}</span>
+                  <span className={styles.tileTrait}>{tile.role}: {tile.trait}</span>
+                </div>
               </div>
             ))}
           </div>
