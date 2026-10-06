@@ -8,19 +8,19 @@ type KnowledgeDiagramProps = DiagramProps & { diagram: KnowledgeDiagramId };
 const copy = {
   ru: {
     scale: 'Схема упрощена и не соблюдает масштаб.',
-    ascendant: ['Как найти Асцендент', 'Точка зодиака, которая поднимается над восточным горизонтом.', 'Горизонт и эклиптика пересекаются на востоке — это и есть ASC.'],
-    houses: ['Как устроены дома', 'Карта делится на 12 секторов. Линия начинает дом, пространство после неё и есть дом.', 'Линии — куспиды, цветные секторы — дома.'],
+    ascendant: ['Как найти Асцендент', 'Точка зодиака, которая поднимается над восточным горизонтом.', 'Горизонт и эклиптика пересекаются на востоке, это и есть ASC.'],
+    houses: ['Как устроены дома', 'Карта делится на 12 секторов. Линия начинает дом, пространство после неё и есть дом.', 'Линии, куспиды, цветные секторы, дома.'],
     aspects: ['Пять основных аспектов', 'Угол измеряют по кругу между двумя точками карты.', 'Чем ближе угол к указанному числу, тем точнее аспект. Допуск называют орбисом.'],
     retrograde: ['Почему планета будто идёт назад', 'Планета не разворачивается. Меняется линия взгляда с движущейся Земли.', 'В космосе обе планеты продолжают путь вперёд; петля появляется только на фоне звёзд.'],
-    moon: ['Почему меняются фазы Луны', 'Солнце всегда освещает половину Луны. С Земли мы видим эту половину под разными углами.', 'Фазы — не тень Земли. Земная тень нужна только для лунного затмения.'],
-    nodes: ['Откуда берутся лунные узлы', 'Орбита Луны наклонена и дважды пересекает плоскость эклиптики.', 'Узлы — две точки пересечения, а не небесные тела.'],
+    moon: ['Почему меняются фазы Луны', 'Солнце всегда освещает половину Луны. С Земли мы видим эту половину под разными углами.', 'Фазы, не тень Земли. Земная тень нужна только для лунного затмения.'],
+    nodes: ['Откуда берутся лунные узлы', 'Орбита Луны наклонена и дважды пересекает плоскость эклиптики.', 'Узлы, две точки пересечения, а не небесные тела.'],
     eclipses: ['Солнечное и лунное затмения', 'Для затмения Солнце, Земля и Луна должны выстроиться почти на одной линии около узла.', 'Наклон орбиты Луны мешает такому выравниванию происходить каждый месяц.'],
-    lilith: ['Что показывает Чёрная Луна', 'Лилит — расчётная координата, связанная с дальней областью лунной орбиты.', 'В отмеченной точке нет второй Луны, планеты или другого тела.'],
-    zodiac: ['Как устроен зодиак', 'Эклиптический круг делят на 12 равных знаков по 30°.', 'Знак — участок круга, а не рисунок созвездия на небе.'],
+    lilith: ['Что показывает Чёрная Луна', 'Лилит, расчётная координата, связанная с дальней областью лунной орбиты.', 'В отмеченной точке нет второй Луны, планеты или другого тела.'],
+    zodiac: ['Как устроен зодиак', 'Эклиптический круг делят на 12 равных знаков по 30°.', 'Знак, участок круга, а не рисунок созвездия на небе.'],
   },
   en: {
     scale: 'Simplified diagram, not to scale.',
-    ascendant: ['How to locate the Ascendant', 'The zodiac point rising across the eastern horizon.', 'The horizon and ecliptic meet in the east — that point is the ASC.'],
+    ascendant: ['How to locate the Ascendant', 'The zodiac point rising across the eastern horizon.', 'The horizon and ecliptic meet in the east, that point is the ASC.'],
     houses: ['How houses work', 'The chart is divided into 12 sectors. A line begins a house; the space after it is the house.', 'Lines are cusps; coloured sectors are houses.'],
     aspects: ['Five major aspects', 'The angle is measured around the circle between two chart points.', 'The closer the angle is to the number shown, the more exact the aspect. The tolerance is the orb.'],
     retrograde: ['Why a planet seems to go backwards', 'The planet does not turn around. Our line of sight changes from the moving Earth.', 'Both planets keep moving forward in space; the loop appears only against the stars.'],
@@ -163,7 +163,7 @@ function RetrogradeDiagram({ language }: DiagramProps) {
       {[42, 78, 119, 164, 212, 258, 307].map((x, index) => <circle key={x} className={styles.diagramStar} cx={x} cy={282 + (index % 3) * 29} r={index % 2 ? 2 : 3} />)}
       <path className={styles.diagramLoop} d="M38 353C91 330 117 364 151 348c31-15 16-58 55-47 31 9 9 51 42 55 26 3 45-21 72-7" />
       <path className={styles.diagramLoopArrow} d="m320 349-14-3m14 3-6 12" />
-      <SvgText x={180} y={386} anchor="middle" strong>{ru ? 'видимая петля — не разворот планеты' : 'apparent loop — the planet does not turn'}</SvgText>
+      <SvgText x={180} y={386} anchor="middle" strong>{ru ? 'видимая петля, не разворот планеты' : 'apparent loop, the planet does not turn'}</SvgText>
     </svg>
   );
 }

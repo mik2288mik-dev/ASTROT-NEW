@@ -111,8 +111,8 @@ const ELEMENT_ABSENT_RU: Record<NatalElement, string> = {
 };
 
 const ELEMENT_LEAST_RU: Record<NatalElement, string> = {
-  fire: 'Огня меньше всего: спонтанные порывы — не главное в тебе',
-  earth: 'Земли меньше всего: быт и рутина — не самое сильное место',
+  fire: 'Огня меньше всего: спонтанные порывы, не главное в тебе',
+  earth: 'Земли меньше всего: быт и рутина, не самое сильное место',
   air: 'Воздуха меньше всего: пустые разговоры быстро утомляют',
   water: 'Воды меньше всего: чувства ты чаще обдумываешь, чем показываешь',
 };
@@ -205,7 +205,7 @@ function stelliumMoment(chart: NatalChartDataV2): NatalMoment | null {
     id: `stellium:${sign}`,
     kicker: 'Перевес в одном знаке',
     headline: `${keys.length} ${planetsWordRu(keys.length)} в ${SIGN_LOCATIVE_RU[sign]}`,
-    body: `${joinRu(keys.map(PLANET_NAME_RU))} в одном знаке — так бывает не у всех. Тема ${SIGN_GENITIVE_RU[sign]} — ${SIGN_TRAIT_RU[sign]} — у тебя звучит громче обычного.`,
+    body: `${joinRu(keys.map(PLANET_NAME_RU))} в одном знаке, так бывает не у всех. Тема ${SIGN_GENITIVE_RU[sign]} - ${SIGN_TRAIT_RU[sign]}, у тебя звучит громче обычного.`,
     tone: 'day',
     visual: { kind: 'number', value: String(keys.length) },
   };
@@ -226,7 +226,7 @@ function houseMoment(chart: NatalChartDataV2): NatalMoment | null {
     id: `house:${house}`,
     kicker: 'Где сосредоточена жизнь',
     headline: `${keys.length} ${planetsWordRu(keys.length)} в ${house} доме`,
-    body: `${joinRu(keys.map(PLANET_NAME_RU))}. ${house} дом — это ${area}. Эта часть жизни у тебя в фокусе.`,
+    body: `${joinRu(keys.map(PLANET_NAME_RU))}. ${house} дом, это ${area}. Эта часть жизни у тебя в фокусе.`,
     tone: 'sunset',
     visual: { kind: 'number', value: String(house) },
   };
@@ -247,7 +247,7 @@ function sunEdgeMoment(chart: NatalChartDataV2): NatalMoment | null {
       headline: hours >= 24
         ? `Солнце было в ${SIGN_LOCATIVE_RU[sun.sign]} всего сутки`
         : `Солнце было в ${SIGN_LOCATIVE_RU[sun.sign]} всего ${hours} ${hoursWordRu(hours)}`,
-      body: `Это самые первые часы знака. Чуть раньше — и твоим знаком был бы ${SIGN_NOMINATIVE_RU[previous]}.`,
+      body: `Это самые первые часы знака. Чуть раньше, и твоим знаком был бы ${SIGN_NOMINATIVE_RU[previous]}.`,
       tone: 'day',
       visual: { kind: 'number', value: `${Math.min(hours, 24)}ч` },
     };
@@ -261,7 +261,7 @@ function sunEdgeMoment(chart: NatalChartDataV2): NatalMoment | null {
       headline: hours >= 24
         ? `До ${SIGN_GENITIVE_RU[next]} Солнцу оставались сутки`
         : `До ${SIGN_GENITIVE_RU[next]} Солнцу оставалось ${hours} ${hoursWordRu(hours)}`,
-      body: `Это последние часы ${SIGN_GENITIVE_RU[sun.sign]}. Чуть позже — и твоим знаком был бы ${SIGN_NOMINATIVE_RU[next]}.`,
+      body: `Это последние часы ${SIGN_GENITIVE_RU[sun.sign]}. Чуть позже, и твоим знаком был бы ${SIGN_NOMINATIVE_RU[next]}.`,
       tone: 'day',
       visual: { kind: 'number', value: `${Math.min(hours, 24)}ч` },
     };
@@ -291,7 +291,7 @@ function tightAspectMoment(chart: NatalChartDataV2): NatalMoment | null {
     return {
       id: `aspect:${aspect.id}`,
       kicker: 'Почти точное совпадение',
-      headline: `${from} и ${to} — самая точная связь`,
+      headline: `${from} и ${to}, самая точная связь`,
       body: meaning.text,
       tone: aspect.type === 'square' || aspect.type === 'opposition' ? 'sunset' : 'evening',
       visual: { kind: 'number', value: `${aspect.orb.toFixed(2).replace('.', ',')}°` },
@@ -404,10 +404,10 @@ export function buildSkyEventMoments(chart: NatalChartDataV2, engine: AstronomyE
 
   const seasons = engine.Seasons(birth.getUTCFullYear());
   const events: Array<{ date: Date; north: string; southern: string }> = [
-    { date: seasons.mar_equinox.date, north: 'весеннего равноденствия — когда день равен ночи', southern: 'осеннего равноденствия — когда день равен ночи' },
-    { date: seasons.jun_solstice.date, north: 'летнего солнцестояния — самого длинного дня в году', southern: 'зимнего солнцестояния — самого короткого дня в году' },
-    { date: seasons.sep_equinox.date, north: 'осеннего равноденствия — когда день равен ночи', southern: 'весеннего равноденствия — когда день равен ночи' },
-    { date: seasons.dec_solstice.date, north: 'зимнего солнцестояния — самого короткого дня в году', southern: 'летнего солнцестояния — самого длинного дня в году' },
+    { date: seasons.mar_equinox.date, north: 'весеннего равноденствия, когда день равен ночи', southern: 'осеннего равноденствия, когда день равен ночи' },
+    { date: seasons.jun_solstice.date, north: 'летнего солнцестояния, самого длинного дня в году', southern: 'зимнего солнцестояния, самого короткого дня в году' },
+    { date: seasons.sep_equinox.date, north: 'осеннего равноденствия, когда день равен ночи', southern: 'весеннего равноденствия, когда день равен ночи' },
+    { date: seasons.dec_solstice.date, north: 'зимнего солнцестояния, самого короткого дня в году', southern: 'летнего солнцестояния, самого длинного дня в году' },
   ];
   for (const event of events) {
     const hours = hoursFrom(event.date);

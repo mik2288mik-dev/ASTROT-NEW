@@ -108,7 +108,7 @@ export function validateAppPushDraft(input: any, now = new Date()): AppPushDraft
   if (!Number.isFinite(sendAt.getTime())) return 'Неверное время отправки';
   if (sendAt.getTime() > now.getTime() + 30 * 86_400_000) return 'Запланировать можно не дальше чем на 30 дней';
   const hours = Number(input?.ttlHours ?? 48);
-  if (!Number.isFinite(hours) || hours < 1 || hours > 168) return 'Срок жизни — от 1 до 168 часов';
+  if (!Number.isFinite(hours) || hours < 1 || hours > 168) return 'Срок жизни, от 1 до 168 часов';
   const start = sendAt.getTime() < now.getTime() ? now : sendAt;
   return { title, body, route, audience, target, sendAt: start, expiresAt: new Date(start.getTime() + hours * 3_600_000) };
 }

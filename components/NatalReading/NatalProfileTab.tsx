@@ -70,7 +70,7 @@ export function NatalProfileTab({ chart }: { chart: NatalChartDataV2 }) {
               </div>
             ))}
           </div>
-          <p className={styles.disclaimer}>«Дом» — планета в своём знаке, «пик» — в знаке, где ей лучше всего. Так позиции планет оценивали ещё во II веке.</p>
+          <p className={styles.disclaimer}>«Дом», планета в своём знаке, «пик», в знаке, где ей лучше всего. Так позиции планет оценивали ещё во II веке.</p>
         </section>
       ) : null}
 
@@ -83,7 +83,7 @@ export function NatalProfileTab({ chart }: { chart: NatalChartDataV2 }) {
         </div>
         <div className={styles.card}>
           <p className={styles.kicker}>Миф</p>
-          <h3 className={styles.momentHeadline}>«Камень твоего знака» — поздняя выдумка</h3>
+          <h3 className={styles.momentHeadline}>«Камень твоего знака», поздняя выдумка</h3>
           <p className={styles.momentText}>
             В старых книгах у каждой планеты был список из нескольких камней, и списки пересекались.
             Один камень на каждый месяц ювелиры утвердили только в 1912 году. Так что покупать кольцо по команде приложения не придётся.

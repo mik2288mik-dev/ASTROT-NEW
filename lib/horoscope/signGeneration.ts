@@ -72,10 +72,10 @@ For every item, headline and text together must contain no more than ${MAX_SIGN_
 Each text is one coherent human story without section labels, lists, mandatory life areas, Markdown, fatalism, guarantees, or invented concrete events.
 Be direct, confident, specific, calm, and useful. Stop when the thought is complete.`
     : `Напиши по одному общему прогнозу для каждого запрошенного солнечного знака на основе готового детерминированного серверного расчёта.
-Расчёт — только скрытый контекст. Не упоминай в headline и text астрологию, планеты, знаки, дома, аспекты, транзиты, ретроградность и технические детали расчёта.
+Расчёт, только скрытый контекст. Не упоминай в headline и text астрологию, планеты, знаки, дома, аспекты, транзиты, ретроградность и технические детали расчёта.
 Верни только JSON ровно с одним верхнеуровневым полем readings. В readings должен быть каждый запрошенный знак ровно один раз. У каждого элемента ровно три поля: sign, headline и text.
-Для каждого элемента headline и text вместе — не больше ${MAX_SIGN_HOROSCOPE_WORDS} слов.
-Каждый text — один цельный человеческий рассказ без рубрик, списков, обязательных жизненных сфер, Markdown, фатализма, гарантий и выдуманных конкретных событий.
+Для каждого элемента headline и text вместе, не больше ${MAX_SIGN_HOROSCOPE_WORDS} слов.
+Каждый text, один цельный человеческий рассказ без рубрик, списков, обязательных жизненных сфер, Markdown, фатализма, гарантий и выдуманных конкретных событий.
 Пиши прямо, уверенно, конкретно, спокойно и полезно. Остановись, когда мысль закончена.`;
   return `${getSignForecastVoice(language === 'en' ? 'en' : 'ru')}\n\n${task}`;
 }

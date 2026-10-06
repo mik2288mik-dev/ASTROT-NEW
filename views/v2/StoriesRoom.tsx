@@ -125,8 +125,8 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
         {episodeState === 'unlock' ? (
           <div className="stories-gate">
             <Gift size={22} aria-hidden="true" />
-            <h2>{ru ? 'Серия дня — бесплатно' : 'Today’s free episode'}</h2>
-            <p>{ru ? 'Одну серию этого сериала в день можно открыть бесплатно. С NEBO+ — все серии сразу и озвучка.' : 'One episode of this series a day opens for free. With NEBO+ — every episode at once and audio.'}</p>
+            <h2>{ru ? 'Серия дня, бесплатно' : 'Today’s free episode'}</h2>
+            <p>{ru ? 'Одну серию этого сериала в день можно открыть бесплатно. С NEBO+, все серии сразу и озвучка.' : 'One episode of this series a day opens for free. With NEBO+, every episode at once and audio.'}</p>
             <button type="button" className="stories-primary" onClick={() => { void open(screen.seriesId, screen.number, true); }}>{ru ? 'Открыть бесплатно' : 'Open for free'}</button>
             {onRequestPremium ? <button type="button" className="stories-secondary" onClick={onRequestPremium}>{ru ? 'Все серии в NEBO+' : 'All episodes in NEBO+'}</button> : null}
           </div>
@@ -211,7 +211,7 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
               </li>
             ))}
           </ol>
-        ) : <p className="stories-status">{ru ? 'Первая серия уже готовится — загляни чуть позже.' : 'The first episode is being prepared — come back a bit later.'}</p>}
+        ) : <p className="stories-status">{ru ? 'Первая серия уже готовится, загляни чуть позже.' : 'The first episode is being prepared, come back a bit later.'}</p>}
       </div>
     );
   }
@@ -222,8 +222,8 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
       <section className="stories-intro">
         <h1>{ru ? 'Сериалы на каждый день' : 'A series for every day'}</h1>
         <p>{ru
-          ? `Четыре истории, новая серия каждый день — на 5 минут чтения. Первые ${FREE_STORY_EPISODES} серии бесплатно, дальше одна серия в день бесплатно или все сразу с NEBO+.`
-          : `Four stories, a new episode every day — a 5-minute read. The first ${FREE_STORY_EPISODES} are free, then one a day for free or all at once with NEBO+.`}</p>
+          ? `Четыре истории, новая серия каждый день, на 5 минут чтения. Первые ${FREE_STORY_EPISODES} серии бесплатно, дальше одна серия в день бесплатно или все сразу с NEBO+.`
+          : `Four stories, a new episode every day, a 5-minute read. The first ${FREE_STORY_EPISODES} are free, then one a day for free or all at once with NEBO+.`}</p>
       </section>
       {error ? (
         <div className="stories-status">

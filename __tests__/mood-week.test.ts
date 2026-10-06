@@ -32,8 +32,8 @@ describe('«Неделя настроения»', () => {
     expect(report.worstDay).toBe('2026-10-07');
     expect(report.bestSlot).toBe('evening');
     expect(report.worstSlot).toBe('morning');
-    expect(report.summary).toContain('Лучше всего было во вторник, труднее всего — в среду.');
-    expect(report.summary).toContain('Настроение выше по вечерам, ниже — по утрам.');
+    expect(report.summary).toContain('Лучше всего было во вторник, труднее всего, в среду.');
+    expect(report.summary).toContain('Настроение выше по вечерам, ниже, по утрам.');
   });
 
   it('compares with forecast days honestly and admits too little data', () => {
@@ -50,7 +50,7 @@ describe('«Неделя настроения»', () => {
       '2026-10-08': { tone: 'hard', moonAngle: 210 },
     }, 'ru');
     expect(report.forecastLine).toContain('в лёгкие по прогнозу дни среднее настроение 5');
-    expect(report.forecastLine).toContain('одна неделя — слишком мало, чтобы делать выводы');
+    expect(report.forecastLine).toContain('одна неделя, слишком мало, чтобы делать выводы');
     const flat = buildMoodReport(week({ '2026-10-05': { morning: { mood: 3, power: 3, at } } }), { '2026-10-05': { tone: 'good' } }, 'ru');
     expect(flat.forecastLine).toContain('не хватило дней');
     expect(buildMoodReport(week({}), {}, 'ru').summary).toContain('отчёт пустой');

@@ -295,7 +295,7 @@ function DashboardOverview() {
             Откуда приходят к оплате
           </h2>
           <p className="text-base text-slate-500">
-            Последние 30 дней. «Раздел» — где показали предложение, «Источник» — откуда человек открыл его.
+            Последние 30 дней. «Раздел», где показали предложение, «Источник», откуда человек открыл его.
           </p>
         </div>
         <div className="@container">
@@ -1008,7 +1008,7 @@ function ContentHealthCard() {
       </div>
       {h.problems.length
         ? <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-800">{h.problems.map((p, i) => <li key={i}>{p}</li>)}</ul>
-        : <p className="mt-1 text-sm text-emerald-700">Ключ задан, модели настроены — разборы персонализируются моделью, а не берутся из фолбэка.</p>}
+        : <p className="mt-1 text-sm text-emerald-700">Ключ задан, модели настроены, разборы персонализируются моделью, а не берутся из фолбэка.</p>}
       {ping ? <div className={`mt-2 rounded-xl border p-2.5 text-sm ${ping.ok ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>{ping.msg}</div> : null}
       <div className="mt-3 grid gap-1 text-xs text-slate-500">
         <div>Токен OpenAI: <b className={h.openaiKeyPresent ? 'text-emerald-600' : 'text-rose-600'}>{h.openaiKeyPresent ? 'задан' : 'НЕ задан'}</b></div>
@@ -1062,7 +1062,7 @@ function PromptsSection({ me }: { me: AdminMe }) {
             {canPublish ? <button className={btnPrimary} disabled={busy || sel.status === 'active'} onClick={() => act(() => admin2.publishPrompt(sel.id))}>Опубликовать</button> : null}
             {canEdit ? <button className={btnGhost} disabled={busy || sel.status === 'archived'} onClick={() => act(() => admin2.archivePrompt(sel.id))}>В архив</button> : null}
           </div>
-          {!canPublish ? <p className="text-[11px] text-slate-400">Публикация промпта — только у super_admin (ai.publish).</p> : null}
+          {!canPublish ? <p className="text-[11px] text-slate-400">Публикация промпта, только у super_admin (ai.publish).</p> : null}
         </div>
       ) : null}
       <div className={tableWrap}>
@@ -1106,7 +1106,7 @@ function ContentSection({ me }: { me: AdminMe }) {
         <ForecastQuestionModerationCard canPublish />
       ) : null}
       <HomeCardsEditor me={me}/>
-      <p className="text-[13px] text-slate-500">Авторский контент: онбординг, paywall, FAQ, тексты пушей и т.п. — со статусами черновик → опубликован → архив и версиями.</p>
+      <p className="text-[13px] text-slate-500">Авторский контент: онбординг, paywall, FAQ, тексты пушей и т.п., со статусами черновик → опубликован → архив и версиями.</p>
       {canEdit ? (
         <Card title="Новый материал">
           <div className="space-y-2">
@@ -1318,7 +1318,7 @@ function CommsSection() {
       const r = await admin2.runNotifications({ action: 'selftest' });
       const res = r.result || {};
       setRunOut(res.ok
-        ? { ok: true, msg: `Тест отправлен (${res.type || 'push'}) — проверь Telegram` }
+        ? { ok: true, msg: `Тест отправлен (${res.type || 'push'}), проверь Telegram` }
         : { ok: false, msg: res.error || 'Не удалось отправить тест' });
       await loadDiagnostics();
     } catch (e: any) { setError(e.message); } finally { setDiagBusy(false); }
@@ -1396,7 +1396,7 @@ function CommsSection() {
                 </div>
                 {diag.problems.length
                   ? <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-800">{diag.problems.map((p, i) => <li key={i}>{p}</li>)}</ul>
-                  : <p className="mt-1 text-sm text-emerald-700">Все проверки пройдены — пуши доставляются.</p>}
+                  : <p className="mt-1 text-sm text-emerald-700">Все проверки пройдены, пуши доставляются.</p>}
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -1436,8 +1436,8 @@ function CommsSection() {
                           if (!g.notificationsEnabled) reasons.push('уведомления выключены в твоих настройках');
                           if (g.quietHoursNow) reasons.push(`сейчас тихие часы (${g.quietHours}, у тебя ${g.localTime})`);
                           if (g.dailyLimitReached) reasons.push(`дневной лимит исчерпан (${g.sentToday}/${g.dailyLimit})`);
-                          if (g.hasPending) reasons.push('в очереди уже ждёт неотправленный пуш — новый встанет после него');
-                          if (g.ignoreMuted) reasons.push(`пауза за игнор: последние ${g.ignoredLastCount} пушей без реакции и ${g.daysInactive} дн. без захода — шлём не чаще раза в неделю`);
+                          if (g.hasPending) reasons.push('в очереди уже ждёт неотправленный пуш, новый встанет после него');
+                          if (g.ignoreMuted) reasons.push(`пауза за игнор: последние ${g.ignoredLastCount} пушей без реакции и ${g.daysInactive} дн. без захода, шлём не чаще раза в неделю`);
                           if (!reasons.length) reasons.push(`окна времени пока закрыты (у тебя ${g.localTime}) или сегодняшние типы уже использованы${g.typesUsedToday.length ? ` (${g.typesUsedToday.join(', ')})` : ''}`);
                           return `Прямо сейчас кандидата нет: ${reasons.join('; ')}.`;
                         })()}
@@ -1471,7 +1471,7 @@ function CommsSection() {
                         ))}
                       </div>
                     </>
-                  ) : <p className="mt-2 text-xs text-slate-400">Очередь по тебе пуста — планировщик ещё не создавал тебе пушей.</p>}
+                  ) : <p className="mt-2 text-xs text-slate-400">Очередь по тебе пуста, планировщик ещё не создавал тебе пушей.</p>}
                 </Card>
               ) : null}
             </>
@@ -1489,7 +1489,7 @@ function CommsSection() {
             : <input className={`${inputCls} w-full`} placeholder="Telegram user ID" value={userId} onChange={(e) => setUserId(e.target.value)} />}
           <textarea className={`${inputCls} h-32 w-full`} placeholder="Текст пуша…" value={text} onChange={(e) => setText(e.target.value)} />
           <button className={btnPrimary} disabled={busy || text.trim().length < 3 || (mode === 'user' && !userId.trim())} onClick={send}>{busy ? 'Отправляю…' : 'Отправить'}</button>
-          {out ? <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-700">Отправлено: <b>{out.sent}</b> · ошибок: {out.failed} · всего {out.total}{out.capped ? ' (лимит 300 — для больших запусков используйте сценарии)' : ''}</div> : null}
+          {out ? <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-700">Отправлено: <b>{out.sent}</b> · ошибок: {out.failed} · всего {out.total}{out.capped ? ' (лимит 300, для больших запусков используйте сценарии)' : ''}</div> : null}
         </div>
       </Card> : null}
       {tab === 'stats' && overview ? (
@@ -1676,7 +1676,7 @@ function SettingsSection() {
   return (
     <div className="space-y-4">
       {error ? <ErrorNote>{error}</ErrorNote> : null}
-      <p className="text-[13px] text-slate-500">Feature flags управляют поведением приложения в рантайме. Уже работает <b className="text-slate-700">ai_generation_enabled</b> — глобальный рубильник AI-чата (off → честный нон-AI ответ). Значение — JSON (<code>true</code>, <code>false</code>, число, строка).</p>
+      <p className="text-[13px] text-slate-500">Feature flags управляют поведением приложения в рантайме. Уже работает <b className="text-slate-700">ai_generation_enabled</b>, глобальный рубильник AI-чата (off → честный нон-AI ответ). Значение, JSON (<code>true</code>, <code>false</code>, число, строка).</p>
       <Card title="Новый флаг">
         <div className="flex flex-wrap items-end gap-2">
           <input className={`${inputCls} w-44`} placeholder="ключ (a-z 0-9 _)" value={nk} onChange={(e) => setNk(e.target.value)} />

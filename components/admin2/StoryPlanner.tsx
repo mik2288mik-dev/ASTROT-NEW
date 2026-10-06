@@ -50,7 +50,7 @@ export function StoryPlanner({ seriesId, lastNumber, plans, canEdit, generationE
     try {
       const result = await admin2.proposeStoryVariants(seriesId, number, hint.trim() || undefined);
       setVariants(result.variants);
-      if (!result.variants.length) setError('Модель не вернула вариантов — попробуйте ещё раз');
+      if (!result.variants.length) setError('Модель не вернула вариантов, попробуйте ещё раз');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -63,19 +63,19 @@ export function StoryPlanner({ seriesId, lastNumber, plans, canEdit, generationE
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-500">
-        Задайте сюжет будущей серии — генератор напишет её по вашему плану, а не по линиям сценария. Уже написанную последнюю серию
+        Задайте сюжет будущей серии, генератор напишет её по вашему плану, а не по линиям сценария. Уже написанную последнюю серию
         можно переписать по плану кнопкой «Написать заново» в списке серий.
       </p>
       <label className="block max-w-[220px] text-sm">
         Номер серии
         <input className={inputCls} type="number" min={1} value={number} onChange={(e) => { setNumber(Math.max(1, Number(e.target.value) || 1)); setVariants([]); }} />
       </label>
-      {number <= lastNumber ? <p className="text-xs text-amber-700">Серия № {number} уже написана — план сработает, только если её переписать.</p> : null}
+      {number <= lastNumber ? <p className="text-xs text-amber-700">Серия № {number} уже написана, план сработает, только если её переписать.</p> : null}
 
       {planned ? (
         <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">
           <b>План серии № {number}</b> ({planned.source === 'ai' ? 'вариант ИИ' : 'ваш вариант'}): {planned.direction}
-          {canEdit ? <button type="button" className="ml-2 text-xs text-red-600" disabled={busy} onClick={() => run(() => admin2.deleteStoryPlan(seriesId, number), 'План удалён — серия пойдёт по линиям сценария')}>убрать план</button> : null}
+          {canEdit ? <button type="button" className="ml-2 text-xs text-red-600" disabled={busy} onClick={() => run(() => admin2.deleteStoryPlan(seriesId, number), 'План удалён, серия пойдёт по линиям сценария')}>убрать план</button> : null}
         </div>
       ) : null}
 

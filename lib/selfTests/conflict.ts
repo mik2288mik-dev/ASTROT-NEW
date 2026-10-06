@@ -4,7 +4,7 @@ import type { SelfTestDefinition } from './types';
 export const CONFLICT_TEST: SelfTestDefinition = {
   id: 'conflict',
   title: { ru: 'Как ты ведёшь себя в ссоре', en: 'How you act in an argument' },
-  subtitle: { ru: 'Наступаешь, договариваешься, уступаешь или уходишь — честно, без оценок', en: 'Push, negotiate, give in or walk away — honestly, no grades' },
+  subtitle: { ru: 'Наступаешь, договариваешься, уступаешь или уходишь, честно, без оценок', en: 'Push, negotiate, give in or walk away, honestly, no grades' },
   minutes: 3,
   questions: [
     {
@@ -25,7 +25,7 @@ export const CONFLICT_TEST: SelfTestDefinition = {
         { text: { ru: 'Тут же поправляю при всех', en: 'Correct it right there in front of everyone' }, to: ['compete'] },
         { text: { ru: 'После встречи говорю с ним напрямую, чтобы такого не повторялось', en: 'Talk to them after, so it does not happen again' }, to: ['collaborate'] },
         { text: { ru: 'Предлагаю дальше вести проект вместе', en: 'Offer to run the project together from now on' }, to: ['compromise'] },
-        { text: { ru: 'Ладно, главное — дело сделано', en: 'Fine, the main thing is the work gets done' }, to: ['accommodate'] },
+        { text: { ru: 'Ладно, главное, дело сделано', en: 'Fine, the main thing is the work gets done' }, to: ['accommodate'] },
         { text: { ru: 'Ничего не говорю, но запоминаю', en: 'Say nothing, but remember it' }, to: ['avoid'] },
       ],
     },
@@ -42,13 +42,13 @@ export const CONFLICT_TEST: SelfTestDefinition = {
     },
     {
       id: 'c4',
-      text: { ru: 'Друг отменил встречу в последний момент — третий раз.', en: 'A friend cancels at the last minute — for the third time.' },
+      text: { ru: 'Друг отменил встречу в последний момент, третий раз.', en: 'A friend cancels at the last minute, for the third time.' },
       options: [
         { text: { ru: 'Пишу резко: так не делают', en: 'Write sharply: that is not how it works' }, to: ['compete'] },
         { text: { ru: 'Спрашиваю, что происходит, и договариваемся по-другому', en: 'Ask what is going on and agree on a new way' }, to: ['collaborate'] },
         { text: { ru: 'Предлагаю встречаться ближе к нему, раз ему сложно', en: 'Offer to meet closer to them if it is hard' }, to: ['compromise'] },
         { text: { ru: 'Пишу «ничего страшного», хотя обидно', en: 'Write "no worries", though it hurts' }, to: ['accommodate'] },
-        { text: { ru: 'Перестаю звать — пусть объявится первым', en: 'Stop inviting — let them reach out' }, to: ['avoid'] },
+        { text: { ru: 'Перестаю звать, пусть объявится первым', en: 'Stop inviting, let them reach out' }, to: ['avoid'] },
       ],
     },
     {
@@ -68,7 +68,7 @@ export const CONFLICT_TEST: SelfTestDefinition = {
       options: [
         { text: { ru: 'Отстаиваю свой вариант до последнего', en: 'Fight for my option to the end' }, to: ['compete'] },
         { text: { ru: 'Собираю, кто чего хочет, и ищу место, где будет всем', en: 'Collect what everyone wants and find a place for all' }, to: ['collaborate'] },
-        { text: { ru: 'В этот раз ваш вариант, в следующий — мой', en: 'Your choice this time, mine next time' }, to: ['compromise'] },
+        { text: { ru: 'В этот раз ваш вариант, в следующий, мой', en: 'Your choice this time, mine next time' }, to: ['compromise'] },
         { text: { ru: 'Да куда угодно, лишь бы все были довольны', en: 'Anywhere, as long as everyone is happy' }, to: ['accommodate'] },
         { text: { ru: 'Пусть решают без меня', en: 'Let them decide without me' }, to: ['avoid'] },
       ],
@@ -91,7 +91,7 @@ export const CONFLICT_TEST: SelfTestDefinition = {
         { text: { ru: 'Стучу по батарее или иду ругаться', en: 'Bang on the pipes or go to complain' }, to: ['compete'] },
         { text: { ru: 'Захожу днём познакомиться и договориться', en: 'Drop by in the daytime to meet and agree' }, to: ['collaborate'] },
         { text: { ru: 'Прошу хотя бы в будни до одиннадцати', en: 'Ask for at least weekdays till eleven' }, to: ['compromise'] },
-        { text: { ru: 'Покупаю беруши — людям же тоже надо жить', en: 'Buy earplugs — people need to live too' }, to: ['accommodate'] },
+        { text: { ru: 'Покупаю беруши, людям же тоже надо жить', en: 'Buy earplugs, people need to live too' }, to: ['accommodate'] },
         { text: { ru: 'Терплю и злюсь, но ничего не делаю', en: 'Put up with it, angry, doing nothing' }, to: ['avoid'] },
       ],
     },
@@ -113,7 +113,7 @@ export const CONFLICT_TEST: SelfTestDefinition = {
         { text: { ru: 'Требую объяснить, в чём дело', en: 'Demand to know what is going on' }, to: ['compete'] },
         { text: { ru: 'Спрашиваю спокойно и слушаю до конца', en: 'Ask calmly and listen to the end' }, to: ['collaborate'] },
         { text: { ru: 'Извиняюсь за своё и жду того же', en: 'Apologise for my part and expect the same' }, to: ['compromise'] },
-        { text: { ru: 'Извиняюсь сразу — неважно за что', en: 'Apologise right away — whatever for' }, to: ['accommodate'] },
+        { text: { ru: 'Извиняюсь сразу, неважно за что', en: 'Apologise right away, whatever for' }, to: ['accommodate'] },
         { text: { ru: 'Даю время, вдруг пройдёт само', en: 'Give it time, maybe it passes' }, to: ['avoid'] },
       ],
     },
@@ -124,20 +124,20 @@ export const CONFLICT_TEST: SelfTestDefinition = {
       title: { ru: 'Напор', en: 'Push' },
       lead: { ru: 'В ссоре ты идёшь вперёд и говоришь прямо. С тобой понятно, где стоишь, и проблемы не гниют годами.', en: 'In a fight you go forward and speak plainly. People know where they stand, and problems do not rot for years.' },
       strengths: [
-        { ru: 'Не копишь обиды — всё сразу на столе', en: 'You do not store grudges — it is all on the table' },
+        { ru: 'Не копишь обиды, всё сразу на столе', en: 'You do not store grudges, it is all on the table' },
         { ru: 'Умеешь защитить себя и своих', en: 'You can stand up for yourself and your people' },
         { ru: 'В кризисе берёшь решение на себя', en: 'In a crisis you take the decision' },
       ],
       watch: [
-        { ru: 'Побеждать в споре и решать проблему — не одно и то же', en: 'Winning an argument and solving a problem are not the same' },
-        { ru: 'Тихие люди рядом могут просто перестать спорить — и отдалиться', en: 'Quiet people around you may just stop arguing — and drift away' },
+        { ru: 'Побеждать в споре и решать проблему, не одно и то же', en: 'Winning an argument and solving a problem are not the same' },
+        { ru: 'Тихие люди рядом могут просто перестать спорить, и отдалиться', en: 'Quiet people around you may just stop arguing, and drift away' },
       ],
       tip: { ru: 'Перед тем как отвечать, задай один вопрос: «А что ты хочешь сказать?» Это меняет весь разговор.', en: 'Before replying, ask one question: "What did you mean?" It changes the whole conversation.' },
     },
     {
       key: 'collaborate',
       title: { ru: 'Сотрудничество', en: 'Working it out' },
-      lead: { ru: 'Ты ищешь решение, которое подойдёт обоим, а не просто перемирие. Это самый взрослый способ ссориться — и самый затратный.', en: 'You look for a solution that suits both of you, not just a truce. It is the most grown-up way to argue — and the most tiring.' },
+      lead: { ru: 'Ты ищешь решение, которое подойдёт обоим, а не просто перемирие. Это самый взрослый способ ссориться, и самый затратный.', en: 'You look for a solution that suits both of you, not just a truce. It is the most grown-up way to argue, and the most tiring.' },
       strengths: [
         { ru: 'Слышишь, что стоит за словами', en: 'You hear what is behind the words' },
         { ru: 'После ссоры с тобой отношения становятся крепче', en: 'After a fight with you, relationships get stronger' },
@@ -147,27 +147,27 @@ export const CONFLICT_TEST: SelfTestDefinition = {
         { ru: 'Не каждая мелочь стоит часового разговора', en: 'Not every small thing is worth an hour-long talk' },
         { ru: 'Устаёшь, если договариваться всегда начинаешь ты', en: 'It wears you out if you are always the one who starts' },
       ],
-      tip: { ru: 'Раздели споры на «важно» и «пусть». По второй категории можно просто уступить или посмеяться — силы пригодятся для первой.', en: 'Split arguments into "matters" and "let it go". For the second, just give in or laugh — save strength for the first.' },
+      tip: { ru: 'Раздели споры на «важно» и «пусть». По второй категории можно просто уступить или посмеяться, силы пригодятся для первой.', en: 'Split arguments into "matters" and "let it go". For the second, just give in or laugh, save strength for the first.' },
     },
     {
       key: 'compromise',
       title: { ru: 'Компромисс', en: 'Middle ground' },
-      lead: { ru: 'Ты быстро находишь середину: немного уступить, немного получить — и жить дальше. С тобой легко договариваться.', en: 'You quickly find the middle: give a little, get a little — and move on. It is easy to make deals with you.' },
+      lead: { ru: 'Ты быстро находишь середину: немного уступить, немного получить, и жить дальше. С тобой легко договариваться.', en: 'You quickly find the middle: give a little, get a little, and move on. It is easy to make deals with you.' },
       strengths: [
         { ru: 'Гасишь ссору, пока она не разрослась', en: 'You put out a fight before it grows' },
-        { ru: 'Честно делишь — без обид', en: 'You split things fairly — no hard feelings' },
+        { ru: 'Честно делишь, без обид', en: 'You split things fairly, no hard feelings' },
         { ru: 'Умеешь быть гибким', en: 'You know how to be flexible' },
       ],
       watch: [
         { ru: 'Иногда середина не устраивает никого', en: 'Sometimes the middle suits nobody' },
         { ru: 'В важном для себя лучше не делить пополам', en: 'In what matters to you, do not split it in half' },
       ],
-      tip: { ru: 'Прежде чем предлагать «давай пополам», спроси себя: а мне это важно на сколько из десяти? Если на девять — говори об этом прямо.', en: 'Before offering "let us split it", ask yourself: how much does this matter, out of ten? If nine — say so.' },
+      tip: { ru: 'Прежде чем предлагать «давай пополам», спроси себя: а мне это важно на сколько из десяти? Если на девять, говори об этом прямо.', en: 'Before offering "let us split it", ask yourself: how much does this matter, out of ten? If nine, say so.' },
     },
     {
       key: 'accommodate',
       title: { ru: 'Уступка', en: 'Giving in' },
-      lead: { ru: 'Тебе важнее мир и человек, чем правота. Ты легко уступаешь — и это делает тебя очень тёплым человеком.', en: 'Peace and the person matter more to you than being right. You give in easily — and that makes you very warm.' },
+      lead: { ru: 'Тебе важнее мир и человек, чем правота. Ты легко уступаешь, и это делает тебя очень тёплым человеком.', en: 'Peace and the person matter more to you than being right. You give in easily, and that makes you very warm.' },
       strengths: [
         { ru: 'Сохраняешь отношения там, где другие рвут', en: 'You keep relationships where others break them' },
         { ru: 'Чувствуешь, когда человеку плохо', en: 'You sense when someone feels bad' },
@@ -189,10 +189,10 @@ export const CONFLICT_TEST: SelfTestDefinition = {
         { ru: 'Даёшь людям время прийти в себя', en: 'You give people time to calm down' },
       ],
       watch: [
-        { ru: 'Важное само не рассасывается — оно ждёт', en: 'Important things do not sort themselves out — they wait' },
+        { ru: 'Важное само не рассасывается, оно ждёт', en: 'Important things do not sort themselves out, they wait' },
         { ru: 'Другим кажется, что тебе всё равно, хотя это не так', en: 'Others may think you do not care, though you do' },
       ],
-      tip: { ru: 'Уходи, но с обещанием: «Мне нужен час, потом поговорим». Пауза с датой возвращения — это не побег, а забота о разговоре.', en: 'Step away, but with a promise: "I need an hour, then we talk." A pause with a return time is not running away.' },
+      tip: { ru: 'Уходи, но с обещанием: «Мне нужен час, потом поговорим». Пауза с датой возвращения, это не побег, а забота о разговоре.', en: 'Step away, but with a promise: "I need an hour, then we talk." A pause with a return time is not running away.' },
     },
   ],
   chart: {

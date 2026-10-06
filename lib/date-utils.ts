@@ -141,7 +141,7 @@ export function formatIsoWeekPeriodLabel(periodKey: string, language: Language |
   }
   const a = new Intl.DateTimeFormat(locale, { ...opts, timeZone: 'UTC' }).format(start);
   const b = new Intl.DateTimeFormat(locale, { ...opts, year: 'numeric', timeZone: 'UTC' }).format(end);
-  return `${a} — ${b}`;
+  return `${a} - ${b}`;
 }
 
 export function formatMonthPeriodLabel(periodKey: string, language: Language | string = 'ru'): string {

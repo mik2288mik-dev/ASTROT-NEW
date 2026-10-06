@@ -59,20 +59,20 @@ const SIGN_TRAITS: Record<string, { ru: string[]; en: string[] }> = {
 const DAILY_JOKES = {
     ru: [
         "{name}, сегодня твой настрой: «{trait}». Можно смело действовать 😴",
-        "{name}, если хочется написать «то самое» сообщение — ты {trait}, это нормально 📱",
+        "{name}, если хочется написать «то самое» сообщение, ты {trait}, это нормально 📱",
         "{name}, сегодня день для маленьких радостей. Ты {trait}, и это твой козырь 🍕",
         "{name}, ты сегодня особенно {sign_adj}. Кофе это только подтверждает ☕☕",
-        "{name}, звёзды тут ни при чём — ты {trait}, значит день уже хороший 🌟",
+        "{name}, звёзды тут ни при чём, ты {trait}, значит день уже хороший 🌟",
         "{name}, удача рядом. Ты {trait}, осталось только заметить 📅",
         "{name}, сегодня идеальный день чтобы {trait}. Или хотя бы задуматься 😏",
         "{name}, ты сегодня особенно {sign_adj}. Окружающие скоро поймут ✨",
     ],
     en: [
         "{name}, today's mood is «{trait}». You're good to go 😴",
-        "{name}, if you want to send that message — you're {trait}, it makes sense 📱",
+        "{name}, if you want to send that message, you're {trait}, it makes sense 📱",
         "{name}, today is for small joys. You're {trait}, that's the advantage 🍕",
         "{name}, you're especially {sign_adj} today. Coffee agrees ☕☕",
-        "{name}, stars are optional — you're {trait}, so the day is already good 🌟",
+        "{name}, stars are optional, you're {trait}, so the day is already good 🌟",
         "{name}, luck is nearby. You're {trait}, just notice it 📅",
         "{name}, perfect day to be {trait}. Or to plan it 😏",
         "{name}, you're especially {sign_adj} today. Others will notice ✨",
@@ -135,18 +135,18 @@ export function getDailyJoke(
 export function getCosmicFact(language: 'ru' | 'en' = 'ru'): string {
     const facts = {
         ru: [
-            "Знал(а), что Венера — единственная планета, вращающаяся по часовой стрелке? Как типичная Венера — делает всё по-своему 💅",
-            "Юпитер такой большой, что в него поместятся 1300 Земель. Типичный Стрелец — ему всегда мало места 🪐",
+            "Знал(а), что Венера, единственная планета, вращающаяся по часовой стрелке? Как типичная Венера, делает всё по-своему 💅",
+            "Юпитер такой большой, что в него поместятся 1300 Земель. Типичный Стрелец, ему всегда мало места 🪐",
             "На Сатурне идут алмазные дожди. Козероги уже считают ROI 💎",
-            "День на Меркурии длится 59 земных дней. Близнецы в шоке — это же целая вечность без смены темы! ⏰",
-            "Нептун был найден математически, до того как его увидели. Очень по-рыбьи — сначала почувствовать, потом увидеть 🐟",
+            "День на Меркурии длится 59 земных дней. Близнецы в шоке, это же целая вечность без смены темы! ⏰",
+            "Нептун был найден математически, до того как его увидели. Очень по-рыбьи, сначала почувствовать, потом увидеть 🐟",
         ],
         en: [
-            "Did you know Venus is the only planet spinning clockwise? Classic Venus — doing everything her way 💅",
-            "Jupiter is so big that 1300 Earths could fit inside. Typical Sagittarius — always needs more space 🪐",
+            "Did you know Venus is the only planet spinning clockwise? Classic Venus, doing everything her way 💅",
+            "Jupiter is so big that 1300 Earths could fit inside. Typical Sagittarius, always needs more space 🪐",
             "It rains diamonds on Saturn. Capricorns already calculating ROI 💎",
-            "A day on Mercury lasts 59 Earth days. Geminis are shocked — that's forever without changing topics! ⏰",
-            "Neptune was found mathematically before being seen. Very Pisces — feel it first, see it later 🐟",
+            "A day on Mercury lasts 59 Earth days. Geminis are shocked, that's forever without changing topics! ⏰",
+            "Neptune was found mathematically before being seen. Very Pisces, feel it first, see it later 🐟",
         ]
     };
 

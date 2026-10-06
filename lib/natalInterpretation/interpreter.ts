@@ -83,7 +83,7 @@ function meaningForEvidence(fact: NatalInterpretationEvidence, language: 'ru' | 
     const area = language === 'ru' ? HOUSE_AREAS_RU[fact.house] : houseOpeningsEn[fact.house];
     if (!area) return null;
     return { ...base, semanticKey: `house-cusp:${fact.house}:${fact.sign}`, scope: 'structural',
-      text: language === 'ru' ? moneyHouseMeaning(fact.house, fact.sign) || `Этот дом относится к следующим делам: ${area}. Знак на его границе — ${signName(fact.sign, language)}. Планеты в этом доме дают отдельные пояснения.` : `This house concerns ${area.toLowerCase()}. Its cusp is in ${fact.sign}; planets in the house have their own explanations.`,
+      text: language === 'ru' ? moneyHouseMeaning(fact.house, fact.sign) || `Этот дом относится к следующим делам: ${area}. Знак на его границе, ${signName(fact.sign, language)}. Планеты в этом доме дают отдельные пояснения.` : `This house concerns ${area.toLowerCase()}. Its cusp is in ${fact.sign}; planets in the house have their own explanations.`,
       technicalText: `${fact.house} ${language === 'ru' ? 'дом' : 'house'} · ${signName(fact.sign, language)}${fact.degree == null ? '' : ` · ${fact.degree.toFixed(1)}°`}`,
       topics: HOUSE_TOPICS[fact.house] || ['general'] };
   }

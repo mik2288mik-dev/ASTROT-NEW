@@ -193,7 +193,7 @@ describe('real compact Premium paywall presentation', () => {
     const view = harness({ props: { embedded } });
     await view.settle();
     expect(view.radios()).toHaveLength(3);
-    expect(view.radios().map((radio) => radio.props['aria-label'])).toEqual(['1 месяц — 319 ₽', '3 месяца — 749 ₽', '1 год — 2 199 ₽']);
+    expect(view.radios().map((radio) => radio.props['aria-label'])).toEqual(['1 месяц - 319 ₽', '3 месяца - 749 ₽', '1 год - 2 199 ₽']);
     expect(view.find((element) => element.type === 'dl' && hasClass(element, 'pw2-benefits'))).toHaveLength(1);
     expect(view.find((element) => hasClass(element, 'pw2-plan-features'))).toHaveLength(0);
     expect(view.find((element) => element.type === 'button' && hasClass(element, 'pw2-cta'))).toHaveLength(1);

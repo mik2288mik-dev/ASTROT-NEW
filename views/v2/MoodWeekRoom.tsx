@@ -147,7 +147,7 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
       <div className="fresh-page mood-room">
         <AppTopBar title={ru ? 'Отчёт недели' : 'Week report'} onBack={() => setOpenReport(null)} />
         <article className="mood-report">
-          <p className="mood-kicker">{`${dateLabel(reportWeek.startDayKey)} — ${dateLabel(weekDayKeys(reportWeek)[MOOD_WEEK_DAYS - 1])}`}</p>
+          <p className="mood-kicker">{`${dateLabel(reportWeek.startDayKey)} - ${dateLabel(weekDayKeys(reportWeek)[MOOD_WEEK_DAYS - 1])}`}</p>
           <h1 className="mood-title">{ru ? 'Твоя неделя настроения' : 'Your mood week'}</h1>
           <p className="mood-summary">{report.summary}</p>
           {report.average ? (
@@ -261,9 +261,9 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
             <BellRing size={14} aria-hidden="true" />
             {nativeNotificationsAvailable()
               ? (ru ? `Напомним в ${activeWeek.reminderTimes[0]} и ${activeWeek.reminderTimes[1]}. В эти дни они заменяют обычные уведомления.` : `Reminders at ${activeWeek.reminderTimes[0]} and ${activeWeek.reminderTimes[1]}. They replace the usual notifications these days.`)
-              : (ru ? 'Напоминания приходят в Android-приложении. Здесь — просто заглядывай пару раз в день.' : 'Reminders come in the Android app. Here, just drop by a couple of times a day.')}
+              : (ru ? 'Напоминания приходят в Android-приложении. Здесь, просто заглядывай пару раз в день.' : 'Reminders come in the Android app. Here, just drop by a couple of times a day.')}
           </p>
-          {reminderState === 'off' ? <p className="mood-note">{ru ? 'Уведомления выключены — включи их в настройках, чтобы получать напоминания.' : 'Notifications are off — turn them on in settings to get reminders.'}</p> : null}
+          {reminderState === 'off' ? <p className="mood-note">{ru ? 'Уведомления выключены, включи их в настройках, чтобы получать напоминания.' : 'Notifications are off, turn them on in settings to get reminders.'}</p> : null}
           <button type="button" className="mood-link" onClick={() => { void stopWeek(); }}>{ru ? 'Прервать неделю' : 'Stop the week'}</button>
         </section>
       </div>
@@ -284,8 +284,8 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
           <VideoBackground id="mood-week" />
           <h1 className="mood-title">{ru ? 'Неделя, чтобы понять себя' : 'A week to understand yourself'}</h1>
           <p>{ru
-            ? 'Семь дней по четыре отметки: утром, днём, вечером и перед сном. Настроение и силы — две кнопки, пять секунд. Через неделю покажем, когда тебе лучше и труднее, и честно сравним с прогнозом и Луной.'
-            : 'Seven days, four check-ins: morning, day, evening and before bed. Mood and strength — two taps, five seconds. After a week we show when you feel better or worse and compare honestly with the forecast and the Moon.'}</p>
+            ? 'Семь дней по четыре отметки: утром, днём, вечером и перед сном. Настроение и силы, две кнопки, пять секунд. Через неделю покажем, когда тебе лучше и труднее, и честно сравним с прогнозом и Луной.'
+            : 'Seven days, four check-ins: morning, day, evening and before bed. Mood and strength, two taps, five seconds. After a week we show when you feel better or worse and compare honestly with the forecast and the Moon.'}</p>
         </div>
         <fieldset className="mood-times">
           <legend>{ru ? 'Когда напоминать' : 'When to remind'}</legend>
@@ -303,7 +303,7 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
           {!validReminderTimes(times) ? (
             <p className="mood-error" role="alert">{ru ? 'Между напоминаниями нужно хотя бы три часа, с 9:00 до 21:00.' : 'Reminders need at least three hours between them, 9:00–21:00.'}</p>
           ) : null}
-          <p className="mood-note">{ru ? 'Два напоминания в день, и только в эти семь дней — вместо обычных уведомлений.' : 'Two reminders a day, only for these seven days — instead of the usual notifications.'}</p>
+          <p className="mood-note">{ru ? 'Два напоминания в день, и только в эти семь дней, вместо обычных уведомлений.' : 'Two reminders a day, only for these seven days, instead of the usual notifications.'}</p>
         </fieldset>
         <button type="button" className="mood-primary" disabled={!validReminderTimes(times)} onClick={() => { void startWeek(); }}>
           {ru ? 'Начать неделю' : 'Start the week'}
@@ -316,7 +316,7 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
             {finishedWeeks.map((week) => (
               <li key={week.startDayKey}>
                 <button type="button" onClick={() => setOpenReport(week.startDayKey)}>
-                  <span>{`${dateLabel(week.startDayKey)} — ${dateLabel(weekDayKeys(week)[MOOD_WEEK_DAYS - 1])}`}</span>
+                  <span>{`${dateLabel(week.startDayKey)} - ${dateLabel(weekDayKeys(week)[MOOD_WEEK_DAYS - 1])}`}</span>
                   {!week.reportSeenAt ? <b>{ru ? 'новый' : 'new'}</b> : null}
                 </button>
               </li>

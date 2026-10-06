@@ -24,7 +24,7 @@ setInterval(() => {
 export interface RateLimitConfig {
   windowMs: number;  // Окно времени в миллисекундах
   maxRequests: number;  // Максимум запросов в окне
-  name?: string;  // Имя бакета — разные конфиги не делят счётчик (GET-поллинг ≠ POST-вопрос)
+  name?: string;  // Имя бакета, разные конфиги не делят счётчик (GET-поллинг ≠ POST-вопрос)
 }
 
 export interface RateLimitResult {

@@ -86,7 +86,7 @@ export function GiftIdeasSheet({ open, person, people = [], onClose }: GiftIdeas
   );
 
   const portrait = [
-    sun ? `${SIGN_NOM_RU[sun]}${sunElement ? ` — ${ELEMENT_TASTE[sunElement]}` : ''}.` : null,
+    sun ? `${SIGN_NOM_RU[sun]}${sunElement ? `, ${ELEMENT_TASTE[sunElement]}` : ''}.` : null,
     venus && venusElement && venusElement !== sunElement ? `Венера в ${SIGN_IN_RU[venus]}: ещё ${ELEMENT_TASTE[venusElement]}.` : null,
   ].filter(Boolean).join(' ');
 

@@ -51,10 +51,10 @@ describe('Lumia content prompt builders', () => {
       for (const field of ['headline', 'summary', 'reading', 'focus', 'chance', 'risk', 'context', 'advice']) {
         expect(prompt.user).toContain(`"${field}"`);
       }
-      expect(prompt.user).toContain('Если ответ уже закончен — остановись раньше');
+      expect(prompt.user).toContain('Если ответ уже закончен, остановись раньше');
     }
     expect(buildNatalSectionPrompt({ title: 'Отношения' }).user).toContain('не больше 200 слов');
-    expect(buildNatalSectionPrompt({ title: 'Отношения' }).user).toContain('Первое предложение — прямой вывод');
+    expect(buildNatalSectionPrompt({ title: 'Отношения' }).user).toContain('Первое предложение, прямой вывод');
     expect(buildSignCompatibilityPrompt().user).toContain('без счёта совместимости');
     expect(buildSignCompatibilityPrompt().user).toContain('Каждый блок открывает новую сторону пары');
     expect(buildSignCompatibilityPrompt().user).toContain('желание сравнить другие пары');

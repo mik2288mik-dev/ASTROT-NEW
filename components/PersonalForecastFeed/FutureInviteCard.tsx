@@ -84,8 +84,8 @@ export function FutureInviteCard({ userId, todayKey, timezone, premium, onOpen }
         </span>
         {preview.next ? (
           <span className="future-invite-next">
-            Ближайший — {formatDayRu(preview.next.dayKey)}: {preview.next.headline}
-            {premium ? '' : '. Что это значит — в NEBO+'}
+            Ближайший, {formatDayRu(preview.next.dayKey)}: {preview.next.headline}
+            {premium ? '' : '. Что это значит, в NEBO+'}
           </span>
         ) : null}
         <span className="future-invite-week" aria-hidden="true">

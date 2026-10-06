@@ -146,7 +146,7 @@ describe('contextual paywall return contract', () => {
     expect(paywall).toContain("premium_quarter: { ru: '3 месяца'");
     expect(paywall).toContain("premium_year: { ru: '1 год'");
     expect(paywall).toContain('type="radio"');
-    expect(paywall).toContain('aria-label={`${plan.periodLabel} — ${price}`}');
+    expect(paywall).toContain('aria-label={`${plan.periodLabel} - ${price}`}');
     expect(paywall).toContain('Личные прогнозы');
     expect(paywall).toContain('Натальный разбор');
     expect(paywall).toContain('PREMIUM_SAVED_PERSON_LIMIT');

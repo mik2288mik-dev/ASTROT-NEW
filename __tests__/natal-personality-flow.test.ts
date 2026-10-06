@@ -61,10 +61,10 @@ describe('natal personality product flow', () => {
     const questions = read('components/NatalReading/NatalQuestionExperience.tsx');
 
     expect(questions).toContain("value?.code === 'NATAL_QUESTION_GENERATION_FAILED'");
-    expect(questions).toContain('Не удалось закончить ответ. Отправь этот же вопрос ещё раз — лимит не спишется.');
+    expect(questions).toContain('Не удалось закончить ответ. Отправь этот же вопрос ещё раз, лимит не спишется.');
     expect(questions).toContain('setError(formatQuestionError(submitError, language))');
     expect(questions).toContain('setUnansweredQuestionText(value)');
-    expect(questions).toContain('Предыдущий вопрос остался без ответа. Отправь его ещё раз — лимит не спишется.');
+    expect(questions).toContain('Предыдущий вопрос остался без ответа. Отправь его ещё раз, лимит не спишется.');
     expect(questions).toContain('Boolean(unansweredQuestionText && !canRetryUnanswered)');
   });
 

@@ -103,7 +103,7 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
     || value?.code === 'CONTENT_GENERATION_TIMEOUT'
   ) {
     return language === 'ru'
-      ? 'Не удалось закончить ответ. Отправь этот же вопрос ещё раз — лимит не спишется.'
+      ? 'Не удалось закончить ответ. Отправь этот же вопрос ещё раз, лимит не спишется.'
       : 'The answer did not finish. Submit the same question again without using another question.';
   }
   return language === 'ru'
@@ -260,7 +260,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
     : unansweredQuestionText
       ? (canRetryUnanswered
           ? (language === 'ru'
-              ? 'Предыдущий вопрос остался без ответа. Отправь его ещё раз — лимит не спишется.'
+              ? 'Предыдущий вопрос остался без ответа. Отправь его ещё раз, лимит не спишется.'
               : 'The previous question has no answer. Submit it again without using another question.')
           : (language === 'ru'
               ? 'Сейчас можно повторить только вопрос, который остался без ответа.'

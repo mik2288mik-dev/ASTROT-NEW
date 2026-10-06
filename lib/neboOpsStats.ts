@@ -323,7 +323,7 @@ export function renderNeboReport(
   lines.push(
     '',
     `⚠️ Ошибок: ${stats.errors} · ✉️ Обращений: ${stats.supportTickets}`,
-    `Сравнение — с периодом «${previousLabel}». Время московское.`,
+    `Сравнение, с периодом «${previousLabel}». Время московское.`,
   );
   return lines.join('\n').slice(0, 3_800);
 }

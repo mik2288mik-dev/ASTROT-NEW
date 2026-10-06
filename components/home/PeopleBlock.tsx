@@ -94,7 +94,7 @@ export function PeopleBlock({ userId, todayKey, premium, onOpenPair, onAddPerson
 
       {!visible.length ? (
         <div className="people-block-empty">
-          <span>{people.length ? 'Все люди скрыты — включи, кого показывать.' : 'Добавь близких — покажем, что вас связывает, и напомним о днях рождения.'}</span>
+          <span>{people.length ? 'Все люди скрыты, включи, кого показывать.' : 'Добавь близких, покажем, что вас связывает, и напомним о днях рождения.'}</span>
           <button type="button" onClick={people.length ? () => setTuning(true) : onAddPerson}>{people.length ? 'Показать' : 'Добавить'}</button>
         </div>
       ) : (
@@ -137,7 +137,7 @@ export function PeopleBlock({ userId, todayKey, premium, onOpenPair, onAddPerson
               {onOpenPair ? (
                 <button type="button" className="people-fact is-locked" onClick={() => onOpenPair(String(selected.id), name)}>
                   <b>Где вы задеваете друг друга</b>
-                  <span>И что с этим делать — в полном разборе пары</span>
+                  <span>И что с этим делать, в полном разборе пары</span>
                   {!premium ? <em><Lock size={11} aria-hidden="true" /> NEBO+</em> : <ChevronRight size={16} aria-hidden="true" />}
                 </button>
               ) : null}

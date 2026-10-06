@@ -65,7 +65,7 @@ export function LzUnionCompact({
             {ru ? 'союз' : 'union'}
           </MonoTag>
           <h3 className="mt-3 font-lumiaHome text-[24px] font-bold leading-tight tracking-[-0.02em]">
-            {ru ? 'Два знака — одна история' : 'Two signs, one story'}
+            {ru ? 'Два знака, одна история' : 'Two signs, one story'}
           </h3>
 
           <div className="mt-4 grid grid-cols-2 gap-2.5">
@@ -106,7 +106,7 @@ export function LzUnionCompact({
               }}
               className="mt-4 w-full rounded-full border border-white/18 py-2.5 text-[13px] font-semibold text-white/82"
             >
-              {ru ? 'Полная история пары — Premium' : 'Full pair story — Premium'}
+              {ru ? 'Полная история пары, Premium' : 'Full pair story, Premium'}
             </button>
           ) : null}
 

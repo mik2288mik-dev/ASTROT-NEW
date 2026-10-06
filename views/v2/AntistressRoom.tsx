@@ -238,7 +238,7 @@ function BreathPlayer({ technique, auto, onExit }: { technique: BreathTechnique;
         <ScaleButtons value={after} onChange={setAfter} label="Напряжение после" />
         {after ? (
           <p>{diff > 0 ? `Напряжение снизилось на ${diff} ${diff === 1 ? 'пункт' : 'пункта'}.` : diff === 0 ? 'Без изменений. Попробуй другую технику или тело.' : 'Стало сильнее. Это бывает, попробуй «Здесь и сейчас».'}</p>
-        ) : <p className="as-mute">1 — спокойно, 5 — на пределе</p>}
+        ) : <p className="as-mute">1, спокойно, 5, на пределе</p>}
         <button type="button" className="as-btn" onClick={onExit}>На главную</button>
       </section>
     );
@@ -250,7 +250,7 @@ function BreathPlayer({ technique, auto, onExit }: { technique: BreathTechnique;
       <section className="as-card as-stack">
         <h2>Насколько напряжён(а) сейчас?</h2>
         <ScaleButtons value={before} onChange={setBefore} label="Напряжение до" />
-        <p className="as-mute">1 — спокойно, 5 — на пределе</p>
+        <p className="as-mute">1, спокойно, 5, на пределе</p>
         <button type="button" className="as-btn is-blue" disabled={!before} onClick={() => setStage('run')}>Начать</button>
       </section>
     </>

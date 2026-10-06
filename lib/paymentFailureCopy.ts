@@ -18,13 +18,13 @@ export function paymentFailureCopy(
   }
   if (code === 'RUSTORE_PURCHASE_PRODUCT_MISMATCH') {
     return ru
-      ? 'RuStore вернул покупку для другого тарифа. Не покупай повторно — открой «Меню → Поддержка».'
-      : 'RuStore returned a purchase for another plan. Do not buy it again — open Menu → Support.';
+      ? 'RuStore вернул покупку для другого тарифа. Не покупай повторно, открой «Меню → Поддержка».'
+      : 'RuStore returned a purchase for another plan. Do not buy it again, open Menu → Support.';
   }
   if (code === 'RUSTORE_PURCHASE_ID_REQUIRED') {
     return ru
-      ? 'RuStore не передал номер покупки. Не покупай повторно — открой «Меню → Поддержка».'
-      : 'RuStore did not return a purchase ID. Do not buy it again — open Menu → Support.';
+      ? 'RuStore не передал номер покупки. Не покупай повторно, открой «Меню → Поддержка».'
+      : 'RuStore did not return a purchase ID. Do not buy it again, open Menu → Support.';
   }
   if (code === 'RECOVERY_IDENTITY_REQUIRED') {
     return ru
@@ -33,13 +33,13 @@ export function paymentFailureCopy(
   }
   if (code === 'RUSTORE_SUBSCRIPTION_PAUSED') {
     return ru
-      ? 'Подписка приостановлена в RuStore. Открой управление подпиской и проверь способ оплаты — повторно покупать не нужно.'
-      : 'The subscription is paused in RuStore. Open subscription management and check the payment method — do not buy it again.';
+      ? 'Подписка приостановлена в RuStore. Открой управление подпиской и проверь способ оплаты, повторно покупать не нужно.'
+      : 'The subscription is paused in RuStore. Open subscription management and check the payment method, do not buy it again.';
   }
   if (code === 'RUSTORE_PREMIUM_NOT_CONFIRMED') {
     return ru
-      ? 'RuStore не подтвердил активный Premium. Проверь статус подписки или восстанови покупку — повторно покупать не нужно.'
-      : 'RuStore did not confirm an active Premium subscription. Check its status or restore the purchase — do not buy it again.';
+      ? 'RuStore не подтвердил активный Premium. Проверь статус подписки или восстанови покупку, повторно покупать не нужно.'
+      : 'RuStore did not confirm an active Premium subscription. Check its status or restore the purchase, do not buy it again.';
   }
   return null;
 }

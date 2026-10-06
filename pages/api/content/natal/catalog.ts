@@ -86,8 +86,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'NATAL_REPORT_CATEGORY_GENERATION_FAILED',
       code: 'NATAL_REPORT_CATEGORY_GENERATION_FAILED',
       message: language === 'en'
-        ? 'This part of the chart did not open right now. Try again — your saved chart has not changed.'
-        : 'Эта часть карты сейчас не открылась. Попробуй ещё раз — сохранённая карта не изменилась.',
+        ? 'This part of the chart did not open right now. Try again, your saved chart has not changed.'
+        : 'Эта часть карты сейчас не открылась. Попробуй ещё раз, сохранённая карта не изменилась.',
       retryable: true,
     });
   }

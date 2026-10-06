@@ -52,8 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'NATAL_REPORT_GENERATION_FAILED',
       code: 'NATAL_REPORT_GENERATION_FAILED',
       message: language === 'en'
-        ? 'The reading could not be prepared right now. Try again — the saved chart has not changed.'
-        : 'Разбор сейчас не собрался. Попробуй ещё раз — сохранённая карта не изменилась.',
+        ? 'The reading could not be prepared right now. Try again, the saved chart has not changed.'
+        : 'Разбор сейчас не собрался. Попробуй ещё раз, сохранённая карта не изменилась.',
       retryable: true,
     });
   }
