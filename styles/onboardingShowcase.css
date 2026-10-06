@@ -281,3 +281,14 @@
 .meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button:not(.is-active) {
   background: #eceef5 !important;
 }
+
+/* No backing strip and no dividers between the pills (they come from the old segmented control). */
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode > div::before,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode > div::after,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button::before,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button::after,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode > div::before,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode > div::after,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button::before,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button::after { display: none !important; content: none !important; }
+
