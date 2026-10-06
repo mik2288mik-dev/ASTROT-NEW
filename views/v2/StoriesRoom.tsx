@@ -22,11 +22,9 @@ export const STORY_COVERS: Record<string, string> = {
   'family-chat': '/assets/stories/family-chat.webp',
 };
 
+// Only the clips that really match their story; the others keep the cover until a fitting clip is made.
 const STORY_VIDEOS: Record<string, VideoBackgroundId> = {
-  'quiet-lane': 'story-quiet-lane',
-  'stair-neighbours': 'story-stair-neighbours',
   'polyn-station': 'story-polyn-station',
-  'family-chat': 'story-family-chat',
 };
 
 type Screen = { kind: 'list' } | { kind: 'series'; seriesId: string } | { kind: 'read'; seriesId: string; number: number };
@@ -221,8 +219,7 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
   return (
     <div className="fresh-page stories-room">
       <AppTopBar title={ru ? 'Рассказы' : 'Stories'} onBack={onBack} />
-      <section className="stories-intro video-hero">
-        <VideoBackground id="stories-catalog" />
+      <section className="stories-intro">
         <h1>{ru ? 'Сериалы на каждый день' : 'A series for every day'}</h1>
         <p>{ru
           ? `Четыре истории, новая серия каждый день — на 5 минут чтения. Первые ${FREE_STORY_EPISODES} серии бесплатно, дальше одна серия в день бесплатно или все сразу с NEBO+.`

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Headphones, LoaderCircle, Lock, Pause, Play, Square } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
@@ -59,85 +59,6 @@ function groupOf(trackId: string | null): SoundGroup | null {
   return trackId ? findAmbientTrack(trackId)?.group ?? null : null;
 }
 
-const BREATH = { inhale: 4, exhale: 6 };
-const PAUSE_SECONDS = 180;
-
-function clock(seconds: number): string {
-  const total = Math.max(0, Math.ceil(seconds));
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
-}
-
-/** «Пауза на 3 минуты»: a slow breathing rhythm with a calm sound. */
-function BreathingPause({ language, soundscape, onSoundChange }: { language: 'ru' | 'en'; soundscape: SoundGroup; onSoundChange: (value: SoundGroup) => void }) {
-  const ru = language === 'ru';
-  const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    if (!startedAt) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(timer);
-  }, [startedAt]);
-
-  const elapsed = startedAt ? (now - startedAt) / 1000 : 0;
-  const done = startedAt !== null && elapsed >= PAUSE_SECONDS;
-  useEffect(() => {
-    if (done) setStartedAt(null);
-  }, [done]);
-
-  const cycle = BREATH.inhale + BREATH.exhale;
-  const inCycle = elapsed % cycle;
-  const inhaling = inCycle < BREATH.inhale;
-  const left = inhaling ? BREATH.inhale - inCycle : cycle - inCycle;
-
-  const start = () => {
-    lumiaSelectionHaptic();
-    playSoundscape(tracksOfGroup(soundscape)[0].id);
-    setAmbientTimer(PAUSE_SECONDS / 60);
-    setStartedAt(Date.now());
-    setNow(Date.now());
-  };
-  const stop = () => {
-    lumiaSelectionHaptic();
-    stopAmbient();
-    setStartedAt(null);
-  };
-
-  return (
-    <section className="sounds-pause video-hero" aria-labelledby="sounds-pause-title">
-      <VideoBackground id="breathing" />
-      <h2 id="sounds-pause-title">{ru ? 'Пауза на 3 минуты' : 'A 3-minute pause'}</h2>
-      <p>{ru ? 'Вдох на четыре счёта, выдох на шесть. Просто следи за кругом.' : 'Breathe in for four, out for six. Just follow the circle.'}</p>
-      <div className={`sounds-breath${startedAt ? (inhaling ? ' is-inhale' : ' is-exhale') : ''}`} aria-live="polite">
-        <span className="sounds-breath-circle" aria-hidden="true" />
-        <span className="sounds-breath-label">
-          {startedAt
-            ? <><strong>{inhaling ? (ru ? 'Вдох' : 'Breathe in') : (ru ? 'Выдох' : 'Breathe out')}</strong><small>{Math.ceil(left)}</small></>
-            : <strong>{ru ? 'Начнём?' : 'Shall we start?'}</strong>}
-        </span>
-      </div>
-      {startedAt ? <p className="sounds-pause-left">{ru ? `Осталось ${clock(PAUSE_SECONDS - elapsed)}` : `${clock(PAUSE_SECONDS - elapsed)} left`}</p> : null}
-      <div className="sounds-chips" role="radiogroup" aria-label={ru ? 'Звук для паузы' : 'Sound for the pause'}>
-        {SOUND_GROUPS.map((group) => (
-          <button
-            key={group}
-            type="button"
-            role="radio"
-            aria-checked={soundscape === group}
-            className={`sounds-chip${soundscape === group ? ' is-active' : ''}`}
-            onClick={() => { onSoundChange(group); if (startedAt) playSoundscape(tracksOfGroup(group)[0].id); }}
-          >
-            {SOUND_GROUP_LABELS[group][language]}
-          </button>
-        ))}
-      </div>
-      <button type="button" className="sounds-primary" onClick={startedAt ? stop : start}>
-        {startedAt ? (ru ? 'Закончить' : 'Finish') : (ru ? 'Начать паузу' : 'Start the pause')}
-      </button>
-    </section>
-  );
-}
-
 type SoundsRoomProps = {
   profile: UserProfile;
   onBack: () => void;
@@ -151,7 +72,6 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
   const premium = hasActivePremium(profile);
   const ambient = useAmbientState();
   const playback = useAudioPlayback();
-  const [pauseSound, setPauseSound] = useState<SoundGroup>('rain');
   const activeGroup = groupOf(ambient.soundscape);
   const [storyPhase, setStoryPhase] = useState<{ id: string; state: 'preparing' | 'error' } | null>(null);
   const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
@@ -193,8 +113,6 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
   return (
     <div className="fresh-page sounds-room">
       <AppTopBar title={ru ? 'Звуки' : 'Sounds'} onBack={onBack} />
-      <BreathingPause language={language} soundscape={pauseSound} onSoundChange={setPauseSound} />
-
       <section className="sounds-section" aria-labelledby="sounds-scapes-title">
         <h2 id="sounds-scapes-title">{ru ? 'Спокойные звуки' : 'Calm sounds'}</h2>
         <div className="sounds-grid">

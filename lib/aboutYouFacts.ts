@@ -1,4 +1,6 @@
 import type { NatalChartData, PlanetPosition } from '../types';
+import { detectTransitAspects, type AspectTone } from './transitAspects';
+import type { CurrentTransits, PlanetTransit } from './transits-calculator';
 import { HOUSE_OPENINGS_RU, SIGN_STYLE_RU, bodySignMeaning } from './natalInterpretation/meanings';
 
 /**
@@ -18,7 +20,94 @@ const BODY_RU: Record<FactBody, string> = {
   sun: 'Солнце', moon: 'Луна', mercury: 'Меркурий', venus: 'Венера', mars: 'Марс', jupiter: 'Юпитер', saturn: 'Сатурн',
 };
 
-export type ChartFact = { title: string; text: string };
+export type ChartFact = { title: string; text: string; kicker?: string };
+
+/** Fast planets: their aspects to the chart change from day to day. */
+export const FAST_TRANSIT_BODIES = ['Moon', 'Sun', 'Mercury', 'Venus', 'Mars'] as const;
+
+const TRANSIT_NAME_RU: Record<string, string> = { moon: 'Луна', sun: 'Солнце', mercury: 'Меркурий', venus: 'Венера', mars: 'Марс' };
+const TRANSIT_THEME_RU: Record<string, string> = {
+  moon: 'настроение дня', sun: 'энергия дня', mercury: 'общение', venus: 'тяга к приятному', mars: 'напор',
+};
+const NATAL_POSS_RU: Record<string, string> = {
+  sun: 'твоё Солнце', moon: 'твоя Луна', mercury: 'твой Меркурий', venus: 'твоя Венера', mars: 'твой Марс',
+  jupiter: 'твой Юпитер', saturn: 'твой Сатурн', uranus: 'твой Уран', neptune: 'твой Нептун', pluto: 'твой Плутон',
+  rising: 'твой Асцендент', mc: 'твоя середина неба',
+};
+const NATAL_INS_RU: Record<string, string> = {
+  sun: 'твоим самоощущением', moon: 'твоими чувствами и привычками', mercury: 'твоим мышлением и речью',
+  venus: 'твоими симпатиями', mars: 'твоей решимостью', jupiter: 'твоими планами', saturn: 'твоей ответственностью',
+  uranus: 'твоей тягой к переменам', neptune: 'твоими мечтами', pluto: 'твоими глубокими желаниями',
+  rising: 'тем, как тебя видят другие', mc: 'твоими целями',
+};
+const TONE_WORD_RU: Record<AspectTone, string> = { support: 'поддержка', pressure: 'напряжение', accent: 'усиление' };
+const TONE_TEXT_RU: Record<AspectTone, (theme: string, natal: string) => string> = {
+  support: (theme, natal) => `Сегодня ${theme} в ладу с ${natal}. Хороший день, чтобы опереться на это и не усложнять.`,
+  pressure: (theme, natal) => `Сегодня ${theme} спорит с ${natal}. Не спеши с резкими решениями — дай себе время.`,
+  accent: (theme, natal) => `Сегодня ${theme} подчёркивает то, что связано с ${natal}. Это будет заметно — используй.`,
+};
+
+/**
+ * «Фишка дня»: the tightest aspect of today's fast planets to the person's own chart.
+ * `transits` is built for the day by the caller; null when no aspect is close enough today.
+ */
+export function transitFactOfDay(chart: NatalChartData | null | undefined, transits: CurrentTransits | null): ChartFact | null {
+  if (!chart || !transits) return null;
+  const aspects = detectTransitAspects(chart, transits, { limit: 60 })
+    .filter((item) => item.transitPlanet in TRANSIT_THEME_RU && item.natalPlanet in NATAL_INS_RU);
+  const pick = aspects[0];
+  if (!pick) return null;
+  return {
+    kicker: 'Сегодня в твоей карте',
+    title: `${TRANSIT_NAME_RU[pick.transitPlanet]} и ${NATAL_POSS_RU[pick.natalPlanet]}: ${TONE_WORD_RU[pick.tone]}`,
+    text: TONE_TEXT_RU[pick.tone](TRANSIT_THEME_RU[pick.transitPlanet], NATAL_INS_RU[pick.natalPlanet]),
+  };
+}
+
+const MOON_SIGN_TODAY_RU = [
+  'хочется действовать быстро и напрямую', 'тянет к покою, вкусной еде и порядку', 'много разговоров, мыслей и новых идей',
+  'важны дом, близкие и тёплое общение', 'хочется яркости, признания и щедрости', 'удобно наводить порядок и заниматься делами',
+  'лучше получаются договорённости и компромиссы', 'чувства глубже обычного, не торопи выводы', 'тянет к движению, планам и новым местам',
+  'собранность и серьёзный подход к делам', 'хочется свободы, друзей и необычных решений', 'чувствительность выше, лучше беречь силы',
+];
+
+/** Two facts about the Moon today; they differ every day. */
+export function todayMoonFacts(astro: typeof import('astronomy-engine'), dayKey: string): BirthFact[] {
+  const [y, m, d] = dayKey.split('-').map(Number);
+  if (!y || !m || !d) return [];
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  const longitude = astro.Ecliptic(astro.GeoVector(astro.Body.Moon, date, true)).elon;
+  const sign = Math.floor(longitude / 30) % 12;
+  const angle = astro.MoonPhase(date);
+  const percent = Math.round(((1 - Math.cos((angle * Math.PI) / 180)) / 2) * 100);
+  const waxing = angle < 180;
+  const phase = percent <= 4
+    ? 'почти новолуние — тихое время'
+    : percent >= 96
+      ? 'почти полнолуние — эмоции на пике'
+      : waxing ? 'Луна растёт — хорошо начинать новое' : 'Луна убывает — хорошо завершать и отдыхать';
+  return [
+    { value: `Луна в ${SIGN_IN_RU[sign]}`, caption: `сегодня ${MOON_SIGN_TODAY_RU[sign]}` },
+    { value: `Луна ${percent}%`, caption: phase },
+  ];
+}
+
+/** Ecliptic longitudes of today's fast planets (astronomy-engine), shaped like the server's transits. */
+export function buildFastTransits(
+  astro: typeof import('astronomy-engine'),
+  dayKey: string,
+): CurrentTransits | null {
+  const [y, m, d] = dayKey.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  const out: Record<string, PlanetTransit> = {};
+  for (const name of FAST_TRANSIT_BODIES) {
+    const longitude = astro.Ecliptic(astro.GeoVector(astro.Body[name], date, true)).elon;
+    const key = name.toLowerCase();
+    out[key] = { planet: key, sign: SIGN_KEYS[Math.floor(longitude / 30) % 12], degree: longitude % 30, longitude, retrograde: false, speedLongitude: 0 };
+  }
+  return { date: dayKey, ...out } as unknown as CurrentTransits;
+}
 export type BirthFact = { value: string; caption: string };
 
 function signIndex(sign: string | undefined | null): number {
@@ -27,7 +116,7 @@ function signIndex(sign: string | undefined | null): number {
   return SIGN_KEYS.findIndex((key) => key.toLowerCase() === lower);
 }
 
-function dayIndex(dayKey: string): number {
+export function dayIndex(dayKey: string): number {
   const [y, m, d] = dayKey.split('-').map(Number);
   return Math.floor(Date.UTC(y, (m || 1) - 1, d || 1) / 86_400_000);
 }

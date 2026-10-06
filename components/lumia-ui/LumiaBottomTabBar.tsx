@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ChevronRight,
   Menu,
@@ -48,6 +48,7 @@ export const LUMIA_BOTTOM_NAV_VIEWS: readonly ViewState[] = [
   'tests',
   'mood',
   'sounds',
+  'antistress',
   'stories',
 ];
 const NATAL_VIEWS: ViewState[] = ['chart', 'matrix', 'personality'];
@@ -110,6 +111,66 @@ function NatalChartMark() {
   );
 }
 
+const parseRgb = (value: string): [number, number, number, number] | null => {
+  const match = /rgba?\(([^)]+)\)/.exec(value);
+  if (!match) return null;
+  const parts = match[1].split(/[ ,/]+/).filter(Boolean).map(Number);
+  if (parts.length < 3 || parts.some((part) => Number.isNaN(part))) return null;
+  return [parts[0], parts[1], parts[2], parts.length > 3 ? parts[3] : 1];
+};
+
+/** Brightness (0..1) of whatever is painted under a point, or null when it cannot be told. */
+function brightnessUnder(x: number, y: number): number | null {
+  for (const element of document.elementsFromPoint(x, y)) {
+    if (element.closest('.lumia-bottom-tab-shell')) continue;
+    if (element instanceof HTMLCanvasElement) {
+      try {
+        const box = element.getBoundingClientRect();
+        const pixel = element.getContext('2d')?.getImageData(
+          Math.floor(((x - box.left) / box.width) * element.width),
+          Math.floor(((y - box.top) / box.height) * element.height), 1, 1,
+        ).data;
+        if (pixel && pixel[3] > 200) return (0.2126 * pixel[0] + 0.7152 * pixel[1] + 0.0722 * pixel[2]) / 255;
+      } catch { /* a tainted or WebGL canvas: look at what is behind it */ }
+    }
+    const style = getComputedStyle(element);
+    const fromImage = style.backgroundImage.includes('gradient') ? parseRgb(style.backgroundImage) : null;
+    const color = fromImage ?? parseRgb(style.backgroundColor);
+    if (color && color[3] > 0.55) return (0.2126 * color[0] + 0.7152 * color[1] + 0.0722 * color[2]) / 255;
+  }
+  return null;
+}
+
+/** The bar is clear glass: its ink turns white over dark content and dark over light content. */
+function useAdaptiveNavigationInk(active: boolean) {
+  useEffect(() => {
+    if (!active) return undefined;
+    const root = document.documentElement;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const y = window.innerHeight - 36;
+      const samples = [0.2, 0.5, 0.8].map((fraction) => brightnessUnder(window.innerWidth * fraction, y)).filter((value): value is number => value !== null);
+      if (!samples.length) return;
+      const average = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+      if (average < 0.42) root.dataset.navInk = 'light';
+      else delete root.dataset.navInk;
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+    schedule();
+    document.addEventListener('scroll', schedule, { capture: true, passive: true });
+    window.addEventListener('resize', schedule);
+    const timer = window.setInterval(schedule, 700);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('scroll', schedule, { capture: true } as EventListenerOptions);
+      window.removeEventListener('resize', schedule);
+      window.clearInterval(timer);
+      delete root.dataset.navInk;
+    };
+  }, [active]);
+}
+
 export function LumiaBottomTabBar({
   profile,
   view,
@@ -119,7 +180,9 @@ export function LumiaBottomTabBar({
   onOpenCompatibility,
   onOpenNatal,
 }: LumiaBottomTabBarProps) {
-  if (!shouldShowLumiaBottomNavigation(view)) return null;
+  const visible = shouldShowLumiaBottomNavigation(view);
+  useAdaptiveNavigationInk(visible);
+  if (!visible) return null;
   const isEnglish = profile.language === 'en';
   const natalIsCurrent = NATAL_VIEWS.includes(view);
   const servicesAreCurrent = SERVICE_VIEWS.includes(view);

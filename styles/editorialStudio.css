@@ -163,7 +163,7 @@
 /* Natal chart */
 .fresh-page.natal-editorial-page {
   min-height: 100%;
-  padding-bottom: 48px;
+  padding-bottom: 8px;
   background: var(--editorial-studio-paper) !important;
   color: var(--editorial-studio-ink);
 }
@@ -1379,7 +1379,7 @@
   --compat-air-accent-end: var(--editorial-studio-accent);
   min-height: 100%;
   overflow-x: clip;
-  padding-bottom: 48px;
+  padding-bottom: 8px;
   background: #fff !important;
   color: var(--editorial-studio-ink);
 }
@@ -2648,7 +2648,7 @@
 /* Horoscope by sign */
 .fresh-page.horo-reader-page {
   min-height: 100%;
-  padding-bottom: 48px;
+  padding-bottom: 8px;
   background: #fff !important;
   color: var(--editorial-studio-ink);
 }
@@ -3049,7 +3049,7 @@
 .fresh-page.services-screen-page {
   min-height: 100%;
   padding-top: 0;
-  padding-bottom: 48px;
+  padding-bottom: 8px;
   overflow-x: clip;
   background: var(--editorial-studio-paper) !important;
   color: var(--editorial-studio-ink);

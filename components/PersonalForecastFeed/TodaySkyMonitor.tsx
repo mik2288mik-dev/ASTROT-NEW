@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { buildSkyMonitor, type SkyMonitor } from '../../lib/skyMonitor';
 import { loadExploreCharts, peekExploreCharts } from './exploreCharts';
 import type { ChartListItem } from '../../services/storageService';
-import { LiveSky } from '../home/LiveSky';
+import { LiveSky, MoonCanvas } from '../home/LiveSky';
 import { useSkyNow } from '../home/useSkyNow';
 
 function housesFrom(charts: ChartListItem[] | null): number[] | null {
@@ -36,17 +36,11 @@ function daysWord(count: number): string {
   return 'дней';
 }
 
+/** The same textured Moon as on the home sky, at today's phase. */
 function MoonGlyph({ illumination, waxing }: { illumination: number; waxing: boolean }) {
   const lit = Math.max(0, Math.min(100, illumination)) / 100;
-  const rx = Math.abs(1 - 2 * lit) * 20;
-  const outer = waxing ? 1 : 0;
-  const inner = lit > 0.5 ? (waxing ? 1 : 0) : (waxing ? 0 : 1);
-  return (
-    <svg className="today-sky-glyph" viewBox="0 0 48 48" aria-hidden="true">
-      <circle cx="24" cy="24" r="20" fill="rgba(255,255,255,0.18)" />
-      <path d={`M24 4 A20 20 0 0 ${outer} 24 44 A${rx} 20 0 0 ${inner} 24 4 Z`} fill="#fff" />
-    </svg>
-  );
+  const angle = (Math.acos(1 - 2 * lit) * 180) / Math.PI;
+  return <MoonCanvas phase={waxing ? angle : 360 - angle} night className="today-sky-glyph" />;
 }
 
 function MercuryGlyph() {

@@ -8,12 +8,16 @@ import {
 import type { UserProfile } from '../../types';
 import { AstrologyEncyclopedia } from './AstrologyEncyclopedia';
 
-export type ServiceTab = 'matrix' | 'knowledge' | 'store';
+export type ServiceTab = 'matrix' | 'antistress' | 'tests' | 'sounds' | 'stories' | 'knowledge' | 'store';
 
 export type ServiceScreenProps = {
   profile: UserProfile;
   onOpenCharts: () => void;
   onOpenMatrix: () => void;
+  onOpenAntistress: () => void;
+  onOpenTests: () => void;
+  onOpenSounds: () => void;
+  onOpenStories: () => void;
   premiumStoreContent: React.ReactNode;
   initialTab?: ServiceTab;
   activeTab?: ServiceTab;
@@ -22,12 +26,20 @@ export type ServiceScreenProps = {
 
 const SERVICE_TABS_RU: readonly EditorialTabItem<ServiceTab>[] = [
   { id: 'matrix', label: 'Матрица судьбы' },
+  { id: 'antistress', label: 'Антистресс' },
+  { id: 'tests', label: 'Тесты' },
+  { id: 'sounds', label: 'Звуки' },
+  { id: 'stories', label: 'Рассказы' },
   { id: 'knowledge', label: 'Хочу знать' },
   { id: 'store', label: 'Магазин' },
 ];
 
 const SERVICE_TABS_EN: readonly EditorialTabItem<ServiceTab>[] = [
   { id: 'matrix', label: 'Destiny matrix' },
+  { id: 'antistress', label: 'Anti-stress' },
+  { id: 'tests', label: 'Tests' },
+  { id: 'sounds', label: 'Sounds' },
+  { id: 'stories', label: 'Stories' },
   { id: 'knowledge', label: 'Learn' },
   { id: 'store', label: 'Store' },
 ];
@@ -38,6 +50,10 @@ export function ServiceScreen({
   onTabChange,
   onOpenCharts,
   onOpenMatrix,
+  onOpenAntistress,
+  onOpenTests,
+  onOpenSounds,
+  onOpenStories,
   premiumStoreContent,
   profile,
 }: ServiceScreenProps) {
@@ -47,8 +63,13 @@ export function ServiceScreen({
   const ru = profile.language !== 'en';
 
   const selectTab = (tab: ServiceTab) => {
-    if (tab === 'matrix') {
-      onOpenMatrix();
+    // These are rooms of their own: the tab opens them instead of switching the content below.
+    const rooms: Partial<Record<ServiceTab, () => void>> = {
+      matrix: onOpenMatrix, antistress: onOpenAntistress, tests: onOpenTests, sounds: onOpenSounds, stories: onOpenStories,
+    };
+    const openRoom = rooms[tab];
+    if (openRoom) {
+      openRoom();
       return;
     }
     if (controlledTab === undefined) setInternalTab(tab);

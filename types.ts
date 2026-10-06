@@ -1386,6 +1386,7 @@ export type ViewState =
   | 'tests'
   | 'mood'
   | 'sounds'
+  | 'antistress'
   | 'stories';
 
 // Cached text types

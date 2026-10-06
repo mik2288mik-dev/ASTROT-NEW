@@ -118,9 +118,8 @@ export function CompatibilityLiveSample({ yourSign, ru }: { yourSign: string; ru
         <small>{sample.verdict}</small>
       </div>
       <ol className="compat-live-sample-topics">
-        {sample.topics.map((topic, index) => (
+        {sample.topics.map((topic) => (
           <li key={topic.title}>
-            <span className="compat-live-sample-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
             <div>
               <h4>{topic.title}</h4>
               <p>{topic.text}</p>

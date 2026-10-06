@@ -15,7 +15,6 @@ import {
 } from '../services/rustorePayService';
 import { STORE_RELEASE_CONFIG } from '../lib/storeReleaseConfig';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
-import { VideoBackground } from '../components/lumia-ui/VideoBackground';
 import type { PurchaseRestoreStatus } from '../services/paymentProvider';
 import { loadTelegramPremiumPlans } from '../services/paymentPlanCatalog';
 import { paymentFailureCopy } from '../lib/paymentFailureCopy';
@@ -366,8 +365,7 @@ export const Paywall: React.FC<PaywallProps> = ({
     >
       {!embedded ? <AppTopBar title="Premium" onBack={onClose} /> : null}
       <div className="pw2-content">
-        <div className="pw2-intro video-hero">
-          <VideoBackground id="premium" />
+        <div className="pw2-intro">
           <p className="pw2-kicker">NEBO Premium</p>
           <h1 className="pw2-title">
             {alreadyPremium

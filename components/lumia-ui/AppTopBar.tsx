@@ -15,20 +15,23 @@ type AppTopBarProps = {
   className?: string;
 };
 
-type AppTopBarSettingsContextValue = { onOpenSettings: () => void } | null;
+type AppTopBarSettingsContextValue = { onOpenSettings: () => void; onStepBack?: (() => void) | null } | null;
 
 const AppTopBarSettingsContext = createContext<AppTopBarSettingsContextValue>(null);
 
 /** Makes Settings a real shared-header action instead of a menu-only shortcut. */
 export function AppTopBarSettingsProvider({
   onOpenSettings,
+  onStepBack,
   children,
 }: {
   onOpenSettings: () => void;
+  /** One step back for screens whose bar has no «Back» of its own; null on the home screen. */
+  onStepBack?: (() => void) | null;
   children: React.ReactNode;
 }) {
   return (
-    <AppTopBarSettingsContext.Provider value={{ onOpenSettings }}>
+    <AppTopBarSettingsContext.Provider value={{ onOpenSettings, onStepBack }}>
       {children}
     </AppTopBarSettingsContext.Provider>
   );
@@ -41,7 +44,7 @@ export function AppTopBarSettingsProvider({
 export function AppTopBar({
   title,
   subtitle,
-  onBack,
+  onBack: onBackProp,
   rightAction,
   leftAction,
   center,
@@ -51,6 +54,8 @@ export function AppTopBar({
   const isPersonalForecastHeader = title === 'NEBO';
   const isSignHoroscopeHeader = title === 'Гороскоп по знакам' || title === 'Гороскоп по знакам зодиака';
   const settings = useContext(AppTopBarSettingsContext);
+  // Every screen except the home one can step back, even when it did not ask for a «Back» itself.
+  const onBack = onBackProp ?? (title !== 'NEBO' ? settings?.onStepBack ?? undefined : undefined);
   const showSettings = Boolean(settings) && title !== 'Настройки' && title !== 'Settings' && title !== 'Premium';
   // One layout everywhere: profile on the left, settings on the right (as on the home screen).
   const startAction = onBack ? null : leftAction ?? rightAction ?? null;

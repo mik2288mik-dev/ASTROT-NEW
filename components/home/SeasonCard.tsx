@@ -41,7 +41,7 @@ export function SeasonCard({ userId, todayKey, onOpenFuture }: { userId: string;
   return (
     <section className="season" aria-labelledby="season-title">
       <h2 id="season-title" className="today-explore-heading">{path.title}</h2>
-      <button type="button" className="season-card" onClick={onOpenFuture}>
+      <button type="button" className={`season-card${path.title === 'Твоя осень' ? ' is-autumn' : ''}`} onClick={onOpenFuture}>
         {path.title === 'Твоя осень' ? (
         <span className="season-leaf" aria-hidden="true">
           <svg viewBox="0 0 120 120"><path d="M95 18C60 18 25 40 22 82c-1 9 2 16 2 16s7-3 15-4c42-6 59-42 56-76z" fill="#f0a24a" /><path d="M24 98C42 70 62 52 90 26" stroke="#c4761f" strokeWidth="3" fill="none" /></svg>

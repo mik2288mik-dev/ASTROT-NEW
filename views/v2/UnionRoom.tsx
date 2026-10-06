@@ -602,7 +602,7 @@ function RelationshipContextPicker({
               role="radio"
               aria-checked={active}
               className={tiles
-                ? `compat-context-tile ${active ? 'is-active' : ''}`
+                ? `compat-context-tile is-${option.value} ${active ? 'is-active' : ''}`
                 : `compat-choice-tab compat-context-option ${active ? 'is-active' : ''}`}
               onClick={() => {
                 lumiaSelectionHaptic();

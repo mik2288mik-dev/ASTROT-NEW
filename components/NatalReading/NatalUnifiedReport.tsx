@@ -14,6 +14,40 @@ import styles from './NatalSection.module.css';
 import { PremiumHook } from '../premium/PremiumHook';
 import { SIGN_LOCATIVE_RU } from '../../lib/natalMoments';
 
+/** Topic chips that scroll sideways; arrows at the edges show where there is more and move the row. */
+function TopicNav({ topics, label }: { topics: ReadonlyArray<{ key: string; title: string }>; label: string }) {
+  const rail = React.useRef<HTMLDivElement | null>(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+  const measure = React.useCallback(() => {
+    const node = rail.current;
+    if (!node) return;
+    setEdges({ left: node.scrollLeft > 4, right: node.scrollLeft + node.clientWidth < node.scrollWidth - 4 });
+  }, []);
+  useEffect(() => {
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [measure, topics.length]);
+  const shift = (direction: 1 | -1) => rail.current?.scrollBy({ left: direction * Math.max(160, (rail.current?.clientWidth ?? 300) * 0.6), behavior: 'smooth' });
+  return (
+    <div className={styles.topicNav}>
+      {edges.left ? <button type="button" className={`${styles.topicArrow} ${styles.topicArrowLeft}`} aria-label="Назад по темам" onClick={() => shift(-1)}>‹</button> : null}
+      <div ref={rail} className={styles.topicRail} role="navigation" aria-label={label} onScroll={measure}>
+        {topics.map((topic) => (
+          <button
+            key={topic.key}
+            type="button"
+            onClick={() => document.getElementById(`natal-topic-${topic.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          >
+            {topic.title}
+          </button>
+        ))}
+      </div>
+      {edges.right ? <button type="button" className={`${styles.topicArrow} ${styles.topicArrowRight}`} aria-label="Дальше по темам" onClick={() => shift(1)}>›</button> : null}
+    </div>
+  );
+}
+
 type Props = {
   profile: UserProfile;
   chartData: NatalChartData;
@@ -223,8 +257,9 @@ export const NatalUnifiedReport: React.FC<Props> = ({
         </div>
       ) : (
         <div className={styles.observations}>
+          <TopicNav topics={reading.topics} label={language === 'ru' ? 'Темы' : 'Topics'} />
           {reading.topics.map((topic) => (
-            <section key={topic.key} className={styles.unifiedTopic}>
+            <section key={topic.key} id={`natal-topic-${topic.key}`} className={styles.unifiedTopic}>
               <h2>{topic.title}</h2>
               {topic.blocks.map((block) => (
                 <div key={block.id}>

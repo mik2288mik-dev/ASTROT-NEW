@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check } from 'lucide-react';
 import type { NatalChartData } from '../../types';
-import { birthFacts, birthInstant, chartFactOfDay } from '../../lib/aboutYouFacts';
+import { birthFacts, birthInstant, buildFastTransits, chartFactOfDay, dayIndex, todayMoonFacts, transitFactOfDay, type BirthFact, type ChartFact } from '../../lib/aboutYouFacts';
 import { loadExploreCharts, peekExploreCharts } from '../PersonalForecastFeed/exploreCharts';
 import { loadFeatureState, peekFeatureState, saveFeatureState } from '../../services/featureStateService';
 
@@ -59,6 +59,8 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
     () => peekExploreCharts(userId)?.find((item) => item.is_primary)?.chart_data ?? null,
   );
   const [moonAtBirth, setMoonAtBirth] = useState<number | null>(null);
+  const [todayFact, setTodayFact] = useState<ChartFact | null>(null);
+  const [moonToday, setMoonToday] = useState<BirthFact[]>([]);
   const [done, setDone] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'daily_task'));
 
   useEffect(() => {
@@ -83,8 +85,28 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
     return () => { active = false; };
   }, [birthDate, birthTime, birthTimeKnown, chart?.timezone]);
 
-  const fact = useMemo(() => chartFactOfDay(chart, todayKey), [chart, todayKey]);
-  const facts = useMemo(() => birthFacts({
+  useEffect(() => {
+    let active = true;
+    if (!chart) return undefined;
+    engine ??= import('astronomy-engine');
+    void engine
+      .then((astro) => { if (active) setTodayFact(transitFactOfDay(chart, buildFastTransits(astro, todayKey))); })
+      .catch(() => { engine = null; });
+    return () => { active = false; };
+  }, [chart, todayKey]);
+
+  useEffect(() => {
+    let active = true;
+    engine ??= import('astronomy-engine');
+    void engine
+      .then((astro) => { if (active) setMoonToday(todayMoonFacts(astro, todayKey)); })
+      .catch(() => { engine = null; });
+    return () => { active = false; };
+  }, [todayKey]);
+
+  // Today's aspect to the chart; the old chart-only fact is the fallback while it is not ready or none is close enough.
+  const fact = useMemo(() => todayFact ?? chartFactOfDay(chart, todayKey), [todayFact, chart, todayKey]);
+  const birth = useMemo(() => birthFacts({
     birthDate,
     birthTime,
     birthTimeKnown,
@@ -93,6 +115,13 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
     moonAtBirth,
     todayKey,
   }), [birthDate, birthTime, birthTimeKnown, chart, moonAtBirth, todayKey]);
+  // Today's Moon, one birth fact that rotates by day, and the birthday countdown: the tiles never stand still.
+  const facts = useMemo(() => {
+    const countdown = birth[birth.length - 1];
+    const rest = birth.slice(0, -1);
+    const rotating = rest.length ? rest[dayIndex(todayKey) % rest.length] : null;
+    return [...moonToday, rotating, countdown].filter((item): item is BirthFact => Boolean(item));
+  }, [birth, moonToday, todayKey]);
 
   const isDone = Boolean(done[todayKey]);
   const streak = streakOf(done, todayKey);
@@ -121,7 +150,7 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
       <div className="about-you-card">
         {fact ? (
           <>
-            <p className="about-you-kicker">Фишка твоей карты</p>
+            <p className="about-you-kicker">{fact.kicker ?? 'Фишка твоей карты'}</p>
             <p className="about-you-title">{fact.title}</p>
             <p className="about-you-text">{fact.text}</p>
           </>
