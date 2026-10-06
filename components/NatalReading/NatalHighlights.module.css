@@ -31,71 +31,107 @@
 .evening { background: linear-gradient(180deg, #26357a 0%, #4b4f9e 60%, #9a76a8 100%); }
 .sunset { background: linear-gradient(180deg, #ec7558 0%, #f0896a 55%, #f4a47c 100%); }
 
-/* Planet photo under the tile: the planet stays clear at the top, all the
-   text sits at the bottom on frosted glass (blur + soft shade).
-   Until the photo loads the tone gradient shows. */
+/* Planet photo on top, all the text below on a dense panel in the tile's own
+   colour (blur + tint), so it reads on any picture. The panel grows with the
+   text. Until the photo loads the tone gradient shows. */
+.day { --art-panel: rgba(28, 92, 206, 0.84); }
+.evening { --art-panel: rgba(38, 48, 122, 0.86); }
+.sunset { --art-panel: rgba(214, 98, 72, 0.88); }
+
 .withArt {
   position: relative;
-  isolation: isolate;
   overflow: hidden;
+  padding: 0 !important;
   background-image: var(--planet-art);
-  background-position: center 12%;
-  background-size: cover;
+  /* Scaled by the tile width only and pinned to the top: the planet sits at
+     the same place and size in every tile, whatever the text below. */
+  background-position: center top;
+  background-size: 100% auto;
   background-repeat: no-repeat;
-  text-shadow: 0 1px 2px rgba(10, 20, 50, 0.4);
 }
 
-.withArt::before {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(14, 34, 78, 0) 35%, rgba(14, 34, 78, 0.5) 100%);
-  content: '';
-  pointer-events: none;
-  -webkit-backdrop-filter: blur(12px) saturate(1.1);
-  backdrop-filter: blur(12px) saturate(1.1);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, transparent 38%, #000 56%, #000 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, transparent 38%, #000 56%, #000 100%);
+.withArt > .artText {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: 8px 10px 10px;
+  background: var(--art-panel);
+  text-shadow: none;
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
 }
 
-.withArt > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Text goes down under the planet. */
+/* A fixed picture zone on top: every panel starts on the same line. */
 .tile.withArt {
-  min-height: 150px;
+  min-height: 0;
+  padding-top: 84px !important;
 }
 
-.tile.withArt .tileIcon,
-.dayTile.withArt .dayCaption {
-  margin-top: auto;
+.dayTile.withArt {
+  min-height: 0;
+  padding-top: 112px !important;
 }
 
-.tile.withArt .tileTrait,
-.dayTile.withArt .dayOrigin {
+.dayTile.withArt > .artText {
+  padding: 9px 12px 12px;
+}
+
+.artText .tileTrait,
+.artText .dayOrigin {
   margin-top: 0;
   padding-top: 5px;
 }
 
-/* Weekday tiles are wider, so the planet is bigger: a taller tile keeps the text under it. */
-.dayTile.withArt {
-  min-height: 200px;
-  background-position: center 0%;
+/* Ascendant tile: the sign drawn large on the tone gradient, text below it. */
+.signArt {
+  min-height: 0;
 }
 
-.dayTile.withArt::before {
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, transparent 46%, #000 60%, #000 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, transparent 46%, #000 60%, #000 100%);
+.signGlyph {
+  display: flex;
+  height: 84px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  margin: -10px -10px 0;
+  color: #fff;
+}
+
+.signArt > .artText {
+  flex: 1 1 auto;
+  padding-top: 8px;
+}
+
+.signArt > .artText {
+  display: flex;
+  flex-direction: column;
+}
+
+.signArt .tileTrait {
+  margin-top: 0;
+  padding-top: 5px;
 }
 
 /* The ruler card is mostly text: a lighter blur over the whole card keeps the planet recognisable. */
 .hero.withArt {
+  isolation: isolate;
+  background-size: cover;
+  padding: 15px 15px 14px !important;
   background-position: center 22%;
+  text-shadow: 0 1px 2px rgba(10, 20, 50, 0.4);
+}
+
+.hero.withArt > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hero.withArt::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: '';
+  pointer-events: none;
   background: linear-gradient(180deg, rgba(14, 34, 78, 0.4) 0%, rgba(14, 34, 78, 0.48) 100%);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);

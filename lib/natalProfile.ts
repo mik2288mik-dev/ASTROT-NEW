@@ -166,7 +166,7 @@ export function buildNatalProfile(chart: NatalChartDataV2): NatalProfile | null 
   const weekdays: ProfileWeekday[] = [{
     source: 'sun',
     planet: sunRuler,
-    caption: 'День твоего Солнца',
+    caption: `${BODY_LABELS[sunRuler].ru} — по знаку Солнца`,
     day: WEEKDAY[sunRuler].day,
     origin: `${SIGN_NOMINATIVE_RU[sunSign]} — знак ${PLANET_GENITIVE_RU[sunRuler]}. ${WEEKDAY[sunRuler].origin}`,
     planetLabel: BODY_LABELS[sunRuler].ru,
@@ -176,7 +176,7 @@ export function buildNatalProfile(chart: NatalChartDataV2): NatalProfile | null 
     weekdays.push({
       source: 'moon',
       planet: moonRuler,
-      caption: 'День твоей Луны',
+      caption: `${BODY_LABELS[moonRuler].ru} — по знаку Луны`,
       day: WEEKDAY[moonRuler].day,
       origin: `Луна в знаке ${PLANET_GENITIVE_RU[moonRuler]}. ${WEEKDAY[moonRuler].origin}`,
       planetLabel: BODY_LABELS[moonRuler].ru,

@@ -43,9 +43,11 @@ export function NatalProfileTab({ chart }: { chart: NatalChartDataV2 }) {
               className={`${styles.dayTile} ${item.source === 'sun' ? styles.day : styles.evening} ${styles.withArt}`}
               style={planetArtStyle(item.planet)}
             >
-              <span className={styles.dayCaption}>{item.caption}</span>
-              <span className={styles.dayName}>{item.day}</span>
-              <span className={styles.dayOrigin}>{item.origin}</span>
+              <div className={styles.artText}>
+                <span className={styles.dayCaption}>{item.caption}</span>
+                <span className={styles.dayName}>{item.day}</span>
+                <span className={styles.dayOrigin}>{item.origin}</span>
+              </div>
             </div>
           ))}
         </div>
