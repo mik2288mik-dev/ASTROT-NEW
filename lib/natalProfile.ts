@@ -87,6 +87,8 @@ export type ProfileRuler = {
 
 export type ProfileWeekday = {
   source: 'sun' | 'moon';
+  /** The planet that rules this weekday. */
+  planet: ClassicalPlanet;
   caption: string;
   day: string;
   origin: string;
@@ -163,6 +165,7 @@ export function buildNatalProfile(chart: NatalChartDataV2): NatalProfile | null 
   const sunRuler = TRADITIONAL_RULER[sunSign];
   const weekdays: ProfileWeekday[] = [{
     source: 'sun',
+    planet: sunRuler,
     caption: 'День твоего Солнца',
     day: WEEKDAY[sunRuler].day,
     origin: `${SIGN_NOMINATIVE_RU[sunSign]} — знак ${PLANET_GENITIVE_RU[sunRuler]}. ${WEEKDAY[sunRuler].origin}`,
@@ -172,6 +175,7 @@ export function buildNatalProfile(chart: NatalChartDataV2): NatalProfile | null 
     const moonRuler = TRADITIONAL_RULER[moonSign];
     weekdays.push({
       source: 'moon',
+      planet: moonRuler,
       caption: 'День твоей Луны',
       day: WEEKDAY[moonRuler].day,
       origin: `Луна в знаке ${PLANET_GENITIVE_RU[moonRuler]}. ${WEEKDAY[moonRuler].origin}`,

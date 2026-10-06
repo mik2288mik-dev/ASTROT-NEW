@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { NatalChartDataV2 } from '../../lib/natalChartV2Types';
 import { buildNatalProfile } from '../../lib/natalProfile';
+import { planetArtStyle } from './planetArt';
 import styles from './NatalHighlights.module.css';
 
 const DIGNITY_MARK: Record<string, { label: string; className: string }> = {
@@ -19,7 +20,11 @@ export function NatalProfileTab({ chart }: { chart: NatalChartDataV2 }) {
   return (
     <div>
       {profile.ruler ? (
-        <section className={`${styles.block} ${styles.hero} ${styles.evening}`} aria-labelledby="natal-profile-ruler">
+        <section
+          className={`${styles.block} ${styles.hero} ${styles.evening} ${styles.withArt}`}
+          style={planetArtStyle(profile.ruler.planet)}
+          aria-labelledby="natal-profile-ruler"
+        >
           <p className={styles.heroLabel}>Управитель твоей карты</p>
           <h2 id="natal-profile-ruler" className={styles.heroTitle}>{profile.ruler.planetLabel}</h2>
           <p className={styles.heroText}>{profile.ruler.body}</p>
@@ -33,7 +38,11 @@ export function NatalProfileTab({ chart }: { chart: NatalChartDataV2 }) {
         </h2>
         <div className={styles.days}>
           {profile.weekdays.map((item) => (
-            <div key={item.source} className={`${styles.dayTile} ${item.source === 'sun' ? styles.day : styles.evening}`}>
+            <div
+              key={item.source}
+              className={`${styles.dayTile} ${item.source === 'sun' ? styles.day : styles.evening} ${styles.withArt}`}
+              style={planetArtStyle(item.planet)}
+            >
               <span className={styles.dayCaption}>{item.caption}</span>
               <span className={styles.dayName}>{item.day}</span>
               <span className={styles.dayOrigin}>{item.origin}</span>
