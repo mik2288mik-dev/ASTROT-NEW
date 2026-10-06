@@ -23,6 +23,8 @@ type SkyHeroProps = {
   compact?: boolean;
 };
 
+const HOME_CLOUDS = ['/assets/clouds/day.webp', '/assets/clouds/cumulus.webp', '/assets/clouds/cirrus.webp'];
+
 /** The home cover: the real sky right now with today's date and the forecast on it. */
 export function SkyHero({ dayKey, language, top, kicker, title, titleId, children, onMoon, compact = false }: SkyHeroProps) {
   const sky = useSkyNow();
@@ -34,7 +36,7 @@ export function SkyHero({ dayKey, language, top, kicker, title, titleId, childre
   return (
     <section className={`sky-hero${night ? ' is-night' : ''}${compact ? ' is-compact' : ''}`} aria-labelledby={titleId}>
       {sky ? (
-        <LiveSky sunAltitude={sky.sunAltitude} className="sky-hero-canvas" />
+        <LiveSky sunAltitude={sky.sunAltitude} clouds={HOME_CLOUDS} className="sky-hero-canvas" />
       ) : null}
       {top}
       <button

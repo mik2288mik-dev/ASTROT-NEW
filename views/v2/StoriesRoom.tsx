@@ -12,12 +12,21 @@ import { playTrack, togglePlayback, unlockPlayback, useAudioPlayback } from '../
 import { requestListen } from '../../services/listenService';
 import { loadFeatureState, peekFeatureState, saveFeatureState } from '../../services/featureStateService';
 import { noteNativeStoryRead } from '../../services/nativeNotifications';
+import { VideoBackground } from '../../components/lumia-ui/VideoBackground';
+import type { VideoBackgroundId } from '../../lib/videoBackgrounds';
 
 export const STORY_COVERS: Record<string, string> = {
   'quiet-lane': '/assets/stories/quiet-lane.webp',
   'stair-neighbours': '/assets/stories/stair-neighbours.webp',
   'polyn-station': '/assets/stories/polyn-station.webp',
   'family-chat': '/assets/stories/family-chat.webp',
+};
+
+const STORY_VIDEOS: Record<string, VideoBackgroundId> = {
+  'quiet-lane': 'story-quiet-lane',
+  'stair-neighbours': 'story-stair-neighbours',
+  'polyn-station': 'story-polyn-station',
+  'family-chat': 'story-family-chat',
 };
 
 type Screen = { kind: 'list' } | { kind: 'series'; seriesId: string } | { kind: 'read'; seriesId: string; number: number };
@@ -173,7 +182,8 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
     return (
       <div className="fresh-page stories-room">
         <AppTopBar title={series.title} onBack={() => setScreen({ kind: 'list' })} />
-        <section className="stories-series-head">
+        <section className={`stories-series-head${STORY_VIDEOS[series.id] ? ' video-hero' : ''}`}>
+          {STORY_VIDEOS[series.id] ? <VideoBackground id={STORY_VIDEOS[series.id]} /> : null}
           <AssetSlot src={STORY_COVERS[series.id]} className="stories-cover" />
           <p className="stories-kicker">{STORY_GENRE_LABELS[series.genre][ru ? 'ru' : 'en']}</p>
           <h1 className="stories-title">{series.title}</h1>
@@ -211,7 +221,8 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
   return (
     <div className="fresh-page stories-room">
       <AppTopBar title={ru ? 'Рассказы' : 'Stories'} onBack={onBack} />
-      <section className="stories-intro">
+      <section className="stories-intro video-hero">
+        <VideoBackground id="stories-catalog" />
         <h1>{ru ? 'Сериалы на каждый день' : 'A series for every day'}</h1>
         <p>{ru
           ? `Четыре истории, новая серия каждый день — на 5 минут чтения. Первые ${FREE_STORY_EPISODES} серии бесплатно, дальше одна серия в день бесплатно или все сразу с NEBO+.`

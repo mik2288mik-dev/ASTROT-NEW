@@ -96,8 +96,9 @@ const outputDirectory = path.resolve('out');
 if (!fs.existsSync(outputDirectory)) fail('Next did not produce the static mobile output directory.');
 // Images dominate the APK size; shrink the copies that go into it.
 await optimizeMobileImages(outputDirectory);
-// Calm sounds and music are streamed from the server and cached on the device.
+// Calm sounds, music and video backgrounds are streamed from the server; only posters stay in the app.
 fs.rmSync(path.join(outputDirectory, 'audio', 'library'), { recursive: true, force: true });
+fs.rmSync(path.join(outputDirectory, 'video', 'library'), { recursive: true, force: true });
 
 const sourceCommitOverride = [
   process.env.SOURCE_COMMIT,

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BellRing, Check, Lock } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { VideoBackground } from '../../components/lumia-ui/VideoBackground';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import {
   buildMoodReport,
@@ -279,10 +280,13 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
         </button>
       ) : null}
       <section className="mood-intro">
-        <h1 className="mood-title">{ru ? 'Неделя, чтобы понять себя' : 'A week to understand yourself'}</h1>
-        <p>{ru
-          ? 'Семь дней по четыре отметки: утром, днём, вечером и перед сном. Настроение и силы — две кнопки, пять секунд. Через неделю покажем, когда тебе лучше и труднее, и честно сравним с прогнозом и Луной.'
-          : 'Seven days, four check-ins: morning, day, evening and before bed. Mood and strength — two taps, five seconds. After a week we show when you feel better or worse and compare honestly with the forecast and the Moon.'}</p>
+        <div className="mood-hero video-hero">
+          <VideoBackground id="mood-week" />
+          <h1 className="mood-title">{ru ? 'Неделя, чтобы понять себя' : 'A week to understand yourself'}</h1>
+          <p>{ru
+            ? 'Семь дней по четыре отметки: утром, днём, вечером и перед сном. Настроение и силы — две кнопки, пять секунд. Через неделю покажем, когда тебе лучше и труднее, и честно сравним с прогнозом и Луной.'
+            : 'Seven days, four check-ins: morning, day, evening and before bed. Mood and strength — two taps, five seconds. After a week we show when you feel better or worse and compare honestly with the forecast and the Moon.'}</p>
+        </div>
         <fieldset className="mood-times">
           <legend>{ru ? 'Когда напоминать' : 'When to remind'}</legend>
           {[0, 1].map((index) => (

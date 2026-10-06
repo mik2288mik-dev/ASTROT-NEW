@@ -3,6 +3,8 @@ import type { UserProfile } from '../types';
 import { ensureTelegramFullscreen } from '../lib/telegramFullscreen';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
 import { MeouLogo } from '../components/onboarding/MeouLogo';
+import { VideoBackground } from '../components/lumia-ui/VideoBackground';
+import type { VideoBackgroundId } from '../lib/videoBackgrounds';
 import {
   BirthOrbitArtwork,
   ChoiceOrbitArtwork,
@@ -32,6 +34,13 @@ interface OnboardingProps {
 const introScreens: OnboardingScreen[] = ['day', 'self', 'people'];
 const welcomeScreens: OnboardingScreen[] = [...introScreens, 'choice'];
 const welcomeScreenCount = welcomeScreens.length;
+const SCREEN_VIDEOS: Partial<Record<OnboardingScreen, VideoBackgroundId>> = {
+  day: 'onboarding-day',
+  self: 'onboarding-self',
+  people: 'onboarding-people',
+  choice: 'onboarding-choice',
+  birth: 'onboarding-birth',
+};
 const initialTimeMode = (profile?: UserProfile): Exclude<BirthTimeMode, 'range'> => {
   if (!profile) return 'exact';
   if (profile?.birthTimeMode === 'unknown' || !profile?.birthTime) return 'unknown';
@@ -339,6 +348,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
       data-onboarding-phase={isWelcome ? 'welcome' : 'setup'}
       data-onboarding-screen={screen}
     >
+      {SCREEN_VIDEOS[screen] ? <VideoBackground key={screen} id={SCREEN_VIDEOS[screen] as VideoBackgroundId} scrim="light" /> : null}
       <div
         className="meou-onboarding-shell"
         onClick={isIntro
