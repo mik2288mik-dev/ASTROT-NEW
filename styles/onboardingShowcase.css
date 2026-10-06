@@ -1,239 +1,268 @@
-/* Onboarding welcome slides: a full-screen clip, a dark fade from the bottom, one big promise in white.
-   Everything fits the screen without scrolling and grows or shrinks with the phone's height. */
-.meou-onboarding[data-onboarding-phase='welcome'] { background: #0a0f24; color: #fff; }
+/* Onboarding welcome slides: a full-screen clip, a dark fade from the bottom, one big promise in white.
+   Everything fits the screen without scrolling and grows or shrinks with the phone's height. */
+.meou-onboarding[data-onboarding-phase='welcome'] { background: #0a0f24; color: #fff; }
+
+/* header over the clip: white progress, the logo's white box melts into the picture */
+.meou-onboarding[data-onboarding-phase='welcome'] .meou-progress-lines span { background: rgba(255, 255, 255, 0.35); }
+.meou-onboarding[data-onboarding-phase='welcome'] .meou-progress-lines .is-active { background: #fff; }
+.meou-onboarding[data-onboarding-phase='welcome'] .meou-onboarding-logo { mix-blend-mode: normal; border-radius: 1rem; }
+
+.meou-story--showcase,
+.meou-choice--ready {
+  display: flex !important;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: clamp(0.5rem, 1.6vh, 1rem);
+  overflow: hidden;
+  padding: 0 0 0.3rem;
+}
+.ob-skip {
+  position: absolute;
+  top: 0.2rem;
+  right: 0;
+  z-index: 3;
+  padding: 0.2rem 0.2rem;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+}
+
+.ob-slide { display: flex; min-height: 0; flex-direction: column; gap: clamp(0.5rem, 1.6vh, 0.9rem); text-align: left; }
+.ob-title {
+  margin: 0;
+  color: #fff !important;
+  font-size: clamp(1.7rem, 5.2vh, 2.5rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.025em;
+  text-align: left !important;
+  text-shadow: 0 2px 18px rgba(5, 8, 24, 0.55);
+}
+.ob-lead {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(0.92rem, 2.2vh, 1.05rem);
+  line-height: 1.42;
+  text-align: left;
+  text-shadow: 0 1px 10px rgba(5, 8, 24, 0.6);
+}
+
+.ob-next {
+  width: 100%;
+  min-height: 3.2rem;
+  flex: none;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #fff !important;
+  color: #14182f !important;
+  font-weight: 700 !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
+}
+
+/* last screen */
+.ob-proof { display: flex; flex-direction: column; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.ob-proof li { display: flex; align-items: center; gap: 0.5rem; color: rgba(255, 255, 255, 0.92); font-size: clamp(0.8rem, 1.9vh, 0.9rem); text-shadow: 0 1px 8px rgba(5, 8, 24, 0.6); }
+.ob-proof svg { flex: none; color: #5be3a8; }
+.ob-actions { display: flex; flex-direction: column; gap: 0.55rem; margin-top: 0.3rem; }
+.ob-cta {
+  min-height: 3.2rem;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #14182f;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.ob-cta.is-ghost { background: rgba(255, 255, 255, 0.16); color: #fff; box-shadow: none; border: 1px solid rgba(255, 255, 255, 0.5); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.ob-signin { border: 0; background: none; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: 0.85rem; cursor: pointer; text-shadow: 0 1px 8px rgba(5, 8, 24, 0.6); }
+.ob-signin span { color: #fff; font-weight: 700; text-decoration: underline; }
+
+/* short phones: objects and the longest line make room instead of a scroll */
+@media (max-height: 700px) { .ob-proof li:nth-child(n + 3) { display: none; } }
+@media (max-height: 620px) { .ob-proof { display: none; } }
+
+/* The promise sits higher on the screen, with the button alone at the bottom; the dark fade follows the text. */
+.meou-story--showcase .ob-slide { margin-bottom: clamp(2.6rem, 13vh, 7rem); }
+.meou-onboarding > .video-bg.is-scrim-bottom .video-bg-scrim {
+  background: linear-gradient(to top, rgba(8, 12, 30, 0.82) 0%, rgba(8, 12, 30, 0.68) 50%, rgba(8, 12, 30, 0.08) 80%, rgba(8, 12, 30, 0) 100%);
+}
+
+/* ── Data screen and calculation: the same look as the rest of the app (clear type, soft fields, one shadow) ── */
+.meou-onboarding[data-onboarding-screen='birth'],
+.meou-onboarding[data-onboarding-screen='calculating'] { background: #f4f6fb; }
+
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-orbit,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-art { display: none !important; }
+
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-heading h1,
+.meou-onboarding[data-onboarding-screen='calculating'] h1 {
+  font-family: var(--fresh-font) !important;
+  font-size: clamp(1.7rem, 4.8vh, 2.2rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.025em !important;
+  color: #171717 !important;
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-heading h1 span,
+.meou-onboarding[data-onboarding-screen='calculating'] h1 span { color: inherit !important; }
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-heading > p,
+.meou-onboarding[data-onboarding-screen='calculating'] > div p { color: #5b564f !important; font-size: 0.9rem !important; line-height: 1.45 !important; }
+
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-form {
+  align-content: start;
+  margin-top: 0.9rem;
+  padding: 1rem !important;
+  border-radius: 1.5rem;
+  background: #fff;
+  box-shadow: var(--nebo-card-shadow, 0 12px 28px rgba(22, 32, 70, 0.2));
+}
+
+/* labels */
+.meou-onboarding[data-onboarding-screen='birth'] .meou-field > span,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-field > label,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode legend,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode legend { color: #6c665f !important; font-size: 0.76rem !important; font-weight: 650 !important; }
+
+/* soft rounded fields */
+.meou-onboarding[data-onboarding-screen='birth'] .meou-field input,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-city-field .fresh-input {
+  min-height: 3rem !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: #f1f2f7 !important;
+  padding: 0 14px !important;
+  font-size: 1rem !important;
+  color: #171717 !important;
+  box-shadow: inset 0 0 0 1.5px transparent;
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-field input:focus,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-city-field .fresh-input:focus {
+  background: #fff !important;
+  box-shadow: inset 0 0 0 2px #2f6bff;
+}
+
+/* gender and time precision: pills, the chosen one in the app's blue */
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode > div,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode > div { display: flex; gap: 0.4rem; border: 0 !important; background: none !important; padding: 0 !important; }
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button {
+  flex: 1;
+  min-height: 2.75rem;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f1f2f7 !important;
+  color: #2b2926 !important;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: none !important;
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button.is-active,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button.is-active {
+  background: linear-gradient(135deg, #5b8dff, #2f6bff) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 14px rgba(47, 107, 255, 0.35) !important;
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button::before,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button::after { display: none !important; }
+
+/* the main button: the app's black pill with a shadow */
+.meou-onboarding[data-onboarding-screen='birth'] .meou-calculate-button {
+  min-height: 3.2rem;
+  border-radius: 999px !important;
+  background: #171717 !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 10px 22px rgba(10, 14, 30, 0.3) !important;
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-privacy { color: #6c665f !important; }
+.meou-onboarding[data-onboarding-screen='birth'] .meou-form-error { color: #d6452f; font-weight: 600; }
+
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth { min-height: 0 !important; grid-template-rows: auto auto !important; align-content: start; }
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-form { align-self: start; height: auto !important; min-height: 0 !important; }
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-field.is-empty input { color: transparent !important; }
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-placeholder { left: 14px !important; color: #a3a6b0 !important; }
+
+/* ── Sign-in screens (choose a way, email, create account): the same look as the app ── */
+.auth-editorial-page { background: #f4f6fb !important; }
+.auth-editorial-page > div > section {
+  margin-top: 0.4rem;
+  padding: 1.1rem 1rem 1.2rem !important;
+  border-radius: 1.75rem !important;
+  background: #fff !important;
+  box-shadow: var(--nebo-card-shadow, 0 12px 28px rgba(22, 32, 70, 0.2)) !important;
+}
+.auth-editorial-page h1 { font-family: var(--fresh-font) !important; font-weight: 800 !important; letter-spacing: -0.025em !important; color: #171717 !important; }
+.auth-editorial-page input {
+  min-height: 3rem !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: #f1f2f7 !important;
+  padding-left: 14px !important;
+  box-shadow: inset 0 0 0 1.5px transparent !important;
+}
+.auth-editorial-page input:focus { background: #fff !important; box-shadow: inset 0 0 0 2px #2f6bff !important; }
+.auth-editorial-page .auth-primary-button {
+  border-radius: 999px !important;
+  min-height: 3.1rem !important;
+  box-shadow: 0 10px 22px rgba(10, 14, 30, 0.3) !important;
+}
+.auth-editorial-page .auth-provider-button { border-radius: 999px !important; min-height: 3rem !important; box-shadow: 0 6px 16px rgba(20, 30, 60, 0.16) !important; }
+.auth-editorial-page .auth-back-button { background: #f1f2f7 !important; }
+.auth-editorial-page .auth-provider-button--email { background: #fff !important; color: #171717 !important; border: 0 !important; }
+.auth-editorial-page button.auth-provider-button.auth-provider-button--email { background: #fff !important; color: #171717 !important; border: 0 !important; }
+.auth-editorial-page button.auth-provider-button.auth-provider-button--email svg { color: #171717 !important; }
+
+/* Provider marks: bigger, each in its own round badge */
+.auth-editorial-page .auth-provider-button { gap: 0.6rem !important; font-size: 1rem !important; }
+.auth-editorial-page .auth-provider-mark { width: 2.1rem !important; height: 2.1rem !important; flex: 0 0 2.1rem !important; border-radius: 999px; }
+.auth-editorial-page .auth-provider-mark--yandex { background: #fc3f1d; color: #fff !important; font-size: 1.2rem !important; font-weight: 800; box-shadow: 0 4px 10px rgba(252, 63, 29, 0.35); }
+.auth-editorial-page .auth-provider-mark--vk { background: rgba(255, 255, 255, 0.22); }
+.auth-editorial-page .auth-provider-mark--vk svg { width: 1.55rem !important; height: 1.55rem !important; }
+.auth-editorial-page .auth-provider-mark--email { background: #e8eeff; color: #2f6bff; }
+.auth-editorial-page .auth-provider-mark--telegram { border: 0 !important; background: rgba(255, 255, 255, 0.24); font-size: 1rem !important; }
+.auth-editorial-page .auth-provider-mark--vk { background: none !important; width: 2.2rem !important; flex-basis: 2.2rem !important; }
+.auth-editorial-page .auth-provider-mark--vk svg { width: 2.1rem !important; height: 2.1rem !important; }
+.auth-editorial-page .auth-provider-mark--yandex { font-family: 'Arial Black', Arial, sans-serif; letter-spacing: -0.02em; }
+.auth-editorial-page .auth-provider-mark--yandex { background: none !important; box-shadow: none !important; }
+.auth-editorial-page .auth-provider-mark--yandex img { width: 2.1rem; height: 2.1rem; border-radius: 999px; }
+
+.auth-editorial-page .auth-yandex-wordmark { height: 1.45rem; width: auto; display: block; }
 
-/* header over the clip: white progress, the logo's white box melts into the picture */
-.meou-onboarding[data-onboarding-phase='welcome'] .meou-progress-lines span { background: rgba(255, 255, 255, 0.35); }
-.meou-onboarding[data-onboarding-phase='welcome'] .meou-progress-lines .is-active { background: #fff; }
-.meou-onboarding[data-onboarding-phase='welcome'] .meou-onboarding-logo { mix-blend-mode: normal; border-radius: 1rem; }
+/* Birth form fixes: the logo's white box melts into the grey page, every row has room, the pills never overlap. */
+.meou-onboarding[data-onboarding-screen='birth'] .meou-onboarding-logo,
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-onboarding-logo { mix-blend-mode: multiply; background: transparent; }
 
-.meou-story--showcase,
-.meou-choice--ready {
-  display: flex !important;
-  min-height: 0;
-  height: 100%;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: clamp(0.5rem, 1.6vh, 1rem);
-  overflow: hidden;
-  padding: 0 0 0.3rem;
-}
-.ob-skip {
-  position: absolute;
-  top: 0.2rem;
-  right: 0;
-  z-index: 3;
-  padding: 0.2rem 0.2rem;
-  border: 0;
-  background: none;
-  color: rgba(255, 255, 255, 0.85);
-  font: inherit;
-  font-size: 0.85rem;
-  cursor: pointer;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
-}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-form > .meou-field:first-of-type,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-city-field { grid-column: 1 / -1; }
 
-.ob-slide { display: flex; min-height: 0; flex-direction: column; gap: clamp(0.5rem, 1.6vh, 0.9rem); text-align: left; }
-.ob-title {
-  margin: 0;
-  color: #fff !important;
-  font-size: clamp(1.7rem, 5.2vh, 2.5rem) !important;
-  font-weight: 800 !important;
-  line-height: 1.08 !important;
-  letter-spacing: -0.025em;
-  text-align: left !important;
-  text-shadow: 0 2px 18px rgba(5, 8, 24, 0.55);
-}
-.ob-lead {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: clamp(0.92rem, 2.2vh, 1.05rem);
-  line-height: 1.42;
-  text-align: left;
-  text-shadow: 0 1px 10px rgba(5, 8, 24, 0.6);
-}
-
-.ob-next {
-  width: 100%;
-  min-height: 3.2rem;
-  flex: none;
-  border: 0 !important;
-  border-radius: 999px !important;
-  background: #fff !important;
-  color: #14182f !important;
-  font-weight: 700 !important;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
-}
-
-/* last screen */
-.ob-proof { display: flex; flex-direction: column; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
-.ob-proof li { display: flex; align-items: center; gap: 0.5rem; color: rgba(255, 255, 255, 0.92); font-size: clamp(0.8rem, 1.9vh, 0.9rem); text-shadow: 0 1px 8px rgba(5, 8, 24, 0.6); }
-.ob-proof svg { flex: none; color: #5be3a8; }
-.ob-actions { display: flex; flex-direction: column; gap: 0.55rem; margin-top: 0.3rem; }
-.ob-cta {
-  min-height: 3.2rem;
-  border: 0;
-  border-radius: 999px;
-  background: #fff;
-  color: #14182f;
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 700;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
-}
-.ob-cta.is-ghost { background: rgba(255, 255, 255, 0.16); color: #fff; box-shadow: none; border: 1px solid rgba(255, 255, 255, 0.5); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
-.ob-signin { border: 0; background: none; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: 0.85rem; cursor: pointer; text-shadow: 0 1px 8px rgba(5, 8, 24, 0.6); }
-.ob-signin span { color: #fff; font-weight: 700; text-decoration: underline; }
-
-/* short phones: objects and the longest line make room instead of a scroll */
-@media (max-height: 700px) { .ob-proof li:nth-child(n + 3) { display: none; } }
-@media (max-height: 620px) { .ob-proof { display: none; } }
-
-/* The promise sits higher on the screen, with the button alone at the bottom; the dark fade follows the text. */
-.meou-story--showcase .ob-slide { margin-bottom: clamp(2.6rem, 13vh, 7rem); }
-.meou-onboarding > .video-bg.is-scrim-bottom .video-bg-scrim {
-  background: linear-gradient(to top, rgba(8, 12, 30, 0.82) 0%, rgba(8, 12, 30, 0.68) 50%, rgba(8, 12, 30, 0.08) 80%, rgba(8, 12, 30, 0) 100%);
-}
-
-/* ── Data screen and calculation: the same look as the rest of the app (clear type, soft fields, one shadow) ── */
-.meou-onboarding[data-onboarding-screen='birth'],
-.meou-onboarding[data-onboarding-screen='calculating'] { background: #f4f6fb; }
-
-.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-orbit,
-.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-art { display: none !important; }
-
-.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-heading h1,
-.meou-onboarding[data-onboarding-screen='calculating'] h1 {
-  font-family: var(--fresh-font) !important;
-  font-size: clamp(1.7rem, 4.8vh, 2.2rem) !important;
-  font-weight: 800 !important;
-  line-height: 1.1 !important;
-  letter-spacing: -0.025em !important;
-  color: #171717 !important;
-}
-.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-heading h1 span,
-.meou-onboarding[data-onboarding-screen='calculating'] h1 span { color: inherit !important; }
-.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-heading > p,
-.meou-onboarding[data-onboarding-screen='calculating'] > div p { color: #5b564f !important; font-size: 0.9rem !important; line-height: 1.45 !important; }
-
-.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-form {
-  align-content: start;
-  margin-top: 0.9rem;
-  padding: 1rem !important;
-  border-radius: 1.5rem;
-  background: #fff;
-  box-shadow: var(--nebo-card-shadow, 0 12px 28px rgba(22, 32, 70, 0.2));
-}
-
-/* labels */
-.meou-onboarding[data-onboarding-screen='birth'] .meou-field > span,
-.meou-onboarding[data-onboarding-screen='birth'] .meou-field > label,
-.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode legend,
-.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode legend { color: #6c665f !important; font-size: 0.76rem !important; font-weight: 650 !important; }
-
-/* soft rounded fields */
-.meou-onboarding[data-onboarding-screen='birth'] .meou-field input,
-.meou-onboarding[data-onboarding-screen='birth'] .meou-city-field .fresh-input {
-  min-height: 3rem !important;
-  border: 0 !important;
-  border-radius: 14px !important;
-  background: #f1f2f7 !important;
-  padding: 0 14px !important;
-  font-size: 1rem !important;
-  color: #171717 !important;
-  box-shadow: inset 0 0 0 1.5px transparent;
-}
-.meou-onboarding[data-onboarding-screen='birth'] .meou-field input:focus,
-.meou-onboarding[data-onboarding-screen='birth'] .meou-city-field .fresh-input:focus {
-  background: #fff !important;
-  box-shadow: inset 0 0 0 2px #2f6bff;
-}
-
-/* gender and time precision: pills, the chosen one in the app's blue */
 .meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode > div,
-.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode > div { display: flex; gap: 0.4rem; border: 0 !important; background: none !important; padding: 0 !important; }
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode > div {
+  display: grid !important;
+  grid-template-columns: repeat(var(--pill-cols, 3), minmax(0, 1fr));
+  gap: 8px !important;
+  overflow: visible !important;
+  margin-top: 6px;
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode > div { --pill-cols: 2; }
+
 .meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button,
 .meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button {
-  flex: 1;
-  min-height: 2.75rem;
+  min-width: 0;
+  padding: 0 8px;
   border: 0 !important;
-  border-radius: 999px !important;
-  background: #f1f2f7 !important;
-  color: #2b2926 !important;
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  box-shadow: none !important;
+  white-space: nowrap;
+  font-size: 0.88rem;
 }
-.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button.is-active,
-.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button.is-active {
-  background: linear-gradient(135deg, #5b8dff, #2f6bff) !important;
-  color: #fff !important;
-  box-shadow: 0 6px 14px rgba(47, 107, 255, 0.35) !important;
-}
-.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button::before,
-.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button::after { display: none !important; }
-
-/* the main button: the app's black pill with a shadow */
-.meou-onboarding[data-onboarding-screen='birth'] .meou-calculate-button {
-  min-height: 3.2rem;
-  border-radius: 999px !important;
-  background: #171717 !important;
-  color: #fff !important;
-  font-weight: 700 !important;
-  box-shadow: 0 10px 22px rgba(10, 14, 30, 0.3) !important;
-}
-.meou-onboarding[data-onboarding-screen='birth'] .meou-privacy { color: #6c665f !important; }
-.meou-onboarding[data-onboarding-screen='birth'] .meou-form-error { color: #d6452f; font-weight: 600; }
-
-.meou-onboarding[data-onboarding-screen='birth'] .meou-birth { min-height: 0 !important; grid-template-rows: auto auto !important; align-content: start; }
-.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-form { align-self: start; height: auto !important; min-height: 0 !important; }
-.meou-onboarding[data-onboarding-screen='birth'] .meou-time-field.is-empty input { color: transparent !important; }
-.meou-onboarding[data-onboarding-screen='birth'] .meou-time-placeholder { left: 14px !important; color: #a3a6b0 !important; }
-
-/* ── Sign-in screens (choose a way, email, create account): the same look as the app ── */
-.auth-editorial-page { background: #f4f6fb !important; }
-.auth-editorial-page > div > section {
-  margin-top: 0.4rem;
-  padding: 1.1rem 1rem 1.2rem !important;
-  border-radius: 1.75rem !important;
-  background: #fff !important;
-  box-shadow: var(--nebo-card-shadow, 0 12px 28px rgba(22, 32, 70, 0.2)) !important;
-}
-.auth-editorial-page h1 { font-family: var(--fresh-font) !important; font-weight: 800 !important; letter-spacing: -0.025em !important; color: #171717 !important; }
-.auth-editorial-page input {
-  min-height: 3rem !important;
-  border: 0 !important;
-  border-radius: 14px !important;
-  background: #f1f2f7 !important;
-  padding-left: 14px !important;
-  box-shadow: inset 0 0 0 1.5px transparent !important;
-}
-.auth-editorial-page input:focus { background: #fff !important; box-shadow: inset 0 0 0 2px #2f6bff !important; }
-.auth-editorial-page .auth-primary-button {
-  border-radius: 999px !important;
-  min-height: 3.1rem !important;
-  box-shadow: 0 10px 22px rgba(10, 14, 30, 0.3) !important;
-}
-.auth-editorial-page .auth-provider-button { border-radius: 999px !important; min-height: 3rem !important; box-shadow: 0 6px 16px rgba(20, 30, 60, 0.16) !important; }
-.auth-editorial-page .auth-back-button { background: #f1f2f7 !important; }
-.auth-editorial-page .auth-provider-button--email { background: #fff !important; color: #171717 !important; border: 0 !important; }
-.auth-editorial-page button.auth-provider-button.auth-provider-button--email { background: #fff !important; color: #171717 !important; border: 0 !important; }
-.auth-editorial-page button.auth-provider-button.auth-provider-button--email svg { color: #171717 !important; }
-
-/* Provider marks: bigger, each in its own round badge */
-.auth-editorial-page .auth-provider-button { gap: 0.6rem !important; font-size: 1rem !important; }
-.auth-editorial-page .auth-provider-mark { width: 2.1rem !important; height: 2.1rem !important; flex: 0 0 2.1rem !important; border-radius: 999px; }
-.auth-editorial-page .auth-provider-mark--yandex { background: #fc3f1d; color: #fff !important; font-size: 1.2rem !important; font-weight: 800; box-shadow: 0 4px 10px rgba(252, 63, 29, 0.35); }
-.auth-editorial-page .auth-provider-mark--vk { background: rgba(255, 255, 255, 0.22); }
-.auth-editorial-page .auth-provider-mark--vk svg { width: 1.55rem !important; height: 1.55rem !important; }
-.auth-editorial-page .auth-provider-mark--email { background: #e8eeff; color: #2f6bff; }
-.auth-editorial-page .auth-provider-mark--telegram { border: 0 !important; background: rgba(255, 255, 255, 0.24); font-size: 1rem !important; }
-.auth-editorial-page .auth-provider-mark--vk { background: none !important; width: 2.2rem !important; flex-basis: 2.2rem !important; }
-.auth-editorial-page .auth-provider-mark--vk svg { width: 2.1rem !important; height: 2.1rem !important; }
-.auth-editorial-page .auth-provider-mark--yandex { font-family: 'Arial Black', Arial, sans-serif; letter-spacing: -0.02em; }
-.auth-editorial-page .auth-provider-mark--yandex { background: none !important; box-shadow: none !important; }
-.auth-editorial-page .auth-provider-mark--yandex img { width: 2.1rem; height: 2.1rem; border-radius: 999px; }
-
-.auth-editorial-page .auth-yandex-wordmark { height: 1.45rem; width: auto; display: block; }
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button > span { display: none; }

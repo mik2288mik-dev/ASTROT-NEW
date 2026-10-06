@@ -16,10 +16,10 @@ type SlideCopy = {
 const SLIDES: Record<ShowcaseSlide, SlideCopy> = {
   hello: {
     title: 'Знай свой день до того, как он начался',
-    text: 'Личный прогноз на сегодня, неделю и месяц — по твоей дате, времени и городу рождения. Не общий по знаку, а только твой.',
+    text: 'Личный прогноз на сегодня, неделю и месяц по твоей дате, времени и городу рождения. Не общий по знаку, а только твой.',
   },
   natal: {
-    title: 'Поймёшь себя — простыми словами',
+    title: 'Поймёшь себя простыми словами',
     text: 'Натальная карта без тумана: твои сильные стороны, привычные реакции и что тебе подходит в любви, деньгах и работе.',
   },
   future: {
@@ -35,7 +35,7 @@ const SLIDES: Record<ShowcaseSlide, SlideCopy> = {
     text: 'Антистресс: дыхание, расслабление тела и звуки природы. Помогает, когда тревожно, злишься или не можешь уснуть.',
   },
   more: {
-    title: 'Сериалы и тесты — на каждый день',
+    title: 'Сериалы и тесты на каждый день',
     text: 'Короткие истории с продолжением и тесты о себе: на пять минут в дороге или за чашкой кофе.',
   },
 };
@@ -54,8 +54,8 @@ export function OnboardingShowcase({ slide }: { slide: ShowcaseSlide }) {
 export function OnboardingReady({ onCreate, onLook, onSignIn }: { onCreate: () => void; onLook: () => void; onSignIn: () => void }) {
   return (
     <div className="ob-slide ob-ready">
-      <h1 className="ob-title">Твоё небо — за одну минуту</h1>
-      <p className="ob-lead">Нужны имя, дата и город рождения. Время — если знаешь.</p>
+      <h1 className="ob-title">Твоё небо за одну минуту</h1>
+      <p className="ob-lead">Нужны имя, дата и город рождения. Время, если знаешь.</p>
       <ul className="ob-proof">
         <li><Check size={16} aria-hidden="true" />Данные хранятся в России (152-ФЗ)</li>
         <li><Check size={16} aria-hidden="true" />Расчёт по тем же эфемеридам, что у астрологов</li>
@@ -64,7 +64,7 @@ export function OnboardingReady({ onCreate, onLook, onSignIn }: { onCreate: () =
       <div className="ob-actions">
         <button type="button" className="ob-cta" onClick={onCreate}>Создать мой прогноз</button>
         <button type="button" className="ob-cta is-ghost" onClick={onLook}>Сначала посмотреть</button>
-        <button type="button" className="ob-signin" onClick={onSignIn}>Уже есть аккаунт — <span>войти</span></button>
+        <button type="button" className="ob-signin" onClick={onSignIn}>Уже есть аккаунт, <span>войти</span></button>
       </div>
     </div>
   );

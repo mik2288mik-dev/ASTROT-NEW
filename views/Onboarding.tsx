@@ -407,7 +407,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
         {screen === 'birth' ? (
           <section className="meou-birth">
             <div className="meou-birth-heading">
-              {<><h1>Немного данных —<br />и карта готова<span>.</span></h1><p>Нам нужны ваши дата, время<br />и место рождения. Без точного времени<br />тоже можно, мы всё учтём.</p><BirthOrbitArtwork /></>}
+              {<><h1>Немного данных,<br />и карта готова<span>.</span></h1><p>Нам нужны ваши дата, время<br />и место рождения. Без точного времени<br />тоже можно, мы всё учтём.</p><BirthOrbitArtwork /></>}
             </div>
 
             <form className="meou-birth-form" noValidate onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>

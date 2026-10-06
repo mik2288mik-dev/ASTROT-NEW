@@ -15,7 +15,7 @@ describe('first value before Premium', () => {
     expect(onboarding).not.toContain('onb-notify');
     expect(onboarding).not.toContain('Присылать уведомления');
     expect(onboarding).not.toContain("setView('paywall')");
-    expect(onboarding).toContain('Немного данных —');
+    expect(onboarding).toContain('Немного данных,');
     expect(onboarding).toContain("notificationFrequency: 'quiet'");
   });
 
