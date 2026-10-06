@@ -980,6 +980,7 @@ export const Dashboard = memo<DashboardProps>(({
               birthTimeKnown={Boolean(profile.birthTime?.trim()) && profile.birthTimeMode !== 'unknown'}
               task={storySections.find((section) => !lockedSectionIds.has(section.id) && section.actionText?.trim())?.actionText?.trim() ?? null}
             />
+            <DailyQuestionCard language={language} />
             <ForYouBlock
               userId={String(profile.id || 'guest')}
               language={language}
@@ -994,7 +995,6 @@ export const Dashboard = memo<DashboardProps>(({
               gift={giftStatus ? { streak: giftStatus.streak, daysToGift: giftStatus.daysToGift, claimable: giftStatus.claimable, hasWeekGift: Boolean(giftStatus.weekGift) } : null}
               onAction={handleForYouAction}
             />
-            <DailyQuestionCard language={language} />
             <PeopleBlock
               userId={String(profile.id || 'guest')}
               todayKey={periodKeys.day}

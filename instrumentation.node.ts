@@ -19,3 +19,12 @@ void import('./lib/natalReading/preparation')
       error instanceof Error ? error.message : error
     );
   });
+
+void import('./lib/sleepStoryPrewarm')
+  .then(({ scheduleSleepStoryPrewarm }) => scheduleSleepStoryPrewarm())
+  .catch((error) => {
+    console.warn(
+      '[instrumentation] sleep story prewarm failed to start:',
+      error instanceof Error ? error.message : error
+    );
+  });

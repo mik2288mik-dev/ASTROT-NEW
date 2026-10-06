@@ -498,6 +498,14 @@ export function AntistressRoom({ profile, onBack, onOpenSounds }: AntistressRoom
   const [auto, setAuto] = useState(false);
   const [mood, setMood] = useState<StressMood | null>(null);
 
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  // Every inner screen opens at its top, not where the previous one was scrolled to.
+  useEffect(() => {
+    const scroller = rootRef.current?.closest('.lumia-main-scroll');
+    if (scroller instanceof HTMLElement) scroller.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }, [screen, technique.id]);
+
   const go = (next: Screen) => { lumiaSelectionHaptic(); setScreen(next); };
   const openTechnique = (id: string, immediately = false) => {
     setTechnique(BREATH_TECHNIQUES.find((item) => item.id === id) ?? BREATH_TECHNIQUES[0]);
@@ -518,7 +526,7 @@ export function AntistressRoom({ profile, onBack, onOpenSounds }: AntistressRoom
   };
 
   return (
-    <div className="fresh-page antistress-room">
+    <div ref={rootRef} className="fresh-page antistress-room">
       <AppTopBar title={titles[screen]} onBack={back} />
       {screen === 'hub' ? (
         <>

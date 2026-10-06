@@ -77,7 +77,7 @@
 .app-top-bar.home-logo-bar,
 .forecast-feed-page .app-top-bar,
 .forecast-feed-page .app-top-bar.home-logo-bar {
-  border-bottom: 0.5px solid var(--nebo-glass-line) !important;
+  border-bottom: 0 !important;
   background: var(--nebo-glass-bg) !important;
   box-shadow: none !important;
   -webkit-backdrop-filter: var(--nebo-glass-filter) !important;
@@ -86,7 +86,7 @@
 
 .today-bottom-navigation::after {
   top: 0.75rem;
-  border-top: 0.5px solid var(--nebo-glass-line);
+  border-top: 0 !important;
   background: var(--nebo-glass-bg) !important;
   -webkit-backdrop-filter: var(--nebo-glass-filter);
   backdrop-filter: var(--nebo-glass-filter);
@@ -120,7 +120,7 @@
   box-sizing: border-box;
   min-height: 360px;
   /* The sky starts at the very top, under the glass bar (bar height + a gap). */
-  padding: calc(var(--home-safe-top) + 54px + 18px) 20px 34px;
+  padding: calc(var(--home-safe-top) + 42px + 14px) 20px 34px;
   background: linear-gradient(180deg, #2c62b8 0%, #4a86da 48%, #86b4ea 82%, #c7dcf5 100%);
   color: #fff;
 }
@@ -174,7 +174,7 @@
 
 .sky-hero-moon {
   position: absolute;
-  top: calc(var(--home-safe-top) + 54px + 10px);
+  top: calc(var(--home-safe-top) + 42px + 8px);
   right: 16px;
   z-index: 2;
   width: 56px;
@@ -675,10 +675,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.people-block-heading > h2 {
+  margin: 0 !important;
+  line-height: 1.15;
 }
 
 .people-block-tune {
-  padding: 6px 12px;
+  flex: 0 0 auto;
+  padding: 7px 14px;
   border: 0;
   border-radius: 999px;
   background: #f1efeb;
@@ -1235,3 +1243,58 @@
 
 /* No hairline between the entry tiles and «Небо сегодня»: the shadows already separate them. */
 .today-sky { border-top: 0; }
+
+/* ── Compact chrome (Telegram on iPhone): the bar keeps only what it needs below the system
+   safe area, so the content starts higher; the bottom bar loses its empty upper cap. ── */
+.app-top-bar,
+.app-top-bar.home-logo-bar {
+  height: calc(var(--app-top-bar-content-safe-top) + 42px) !important;
+  min-height: calc(var(--app-top-bar-content-safe-top) + 42px) !important;
+  padding-top: calc(var(--app-top-bar-content-safe-top) + 4px) !important;
+  padding-bottom: 4px !important;
+}
+
+.app-top-bar-spacer {
+  height: calc(var(--app-top-bar-content-safe-top) + 42px) !important;
+  flex-basis: calc(var(--app-top-bar-content-safe-top) + 42px) !important;
+}
+
+.lumia-app-shell.has-today-bottom-navigation {
+  --today-bottom-nav-height: 3.9rem;
+}
+
+.today-bottom-nav-action,
+.today-bottom-nav-services {
+  gap: 0.4rem;
+  padding-top: 1.05rem;
+}
+
+.today-bottom-nav-hub {
+  width: 3.7rem;
+  height: 3.7rem;
+  min-width: 3.7rem;
+  min-height: 3.7rem;
+  margin-top: -1.15rem;
+}
+
+.today-bottom-nav-hub-wrap {
+  justify-content: flex-start;
+}
+
+.today-bottom-nav-hub-wrap .today-bottom-nav-label {
+  margin-top: 0.49rem;
+}
+
+.today-bottom-nav-hub::before {
+  width: 3.3rem;
+  height: 3.3rem;
+}
+
+.today-bottom-nav-hub-chart {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
+.today-bottom-navigation::after {
+  top: 0.4rem;
+}

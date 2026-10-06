@@ -54,6 +54,9 @@
   pointer-events: none;
   -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
+  /* The top right corner stays sharp and untinted: a piece of the planet shows through. */
+  -webkit-mask-image: radial-gradient(circle at 100% 0%, transparent 0%, transparent 26%, #000 70%);
+  mask-image: radial-gradient(circle at 100% 0%, transparent 0%, transparent 26%, #000 70%);
 }
 
 .withArt > * {
