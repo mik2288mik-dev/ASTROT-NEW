@@ -120,7 +120,10 @@ export function LiveSky({ sunAltitude, moonPhase = null, clouds = [], className 
         const w = width * (0.55 + (i % 3) * 0.12); const h = w * (image.naturalHeight / image.naturalWidth);
         const speed = reduced ? 0 : 3 + i * 1.3;
         const x = ((time / 1000) * speed + i * width * 0.47) % (width + w) - w;
-        ctx.globalAlpha = 0.9; ctx.drawImage(image, x, height - h * (0.55 + (i % 2) * 0.2), w, h); ctx.globalAlpha = 1;
+        // The cloud files sit on black: `screen` keeps the white and drops the black; fainter once the stars are out.
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = 0.9 * (1 - palette.stars * 0.65); ctx.drawImage(image, x, height - h * (0.55 + (i % 2) * 0.2), w, h); ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
       }
       if (moonPhase !== null && Number.isFinite(moonPhase) && width >= 40) {
         const r = Math.min(26, width * 0.07);

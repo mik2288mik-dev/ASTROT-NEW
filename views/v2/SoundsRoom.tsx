@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Headphones, LoaderCircle, Lock, Pause, Play, Square } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { VideoBackground } from '../../components/lumia-ui/VideoBackground';
 import { AssetSlot } from '../../components/lumia-ui/AssetSlot';
 import { AudioMiniPlayer } from '../../components/audio/AudioMiniPlayer';
 import { hasActivePremium } from '../../lib/accessMatrix';
@@ -15,19 +16,36 @@ import {
   type SoundGroup,
 } from '../../lib/soundscapes/library';
 import { SLEEP_STORIES, type SleepStory } from '../../lib/sleepStories';
+import { videoBackgroundPoster, type VideoBackgroundId } from '../../lib/videoBackgrounds';
 import { playMusic, playSoundscape, setAmbientTimer, setMusicQueue, stopAmbient, useAmbientState } from '../../services/ambientPlayer';
 import { pausePlayback, playTrack, setSleepTimer, togglePlayback, unlockPlayback, useAudioPlayback } from '../../services/audioPlayback';
 import { requestListen } from '../../services/listenService';
 import { estimateSpeechSeconds } from '../../lib/tts/openaiSpeech';
 
 export const SOUND_IMAGES: Record<SoundGroup, string> = {
-  rain: '/assets/sounds/rain.webp',
-  forest: '/assets/sounds/forest.webp',
-  stream: '/assets/sounds/stream.webp',
-  sea: '/assets/sounds/sea.webp',
-  fire: '/assets/sounds/fire.webp',
-  cafe: '/assets/sounds/cafe.webp',
-  night: '/assets/sounds/night.webp',
+  rain: videoBackgroundPoster('sounds-rain'),
+  forest: videoBackgroundPoster('sounds-forest'),
+  stream: videoBackgroundPoster('sounds-stream'),
+  sea: videoBackgroundPoster('sounds-sea'),
+  fire: videoBackgroundPoster('sounds-fire'),
+  cafe: videoBackgroundPoster('sounds-cafe'),
+  night: videoBackgroundPoster('sounds-night'),
+};
+
+const SOUND_VIDEOS: Record<SoundGroup, VideoBackgroundId> = {
+  rain: 'sounds-rain',
+  forest: 'sounds-forest',
+  stream: 'sounds-stream',
+  sea: 'sounds-sea',
+  fire: 'sounds-fire',
+  cafe: 'sounds-cafe',
+  night: 'sounds-night',
+};
+
+const STORY_VIDEOS: Record<string, VideoBackgroundId> = {
+  'sea-house': 'sleep-sea-house',
+  'night-train': 'sleep-night-train',
+  'garden-rain': 'sleep-garden-rain',
 };
 
 const RECORDED_MUSIC = MUSIC_TRACKS.filter((track) => track.kind === 'file').map((track) => track.id);
@@ -86,7 +104,8 @@ function BreathingPause({ language, soundscape, onSoundChange }: { language: 'ru
   };
 
   return (
-    <section className="sounds-pause" aria-labelledby="sounds-pause-title">
+    <section className="sounds-pause video-hero" aria-labelledby="sounds-pause-title">
+      <VideoBackground id="breathing" />
       <h2 id="sounds-pause-title">{ru ? 'Пауза на 3 минуты' : 'A 3-minute pause'}</h2>
       <p>{ru ? 'Вдох на четыре счёта, выдох на шесть. Просто следи за кругом.' : 'Breathe in for four, out for six. Just follow the circle.'}</p>
       <div className={`sounds-breath${startedAt ? (inhaling ? ' is-inhale' : ' is-exhale') : ''}`} aria-live="polite">
@@ -185,11 +204,12 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
               <button
                 key={group}
                 type="button"
-                className={`sounds-tile${active ? ' is-active' : ''}`}
+                className={`sounds-tile${active ? ' is-active has-video' : ''}`}
                 aria-pressed={active}
                 onClick={() => { lumiaSelectionHaptic(); if (!active) pausePlayback(); playSoundscape(active ? null : tracksOfGroup(group)[0].id); }}
               >
-                <AssetSlot src={SOUND_IMAGES[group]} className="sounds-tile-art" />
+                {active ? <VideoBackground id={SOUND_VIDEOS[group]} scrim="bottom" /> : null}
+                <AssetSlot src={SOUND_IMAGES[group]} fit="cover" className="sounds-tile-art" />
                 <span>{SOUND_GROUP_LABELS[group][language]}</span>
                 {active && ambient.loading
                   ? <LoaderCircle className="sounds-tile-state audio-mini-player-spinner" size={16} aria-hidden="true" />
@@ -270,7 +290,8 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
             const phase = storyPhase?.id === story.id ? storyPhase.state : null;
             return (
               <li key={story.id} className={`sounds-story${playing ? ' is-active' : ''}`}>
-                <button type="button" className="sounds-story-main" onClick={() => { void playStory(story); }} disabled={phase === 'preparing'}>
+                <button type="button" className={`sounds-story-main${playing && STORY_VIDEOS[story.id] ? ' video-hero' : ''}`} onClick={() => { void playStory(story); }} disabled={phase === 'preparing'}>
+                  {playing && STORY_VIDEOS[story.id] ? <VideoBackground id={STORY_VIDEOS[story.id]} /> : null}
                   <span className="sounds-row-icon" aria-hidden="true">
                     {phase === 'preparing' ? <LoaderCircle className="audio-mini-player-spinner" size={16} /> : locked ? <Lock size={15} /> : playing && playback.playing ? <Pause size={16} /> : <Headphones size={16} />}
                   </span>
