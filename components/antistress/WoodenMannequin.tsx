@@ -316,4 +316,4 @@ export function WoodenMannequin({ tint = null, guide = null, interactive = true,
   );
 }
 
-export const MANNEQUIN_HINT = 'Двигай пальцем локти, кисти, колени, стопы и голову — поза любая.';
+export const MANNEQUIN_HINT = 'Двигай пальцем локти, кисти, колени, стопы и голову, поза любая.';

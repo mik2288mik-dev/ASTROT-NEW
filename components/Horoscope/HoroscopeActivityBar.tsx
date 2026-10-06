@@ -159,7 +159,7 @@ const ActivityBar: React.FC<ActivityProps> = ({
           : await setContentReaction(userId, { surface, contentKey });
         if (reactionRequestVersion.current !== requestVersion) return;
         if (summary) { setLikes(summary.count); setLiked(summary.reacted); }
-        else { setLiked(true); setLikes((c) => c + 1); } // снять не удалось — откат
+        else { setLiked(true); setLikes((c) => c + 1); } // снять не удалось, откат
       } else {
         const summary = wasLiked
           ? await removeHoroscopeReaction(userId, sign, date, language, period)

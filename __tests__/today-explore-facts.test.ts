@@ -25,7 +25,7 @@ describe('today explore natal teaser fact', () => {
     const tilt = buildNatalTeaserFact(chart({
       sun: 'Cancer', moon: 'Scorpio', mercury: 'Pisces', venus: 'Cancer', mars: 'Scorpio', jupiter: 'Leo',
     }), 'ru');
-    expect(tilt?.headline).toBe('5 из 6 планет — в знаках Воды');
+    expect(tilt?.headline).toBe('5 из 6 планет, в знаках Воды');
 
     const plain = buildNatalTeaserFact(chart({ sun: 'Aries', moon: 'Taurus' }), 'ru');
     expect(plain?.headline).toBe('Солнце в Овне, Луна в Тельце');

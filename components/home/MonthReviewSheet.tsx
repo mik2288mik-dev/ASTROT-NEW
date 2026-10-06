@@ -44,7 +44,7 @@ export function MonthReviewSheet({ open, language, monthLabel, wishGroups, onSav
     <CosmicSheet
       open={open}
       title={ru ? `Итоги: ${monthLabel}` : `${monthLabel} in review`}
-      subtitle={ru ? 'Без оценок — просто посмотреть, что получилось.' : 'No grades — just a look at what worked out.'}
+      subtitle={ru ? 'Без оценок, просто посмотреть, что получилось.' : 'No grades, just a look at what worked out.'}
       onClose={onClose}
       closeLabel={ru ? 'Закрыть' : 'Close'}
       footer={(

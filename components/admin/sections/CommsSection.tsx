@@ -470,7 +470,7 @@ export const CommsSection: React.FC<CommsSectionProps> = ({ onSelectUser }) => {
                       </td>
 
                       <td className="py-3 px-4 font-mono text-gray-600">
-                        {sc.timeWindowStart} — {sc.timeWindowEnd}
+                        {sc.timeWindowStart}, {sc.timeWindowEnd}
                       </td>
 
                       <td className="py-3 px-4">

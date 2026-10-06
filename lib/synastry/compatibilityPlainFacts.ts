@@ -17,8 +17,8 @@ const PAIRS: Record<string, Phrase> = {
   },
   'moon|moon': {
     flow: ['У вас похожие привычки и похожее представление о домашнем уюте.', 'You have similar habits and a similar idea of a cosy home.'],
-    tension: ['Чтобы успокоиться, вам нужно разное: одному — поговорить, другому — побыть одному.', 'You calm down differently: one wants to talk, the other wants some time alone.'],
-    merge: ['Настроение одного быстро передаётся другому — и хорошее, и плохое.', 'One person’s mood quickly passes to the other, good or bad.'],
+    tension: ['Чтобы успокоиться, вам нужно разное: одному, поговорить, другому, побыть одному.', 'You calm down differently: one wants to talk, the other wants some time alone.'],
+    merge: ['Настроение одного быстро передаётся другому, и хорошее, и плохое.', 'One person’s mood quickly passes to the other, good or bad.'],
   },
   'moon|venus': {
     flow: ['Вы умеете проявлять заботу так, как другому приятно.', 'You show care in the way the other person enjoys.'],
@@ -37,7 +37,7 @@ const PAIRS: Record<string, Phrase> = {
   'mars|mars': {
     flow: ['У вас похожий темп: когда надо действовать, вы не тормозите друг друга.', 'You move at a similar pace and do not slow each other down.'],
     tension: ['В споре оба стоят на своём, и уступить трудно обоим.', 'In an argument you both hold your ground, and neither finds it easy to give in.'],
-    merge: ['Вы оба быстро берётесь за дело — и так же быстро можете столкнуться.', 'You both jump into action quickly, and can clash just as quickly.'],
+    merge: ['Вы оба быстро берётесь за дело, и так же быстро можете столкнуться.', 'You both jump into action quickly, and can clash just as quickly.'],
   },
   'mercury|mercury': {
     flow: ['Вы легко понимаете ход мыслей друг друга и быстро договариваетесь.', 'You follow each other’s thinking easily and agree quickly.'],

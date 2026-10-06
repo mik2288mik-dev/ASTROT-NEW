@@ -296,7 +296,7 @@ function buildAspectEvidence(aspects: SynastryAspect[], language: Language): Com
       id: `aspect:${aspect.aKey}:${aspect.bKey}:${aspect.aspectKey}:${round(aspect.orb, 2)}:${index}`,
       type: 'aspect' as const,
       direction: 'mutual' as const,
-      label: `${PLANET_LABELS[aspect.aKey][labelKey]} — ${PLANET_LABELS[aspect.bKey][labelKey]}: ${ASPECT_LABELS[aspect.aspectKey][labelKey]}, ${language === 'ru' ? 'орб' : 'orb'} ${round(aspect.orb, 1)}°`,
+      label: `${PLANET_LABELS[aspect.aKey][labelKey]} - ${PLANET_LABELS[aspect.bKey][labelKey]}: ${ASPECT_LABELS[aspect.aspectKey][labelKey]}, ${language === 'ru' ? 'орб' : 'orb'} ${round(aspect.orb, 1)}°`,
       weight: round(weight, 4),
       reliability: aspect.reliability,
       dimensionEffects,
@@ -394,7 +394,7 @@ function buildAngleEvidence(
           id: `angle:${direction}:${bodyKey}:${angleKey}:${contact.aspect}:${round(contact.orb, 2)}`,
           type: 'angle',
           direction,
-          label: `${PLANET_LABELS[bodyKey][labelKey]} — ${angleLabel}: ${ASPECT_LABELS[contact.aspect][labelKey]}, ${language === 'ru' ? 'орб' : 'orb'} ${round(contact.orb, 1)}°`,
+          label: `${PLANET_LABELS[bodyKey][labelKey]} - ${angleLabel}: ${ASPECT_LABELS[contact.aspect][labelKey]}, ${language === 'ru' ? 'орб' : 'orb'} ${round(contact.orb, 1)}°`,
           weight: round(contact.strength * 0.72, 4),
           reliability: angle.reliability === 'stable_in_range'
             || readPosition(source, bodyKey)?.reliability === 'stable_in_range'
@@ -474,8 +474,8 @@ function buildHouseEvidence(
         type: 'house_overlay',
         direction,
         label: language === 'ru'
-          ? `${PLANET_LABELS[bodyKey][labelKey]} (${owner}) — в ${house}-м доме карты (${host})`
-          : `${PLANET_LABELS[bodyKey][labelKey]} (${owner}) — in house ${house} of the chart (${host})`,
+          ? `${PLANET_LABELS[bodyKey][labelKey]} (${owner}), в ${house}-м доме карты (${host})`
+          : `${PLANET_LABELS[bodyKey][labelKey]} (${owner}), in house ${house} of the chart (${host})`,
         weight: 0.28,
         reliability: timeStable ? 'stable_in_range' : 'exact',
         dimensionEffects: houseEffects(house),

@@ -390,7 +390,7 @@ export const Paywall: React.FC<PaywallProps> = ({
           <section className="pw2-active" aria-labelledby="pw2-active-title">
             <h2 id="pw2-active-title">{ru ? 'Premium уже активен' : 'Premium is already active'}</h2>
             {canManageInRuStore ? (
-              <p>{ru ? 'Управление и отмена — в RuStore: Профиль → Подписки.' : 'Manage or cancel in RuStore: Profile → Subscriptions.'}</p>
+              <p>{ru ? 'Управление и отмена, в RuStore: Профиль → Подписки.' : 'Manage or cancel in RuStore: Profile → Subscriptions.'}</p>
             ) : null}
             {canManageInRuStore && onManageSubscription ? (
               <button type="button" className="pw2-cta" onClick={() => void manageSubscription()} disabled={managingSubscription} aria-busy={managingSubscription}>
@@ -422,7 +422,7 @@ export const Paywall: React.FC<PaywallProps> = ({
                       className="pw2-plan-control"
                       type="radio"
                       name={`premium-plan-${context.paywallInstanceId}`}
-                      aria-label={`${plan.periodLabel} — ${price}`}
+                      aria-label={`${plan.periodLabel} - ${price}`}
                       checked={isSelected}
                       disabled={planSelectionLocked || !hasCatalogPrice}
                       onChange={() => selectPlan(plan.id)}
@@ -499,8 +499,8 @@ export const Paywall: React.FC<PaywallProps> = ({
             {previewNotice ? <p className="pw2-state" role="status">{previewNotice}</p> : null}
             {purchaseState === 'pending' ? (
               <p className="pw2-state" role="status">{telegramPaymentsEnabled
-                ? (ru ? 'Telegram подтверждает оплату. Нажми «Проверить оплату» — новый счёт не откроется.' : 'Telegram is confirming payment. Check payment without opening another invoice.')
-                : (ru ? 'RuStore подтверждает оплату. Проверь статус через «Восстановить покупку» — повторно платить не нужно.' : 'RuStore is confirming payment. Use Restore purchase to check — do not pay again.')}</p>
+                ? (ru ? 'Telegram подтверждает оплату. Нажми «Проверить оплату», новый счёт не откроется.' : 'Telegram is confirming payment. Check payment without opening another invoice.')
+                : (ru ? 'RuStore подтверждает оплату. Проверь статус через «Восстановить покупку», повторно платить не нужно.' : 'RuStore is confirming payment. Use Restore purchase to check, do not pay again.')}</p>
             ) : null}
             {purchaseState === 'failed' ? <p className="pw2-state" role="alert">{ru ? 'Не удалось открыть оплату. Проверь интернет и попробуй ещё раз.' : 'Could not open checkout. Check your connection and try again.'}</p> : null}
             {!embedded || rustorePaymentsEnabled ? (
@@ -516,7 +516,7 @@ export const Paywall: React.FC<PaywallProps> = ({
             {rustorePaymentsEnabled && restoreError ? (
               <p className="pw2-state" role="alert">{paymentFailureCopy(restoreFailureReason, language) || (ru ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.')}</p>
             ) : rustorePaymentsEnabled && restorePending ? (
-              <p className="pw2-state" role="status">{ru ? 'RuStore ещё подтверждает покупку. Проверь чуть позже — повторно покупать не нужно.' : 'RuStore is still confirming the purchase. Check again shortly — do not buy it again.'}</p>
+              <p className="pw2-state" role="status">{ru ? 'RuStore ещё подтверждает покупку. Проверь чуть позже, повторно покупать не нужно.' : 'RuStore is still confirming the purchase. Check again shortly, do not buy it again.'}</p>
             ) : null}
           </div>
         </footer>

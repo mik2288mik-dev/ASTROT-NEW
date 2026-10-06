@@ -76,8 +76,8 @@ function natalHookTitle(chart: NatalChartDataV2): string {
   const venus = SIGN_LOCATIVE_RU[chart.positions?.venus?.sign ?? ''];
   const mars = SIGN_LOCATIVE_RU[chart.positions?.mars?.sign ?? ''];
   return venus && mars
-    ? `Венера в ${venus} и Марс в ${mars} — что это значит для тебя`
-    : 'Дальше — весь рассказ о тебе и разбор по темам';
+    ? `Венера в ${venus} и Марс в ${mars}, что это значит для тебя`
+    : 'Дальше, весь рассказ о тебе и разбор по темам';
 }
 
 function errorText(language: 'ru' | 'en'): string {
@@ -242,7 +242,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
             <PremiumHook
               title={natalHookTitle(v2)}
               items={interpretation.topics.slice(0, 5).map((topic) => (
-                `${topic.title} — по ${topic.evidenceIds.length} ${topic.evidenceIds.length === 1 ? 'факту' : 'фактам'} твоей карты`
+                `${topic.title}, по ${topic.evidenceIds.length} ${topic.evidenceIds.length === 1 ? 'факту' : 'фактам'} твоей карты`
               ))}
               cta="Читать весь рассказ"
               note="Это продолжение того же рассказа, а не другой текст"

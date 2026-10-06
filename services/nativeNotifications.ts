@@ -197,7 +197,7 @@ export async function offerNativeNotificationsOnce(accountId: string): Promise<v
     const permission = (await Native.getPermissionState()).display;
     if (permission !== 'granted' && permission !== 'prompt') return;
     await saveNativeNotificationSettings(accountId, { enabled: true, mode: 'daily' }, true);
-  } catch { /* Отказ или смена аккаунта — остаёмся выключенными. */ }
+  } catch { /* Отказ или смена аккаунта, остаёмся выключенными. */ }
 }
 /**
  * «Неделя настроения» reminders. Starting a week also offers notifications once

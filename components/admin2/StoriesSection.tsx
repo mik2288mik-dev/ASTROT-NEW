@@ -77,7 +77,7 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
         <p className="mb-1 text-base font-bold text-slate-800">Рассказы-сериалы</p>
         <p className="mb-3 text-sm text-slate-500">
           Каждый день выходит новая серия. Запас готовится на {overview.bufferDays} дней вперёд. Серии без замечаний выходят сами;
-          с замечаниями проверки связности — ждут, пока вы их одобрите. Отредактированная серия помечается «проверено человеком».
+          с замечаниями проверки связности, ждут, пока вы их одобрите. Отредактированная серия помечается «проверено человеком».
         </p>
         {!overview.generationEnabled ? <p className="mb-3 text-sm text-amber-700">Генерация на этом сервере выключена (это хост relay или нет ключа OpenAI).</p> : null}
         <div className="flex flex-wrap gap-2">
@@ -94,7 +94,7 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
               <button type="button" className={creating ? btnPrimary : btnGhost} onClick={() => { setCreating(true); setSelected(null); }}>
                 + Новый сериал
               </button>
-              <button type="button" className={btnGhost} disabled={busy} onClick={() => run(() => admin2.generateStories(seriesId ?? undefined), 'Запас серий пополняется — обновите через пару минут')}>
+              <button type="button" className={btnGhost} disabled={busy} onClick={() => run(() => admin2.generateStories(seriesId ?? undefined), 'Запас серий пополняется, обновите через пару минут')}>
                 Пополнить запас
               </button>
             </>
@@ -119,7 +119,7 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
               await admin2.saveStorySeries(bible, on);
               setCreating(false);
               setSeriesId(bible.id);
-            }, 'Сериал создан — первые серии напишутся при «Пополнить запас» или ночью')}
+            }, 'Сериал создан, первые серии напишутся при «Пополнить запас» или ночью')}
           />
         </div>
       ) : null}
@@ -140,7 +140,7 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
               edited={series.edited}
               busy={busy}
               canEdit={canEdit}
-              onSave={(bible, on) => run(() => admin2.saveStorySeries(bible, on), 'Сценарий сохранён — новые серии пишутся по нему')}
+              onSave={(bible, on) => run(() => admin2.saveStorySeries(bible, on), 'Сценарий сохранён, новые серии пишутся по нему')}
               onReset={() => run(() => admin2.resetStorySeries(series.id), 'Вернули исходный сценарий')}
             />
           ) : null}
@@ -157,7 +157,7 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
           {view === 'episodes' ? (
           <>
           <p className="mb-2 text-sm font-semibold text-slate-700">{series.title}: {series.episodes.length} серий, сегодня {overview.today}</p>
-          {series.episodes.length === 0 ? <p className="text-sm text-slate-500">Серий ещё нет — нажмите «Пополнить запас».</p> : null}
+          {series.episodes.length === 0 ? <p className="text-sm text-slate-500">Серий ещё нет, нажмите «Пополнить запас».</p> : null}
           <div className="divide-y divide-slate-100">
             {series.episodes.map((item) => (
               <button
@@ -183,7 +183,7 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
 
       {view === 'episodes' && !creating && episode && draft ? (
         <div className={card}>
-          <p className="mb-2 text-base font-bold text-slate-800">Серия № {episode.number} — {STATUS[episode.status]}</p>
+          <p className="mb-2 text-base font-bold text-slate-800">Серия № {episode.number}, {STATUS[episode.status]}</p>
           {episode.issues.length ? (
             <ul className="mb-3 list-disc pl-5 text-sm text-amber-700">
               {episode.issues.map((issue) => <li key={issue}>{issue}</li>)}
@@ -212,9 +212,9 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
             {canPublish ? (
               <>
                 <button type="button" className={btnPrimary} disabled={busy} onClick={() => run(() => admin2.updateStoryEpisode({ seriesId: episode.seriesId, number: episode.number, ...draft, action: 'approve' }), 'Серия проверена и выйдет в свой день')}>
-                  Проверено — выпустить
+                  Проверено, выпустить
                 </button>
-                <button type="button" className={btnGhost} disabled={busy} onClick={() => run(() => admin2.updateStoryEpisode({ seriesId: episode.seriesId, number: episode.number, action: 'hold' }), 'Серия остановлена — следующие тоже подождут')}>
+                <button type="button" className={btnGhost} disabled={busy} onClick={() => run(() => admin2.updateStoryEpisode({ seriesId: episode.seriesId, number: episode.number, action: 'hold' }), 'Серия остановлена, следующие тоже подождут')}>
                   Остановить
                 </button>
               </>
@@ -227,7 +227,7 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
           </div>
           {canEdit && episode.number === lastNumber && !episode.released ? (
             <label className="mt-3 block text-sm">
-              Что изменить при переписывании (необязательно — станет планом этой серии)
+              Что изменить при переписывании (необязательно, станет планом этой серии)
               <textarea className={inputCls} rows={3} placeholder="Например: сделай финал неожиданнее, пусть Глеб появится раньше" value={rewriteNote} onChange={(e) => setRewriteNote(e.target.value)} />
             </label>
           ) : null}

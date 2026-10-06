@@ -5,10 +5,10 @@
 
 export const MATRIX_TITLE = { ru: 'Матрица судьбы', en: 'Destiny Matrix' };
 export const MATRIX_SUBTITLE = {
-  ru: 'Расчёт по дате рождения — без времени и места',
-  en: 'From your birth date — no time or place needed',
+  ru: 'Расчёт по дате рождения, без времени и места',
+  en: 'From your birth date, no time or place needed',
 };
-export const MATRIX_HOME_LABEL = { ru: 'Матрица судьбы — она только твоя', en: 'Destiny Matrix — yours alone' };
+export const MATRIX_HOME_LABEL = { ru: 'Матрица судьбы, она только твоя', en: 'Destiny Matrix, yours alone' };
 export const MATRIX_HOME_SUB = { ru: 'Бесплатно, по твоей дате рождения', en: 'Free, from your birth date' };
 
 export type Arcana = {

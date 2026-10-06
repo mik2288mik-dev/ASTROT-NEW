@@ -117,8 +117,8 @@ export function NatalCalculationProof({ chart, name }: { chart: NatalChartDataV2
       {verification ? (
         <p className={styles.verdict}>
           {verification.allMatch
-            ? <><span className={styles.ok}>Совпадает.</span> Пересчитали второй, независимой библиотекой ({verification.library}) — разница не больше {formatDifference(verification.maxDifference)}.</>
-            : <><span className={styles.bad}>Есть расхождение.</span> Максимальная разница {formatDifference(verification.maxDifference)}. Напиши нам в поддержку — проверим.</>}
+            ? <><span className={styles.ok}>Совпадает.</span> Пересчитали второй, независимой библиотекой ({verification.library}), разница не больше {formatDifference(verification.maxDifference)}.</>
+            : <><span className={styles.bad}>Есть расхождение.</span> Максимальная разница {formatDifference(verification.maxDifference)}. Напиши нам в поддержку, проверим.</>}
           {verification.unchecked.length
             ? <span className={styles.muted}> {verification.unchecked.join(', ')} второй библиотекой не считаются, их проверить так нельзя.</span>
             : null}

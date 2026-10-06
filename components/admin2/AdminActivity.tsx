@@ -58,7 +58,7 @@ function timestamp(value: string, includeDate = true): string {
 
 function rangeLabel(range: Range): string {
   const format = (value: string) => new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(new Date(`${value}T12:00:00Z`));
-  return `${format(range.from)} — ${format(range.to)} · время Москвы`;
+  return `${format(range.from)} - ${format(range.to)} · время Москвы`;
 }
 
 function PeriodPicker({ range, onChange, busy }: { range: Range; onChange: (range: Range) => void; busy: boolean }) {
@@ -176,7 +176,7 @@ function ActivityChart({ data }: { data: AdminActivityReport }) {
           </g>;
         })}
       </svg>
-      <figcaption className="admin2-period-description">{metric === 'activeMs' ? 'Время измеряется только при открытом приложении и взаимодействии с ним.' : `Каждая точка — ${data.range.bucket === 'hour' ? 'час' : 'день'} выбранного периода.`}</figcaption>
+      <figcaption className="admin2-period-description">{metric === 'activeMs' ? 'Время измеряется только при открытом приложении и взаимодействии с ним.' : `Каждая точка, ${data.range.bucket === 'hour' ? 'час' : 'день'} выбранного периода.`}</figcaption>
     </figure> : <div className="admin2-empty">{metric === 'activeMs' ? 'За этот период активное время ещё не измерялось. Историю посещений можно посмотреть отдельно.' : 'За этот период нет данных для графика.'}</div>}
     <details className="admin2-chart-table"><summary>Показать данные таблицей</summary><div><table><thead><tr><th scope="col">Время</th><th scope="col">Пользователи</th><th scope="col">Посещения</th><th scope="col">Действия</th><th scope="col">Активное время</th></tr></thead><tbody>{series.map(point => <tr key={point.at}><td>{labelFor(point.at)}</td><td>{NUMBER.format(point.users)}</td><td>{NUMBER.format(point.visits)}</td><td>{NUMBER.format(point.events)}</td><td>{duration(point.activeMs)}</td></tr>)}</tbody></table></div></details>
   </section>;

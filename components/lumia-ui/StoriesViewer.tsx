@@ -273,7 +273,7 @@ export function StoriesViewer({
             </AnimatePresence>
           </div>
 
-          {/* Progress bars — below Telegram's top controls */}
+          {/* Progress bars, below Telegram's top controls */}
           <div
             className="absolute left-0 right-0 z-30 flex gap-1 px-3"
             style={{ top: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 24px) + 30px)' }}
@@ -288,7 +288,7 @@ export function StoriesViewer({
             ))}
           </div>
 
-          {/* Close — below Telegram's controls */}
+          {/* Close, below Telegram's controls */}
           <button
             ref={closeRef}
             type="button"

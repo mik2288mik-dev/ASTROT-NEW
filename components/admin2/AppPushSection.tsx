@@ -97,7 +97,7 @@ export function AppPushSection() {
         <p className="mb-1 text-base font-bold text-slate-800">Новое уведомление</p>
         <p className="mb-4 text-sm text-slate-500">
           Приходит на Android как обычный пуш. Автоматические (утренний гороскоп, «давно не заходил», праздники, ДР)
-          работают сами — здесь только ручные.
+          работают сами, здесь только ручные.
         </p>
         <div className="mb-3 flex flex-wrap gap-1.5">
           {ADMIN_PUSH_PRESETS.map((preset) => (
@@ -147,7 +147,7 @@ export function AppPushSection() {
               </label>
             ) : null}
             <label className="grid gap-1 text-sm">
-              <span>Когда (пусто — сейчас)</span>
+              <span>Когда (пусто, сейчас)</span>
               <input className={inputCls} type="datetime-local" value={sendAt} onChange={(e) => setSendAt(e.target.value)} />
             </label>
             <label className="grid gap-1 text-sm">

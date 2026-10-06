@@ -80,7 +80,7 @@ export function DaySheet({
               <div className="day-sheet-state">
                 <p>
                   {language === 'ru'
-                    ? 'Гороскоп на любой день — в Premium. Сегодняшний всегда открыт.'
+                    ? 'Гороскоп на любой день, в Premium. Сегодняшний всегда открыт.'
                     : 'Any-day horoscope is in Premium. Today is always free.'}
                 </p>
                 <button

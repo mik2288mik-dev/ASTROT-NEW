@@ -12,7 +12,7 @@ This reference defines the current product boundaries.
 - Matrix of Destiny and astrology encyclopedia.
 - Account, Premium, support, notifications, and deletion.
 
-## 2. Personal forecast feed — active product
+## 2. Personal forecast feed, active product
 
 `views/Dashboard.tsx` owns the personal forecast. Today renders 4-6 ordered
 fragments without visible categories or fragment headings. Week and Month each

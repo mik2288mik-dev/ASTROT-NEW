@@ -23,7 +23,7 @@ describe('notification engine rules', () => {
   });
 
   it('keeps at most one emoji (any) and strips the rest from push copy', () => {
-    const noisy = '🌅 Доброе утро ✨ Загляни 👋 — день собран 🔄✨🍃';
+    const noisy = '🌅 Доброе утро ✨ Загляни 👋, день собран 🔄✨🍃';
     const cleaned = enforceNotificationEmoji(noisy);
     expect(countEmoji(cleaned)).toBe(1);
     expect(cleaned).toContain('Доброе утро');
@@ -37,7 +37,7 @@ describe('notification engine rules', () => {
 
   it('renders one emoji total across title and body (title wins)', () => {
     const rendered = renderNotificationTemplate(
-      { title: 'С днём рождения ✨', body: 'Загляни 😄 — приготовили тёплый разбор 🎉', buttonText: 'Открыть 👉' },
+      { title: 'С днём рождения ✨', body: 'Загляни 😄, приготовили тёплый разбор 🎉', buttonText: 'Открыть 👉' },
       {}
     );
     expect(countEmoji(`${rendered.title} ${rendered.body}`)).toBe(1);

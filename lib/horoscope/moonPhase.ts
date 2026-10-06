@@ -25,7 +25,7 @@ export type MoonPhaseInfo = {
   illumination: number;
   label: string;        // RU label, e.g. "Растущая Луна"
   shortLabel: string;   // RU short, e.g. "Растущая"
-  meaning: string;      // RU one-liner — what to do in this phase
+  meaning: string;      // RU one-liner, what to do in this phase
 };
 
 const SLOT_LABEL: Record<MoonPhaseSlot, MoonPhaseInfo['label']> = {
@@ -51,13 +51,13 @@ const SLOT_SHORT: Record<MoonPhaseSlot, string> = {
 };
 
 const SLOT_MEANING: Record<MoonPhaseSlot, string> = {
-  'new': 'Время начинать. Тихий старт лучше шумного — задай себе одно намерение и иди в его сторону.',
+  'new': 'Время начинать. Тихий старт лучше шумного, задай себе одно намерение и иди в его сторону.',
   'waxing-crescent': 'Энергия копится. Делай маленькие шаги, не пытаясь обогнать сам себя.',
-  'first-quarter': 'Появляется напряжение — это не сбой, это рост. Можно настаивать на своём, но мягко.',
-  'waxing-gibbous': 'Уточняй, шлифуй, корректируй. Многое уже движется — важно не сбавлять темп ради рывка.',
-  'full': 'Кульминация и видимость. То, что назрело, выходит наружу. Не торопись с выводами — посмотри.',
-  'waning-gibbous': 'Время делиться и закрывать долги — слова, обещания, мелкие задачи.',
-  'last-quarter': 'Отпускай то, что больше не работает. Не насильно, а спокойно — место освободится само.',
+  'first-quarter': 'Появляется напряжение, это не сбой, это рост. Можно настаивать на своём, но мягко.',
+  'waxing-gibbous': 'Уточняй, шлифуй, корректируй. Многое уже движется, важно не сбавлять темп ради рывка.',
+  'full': 'Кульминация и видимость. То, что назрело, выходит наружу. Не торопись с выводами, посмотри.',
+  'waning-gibbous': 'Время делиться и закрывать долги, слова, обещания, мелкие задачи.',
+  'last-quarter': 'Отпускай то, что больше не работает. Не насильно, а спокойно, место освободится само.',
   'waning-crescent': 'Тихая пауза перед новым витком. Меньше дел, больше сна и наблюдения.',
 };
 
@@ -84,13 +84,13 @@ const SLOT_SHORT_EN: Record<MoonPhaseSlot, string> = {
 };
 
 const SLOT_MEANING_EN: Record<MoonPhaseSlot, string> = {
-  'new': 'Time to begin. A quiet start beats a loud one — set one intention and move toward it.',
+  'new': 'Time to begin. A quiet start beats a loud one, set one intention and move toward it.',
   'waxing-crescent': 'Energy is building. Take small steps without trying to outrun yourself.',
-  'first-quarter': 'Some tension shows up — not a glitch, but growth. Hold your ground, gently.',
-  'waxing-gibbous': 'Refine and adjust. A lot is already moving — keep the pace instead of forcing a leap.',
-  'full': 'A peak and full visibility. What was ripe comes to the surface. Do not rush conclusions — look first.',
-  'waning-gibbous': 'Time to share and close loops — words, promises, small tasks.',
-  'last-quarter': 'Let go of what no longer works. Not by force, just calmly — space clears on its own.',
+  'first-quarter': 'Some tension shows up, not a glitch, but growth. Hold your ground, gently.',
+  'waxing-gibbous': 'Refine and adjust. A lot is already moving, keep the pace instead of forcing a leap.',
+  'full': 'A peak and full visibility. What was ripe comes to the surface. Do not rush conclusions, look first.',
+  'waning-gibbous': 'Time to share and close loops, words, promises, small tasks.',
+  'last-quarter': 'Let go of what no longer works. Not by force, just calmly, space clears on its own.',
   'waning-crescent': 'A quiet pause before the next cycle. Fewer tasks, more sleep and observation.',
 };
 

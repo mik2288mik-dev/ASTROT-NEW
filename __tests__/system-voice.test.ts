@@ -28,8 +28,8 @@ describe('system voice for forecasts', () => {
   });
 
   it('splits a reading into short sentences', () => {
-    const sentences = splitIntoSentences('Привет. Твой прогноз на сегодня!\n\nУтро спокойное, а вечер — для разговоров… Хорошего дня.');
-    expect(sentences).toEqual(['Привет.', 'Твой прогноз на сегодня!', 'Утро спокойное, а вечер — для разговоров…', 'Хорошего дня.']);
+    const sentences = splitIntoSentences('Привет. Твой прогноз на сегодня!\n\nУтро спокойное, а вечер, для разговоров… Хорошего дня.');
+    expect(sentences).toEqual(['Привет.', 'Твой прогноз на сегодня!', 'Утро спокойное, а вечер, для разговоров…', 'Хорошего дня.']);
     const long = splitIntoSentences(`${'слово '.repeat(120)}конец.`);
     expect(long.every((part) => part.length <= 280)).toBe(true);
   });

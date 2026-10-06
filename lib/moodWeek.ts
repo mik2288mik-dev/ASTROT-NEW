@@ -137,17 +137,17 @@ function compareGroups(
   const ma = mean(groups.a);
   const mb = mean(groups.b);
   if (ma === null || mb === null || (groups.a.length < 2 && groups.b.length < 2)) {
-    return language === 'ru' ? 'Для сравнения не хватило дней — нужна неделя с разными днями.' : 'Not enough days to compare — the week needs different kinds of days.';
+    return language === 'ru' ? 'Для сравнения не хватило дней, нужна неделя с разными днями.' : 'Not enough days to compare, the week needs different kinds of days.';
   }
   if (Math.abs(ma - mb) < 0.5) {
     return language === 'ru'
-      ? `${labels.a} и ${labels.b} настроение почти одинаковое (${formatScore(ma, language)} и ${formatScore(mb, language)} из 5). Связи не видно — и это честный результат: сон, погода и люди влияют сильнее.`
-      : `${labels.a} and ${labels.b} your mood was about the same (${ma} and ${mb} of 5). No link here — an honest result: sleep, weather and people matter more.`;
+      ? `${labels.a} и ${labels.b} настроение почти одинаковое (${formatScore(ma, language)} и ${formatScore(mb, language)} из 5). Связи не видно, и это честный результат: сон, погода и люди влияют сильнее.`
+      : `${labels.a} and ${labels.b} your mood was about the same (${ma} and ${mb} of 5). No link here, an honest result: sleep, weather and people matter more.`;
   }
   const higher = ma > mb ? labels.a : labels.b;
   return language === 'ru'
-    ? `${labels.a} среднее настроение ${formatScore(ma, language)}, ${labels.b} — ${formatScore(mb, language)} из 5. ${higher[0].toUpperCase()}${higher.slice(1)} заметно лучше, но одна неделя — слишком мало, чтобы делать выводы. Повтори неделю через месяц и сравни.`
-    : `${labels.a} your average mood was ${ma}, ${labels.b} — ${mb} of 5. ${higher[0].toUpperCase()}${higher.slice(1)} looks better, but one week is too little for conclusions. Repeat in a month and compare.`;
+    ? `${labels.a} среднее настроение ${formatScore(ma, language)}, ${labels.b} - ${formatScore(mb, language)} из 5. ${higher[0].toUpperCase()}${higher.slice(1)} заметно лучше, но одна неделя, слишком мало, чтобы делать выводы. Повтори неделю через месяц и сравни.`
+    : `${labels.a} your average mood was ${ma}, ${labels.b} - ${mb} of 5. ${higher[0].toUpperCase()}${higher.slice(1)} looks better, but one week is too little for conclusions. Repeat in a month and compare.`;
 }
 
 export function buildMoodReport(week: MoodWeek, context: Record<string, DayContext>, language: 'ru' | 'en'): MoodReport {
@@ -175,7 +175,7 @@ export function buildMoodReport(week: MoodWeek, context: Record<string, DayConte
       ru ? { a: 'в лёгкие по прогнозу дни', b: 'в напряжённые' } : { a: 'on easy forecast days', b: 'on tense ones' },
       language,
     )
-    : (ru ? 'По твоей карте на этой неделе не было ни особенно лёгких, ни напряжённых дней — сравнивать не с чем.' : 'Your chart had no especially easy or tense days this week — nothing to compare.');
+    : (ru ? 'По твоей карте на этой неделе не было ни особенно лёгких, ни напряжённых дней, сравнивать не с чем.' : 'Your chart had no especially easy or tense days this week, nothing to compare.');
 
   const phased = rated.filter((day) => typeof context[day.dayKey]?.moonAngle === 'number');
   const moonLine = phased.length
@@ -189,16 +189,16 @@ export function buildMoodReport(week: MoodWeek, context: Record<string, DayConte
   const average = all.length ? { mood: mean(all.map((entry) => entry.mood))!, power: mean(all.map((entry) => entry.power))! } : null;
   const parts: string[] = [];
   if (!average) {
-    parts.push(ru ? 'Отметок за неделю не набралось — отчёт пустой. Можно начать новую неделю в любой день.' : 'No check-ins this week — the report is empty. You can start a new week any day.');
+    parts.push(ru ? 'Отметок за неделю не набралось, отчёт пустой. Можно начать новую неделю в любой день.' : 'No check-ins this week, the report is empty. You can start a new week any day.');
   } else {
     parts.push(ru
-      ? `За неделю ${all.length} ${all.length % 10 === 1 && all.length % 100 !== 11 ? 'отметка' : all.length % 10 >= 2 && all.length % 10 <= 4 && (all.length % 100 < 12 || all.length % 100 > 14) ? 'отметки' : 'отметок'} из ${MOOD_WEEK_DAYS * MOOD_SLOTS.length}. Среднее настроение — ${formatScore(average.mood, language)}, силы — ${formatScore(average.power, language)} из 5.`
+      ? `За неделю ${all.length} ${all.length % 10 === 1 && all.length % 100 !== 11 ? 'отметка' : all.length % 10 >= 2 && all.length % 10 <= 4 && (all.length % 100 < 12 || all.length % 100 > 14) ? 'отметки' : 'отметок'} из ${MOOD_WEEK_DAYS * MOOD_SLOTS.length}. Среднее настроение, ${formatScore(average.mood, language)}, силы, ${formatScore(average.power, language)} из 5.`
       : `${all.length} of ${MOOD_WEEK_DAYS * MOOD_SLOTS.length} check-ins this week. Average mood ${average.mood}, strength ${average.power} of 5.`);
     if (bestDay && worstDay && bestDay !== worstDay) {
-      parts.push(ru ? `Лучше всего было ${weekdayOf(bestDay, language)}, труднее всего — ${weekdayOf(worstDay, language)}.` : `${weekdayOf(bestDay, language)} was the best, ${weekdayOf(worstDay, language)} the hardest.`);
+      parts.push(ru ? `Лучше всего было ${weekdayOf(bestDay, language)}, труднее всего, ${weekdayOf(worstDay, language)}.` : `${weekdayOf(bestDay, language)} was the best, ${weekdayOf(worstDay, language)} the hardest.`);
     }
     if (bestSlot && worstSlot && bestSlot !== worstSlot) {
-      parts.push(ru ? `Настроение выше ${SLOT_IN_RU[bestSlot]}, ниже — ${SLOT_IN_RU[worstSlot]}.` : `Mood is higher ${SLOT_IN_EN[bestSlot]}, lower ${SLOT_IN_EN[worstSlot]}.`);
+      parts.push(ru ? `Настроение выше ${SLOT_IN_RU[bestSlot]}, ниже, ${SLOT_IN_RU[worstSlot]}.` : `Mood is higher ${SLOT_IN_EN[bestSlot]}, lower ${SLOT_IN_EN[worstSlot]}.`);
     }
   }
 

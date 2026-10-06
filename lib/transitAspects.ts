@@ -229,6 +229,6 @@ export function formatTransitAspectsRu(aspects: TransitAspect[]): string[] {
     const tp = PLANET_RU[a.transitPlanet] || a.transitPlanet;
     const np = PLANET_RU[a.natalPlanet] || a.natalPlanet;
     const rel = ASPECT_RU[a.type];
-    return `${adj} ${tp} — ${rel} натальному ${np} (орб ${a.orb.toFixed(1)}) — ${TONE_RU[a.tone]}`;
+    return `${adj} ${tp} - ${rel} натальному ${np} (орб ${a.orb.toFixed(1)}), ${TONE_RU[a.tone]}`;
   });
 }

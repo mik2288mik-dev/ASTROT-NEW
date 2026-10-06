@@ -43,7 +43,7 @@ export function CompatibilityTopicSwitch({ topics, active, onPick, language }: {
   const headline = best.overallScore - worst.overallScore < 4
     ? (ru ? 'Во всех темах у вас примерно одинаково' : 'You are about the same in every area')
     : ru
-      ? `Легче всего вам ${TOPIC_LABELS[best.context].where[0]}, труднее всего — ${TOPIC_LABELS[worst.context].where[0]}`
+      ? `Легче всего вам ${TOPIC_LABELS[best.context].where[0]}, труднее всего, ${TOPIC_LABELS[worst.context].where[0]}`
       : `Easiest ${TOPIC_LABELS[best.context].where[1]}, hardest ${TOPIC_LABELS[worst.context].where[1]}`;
   return (
     <section className="compat-topics" aria-label={ru ? 'Совместимость по темам' : 'Compatibility by area'}>
@@ -103,14 +103,14 @@ export function CompatibilityTalkCalendar({ days, premium, language, onUnlock }:
         ))}
       </div>
       <ul className="compat-talk-notes">
-        {nextGood ? <li><Check size={14} strokeWidth={2.2} aria-hidden="true" /><span><strong>{longDate(nextGood.date)}</strong> — {nextGood.reason}</span></li> : null}
-        {nextHard ? <li><X size={14} strokeWidth={2.2} aria-hidden="true" /><span><strong>{longDate(nextHard.date)}</strong> — {nextHard.reason}</span></li> : null}
+        {nextGood ? <li><Check size={14} strokeWidth={2.2} aria-hidden="true" /><span><strong>{longDate(nextGood.date)}</strong>, {nextGood.reason}</span></li> : null}
+        {nextHard ? <li><X size={14} strokeWidth={2.2} aria-hidden="true" /><span><strong>{longDate(nextHard.date)}</strong>, {nextHard.reason}</span></li> : null}
         {!nextGood && !nextHard ? <li><span>{ru ? 'Ближайшие дни ровные: особых плюсов и минусов для разговоров нет.' : 'The coming days are even: nothing special for or against talks.'}</span></li> : null}
       </ul>
       {hidden > 0 ? (
         <button type="button" className="compat-talk-more" onClick={onUnlock}>
           <Lock size={14} strokeWidth={1.8} aria-hidden="true" />
-          {ru ? `Ещё ${hidden} дней — в полном разборе` : `${hidden} more days in the full reading`}
+          {ru ? `Ещё ${hidden} дней, в полном разборе` : `${hidden} more days in the full reading`}
         </button>
       ) : null}
     </section>

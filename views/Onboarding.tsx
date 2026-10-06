@@ -363,7 +363,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
             className={`meou-story meou-story--${screen}`}
             role="button"
             tabIndex={0}
-            aria-label="Тап слева — назад, справа — вперёд"
+            aria-label="Тап слева, назад, справа, вперёд"
             onKeyDown={(event) => {
               if (event.key === 'ArrowLeft') {
                 event.preventDefault();
@@ -403,14 +403,14 @@ export const Onboarding: React.FC<OnboardingProps> = ({
             {screen === 'self' ? (
               <>
                 <NatalWheelArtwork />
-                <p className="meou-story-description">Сильные стороны, привычные<br />реакции и важные детали<br />расчёта — простыми словами.</p>
+                <p className="meou-story-description">Сильные стороны, привычные<br />реакции и важные детали<br />расчёта, простыми словами.</p>
               </>
             ) : null}
 
             {screen === 'people' ? (
               <>
                 <PeopleArtwork />
-                <p className="meou-story-description">Партнёр, друг или новый<br />знакомый — по данным<br />рождения или быстро по знакам.</p>
+                <p className="meou-story-description">Партнёр, друг или новый<br />знакомый, по данным<br />рождения или быстро по знакам.</p>
               </>
             ) : null}
           </section>
@@ -429,7 +429,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
                 Смотреть без данных
               </button>
               <button type="button" className="meou-sign-in" onClick={onSignIn}>
-                Уже есть аккаунт — <span>войти</span>
+                Уже есть аккаунт, <span>войти</span>
               </button>
             </div>
           </section>
@@ -438,7 +438,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
         {screen === 'birth' ? (
           <section className="meou-birth">
             <div className="meou-birth-heading">
-              {<><h1>Немного данных —<br />и карта готова<span>.</span></h1><p>Нам нужны ваши дата, время<br />и место рождения. Без точного времени<br />тоже можно — мы всё учтём.</p><BirthOrbitArtwork /></>}
+              {<><h1>Немного данных —<br />и карта готова<span>.</span></h1><p>Нам нужны ваши дата, время<br />и место рождения. Без точного времени<br />тоже можно, мы всё учтём.</p><BirthOrbitArtwork /></>}
             </div>
 
             <form className="meou-birth-form" noValidate onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>

@@ -24,7 +24,7 @@ export const spacing = {
   /** Vertical gap between cards within a section */
   cardGap:     space[3],   // 12
   /** Internal padding of a card */
-  cardPadding: space[4],   // 16 — outer pad; plan cards use 20px (cardPaddingLg)
+  cardPadding: space[4],   // 16, outer pad; plan cards use 20px (cardPaddingLg)
   /** Internal padding of large plan cards */
   cardPaddingLg: 20,
   /** Gap between grid columns (plan cards 2×2) */

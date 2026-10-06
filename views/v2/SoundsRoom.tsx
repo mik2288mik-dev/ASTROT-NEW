@@ -243,7 +243,7 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
           })}
         </ul>
       </section>
-      <p className="sounds-note sounds-note--bottom">{ru ? 'Звуки и музыка складываются прямо в телефоне — работают без интернета.' : 'Sounds and music are made right on the phone — they work offline.'}</p>
+      <p className="sounds-note sounds-note--bottom">{ru ? 'Звуки и музыка складываются прямо в телефоне, работают без интернета.' : 'Sounds and music are made right on the phone, they work offline.'}</p>
     </div>
   );
 }

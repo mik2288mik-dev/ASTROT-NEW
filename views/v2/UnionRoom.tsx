@@ -659,7 +659,7 @@ function CompatibilityResultPreviewSheet({
       onClose={onClose}
       closeLabel={ru ? 'Закрыть' : 'Close'}
       title={ru ? 'Посмотри, как это выглядит' : 'See how it looks'}
-      subtitle={ru ? 'Настоящий кусочек разбора — по твоему знаку.' : 'A real piece of the reading — for your sign.'}
+      subtitle={ru ? 'Настоящий кусочек разбора, по твоему знаку.' : 'A real piece of the reading, for your sign.'}
       className="compat-preview-sheet"
       contentClassName="compat-preview-sheet-content"
       footer={(
@@ -1130,7 +1130,7 @@ export function UnionRoom(props: UnionRoomProps) {
     const text = selected.kind === 'person'
       ? typeof personScore === 'number'
         ? ru
-          ? `${first} и ${second}: ${gaugeHeadline(personScore, true).toLowerCase()}.${strongestQuestion ? ` Сильнее всего у нас — ${strongestQuestion.short}.` : ''}
+          ? `${first} и ${second}: ${gaugeHeadline(personScore, true).toLowerCase()}.${strongestQuestion ? ` Сильнее всего у нас, ${strongestQuestion.short}.` : ''}
 
 Проверь нашу совместимость со своей стороны в NEBO.`
           : `${first} and ${second}: ${gaugeHeadline(personScore, false).toLowerCase()}.${strongestQuestion ? ` Our strongest side is ${strongestQuestion.short}.` : ''}
@@ -1139,8 +1139,8 @@ Check our compatibility from your side in NEBO.`
         : ''
       : score
         ? ru
-          ? `Совместимость ${first} + ${second}: ${score.overall}/100 — ${score.verdict}. Сильнее всего — ${DIMENSION_LABELS[score.strongest][lang]}.\n\nСравни свою пару в NEBO.`
-          : `Compatibility ${first} + ${second}: ${score.overall}/100 — ${score.verdict}. Strongest — ${DIMENSION_LABELS[score.strongest][lang]}.\n\nCompare your pair in NEBO.`
+          ? `Совместимость ${first} + ${second}: ${score.overall}/100, ${score.verdict}. Сильнее всего, ${DIMENSION_LABELS[score.strongest][lang]}.\n\nСравни свою пару в NEBO.`
+          : `Compatibility ${first} + ${second}: ${score.overall}/100, ${score.verdict}. Strongest, ${DIMENSION_LABELS[score.strongest][lang]}.\n\nCompare your pair in NEBO.`
         : '';
     if (!text) return;
     shareToTelegram(text);
@@ -2004,10 +2004,10 @@ Check our compatibility from your side in NEBO.`
   const leftDetail = selected?.kind === 'sign'
     ? (ru ? 'Первый знак' : 'First sign')
     : leftBirthDate
-      ? `${genderWord(leftGender, ru)} — ${formatDisplayDate(leftBirthDate, lang)}`
+      ? `${genderWord(leftGender, ru)} - ${formatDisplayDate(leftBirthDate, lang)}`
       : `${genderWord(leftGender, ru)} · ${getZodiacSign(lang, leftSun)}`;
   const rightDetail = selected?.date
-    ? `${selected.kind === 'sign' ? '' : `${genderWord(rightGender, ru)} — `}${formatDisplayDate(selected.date, lang)}`
+    ? `${selected.kind === 'sign' ? '' : `${genderWord(rightGender, ru)}, `}${formatDisplayDate(selected.date, lang)}`
     : selected?.kind === 'sign'
       ? (ru ? 'Второй знак' : 'Second sign')
       : `${genderWord(rightGender, ru)} · ${getZodiacSign(lang, theirSun)}`;
@@ -2103,8 +2103,8 @@ Check our compatibility from your side in NEBO.`
               <strong>{ru ? 'Почему так?' : 'Why this result?'}</strong>
               <small>
                 {ru
-                  ? 'Большие кольца показывают общий индекс — среднее по всем сферам ниже. Чем выше процент, тем ближе кольца.'
-                  : 'The large rings show the overall index — the average across every area below. A higher score brings the rings closer.'}
+                  ? 'Большие кольца показывают общий индекс, среднее по всем сферам ниже. Чем выше процент, тем ближе кольца.'
+                  : 'The large rings show the overall index, the average across every area below. A higher score brings the rings closer.'}
               </small>
             </span>
           </summary>
@@ -2253,7 +2253,7 @@ Check our compatibility from your side in NEBO.`
           <div className="horo-premium-text">
             <div className="horo-premium-kicker">{ru ? 'Подробная совместимость' : 'Detailed compatibility'}</div>
             <div className="horo-premium-title">
-              {deepLoading ? (ru ? 'Сопоставляю данные…' : 'Comparing the data…') : !premium ? (ru ? 'Глубокий разбор — в Premium' : 'Deep reading — Premium') : (ru ? 'Открыть подробный разбор' : 'Open detailed reading')}
+              {deepLoading ? (ru ? 'Сопоставляю данные…' : 'Comparing the data…') : !premium ? (ru ? 'Глубокий разбор, в Premium' : 'Deep reading, Premium') : (ru ? 'Открыть подробный разбор' : 'Open detailed reading')}
             </div>
           </div>
           <span className="horo-premium-cta">{!premium ? 'Premium' : (ru ? 'Открыть' : 'Open')}<ChevronRightIcon size={15} /></span>

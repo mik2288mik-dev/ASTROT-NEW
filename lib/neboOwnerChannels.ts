@@ -38,7 +38,7 @@ export function neboChannelMenu(channel: NeboOwnerChannel): NeboChannelReply {
   const server = neboServerLabel();
   if (channel === 'payments') {
     return {
-      text: [`💳 NEBO · Оплаты · 🖥 ${server}`, '', 'Сюда сразу приходит каждая оплата, пробный период, продление, отмена и возврат.', 'Выручка за период — кнопками ниже.'].join('\n'),
+      text: [`💳 NEBO · Оплаты · 🖥 ${server}`, '', 'Сюда сразу приходит каждая оплата, пробный период, продление, отмена и возврат.', 'Выручка за период, кнопками ниже.'].join('\n'),
       replyMarkup: { inline_keyboard: [
         [{ text: '💰 Сегодня', callback_data: 'ch:pay:today' }, { text: '💰 Вчера', callback_data: 'ch:pay:yesterday' }],
         [{ text: '💰 7 дней', callback_data: 'ch:pay:week' }, { text: '💰 30 дней', callback_data: 'ch:pay:month' }],
@@ -52,7 +52,7 @@ export function neboChannelMenu(channel: NeboOwnerChannel): NeboChannelReply {
       text: [
         `✉️ NEBO · Обращения · 🖥 ${server}`,
         '',
-        'Сюда приходит каждое обращение из приложения — с полным текстом.',
+        'Сюда приходит каждое обращение из приложения, с полным текстом.',
         ...(hostsErrors ? ['Пока нет отдельного бота ошибок, ошибки приходят тоже сюда.'] : []),
       ].join('\n'),
       replyMarkup: { inline_keyboard: [
@@ -65,7 +65,7 @@ export function neboChannelMenu(channel: NeboOwnerChannel): NeboChannelReply {
     };
   }
   return {
-    text: [`⚠️ NEBO · Ошибки · 🖥 ${server}`, '', 'Сюда приходят ошибки сервера и генерации ИИ. Одинаковые склеиваются — не чаще раза в 5 минут.'].join('\n'),
+    text: [`⚠️ NEBO · Ошибки · 🖥 ${server}`, '', 'Сюда приходят ошибки сервера и генерации ИИ. Одинаковые склеиваются, не чаще раза в 5 минут.'].join('\n'),
     replyMarkup: { inline_keyboard: [
       [{ text: '📋 Ошибки за сутки', callback_data: 'ch:err:day' }, { text: '📋 За 7 дней', callback_data: 'ch:err:week' }],
       [{ text: '🩺 Состояние сервера', callback_data: 'ch:err:health' }],
@@ -85,13 +85,13 @@ export async function buildPaymentsReport(kind: NeboReportKind, now = new Date()
     `🖥 ${neboServerLabel()}`,
     '',
     `💰 Выручка: ${rub(stats.revenueRub)} (раньше ${rub(previous.revenueRub)})`,
-    `🧾 Покупок: ${stats.purchases}${stats.purchasesByPlan.length ? ` — ${stats.purchasesByPlan.map((p) => `${p.label} ${p.count}`).join(' · ')}` : ''}`,
+    `🧾 Покупок: ${stats.purchases}${stats.purchasesByPlan.length ? `, ${stats.purchasesByPlan.map((p) => `${p.label} ${p.count}`).join(' · ')}` : ''}`,
     `🛒 Путь к оплате: открыли экран ${stats.paywallUsers} → начали ${stats.checkoutUsers} → купили ${stats.purchases}`,
     `💎 Premium сейчас у ${stats.premiumActive}`,
   ];
   if (stats.trials > 0) lines.push(`🎁 Пробных периодов: ${stats.trials}`);
   if (stats.starsPurchases > 0) lines.push(`⭐ Telegram Stars: ${stats.starsPurchases} · ${stats.starsAmount} Stars`);
-  lines.push('', 'Выручка — по цене тарифа, до комиссии RuStore.');
+  lines.push('', 'Выручка, по цене тарифа, до комиссии RuStore.');
   return lines.join('\n');
 }
 

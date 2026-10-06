@@ -83,7 +83,7 @@ export default function AdminPage() {
   return (
     <>
       <Head>
-        <title>NEBO Ops — Панель управления и наблюдаемости</title>
+        <title>NEBO Ops, Панель управления и наблюдаемости</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <AdminLayout

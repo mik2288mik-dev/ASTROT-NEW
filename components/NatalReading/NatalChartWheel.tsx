@@ -329,7 +329,7 @@ export function NatalChartWheel({
         })}
         {aspects.map((aspect) => (
           <li key={`aspect-${aspect.id}`}>
-            {language === 'ru' ? 'Аспект' : 'Aspect'}: {PLANET_NAMES[aspect.fromKey as keyof typeof PLANET_NAMES]?.[language] || aspect.fromKey} — {ASPECT_NAMES[aspect.type]?.[language] || aspect.type} — {PLANET_NAMES[aspect.toKey as keyof typeof PLANET_NAMES]?.[language] || aspect.toKey}
+            {language === 'ru' ? 'Аспект' : 'Aspect'}: {PLANET_NAMES[aspect.fromKey as keyof typeof PLANET_NAMES]?.[language] || aspect.fromKey}, {ASPECT_NAMES[aspect.type]?.[language] || aspect.type}, {PLANET_NAMES[aspect.toKey as keyof typeof PLANET_NAMES]?.[language] || aspect.toKey}
           </li>
         ))}
       </ul>

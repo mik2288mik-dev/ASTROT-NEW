@@ -68,14 +68,14 @@ function PeriodCard({
         <p className="future-period-card-lock">
           <LockKeyhole size={14} aria-hidden="true" />
           {ru
-            ? (period === 'week' ? 'Полный разбор недели — в NEBO+' : 'Полный разбор месяца — в NEBO+')
+            ? (period === 'week' ? 'Полный разбор недели, в NEBO+' : 'Полный разбор месяца, в NEBO+')
             : (period === 'week' ? 'The full week reading is in NEBO+' : 'The full month reading is in NEBO+')}
         </p>
       ) : null}
       {data.phase === 'loading' ? (
         <p className="future-period-card-status" role="status">
           <LoaderCircle className="forecast-feed-loading-spinner" size={16} strokeWidth={1.8} aria-hidden="true" />
-          {ru ? 'Готовим разбор — обычно до минуты' : 'Preparing the reading — usually under a minute'}
+          {ru ? 'Готовим разбор, обычно до минуты' : 'Preparing the reading, usually under a minute'}
         </p>
       ) : null}
       {data.phase === 'error' ? (

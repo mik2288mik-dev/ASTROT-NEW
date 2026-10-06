@@ -577,7 +577,7 @@ export function formatPersonalForecastDateLabel(
     month: 'long',
     timeZone: 'UTC',
   });
-  return `${fmt.format(start)} — ${fmt.format(end)}`.toLocaleUpperCase(locale);
+  return `${fmt.format(start)} - ${fmt.format(end)}`.toLocaleUpperCase(locale);
 }
 
 export function stableHash(value: string): number {

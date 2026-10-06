@@ -107,7 +107,7 @@ export function buildCompatibilityPreview(
   if (directions.has('mutual')) {
     lockedExtras.push(ru ? 'Спор, который у вас повторяется, и как его не повторять' : 'The argument that keeps repeating and how to stop it');
   }
-  lockedExtras.push(ru ? 'Что делать в каждой ситуации — по каждому вопросу' : 'What to do in each situation, for every question');
+  lockedExtras.push(ru ? 'Что делать в каждой ситуации, по каждому вопросу' : 'What to do in each situation, for every question');
   lockedExtras.push(ru ? 'На каких данных основан каждый ответ' : 'What each answer is based on');
 
   return {

@@ -232,14 +232,14 @@ export const Dashboard = memo<DashboardProps>(({
   };
   const personalForecastNote: Record<PersonalForecastPeriod, string> = language === 'ru'
     ? {
-        day: 'Личный прогноз на сегодня — по твоим данным рождения.',
-        week: 'Личный прогноз на неделю — по твоим данным рождения.',
-        month: 'Твоя неделя, твой месяц и календарь вперёд — по твоим данным рождения.',
+        day: 'Личный прогноз на сегодня, по твоим данным рождения.',
+        week: 'Личный прогноз на неделю, по твоим данным рождения.',
+        month: 'Твоя неделя, твой месяц и календарь вперёд, по твоим данным рождения.',
       }
     : {
-        day: 'Your personal forecast for today — based on your birth details.',
-        week: 'Your personal forecast for the week — based on your birth details.',
-        month: 'Your week, your month and the calendar ahead — based on your birth details.',
+        day: 'Your personal forecast for today, based on your birth details.',
+        week: 'Your personal forecast for the week, based on your birth details.',
+        month: 'Your week, your month and the calendar ahead, based on your birth details.',
       };
   const weekWindow = useMemo(
     () => resolvePersonalForecastWindow('week', periodKeys.week, timezone),
@@ -251,7 +251,7 @@ export const Dashboard = memo<DashboardProps>(({
   );
   const weekLabel = useMemo(() => {
     const fmt = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', timeZone: 'UTC' });
-    return `${fmt.format(new Date(`${weekWindow.periodStart}T12:00:00Z`))} — ${fmt.format(new Date(`${weekWindow.periodEnd}T12:00:00Z`))}`;
+    return `${fmt.format(new Date(`${weekWindow.periodStart}T12:00:00Z`))} - ${fmt.format(new Date(`${weekWindow.periodEnd}T12:00:00Z`))}`;
   }, [language, weekWindow]);
   const monthName = useMemo(() => {
     const name = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', timeZone: 'UTC' })
@@ -892,7 +892,7 @@ export const Dashboard = memo<DashboardProps>(({
         <p className="today-period-personal-note">
           {savedDayForecast
             ? (language === 'ru'
-              ? 'Готовим твой прогноз на сегодня. Ниже — последний сохранённый.'
+              ? 'Готовим твой прогноз на сегодня. Ниже, последний сохранённый.'
               : 'Preparing today’s forecast. The last saved one is below.')
             : personalForecastNote[activePeriod]}
         </p>

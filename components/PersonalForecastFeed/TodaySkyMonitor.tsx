@@ -112,7 +112,7 @@ export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
           ))}
         </ol>
         {moon.personal ? (
-          <p className="today-sky-personal">Для тебя: Луна идёт по {moon.personal.house} дому — {moon.personal.area}</p>
+          <p className="today-sky-personal">Для тебя: Луна идёт по {moon.personal.house} дому, {moon.personal.area}</p>
         ) : null}
 
         <div className="today-sky-divider" />
@@ -146,13 +146,13 @@ export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
             </div>
             <div className="today-sky-timeline-labels" aria-hidden="true">
               <span>сегодня</span>
-              <span>{window ? `${formatDay(window.start)} — ${formatDay(window.end)}` : ''}</span>
+              <span>{window ? `${formatDay(window.start)} - ${formatDay(window.end)}` : ''}</span>
             </div>
           </>
         ) : null}
         {mercury.personal && window ? (
           <p className="today-sky-personal">
-            Для тебя: {mercury.retrograde ? 'проходит' : 'пройдёт'} по {mercury.personal.house} дому — {mercury.personal.area}
+            Для тебя: {mercury.retrograde ? 'проходит' : 'пройдёт'} по {mercury.personal.house} дому, {mercury.personal.area}
           </p>
         ) : null}
       </div>

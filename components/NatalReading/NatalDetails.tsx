@@ -23,8 +23,8 @@ export function NatalDetails({ chart, onSelect, isPremium = false }: {
   });
   const groups = [
     { title: 'Планеты', Icon: Circle, rows: points(true), color: '#ed8700' },
-    { title: 'Дома', Icon: House, rows: data.houses.map(h => ({ kind: 'house', id: String(h.house), title: `${h.house} дом — ${MAP_HOUSES[h.house]}`, meaning: explainMapSelection(chart, {kind:'house',id:String(h.house)})?.yours || '' } satisfies Row)), color: '#7b44df' },
-    { title: 'Аспекты', Icon: Triangle, rows: [...data.aspects].sort((a,b) => Number(!(PLANETS.has(a.fromKey) && PLANETS.has(a.toKey))) - Number(!(PLANETS.has(b.fromKey) && PLANETS.has(b.toKey)))).map(a => ({ kind: 'aspect', id: a.id, title: `${MAP_ASPECTS[a.type].name}: ${mapObject(a.fromKey)?.name || a.fromKey} — ${mapObject(a.toKey)?.name || a.toKey}`, meaning: explainMapSelection(chart,{kind:'aspect',id:a.id})?.meaning || MAP_ASPECTS[a.type].what } satisfies Row)), color: '#3b70d6' },
+    { title: 'Дома', Icon: House, rows: data.houses.map(h => ({ kind: 'house', id: String(h.house), title: `${h.house} дом, ${MAP_HOUSES[h.house]}`, meaning: explainMapSelection(chart, {kind:'house',id:String(h.house)})?.yours || '' } satisfies Row)), color: '#7b44df' },
+    { title: 'Аспекты', Icon: Triangle, rows: [...data.aspects].sort((a,b) => Number(!(PLANETS.has(a.fromKey) && PLANETS.has(a.toKey))) - Number(!(PLANETS.has(b.fromKey) && PLANETS.has(b.toKey)))).map(a => ({ kind: 'aspect', id: a.id, title: `${MAP_ASPECTS[a.type].name}: ${mapObject(a.fromKey)?.name || a.fromKey} - ${mapObject(a.toKey)?.name || a.toKey}`, meaning: explainMapSelection(chart,{kind:'aspect',id:a.id})?.meaning || MAP_ASPECTS[a.type].what } satisfies Row)), color: '#3b70d6' },
     { title: 'Асцендент и точки', Icon: Compass, rows: points(false), color: '#008879' },
   ];
   return <div aria-label="Подробности твоей карты">{groups.map(({title, Icon, rows, color}) => {

@@ -199,7 +199,7 @@ function periodLabel(
   const end = evidence.endsAt?.slice(0, 10);
   const exact = evidence.exactAt?.slice(0, 10);
   if (exact) return language === 'ru' ? `точно ${exact}` : `exact ${exact}`;
-  if (start && end) return start === end ? start : `${start} — ${end}`;
+  if (start && end) return start === end ? start : `${start} - ${end}`;
   return start || end || null;
 }
 
@@ -212,7 +212,7 @@ function evidenceView(
   let factor = '';
   if (evidence.kind === 'transit_to_natal') {
     factor = language === 'ru'
-      ? `${planets[evidence.transitPlanet || ''] || evidence.transitPlanet} — ${aspects[evidence.aspect || ''] || evidence.aspect} к ${planets[evidence.natalPoint || ''] || evidence.natalPoint}`
+      ? `${planets[evidence.transitPlanet || ''] || evidence.transitPlanet} - ${aspects[evidence.aspect || ''] || evidence.aspect} к ${planets[evidence.natalPoint || ''] || evidence.natalPoint}`
       : `${planets[evidence.transitPlanet || ''] || evidence.transitPlanet} ${aspects[evidence.aspect || ''] || evidence.aspect} ${planets[evidence.natalPoint || ''] || evidence.natalPoint}`;
   } else if (evidence.kind === 'transit_house') {
     factor = language === 'ru'

@@ -272,7 +272,7 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
           ? horizonDays > PREMIUM_DAILY_DAYS
             ? `NEBO+ · по дням до ${formatDayRu(addDays(todayKey, PREMIUM_DAILY_DAYS))}, по месяцам до ${formatDayRu(lastOpenKey)}`
             : `NEBO+ · каждый день до ${formatDayRu(lastOpenKey)}`
-          : 'Бесплатно: сегодня и завтра. Дальше — с NEBO+'}
+          : 'Бесплатно: сегодня и завтра. Дальше, с NEBO+'}
       </p>
 
       <div className="future-weekdays" aria-hidden="true">{WEEKDAYS.map((name) => <span key={name}>{name}</span>)}</div>
@@ -315,7 +315,7 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
           </div>
           {goal ? (
             !picks.length ? (
-              <p className="future-status">В {monthIn} подходящих дней не нашлось — загляни в следующий месяц.</p>
+              <p className="future-status">В {monthIn} подходящих дней не нашлось, загляни в следующий месяц.</p>
             ) : showPersonal ? (
               <ul className="future-picks">
                 {picks.map((pick) => (
@@ -330,7 +330,7 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
             ) : (
               <button type="button" className="future-read is-locked" onClick={onRequestPremium}>
                 <LockKeyhole size={15} aria-hidden="true" />
-                {`Подходящих дней: ${picks.length}. Даты — в NEBO+`}
+                {`Подходящих дней: ${picks.length}. Даты, в NEBO+`}
               </button>
             )
           ) : null}
@@ -343,7 +343,7 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
             <p>{selected.dayKey === todayKey ? 'Сегодня' : selected.dayKey === addDays(todayKey, 1) ? 'Завтра' : new Date(`${selected.dayKey}T12:00:00Z`).toLocaleDateString('ru-RU', { weekday: 'long', timeZone: 'UTC' })}</p>
             <h3>{formatDayRu(selected.dayKey)}</h3>
             {showPersonal && selected.personal[0] ? <span>{selected.personal[0].body}.</span> : null}
-            {!showPersonal && selected.personal.length ? <span>В этот день у тебя личное событие. Что оно значит — в NEBO+.</span> : null}
+            {!showPersonal && selected.personal.length ? <span>В этот день у тебя личное событие. Что оно значит, в NEBO+.</span> : null}
             {!selected.personal.length && selected.sky[0] ? <span>{selected.sky[0].body}.</span> : null}
             {!selected.personal.length && !selected.sky.length ? <span>Спокойный день без особых событий на небе.</span> : null}
           </div>
@@ -356,12 +356,12 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
           {access === 'open' ? (
             dayReading?.dayKey === selected.dayKey ? (
               dayReading.checking ? <p className="future-status" role="status">Открываем день…</p>
-                : dayReading.loading ? <p className="future-status" role="status">Готовим прогноз на {formatDayRu(selected.dayKey)} — обычно это до 20 секунд…</p>
+                : dayReading.loading ? <p className="future-status" role="status">Готовим прогноз на {formatDayRu(selected.dayKey)}, обычно это до 20 секунд…</p>
                 : dayReading.onRequest ? (
                   <button type="button" className="future-read" onClick={() => openReading(selected.dayKey)}>Узнать прогноз на {formatDayRu(selected.dayKey)}</button>
                 ) : dayReading.error || !dayReading.result ? (
                   <>
-                    <p className="future-status">Не получилось подготовить прогноз. Проверь соединение — если включён VPN, выключи его — и попробуй ещё раз.</p>
+                    <p className="future-status">Не получилось подготовить прогноз. Проверь соединение, если включён VPN, выключи его, и попробуй ещё раз.</p>
                     <button type="button" className="future-read" onClick={() => openReading(selected.dayKey)}>Повторить</button>
                   </>
                 ) : (() => {
@@ -402,21 +402,21 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
                 })()
             ) : <p className="future-status" role="status">Готовим прогноз на {formatDayRu(selected.dayKey)}…</p>
           ) : access === 'locked' ? (
-            <button type="button" className="future-read is-locked" onClick={onRequestPremium}><LockKeyhole size={15} aria-hidden="true" />Прогноз на этот день — в NEBO+</button>
+            <button type="button" className="future-read is-locked" onClick={onRequestPremium}><LockKeyhole size={15} aria-hidden="true" />Прогноз на этот день, в NEBO+</button>
           ) : access === 'events-only' ? (
             <p className="future-status">По дням открыт ближайший месяц. Этот день войдёт в него ближе к дате, а пока смотри главное месяца ниже.</p>
           ) : null}
         </section>
       ) : (
-        <p className="future-hint">Нажми на день — покажем, чем он будет для тебя.</p>
+        <p className="future-hint">Нажми на день, покажем, чем он будет для тебя.</p>
       )}
 
       {!premium && natal && visiblePersonal.length ? (
         <PremiumHook
           title={`В ${monthIn} ${visiblePersonal.length} ${importantDaysWord(visiblePersonal.length)} для тебя`}
-          items={visiblePersonal.slice(0, 4).map((event) => `${formatDayRu(event.dayKey)} — ${event.headline}`)}
+          items={visiblePersonal.slice(0, 4).map((event) => `${formatDayRu(event.dayKey)} - ${event.headline}`)}
           cta="Открыть своё будущее"
-          note={`С NEBO+ каждый день на месяц вперёд и главное по месяцам — до года`}
+          note={`С NEBO+ каждый день на месяц вперёд и главное по месяцам, до года`}
           onOpen={onRequestPremium}
         />
       ) : null}

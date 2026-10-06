@@ -21,7 +21,7 @@ export async function getAiContentHealth(): Promise<AiContentHealth> {
   const openaiKeyPresent = Boolean(process.env.OPENAI_API_KEY);
   const problems = openaiKeyPresent
     ? []
-    : ['OPENAI_API_KEY не задан — генерация Luna недоступна, остаются только безопасные фолбэки.'];
+    : ['OPENAI_API_KEY не задан, генерация Luna недоступна, остаются только безопасные фолбэки.'];
 
   return {
     openaiKeyPresent,
@@ -56,13 +56,13 @@ export async function pingAiGeneration(): Promise<AiPingResult> {
       status: 'error',
       durationMs: 0,
       errorCode: 'OPENAI_API_KEY_MISSING',
-      rejectionReason: 'OPENAI_API_KEY не задан — генерация недоступна.',
+      rejectionReason: 'OPENAI_API_KEY не задан, генерация недоступна.',
     });
     return {
       ok: false,
       model: OPENAI_LUNA_MODEL,
       latencyMs: 0,
-      error: 'OPENAI_API_KEY не задан — генерация недоступна.',
+      error: 'OPENAI_API_KEY не задан, генерация недоступна.',
     };
   }
 

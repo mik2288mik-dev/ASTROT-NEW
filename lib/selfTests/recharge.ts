@@ -4,7 +4,7 @@ import type { SelfTestDefinition } from './types';
 export const RECHARGE_TEST: SelfTestDefinition = {
   id: 'recharge',
   title: { ru: 'Что тебя заряжает', en: 'What recharges you' },
-  subtitle: { ru: 'Люди, тишина, тело или новое — где ты на самом деле отдыхаешь', en: 'People, quiet, the body or something new — where you truly rest' },
+  subtitle: { ru: 'Люди, тишина, тело или новое, где ты на самом деле отдыхаешь', en: 'People, quiet, the body or something new, where you truly rest' },
   minutes: 2,
   questions: [
     {
@@ -14,16 +14,16 @@ export const RECHARGE_TEST: SelfTestDefinition = {
         { text: { ru: 'Бар или кухня с друзьями', en: 'A bar or a kitchen with friends' }, to: ['people'] },
         { text: { ru: 'Выключить телефон и побыть в тишине', en: 'Switch off the phone and be in silence' }, to: ['quiet'] },
         { text: { ru: 'Горячий душ, вкусная еда и рано спать', en: 'A hot shower, good food and an early night' }, to: ['body'] },
-        { text: { ru: 'Новое место — кафе, выставка, куда угодно', en: 'A new place — a café, an exhibition, anywhere' }, to: ['new'] },
+        { text: { ru: 'Новое место, кафе, выставка, куда угодно', en: 'A new place, a café, an exhibition, anywhere' }, to: ['new'] },
       ],
     },
     {
       id: 'r2',
-      text: { ru: 'Идеальный выходной день — это…', en: 'A perfect day off is…' },
+      text: { ru: 'Идеальный выходной день, это…', en: 'A perfect day off is…' },
       options: [
         { text: { ru: 'Встречи с теми, по кому скучаю', en: 'Seeing people I have missed' }, to: ['people'] },
         { text: { ru: 'День, когда никто ничего от тебя не хочет', en: 'A day when nobody wants anything from me' }, to: ['quiet'] },
-        { text: { ru: 'Прогулка, баня или спорт — чтобы тело гудело', en: 'A walk, sauna or sport — so the body hums' }, to: ['body'] },
+        { text: { ru: 'Прогулка, баня или спорт, чтобы тело гудело', en: 'A walk, sauna or sport, so the body hums' }, to: ['body'] },
         { text: { ru: 'Поездка в незнакомый город', en: 'A trip to a town I have never been to' }, to: ['new'] },
       ],
     },
@@ -44,7 +44,7 @@ export const RECHARGE_TEST: SelfTestDefinition = {
         { text: { ru: 'Позвонить другу и поболтать', en: 'Calling a friend for a chat' }, to: ['people'] },
         { text: { ru: 'Час с книгой или любимой музыкой', en: 'An hour with a book or favourite music' }, to: ['quiet'] },
         { text: { ru: 'Пробежка, танцы, любая нагрузка', en: 'A run, dancing, any workout' }, to: ['body'] },
-        { text: { ru: 'Узнать что-то новое — видео, лекция, идея', en: 'Learning something new — a video, a talk, an idea' }, to: ['new'] },
+        { text: { ru: 'Узнать что-то новое, видео, лекция, идея', en: 'Learning something new, a video, a talk, an idea' }, to: ['new'] },
       ],
     },
     {
@@ -92,8 +92,8 @@ export const RECHARGE_TEST: SelfTestDefinition = {
       text: { ru: 'Хобби, в котором ты отдыхаешь душой…', en: 'A hobby where you truly rest…' },
       options: [
         { text: { ru: 'Настолки, клубы, любые встречи', en: 'Board games, clubs, any meetups' }, to: ['people'] },
-        { text: { ru: 'Рисовать, читать, вязать — в своём углу', en: 'Drawing, reading, knitting — in my corner' }, to: ['quiet'] },
-        { text: { ru: 'Спорт, сад, ремонт — руками и ногами', en: 'Sport, garden, DIY — hands and feet' }, to: ['body'] },
+        { text: { ru: 'Рисовать, читать, вязать, в своём углу', en: 'Drawing, reading, knitting, in my corner' }, to: ['quiet'] },
+        { text: { ru: 'Спорт, сад, ремонт, руками и ногами', en: 'Sport, garden, DIY, hands and feet' }, to: ['body'] },
         { text: { ru: 'Языки, путешествия, новые навыки', en: 'Languages, travel, new skills' }, to: ['new'] },
       ],
     },
@@ -101,10 +101,10 @@ export const RECHARGE_TEST: SelfTestDefinition = {
       id: 'r10',
       text: { ru: 'Какая фраза про тебя?', en: 'Which line is you?' },
       options: [
-        { text: { ru: 'Люди — моя батарейка', en: 'People are my battery' }, to: ['people'] },
-        { text: { ru: 'Тишина — лучший отдых', en: 'Silence is the best rest' }, to: ['quiet'] },
-        { text: { ru: 'В здоровом теле — нормальное настроение', en: 'Healthy body, decent mood' }, to: ['body'] },
-        { text: { ru: 'Скука — мой главный враг', en: 'Boredom is my worst enemy' }, to: ['new'] },
+        { text: { ru: 'Люди, моя батарейка', en: 'People are my battery' }, to: ['people'] },
+        { text: { ru: 'Тишина, лучший отдых', en: 'Silence is the best rest' }, to: ['quiet'] },
+        { text: { ru: 'В здоровом теле, нормальное настроение', en: 'Healthy body, decent mood' }, to: ['body'] },
+        { text: { ru: 'Скука, мой главный враг', en: 'Boredom is my worst enemy' }, to: ['new'] },
       ],
     },
   ],
@@ -116,10 +116,10 @@ export const RECHARGE_TEST: SelfTestDefinition = {
       strengths: [
         { ru: 'Быстро восстанавливаешься рядом с людьми', en: 'You recover fast around people' },
         { ru: 'Легко просишь поддержки', en: 'You easily ask for support' },
-        { ru: 'Заряжаешь других — с тобой весело', en: 'You lift others — it is fun with you' },
+        { ru: 'Заряжаешь других, с тобой весело', en: 'You lift others, it is fun with you' },
       ],
       watch: [
-        { ru: 'Не все встречи заряжают — некоторые люди, наоборот, забирают силы', en: 'Not every meeting recharges — some people take it away' },
+        { ru: 'Не все встречи заряжают, некоторые люди, наоборот, забирают силы', en: 'Not every meeting recharges, some people take it away' },
         { ru: 'Без планов на вечер может накрыть тоской', en: 'An evening without plans may get gloomy' },
       ],
       tip: { ru: 'Держи в неделе хотя бы одну встречу с человеком, после которого легко. Не «надо», а «хочу».', en: 'Keep at least one meeting a week with someone who makes it easy. Not "should", but "want".' },
@@ -134,7 +134,7 @@ export const RECHARGE_TEST: SelfTestDefinition = {
         { ru: 'Не зависишь от чужого настроения', en: 'You do not depend on others’ moods' },
       ],
       watch: [
-        { ru: 'Близкие могут принять паузу на свой счёт — предупреди их', en: 'People close may take your pause personally — tell them' },
+        { ru: 'Близкие могут принять паузу на свой счёт, предупреди их', en: 'People close may take your pause personally, tell them' },
         { ru: 'Без тишины неделями с людьми становится трудно', en: 'Weeks without quiet make you prickly' },
       ],
       tip: { ru: 'Поставь в календарь «час для себя» так же серьёзно, как встречу. И не отменяй его ради других.', en: 'Put "an hour for me" in the calendar as seriously as a meeting. And do not cancel it for others.' },
@@ -149,7 +149,7 @@ export const RECHARGE_TEST: SelfTestDefinition = {
         { ru: 'Быстро снимаешь стресс движением', en: 'You shake off stress by moving' },
       ],
       watch: [
-        { ru: 'Недосып сразу бьёт по настроению — это не каприз', en: 'Lack of sleep hits your mood right away — it is not a whim' },
+        { ru: 'Недосып сразу бьёт по настроению, это не каприз', en: 'Lack of sleep hits your mood right away, it is not a whim' },
         { ru: 'Сидячий день делает тебя раздражительным', en: 'A day sitting still makes you irritable' },
       ],
       tip: { ru: 'Когда всё бесит, сначала проверь три вещи: сон, еда, движение. Часто дело в одной из них.', en: 'When everything annoys you, check three things first: sleep, food, movement. It is often one of them.' },

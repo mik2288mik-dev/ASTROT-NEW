@@ -162,7 +162,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
               {ru ? 'Предыдущий вопрос' : 'Previous question'}
             </button>
           ) : null}
-          <p className="tests-run-note">{ru ? 'Отвечай первое, что приходит в голову. Ответ сохраняется — можно закрыть и продолжить позже.' : 'Answer with your first thought. Answers are saved — you can close and continue later.'}</p>
+          <p className="tests-run-note">{ru ? 'Отвечай первое, что приходит в голову. Ответ сохраняется, можно закрыть и продолжить позже.' : 'Answer with your first thought. Answers are saved, you can close and continue later.'}</p>
         </section>
       </div>
     );
@@ -182,7 +182,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
           <p className="tests-result-lead">{result.lead[language]}</p>
           {second ? (
             <p className="tests-result-second">
-              {ru ? `А ещё в тебе много от результата «${second.title.ru}» — они почти поровну.` : `There is also a lot of «${second.title.en}» in you — almost equal.`}
+              {ru ? `А ещё в тебе много от результата «${second.title.ru}», они почти поровну.` : `There is also a lot of «${second.title.en}» in you, almost equal.`}
             </p>
           ) : null}
           <div className="tests-result-bars" aria-label={ru ? 'Как распределились ответы' : 'How your answers split'}>
@@ -212,7 +212,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
               <p>{insight.text}</p>
             ) : (
               <>
-                <p>{ru ? 'Сохрани свою натальную карту — и мы сравним результат теста с ней.' : 'Save your natal chart and we will compare the result with it.'}</p>
+                <p>{ru ? 'Сохрани свою натальную карту, и мы сравним результат теста с ней.' : 'Save your natal chart and we will compare the result with it.'}</p>
                 {onOpenNatal ? <button type="button" className="tests-secondary" onClick={onOpenNatal}>{ru ? 'Открыть карту' : 'Open the chart'}</button> : null}
               </>
             )}
@@ -236,7 +236,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
       <section className="tests-intro video-hero">
         <VideoBackground id="tests" still />
         <h1>{ru ? 'Узнай себя чуть лучше' : 'Get to know yourself a bit better'}</h1>
-        <p>{ru ? 'Короткие тесты на пару минут. Без правильных ответов и без оценок — а в конце сравним с твоей картой.' : 'Short tests, a couple of minutes each. No right answers, no grades — and at the end we compare with your chart.'}</p>
+        <p>{ru ? 'Короткие тесты на пару минут. Без правильных ответов и без оценок, а в конце сравним с твоей картой.' : 'Short tests, a couple of minutes each. No right answers, no grades, and at the end we compare with your chart.'}</p>
       </section>
       <div className="tests-list">
         {SELF_TESTS.map((test) => {
@@ -267,7 +267,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
             <AssetSlot src="/assets/tests/mood-week.webp" className="tests-card-art" />
             <span className="tests-card-copy">
               <strong>{ru ? 'Неделя настроения' : 'Mood week'}</strong>
-              <small>{ru ? '7 дней по четыре отметки — и отчёт, когда тебе лучше и труднее' : '7 days, four check-ins a day — and a report on your ups and downs'}</small>
+              <small>{ru ? '7 дней по четыре отметки, и отчёт, когда тебе лучше и труднее' : '7 days, four check-ins a day, and a report on your ups and downs'}</small>
               <span className="tests-card-meta">{ru ? '5 секунд в день, четыре раза' : '5 seconds, four times a day'}</span>
             </span>
             <ChevronRight size={18} aria-hidden="true" />

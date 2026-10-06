@@ -1104,7 +1104,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                     setAuthSessionModeState('signed_out');
                     setAuthGateMessage(isFreshNativeLaunch
                         ? null
-                        : 'Сессия завершена. Войди снова — старый аккаунт и его данные никуда не пропали.');
+                        : 'Сессия завершена. Войди снова, старый аккаунт и его данные никуда не пропали.');
                     setStartupError(null);
                 } else {
                     reportClientError('startup', error);
@@ -1771,7 +1771,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 }
             }
             setCheckoutNotice(paymentResult.reason.startsWith('TELEGRAM_')
-                ? 'Telegram ещё подтверждает оплату. Не открывай новый счёт — Premium включится после подтверждения.'
+                ? 'Telegram ещё подтверждает оплату. Не открывай новый счёт, Premium включится после подтверждения.'
                 : 'Оплата ещё обрабатывается в RuStore. Дождись результата или нажми «Восстановить покупку».');
             return 'pending';
         }
@@ -1788,7 +1788,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             finishPurchase(
                 'checkout_failed',
                 paymentFailureCopy(paymentResult.reason, 'ru')
-                    || 'Подписка сейчас не активна. Проверь её статус в RuStore — повторно покупать не нужно.',
+                    || 'Подписка сейчас не активна. Проверь её статус в RuStore, повторно покупать не нужно.',
             );
             return 'failed';
         }
@@ -1831,7 +1831,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         if (activeProfileUserIdRef.current !== paymentUserId) return 'failed';
         if (!validatedPatch || !hasActivePremium(validatedPatch)) {
             if (!paymentResult.entitlement) {
-                setCheckoutNotice('Оплата завершена, но сервер ещё подтверждает Premium. Новый счёт не откроется — проверь статус этой же кнопкой.');
+                setCheckoutNotice('Оплата завершена, но сервер ещё подтверждает Premium. Новый счёт не откроется, проверь статус этой же кнопкой.');
                 return 'pending';
             }
             void recordUserAppEvent({
@@ -1977,7 +1977,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             setView('dashboard');
             setCheckoutNotice(profile.language === 'en'
                 ? 'Your personal Today comes first. Read the open part, then Premium options will appear.'
-                : 'Сначала — твой личный Today. Прочитай открытую часть, и затем появятся возможности Premium.');
+                : 'Сначала, твой личный Today. Прочитай открытую часть, и затем появятся возможности Premium.');
             return;
         }
         // A controlled Week/Month request can leave Today mounted behind the
@@ -2381,7 +2381,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         const pending = pendingPremiumRecovery;
         setPendingPremiumRecovery(null);
         setPaywallInitialPlanId(pending.planId);
-        setPaywallResumeNotice('Способ восстановления привязан. Выбранный тариф сохранён — можно продолжить покупку.');
+        setPaywallResumeNotice('Способ восстановления привязан. Выбранный тариф сохранён, можно продолжить покупку.');
         setView(pending.context.returnView);
         setPaywallContext(pending.context);
     }, [pendingPremiumRecovery]);
@@ -2510,7 +2510,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                     </h1>
                     <p style={{ margin: '0 0 20px', fontSize: 15, lineHeight: 1.55, color: '#4f4b45' }}>{startupError}</p>
                     <p style={{ width: '100%', margin: '0 0 24px', padding: '12px 16px', borderRadius: 16, background: '#f4f6fa', fontSize: 14, lineHeight: 1.45, color: '#45413d' }}>
-                        Если включён VPN — выключи его и попробуй ещё раз. Иногда VPN мешает приложению подключиться.
+                        Если включён VPN, выключи его и попробуй ещё раз. Иногда VPN мешает приложению подключиться.
                     </p>
                     <button
                         type="button"

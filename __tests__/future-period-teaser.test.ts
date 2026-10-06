@@ -21,7 +21,7 @@ const venus = {
   dayKey: '2026-10-07', planet: 'Venus' as const, point: 'sun' as const, aspect: 120 as const, tone: 'good' as const,
   headline: 'Венера к твоему Солнцу', body: 'Приятный день для встреч',
 };
-const fullMoon = { dayKey: '2026-10-09', kind: 'moon' as const, quarter: 'full' as const, headline: 'Полнолуние', body: 'Эмоции громче обычного — не спеши с выводами' };
+const fullMoon = { dayKey: '2026-10-09', kind: 'moon' as const, quarter: 'full' as const, headline: 'Полнолуние', body: 'Эмоции громче обычного, не спеши с выводами' };
 
 describe('future period teasers', () => {
   const days = [
@@ -36,8 +36,8 @@ describe('future period teasers', () => {
   it('builds week lines from the person’s own days that are still ahead', () => {
     const lines = buildWeekTeaser({ days, fromKey: '2026-10-06', toKey: '2026-10-11', hasNatal: true, language: 'ru' });
     expect(lines[0]).toBe('По твоей карте на этой неделе 1 лёгкий день и 1 напряжённый.');
-    expect(lines[1]).toBe('Ближайший личный день — 7 октября: Венера к твоему Солнцу.');
-    expect(lines[2]).toBe('9 октября — полнолуние: эмоции громче обычного — не спеши с выводами.');
+    expect(lines[1]).toBe('Ближайший личный день, 7 октября: Венера к твоему Солнцу.');
+    expect(lines[2]).toBe('9 октября, полнолуние: эмоции громче обычного, не спеши с выводами.');
   });
 
   it('does not invent personal days without a saved chart', () => {

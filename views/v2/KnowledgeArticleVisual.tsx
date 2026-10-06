@@ -118,7 +118,7 @@ function SignArtwork({ visual, language }: { visual: SignVisual; language: Knowl
         alt={ru ? 'Образ знака зодиака' : 'Zodiac sign illustration'}
         priority={false}
       />
-      <figcaption>{ru ? 'Стихия показывает общую группу знака, модальность — его способ начинать, продолжать или менять действие.' : 'Element names the sign group; modality describes how it starts, sustains, or adapts action.'}</figcaption>
+      <figcaption>{ru ? 'Стихия показывает общую группу знака, модальность, его способ начинать, продолжать или менять действие.' : 'Element names the sign group; modality describes how it starts, sustains, or adapts action.'}</figcaption>
     </figure>
   );
 }
@@ -140,7 +140,7 @@ function ObjectArtwork({ visual, language }: { visual: ObjectVisual; language: K
         <strong>{visual.type[ru ? 0 : 1]}</strong>
         <small>{visual.note[ru ? 0 : 1]}</small>
       </div>
-      <figcaption>{ru ? 'Сначала — тип реального объекта или точки. Астрологическое значение объясняется отдельно в статье.' : 'First comes the real object or point type. Its astrological interpretation is explained separately.'}</figcaption>
+      <figcaption>{ru ? 'Сначала, тип реального объекта или точки. Астрологическое значение объясняется отдельно в статье.' : 'First comes the real object or point type. Its astrological interpretation is explained separately.'}</figcaption>
     </figure>
   );
 }

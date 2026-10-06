@@ -117,7 +117,7 @@ export function StorySeriesEditor({ initial, enabled, isNew, builtIn, edited, bu
       </div>
 
       <div>
-        <p className="mb-1 text-sm font-semibold text-slate-700">Сюжетные линии (по одной строке на событие — серии идут по ним по очереди)</p>
+        <p className="mb-1 text-sm font-semibold text-slate-700">Сюжетные линии (по одной строке на событие, серии идут по ним по очереди)</p>
         <div className="space-y-2">
           {draft.arcs.map((arc, index) => (
             <div key={index} className="rounded-lg border border-slate-200 p-2">
@@ -137,7 +137,7 @@ export function StorySeriesEditor({ initial, enabled, isNew, builtIn, edited, bu
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={on} disabled={!canEdit} onChange={(e) => setOn(e.target.checked)} />
-        Сериал виден читателям и пишутся новые серии (снимите — пауза)
+        Сериал виден читателям и пишутся новые серии (снимите, пауза)
       </label>
 
       {canEdit ? (
