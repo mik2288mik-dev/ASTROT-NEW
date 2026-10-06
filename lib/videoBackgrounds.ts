@@ -5,7 +5,7 @@
  * motion is switched off.
  */
 export const VIDEO_BACKGROUND_IDS = [
-  'onboarding-day', 'onboarding-self', 'onboarding-people', 'onboarding-choice', 'onboarding-birth',
+  'onboarding-day', 'onboarding-self', 'onboarding-people', 'onboarding-choice', 'onboarding-birth', 'onboarding-future', 'onboarding-more',
   'sounds-rain', 'sounds-forest', 'sounds-stream', 'sounds-sea', 'sounds-fire', 'sounds-cafe', 'sounds-night',
   'stories-catalog', 'story-quiet-lane', 'story-stair-neighbours', 'story-polyn-station', 'story-family-chat',
   'sleep-sea-house', 'sleep-night-train', 'sleep-garden-rain',

@@ -74,6 +74,17 @@ function readableAuthError(error: unknown): string {
   return 'Не удалось завершить вход. Проверь данные и соединение, затем попробуй снова.';
 }
 
+const LANDING_FEATURES: ReadonlyArray<{ title: string; text: string }> = [
+  { title: 'Личный прогноз', text: 'На день, неделю и месяц, можно слушать голосом' },
+  { title: 'Натальная карта', text: 'Простыми словами, с вопросами по ней' },
+  { title: 'Матрица судьбы', text: 'По одной дате рождения' },
+  { title: 'Совместимость', text: 'С партнёром, другом и семьёй' },
+  { title: 'Календарь важных дней', text: 'Когда лучше действовать' },
+  { title: 'Антистресс', text: 'Дыхание, расслабление тела, звуки' },
+  { title: 'Звуки и сказки', text: 'Для сна и спокойствия' },
+  { title: 'Рассказы и тесты', text: 'Что-то новое каждый день' },
+];
+
 const fieldClass = 'min-h-[50px] w-full rounded-2xl border border-[#dfe3e8] bg-white px-4 text-[16px] text-[#111827] outline-none transition-colors placeholder:text-[#9aa0aa] focus:border-[#4f6f62] disabled:bg-[#f5f6f7]';
 const primaryClass = 'auth-primary-button min-h-12 w-full rounded-2xl px-5 text-[16px] font-semibold disabled:cursor-not-allowed disabled:opacity-50';
 const providerClass = 'auth-provider-button min-h-12 w-full rounded-2xl px-3 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-50';
@@ -435,27 +446,13 @@ export const AuthGate: React.FC<AuthGateProps> = ({
               <p className="mx-auto mt-2.5 text-center text-[15px] leading-[1.35] text-[#62676f]">
                 Личный прогноз на сегодня, неделю и месяц, по твоим данным рождения.
               </p>
-              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-left">
-                <div className="min-w-0">
-                  <strong className="block text-[14px] leading-[1.15]">Все знаки зодиака</strong>
-                  <span className="mt-0.5 block text-[13px] leading-4 text-[#62676f]">Сегодня, неделя и месяц</span>
-                </div>
-                <div className="min-w-0">
-                  <strong className="block text-[14px] leading-[1.15]">Полная натальная карта</strong>
-                  <span className="mt-0.5 block text-[13px] leading-4 text-[#62676f]">Планеты, дома, аспекты и разбор</span>
-                </div>
-                <div className="min-w-0">
-                  <strong className="block text-[14px] leading-[1.15]">Совместимость</strong>
-                  <span className="mt-0.5 block text-[13px] leading-4 text-[#62676f]">По знакам зодиака и двум картам</span>
-                </div>
-                <div className="min-w-0">
-                  <strong className="block text-[14px] leading-[1.15]">ИИ-астролог</strong>
-                  <span className="mt-0.5 block text-[13px] leading-4 text-[#62676f]">Вопросы по своей карте</span>
-                </div>
-                <div className="col-span-2 min-w-0">
-                  <strong className="inline text-[14px] leading-4">Библиотека</strong>
-                  <span className="ml-1 text-[13px] leading-4 text-[#62676f]">— понятные материалы об астрологии</span>
-                </div>
+              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-left">
+                {LANDING_FEATURES.map((item) => (
+                  <div key={item.title} className="min-w-0">
+                    <strong className="block text-[14px] leading-[1.15]">{item.title}</strong>
+                    <span className="mt-0.5 block text-[12.5px] leading-[1.25] text-[#62676f]">{item.text}</span>
+                  </div>
+                ))}
               </div>
               <button
                 type="button"
@@ -486,13 +483,19 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                     onClick={() => { void runProvider(provider.id); }}
                   >
                     <span className={`auth-provider-mark auth-provider-mark--${provider.id}`} aria-hidden="true">
-                      {provider.id === 'yandex' ? 'Я' : (
+                      {provider.id === 'yandex' ? (
+                        <img src="/assets/brand/yandex-id-mark.png" alt="" draggable={false} />
+                      ) : (
                         <svg viewBox="0 0 24 24" focusable="false">
-                          <path d="M2.5 6.2h3.4l3.25 7.05V6.2h3.05v4.1l3.65-4.1h3.75l-4.45 4.85 5.05 6.75h-3.9l-4.1-5.45v5.45H8.65L2.5 6.2Z" />
+                          <path d="M12.785 16.241s.288-.032.436-.194c.136-.148.132-.427.132-.427s-.02-1.304.576-1.496c.588-.19 1.341 1.26 2.14 1.818.605.422 1.064.33 1.064.33l2.137-.03s1.117-.071.587-.964c-.043-.073-.308-.661-1.588-1.87-1.34-1.264-1.16-1.059.453-3.246.983-1.332 1.376-2.145 1.253-2.493-.117-.332-.84-.244-.84-.244l-2.406.015s-.178-.025-.31.056c-.13.079-.212.262-.212.262s-.382 1.03-.89 1.907c-1.07 1.85-1.499 1.948-1.674 1.832-.407-.267-.305-1.075-.305-1.648 0-1.793.267-2.54-.521-2.733-.262-.065-.454-.107-1.123-.114-.858-.009-1.585.003-1.996.208-.274.136-.485.44-.356.457.159.022.519.099.71.363.246.341.237 1.107.237 1.107s.142 2.11-.33 2.371c-.325.18-.77-.187-1.725-1.865-.489-.859-.859-1.809-.859-1.809s-.07-.177-.198-.272c-.154-.115-.37-.151-.37-.151l-2.286.015s-.343.01-.469.161c-.112.134-.009.411-.009.411s1.79 4.258 3.817 6.403c1.858 1.967 3.968 1.838 3.968 1.838h.957z" />
                         </svg>
                       )}
                     </span>
-                    <span>{busy === provider.id ? 'Открываем…' : provider.shortLabel}</span>
+                    {provider.id === 'yandex' && busy !== 'yandex' ? (
+                      <img className="auth-yandex-wordmark" src="/assets/brand/yandex-wordmark.png" alt="" draggable={false} />
+                    ) : (
+                      <span>{busy === provider.id ? 'Открываем…' : provider.shortLabel}</span>
+                    )}
                   </button>
                 ))}
                 {telegramReady ? (
@@ -515,7 +518,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                     disabled={busy !== null}
                     onClick={() => changeScreen('login')}
                   >
-                    <Mail size={19} strokeWidth={2} aria-hidden="true" />
+                    <span className="auth-provider-mark auth-provider-mark--email" aria-hidden="true"><Mail size={19} strokeWidth={2.2} /></span>
                     <span>Войти по email</span>
                   </button>
                 ) : null}
