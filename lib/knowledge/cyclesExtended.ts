@@ -7,14 +7,14 @@ export const CYCLE_EXTENDED_TOPICS = [
   topic({
     id: 'lunar-cycle', category: 'moon-cycles',
     title: { ru: 'Лунный цикл', en: 'Lunar cycle' },
-    summary: { ru: 'Лунный цикл — повторение фаз от одного новолуния до следующего. Он длится в среднем около двадцати девяти с половиной суток и связан с изменением положения Луны относительно Земли и Солнца.', en: 'The lunar phase cycle runs from one new moon to the next and lasts about 29.5 days.' },
+    summary: { ru: 'Лунный цикл, повторение фаз от одного новолуния до следующего. Он длится в среднем около двадцати девяти с половиной суток и связан с изменением положения Луны относительно Земли и Солнца.', en: 'The lunar phase cycle runs from one new moon to the next and lasts about 29.5 days.' },
     shortAnswer: { ru: 'Луна не меняет форму: с Земли мы видим разную долю её освещённой Солнцем половины.', en: 'The Moon does not change shape; we see different portions of its sunlit half.' },
     aliases: { ru: ['лунный цикл', 'цикл луны', 'синодический месяц', 'двадцать девять с половиной суток'], en: ['lunar cycle', 'synodic month', '29.5 days'] },
     ruSections: [
       { title: 'Как возникает цикл', kind: 'mechanism', paragraphs: ['Солнце всегда освещает примерно половину Луны. Пока Луна обращается вокруг Земли, меняется угол, под которым мы видим освещённую часть. Так последовательно возникают новолуние, растущие фазы, полнолуние и убывающие фазы.'] },
       { title: 'Почему не ровно месяц', kind: 'fact', paragraphs: ['За время одного оборота Луны Земля тоже проходит часть пути вокруг Солнца. Луне нужно ещё немного продвинуться, чтобы снова оказаться в той же фазовой геометрии. Поэтому цикл фаз длиннее её оборота относительно далёких звёзд.'] },
       { title: 'В астрологии', kind: 'astrology', paragraphs: ['Астрологи используют фазы как символические стадии процесса: начало, развитие, кульминацию и завершение. Это интерпретация цикла, а не физическое доказательство одинакового влияния на события или поведение.'] },
-      { title: 'Часто путают', kind: 'confusion', paragraphs: ['Лунный цикл не равен календарному месяцу. Полнолуние не всегда является лунным затмением, а новолуние — солнечным. Для затмения требуется дополнительное выравнивание около лунных узлов.'] },
+      { title: 'Часто путают', kind: 'confusion', paragraphs: ['Лунный цикл не равен календарному месяцу. Полнолуние не всегда является лунным затмением, а новолуние, солнечным. Для затмения требуется дополнительное выравнивание около лунных узлов.'] },
     ],
     relatedTopicIds: ['moon-phase', 'new-moon', 'full-moon', 'moon-first-quarter', 'moon-last-quarter', 'nodes-overview'],
     diagram: 'moon-phases', sourceIds: ['nasa-moon-phases', 'nasa-eclipses'],
@@ -22,13 +22,13 @@ export const CYCLE_EXTENDED_TOPICS = [
   topic({
     id: 'moon-first-quarter', category: 'moon-cycles',
     title: { ru: 'Первая четверть Луны', en: 'First-quarter Moon' },
-    summary: { ru: 'Первая четверть — фаза примерно через неделю после новолуния, когда с Земли освещённой выглядит половина видимого диска Луны.', en: 'First quarter occurs about a week after new moon, when half the visible lunar disk is illuminated.' },
+    summary: { ru: 'Первая четверть, фаза примерно через неделю после новолуния, когда с Земли освещённой выглядит половина видимого диска Луны.', en: 'First quarter occurs about a week after new moon, when half the visible lunar disk is illuminated.' },
     shortAnswer: { ru: 'Название говорит, что пройдена примерно четверть цикла, а не что видна четверть Луны.', en: 'The name marks one quarter of the cycle, not one quarter of the Moon being visible.' },
     aliases: { ru: ['первая четверть', 'первая четверть луны', 'растущая половина луны'], en: ['first quarter moon', 'first quarter'] },
     ruSections: [
       { title: 'Почему видна половина', kind: 'mechanism', paragraphs: ['Направления на Солнце и Луну образуют с Земли угол около девяноста градусов. Мы видим половину освещённой стороны и половину ночной стороны Луны.'] },
       { title: 'В астрологии', kind: 'astrology', paragraphs: ['Эту фазу обычно связывают с переходом от намерения к действию и с необходимостью преодолевать первые препятствия. Это символическая трактовка квадратуры Солнца и Луны.'] },
-      { title: 'Часто путают', kind: 'confusion', paragraphs: ['Первая четверть — растущая фаза. В Северном и Южном полушариях освещённая часть визуально ориентирована по-разному.'] },
+      { title: 'Часто путают', kind: 'confusion', paragraphs: ['Первая четверть, растущая фаза. В Северном и Южном полушариях освещённая часть визуально ориентирована по-разному.'] },
     ],
     relatedTopicIds: ['lunar-cycle', 'new-moon', 'waxing-moon', 'aspect-square', 'moon-last-quarter'],
     sourceIds: ['nasa-moon-phases'],
@@ -36,7 +36,7 @@ export const CYCLE_EXTENDED_TOPICS = [
   topic({
     id: 'moon-last-quarter', category: 'moon-cycles',
     title: { ru: 'Последняя четверть Луны', en: 'Last-quarter Moon' },
-    summary: { ru: 'Последняя четверть — фаза примерно через неделю после полнолуния, когда снова видна половина освещённого диска, но Луна уже убывает.', en: 'Last quarter occurs about a week after full moon, when half the visible disk is lit and the Moon is waning.' },
+    summary: { ru: 'Последняя четверть, фаза примерно через неделю после полнолуния, когда снова видна половина освещённого диска, но Луна уже убывает.', en: 'Last quarter occurs about a week after full moon, when half the visible disk is lit and the Moon is waning.' },
     shortAnswer: { ru: 'Это три четверти пути от прошлого новолуния и последняя крупная фаза перед новым циклом.', en: 'It marks three quarters of the way through the phase cycle.' },
     aliases: { ru: ['последняя четверть', 'третья четверть', 'убывающая половина луны'], en: ['last quarter moon', 'third quarter moon'] },
     ruSections: [
@@ -54,8 +54,8 @@ export const CYCLE_EXTENDED_TOPICS = [
     shortAnswer: { ru: 'Не каждое новолуние даёт затмение: Луна должна находиться достаточно близко к одному из лунных узлов.', en: 'Not every new moon is an eclipse; the Moon must be near a lunar node.' },
     aliases: { ru: ['солнечное затмение', 'затмение солнца'], en: ['solar eclipse', 'eclipse of the sun'] },
     ruSections: [
-      { title: 'Как возникает', kind: 'mechanism', paragraphs: ['Орбита Луны наклонена к плоскости земной орбиты. Обычно в новолуние Луна проходит чуть выше или ниже направления на Солнце. Затмение возможно только рядом с точками пересечения этих плоскостей — лунными узлами.'] },
-      { title: 'Что видно', kind: 'fact', paragraphs: ['При полном затмении Луна закрывает яркий диск Солнца для узкой полосы Земли. При частном — закрывает только часть диска. Наблюдать Солнце без специальной защиты для глаз опасно.'] },
+      { title: 'Как возникает', kind: 'mechanism', paragraphs: ['Орбита Луны наклонена к плоскости земной орбиты. Обычно в новолуние Луна проходит чуть выше или ниже направления на Солнце. Затмение возможно только рядом с точками пересечения этих плоскостей, лунными узлами.'] },
+      { title: 'Что видно', kind: 'fact', paragraphs: ['При полном затмении Луна закрывает яркий диск Солнца для узкой полосы Земли. При частном, закрывает только часть диска. Наблюдать Солнце без специальной защиты для глаз опасно.'] },
       { title: 'В астрологии', kind: 'astrology', paragraphs: ['Астрологи рассматривают солнечное затмение как усиленное новолуние и учитывают его знак, градус и связи с картой. Такая трактовка относится к традиции и не описывает физический механизм затмения.'] },
       { title: 'Часто путают', kind: 'confusion', paragraphs: ['Солнечное затмение бывает только около новолуния, но большинство новолуний проходит без затмения.'] },
     ],
@@ -73,7 +73,7 @@ export const CYCLE_EXTENDED_TOPICS = [
       { title: 'Как возникает', kind: 'mechanism', paragraphs: ['Для затмения Солнце, Земля и Луна должны выстроиться достаточно точно. Это возможно, когда полнолуние проходит рядом с лунным узлом; в остальные месяцы Луна проходит выше или ниже земной тени.'] },
       { title: 'Почему Луна может стать красной', kind: 'fact', paragraphs: ['Во время полного затмения часть солнечного света проходит через атмосферу Земли. Короткие синие волны сильнее рассеиваются, а красные лучше доходят до Луны и отражаются обратно.'] },
       { title: 'В астрологии', kind: 'astrology', paragraphs: ['Лунное затмение трактуют как усиленное полнолуние и связывают с кульминацией или завершением. Это символическое чтение, а не гарантия внешнего события.'] },
-      { title: 'Часто путают', kind: 'confusion', paragraphs: ['Обычное полнолуние не означает, что Луна входит в тень Земли. Освещённый полный диск и затмение — разные явления.'] },
+      { title: 'Часто путают', kind: 'confusion', paragraphs: ['Обычное полнолуние не означает, что Луна входит в тень Земли. Освещённый полный диск и затмение, разные явления.'] },
     ],
     relatedTopicIds: ['full-moon', 'solar-eclipse', 'nodes-overview', 'aspect-opposition'],
     diagram: 'eclipses',
@@ -83,10 +83,10 @@ export const CYCLE_EXTENDED_TOPICS = [
     id: 'direct-motion', category: 'retrogrades',
     title: { ru: 'Директное движение', en: 'Direct motion' },
     summary: { ru: 'Директным называют обычное видимое движение планеты по зодиаку в том направлении, которое принято считать прямым. Это описание того, как меняется её положение для наблюдателя с Земли.', en: 'Direct motion is the usual apparent direction of a planet against the zodiac as seen from Earth.' },
-    shortAnswer: { ru: 'Директное и ретроградное движение — термины геоцентрического наблюдения, а не переключение двигателя планеты.', en: 'Direct and retrograde describe apparent geocentric motion, not a planet changing engines.' },
+    shortAnswer: { ru: 'Директное и ретроградное движение, термины геоцентрического наблюдения, а не переключение двигателя планеты.', en: 'Direct and retrograde describe apparent geocentric motion, not a planet changing engines.' },
     aliases: { ru: ['директное движение', 'прямое движение', 'директная планета'], en: ['direct motion', 'prograde motion', 'direct planet'] },
     ruSections: [
-      { title: 'Как это определяют', kind: 'calculation', paragraphs: ['Сравнивают эклиптическую долготу планеты в соседние моменты. Если она растёт в принятом направлении отсчёта, движение отмечают как директное; если уменьшается — как ретроградное.'] },
+      { title: 'Как это определяют', kind: 'calculation', paragraphs: ['Сравнивают эклиптическую долготу планеты в соседние моменты. Если она растёт в принятом направлении отсчёта, движение отмечают как директное; если уменьшается, как ретроградное.'] },
       { title: 'В астрологии', kind: 'astrology', paragraphs: ['Директное положение часто трактуют как более прямое выражение символики планеты. Но оно само по себе не делает планету сильной, удачной или простой.'] },
       { title: 'Часто путают', kind: 'confusion', paragraphs: ['Планеты постоянно продолжают движение по своим орбитам вокруг Солнца. «Назад» и «вперёд» здесь описывают их видимый путь на фоне звёзд.'] },
     ],
@@ -96,12 +96,12 @@ export const CYCLE_EXTENDED_TOPICS = [
   topic({
     id: 'planetary-ingress', category: 'retrogrades',
     title: { ru: 'Ингресс', en: 'Ingress' },
-    summary: { ru: 'Ингресс — момент, когда планета или другая точка переходит из одного знака зодиака в следующий. В эфемеридах это пересечение границы нулевого градуса нового знака.', en: 'An ingress is the moment a planet or point enters a new zodiac sign.' },
-    shortAnswer: { ru: 'Ингресс — переход границы знака, а не аспект и не переход в новый дом.', en: 'An ingress is a sign boundary crossing, not an aspect or a house crossing.' },
+    summary: { ru: 'Ингресс, момент, когда планета или другая точка переходит из одного знака зодиака в следующий. В эфемеридах это пересечение границы нулевого градуса нового знака.', en: 'An ingress is the moment a planet or point enters a new zodiac sign.' },
+    shortAnswer: { ru: 'Ингресс, переход границы знака, а не аспект и не переход в новый дом.', en: 'An ingress is a sign boundary crossing, not an aspect or a house crossing.' },
     aliases: { ru: ['ингресс', 'вход планеты в знак', 'переход планеты в знак'], en: ['ingress', 'planet enters sign'] },
     ruSections: [
       { title: 'Как это определяется', kind: 'calculation', paragraphs: ['Зодиак состоит из двенадцати участков по тридцать градусов. Когда долгота объекта достигает начала следующего участка, фиксируют ингресс. При ретроградной петле объект может пересечь одну границу несколько раз.'] },
-      { title: 'Зачем это используют', kind: 'astrology', paragraphs: ['Астрологи отмечают ингресс как смену знакового контекста, через который трактуется планета. Для медленных планет такой период длится дольше, для быстрых — короче.'] },
+      { title: 'Зачем это используют', kind: 'astrology', paragraphs: ['Астрологи отмечают ингресс как смену знакового контекста, через который трактуется планета. Для медленных планет такой период длится дольше, для быстрых, короче.'] },
       { title: 'Часто путают', kind: 'confusion', paragraphs: ['Вход в знак не равен входу в дом: дома зависят от конкретной карты и системы домов.'] },
     ],
     relatedTopicIds: ['signs-overview', 'direct-motion', 'retrograde-motion', 'transits-current-sky', 'degree-and-position'],
@@ -109,8 +109,8 @@ export const CYCLE_EXTENDED_TOPICS = [
   topic({
     id: 'planetary-cycle-return', category: 'retrogrades',
     title: { ru: 'Планетарный цикл и возвращение', en: 'Planetary cycle and return' },
-    summary: { ru: 'Планетарный цикл — повторение взаимного положения планеты относительно выбранной точки отсчёта. Возвращением называют момент, когда транзитная планета снова достигает примерно той же зодиакальной долготы, что в исходной карте.', en: 'A planetary return occurs when a transiting planet reaches roughly its natal zodiac longitude again.' },
-    shortAnswer: { ru: 'Возвращение — геометрическое повторение положения, а его астрологическое значение зависит от того, какая планета вернулась.', en: 'A return is a repeated position; its astrological meaning depends on the planet.' },
+    summary: { ru: 'Планетарный цикл, повторение взаимного положения планеты относительно выбранной точки отсчёта. Возвращением называют момент, когда транзитная планета снова достигает примерно той же зодиакальной долготы, что в исходной карте.', en: 'A planetary return occurs when a transiting planet reaches roughly its natal zodiac longitude again.' },
+    shortAnswer: { ru: 'Возвращение, геометрическое повторение положения, а его астрологическое значение зависит от того, какая планета вернулась.', en: 'A return is a repeated position; its astrological meaning depends on the planet.' },
     aliases: { ru: ['планетарный цикл', 'возвращение планеты', 'планетарное возвращение', 'return chart'], en: ['planetary cycle', 'planetary return', 'return chart'] },
     ruSections: [
       { title: 'Как это определяется', kind: 'calculation', paragraphs: ['Берут долготу планеты в натальной карте и находят последующий момент, когда текущая долгота совпадает с ней. Из-за ретроградных петель точное совпадение иногда происходит несколько раз в одном цикле.'] },
@@ -122,7 +122,7 @@ export const CYCLE_EXTENDED_TOPICS = [
   topic({
     id: 'progressions', category: 'forecasts',
     title: { ru: 'Прогрессии', en: 'Progressions' },
-    summary: { ru: 'Прогрессии — астрологический метод, который символически сопоставляет короткий период после рождения с более длинным периодом жизни. В наиболее распространённых вторичных прогрессиях один день после рождения соответствует одному году жизни.', en: 'Progressions are an astrological timing method; in secondary progressions one day after birth symbolically corresponds to one year of life.' },
+    summary: { ru: 'Прогрессии, астрологический метод, который символически сопоставляет короткий период после рождения с более длинным периодом жизни. В наиболее распространённых вторичных прогрессиях один день после рождения соответствует одному году жизни.', en: 'Progressions are an astrological timing method; in secondary progressions one day after birth symbolically corresponds to one year of life.' },
     shortAnswer: { ru: 'Прогрессии не утверждают, что день физически превращается в год. Это правило пересчёта, по которому строят дополнительную карту.', en: 'Progressions do not turn a day into a year physically; they use a symbolic conversion rule.' },
     aliases: { ru: ['прогрессии', 'вторичные прогрессии', 'день за год', 'secondary progressions'], en: ['progressions', 'secondary progressions', 'day for a year'] },
     keywords: { ru: ['прогрессивная луна', 'прогрессивное солнце', 'метод прогноза', 'эфемериды'], en: ['progressed moon', 'progressed sun', 'predictive method', 'ephemeris'] },
@@ -139,13 +139,13 @@ export const CYCLE_EXTENDED_TOPICS = [
   topic({
     id: 'directions', category: 'forecasts',
     title: { ru: 'Дирекции', en: 'Directions' },
-    summary: { ru: 'Дирекции — группа астрологических методов, которые математически сдвигают точки натальной карты по выбранному ключу времени. Разные виды дирекций используют разные правила движения.', en: 'Directions are predictive methods that mathematically move natal chart points by a chosen time key.' },
-    shortAnswer: { ru: 'Дирекция — расчётный сдвиг карты, а не наблюдаемое положение планет сегодня.', en: 'A direction is a calculated shift, not today’s observed planetary position.' },
+    summary: { ru: 'Дирекции, группа астрологических методов, которые математически сдвигают точки натальной карты по выбранному ключу времени. Разные виды дирекций используют разные правила движения.', en: 'Directions are predictive methods that mathematically move natal chart points by a chosen time key.' },
+    shortAnswer: { ru: 'Дирекция, расчётный сдвиг карты, а не наблюдаемое положение планет сегодня.', en: 'A direction is a calculated shift, not today’s observed planetary position.' },
     aliases: { ru: ['дирекции', 'солярная дуга', 'первичные дирекции', 'solar arc'], en: ['directions', 'solar arc directions', 'primary directions'] },
     ruSections: [
       { title: 'Как работает метод', kind: 'calculation', paragraphs: ['В дирекциях каждой точке задают расчётное перемещение. В методе солнечной дуги все точки сдвигают примерно на столько, на сколько продвинулось прогрессивное Солнце; первичные дирекции используют движение небесной сферы и более сложную геометрию.'] },
       { title: 'Зачем это используют', kind: 'astrology', paragraphs: ['Астрологи ищут моменты, когда направленная точка образует точный аспект к натальной. Метод обычно читают вместе с транзитами, прогрессиями и контекстом исходной карты.'] },
-      { title: 'Часто путают', kind: 'confusion', paragraphs: ['Дирекции, прогрессии и транзиты — не три названия одного расчёта. Транзиты показывают реальное текущее небо, прогрессии используют символический масштаб реального движения, дирекции — выбранный математический ключ.'] },
+      { title: 'Часто путают', kind: 'confusion', paragraphs: ['Дирекции, прогрессии и транзиты, не три названия одного расчёта. Транзиты показывают реальное текущее небо, прогрессии используют символический масштаб реального движения, дирекции, выбранный математический ключ.'] },
     ],
     relatedTopicIds: ['progressions', 'transits-current-sky', 'aspect-exact', 'natal-chart-basics'],
   }),
@@ -153,7 +153,7 @@ export const CYCLE_EXTENDED_TOPICS = [
     id: 'solar-return', category: 'forecasts',
     title: { ru: 'Соляр', en: 'Solar return' },
     summary: { ru: 'Соляр, или карта солнечного возвращения, строится на момент, когда Солнце возвращается примерно к той же эклиптической долготе, которую занимало при рождении. Это происходит раз в год около дня рождения.', en: 'A solar return chart is cast for the moment the Sun returns to its natal ecliptic longitude.' },
-    shortAnswer: { ru: 'Соляр — отдельная карта точного солнечного возвращения, а не просто любой гороскоп на календарный год.', en: 'A solar return is a chart for an exact return moment, not any generic yearly horoscope.' },
+    shortAnswer: { ru: 'Соляр, отдельная карта точного солнечного возвращения, а не просто любой гороскоп на календарный год.', en: 'A solar return is a chart for an exact return moment, not any generic yearly horoscope.' },
     aliases: { ru: ['соляр', 'солнечное возвращение', 'карта соляра', 'solar return'], en: ['solar return', 'solar return chart', 'birthday chart'] },
     keywords: { ru: ['эклиптическая долгота', 'день рождения', 'возвращение солнца', 'прогностический метод'], en: ['ecliptic longitude', 'birthday', 'sun return', 'predictive method'] },
     ruSections: [
@@ -169,20 +169,20 @@ export const CYCLE_EXTENDED_TOPICS = [
   topic({
     id: 'lunar-return', category: 'forecasts',
     title: { ru: 'Лунар', en: 'Lunar return' },
-    summary: { ru: 'Лунар — карта, построенная на момент возвращения Луны к её натальной эклиптической долготе. Такое возвращение происходит примерно раз в двадцать семь с третью суток.', en: 'A lunar return chart is cast when the Moon returns to its natal ecliptic longitude.' },
+    summary: { ru: 'Лунар, карта, построенная на момент возвращения Луны к её натальной эклиптической долготе. Такое возвращение происходит примерно раз в двадцать семь с третью суток.', en: 'A lunar return chart is cast when the Moon returns to its natal ecliptic longitude.' },
     shortAnswer: { ru: 'Лунар использует возвращение Луны к натальному положению; это не то же самое, что новолуние или календарный лунный месяц.', en: 'A lunar return is not the same as a new moon or a calendar month.' },
     aliases: { ru: ['лунар', 'лунное возвращение', 'карта лунара', 'lunar return'], en: ['lunar return', 'lunar return chart'] },
     ruSections: [
       { title: 'Как это считается', kind: 'calculation', paragraphs: ['Программа находит момент совпадения текущей долготы Луны с натальной. Затем для этого времени и выбранного места строится карта с домами, углами и аспектами.'] },
       { title: 'Зачем это используют', kind: 'astrology', paragraphs: ['В астрологии лунар читают как краткосрочную карту месяца между двумя лунными возвращениями, особенно обращая внимание на Луну и углы. Его сопоставляют с натальной картой.'] },
-      { title: 'Часто путают', kind: 'confusion', paragraphs: ['Лунный цикл фаз длится около двадцати девяти с половиной суток, а возвращение Луны к положению относительно звёзд — около двадцати семи с третью. Это разные циклы.'] },
+      { title: 'Часто путают', kind: 'confusion', paragraphs: ['Лунный цикл фаз длится около двадцати девяти с половиной суток, а возвращение Луны к положению относительно звёзд, около двадцати семи с третью. Это разные циклы.'] },
     ],
     relatedTopicIds: ['planetary-cycle-return', 'solar-return', 'planet-moon', 'lunar-cycle', 'natal-chart-basics'],
   }),
   topic({
     id: 'saturn-return', category: 'forecasts',
     title: { ru: 'Сатурново возвращение', en: 'Saturn return' },
-    summary: { ru: 'Сатурново возвращение — период, когда транзитный Сатурн возвращается к своей натальной долготе. Первый такой цикл обычно завершается примерно в возрасте двадцати девяти с половиной лет.', en: 'A Saturn return occurs when transiting Saturn returns to its natal zodiac longitude, roughly every 29.5 years.' },
+    summary: { ru: 'Сатурново возвращение, период, когда транзитный Сатурн возвращается к своей натальной долготе. Первый такой цикл обычно завершается примерно в возрасте двадцати девяти с половиной лет.', en: 'A Saturn return occurs when transiting Saturn returns to its natal zodiac longitude, roughly every 29.5 years.' },
     shortAnswer: { ru: 'Это конкретный вид планетарного возвращения, а не один день неизбежного кризиса.', en: 'It is a planetary return period, not one guaranteed day of crisis.' },
     aliases: { ru: ['сатурново возвращение', 'возвращение сатурна', 'saturn return'], en: ['saturn return', 'return of saturn'] },
     ruSections: [

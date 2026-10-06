@@ -35,13 +35,13 @@ const OPPOSITE: Record<string, string> = {
 export const CLASSICAL_PLANETS: readonly ClassicalPlanet[] = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn'];
 
 const WEEKDAY: Record<ClassicalPlanet, { day: string; origin: string }> = {
-  sun: { day: 'Воскресенье', origin: 'По-английски Sunday — «день Солнца»' },
-  moon: { day: 'Понедельник', origin: 'По-английски Monday — «день Луны»' },
-  mars: { day: 'Вторник', origin: 'По-французски mardi — «день Марса»' },
-  mercury: { day: 'Среда', origin: 'По-французски mercredi — «день Меркурия»' },
-  jupiter: { day: 'Четверг', origin: 'По-французски jeudi — «день Юпитера»' },
-  venus: { day: 'Пятница', origin: 'По-французски vendredi — «день Венеры»' },
-  saturn: { day: 'Суббота', origin: 'По-английски Saturday — «день Сатурна»' },
+  sun: { day: 'Воскресенье', origin: 'По-английски Sunday, «день Солнца»' },
+  moon: { day: 'Понедельник', origin: 'По-английски Monday, «день Луны»' },
+  mars: { day: 'Вторник', origin: 'По-французски mardi, «день Марса»' },
+  mercury: { day: 'Среда', origin: 'По-французски mercredi, «день Меркурия»' },
+  jupiter: { day: 'Четверг', origin: 'По-французски jeudi, «день Юпитера»' },
+  venus: { day: 'Пятница', origin: 'По-французски vendredi, «день Венеры»' },
+  saturn: { day: 'Суббота', origin: 'По-английски Saturday, «день Сатурна»' },
 };
 
 /** Agrippa's planetary correspondences, shown only as a collapsed history note. */
@@ -115,14 +115,14 @@ export type NatalProfile = {
 function rulerBody(chart: NatalChartDataV2, planet: ClassicalPlanet, ascendant: string): string {
   const label = BODY_LABELS[planet].ru;
   const position = chart.positions?.[planet];
-  const intro = `Асцендент в ${SIGN_LOCATIVE_RU[ascendant]}, а ${SIGN_NOMINATIVE_RU[ascendant]} управляется ${PLANET_INSTRUMENTAL_RU[planet]}. Значит, главная планета твоей карты — ${label}.`;
+  const intro = `Асцендент в ${SIGN_LOCATIVE_RU[ascendant]}, а ${SIGN_NOMINATIVE_RU[ascendant]} управляется ${PLANET_INSTRUMENTAL_RU[planet]}. Значит, главная планета твоей карты, ${label}.`;
   if (!position) return intro;
   const dignity = dignityOf(planet, position.sign);
   const pronoun = planet === 'moon' || planet === 'venus' ? 'Она' : planet === 'sun' ? 'Оно' : 'Он';
   const where = `${pronoun} стоит в ${SIGN_LOCATIVE_RU[position.sign]}${position.house && chart.chartQuality?.housesReliable ? `, в ${position.house} доме` : ''}`;
   const strength = dignity === 'domicile'
-    ? ' — в своём собственном знаке'
-    : dignity === 'exaltation' ? ' — на пике силы' : '';
+    ? ', в своём собственном знаке'
+    : dignity === 'exaltation' ? ', на пике силы' : '';
   const area = position.house && chart.chartQuality?.housesReliable && HOUSE_AREAS_RU[position.house]
     ? ` Через ${planet === 'moon' || planet === 'venus' ? 'неё' : 'него'} в первую очередь проявляется сфера «${HOUSE_AREAS_RU[position.house]}».`
     : '';
@@ -135,15 +135,15 @@ function dignityCopy(planet: ClassicalPlanet, sign: string, kind: DignityKind): 
   const strong = kind === 'domicile' || kind === 'exaltation';
   const place = `${label} в ${SIGN_LOCATIVE_RU[sign]}`;
   const headline = kind === 'domicile'
-    ? `${place} — в своём знаке`
+    ? `${place}, в своём знаке`
     : kind === 'exaltation'
-      ? `${place} — на пике`
-      : `${place} — не дома`;
+      ? `${place}, на пике`
+      : `${place}, не дома`;
   const body = kind === 'domicile'
     ? `${label} показывает, ${role}. В своём знаке это работает в полную силу.`
     : kind === 'exaltation'
       ? `${label} показывает, ${role}. На пике это проявляется ярче, чем в любом другом знаке.`
-      : `${label} показывает, ${role}. Здесь ${PLANET_DATIVE_PRONOUN[planet]} неуютно — это проявляется не по шаблону.`;
+      : `${label} показывает, ${role}. Здесь ${PLANET_DATIVE_PRONOUN[planet]} неуютно, это проявляется не по шаблону.`;
   return { planet, kind, strong, headline, body };
 }
 
@@ -166,9 +166,9 @@ export function buildNatalProfile(chart: NatalChartDataV2): NatalProfile | null 
   const weekdays: ProfileWeekday[] = [{
     source: 'sun',
     planet: sunRuler,
-    caption: `${BODY_LABELS[sunRuler].ru} — по знаку Солнца`,
+    caption: `${BODY_LABELS[sunRuler].ru}, по знаку Солнца`,
     day: WEEKDAY[sunRuler].day,
-    origin: `${SIGN_NOMINATIVE_RU[sunSign]} — знак ${PLANET_GENITIVE_RU[sunRuler]}. ${WEEKDAY[sunRuler].origin}`,
+    origin: `${SIGN_NOMINATIVE_RU[sunSign]}, знак ${PLANET_GENITIVE_RU[sunRuler]}. ${WEEKDAY[sunRuler].origin}`,
     planetLabel: BODY_LABELS[sunRuler].ru,
   }];
   if (moonSign && TRADITIONAL_RULER[moonSign] && TRADITIONAL_RULER[moonSign] !== sunRuler) {
@@ -176,7 +176,7 @@ export function buildNatalProfile(chart: NatalChartDataV2): NatalProfile | null 
     weekdays.push({
       source: 'moon',
       planet: moonRuler,
-      caption: `${BODY_LABELS[moonRuler].ru} — по знаку Луны`,
+      caption: `${BODY_LABELS[moonRuler].ru}, по знаку Луны`,
       day: WEEKDAY[moonRuler].day,
       origin: `Луна в знаке ${PLANET_GENITIVE_RU[moonRuler]}. ${WEEKDAY[moonRuler].origin}`,
       planetLabel: BODY_LABELS[moonRuler].ru,
@@ -197,8 +197,8 @@ export function buildNatalProfile(chart: NatalChartDataV2): NatalProfile | null 
         body: `В классической астрологии этим знаком управлял ${BODY_LABELS[sunRuler].ru}. ${BODY_LABELS[modern.planet].ru} открыли только в ${modern.discovered} году, и современная астрология добавила его вторым управителем. Обе версии живут до сих пор.`,
       }
     : {
-        headline: `${SIGN_NOMINATIVE_RU[sunSign]} — без споров`,
-        body: `И в древности, и сейчас управитель этого знака — ${BODY_LABELS[sunRuler].ru}. Есть знаки, где поздние планеты всё поменяли: Уран открыли в 1781 году, Нептун — в 1846-м, Плутон — в 1930-м. Тебя это не коснулось.`,
+        headline: `${SIGN_NOMINATIVE_RU[sunSign]}, без споров`,
+        body: `И в древности, и сейчас управитель этого знака, ${BODY_LABELS[sunRuler].ru}. Есть знаки, где поздние планеты всё поменяли: Уран открыли в 1781 году, Нептун, в 1846-м, Плутон, в 1930-м. Тебя это не коснулось.`,
       };
 
   return {

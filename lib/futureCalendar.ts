@@ -78,7 +78,7 @@ const QUARTER_ANGLE: Record<MoonQuarter, number> = { new: 0, first: 90, full: 18
 const QUARTER_COPY: Record<MoonQuarter, { headline: string; body: string }> = {
   new: { headline: 'Новолуние', body: 'Хорошее время задумать новое и записать планы' },
   first: { headline: 'Первая четверть', body: 'Время решений: сдвинуть то, что застряло' },
-  full: { headline: 'Полнолуние', body: 'Эмоции громче обычного — не спеши с выводами' },
+  full: { headline: 'Полнолуние', body: 'Эмоции громче обычного, не спеши с выводами' },
   last: { headline: 'Последняя четверть', body: 'Время разбирать завалы и отпускать лишнее' },
 };
 
@@ -96,11 +96,11 @@ const PLANET_RU: Record<TransitPlanet, string> = {
 };
 
 const TRANSIT_COPY: Record<TransitPlanet, { good: string; hard: string }> = {
-  Sun: { good: 'Лёгкий день: получается то, что давно начато', hard: 'Хочется одного, а нужно другое — день для компромиссов' },
+  Sun: { good: 'Лёгкий день: получается то, что давно начато', hard: 'Хочется одного, а нужно другое, день для компромиссов' },
   Venus: { good: 'Приятный день для встреч, покупок и подарков себе', hard: 'Не трать на эмоциях и не выясняй отношения сгоряча' },
-  Mars: { good: 'Много энергии — хорошо для спорта и решительных дел', hard: 'Легко вспылить. Не спорь и не гони' },
-  Jupiter: { good: 'Удачное время просить, договариваться и расширяться', hard: 'Не обещай лишнего — легко переоценить силы' },
-  Saturn: { good: 'Хорошо для долгих дел и наведения порядка', hard: 'Дела тормозятся. Не дави — разбей задачу на шаги' },
+  Mars: { good: 'Много энергии, хорошо для спорта и решительных дел', hard: 'Легко вспылить. Не спорь и не гони' },
+  Jupiter: { good: 'Удачное время просить, договариваться и расширяться', hard: 'Не обещай лишнего, легко переоценить силы' },
+  Saturn: { good: 'Хорошо для долгих дел и наведения порядка', hard: 'Дела тормозятся. Не дави, разбей задачу на шаги' },
 };
 
 const CONJUNCTION_TONE: Record<TransitPlanet, Exclude<DayTone, null>> = {
@@ -217,7 +217,7 @@ export function buildFutureMonth(
     const key = localKey(lunar.peak.date);
     const day = byKey.get(key);
     if (day) day.eclipse = true;
-    pushSky({ dayKey: key, kind: 'eclipse', headline: lunar.kind === 'total' ? 'Полное лунное затмение' : 'Частичное лунное затмение', body: 'Сильные эмоции и неожиданные итоги — не принимай резких решений' });
+    pushSky({ dayKey: key, kind: 'eclipse', headline: lunar.kind === 'total' ? 'Полное лунное затмение' : 'Частичное лунное затмение', body: 'Сильные эмоции и неожиданные итоги, не принимай резких решений' });
   }
   const solar = engine.SearchGlobalSolarEclipse(monthStart);
   if (solar.peak.date < monthEnd) {
@@ -289,9 +289,9 @@ export function buildFutureMonth(
           ? 'Напряжённый месяц'
           : 'Ровный месяц';
   const parts: string[] = [];
-  if (natal) parts.push(`Лёгких дней для тебя — ${goodDays}, напряжённых — ${hardDays}.`);
+  if (natal) parts.push(`Лёгких дней для тебя, ${goodDays}, напряжённых, ${hardDays}.`);
   if (retrogradeDays) parts.push(`Меркурий идёт назад ${retrogradeDays} ${retrogradeDays === 1 ? 'день' : retrogradeDays < 5 ? 'дня' : 'дней'}: не подписывай важное наспех.`);
-  if (eclipse) parts.push('В месяце есть затмение — время, когда что-то заканчивается и начинается новое.');
+  if (eclipse) parts.push('В месяце есть затмение, время, когда что-то заканчивается и начинается новое.');
 
   return {
     year,

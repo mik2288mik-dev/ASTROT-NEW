@@ -206,7 +206,7 @@ function aspectReference(type: string, orb?: number | null): string {
   const angles: Record<string, number> = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 };
   const angle = angles[type];
   if (angle == null) return 'Линия соединяет две рассчитанные точки карты.';
-  return `Это связь двух точек под углом ${angle}°. ${orb == null ? '' : `Отклонение от точного угла — ${orb.toFixed(1)}°. `}Её объяснение зависит от обеих точек; один угол не описывает привычку или поступок.`;
+  return `Это связь двух точек под углом ${angle}°. ${orb == null ? '' : `Отклонение от точного угла, ${orb.toFixed(1)}°. `}Её объяснение зависит от обеих точек; один угол не описывает привычку или поступок.`;
 }
 
 function pointEvidenceIds(
@@ -297,7 +297,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
       ? conciseMeaning(primaryMeanings, 2)
       : meanings.length
         ? conciseMeaning(meanings.map((entry) => entry.meaning), 1)
-        : 'Знак показывает участок круга, в котором находится точка. Градусы — её место внутри этого участка.';
+        : 'Знак показывает участок круга, в котором находится точка. Градусы, её место внутри этого участка.';
     return {
       title: meta.name,
       glyph: meta.glyph,
@@ -337,7 +337,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
       title: `${house} дом`,
       glyph: '⌂',
       color: '#7b44df',
-      what: `${house} дом — часть карты про ${MAP_HOUSES[house]}.`,
+      what: `${house} дом, часть карты про ${MAP_HOUSES[house]}.`,
       yours: cusp?.sign
         ? `${house} дом · знак на границе: ${signName(cusp.sign, 'ru')}${cusp.degree == null ? '' : ` · ${cusp.degree.toFixed(1)}°`}`
         : `${house} дом`,
@@ -353,7 +353,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
     const meaning = byEvidence.get(`aspect:${aspect.id}`);
     const left = findPoint(aspect.fromKey);
     const right = findPoint(aspect.toKey);
-    const title = `${mapObject(left?.key || aspect.fromKey)?.name || aspect.fromKey} — ${mapObject(right?.key || aspect.toKey)?.name || aspect.toKey}`;
+    const title = `${mapObject(left?.key || aspect.fromKey)?.name || aspect.fromKey} - ${mapObject(right?.key || aspect.toKey)?.name || aspect.toKey}`;
     const isAxis = ['ascendant:descendant', 'ic:mc'].includes([aspect.fromKey, aspect.toKey].sort().join(':'));
     const text = meaning?.text || (isAxis
       ? 'Это два конца одной оси карты. Между ними всегда 180°. Здесь показано устройство карты; личные особенности объясняются положениями этих точек и другими связанными с ними элементами.'

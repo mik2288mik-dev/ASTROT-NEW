@@ -80,7 +80,7 @@ const PROVIDER_CODES = new Set([
 const DISTRIBUTION_CHANNELS = new Set(['rustore', 'google_play', 'telegram', 'development']);
 export const ACTIONS: Record<string, string> = {
   app_open: 'открыл приложение', app_opened: 'открыл приложение',
-  paywall_view: 'открыл экран оплаты', purchase_failed: 'не смог оплатить — ошибка в приложении',
+  paywall_view: 'открыл экран оплаты', purchase_failed: 'не смог оплатить, ошибка в приложении',
   restore_failed: 'не смог восстановить покупку', screen_view: 'открыл экран',
   first_result_ready: 'получил первый результат', first_value_viewed: 'посмотрел первый результат',
   natal_section_open: 'открыл раздел разбора', compatibility_ready: 'получил совместимость',
@@ -404,7 +404,7 @@ function renderPayment(row: Pick<OpsRow, 'event_type' | 'user_id' | 'occurred_at
 /** Plain-language meaning of the error codes the owner can actually receive. */
 export const ERROR_REASONS: Record<string, string> = {
   PERSONAL_FORECAST_WRITER_VALIDATION_FAILED: 'ИИ написал текст, но он не прошёл нашу автоматическую проверку качества',
-  PERSONAL_FORECAST_WRITER_UNAVAILABLE: 'ИИ (OpenAI) не ответил — сбой или недоступность сервиса',
+  PERSONAL_FORECAST_WRITER_UNAVAILABLE: 'ИИ (OpenAI) не ответил, сбой или недоступность сервиса',
   PERSONAL_FORECAST_WRITER_OUTPUT_LIMIT: 'ИИ не уложился в лимит длины ответа',
   PERSONAL_FORECAST_WRITER_INCOMPLETE: 'ИИ оборвал ответ на середине',
   PERSONAL_FORECAST_WRITER_REFUSED: 'ИИ отказался писать этот текст',
@@ -415,9 +415,9 @@ export const ERROR_REASONS: Record<string, string> = {
   AI_GENERATION_FAILED: 'генерация упала с неизвестной ошибкой',
 };
 const ERROR_ADVICE: Record<string, string> = {
-  PERSONAL_FORECAST_WRITER_VALIDATION_FAILED: 'Если повторяется часто — проверка слишком строгая или ИИ пишет не по правилам, нужно смотреть тексты.',
-  PERSONAL_FORECAST_WRITER_UNAVAILABLE: 'Обычно проходит само. Если идёт подряд — проверь ключ и баланс OpenAI.',
-  AI_GENERATION_TIMEOUT: 'Если идёт подряд — OpenAI тормозит, обычно проходит само.',
+  PERSONAL_FORECAST_WRITER_VALIDATION_FAILED: 'Если повторяется часто, проверка слишком строгая или ИИ пишет не по правилам, нужно смотреть тексты.',
+  PERSONAL_FORECAST_WRITER_UNAVAILABLE: 'Обычно проходит само. Если идёт подряд, проверь ключ и баланс OpenAI.',
+  AI_GENERATION_TIMEOUT: 'Если идёт подряд, OpenAI тормозит, обычно проходит само.',
 };
 export const OPERATION_TITLES: Record<string, string> = {
   personal_forecast: 'личный прогноз', natal_question: 'ответ на вопрос «Спросить о себе»',
@@ -458,7 +458,7 @@ function renderError(
   if (repeats > 1) lines.push(`🔁 Такая же ошибка за последний час: ${repeats} раз`);
   const occurred = validDate(row.occurred_at);
   const now = context.now || new Date();
-  if (occurred && now.getTime() - occurred.getTime() > 60 * 60 * 1_000) lines.push('⏳ Ошибка старая — пришла с опозданием');
+  if (occurred && now.getTime() - occurred.getTime() > 60 * 60 * 1_000) lines.push('⏳ Ошибка старая, пришла с опозданием');
   const advice = ERROR_ADVICE[errorCode];
   if (advice) lines.push(`💡 ${advice}`);
   const dev = [errorCode, typeof p.httpStatus === 'number' ? `HTTP ${p.httpStatus}` : '', p.traceId ? `trace ${p.traceId}` : '']

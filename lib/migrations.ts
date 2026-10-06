@@ -464,7 +464,7 @@ async function lumia004AdminBackoffice(pool: Pool): Promise<void> {
         'The app is undergoing maintenance today. If something is temporarily unavailable, please try again a bit later.',
         'broadcast',
         'Come back',
-        'Мы сохранили твои карты и историю. Возвращайся — всё уже ждёт тебя внутри.',
+        'Мы сохранили твои карты и историю. Возвращайся, всё уже ждёт тебя внутри.',
         'Your charts and history are still waiting for you. Come back when you are ready.',
         'broadcast',
       ]
@@ -613,14 +613,14 @@ async function lumia006ScheduledNotifications(pool: Pool): Promise<void> {
        ($8, 'evening', 'text', $9, $3, '', TRUE, 0, NULL, $10)`,
       [
         'Morning daily',
-        'Доброе утро! Открой личный день — короткий гороскоп и настроение дня уже ждут.',
+        'Доброе утро! Открой личный день, короткий гороскоп и настроение дня уже ждут.',
         'Открыть',
-        'Default seed — задайте deep link в админке (URL мини-приложения).',
+        'Default seed, задайте deep link в админке (URL мини-приложения).',
         'Day daily',
-        'Середина дня — загляни в приложение за персональным ориентиром.',
+        'Середина дня, загляни в приложение за персональным ориентиром.',
         'Default seed',
         'Evening daily',
-        'Вечер — хорошее время свериться с картой и гороскопом.',
+        'Вечер, хорошее время свериться с картой и гороскопом.',
         'Default seed',
       ]
     );

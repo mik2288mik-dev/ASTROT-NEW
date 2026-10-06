@@ -148,8 +148,8 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
       occurrence: `anniversary:${todayKey.slice(0, 4)}`,
       title: ru ? 'Год вместе с NEBO' : 'A year with NEBO',
       body: ru
-        ? 'Спасибо, что ты с нами. Небольшой подарок: разбор твоей недели — бесплатно, просто так.'
-        : 'Thank you for being with us. A small gift: your week reading — free, just because.',
+        ? 'Спасибо, что ты с нами. Небольшой подарок: разбор твоей недели, бесплатно, просто так.'
+        : 'Thank you for being with us. A small gift: your week reading, free, just because.',
       cta: ru ? 'Открыть подарок' : 'Open the gift',
       action: { type: 'gift', reason: 'anniversary' },
     });
@@ -159,8 +159,8 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
       occurrence: `streak:${context.weekKey}`,
       title: ru ? `${gift.streak} ${pluralDaysRu(gift.streak)} подряд` : `${gift.streak} days in a row`,
       body: ru
-        ? 'Ты заглядываешь каждый день — это приятно. Держи разбор недели в подарок.'
-        : 'You drop by every day — that is lovely. Here is your week reading as a gift.',
+        ? 'Ты заглядываешь каждый день, это приятно. Держи разбор недели в подарок.'
+        : 'You drop by every day, that is lovely. Here is your week reading as a gift.',
       cta: ru ? 'Открыть неделю' : 'Open the week',
       action: { type: 'gift', reason: 'streak' },
     });
@@ -175,8 +175,8 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
         occurrence: `premium:${endKey}`,
         title: ru ? `NEBO+ открыт до ${dateRu(endKey)}` : `NEBO+ is open until ${dateEn(endKey)}`,
         body: ru
-          ? 'Говорим заранее, без спешки. Если захочешь продолжить — продлить можно в пару касаний, все карты и разборы останутся на месте.'
-          : 'Just a heads-up. If you want to keep it, renewing takes a couple of taps — your charts and readings stay where they are.',
+          ? 'Говорим заранее, без спешки. Если захочешь продолжить, продлить можно в пару касаний, все карты и разборы останутся на месте.'
+          : 'Just a heads-up. If you want to keep it, renewing takes a couple of taps, your charts and readings stay where they are.',
         cta: ru ? 'Посмотреть варианты' : 'See options',
         action: { type: 'premium' },
       });
@@ -194,7 +194,7 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
           ? (left === 0 ? 'С днём рождения!' : `До дня рождения ${left} ${pluralDaysRu(left)}`)
           : (left === 0 ? 'Happy birthday!' : `${left} ${left === 1 ? 'day' : 'days'} to your birthday`),
         body: ru
-          ? 'Прогноз на твой новый год: что ждёт по месяцам — от дня рождения и дальше.'
+          ? 'Прогноз на твой новый год: что ждёт по месяцам, от дня рождения и дальше.'
           : 'A forecast for your new year: what each month holds, from your birthday onwards.',
         cta: ru ? 'Открыть год вперёд' : 'Open the year ahead',
         action: { type: 'future', monthKey: birthday.slice(0, 7) },
@@ -218,8 +218,8 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
         ? (left === 0 ? `${person.name}: день рождения сегодня` : `${person.name}: день рождения через ${left} ${pluralDaysRu(left)}`)
         : (left === 0 ? `${person.name}'s birthday is today` : `${person.name}'s birthday in ${left} ${left === 1 ? 'day' : 'days'}`),
       body: ru
-        ? 'Подберём подарок по карте, вашим отношениям и бюджету — бесплатно.'
-        : 'We will pick a gift by the chart, your relationship and budget — free.',
+        ? 'Подберём подарок по карте, вашим отношениям и бюджету, бесплатно.'
+        : 'We will pick a gift by the chart, your relationship and budget, free.',
       cta: ru ? 'Что подарить?' : 'Gift ideas',
       action: { type: 'person_gift', chartId: person.id, name: person.name },
     });
@@ -249,7 +249,7 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
         occurrence: `mercury:${context.mercuryRetroKey}`,
         title: ru ? `Что успеть до ${dateRu(context.mercuryRetroKey)}` : `What to finish before ${dateEn(context.mercuryRetroKey)}`,
         body: ru
-          ? 'Потом Меркурий три недели идёт назад. Подписать, купить технику, взять билеты — лучше до этой даты.'
+          ? 'Потом Меркурий три недели идёт назад. Подписать, купить технику, взять билеты, лучше до этой даты.'
           : 'Then Mercury goes retrograde for three weeks. Signing, buying gadgets and booking tickets is better done before.',
         cta: ru ? 'Открыть календарь' : 'Open the calendar',
         action: { type: 'future' },
@@ -292,7 +292,7 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
       occurrence: `compat:${monthKey}`,
       title: ru ? 'Полный разбор вашей пары' : 'The full reading of your pair',
       body: ru
-        ? 'Совместимость — явно твоя тема. В полном разборе: где вы похожи, о чём спорите и как договариваться.'
+        ? 'Совместимость, явно твоя тема. В полном разборе: где вы похожи, о чём спорите и как договариваться.'
         : 'Compatibility is clearly your topic. The full reading shows where you are alike, what you argue about and how to agree.',
       cta: ru ? 'Открыть разбор' : 'Open the reading',
       action: { type: 'compatibility' },
@@ -305,7 +305,7 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
       occurrence: `love:${context.weekKey}`,
       title: ru ? 'Твоя неделя в отношениях' : 'Your week in relationships',
       body: ru
-        ? 'Ты часто читаешь про любовь и близких. В разборе недели — когда лучше поговорить, а когда дать друг другу воздух.'
+        ? 'Ты часто читаешь про любовь и близких. В разборе недели, когда лучше поговорить, а когда дать друг другу воздух.'
         : 'You often read about love and close people. The week reading shows when to talk and when to give each other space.',
       cta: ru ? 'Читать неделю' : 'Read the week',
       action: { type: 'week' },
@@ -332,8 +332,8 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
       occurrence: `test:${test.id}:${test.updatedAt.slice(0, 10)}`,
       title: ru ? 'Продолжить тест' : 'Continue the test',
       body: ru
-        ? `«${test.title}»: отвечено ${test.answered} из ${test.total}. Осталось совсем немного — результат уже ждёт.`
-        : `«${test.title}» — ${test.answered} of ${test.total} answered. Almost there, the result is waiting.`,
+        ? `«${test.title}»: отвечено ${test.answered} из ${test.total}. Осталось совсем немного, результат уже ждёт.`
+        : `«${test.title}», ${test.answered} of ${test.total} answered. Almost there, the result is waiting.`,
       cta: ru ? 'Продолжить' : 'Continue',
       action: { type: 'test', testId: test.id },
     });
@@ -345,8 +345,8 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
       occurrence: `streak-progress:${todayKey}`,
       title: ru ? `Уже ${gift.streak} ${pluralDaysRu(gift.streak)} подряд` : `${gift.streak} days in a row`,
       body: ru
-        ? `Если заглянешь ещё ${gift.daysToGift === 1 ? 'завтра' : 'пару дней'}, откроем тебе разбор недели в подарок. А не получится — ничего страшного.`
-        : `Drop by ${gift.daysToGift === 1 ? 'tomorrow' : 'for two more days'} and we will open your week reading as a gift. And if not — no worries.`,
+        ? `Если заглянешь ещё ${gift.daysToGift === 1 ? 'завтра' : 'пару дней'}, откроем тебе разбор недели в подарок. А не получится, ничего страшного.`
+        : `Drop by ${gift.daysToGift === 1 ? 'tomorrow' : 'for two more days'} and we will open your week reading as a gift. And if not, no worries.`,
       cta: ru ? 'Что в разборе недели' : 'What is in the week reading',
       action: { type: 'future' },
     });
@@ -358,7 +358,7 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
       occurrence: 'birthtime',
       title: ru ? 'Уточни время рождения' : 'Add your birth time',
       body: ru
-        ? 'С временем карта станет точнее: появятся Асцендент и дома, а прогнозы — конкретнее.'
+        ? 'С временем карта станет точнее: появятся Асцендент и дома, а прогнозы, конкретнее.'
         : 'With a birth time the chart gets precise: the Ascendant and houses appear and forecasts get specific.',
       cta: ru ? 'Добавить время' : 'Add time',
       action: { type: 'birth_time' },

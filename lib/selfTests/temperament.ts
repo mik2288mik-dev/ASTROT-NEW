@@ -4,7 +4,7 @@ import type { SelfTestDefinition } from './types';
 export const TEMPERAMENT_TEST: SelfTestDefinition = {
   id: 'temperament',
   title: { ru: 'Какой у тебя темперамент', en: 'What is your temperament' },
-  subtitle: { ru: 'Холерик, сангвиник, флегматик или меланхолик — по обычным ситуациям', en: 'Choleric, sanguine, phlegmatic or melancholic — through everyday moments' },
+  subtitle: { ru: 'Холерик, сангвиник, флегматик или меланхолик, по обычным ситуациям', en: 'Choleric, sanguine, phlegmatic or melancholic, through everyday moments' },
   minutes: 3,
   questions: [
     {
@@ -21,7 +21,7 @@ export const TEMPERAMENT_TEST: SelfTestDefinition = {
       id: 't2',
       text: { ru: 'В очереди кто-то лезет вперёд. Что ты делаешь?', en: 'Someone cuts in line. What do you do?' },
       options: [
-        { text: { ru: 'Сразу говорю — громко и прямо', en: 'Say it right away, loud and clear' }, to: ['choleric'] },
+        { text: { ru: 'Сразу говорю, громко и прямо', en: 'Say it right away, loud and clear' }, to: ['choleric'] },
         { text: { ru: 'Шучу так, что ему становится неловко', en: 'Make a joke that makes them blush' }, to: ['sanguine'] },
         { text: { ru: 'Пусть стоит, минута ничего не решит', en: 'Let it go, one minute changes nothing' }, to: ['phlegmatic'] },
         { text: { ru: 'Молчу, но настроение испорчено на час', en: 'Stay quiet, but my mood is ruined for an hour' }, to: ['melancholic'] },
@@ -52,7 +52,7 @@ export const TEMPERAMENT_TEST: SelfTestDefinition = {
       text: { ru: 'Как ты обычно принимаешь решения?', en: 'How do you usually make decisions?' },
       options: [
         { text: { ru: 'Быстро, а разбираюсь по ходу', en: 'Fast, and figure it out on the way' }, to: ['choleric'] },
-        { text: { ru: 'По настроению — как сердце скажет', en: 'By mood — whatever feels right' }, to: ['sanguine'] },
+        { text: { ru: 'По настроению, как сердце скажет', en: 'By mood, whatever feels right' }, to: ['sanguine'] },
         { text: { ru: 'Не спеша, всё взвесив', en: 'Slowly, after weighing everything' }, to: ['phlegmatic'] },
         { text: { ru: 'Долго сомневаюсь и боюсь ошибиться', en: 'Doubt for a long time, afraid to get it wrong' }, to: ['melancholic'] },
       ],
@@ -72,7 +72,7 @@ export const TEMPERAMENT_TEST: SelfTestDefinition = {
       text: { ru: 'Тебя задели словом. Что дальше?', en: 'Someone hurt you with a remark. What next?' },
       options: [
         { text: { ru: 'Вспыхиваю, но быстро отхожу', en: 'Flare up, but cool down quickly' }, to: ['choleric'] },
-        { text: { ru: 'Расскажу друзьям — и уже легче', en: 'Tell my friends — and it already feels lighter' }, to: ['sanguine'] },
+        { text: { ru: 'Расскажу друзьям, и уже легче', en: 'Tell my friends, and it already feels lighter' }, to: ['sanguine'] },
         { text: { ru: 'Меня вообще трудно задеть', en: 'It is hard to get to me at all' }, to: ['phlegmatic'] },
         { text: { ru: 'Помню долго, даже если не показываю', en: 'Remember it for long, even if I do not show it' }, to: ['melancholic'] },
       ],
@@ -102,7 +102,7 @@ export const TEMPERAMENT_TEST: SelfTestDefinition = {
       text: { ru: 'Как ты отдыхаешь после тяжёлой недели?', en: 'How do you rest after a hard week?' },
       options: [
         { text: { ru: 'Спорт или любое дело, где можно выпустить пар', en: 'Sport or anything that lets off steam' }, to: ['choleric'] },
-        { text: { ru: 'Встреча с друзьями, чем шумнее — тем лучше', en: 'Seeing friends, the louder the better' }, to: ['sanguine'] },
+        { text: { ru: 'Встреча с друзьями, чем шумнее, тем лучше', en: 'Seeing friends, the louder the better' }, to: ['sanguine'] },
         { text: { ru: 'Диван, сериал и никуда не спешить', en: 'Couch, a series and no rush' }, to: ['phlegmatic'] },
         { text: { ru: 'Тишина, книга и никаких людей', en: 'Quiet, a book and no people' }, to: ['melancholic'] },
       ],
@@ -119,10 +119,10 @@ export const TEMPERAMENT_TEST: SelfTestDefinition = {
         { ru: 'Честно говоришь, что думаешь', en: 'You honestly say what you think' },
       ],
       watch: [
-        { ru: 'Вспыхиваешь раньше, чем дослушаешь — посчитай до пяти', en: 'You flare up before hearing people out — count to five' },
+        { ru: 'Вспыхиваешь раньше, чем дослушаешь, посчитай до пяти', en: 'You flare up before hearing people out, count to five' },
         { ru: 'Устаёшь резко: заряд кончается сразу и целиком', en: 'You run out sharply: all at once' },
       ],
-      tip: { ru: 'Самые важные разговоры откладывай на вечер, когда пар уже вышел. Утренний ты — для рывков, вечерний — для переговоров.', en: 'Leave important talks for the evening when the steam is out. Morning you is for sprints, evening you for negotiations.' },
+      tip: { ru: 'Самые важные разговоры откладывай на вечер, когда пар уже вышел. Утренний ты, для рывков, вечерний, для переговоров.', en: 'Leave important talks for the evening when the steam is out. Morning you is for sprints, evening you for negotiations.' },
     },
     {
       key: 'sanguine',
@@ -134,7 +134,7 @@ export const TEMPERAMENT_TEST: SelfTestDefinition = {
         { ru: 'Быстро приходишь в себя после неудач', en: 'You bounce back quickly after setbacks' },
       ],
       watch: [
-        { ru: 'Начатого много, законченного — меньше', en: 'Lots started, fewer finished' },
+        { ru: 'Начатого много, законченного, меньше', en: 'Lots started, fewer finished' },
         { ru: 'Обещаешь легко, а потом не хватает времени', en: 'You promise easily and then run out of time' },
       ],
       tip: { ru: 'Заведи правило одной вещи: пока не закончишь одно дело, за новое не берёшься. Звучит скучно, работает отлично.', en: 'Try the one-thing rule: no new task until the current one is done. Sounds dull, works great.' },
@@ -167,16 +167,16 @@ export const TEMPERAMENT_TEST: SelfTestDefinition = {
         { ru: 'Прокручиваешь мысли по кругу, особенно на ночь', en: 'You replay thoughts in circles, especially at night' },
         { ru: 'Устаёшь от людей быстрее, чем кажется со стороны', en: 'People tire you faster than it looks' },
       ],
-      tip: { ru: 'Если мысль крутится третий раз — запиши её на бумагу. Записанное перестаёт жужжать в голове.', en: 'If a thought comes back a third time, write it down. Written thoughts stop buzzing.' },
+      tip: { ru: 'Если мысль крутится третий раз, запиши её на бумагу. Записанное перестаёт жужжать в голове.', en: 'If a thought comes back a third time, write it down. Written thoughts stop buzzing.' },
     },
   ],
   chart: {
     factor: 'elements',
     byElement: {
-      fire: { key: 'choleric', text: { ru: 'В твоей карте больше всего огня — это классика холерика: быстрый старт и прямота.', en: 'Your chart has the most fire — classic choleric: a fast start and directness.' } },
-      air: { key: 'sanguine', text: { ru: 'В твоей карте больше всего воздуха — так обычно описывают сангвиника: общение, лёгкость, переключение.', en: 'Your chart has the most air — the usual picture of a sanguine: talk, lightness, switching.' } },
-      earth: { key: 'phlegmatic', text: { ru: 'В твоей карте больше всего земли — это ближе всего к флегматику: устойчивость и надёжность.', en: 'Your chart has the most earth — closest to the phlegmatic: steadiness and reliability.' } },
-      water: { key: 'melancholic', text: { ru: 'В твоей карте больше всего воды — так рисуют меланхолика: чувствительность и внимание к оттенкам.', en: 'Your chart has the most water — the picture of a melancholic: sensitivity and attention to nuance.' } },
+      fire: { key: 'choleric', text: { ru: 'В твоей карте больше всего огня, это классика холерика: быстрый старт и прямота.', en: 'Your chart has the most fire, classic choleric: a fast start and directness.' } },
+      air: { key: 'sanguine', text: { ru: 'В твоей карте больше всего воздуха, так обычно описывают сангвиника: общение, лёгкость, переключение.', en: 'Your chart has the most air, the usual picture of a sanguine: talk, lightness, switching.' } },
+      earth: { key: 'phlegmatic', text: { ru: 'В твоей карте больше всего земли, это ближе всего к флегматику: устойчивость и надёжность.', en: 'Your chart has the most earth, closest to the phlegmatic: steadiness and reliability.' } },
+      water: { key: 'melancholic', text: { ru: 'В твоей карте больше всего воды, так рисуют меланхолика: чувствительность и внимание к оттенкам.', en: 'Your chart has the most water, the picture of a melancholic: sensitivity and attention to nuance.' } },
     },
   },
 };

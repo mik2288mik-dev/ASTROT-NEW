@@ -63,7 +63,7 @@ function readableAuthError(error: unknown): string {
     return 'Код неверный или уже истёк. Запроси новый код.';
   }
   if (code.includes('IDENTITY_ALREADY_LINKED')) {
-    return 'Этот способ входа уже принадлежит другому аккаунту. Войди в тот аккаунт — данные автоматически не объединяются.';
+    return 'Этот способ входа уже принадлежит другому аккаунту. Войди в тот аккаунт, данные автоматически не объединяются.';
   }
   if (code.includes('AUTH_PROVIDER_NOT_CONFIGURED')) {
     return 'Этот способ входа пока не настроен. Выбери другой.';
@@ -306,7 +306,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
       setChallengeId(result.challengeId);
       setCode('');
       setScreen('verify');
-      setNotice('Если email свободен, шестизначный код отправлен. Если аккаунт уже существует — войди или восстанови пароль: профили автоматически не объединяются.');
+      setNotice('Если email свободен, шестизначный код отправлен. Если аккаунт уже существует, войди или восстанови пароль: профили автоматически не объединяются.');
     } catch (nextError) {
       setError(readableAuthError(nextError));
     } finally {
@@ -408,7 +408,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
         : screen === 'forgot'
           ? 'Восстановить пароль'
           : 'Новый пароль';
-  const registerTitle = 'Твой гороскоп и намного больше';
+  const registerTitle = 'Твой гороскоп, и намного больше';
   const visibleTitle = isLanding ? registerTitle : isEmailRegistration ? 'Создать аккаунт' : title;
 
   return (
@@ -444,7 +444,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
           {isLanding ? (
             <>
               <p className="mx-auto mt-2.5 text-center text-[15px] leading-[1.35] text-[#62676f]">
-                Личный прогноз на сегодня, неделю и месяц по твоим данным рождения.
+                Личный прогноз на сегодня, неделю и месяц, по твоим данным рождения.
               </p>
               <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-left">
                 {LANDING_FEATURES.map((item) => (

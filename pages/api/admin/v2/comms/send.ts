@@ -5,7 +5,7 @@ import { recordAdminAction } from '../../../../../lib/admin/audit';
 import { db } from '../../../../../lib/db';
 import { sendTelegramTextMessage } from '../../../../../lib/telegramBot';
 
-const MAX_RECIPIENTS = 300; // синхронная рассылка ограничена; больше — через ретеншн-движок
+const MAX_RECIPIENTS = 300; // синхронная рассылка ограничена; больше, через ретеншн-движок
 
 /**
  * Ручная отправка пуша: одному юзеру или сегменту. Право push.send.

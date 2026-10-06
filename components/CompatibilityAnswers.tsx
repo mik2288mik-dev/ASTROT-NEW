@@ -41,7 +41,7 @@ export function CompatibilityAnswers({ rows, language, unknownHint }: Props) {
           {!row.text && row.locked ? (
             <p className="compat-answer-locked">
               <Lock size={14} strokeWidth={1.8} aria-hidden="true" />
-              {ru ? 'Почему так и что делать — в полном разборе' : 'Why, and what to do — in the full reading'}
+              {ru ? 'Почему так и что делать, в полном разборе' : 'Why, and what to do, in the full reading'}
             </p>
           ) : null}
           {row.answer === 'unknown' && unknownHint ? <p className="compat-answer-hint">{unknownHint}</p> : null}
@@ -109,7 +109,7 @@ export function CompatibilityGauge({ score, questions, language }: { score: numb
       {strongest && hardest && strongest !== hardest ? (
         <p>
           {ru
-            ? `Сильнее всего — ${strongest.short}. Труднее всего — ${hardest.short}.`
+            ? `Сильнее всего, ${strongest.short}. Труднее всего, ${hardest.short}.`
             : `${capital(strongest.short!)} is your strongest side, ${hardest.short} the hardest.`}
         </p>
       ) : null}

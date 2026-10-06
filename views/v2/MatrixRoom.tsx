@@ -82,7 +82,7 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false, o
       character: { title: ru ? 'Характер' : 'Character', lead: cap(text(pos('self').arcana)), blocks: [[ru ? 'Как ты действуешь' : 'How you act', text(pos('self').arcana)], [ru ? 'Сильная сторона' : 'Strength', text(pos('talents').arcana)], [ru ? 'Где можно не тащить всё самому' : 'Where to share the load', ru ? 'Когда хочется быстро навести порядок, полезно сначала проверить: это правда твоя задача?' : 'Before taking over, check whether this is really your task.']] },
       money: { title: ru ? 'Деньги' : 'Money', lead: cap(text(area('money').arcana)), blocks: [[ru ? 'Что здесь видно' : 'What this shows', text(area('money').arcana)], [ru ? 'На что смотреть' : 'What to notice', ru ? 'Сверяй результат не только с деньгами, но и с тем, сколько времени и сил он забирает.' : 'Consider both the result and the time and energy it takes.']] },
       love: { title: ru ? 'Отношения' : 'Relationships', lead: cap(text(area('love').arcana)), blocks: [[ru ? 'Что важно рядом с человеком' : 'What matters with someone close', text(area('love').arcana)], [ru ? 'Что лучше говорить вслух' : 'What to say aloud', ru ? 'Прямое объяснение часто бережёт больше, чем надежда, что тебя поймут без слов.' : 'A direct explanation can be kinder than expecting a perfect guess.']] },
-      age: { title: ru ? 'По возрастам' : 'By life stages', lead: ru ? 'Не прогноз, а три точки, через которые можно посмотреть на свой опыт.' : 'Not a forecast — three lenses for looking at your experience.', blocks: [['18–24', text(pos('personalPurpose').arcana)], ['25–35', text(pos('socialPurpose').arcana)], [ru ? 'После 35' : 'After 35', text(pos('spiritualPurpose').arcana)]] },
+      age: { title: ru ? 'По возрастам' : 'By life stages', lead: ru ? 'Не прогноз, а три точки, через которые можно посмотреть на свой опыт.' : 'Not a forecast, three lenses for looking at your experience.', blocks: [['18–24', text(pos('personalPurpose').arcana)], ['25–35', text(pos('socialPurpose').arcana)], [ru ? 'После 35' : 'After 35', text(pos('spiritualPurpose').arcana)]] },
     } as Record<Theme, { title: string; lead: string; blocks: string[][] }>;
   }, [result, ru]);
 
@@ -100,10 +100,10 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false, o
   const moneyNumber = result.lifeAreas.find((item) => item.key === 'money')?.arcana;
   const loveNumber = result.lifeAreas.find((item) => item.key === 'love')?.arcana;
   const lockedLead = (key: Theme) => key === 'money'
-    ? `Твоё число денег — ${moneyNumber}. Что оно значит — в NEBO+`
+    ? `Твоё число денег, ${moneyNumber}. Что оно значит, в NEBO+`
     : key === 'love'
-      ? `Твоё число отношений — ${loveNumber}. Что оно значит — в NEBO+`
-      : 'Три этапа жизни по твоей дате — в NEBO+';
+      ? `Твоё число отношений, ${loveNumber}. Что оно значит, в NEBO+`
+      : 'Три этапа жизни по твоей дате, в NEBO+';
   const chapters = [
     ['main', ru ? 'Главное' : 'Main', ru ? 'Главный вектор' : 'Main direction', selected.copy, ru ? 'Центр схемы помогает заметить повторяющийся способ действовать. Это не ярлык и не предсказание.' : 'The center helps notice a repeating pattern, not label you.'],
     ['character', ru ? 'Характер' : 'Character', themes.character.title, themes.character.lead, themes.character.blocks[1][1]],
@@ -122,9 +122,9 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false, o
         <p className={styles.dateLine}>{ru ? 'Дата рождения' : 'Birth date'} <strong>{date.split('-').reverse().join('.')}</strong></p>
         <details className={styles.recalculate}><summary>{ru ? 'Изменить дату' : 'Change date'}</summary><div><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /><button type="button" onClick={calculate}>{ru ? 'Пересчитать' : 'Recalculate'}</button></div></details>
         <section className={styles.matrixBlock}><p className={styles.eyebrow}>{ru ? 'Твоя матрица' : 'Your matrix'}</p><Diagram points={points} selected={selectedId} onSelect={(point) => { lumiaSelectionHaptic(); setSelectedId(point.id); }} /><div className={styles.selection}><b>{selected.value}</b><span><strong>{selected.label}</strong><small style={{ fontSize: 13, fontWeight: 600 }}>{selected.formula}</small></span><button type="button" onClick={() => { if (locked && PREMIUM_POINTS.has(selected.id)) { requestPremium(); return; } lumiaSelectionHaptic(); setScreen({ kind: 'point', point: selected }); }}>{locked && PREMIUM_POINTS.has(selected.id) ? 'NEBO+' : (ru ? 'Разобрать' : 'Open')}</button></div></section>
-        <section className={styles.themes}><h1>{ru ? 'Разбор' : 'Reading'}</h1><p>{ru ? 'Нажми на тему или число — откроем отдельный разбор.' : 'Choose a theme or a number for its own reading.'}</p>{(Object.keys(themes) as Theme[]).map((key) => { const closed = locked && PREMIUM_THEMES.has(key); return <button type="button" className={styles.themeRow} style={{ gridTemplateColumns: 'minmax(0, 1fr) 18px' }} key={key} onClick={() => { if (closed) { requestPremium(); return; } lumiaSelectionHaptic(); setScreen({ kind: 'theme', theme: key }); }}><span><strong>{themes[key].title}</strong><small>{closed ? lockedLead(key) : themes[key].lead}</small></span>{closed ? <LockKeyhole aria-hidden="true" size={16} /> : <ChevronRight aria-hidden="true" />}</button>; })}</section>
+        <section className={styles.themes}><h1>{ru ? 'Разбор' : 'Reading'}</h1><p>{ru ? 'Нажми на тему или число, откроем отдельный разбор.' : 'Choose a theme or a number for its own reading.'}</p>{(Object.keys(themes) as Theme[]).map((key) => { const closed = locked && PREMIUM_THEMES.has(key); return <button type="button" className={styles.themeRow} style={{ gridTemplateColumns: 'minmax(0, 1fr) 18px' }} key={key} onClick={() => { if (closed) { requestPremium(); return; } lumiaSelectionHaptic(); setScreen({ kind: 'theme', theme: key }); }}><span><strong>{themes[key].title}</strong><small>{closed ? lockedLead(key) : themes[key].lead}</small></span>{closed ? <LockKeyhole aria-hidden="true" size={16} /> : <ChevronRight aria-hidden="true" />}</button>; })}</section>
         {locked ? <PremiumHook
-          title={`Деньги — ${moneyNumber}, отношения — ${loveNumber}: что это значит для тебя`}
+          title={`Деньги, ${moneyNumber}, отношения, ${loveNumber}: что это значит для тебя`}
           items={['Деньги: как ты зарабатываешь и на что легче тратить', 'Отношения: что для тебя важно рядом с человеком', 'По возрастам: три этапа жизни', 'Полный разбор: восемь глав от главного до итога']}
           cta="Открыть матрицу целиком"
           onOpen={requestPremium}

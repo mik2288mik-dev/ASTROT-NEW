@@ -85,7 +85,7 @@ describe('natal moments', () => {
     expect(headlines).toContain('Солнце было в Козероге всего 14 часов');
     expect(headlines).toContain('3 планеты в Козероге');
     expect(headlines).toContain('Больше всего в тебе Воды');
-    expect(headlines).toContain('Луна и Сатурн — самая точная связь');
+    expect(headlines).toContain('Луна и Сатурн, самая точная связь');
     expect(headlines).toContain('Меркурий шёл назад');
     expect(headlines).toContain('3 планеты в 6 доме');
   });
@@ -94,7 +94,7 @@ describe('natal moments', () => {
     const moments = buildSkyEventMoments(chart, Astronomy);
     expect(moments.map((moment) => moment.headline)).toEqual([
       'На следующий день после полного лунного затмения',
-      'На следующий день после зимнего солнцестояния — самого короткого дня в году',
+      'На следующий день после зимнего солнцестояния, самого короткого дня в году',
     ]);
     expect(moments[0].body).toContain('21 декабря 2010');
   });
@@ -123,7 +123,7 @@ describe('natal profile', () => {
     expect(profile?.ruler?.body).toContain('в своём собственном знаке');
     expect(profile?.weekdays.map((item) => item.day)).toEqual(['Суббота', 'Понедельник']);
     expect(profile?.strongCount).toBe(4);
-    expect(profile?.classicVsModern.headline).toBe('Козерог — без споров');
+    expect(profile?.classicVsModern.headline).toBe('Козерог, без споров');
     expect(profile?.history.metal).toBe('свинец');
   });
 });

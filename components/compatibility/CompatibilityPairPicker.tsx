@@ -130,8 +130,8 @@ export function CompatibilityLiveSample({ yourSign, ru }: { yourSign: string; ru
       {sample.quote ? <blockquote className="compat-live-sample-quote">{sample.quote}</blockquote> : null}
       <p className="compat-live-sample-note">
         {ru
-          ? 'Это пример по солнечным знакам. Ваш разбор строится по датам рождения обоих: Луна, Венера, Марс — и ответы именно про вашу пару.'
-          : 'This sample uses Sun signs. Your reading uses both birth dates: the Moon, Venus, Mars — and answers about your pair.'}
+          ? 'Это пример по солнечным знакам. Ваш разбор строится по датам рождения обоих: Луна, Венера, Марс, и ответы именно про вашу пару.'
+          : 'This sample uses Sun signs. Your reading uses both birth dates: the Moon, Venus, Mars, and answers about your pair.'}
       </p>
     </article>
   );

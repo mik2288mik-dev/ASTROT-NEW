@@ -70,7 +70,7 @@ export const FreshHeroCard: React.FC<FreshHeroCardProps> = ({
 
       {children}
 
-      {/* Иконка (SVG) — вотермарк */}
+      {/* Иконка (SVG), вотермарк */}
       {icon && <div className="fresh-hero-icon" aria-hidden>{icon}</div>}
 
       {/* Чип */}

@@ -56,7 +56,7 @@ export function DailyQuestionCard({ language }: { language: 'ru' | 'en' }) {
     } catch (error) {
       const code = (error as { code?: string }).code;
       setNotice(code === 'SIGN_REQUIRED'
-        ? (ru ? 'Добавь дату рождения в профиле — и сможешь отвечать.' : 'Add your birth date to answer.')
+        ? (ru ? 'Добавь дату рождения в профиле, и сможешь отвечать.' : 'Add your birth date to answer.')
         : code === 'VOTE_LIMIT'
           ? (ru ? 'С этой сети сегодня уже много ответов. Попробуй завтра.' : 'Many answers from this network today. Try tomorrow.')
           : (ru ? 'Не получилось отправить ответ. Попробуй ещё раз.' : 'Could not send the answer. Try again.'));
@@ -100,10 +100,10 @@ export function DailyQuestionCard({ language }: { language: 'ru' | 'en' }) {
             ? (ru
               ? `${results.percents[top]}% ${groupLabel} сегодня выбрали «${question.options[top].ru}». Ответов: ${results.total}.`
               : `${results.percents[top]}% of ${groupLabel} chose «${question.options[top].en}» today. Answers: ${results.total}.`)
-            : (ru ? 'Ответ принят. Проценты покажем, когда ответов станет больше — загляни вечером.' : 'Answer saved. Percentages appear once more people answer — check back tonight.')}
+            : (ru ? 'Ответ принят. Проценты покажем, когда ответов станет больше, загляни вечером.' : 'Answer saved. Percentages appear once more people answer, check back tonight.')}
         </p>
       ) : (
-        <p className="daily-question-note">{ru ? 'Один ответ в день — потом покажем, что выбрали люди твоего знака.' : 'One answer a day — then see what people of your sign chose.'}</p>
+        <p className="daily-question-note">{ru ? 'Один ответ в день, потом покажем, что выбрали люди твоего знака.' : 'One answer a day, then see what people of your sign chose.'}</p>
       )}
       {notice ? <p className="daily-question-error" role="alert">{notice}</p> : null}
     </section>

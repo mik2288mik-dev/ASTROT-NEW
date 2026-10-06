@@ -18,10 +18,10 @@ const ELEMENT_FILL = ['#ffe4d9', '#fbefd6', '#deebfd', '#e7e4f7'];
 const SIGN_COLORS = Array.from({ length: 12 }, (_, index) => ELEMENT_INK[index % 4]);
 const SIGN_FILLS = Array.from({ length: 12 }, (_, index) => ELEMENT_FILL[index % 4]);
 const HELP = [
-  { Icon: Circle, title: 'Планета — что именно', text: 'Показывает, о какой части человека идёт речь.' },
-  { Icon: BookOpen, title: 'Знак — как проявляется', text: 'Показывает, каким образом это выражается.' },
-  { Icon: House, title: 'Дом — где проявляется', text: 'Показывает, в какой части жизни это заметнее.' },
-  { Icon: Triangle, title: 'Аспекты — как связано', text: 'Показывают, как разные части карты влияют друг на друга.' },
+  { Icon: Circle, title: 'Планета, что именно', text: 'Показывает, о какой части человека идёт речь.' },
+  { Icon: BookOpen, title: 'Знак, как проявляется', text: 'Показывает, каким образом это выражается.' },
+  { Icon: House, title: 'Дом, где проявляется', text: 'Показывает, в какой части жизни это заметнее.' },
+  { Icon: Triangle, title: 'Аспекты, как связано', text: 'Показывают, как разные части карты влияют друг на друга.' },
 ];
 
 export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPremium = false, onRequestPremium, premiumContinuation, onPremiumContinuationHandled }: {
@@ -177,7 +177,7 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
       })}
       {data.aspects.map(a => {
         const from = point(a.fromLongitude, 89), to = point(a.toLongitude, 89);
-        const label = `${mapObject(a.fromKey)?.name || a.fromKey} — ${mapObject(a.toKey)?.name || a.toKey}: ${MAP_ASPECTS[a.type].name}`;
+        const label = `${mapObject(a.fromKey)?.name || a.fromKey} - ${mapObject(a.toKey)?.name || a.toKey}: ${MAP_ASPECTS[a.type].name}`;
         return <g key={a.id} className={`${styles.aspect} ${a.type === 'square' || a.type === 'opposition' ? styles.hard : styles.soft}`} {...interactive('aspect', a.id, label)}>
           <line className={styles.aspectHit} x1={from.x} y1={from.y} x2={to.x} y2={to.y}/><line className={styles.aspectLine} x1={from.x} y1={from.y} x2={to.x} y2={to.y}/>
         </g>;

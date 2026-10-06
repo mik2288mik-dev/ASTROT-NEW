@@ -64,8 +64,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'NATAL_PREMIUM_GENERATION_FAILED',
       code: 'NATAL_PREMIUM_GENERATION_FAILED',
       message: language === 'en'
-        ? 'The detailed reading could not be prepared right now. Try again — the saved chart has not changed.'
-        : 'Подробный разбор сейчас не собрался. Попробуй ещё раз — сохранённая карта не изменилась.',
+        ? 'The detailed reading could not be prepared right now. Try again, the saved chart has not changed.'
+        : 'Подробный разбор сейчас не собрался. Попробуй ещё раз, сохранённая карта не изменилась.',
       retryable: true,
     });
   }

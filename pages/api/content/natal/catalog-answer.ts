@@ -89,8 +89,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'NATAL_REPORT_ANSWER_GENERATION_FAILED',
       code: 'NATAL_REPORT_ANSWER_GENERATION_FAILED',
       message: language === 'en'
-        ? 'This answer did not open right now. Try again — your saved chart has not changed.'
-        : 'Этот ответ сейчас не открылся. Попробуй ещё раз — сохранённая карта не изменилась.',
+        ? 'This answer did not open right now. Try again, your saved chart has not changed.'
+        : 'Этот ответ сейчас не открылся. Попробуй ещё раз, сохранённая карта не изменилась.',
       retryable: true,
     });
   }

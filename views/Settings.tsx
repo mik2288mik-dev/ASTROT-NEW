@@ -674,7 +674,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 if (diag?.env?.dryRun) hints.push('отправка выключена (нет токена)');
                 if (diag?.ownerProbe && !diag.ownerProbe.candidateNow) hints.push('по расписанию сейчас тебе ничего не подходит (окно/лимит/тихие часы)');
                 if (Array.isArray(diag?.problems)) hints.push(...diag.problems);
-                setDailyPushInfo(hints.length ? `Доставлено. Регулярные могут молчать: ${hints.slice(0, 3).join('; ')}.` : 'Доставлено — проверь чат с ботом.');
+                setDailyPushInfo(hints.length ? `Доставлено. Регулярные могут молчать: ${hints.slice(0, 3).join('; ')}.` : 'Доставлено, проверь чат с ботом.');
             } else {
                 setDailyPush('err');
                 setDailyPushInfo(String(result.error || data?.message || data?.error || (res.status === 404 ? 'эндпоинт не найден' : `ошибка ${res.status}`)));
@@ -1256,10 +1256,10 @@ export const Settings: React.FC<SettingsProps> = ({
                             </div>
                             <p className="settings-helper-text">{profile.language === 'en'
                                 ? 'Important: a finished result, your birthday, holidays and news. Tap to open the right screen.'
-                                : 'Важное — готовый результат, день рождения, праздники и новости. Нажмёшь — откроется нужный экран.'}</p>
+                                : 'Важное, готовый результат, день рождения, праздники и новости. Нажмёшь, откроется нужный экран.'}</p>
                             {notificationMode === 'daily' ? <p className="settings-helper-text">{profile.language === 'en'
-                                ? 'Plus a morning horoscope for your sign and a daytime nudge — outside quiet hours, in your phone’s time zone.'
-                                : 'Плюс утром гороскоп по знаку и днём что-нибудь интересное — вне тихих часов, по времени телефона.'}</p> : null}
+                                ? 'Plus a morning horoscope for your sign and a daytime nudge, outside quiet hours, in your phone’s time zone.'
+                                : 'Плюс утром гороскоп по знаку и днём что-нибудь интересное, вне тихих часов, по времени телефона.'}</p> : null}
                             <div className="settings-detail-section settings-detail-section--separated">
                                 <p className="settings-helper-text">{profile.language === 'en' ? 'For example' : 'Например'}</p>
                                 <strong>{profile.language === 'en' ? 'Good morning!' : 'Доброе утро!'}</strong>
@@ -1293,7 +1293,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                 </div>
                                 <p className="settings-helper-text">
                                     {nativeNotifications && quietStart === quietEnd
-                                        ? profile.language === 'en' ? 'Matching times mean a full day of quiet.' : 'Одинаковое время — тишина на весь день.'
+                                        ? profile.language === 'en' ? 'Matching times mean a full day of quiet.' : 'Одинаковое время, тишина на весь день.'
                                         : profile.language === 'en'
                                         ? 'We do not send notifications during this interval.'
                                         : 'В этот промежуток уведомления не приходят.'}
@@ -1573,8 +1573,8 @@ export const Settings: React.FC<SettingsProps> = ({
                         ) : rustorePurchaseControlsAvailable && restoreState === 'pending' ? (
                             <p role="status" className="settings-helper-text">
                                 {profile.language === 'ru'
-                                    ? 'RuStore ещё подтверждает покупку. Подожди немного и проверь снова — повторно покупать не нужно.'
-                                    : 'RuStore is still confirming the purchase. Wait a moment and check again — do not buy it again.'}
+                                    ? 'RuStore ещё подтверждает покупку. Подожди немного и проверь снова, повторно покупать не нужно.'
+                                    : 'RuStore is still confirming the purchase. Wait a moment and check again, do not buy it again.'}
                             </p>
                         ) : rustorePurchaseControlsAvailable && restoreState === 'error' ? (
                             <p role="alert" className="settings-error-text">

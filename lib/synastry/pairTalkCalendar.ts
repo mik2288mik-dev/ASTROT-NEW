@@ -59,9 +59,9 @@ const REASONS: Record<Reason, [string, string]> = {
   talk_easy: ['Легче договориться и объяснить, что имеешь в виду.', 'Easier to agree and explain what you mean.'],
   mood_easy: ['Настроение у обоих ровнее, меньше поводов для обид.', 'Both moods are steadier, fewer reasons to take offence.'],
   warm: ['Хороший день, чтобы провести время вместе.', 'A good day to spend time together.'],
-  talk_hard: ['Слова легко понять не так — важное лучше отложить.', 'Words are easy to misread — better to postpone important talks.'],
-  irritation: ['Оба быстрее раздражаетесь — не лучший день выяснять отношения.', 'You both get irritated faster — not a day to sort things out.'],
-  mood_hard: ['Настроение скачет — не принимайте резкие слова близко к сердцу.', 'Moods swing — do not take sharp words to heart.'],
+  talk_hard: ['Слова легко понять не так, важное лучше отложить.', 'Words are easy to misread, better to postpone important talks.'],
+  irritation: ['Оба быстрее раздражаетесь, не лучший день выяснять отношения.', 'You both get irritated faster, not a day to sort things out.'],
+  mood_hard: ['Настроение скачет, не принимайте резкие слова близко к сердцу.', 'Moods swing, do not take sharp words to heart.'],
 };
 
 const normalize = (value: number) => ((value % 360) + 360) % 360;

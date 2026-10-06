@@ -43,8 +43,8 @@ const NATAL_INS_RU: Record<string, string> = {
 const TONE_WORD_RU: Record<AspectTone, string> = { support: 'поддержка', pressure: 'напряжение', accent: 'усиление' };
 const TONE_TEXT_RU: Record<AspectTone, (theme: string, natal: string) => string> = {
   support: (theme, natal) => `Сегодня ${theme} в ладу с ${natal}. Хороший день, чтобы опереться на это и не усложнять.`,
-  pressure: (theme, natal) => `Сегодня ${theme} спорит с ${natal}. Не спеши с резкими решениями — дай себе время.`,
-  accent: (theme, natal) => `Сегодня ${theme} подчёркивает то, что связано с ${natal}. Это будет заметно — используй.`,
+  pressure: (theme, natal) => `Сегодня ${theme} спорит с ${natal}. Не спеши с резкими решениями, дай себе время.`,
+  accent: (theme, natal) => `Сегодня ${theme} подчёркивает то, что связано с ${natal}. Это будет заметно, используй.`,
 };
 
 /**
@@ -82,10 +82,10 @@ export function todayMoonFacts(astro: typeof import('astronomy-engine'), dayKey:
   const percent = Math.round(((1 - Math.cos((angle * Math.PI) / 180)) / 2) * 100);
   const waxing = angle < 180;
   const phase = percent <= 4
-    ? 'почти новолуние — тихое время'
+    ? 'почти новолуние, тихое время'
     : percent >= 96
-      ? 'почти полнолуние — эмоции на пике'
-      : waxing ? 'Луна растёт — хорошо начинать новое' : 'Луна убывает — хорошо завершать и отдыхать';
+      ? 'почти полнолуние, эмоции на пике'
+      : waxing ? 'Луна растёт, хорошо начинать новое' : 'Луна убывает, хорошо завершать и отдыхать';
   return [
     { value: `Луна в ${SIGN_IN_RU[sign]}`, caption: `сегодня ${MOON_SIGN_TODAY_RU[sign]}` },
     { value: `Луна ${percent}%`, caption: phase },
@@ -145,7 +145,7 @@ export function chartFactOfDay(chart: NatalChartData | null | undefined, dayKey:
   const opening = housesReliable && Number.isInteger(house) ? HOUSE_OPENINGS_RU[house] : null;
   return {
     title: `${BODY_RU[pick.body]} в ${SIGN_IN_RU[index]}${opening ? `, ${house} дом` : ''}`,
-    text: opening ? `${meaning} Особенно заметно — ${opening.charAt(0).toLowerCase()}${opening.slice(1)}.` : meaning,
+    text: opening ? `${meaning} Особенно заметно, ${opening.charAt(0).toLowerCase()}${opening.slice(1)}.` : meaning,
   };
 }
 
@@ -175,12 +175,12 @@ export function birthFacts(input: {
   if (input.moonAtBirth !== null && Number.isFinite(input.moonAtBirth)) {
     const lit = Math.round(input.moonAtBirth);
     const phrase = lit <= 3 ? 'почти новолуние' : lit >= 97 ? 'почти полнолуние' : lit < 50 ? 'тонкая Луна' : 'яркая Луна';
-    facts.push({ value: `Луна ${lit}%`, caption: `в момент твоего рождения — ${phrase}` });
+    facts.push({ value: `Луна ${lit}%`, caption: `в момент твоего рождения, ${phrase}` });
   }
 
   const rising = signIndex(input.rising);
   if (input.birthTimeKnown && input.birthTime && input.risingReliable && rising >= 0) {
-    facts.push({ value: input.birthTime.slice(0, 5), caption: `время рождения — от него твой Асцендент ${SIGN_NOM_RU[rising]}` });
+    facts.push({ value: input.birthTime.slice(0, 5), caption: `время рождения, от него твой Асцендент ${SIGN_NOM_RU[rising]}` });
   }
 
   const todayUtc = Date.UTC(today.y, today.m - 1, today.d);
@@ -189,7 +189,7 @@ export function birthFacts(input: {
   const days = Math.round((next - todayUtc) / 86_400_000);
   const nextWeekday = WEEKDAYS_RU[new Date(next).getUTCDay()];
   facts.push(days === 0
-    ? { value: 'Сегодня', caption: 'твой день рождения — с праздником!' }
+    ? { value: 'Сегодня', caption: 'твой день рождения, с праздником!' }
     : { value: `Через ${days} ${daysWord(days)}`, caption: `день рождения, в ${nextWeekday}` });
   return facts;
 }

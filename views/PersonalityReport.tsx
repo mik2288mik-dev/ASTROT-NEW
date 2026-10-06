@@ -202,7 +202,7 @@ export function PersonalityReport({
           {selectedChart && !selectedChartData ? (
             <div className="personality-report-reading-error" role="alert">
               {language === 'ru'
-                ? 'У сохранённого человека нет готового снимка карты. Открой натальную карту и проверь данные — разбор не будет подменять её твоей картой.'
+                ? 'У сохранённого человека нет готового снимка карты. Открой натальную карту и проверь данные, разбор не будет подменять её твоей картой.'
                 : 'This saved person has no ready chart snapshot. Open the natal chart and check the data; the reading will not substitute your own chart.'}
             </div>
           ) : waitingForPrimaryId ? (

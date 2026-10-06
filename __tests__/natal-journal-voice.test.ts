@@ -20,7 +20,7 @@ describe('natal journal voice contract', () => {
     const prompt = getNatalStorySystemPrompt('ru');
 
     expect(prompt).toContain('Не придумывай ради живости сцену, предмет, привычку, профессию, покупку, Wi-Fi');
-    expect(prompt).toContain('Если она хоть немного добавляет новый факт — убери её');
+    expect(prompt).toContain('Если она хоть немного добавляет новый факт, убери её');
   });
 
   it('forces a fresh saved-copy revision for the editorial replacement', () => {

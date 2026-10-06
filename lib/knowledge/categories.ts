@@ -37,7 +37,7 @@ export const KNOWLEDGE_CATEGORIES: readonly KnowledgeCategory[] = [
     id: 'angles',
     label: { ru: 'Углы карты', en: 'Chart angles' },
     description: {
-      ru: 'Асцендент, Десцендент, MC и IC — четыре опорные точки карты.',
+      ru: 'Асцендент, Десцендент, MC и IC, четыре опорные точки карты.',
       en: 'The Ascendant, Descendant, MC, and IC—the chart’s four main angles.',
     },
   },

@@ -120,13 +120,13 @@ export function buildNatalTeaserFact(
     return ru
       ? {
           headline: `У тебя ${planets.length} ${planetsWord(planets.length)} в ${SIGN_IN_RU[sign]}`,
-          body: `${names} в одном знаке — так бывает не у всех. Разберём, что это даёт`,
+          body: `${names} в одном знаке, так бывает не у всех. Разберём, что это даёт`,
           highlightSign: sign,
           highlightPlanets: planets,
         }
       : {
           headline: `You have ${planets.length} planets in ${sign}`,
-          body: `${names} share one sign — not everyone has that. See what it gives you`,
+          body: `${names} share one sign, not everyone has that. See what it gives you`,
           highlightSign: sign,
           highlightPlanets: planets,
         };
@@ -145,7 +145,7 @@ export function buildNatalTeaserFact(
       : `${planets.length} из ${placed.length} планет`;
     return ru
       ? {
-          headline: `${share} — в знаках ${ELEMENT_RU[element]}`,
+          headline: `${share}, в знаках ${ELEMENT_RU[element]}`,
           body: 'Такой перевес заметен в характере. Разберём, в чём именно',
           highlightSign: null,
           highlightPlanets: planets,
@@ -163,7 +163,7 @@ export function buildNatalTeaserFact(
   if (sun && moon && sun === moon) {
     return ru
       ? {
-          headline: `Солнце и Луна — обе в ${SIGN_IN_RU[sun]}`,
+          headline: `Солнце и Луна, обе в ${SIGN_IN_RU[sun]}`,
           body: 'Голова и чувства у тебя хотят одного и того же. Разберём, где это помогает',
           highlightSign: sun,
           highlightPlanets: ['sun', 'moon'],

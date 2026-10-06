@@ -94,7 +94,7 @@ export function renderNeboOpsMenu(prefs: NeboOpsPreferences, server = ''): { tex
     text: [
       `🌌 NEBO · Бот событий${server ? ` · 🖥 ${server}` : ''}`,
       '',
-      'Что посмотреть — кнопками ниже. Команда /user ID — карточка любого человека.',
+      'Что посмотреть, кнопками ниже. Команда /user ID, карточка любого человека.',
       off.length ? `⚠️ Сейчас выключены уведомления: ${off.join(', ')} (⚙️ Настройки)` : '✅ Все уведомления включены',
       `Отчёт каждый день: ${hour(prefs.daily_report_hour)} · за неделю: вс, ${hour(prefs.weekly_report_hour)}`,
     ].join('\n'),
@@ -115,8 +115,8 @@ export function renderNeboOpsSettingsMenu(prefs: NeboOpsPreferences): { text: st
     text: [
       '⚙️ Настройки уведомлений',
       '',
-      'Галочка — уведомление приходит. Нажми, чтобы включить или выключить.',
-      'Время отчётов — нажимай, пока не выберешь нужное (21:00 → 23:00 → выкл).',
+      'Галочка, уведомление приходит. Нажми, чтобы включить или выключить.',
+      'Время отчётов, нажимай, пока не выберешь нужное (21:00 → 23:00 → выкл).',
     ].join('\n'),
     replyMarkup: { inline_keyboard: [
       [{ text: `${on(prefs.notify_logins)} Входы`, callback_data: 'ops:toggle:notify_logins' }, { text: `${on(prefs.notify_paywalls)} Экран оплаты`, callback_data: 'ops:toggle:notify_paywalls' }],

@@ -286,7 +286,7 @@ const ADMIN_USER_METRICS_CTE = `
       u.created_at,
       u.last_login,
       -- Последняя активность считается по ВСЕМ сигналам: сессии (Telegram), события приложения
-      -- (screen_view — есть и у веб-гостей), и last_login. GREATEST игнорирует NULL. Раньше бралось
+      -- (screen_view, есть и у веб-гостей), и last_login. GREATEST игнорирует NULL. Раньше бралось
       -- только MAX(user_sessions) → веб-гости и юзеры без сессии выглядели «никогда не заходившими».
       GREATEST(MAX(us.last_seen_at), MAX(ev.last_event), u.last_login) AS last_seen_at,
       COUNT(DISTINCT nc.id)::int AS saved_charts_count

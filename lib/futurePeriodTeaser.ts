@@ -35,11 +35,11 @@ function strongestSkyEvent(events: readonly SkyEvent[]): SkyEvent | null {
 }
 
 function skyLineRu(event: SkyEvent): string {
-  return `${formatDayRu(event.dayKey)} — ${lowerFirst(event.headline)}: ${lowerFirst(event.body)}.`;
+  return `${formatDayRu(event.dayKey)}, ${lowerFirst(event.headline)}: ${lowerFirst(event.body)}.`;
 }
 
 function personalLineRu(event: PersonalEvent): string {
-  return `Ближайший личный день — ${formatDayRu(event.dayKey)}: ${lowerFirst(event.headline)}.`;
+  return `Ближайший личный день, ${formatDayRu(event.dayKey)}: ${lowerFirst(event.headline)}.`;
 }
 
 export type FutureTeaserInput = {
@@ -86,10 +86,10 @@ export function buildWeekTeaser(input: FutureTeaserInput): string[] {
   }
   if (firstPersonal) lines.push(personalLineRu(firstPersonal));
   if (sky) lines.push(skyLineRu(sky));
-  else if (retrograde) lines.push('Меркурий идёт назад — перепроверяй договорённости и сообщения перед отправкой.');
+  else if (retrograde) lines.push('Меркурий идёт назад, перепроверяй договорённости и сообщения перед отправкой.');
   if (!lines.length) {
     const moonSigns = new Set(days.map((day) => day.moonSignIn)).size;
-    lines.push(`Луна за неделю пройдёт через ${moonSigns} ${pluralRu(moonSigns, 'знак', 'знака', 'знаков')} — настроение будет меняться чаще, чем планы.`);
+    lines.push(`Луна за неделю пройдёт через ${moonSigns} ${pluralRu(moonSigns, 'знак', 'знака', 'знаков')}, настроение будет меняться чаще, чем планы.`);
   }
   return lines.slice(0, 3);
 }
@@ -113,8 +113,8 @@ export function buildMonthTeaser(input: FutureTeaserInput & { month: number }): 
   const monthIn = MONTHS_IN_RU[input.month - 1];
   if (input.hasNatal) {
     lines.push(personalDays
-      ? `В ${monthIn} у тебя ${personalDays} ${pluralRu(personalDays, 'важный день', 'важных дня', 'важных дней')} по карте — дальше разберём, что с ними делать.`
-      : `В ${monthIn} по твоей карте нет резких дней — хороший месяц, чтобы спокойно довести начатое.`);
+      ? `В ${monthIn} у тебя ${personalDays} ${pluralRu(personalDays, 'важный день', 'важных дня', 'важных дней')} по карте, дальше разберём, что с ними делать.`
+      : `В ${monthIn} по твоей карте нет резких дней, хороший месяц, чтобы спокойно довести начатое.`);
   }
   if (personal[0]) lines.push(personalLineRu(personal[0]));
   if (retrogradeDays) lines.push(`Меркурий идёт назад ${retrogradeDays} ${pluralRu(retrogradeDays, 'день', 'дня', 'дней')}: важное лучше не подписывать наспех.`);
