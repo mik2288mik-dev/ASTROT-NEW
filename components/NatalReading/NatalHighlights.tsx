@@ -170,7 +170,7 @@ export function NatalHighlights({ chart, part = 'all' }: { chart: NatalChartData
       ) : null}
 
       {part !== 'big-three' && moments.length ? (
-        <section className={styles.block} aria-labelledby="natal-moments">
+        <section className={`${styles.block}${part === 'moments' ? ` ${styles.afterStory}` : ''}`} aria-labelledby="natal-moments">
           <h2 id="natal-moments" className={styles.heading}>Фишки твоей карты</h2>
           <div className={styles.moments}>
             {moments.map((moment) => <MomentCard key={moment.id} moment={moment} />)}

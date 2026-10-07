@@ -23,7 +23,7 @@ export type PersonalForecastRecentReading = {
   semanticSignature?: PersonalForecastSemanticSignature; briefSignature?: string;
 };
 
-import { getPersonalForecastSystemPrompt } from './voice/contracts/personalForecast';
+import { getPersonalForecastSystemPrompt, getPersonalPeriodForecastSystemPrompt } from './voice/contracts/personalForecast';
 export { getPersonalForecastSystemPrompt };
 
 export function getDirectHoroscopeVoiceViolationCodes(text: string): string[] {
@@ -160,6 +160,18 @@ function readDayWriterFields(source: string, incomplete: boolean): Record<string
   return parsed as Record<string, unknown>;
 }
 
+/** Week/month drafts that read like a notice: a name opening, a long dash, or hedging in every sentence. */
+function periodSpokenViolations(body: string, name: string | undefined): string[] {
+  const text = body.trim();
+  const firstName = (name || '').trim().split(/\s+/u)[0];
+  const hedges = text.match(/(?:^|[^\p{L}])(?:может|могут|скорее|вероятно|возможно)(?!\p{L})/giu) || [];
+  return [
+    ...(firstName && text.toLocaleLowerCase('ru').startsWith(firstName.toLocaleLowerCase('ru')) ? ['PERIOD_NAME_OPENING'] : []),
+    ...(/—/u.test(text) ? ['PERIOD_LONG_DASH'] : []),
+    ...(hedges.length > 1 ? ['PERIOD_HEDGING'] : []),
+  ];
+}
+
 function hasCompleteSentenceEnding(text: string): boolean {
   return /[.!?…][»”"']*$/u.test(text);
 }
@@ -223,16 +235,16 @@ export async function generatePersonalForecastPackage(
       }
     };
   } else {
-    const periodName = input.period === 'week' ? 'эту неделю' : 'этот месяц';
-    const partsName = input.period === 'week' ? 'дни недели, выходные' : 'начало месяца, его середина и конец';
-    systemPrompt = `Твоя роль, астролог. Ты обращаешься к читателю на «ты».\n\nГенерируй прогноз понятным языком, без астрологических терминов,\nобщих водных фраз и психологического коучинга.\n\nТы подготавливаешь цельный прогноз на ${periodName}.\n\nНе дели прогноз на искусственные части (${partsName}).\nПиши сплошным текстом, разделяя абзацы.\n\nПридумай заголовок для гороскопа.\n\nВ конце дай четкий призыв к действию (одно слово) и короткий совет (action_text).`;
+    systemPrompt = getPersonalPeriodForecastSystemPrompt(language, input.period);
 
     const dateCalculation = buildPersonalForecastDateContext(input.natal, input.window);
+    const retryFeedback = dayRetryFeedback(input.retryReason, language);
     writerInput = {
       birth: getPersonalForecastRawProfile(input.profile),
       saved_natal_calculation: { positions: input.natal.positions, houses: input.natal.houses, aspects: input.natal.aspects, quality: input.natal.chartQuality },
       selected_date_calculation: dateCalculation,
-      selected_date: { period: input.period, start: input.window.periodStart, end: input.window.periodEnd, timezone: input.window.timezone }
+      selected_date: { period: input.period, start: input.window.periodStart, end: input.window.periodEnd, timezone: input.window.timezone },
+      ...(retryFeedback ? { retry_feedback: retryFeedback } : {}),
     };
 
     schema = {
@@ -275,7 +287,8 @@ export async function generatePersonalForecastPackage(
     throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:EMPTY_READING');
   }
 
-  const text = raw.body.trim();
+  // Week and month texts never keep a long dash: the NEBO voice uses a comma or a full stop instead.
+  const text = input.period === 'day' ? raw.body.trim() : raw.body.trim().replace(/\s*—\s*/gu, ', ');
   let title = typeof raw.title === 'string' ? raw.title.trim() : '';
   let partiallyRecovered = incompleteOutput;
   
@@ -310,6 +323,15 @@ export async function generatePersonalForecastPackage(
     }
   } else {
     if (!title) throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:EMPTY_READING');
+    // Same voice gate as the day reading. A first draft in report language is rewritten once;
+    // the second draft is kept so the reader never gets an error instead of a forecast.
+    const periodVoiceViolations = [
+      ...getPersonalForecastVoiceViolationCodes(`${title} ${text}`),
+      ...periodSpokenViolations(raw.body as string, input.profile.name),
+    ];
+    if (periodVoiceViolations.length && !input.retryReason) {
+      throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:VOICE:${periodVoiceViolations.join(',')}`);
+    }
     actionType = (raw.action_type === 'buy' || raw.action_type === 'talk' || raw.action_type === 'move' || raw.action_type === 'stop') ? raw.action_type as string : null;
     actionText = typeof raw.action_text === 'string' ? raw.action_text.trim() : null;
   }

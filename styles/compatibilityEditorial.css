@@ -747,7 +747,7 @@
   max-width: 35rem;
 }
 .compat-editorial-page--add .compat-entry-form--date { padding-bottom: 0; }
-.compat-editorial-page--add .compat-date-hero { margin: 0 0 16px; }
+.compat-editorial-page--add .compat-date-hero { margin: 20px 0 16px; }
 .compat-editorial-page--add .compat-date-hero h2 { margin: 0; color: var(--compat-input-ink); font-size: clamp(1.45rem, 6.3vw, 1.8rem); font-weight: 700; letter-spacing: -.045em; line-height: 1.08; }
 .compat-editorial-page--add .compat-date-hero p { max-width: 34rem; margin: 8px 0 0; color: var(--compat-input-muted); font-size: .88rem; line-height: 1.46; text-wrap: pretty; }
 .compat-editorial-page--add .compat-entry-context--date { margin: 0 0 14px; padding: 0; }
