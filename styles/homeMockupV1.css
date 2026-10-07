@@ -172,28 +172,6 @@
   height: 100%;
 }
 
-.sky-hero-moon {
-  position: absolute;
-  top: calc(var(--home-safe-top) + 48px + 8px);
-  right: 16px;
-  z-index: 2;
-  width: 56px;
-  height: 56px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.sky-hero-moon-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 999px;
-  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.35));
-}
-
 .sky-hero-content {
   position: relative;
   z-index: 1;
@@ -207,7 +185,6 @@
   align-items: center;
   gap: 10px;
   margin: 0 0 12px;
-  padding-right: 64px;
 }
 
 .sky-hero-date,
@@ -303,11 +280,6 @@
 .sky-hero.is-compact::before,
 .sky-hero.is-compact::after {
   display: none;
-}
-
-.sky-hero.is-compact .sky-hero-moon {
-  top: 12px;
-  right: 12px;
 }
 
 .sky-hero-loading {
@@ -1495,3 +1467,46 @@
 }
 .checkout-notice-text { min-width: 0; flex: 1; }
 .checkout-notice-close { flex: none; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: inherit; font: inherit; font-size: 1.25rem; font-weight: 600; cursor: pointer; }
+
+/* ── Today: «Небо сегодня» right under the forecast, entry tiles below it ── */
+/* One quiet neutral pad under every sticker instead of a different tint per tile. */
+.home-entry-tile .home-entry-tile-pad,
+.home-entry-tile.is-future .home-entry-tile-pad,
+.home-entry-tile.is-compatibility .home-entry-tile-pad,
+.home-entry-tile.is-tests .home-entry-tile-pad,
+.home-entry-tile.is-sounds .home-entry-tile-pad,
+.home-entry-tile.is-stories .home-entry-tile-pad,
+.home-entry-tile.is-antistress .home-entry-tile-pad { background: #f4f4f6; }
+
+/* Slightly smaller tiles: the row reads as navigation, not as a second hero.
+   A tile is exactly as wide as its icon, so the first icon sits on the same 16px edge as the cards;
+   a longer label («Совместимость») centres under its icon and uses the gap instead of being cut. */
+.home-entry-tile { width: 4.5rem; }
+.home-entry-tile-icon { width: 4.5rem; height: 4.5rem; border-radius: 1.2rem; }
+.home-entry-tile-label { width: max-content; max-width: 6.25rem; overflow: visible; font-size: 0.75rem; font-weight: 600; text-overflow: clip; }
+.home-entry-tiles-row { gap: 1.125rem; padding-inline: 1rem; scroll-padding-inline: 1rem; }
+
+/* The sky card is a touch tighter now that it sits higher on the screen. */
+.today-sky { padding-top: 1rem; padding-bottom: 0.25rem; }
+.today-sky .today-explore-heading { margin-bottom: 0.7rem; }
+.today-sky-card { padding: 0.9rem 0.9rem 0.95rem; }
+.today-sky-calendar { margin-top: 0.65rem; }
+.today-sky-divider { margin: 0.75rem 0; }
+.today-sky-timeline { margin-top: 0.65rem; }
+
+/* One 16px edge for the whole screen: the forecast text used to sit 4px further in than every card below it. */
+.sky-hero { padding-left: 16px; padding-right: 16px; }
+
+/* Every card is followed by the next block 24px later; the tile row had 17px above and 38px below. */
+.today-sky + .home-entry-tiles { margin-top: 17px; }
+.home-entry-tiles + * { margin-top: -16px; }
+
+/* Section headings share one style; «Для тебя» was the odd one out (bold, larger). */
+.for-you-title { font-size: 1.12rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; }
+
+/* Small tiles get a lighter lift than full cards, and the sky card takes the shared 22px radius. */
+.home-entry-tile-icon { box-shadow: 0 6px 14px rgba(22, 32, 70, 0.12), 0 1px 3px rgba(22, 32, 70, 0.08) !important; }
+.today-sky-card { border-radius: 22px; }
+
+/* «Небо сегодня» while it is being calculated: same card, same height, no content yet. */
+.today-sky-card.is-placeholder { min-height: 26rem; }

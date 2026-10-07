@@ -856,11 +856,12 @@ export const Dashboard = memo<DashboardProps>(({
       tiles={[
         { id: 'future', onOpen: () => openFuture() },
         { id: 'compatibility', onOpen: onOpenSynastry },
-        { id: 'matrix', onOpen: onOpenMatrix },
         { id: 'tests', onOpen: onOpenTests ? () => onOpenTests() : undefined },
         { id: 'sounds', onOpen: onOpenSounds },
         { id: 'stories', onOpen: onOpenStories },
         { id: 'antistress', onOpen: onOpenAntistress },
+        // The dark live-code tile sits last so the first, visible part of the row stays light.
+        { id: 'matrix', onOpen: onOpenMatrix },
       ]}
     />
   );
@@ -948,10 +949,14 @@ export const Dashboard = memo<DashboardProps>(({
           tone={forecast.meta.astrologerBrief.tone}
           personalAttribution={personalForecastAttribution}
           onRequestPremium={requestPremium}
-          afterHero={entryTiles}
+          afterHero={(
+            <>
+              <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
+              {entryTiles}
+            </>
+          )}
           footer={(
             <>
-            <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
             <TodayAboutYou
               userId={String(profile.id || 'guest')}
               todayKey={periodKeys.day}

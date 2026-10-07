@@ -102,10 +102,6 @@ export function TodayEditorialFeed({
   const overview = visibleSections.find((section) => section.kind === 'overview');
   const title = resolveTitle(overview);
   const rest = visibleSections.filter((section) => section !== overview);
-  const scrollToSky = () => {
-    document.getElementById('today-sky')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   return (
     <article
       className="forecast-feed-story forecast-editorial-reading today-editorial-feed today-minimal-feed"
@@ -119,7 +115,6 @@ export function TodayEditorialFeed({
         kicker={language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
         title={title || undefined}
         titleId="today-reading-title"
-        onMoon={scrollToSky}
       >
         {!title ? (
           <h1 id="today-reading-title" className="sr-only">

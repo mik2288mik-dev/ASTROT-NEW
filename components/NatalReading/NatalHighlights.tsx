@@ -113,7 +113,8 @@ function MomentCard({ moment }: { moment: NatalMoment }) {
   );
 }
 
-export function NatalHighlights({ chart }: { chart: NatalChartDataV2 }) {
+/** `part` lets the overview put the big three before the story and the highlights after it. */
+export function NatalHighlights({ chart, part = 'all' }: { chart: NatalChartDataV2; part?: 'all' | 'big-three' | 'moments' }) {
   const bigThree = useMemo(() => buildBigThree(chart), [chart]);
   const chartMoments = useMemo(() => buildChartMoments(chart), [chart]);
   const [skyMoments, setSkyMoments] = useState<NatalMoment[]>([]);
@@ -121,6 +122,7 @@ export function NatalHighlights({ chart }: { chart: NatalChartDataV2 }) {
   useEffect(() => {
     let active = true;
     setSkyMoments([]);
+    if (part === 'big-three') return () => { active = false; };
     skyEngine ??= import('astronomy-engine');
     skyEngine
       .then((engine) => {
@@ -130,7 +132,7 @@ export function NatalHighlights({ chart }: { chart: NatalChartDataV2 }) {
         skyEngine = null;
       });
     return () => { active = false; };
-  }, [chart]);
+  }, [chart, part]);
 
   // A solstice or equinox is the Sun entering a sign: one moment instead of two.
   const seasonMoment = skyMoments.find((moment) => moment.id === 'sky:season');
@@ -144,7 +146,7 @@ export function NatalHighlights({ chart }: { chart: NatalChartDataV2 }) {
 
   return (
     <>
-      {bigThree.length ? (
+      {part !== 'moments' && bigThree.length ? (
         <section className={styles.block} aria-labelledby="natal-big-three">
           <h2 id="natal-big-three" className={styles.heading}>Главное о тебе</h2>
           <div className={styles.bigThree}>
@@ -167,7 +169,7 @@ export function NatalHighlights({ chart }: { chart: NatalChartDataV2 }) {
         </section>
       ) : null}
 
-      {moments.length ? (
+      {part !== 'big-three' && moments.length ? (
         <section className={styles.block} aria-labelledby="natal-moments">
           <h2 id="natal-moments" className={styles.heading}>Фишки твоей карты</h2>
           <div className={styles.moments}>
