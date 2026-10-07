@@ -990,6 +990,11 @@ export const Dashboard = memo<DashboardProps>(({
               onOpenTests={onOpenTests}
               onOpenMatrix={onOpenMatrix}
             />
+            <SeasonCard
+              userId={String(profile.id || 'guest')}
+              todayKey={periodKeys.day}
+              onOpenFuture={() => openFuture()}
+            />
             <ForYouBlock
               userId={String(profile.id || 'guest')}
               language={language}
@@ -1018,11 +1023,6 @@ export const Dashboard = memo<DashboardProps>(({
               timezone={timezone}
               premium={premium}
               onOpen={() => { onPeriodChange?.('month'); }}
-            />
-            <SeasonCard
-              userId={String(profile.id || 'guest')}
-              todayKey={periodKeys.day}
-              onOpenFuture={() => openFuture()}
             />
             <TodayExploreCards
               language={language}

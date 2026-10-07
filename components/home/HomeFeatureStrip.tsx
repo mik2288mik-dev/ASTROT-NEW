@@ -2,13 +2,15 @@ import React, { useMemo } from 'react';
 import { STORY_GENRE_LABELS, STORY_SERIES } from '../../lib/stories/series';
 import { SLEEP_STORIES } from '../../lib/sleepStories';
 import { SELF_TESTS } from '../../lib/selfTests/engine';
+import { VideoBackground } from '../lumia-ui/VideoBackground';
+import type { VideoBackgroundId } from '../../lib/videoBackgrounds';
 
 type Card = {
   id: string;
   kicker: string;
   title: string;
   line: string;
-  image: string;
+  video: VideoBackgroundId | null;
   onOpen: () => void;
 };
 
@@ -21,7 +23,7 @@ type HomeFeatureStripProps = {
   onOpenMatrix?: () => void;
 };
 
-const SLEEP_POSTERS: Record<string, string> = {
+const SLEEP_VIDEOS: Record<string, VideoBackgroundId> = {
   'sea-house': 'sleep-sea-house',
   'night-train': 'sleep-night-train',
   'garden-rain': 'sleep-garden-rain',
@@ -51,7 +53,7 @@ export function HomeFeatureStrip({ todayKey, onOpenStories, onOpenSounds, onOpen
         kicker: `Рассказы, ${STORY_GENRE_LABELS[series.genre].ru.toLowerCase()}`,
         title: series.title,
         line: 'Новая серия каждый день',
-        image: `/assets/video-posters/story-${series.id}.webp`,
+        video: `story-${series.id}` as VideoBackgroundId,
         onOpen: onOpenStories,
       });
     }
@@ -62,7 +64,7 @@ export function HomeFeatureStrip({ todayKey, onOpenStories, onOpenSounds, onOpen
         kicker: story.kind === 'sleep' ? 'Сегодня на ночь' : 'Для спокойствия',
         title: story.title.ru,
         line: story.teaser.ru,
-        image: `/assets/video-posters/${SLEEP_POSTERS[story.id] ?? 'sleep-sea-house'}.webp`,
+        video: SLEEP_VIDEOS[story.id] ?? 'sleep-sea-house',
         onOpen: onOpenSounds,
       });
     }
@@ -72,7 +74,7 @@ export function HomeFeatureStrip({ todayKey, onOpenStories, onOpenSounds, onOpen
         kicker: 'Антистресс',
         title: 'Минута, чтобы выдохнуть',
         line: 'Дыхание, тело, звуки',
-        image: '/assets/video-posters/breathing.webp',
+        video: 'breathing',
         onOpen: onOpenAntistress,
       });
     }
@@ -83,7 +85,7 @@ export function HomeFeatureStrip({ todayKey, onOpenStories, onOpenSounds, onOpen
         kicker: `Тест на ${test.minutes} мин`,
         title: test.title.ru,
         line: 'Без оценок, в конце сравним с твоей картой',
-        image: '/assets/video-posters/tests.webp',
+        video: 'tests',
         onOpen: () => onOpenTests(test.id),
       });
     }
@@ -93,7 +95,7 @@ export function HomeFeatureStrip({ todayKey, onOpenStories, onOpenSounds, onOpen
         kicker: 'Матрица судьбы',
         title: 'Твой код по дате рождения',
         line: 'Бесплатно, считается за секунду',
-        image: '',
+        video: null,
         onOpen: onOpenMatrix,
       });
     }
@@ -107,8 +109,8 @@ export function HomeFeatureStrip({ todayKey, onOpenStories, onOpenSounds, onOpen
   return (
     <section className="feature-strip" aria-labelledby="feature-strip-title">
       <h2 id="feature-strip-title" className="today-explore-heading">Загляни сегодня</h2>
-      <button type="button" className={`feature-strip-item${card.image ? '' : ' is-plain'}`} onClick={card.onOpen}>
-        {card.image ? <img className="feature-strip-img" src={card.image} alt="" draggable={false} loading="lazy" /> : null}
+      <button type="button" className={`feature-strip-item${card.video ? '' : ' is-plain'}`} onClick={card.onOpen}>
+        {card.video ? <VideoBackground key={card.video} id={card.video} scrim="none" /> : null}
         <span className="feature-strip-fade" aria-hidden="true" />
         <span className="feature-strip-text">
           <em>{card.kicker}</em>
