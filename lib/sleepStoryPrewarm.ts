@@ -1,5 +1,6 @@
 import { SLEEP_STORIES } from './sleepStories';
 import { ensureAudio } from './tts/ttsStore';
+import { listWeeklySleepStories } from './sleepStoriesWeekly';
 
 /**
  * Voices every authored sleep story once after the server starts, so the first listener
@@ -15,6 +16,13 @@ export function scheduleSleepStoryPrewarm(delayMs = 90_000): void {
       } catch (error) {
         console.warn('[sleep-stories] prewarm failed for', story.id, error instanceof Error ? error.message : error);
       }
+    }
+    try {
+      for (const story of await listWeeklySleepStories({ withText: true })) {
+        await ensureAudio({ text: story.text.ru, voice: story.voice, style: 'sleep', ttlDays: null });
+      }
+    } catch (error) {
+      console.warn('[sleep-stories] weekly prewarm failed', error instanceof Error ? error.message : error);
     }
   }, delayMs);
   timer.unref?.();

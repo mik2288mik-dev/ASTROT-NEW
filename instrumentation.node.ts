@@ -28,3 +28,12 @@ void import('./lib/sleepStoryPrewarm')
       error instanceof Error ? error.message : error
     );
   });
+
+void import('./lib/sleepStoriesWeekly')
+  .then(({ scheduleWeeklySleepStory }) => scheduleWeeklySleepStory())
+  .catch((error) => {
+    console.warn(
+      '[instrumentation] weekly sleep story failed to start:',
+      error instanceof Error ? error.message : error
+    );
+  });

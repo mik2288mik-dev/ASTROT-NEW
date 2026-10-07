@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Headphones, LoaderCircle, Lock, Pause, Play, Square } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
@@ -20,6 +20,7 @@ import { videoBackgroundPoster, type VideoBackgroundId } from '../../lib/videoBa
 import { playMusic, playSoundscape, setAmbientTimer, setMusicQueue, stopAmbient, useAmbientState } from '../../services/ambientPlayer';
 import { pausePlayback, playTrack, setSleepTimer, togglePlayback, unlockPlayback, useAudioPlayback } from '../../services/audioPlayback';
 import { requestListen } from '../../services/listenService';
+import { loadWeeklySleepStories } from '../../services/sleepStoriesService';
 import { estimateSpeechSeconds } from '../../lib/tts/openaiSpeech';
 
 export const SOUND_IMAGES: Record<SoundGroup, string> = {
@@ -47,6 +48,16 @@ const STORY_VIDEOS: Record<string, VideoBackgroundId> = {
   'night-train': 'sleep-night-train',
   'garden-rain': 'sleep-garden-rain',
 };
+const STORY_VIDEO_POOL: VideoBackgroundId[] = ['sleep-sea-house', 'sleep-night-train', 'sleep-garden-rain'];
+const STORIES_PAGE = 5;
+
+/** The authored stories have their own clip; a weekly one gets one of the three, the same one every time. */
+function storyVideo(id: string): VideoBackgroundId {
+  if (STORY_VIDEOS[id]) return STORY_VIDEOS[id];
+  let hash = 0;
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return STORY_VIDEO_POOL[hash % STORY_VIDEO_POOL.length];
+}
 
 const RECORDED_MUSIC = MUSIC_TRACKS.filter((track) => track.kind === 'file').map((track) => track.id);
 // A recorded piece flows into the next one, like a calm playlist.
@@ -75,6 +86,16 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
   const activeGroup = groupOf(ambient.soundscape);
   const [storyPhase, setStoryPhase] = useState<{ id: string; state: 'preparing' | 'error' } | null>(null);
   const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
+  const [weekly, setWeekly] = useState<SleepStory[]>([]);
+  const [storiesShown, setStoriesShown] = useState(STORIES_PAGE);
+  useEffect(() => {
+    let alive = true;
+    void loadWeeklySleepStories().then((items) => { if (alive) setWeekly(items); });
+    return () => { alive = false; };
+  }, []);
+  // New ones come first; the authored three follow. Five at a time, the rest under the button.
+  const allStories = [...weekly, ...SLEEP_STORIES];
+  const shownStories = allStories.slice(0, storiesShown);
 
   const playStory = async (story: SleepStory) => {
     lumiaSelectionHaptic();
@@ -200,23 +221,24 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
 
       <section className="sounds-section" aria-labelledby="sounds-stories-title">
         <h2 id="sounds-stories-title">{ru ? 'Истории для сна и для успокоения' : 'Stories for sleep and calm'}</h2>
+        <p className="sounds-stories-lead">{ru ? 'Каждую неделю выходит новая история. Свежие сверху.' : 'A new story comes out every week, the newest on top.'}</p>
         <ul className="sounds-stories">
-          {SLEEP_STORIES.map((story) => {
+          {shownStories.map((story) => {
             const locked = !story.free && !premium;
             const trackKey = `story:${story.id}:${language}`;
             const playing = playback.trackKey === trackKey;
             const phase = storyPhase?.id === story.id ? storyPhase.state : null;
             return (
               <li key={story.id} className={`sounds-story${playing ? ' is-active' : ''}`}>
-                <button type="button" className={`sounds-story-main${playing && STORY_VIDEOS[story.id] ? ' video-hero' : ''}`} onClick={() => { void playStory(story); }} disabled={phase === 'preparing'}>
-                  {playing && STORY_VIDEOS[story.id] ? <VideoBackground id={STORY_VIDEOS[story.id]} /> : null}
+                <button type="button" className={`sounds-story-main${playing ? ' video-hero' : ''}`} onClick={() => { void playStory(story); }} disabled={phase === 'preparing'}>
+                  {playing ? <VideoBackground id={storyVideo(story.id)} /> : null}
                   <span className="sounds-row-icon" aria-hidden="true">
                     {phase === 'preparing' ? <LoaderCircle className="audio-mini-player-spinner" size={16} /> : locked ? <Lock size={15} /> : playing && playback.playing ? <Pause size={16} /> : <Headphones size={16} />}
                   </span>
                   <span className="sounds-row-copy">
                     <strong>{story.title[language]}</strong>
                     <small>{story.teaser[language]}</small>
-                    <em>{`${Math.round(estimateSpeechSeconds(story.text[language], 'sleep') / 60)} ${ru ? 'мин' : 'min'} · ${story.voiceLabel[language]}${story.kind === 'calm' ? (ru ? ' · днём' : ' · daytime') : ''}${locked ? ' · NEBO+' : ''}`}</em>
+                    <em>{`${story.minutes ?? Math.round(estimateSpeechSeconds(story.text[language], 'sleep') / 60)} ${ru ? 'мин' : 'min'} · ${story.voiceLabel[language]}${story.kind === 'calm' ? (ru ? ' · днём' : ' · daytime') : ''}${locked ? ' · NEBO+' : ''}`}</em>
                   </span>
                 </button>
                 {phase === 'error' ? <p className="listen-forecast-error" role="alert">{ru ? 'Голос пока не готов. Попробуй ещё раз через минуту.' : 'The voice is not ready yet. Try again in a minute.'}</p> : null}
@@ -242,6 +264,11 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
             );
           })}
         </ul>
+        {allStories.length > storiesShown ? (
+          <button type="button" className="sounds-more" onClick={() => { lumiaSelectionHaptic(); setStoriesShown((count) => count + STORIES_PAGE); }}>
+            {ru ? `Показать ещё ${Math.min(STORIES_PAGE, allStories.length - storiesShown)}` : `Show ${Math.min(STORIES_PAGE, allStories.length - storiesShown)} more`}
+          </button>
+        ) : null}
       </section>
       <p className="sounds-note sounds-note--bottom">{ru ? 'Звуки и музыка складываются прямо в телефоне, работают без интернета.' : 'Sounds and music are made right on the phone, they work offline.'}</p>
     </div>
