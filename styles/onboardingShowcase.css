@@ -303,3 +303,72 @@
   right: 21.1px !important;
   bottom: 21.9px !important;
 }
+
+/* ── Consent screen: the same look as the data form (grey page, one white card, black pill button) ── */
+.legal-acknowledgement-screen { background: #f4f6fb !important; }
+.legal-acknowledgement-screen .legal-acknowledgement-logo { mix-blend-mode: multiply; background: transparent; }
+
+.legal-acknowledgement-screen h1 {
+  margin-top: 0.4rem !important;
+  font-family: var(--fresh-font) !important;
+  font-size: clamp(1.7rem, 4.8vh, 2.2rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.025em !important;
+  color: #171717;
+}
+.legal-acknowledgement-screen h1 + p { color: #5b564f !important; font-size: 0.9rem !important; line-height: 1.45 !important; }
+
+.legal-acknowledgement-screen .border-y {
+  margin-top: 1rem !important;
+  padding: 0.35rem 1rem;
+  border: 0 !important;
+  border-radius: 1.5rem;
+  background: #fff;
+  box-shadow: var(--nebo-card-shadow, 0 12px 28px rgba(22, 32, 70, 0.2));
+}
+.legal-acknowledgement-screen .border-y > div { border-color: rgba(23, 23, 23, 0.07) !important; padding-top: 0.85rem !important; padding-bottom: 0.85rem !important; align-items: center !important; }
+.legal-acknowledgement-screen .border-y > div:last-child { border-bottom: 0 !important; }
+
+.legal-acknowledgement-screen input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  place-content: center;
+  width: 1.65rem !important;
+  height: 1.65rem !important;
+  margin-top: 0 !important;
+  border: 2px solid #c5c9d6;
+  border-radius: 0.55rem;
+  background: #f1f2f7;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.legal-acknowledgement-screen input[type='checkbox']:checked {
+  border-color: transparent;
+  background: linear-gradient(135deg, #5b8dff, #2f6bff);
+  box-shadow: 0 5px 12px rgba(47, 107, 255, 0.35);
+}
+.legal-acknowledgement-screen input[type='checkbox']:checked::after {
+  content: '';
+  width: 0.45rem;
+  height: 0.8rem;
+  margin-top: -0.1rem;
+  border: solid #fff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+}
+.legal-acknowledgement-screen input[type='checkbox'][aria-invalid='true'] { border-color: #d6452f; }
+
+.legal-acknowledgement-screen .border-y a { color: #2f6bff; text-decoration-color: rgba(47, 107, 255, 0.4); font-weight: 600; }
+.legal-acknowledgement-screen .border-y label { font-weight: 500; }
+.legal-acknowledgement-screen p.mt-3 { color: #6c7280 !important; padding: 0 0.25rem; }
+.legal-acknowledgement-screen p.mt-3 a { color: #2f6bff; text-decoration-color: rgba(47, 107, 255, 0.4); }
+.legal-acknowledgement-screen #legal-error { color: #d6452f !important; font-weight: 600; }
+
+.legal-acknowledgement-screen button.rounded-full {
+  min-height: 3.2rem;
+  background: #171717 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 10px 22px rgba(10, 14, 30, 0.3);
+}
+
