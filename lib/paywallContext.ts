@@ -7,7 +7,6 @@ export type PaywallPlacement =
   | 'sounds'
   | 'tests'
   | 'antistress'
-  | 'listen'
   | 'today'
   | 'week'
   | 'month'
@@ -48,7 +47,6 @@ const PAYWALL_PLACEMENTS = new Set<PaywallPlacement>([
   'sounds',
   'tests',
   'antistress',
-  'listen',
   'today',
   'week',
   'month',
