@@ -4,6 +4,11 @@
   margin: 0 0 22px;
 }
 
+/* Highlights placed after the story: one section step of air above the heading, like every other section. */
+.afterStory {
+  margin-top: 24px;
+}
+
 .heading {
   margin: 0 0 10px;
   color: #292724;

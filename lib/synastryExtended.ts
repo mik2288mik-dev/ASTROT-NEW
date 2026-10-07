@@ -3,7 +3,7 @@ import { getContentPolicy } from './contentMatrix';
 import { COMPATIBILITY_ENGINE_VERSION } from './synastry/compatibilityEngine';
 import { COMPATIBILITY_NARRATIVE_VERSION } from './synastry/compatibilityNarrative';
 
-export const SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v11';
+export const SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v12';
 
 export function buildSynastryExtendedCacheKey(
   userId: string,

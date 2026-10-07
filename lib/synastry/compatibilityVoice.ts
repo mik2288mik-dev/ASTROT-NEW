@@ -4,6 +4,7 @@ import { selectCompatibilityWriterEvidence } from './compatibilityNarrative';
 import type { RelationshipContext } from './relationshipContext';
 import { ALL_COMPATIBILITY_QUESTION_IDS } from './compatibilityQuestions';
 import { getCompatibilitySystemPrompt } from '../voice/contracts/compatibility';
+import { hasCoreVoiceViolation } from '../voice/validators';
 
 export const COMPATIBILITY_STORY_SCHEMA: StrictJsonSchema = {
   type: 'object',
@@ -93,4 +94,23 @@ PREVIOUS OUTPUT WAS REJECTED for ${input.revisionReason}. Correct that exact iss
       limitations: input.calculated.limitations,
     }),
   };
+}
+
+const HEDGE_PATTERN = /(?:^|[^\p{L}])(?:может|могут|скорее|вероятно|возможно|способн\p{L}*|may|might|likely|possibly)(?!\p{L})/giu;
+
+/**
+ * Spoken-voice gate for a written compatibility story: a long dash, an answer hedged more than once,
+ * or a core NEBO cliche. The writer gets one rewrite with these codes; a second draft is kept.
+ */
+export function compatibilitySpokenViolations(story: unknown): string[] {
+  const value = story as { summary?: unknown; paragraphs?: Array<{ text?: unknown }> } | null;
+  const parts = [value?.summary, ...(Array.isArray(value?.paragraphs) ? value!.paragraphs.map((item) => item?.text) : [])]
+    .filter((text): text is string => typeof text === 'string' && Boolean(text.trim()));
+  const codes = new Set<string>();
+  for (const text of parts) {
+    if (/—/u.test(text)) codes.add('long_dash');
+    if ((text.match(HEDGE_PATTERN) || []).length > 1) codes.add('hedging');
+    if (hasCoreVoiceViolation(text)) codes.add('cliche');
+  }
+  return [...codes];
 }

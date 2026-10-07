@@ -33,6 +33,11 @@ import {
 const HISTORY_LIMIT = 15;
 const CROSS_USER_PACKAGE_LIMIT = 64;
 const VARIANT_BY_PERIOD = { day: 'daily', week: 'weekly', month: 'monthly' } as const;
+/**
+ * Week and month got their own NEBO-voice writer. Bumping this rewrites only cached weeks and
+ * months; today's readings keep their cache, so nobody sees an already-read day change.
+ */
+const PERIOD_WRITER_CACHE_SALT = 'period-voice-1';
 
 export type PersonalForecastCacheContext = {
   userId: string;
@@ -63,7 +68,10 @@ async function identity(input: PersonalForecastCacheContext) {
     modelId: model,
   };
   return { model, language, window, common, contentVariant: VARIANT_BY_PERIOD[input.period],
-    cacheKey: buildPersonalForecastCacheKey(common), inputHash: buildPersonalForecastInputHash(common) };
+    cacheKey: input.period === 'day'
+      ? buildPersonalForecastCacheKey(common)
+      : `${buildPersonalForecastCacheKey(common)}:${PERIOD_WRITER_CACHE_SALT}`,
+    inputHash: buildPersonalForecastInputHash(common) };
 }
 
 function valid(interpretation: ContentInterpretation<PersonalForecastPackage> | null, resolved: Awaited<ReturnType<typeof identity>>) {

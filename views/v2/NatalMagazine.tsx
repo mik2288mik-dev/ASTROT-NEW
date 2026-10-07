@@ -256,7 +256,7 @@ export function NatalMagazine({
       {normalizedActiveTab === 'foundation' || normalizedActiveTab === 'explore' ? (
         <section className={styles.content}>
           {person}
-          {canonicalChart ? <NatalHighlights key={`highlights:${reportSubjectKey}`} chart={canonicalChart} /> : null}
+          {canonicalChart ? <NatalHighlights key={`big-three:${reportSubjectKey}`} chart={canonicalChart} part="big-three" /> : null}
           {canonicalChart ? <h2 className={styles.readingHeading}>Рассказ о тебе</h2> : null}
           <div className={styles.mode} role="group" aria-label="Как читать обзор">{(['story','topics'] as const).map(mode => <button type="button" key={mode} aria-pressed={overviewMode === mode} onClick={() => {setOverviewMode(mode); if (mode === 'story') selectTab('foundation');}}>{mode === 'story' ? 'Рассказ' : 'По темам'}</button>)}</div>
           <NatalUnifiedReport
@@ -270,6 +270,8 @@ export function NatalMagazine({
             canPromotePremium={canPromotePremium}
             requestPremium={requestPremium}
           />
+          {/* The big three open the overview, the story follows, the chart's highlights close it. */}
+          {canonicalChart ? <NatalHighlights key={`moments:${reportSubjectKey}`} chart={canonicalChart} part="moments" /> : null}
         </section>
       ) : null}
 

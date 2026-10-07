@@ -56,6 +56,7 @@ function MercuryGlyph() {
 
 export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
   const [sky, setSky] = useState<SkyMonitor | null>(null);
+  const [failed, setFailed] = useState(false);
   const now = useSkyNow();
 
   useEffect(() => {
@@ -74,12 +75,23 @@ export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
       })
       .catch((error: unknown) => {
         skyEngine = null;
+        if (active) setFailed(true);
         console.warn('[TodaySkyMonitor] sky calculation failed:', error instanceof Error ? error.message : error);
       });
     return () => { active = false; };
   }, [periodKey, userId]);
 
-  if (!sky) return null;
+  if (failed && !sky) return null;
+  // The block sits right under the forecast, so it holds its place while the sky is calculated:
+  // the entry tiles below must not jump down when the card appears.
+  if (!sky) {
+    return (
+      <section id="today-sky" className="today-sky" aria-labelledby="today-sky-title" aria-busy="true">
+        <h2 id="today-sky-title" className="today-explore-heading">Небо сегодня</h2>
+        <div className="today-sky-card is-placeholder" />
+      </section>
+    );
+  }
   const { moon, mercury, calendar } = sky;
   const nowMs = Date.now();
   const window = mercury.window;
