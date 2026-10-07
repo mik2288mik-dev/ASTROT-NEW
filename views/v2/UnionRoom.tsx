@@ -94,27 +94,6 @@ type UnionRoomProps = {
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
   onOpenEncyclopedia?: () => void;
-  uiPreview?: {
-    screen: 'input' | 'signs' | 'result';
-    resultState?: 'loading' | 'error';
-    resultKind?: 'person' | 'sign';
-    subject: {
-      name: string;
-      date: string;
-      time: string;
-      place: string;
-      sign: string;
-    };
-    partner: {
-      name: string;
-      date: string;
-      time: string;
-      place: string;
-      sign: string;
-    };
-    signCompatibility: SignCompatibilityResult;
-    deepResult: SynastryResult;
-  };
 };
 
 type CompatibilityTab = 'birth' | 'sign';
@@ -684,7 +663,6 @@ export function UnionRoom(props: UnionRoomProps) {
     premiumContinuation,
     onPremiumContinuationHandled,
     canPromotePremium = true,
-    uiPreview,
   } = props;
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
@@ -706,7 +684,6 @@ export function UnionRoom(props: UnionRoomProps) {
       document.removeEventListener('visibilitychange', refreshAccess);
     };
   }, [accessClock, premium, premiumUntil]);
-  const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
   const yourSun = useMemo(
     () => String(chartData?.sun?.sign || profile.selectedZodiacSign || sunSignFromDate(profile.birthDate) || 'aries').toLowerCase(),
     [chartData, profile.selectedZodiacSign, profile.birthDate],
@@ -715,16 +692,12 @@ export function UnionRoom(props: UnionRoomProps) {
   const initialYouGender: CompatGender = profile.gender === 'female' || profile.gender === 'male' ? profile.gender : 'unspecified';
   const initialThemGender: CompatGender = 'unspecified';
 
-  const previewEnabled = Boolean(previewFixture);
-  const previewResultState = previewFixture?.resultState;
   const [screen, setScreen] = useState<'add' | 'result'>(
-    previewFixture?.screen === 'result' || initialPrefill ? 'result' : 'add',
+    initialPrefill ? 'result' : 'add',
   );
-  const [entryMode, setEntryMode] = useState<'birth' | 'sign'>(
-    previewFixture ? (previewFixture.screen === 'signs' ? 'sign' : 'birth') : 'birth',
-  );
+  const [entryMode, setEntryMode] = useState<'birth' | 'sign'>('birth');
   const [availableCharts, setAvailableCharts] = useState<ChartListItem[]>([]);
-  const [peopleLoaded, setPeopleLoaded] = useState(previewEnabled);
+  const [peopleLoaded, setPeopleLoaded] = useState(false);
   const [firstChartId, setFirstChartId] = useState<number | null>(null);
   const [secondChartId, setSecondChartId] = useState<number | null>(initialPrefill?.partnerChartId ?? null);
   const [subjectSource, setSubjectSource] = useState<CompatibilityPersonSource>(initialPrefill && chartId ? 'saved' : 'birth');
@@ -738,42 +711,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const [relationshipContext, setRelationshipContext] = useState<RelationshipContext>('romance');
   const [relationshipFocus, setRelationshipFocus] = useState<CompatibilityFocus>('love');
   const [selected, setSelected] = useState<Selected | null>(
-    previewFixture?.screen === 'result'
-      ? previewFixture.resultKind === 'sign'
-        ? {
-            kind: 'sign',
-            relationshipContext: previewFixture.deepResult.relationshipContext || 'romance',
-            youSign: previewFixture.subject.sign,
-            sign: previewFixture.partner.sign,
-            subjectSign: previewFixture.subject.sign,
-            partnerSign: previewFixture.partner.sign,
-            youGender: initialYouGender,
-            themGender: initialThemGender,
-            calculationLevel: 'sign_only',
-          }
-        : {
-          kind: 'person',
-          relationshipContext: previewFixture.deepResult.relationshipContext || 'romance',
-          youSign: previewFixture.subject.sign,
-          youGender: initialYouGender,
-          themGender: initialThemGender,
-          subjectName: previewFixture.subject.name,
-          subjectDate: previewFixture.subject.date,
-          subjectTime: previewFixture.subject.time,
-          subjectBirthTimeQuality: chartData?.birthTimeQuality || 'exact',
-          subjectPlace: previewFixture.subject.place,
-          subjectSource: 'birth',
-          subjectSign: previewFixture.subject.sign,
-          name: previewFixture.partner.name,
-          date: previewFixture.partner.date,
-          time: previewFixture.partner.time,
-          partnerBirthTimeQuality: chartData?.birthTimeQuality || 'exact',
-          place: previewFixture.partner.place,
-          partnerSource: 'birth',
-          partnerSign: previewFixture.partner.sign,
-          calculationLevel: chartData?.birthTimeQuality === 'exact' ? 'full' : 'reduced',
-        }
-      : initialPrefill
+    initialPrefill
       ? {
           kind: 'person',
           relationshipContext: 'romance',
@@ -803,30 +741,22 @@ export function UnionRoom(props: UnionRoomProps) {
       : null,
   );
 
-  const [sName, setSName] = useState(previewFixture?.subject.name || '');
-  const [sDate, setSDate] = useState(previewFixture?.subject.date || '');
-  const [sTime, setSTime] = useState(previewFixture?.subject.time || '');
+  const [sName, setSName] = useState('');
+  const [sDate, setSDate] = useState('');
+  const [sTime, setSTime] = useState('');
   const [sTimePrecision, setSTimePrecision] = useState<BirthTimeQuality>('exact');
-  const [sPlace, setSPlace] = useState(previewFixture?.subject.place || '');
-  const [fName, setFName] = useState(previewFixture?.partner.name || initialPrefill?.partnerName || '');
-  const [fDate, setFDate] = useState(() => toDateInputValue(previewFixture?.partner.date || initialPrefill?.partnerDate || ''));
-  const [fTime, setFTime] = useState(previewFixture?.partner.time || initialPrefill?.partnerTime || '');
+  const [sPlace, setSPlace] = useState('');
+  const [fName, setFName] = useState(initialPrefill?.partnerName || '');
+  const [fDate, setFDate] = useState(() => toDateInputValue(initialPrefill?.partnerDate || ''));
+  const [fTime, setFTime] = useState(initialPrefill?.partnerTime || '');
   const [fTimePrecision, setFTimePrecision] = useState<BirthTimeQuality>('exact');
-  const [fPlace, setFPlace] = useState(previewFixture?.partner.place || initialPrefill?.partnerPlace || '');
+  const [fPlace, setFPlace] = useState(initialPrefill?.partnerPlace || '');
   const [fGender, setFGender] = useState<CompatGender>(initialThemGender);
 
-  const [signText, setSignText] = useState<SignCompatibilityResult | null>(
-    previewFixture?.screen === 'result' ? previewFixture.signCompatibility : null,
-  );
-  const [deep, setDeep] = useState<SynastryResult | null>(
-    previewFixture?.screen === 'result' && previewFixture.resultKind !== 'sign' && premium && !previewResultState
-      ? previewFixture.deepResult
-      : null,
-  );
-  const [deepReactionKey, setDeepReactionKey] = useState<string | null>(
-    previewFixture?.screen === 'result' && previewFixture.resultKind !== 'sign' ? 'deep:v1:preview' : null,
-  );
-  const [deepLoading, setDeepLoading] = useState(previewResultState === 'loading');
+  const [signText, setSignText] = useState<SignCompatibilityResult | null>(null);
+  const [deep, setDeep] = useState<SynastryResult | null>(null);
+  const [deepReactionKey, setDeepReactionKey] = useState<string | null>(null);
+  const [deepLoading, setDeepLoading] = useState(false);
   const [answersPreview, setAnswersPreview] = useState<CompatibilityPreview | null>(null);
   const [answersPreviewLoading, setAnswersPreviewLoading] = useState(false);
   const [pairTopics, setPairTopics] = useState<{ key: string; topics: NonNullable<CompatibilityPreview['topics']> } | null>(null);
@@ -834,14 +764,10 @@ export function UnionRoom(props: UnionRoomProps) {
   const [personSheet, setPersonSheet] = useState<'subject' | 'partner' | null>(null);
   const [signSheet, setSignSheet] = useState<'subject' | 'partner' | null>(null);
   const [resultPreviewOpen, setResultPreviewOpen] = useState(false);
-  const [error, setError] = useState<string | null>(
-    previewResultState === 'error'
-      ? (ru ? 'Не удалось собрать подробный разбор. Проверь соединение и попробуй ещё раз.' : 'Could not prepare the detailed reading. Check your connection and try again.')
-      : null,
-  );
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (previewEnabled || screen !== 'add' || entryMode !== 'birth') return;
+    if (screen !== 'add' || entryMode !== 'birth') return;
     const key = `nebo:compatibility-result-preview:v2:${profile.id || 'guest'}`;
     try {
       if (window.localStorage.getItem(key)) return;
@@ -850,10 +776,9 @@ export function UnionRoom(props: UnionRoomProps) {
     } catch {
       // The comparison remains usable when local storage is unavailable.
     }
-  }, [entryMode, previewEnabled, profile.id, screen]);
+  }, [entryMode, profile.id, screen]);
 
   useEffect(() => {
-    if (previewEnabled) return;
     if (!profile.id) {
       setAvailableCharts([]);
       setPeopleLoaded(true);
@@ -875,7 +800,7 @@ export function UnionRoom(props: UnionRoomProps) {
         setAvailableCharts([]);
       })
       .finally(() => setPeopleLoaded(true));
-  }, [profile.id, premium, chartId, previewEnabled]);
+  }, [profile.id, premium, chartId]);
 
   useEffect(() => {
     if (!premium) {
@@ -904,12 +829,8 @@ export function UnionRoom(props: UnionRoomProps) {
 
   // История — ТОЛЬКО по конкретным людям (имя+дата+разбор). Проверки по знакам не храним.
   useEffect(() => {
-    if (previewEnabled) {
-      setHistory([]);
-      return;
-    }
     setHistory(loadCompatHistory(profile.id).filter((entry) => entry.kind === 'person'));
-  }, [profile.id, previewEnabled]);
+  }, [profile.id]);
 
   const firstChart = useMemo(
     () => availableCharts.find((chart) => chart.id === firstChartId) || null,
@@ -926,13 +847,13 @@ export function UnionRoom(props: UnionRoomProps) {
   // The first person is usually the user: start from their own saved chart until they choose otherwise.
   const ownChartPrefilledRef = useRef(false);
   useEffect(() => {
-    if (ownChartPrefilledRef.current || !ownSavedChart || previewEnabled) return;
+    if (ownChartPrefilledRef.current || !ownSavedChart) return;
     ownChartPrefilledRef.current = true;
     if (subjectSource !== 'birth' || sDate || firstChartId != null) return;
     setSubjectSource('saved');
     setFirstChartId(ownSavedChart.id);
     setYouGender(initialYouGender);
-  }, [ownSavedChart, previewEnabled, subjectSource, sDate, firstChartId, initialYouGender]);
+  }, [ownSavedChart, subjectSource, sDate, firstChartId, initialYouGender]);
   const subjectResolvedSource: CompatibilityPersonSource = subjectSource;
   const partnerResolvedSource: CompatibilityPersonSource = partnerSource;
   const subjectClassification = useMemo(() => classifyCompatibilityPerson({
@@ -980,11 +901,6 @@ export function UnionRoom(props: UnionRoomProps) {
 
   useEffect(() => {
     if (screen !== 'result' || !selected) return;
-    if (previewFixture) {
-      setSignText(previewFixture.signCompatibility);
-      if (selected.kind === 'person' && premium && !previewResultState) setDeep(previewFixture.deepResult);
-      return;
-    }
     let alive = true;
     void getSignCompatibility(
       leftSun,
@@ -997,7 +913,7 @@ export function UnionRoom(props: UnionRoomProps) {
       .then((r) => { if (alive) setSignText(r); })
       .catch(() => { /* optional */ });
     return () => { alive = false; };
-  }, [screen, selected, leftSun, theirSun, lang, leftGender, rightGender, previewFixture, previewResultState, premium]);
+  }, [screen, selected, leftSun, theirSun, lang, leftGender, rightGender]);
 
   const sunOf = (s: Selected) => String(s.partnerSign || s.sign || sunSignFromDate(s.date) || 'libra').toLowerCase();
 
@@ -1030,7 +946,7 @@ export function UnionRoom(props: UnionRoomProps) {
   };
 
   const persistCalculatedHistory = (entry: Selected, overall: number) => {
-    if (entry.kind !== 'person' || previewEnabled) return;
+    if (entry.kind !== 'person') return;
     const their = sunOf(entry);
     setHistory(addCompatHistory({
       id: buildCompatHistoryId(entry.kind, entry.sign, entry.name, entry.date, entry.relationshipContext, entry.subjectChartId, entry.chartId),
@@ -1117,7 +1033,7 @@ export function UnionRoom(props: UnionRoomProps) {
   };
 
   const shareCompat = () => {
-    if (!selected || previewEnabled) return;
+    if (!selected) return;
     const first = selected.kind === 'sign'
       ? getZodiacSign(lang, leftSun)
       : (selected.subjectName || profile.name || (ru ? 'Первая карта' : 'First chart'));
@@ -1282,13 +1198,6 @@ Check our compatibility from your side in NEBO.`
 
   const runDeep = useCallback(async () => {
     if (!selected || selected.kind !== 'person' || deepLoading) return;
-    if (previewFixture) {
-      setError(null);
-      setDeep(previewFixture.deepResult);
-      setDeepReactionKey('deep:v1:preview');
-      setDeepLoading(false);
-      return;
-    }
     if (!premium) {
       void requestPremium('compatibility_by_charts', {
         placement: 'compatibility_by_charts',
@@ -1371,7 +1280,7 @@ Check our compatibility from your side in NEBO.`
     } finally {
       if (autoDeepKeyRef.current === requestKey) setDeepLoading(false);
     }
-  }, [selected, deepLoading, premium, requestPremium, peopleLoaded, availableCharts, profile, ru, previewFixture]);
+  }, [selected, deepLoading, premium, requestPremium, peopleLoaded, availableCharts, profile, ru]);
 
   useEffect(() => {
     if (!premium || !premiumContinuation || premiumContinuation.returnView !== 'synastry') return;
@@ -1393,19 +1302,18 @@ Check our compatibility from your side in NEBO.`
   ]);
 
   useEffect(() => {
-    if (previewResultState) return;
     if (screen !== 'result' || selected?.kind !== 'person' || !premium || !peopleLoaded) return;
     const key = compatibilityRequestKey(selected);
     if (autoDeepKeyRef.current === key) return;
     autoDeepKeyRef.current = key;
     void runDeep();
-  }, [screen, selected, premium, peopleLoaded, previewResultState, runDeep]);
+  }, [screen, selected, premium, peopleLoaded, runDeep]);
 
   // Free answers by birth dates: calculated on the server without AI, for everyone.
   const previewLanguageRef = useRef(profile);
   previewLanguageRef.current = profile;
   useEffect(() => {
-    if (previewEnabled || screen !== 'result' || selected?.kind !== 'person' || !peopleLoaded) return;
+    if (screen !== 'result' || selected?.kind !== 'person' || !peopleLoaded) return;
     let alive = true;
     setAnswersPreviewLoading(true);
     const person = (source: Selected['subjectSource'], chartId: number | undefined, name?: string, date?: string, place?: string) => (
@@ -1430,7 +1338,7 @@ Check our compatibility from your side in NEBO.`
       })
       .finally(() => { if (alive) setAnswersPreviewLoading(false); });
     return () => { alive = false; };
-  }, [previewEnabled, screen, selected, peopleLoaded, premium, ru]);
+  }, [screen, selected, peopleLoaded, premium, ru]);
 
   const compatibilityTabs = useMemo(() => [
     { id: 'birth' as const, label: ru ? 'По дате рождения' : 'By birth date' },
@@ -2310,7 +2218,7 @@ Check our compatibility from your side in NEBO.`
       {(!isPerson || (premium && deep)) && resultReactionKey ? (
         <div className="compat-result-actions">
           <ContentActivityBar
-            userId={!previewEnabled && profile.id ? String(profile.id) : undefined}
+            userId={profile.id ? String(profile.id) : undefined}
             surface="compatibility"
             contentKey={resultReactionKey}
             language={lang}

@@ -4,7 +4,6 @@ import { onboardingCalculationStatus } from '../lib/onboardingCalculationStatus'
 
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'views/Onboarding.tsx'), 'utf8');
-const previewSource = fs.readFileSync(path.join(root, 'components/ui-preview/UiPreviewApp.tsx'), 'utf8');
 
 describe('onboarding birth options', () => {
   it('shows an optional persisted gender choice and every supported time precision', () => {
@@ -13,12 +12,6 @@ describe('onboarding birth options', () => {
     expect(source).toContain("['exact', 'Знаю']");
     expect(source).toContain("['approximate', 'Примерно']");
     expect(source).toContain("['unknown', 'Не знаю']");
-    expect(previewSource).toContain('<legend>Пол (необязательно)</legend>');
-    expect(previewSource).toContain("['male', 'Мужчина']");
-    expect(previewSource).toContain("['female', 'Женщина']");
-    expect(previewSource).toContain('aria-pressed={gender === value}');
-    expect(previewSource).toContain("current === value ? 'unspecified' : value");
-    expect(previewSource).toContain('<span aria-hidden="true">✓ </span>');
   });
 
   it('keeps custom Russian validation in control while exposing native input hints', () => {

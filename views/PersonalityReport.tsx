@@ -27,11 +27,6 @@ export type PersonalityReportProps = {
   onOpenProfile: () => void;
   onOpenNatalChart: (chart: ChartListItem | null) => void;
   onCompareWithMe: (chart: ChartListItem) => void;
-  uiPreview?: {
-    charts: ChartListItem[];
-    reportState?: 'ready' | 'loading' | 'error';
-    premiumReport?: unknown;
-  };
 };
 
 type ChartsLoadState = 'loading' | 'ready' | 'error';
@@ -46,13 +41,8 @@ export function PersonalityReport({
   onOpenProfile,
   onOpenNatalChart,
   onCompareWithMe,
-  uiPreview,
 }: PersonalityReportProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
-  const previewConfig = process.env.NODE_ENV === 'development'
-    && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
-      ? uiPreview
-      : undefined;
   const [charts, setCharts] = useState<ChartListItem[]>([]);
   const [chartsLoadState, setChartsLoadState] = useState<ChartsLoadState>('loading');
   const [reloadToken, setReloadToken] = useState(0);
@@ -66,11 +56,6 @@ export function PersonalityReport({
 
   useEffect(() => {
     let active = true;
-    if (previewConfig) {
-      setCharts(previewConfig.charts);
-      setChartsLoadState('ready');
-      return () => { active = false; };
-    }
     if (!profile.id) {
       setChartsLoadState('error');
       return () => { active = false; };
@@ -89,7 +74,7 @@ export function PersonalityReport({
       });
 
     return () => { active = false; };
-  }, [previewConfig, profile.id, reloadToken]);
+  }, [profile.id, reloadToken]);
 
   const primaryChart = useMemo(
     () => charts.find((chart) => getChartSubjectType(chart) === 'self') ?? null,

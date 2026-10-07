@@ -210,13 +210,6 @@ export interface SettingsProps {
     onRecoveryIdentityReady?: () => void;
     embedded?: boolean;
     initialScreen?: 'root' | 'feedback' | 'notifications' | 'profile';
-    uiPreview?: {
-        notificationEnabled: boolean;
-        quietStart: string;
-        quietEnd: string;
-        identities: LinkedIdentity[];
-        authCapabilities: AccountAuthCapabilities;
-    };
 }
 
 const NOTIFICATION_FREQUENCIES: NotificationFrequency[] = ['quiet', 'important', 'daily', 'twice_daily'];
@@ -281,15 +274,12 @@ export const Settings: React.FC<SettingsProps> = ({
     onDeleteAccount,
     recoveryIdentityRequired = false,
     onRecoveryIdentityReady,
-    uiPreview,
     embedded = false,
     initialScreen = 'root',
 }) => {
 
-    const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
-    const nativeNotifications = !previewFixture && isNativeAndroidRuntime();
-    const rustorePurchaseControlsAvailable = Boolean(previewFixture)
-        || canUseRuStorePay(resolveDistributionChannel());
+    const nativeNotifications = isNativeAndroidRuntime();
+    const rustorePurchaseControlsAvailable = canUseRuStorePay(resolveDistributionChannel());
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
@@ -302,20 +292,20 @@ export const Settings: React.FC<SettingsProps> = ({
     const [dailyPush, setDailyPush] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
     const [dailyPushInfo, setDailyPushInfo] = useState('');
     const [editsUsed, setEditsUsed] = useState(() =>
-        previewFixture ? 0 : hasActivePremium(profile) ? profileEditsThisMonth(profile.id) : readProfileEdits(profile.id).length
+        hasActivePremium(profile) ? profileEditsThisMonth(profile.id) : readProfileEdits(profile.id).length
     );
-    const [notifEnabled, setNotifEnabled] = useState(previewFixture?.notificationEnabled ?? !nativeNotifications);
+    const [notifEnabled, setNotifEnabled] = useState(!nativeNotifications);
     const [notificationMode, setNotificationMode] = useState<'important' | 'daily'>('important');
     const [notificationBusy, setNotificationBusy] = useState(false);
     const [notificationError, setNotificationError] = useState('');
     const [notificationPermission, setNotificationPermission] = useState('prompt');
-    const [quietStart, setQuietStart] = useState(previewFixture?.quietStart || '22:00');
-    const [quietEnd, setQuietEnd] = useState(previewFixture?.quietEnd || (nativeNotifications ? '09:00' : '08:00'));
+    const [quietStart, setQuietStart] = useState('22:00');
+    const [quietEnd, setQuietEnd] = useState(nativeNotifications ? '09:00' : '08:00');
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [deletionError, setDeletionError] = useState('');
     const [loggingOut, setLoggingOut] = useState(false);
     const [logoutError, setLogoutError] = useState('');
-    const [identities, setIdentities] = useState<LinkedIdentity[]>(previewFixture?.identities || []);
+    const [identities, setIdentities] = useState<LinkedIdentity[]>([]);
     const [identityError, setIdentityError] = useState('');
     const [identityNotice, setIdentityNotice] = useState('');
     const [identityLoadFailed, setIdentityLoadFailed] = useState(false);
@@ -330,7 +320,7 @@ export const Settings: React.FC<SettingsProps> = ({
     const [identityBusy, setIdentityBusy] = useState(false);
     const [authPurpose, setAuthPurpose] = useState<'link' | 'login'>('link');
     const [authCapabilities, setAuthCapabilities] = useState<AccountAuthCapabilities | null>(
-        () => previewFixture?.authCapabilities || getLocalAccountAuthCapabilities(),
+        () => getLocalAccountAuthCapabilities(),
     );
     const [authCapabilitiesLoadFailed, setAuthCapabilitiesLoadFailed] = useState(false);
     const [restoreState, setRestoreState] = useState<'idle' | 'running' | 'success' | 'pending' | 'error'>('idle');
@@ -338,7 +328,6 @@ export const Settings: React.FC<SettingsProps> = ({
     const [managingSubscription, setManagingSubscription] = useState(false);
     const [manageSubscriptionError, setManageSubscriptionError] = useState(false);
     const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
-    const [previewNotice, setPreviewNotice] = useState('');
     const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>(initialScreen);
     const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('problem');
     const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -420,7 +409,6 @@ export const Settings: React.FC<SettingsProps> = ({
     }, [profile.premiumEntitlement?.endsAt, profile.premiumUntil]);
 
     useEffect(() => {
-        if (previewFixture) return;
         let alive = true;
         if (nativeNotifications) {
             const refresh = () => void getNativeNotificationSettings(String(profile.id)).then((settings) => {
@@ -442,10 +430,9 @@ export const Settings: React.FC<SettingsProps> = ({
             if (s.quiet_hours_end) setQuietEnd(s.quiet_hours_end);
         });
         return () => { alive = false; };
-    }, [previewFixture, nativeNotifications, profile.id]);
+    }, [nativeNotifications, profile.id]);
 
     useEffect(() => {
-        if (previewFixture) return;
         let alive = true;
         const localCapabilities = getLocalAccountAuthCapabilities();
 
@@ -479,7 +466,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 setIdentityLoadFailed(true);
             });
         return () => { alive = false; };
-    }, [identityReload, profile.id, previewFixture]);
+    }, [identityReload, profile.id]);
 
     useEffect(() => {
         if (feedbackReplyEmailTouchedRef.current || feedbackReplyEmail) return;
@@ -488,10 +475,6 @@ export const Settings: React.FC<SettingsProps> = ({
     }, [feedbackReplyEmail, identities]);
 
     const linkOAuth = (provider: 'vk' | 'yandex' | 'google') => {
-        if (previewFixture) {
-            setPreviewNotice(`В Preview вход через ${provider === 'vk' ? 'VK ID' : provider === 'yandex' ? 'Яндекс' : 'Google'} отключён.`);
-            return;
-        }
         setIdentityError('');
         setIdentityNotice('');
         setIdentityBusy(true);
@@ -505,10 +488,6 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const linkTelegram = () => {
-        if (previewFixture) {
-            setPreviewNotice('В Preview привязка Telegram отключена.');
-            return;
-        }
         setIdentityError('');
         setIdentityNotice('');
         setIdentityBusy(true);
@@ -524,10 +503,6 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const requestEmailCode = () => {
-        if (previewFixture) {
-            setPreviewNotice('В Preview вход и отправка кода отключены.');
-            return;
-        }
         setIdentityError('');
         setIdentityNotice('');
         setIdentityBusy(true);
@@ -553,10 +528,6 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const confirmEmailCode = () => {
-        if (previewFixture) {
-            setPreviewNotice('В Preview подтверждение аккаунта отключено.');
-            return;
-        }
         setIdentityError('');
         setIdentityNotice('');
         setIdentityBusy(true);
@@ -595,7 +566,6 @@ export const Settings: React.FC<SettingsProps> = ({
         } finally { setNotificationBusy(false); }
     };
     const saveNotif = (patch: { enabled?: boolean; quietHoursStart?: string; quietHoursEnd?: string }) => {
-        if (previewFixture) return;
         void updateUserNotificationSettings({
             enabled: notifEnabled,
             quietHoursStart: quietStart,
@@ -620,10 +590,6 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const sendSelfTest = async () => {
-        if (previewFixture) {
-            setPreviewNotice('В Preview тестовые уведомления не отправляются.');
-            return;
-        }
         if (selfTest === 'sending') return;
         setSelfTest('sending');
         setSelfTestInfo('');
@@ -651,10 +617,6 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const sendDailyPush = async () => {
-        if (previewFixture) {
-            setPreviewNotice('В Preview push-уведомления не отправляются.');
-            return;
-        }
         if (dailyPush === 'sending') return;
         setDailyPush('sending');
         setDailyPushInfo('');
@@ -714,11 +676,6 @@ export const Settings: React.FC<SettingsProps> = ({
 
     const restorePurchase = () => {
         if (!rustorePurchaseControlsAvailable) return;
-        if (previewFixture) {
-            setRestoreState('success');
-            setPreviewNotice('В Preview восстановление покупок отключено.');
-            return;
-        }
         if (!onRestorePurchase || restoreState === 'running' || managingSubscription) return;
         setRestoreFailureReason('');
         setRestoreState('running');
@@ -734,10 +691,6 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const manageSubscription = async () => {
-        if (previewFixture) {
-            setPreviewNotice('В Preview управление подпиской отключено.');
-            return;
-        }
         if (!onManageSubscription || managingSubscription || restoreState === 'running') return;
         setManageSubscriptionError(false);
         setManagingSubscription(true);
@@ -778,12 +731,6 @@ export const Settings: React.FC<SettingsProps> = ({
             return;
         }
 
-        if (previewFixture) {
-            setFeedbackTicketId(1042);
-            setFeedbackStatus('success');
-            setPreviewNotice('Обращение показано локально и не отправлено из Preview.');
-            return;
-        }
 
         setFeedbackStatus('submitting');
         try {
@@ -834,26 +781,19 @@ export const Settings: React.FC<SettingsProps> = ({
         window.requestAnimationFrame(() => feedbackMessageRef.current?.focus());
     };
 
-    const blockPreviewLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
-        if (!previewFixture) return;
-        event.preventDefault();
-        setPreviewNotice('Внешние ссылки отключены в локальном Preview.');
-    };
-
     useEffect(() => {
-        if (previewFixture) return;
         const tg = (window as any).Telegram?.WebApp;
         if (tg?.initDataUnsafe?.user) {
             setTgUser(tg.initDataUnsafe.user);
         }
-    }, [previewFixture]);
+    }, []);
 
     useEffect(() => {
-        if (previewFixture || nativeNotifications) return;
+        if (nativeNotifications) return;
         const freq = readStoredNotificationFrequency(profile.id) || profile.notificationFrequency || 'important';
         // Регистрируем пользователя в движке уведомлений (таймзона + флаги) — иначе планировщики его не видят
         void updateUserNotificationSettings({ ...notificationFlagsFor(freq), timezone: localTimezone() });
-    }, [profile.id, profile.notificationFrequency, previewFixture, nativeNotifications]);
+    }, [profile.id, profile.notificationFrequency, nativeNotifications]);
 
     const hasLinkedTelegram = identities.some((identity) => identity.provider === 'telegram');
     const profileDisplayName = (() => {
@@ -866,10 +806,6 @@ export const Settings: React.FC<SettingsProps> = ({
         const updated = { ...profile, language: newLang };
         console.log('[Settings] Language changed to:', newLang);
         onUpdate(updated);
-        if (previewFixture) {
-            setPreviewNotice('Язык изменён только в локальном Preview.');
-            return;
-        }
         saveProfile(updated).catch(error => {
             console.error('[Settings] Failed to save language:', error);
         });
@@ -877,11 +813,6 @@ export const Settings: React.FC<SettingsProps> = ({
 
     const handleGenderChange = async (gender: 'male' | 'female' | 'unspecified') => {
         if (savingGender || gender === (profile.gender || 'unspecified')) return;
-        if (previewFixture) {
-            onUpdate({ ...profile, gender });
-            setPreviewNotice('Пол изменён только в локальном Preview.');
-            return;
-        }
         setSavingGender(true);
         setGenderSaveError('');
         try {
@@ -914,15 +845,6 @@ export const Settings: React.FC<SettingsProps> = ({
             return;
         }
         const updated = { ...profile, name: normalizedName };
-        if (previewFixture) {
-            onUpdate(updated);
-            setEditsUsed((n) => n + 1);
-            setTempName(normalizedName);
-            setProfileSaveError('');
-            setEditing(false);
-            setPreviewNotice('Профиль изменён только в локальном Preview.');
-            return;
-        }
         setSavingProfile(true);
         setProfileSaveError('');
         try {
@@ -956,10 +878,6 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const handleDeleteAccount = () => {
-        if (previewFixture) {
-            setPreviewNotice('В Preview удаление аккаунта отключено.');
-            return;
-        }
         if (!onDeleteAccount || deletingAccount) return;
 
         if (hasActiveRuStoreAutoRenewal) {
@@ -978,10 +896,6 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const handleLogout = () => {
-        if (previewFixture) {
-            setPreviewNotice('В Preview выход из аккаунта отключён.');
-            return;
-        }
         if (!onLogout || loggingOut || deletingAccount) return;
         setLogoutError('');
         setLoggingOut(true);
@@ -1019,7 +933,6 @@ export const Settings: React.FC<SettingsProps> = ({
 
     const openSettingsScreen = (screen: Exclude<SettingsScreen, 'root'>) => {
         lastRootTargetRef.current = screen;
-        setPreviewNotice('');
         setSettingsScreen(screen);
     };
 
@@ -1391,7 +1304,7 @@ export const Settings: React.FC<SettingsProps> = ({
                             </div>
                         ) : null}
                         <div className="settings-auth-actions">
-                            {!previewFixture && hasTelegramMiniAppContext() && !identities.some((identity) => identity.provider === 'telegram') ? (
+                            {hasTelegramMiniAppContext() && !identities.some((identity) => identity.provider === 'telegram') ? (
                                 <button
                                     type="button"
                                     className="fresh-btn-ghost"
@@ -1736,19 +1649,19 @@ export const Settings: React.FC<SettingsProps> = ({
                 return (
                     <section className="settings-detail-panel" aria-label={settingsTitle.legal}>
                         <div className="settings-list">
-                            <a className="settings-list-row" href={releaseConfig.privacyUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>
+                            <a className="settings-list-row" href={releaseConfig.privacyUrl} target="_blank" rel="noreferrer">
                                 <span className="settings-list-row-main">
                                     <span className="settings-list-row-label">{profile.language === 'en' ? 'Privacy Policy' : 'Политика конфиденциальности'}</span>
                                 </span>
                                 <span className="settings-list-row-end"><ChevronRight aria-hidden size={16} strokeWidth={1.8} /></span>
                             </a>
-                            <a className="settings-list-row" href={releaseConfig.termsUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>
+                            <a className="settings-list-row" href={releaseConfig.termsUrl} target="_blank" rel="noreferrer">
                                 <span className="settings-list-row-main">
                                     <span className="settings-list-row-label">{profile.language === 'en' ? 'User Agreement' : 'Пользовательское соглашение'}</span>
                                 </span>
                                 <span className="settings-list-row-end"><ChevronRight aria-hidden size={16} strokeWidth={1.8} /></span>
                             </a>
-                            <a className="settings-list-row" href={releaseConfig.consentUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>
+                            <a className="settings-list-row" href={releaseConfig.consentUrl} target="_blank" rel="noreferrer">
                                 <span className="settings-list-row-main">
                                     <span className="settings-list-row-label">{profile.language === 'en' ? 'Personal data consent' : 'Согласие на обработку данных'}</span>
                                 </span>
@@ -1982,7 +1895,6 @@ export const Settings: React.FC<SettingsProps> = ({
                         <h1>{settingsTitle[settingsScreen]}</h1>
                     </header>
                 ) : null}
-                {previewNotice ? <p role="status" className="settings-preview-notice">{previewNotice}</p> : null}
                 {renderSettingsContent()}
             </div>
         </div>

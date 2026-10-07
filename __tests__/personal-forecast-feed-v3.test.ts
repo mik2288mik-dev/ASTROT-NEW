@@ -1,4 +1,4 @@
-import samples from '../components/ui-preview/readingSamples.json';
+import samples from './fixtures/readingSamples.json';
 import { getPersonalForecastPackageValidationError, type PersonalForecastPackage } from '../lib/personalForecastContract';
 it('all three people have complete day, week and month readings in the current contract',()=>{
   expect(samples.people).toHaveLength(3);

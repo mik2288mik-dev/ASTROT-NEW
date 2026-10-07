@@ -6,7 +6,7 @@ jest.mock('../lib/personalForecastDateContext',()=>({buildPersonalForecastDateCo
 jest.mock('../lib/appSettings',()=>({getUnifiedContentModel:async()=> 'gpt-5.6-luna'}));
 jest.mock('../lib/forecastDeliveryMetrics',()=>({logForecastDeliveryMetric:jest.fn()}));
 jest.mock('../lib/contentGenerationLock',()=>({buildContentGenerationLockKey:()=> 'test',withContentGenerationLock:async({readCached,generate}:any)=>{const cached=await readCached();return {status:'ready',value:cached?cached.value:await generate(),fromCache:!!cached};}}));
-import samples from '../components/ui-preview/readingSamples.json';
+import samples from './fixtures/readingSamples.json';
 import {ensurePersonalForecast} from '../lib/personalForecastCache';
 import {buildCanonicalNatalInputHash} from '../lib/natalChartCanonical';
 import {isPersonalForecastPackage} from '../lib/personalForecastContract';

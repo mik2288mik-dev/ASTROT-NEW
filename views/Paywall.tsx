@@ -46,14 +46,6 @@ interface PaywallProps {
   initialPlanId?: PremiumPlanId;
   resumeNotice?: string | null;
   embedded?: boolean;
-  uiPreview?: {
-    plans: Array<{
-      id: PremiumPlanId;
-      periodLabel: string;
-      priceLabel: string;
-      autoRenew: boolean;
-    }>;
-  };
 }
 
 type CatalogPlan = {
@@ -148,10 +140,8 @@ export const Paywall: React.FC<PaywallProps> = ({
   initialPlanId = 'premium_quarter',
   resumeNotice,
   embedded = false,
-  uiPreview,
 }) => {
 
-  const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const ru = language === 'ru';
   const distributionChannel = resolveDistributionChannel();
@@ -170,15 +160,11 @@ export const Paywall: React.FC<PaywallProps> = ({
     ? localizeNatalReportText(natalAnswer.title, language)
     : null;
   const [selected, setSelected] = useState<PremiumPlanId>(initialPlanId);
-  const [plans, setPlans] = useState<Partial<Record<PremiumPlanId, CatalogPlan>>>(() => (
-    previewFixture
-      ? Object.fromEntries(previewFixture.plans.map((plan) => [plan.id, plan]))
-      : {}
-  ));
+  const [plans, setPlans] = useState<Partial<Record<PremiumPlanId, CatalogPlan>>>({});
   const [catalogState, setCatalogState] = useState<
     'loading' | 'ready' | 'not_configured' | 'empty' | 'error'
   >(
-    previewFixture ? 'ready' : paymentCatalogEnabled ? 'loading' : 'not_configured',
+    paymentCatalogEnabled ? 'loading' : 'not_configured',
   );
   const [catalogRetryToken, setCatalogRetryToken] = useState(0);
   const [paying, setPaying] = useState(false);
@@ -189,10 +175,8 @@ export const Paywall: React.FC<PaywallProps> = ({
   const [restorePending, setRestorePending] = useState(false);
   const [managingSubscription, setManagingSubscription] = useState(false);
   const [manageError, setManageError] = useState(false);
-  const [previewNotice, setPreviewNotice] = useState('');
 
   useEffect(() => {
-    if (previewFixture) return;
     let cancelled = false;
     setPlans({});
     if (!paymentCatalogEnabled) {
@@ -256,7 +240,6 @@ export const Paywall: React.FC<PaywallProps> = ({
     language,
     paymentCatalogEnabled,
     planOrder,
-    previewFixture,
     rustorePaymentsEnabled,
   ]);
 
@@ -291,16 +274,11 @@ export const Paywall: React.FC<PaywallProps> = ({
     lumiaSelectionHaptic();
     setSelected(planId);
     setPurchaseState('idle');
-    if (previewFixture) return;
     onPlanSelected?.(planId);
   };
 
   const buy = async () => {
     if (purchaseActionLocked || !selectedPlan) return;
-    if (previewFixture) {
-      setPreviewNotice('Оплата отключена в локальном Preview.');
-      return;
-    }
     lumiaSelectionHaptic();
     setPurchaseState('idle');
     setPaying(true);
@@ -318,10 +296,6 @@ export const Paywall: React.FC<PaywallProps> = ({
 
   const restore = async () => {
     if (restoring || paying || managingSubscription) return;
-    if (previewFixture) {
-      setPreviewNotice('Восстановление покупок отключено в локальном Preview.');
-      return;
-    }
     setRestoreError(false);
     setRestoreFailureReason('');
     setRestorePending(false);
@@ -342,10 +316,6 @@ export const Paywall: React.FC<PaywallProps> = ({
 
   const manageSubscription = async () => {
     if (!onManageSubscription || managingSubscription || restoring || paying) return;
-    if (previewFixture) {
-      setPreviewNotice('Управление подпиской отключено в локальном Preview.');
-      return;
-    }
     setManageError(false);
     setManagingSubscription(true);
     try {
@@ -356,12 +326,6 @@ export const Paywall: React.FC<PaywallProps> = ({
     } finally {
       setManagingSubscription(false);
     }
-  };
-
-  const blockPreviewLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!previewFixture) return;
-    event.preventDefault();
-    setPreviewNotice('Внешние ссылки отключены в локальном Preview.');
   };
 
   const benefits = ru
@@ -419,7 +383,6 @@ export const Paywall: React.FC<PaywallProps> = ({
         </div>
 
         {resumeNotice ? <p className="pw2-state" role="status">{resumeNotice}</p> : null}
-        {alreadyPremium && previewNotice ? <p className="pw2-state" role="status">{previewNotice}</p> : null}
 
         {alreadyPremium ? (
           <section className="pw2-active" aria-labelledby="pw2-active-title">
@@ -491,9 +454,9 @@ export const Paywall: React.FC<PaywallProps> = ({
         </section>
         <div className="pw2-foot">
           <p>{ru ? 'Базовый разбор своей карты остаётся бесплатным.' : 'Your basic birth chart reading stays free.'}</p>
-          <a href={STORE_RELEASE_CONFIG.termsUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>{ru ? 'Условия использования' : 'Terms of use'}</a>
+          <a href={STORE_RELEASE_CONFIG.termsUrl} target="_blank" rel="noreferrer">{ru ? 'Условия использования' : 'Terms of use'}</a>
           {' · '}
-          <a href={STORE_RELEASE_CONFIG.privacyUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>{ru ? 'Политика конфиденциальности' : 'Privacy policy'}</a>
+          <a href={STORE_RELEASE_CONFIG.privacyUrl} target="_blank" rel="noreferrer">{ru ? 'Политика конфиденциальности' : 'Privacy policy'}</a>
         </div>
       </div>
 
@@ -531,7 +494,6 @@ export const Paywall: React.FC<PaywallProps> = ({
                     ? (telegramPaymentsEnabled ? (ru ? 'Оплатить Stars' : 'Pay with Stars') : (ru ? 'Оформить подписку' : 'Subscribe'))
                     : (ru ? 'Покупка сейчас недоступна' : 'Purchase is unavailable')}
             </button>
-            {previewNotice ? <p className="pw2-state" role="status">{previewNotice}</p> : null}
             {purchaseState === 'pending' ? (
               <p className="pw2-state" role="status">{telegramPaymentsEnabled
                 ? (ru ? 'Telegram подтверждает оплату. Нажми «Проверить оплату», новый счёт не откроется.' : 'Telegram is confirming payment. Check payment without opening another invoice.')

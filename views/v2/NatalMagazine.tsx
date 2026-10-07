@@ -37,14 +37,6 @@ type NatalMagazineProps = {
   onQuestionRequestHandled?: () => void;
   onOpenCharts?: () => void;
   onOpenEncyclopedia?: () => void;
-  uiPreview?: {
-    initialTab?: 'map' | 'reading' | 'questions' | 'foundation' | 'explore' | 'ask' | 'matrix';
-    openQuestion?: boolean;
-    reportState?: 'ready' | 'loading' | 'error';
-    premiumReport?: unknown;
-    catalog?: unknown;
-    questions?: React.ComponentProps<typeof NatalQuestionExperience>['uiPreview'];
-  };
 };
 
 export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix' | 'profile';
@@ -63,19 +55,6 @@ export function normalizeNatalScreenTab(
   return tab;
 }
 
-type NatalPreviewInitialTab = NonNullable<NatalMagazineProps['uiPreview']>['initialTab'];
-
-function previewTabToScreen(
-  value: NatalPreviewInitialTab,
-  openQuestion: boolean,
-): NatalScreenTab {
-  if (openQuestion || value === 'questions' || value === 'ask') return 'ask';
-  if (value === 'map') return 'map';
-  if (value === 'matrix') return 'map';
-  if (value === 'explore') return 'explore';
-  return 'foundation';
-}
-
 export function NatalMagazine({
   data,
   profile,
@@ -91,7 +70,6 @@ export function NatalMagazine({
   openQuestionRequest,
   onQuestionRequestHandled,
   onOpenCharts,
-  uiPreview,
 }: NatalMagazineProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const subjectName = chartSubject ? chartSubject.name : profile.name;
@@ -100,12 +78,8 @@ export function NatalMagazine({
   const subjectBirthPlace = chartSubject ? chartSubject.birth_place : profile.birthPlace;
   const isSavedPerson = isSavedPersonChartSubject(chartSubject);
   const isPremium = hasFullPremium(profile);
-  const previewConfig = process.env.NODE_ENV === 'development'
-    && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
-      ? uiPreview
-      : undefined;
   const [activeTab, setActiveTab] = useState<NatalScreenTab>(() => normalizeNatalScreenTab(
-    previewTabToScreen(previewConfig?.initialTab, Boolean(previewConfig?.openQuestion)),
+    'foundation',
     isSavedPerson,
   ));
   const [overviewMode, setOverviewMode] = useState<'story' | 'topics'>('story');
@@ -305,7 +279,6 @@ export function NatalMagazine({
           {isSavedPerson ? <section className={styles.state}><h2>Вопросы по своей карте</h2><p>Сейчас «Спросить о себе» работает только с твоей основной картой. Для вопросов выбери её через аватар в шапке.</p></section> :
           <div className={styles.premiumQuestions}><NatalQuestionExperience
             key={reportSubjectKey}
-            uiPreview={previewConfig?.questions}
             profile={profile}
             chartData={data}
             chartId={chartId}

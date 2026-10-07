@@ -168,7 +168,6 @@ if (storeArtifact) {
   for (const name of [
     'CAPACITOR_LIVE_RELOAD',
     'NEXT_PUBLIC_DEBUG_STORAGE_LOGS',
-    'NEXT_PUBLIC_UI_PREVIEW',
     'ALLOW_TEST_PREMIUM_SIMULATION',
     'ADMIN_WEB_DEV_AUTH_ENABLED',
   ]) {

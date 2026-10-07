@@ -86,7 +86,7 @@ describe('Horoscope product flow', () => {
     expect(selectedRequest).toBeGreaterThan(-1);
     expect(source).not.toContain('prefetchSignHoroscopePeriod');
     expect(source).toContain('HoroscopeActivityBar');
-    expect(source).toContain('userId={!previewFixture && profile.id ? String(profile.id) : undefined}');
+    expect(source).toContain('userId={profile.id ? String(profile.id) : undefined}');
     expect(source).toContain('date={displayedEngagementDate}');
     expect(source).toContain('period={displayedPeriod}');
     const activity = read('components/Horoscope/HoroscopeActivityBar.tsx');

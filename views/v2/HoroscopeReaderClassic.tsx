@@ -72,12 +72,6 @@ type ReadyReadingSnapshot = {
   periodKey: string;
 };
 
-type HoroscopeReaderUiPreview = {
-  sign: string;
-  pickerOpen?: boolean;
-  readings: Record<Period, SignHoroscopeReadingV2>;
-};
-
 export type HoroscopeReaderProps = {
   profile: UserProfile;
   chartData: NatalChartData | null;
@@ -87,7 +81,6 @@ export type HoroscopeReaderProps = {
   onOpenPersonalForecast?: () => void;
   onOpenCharts?: () => void;
   onRequestPremium?: (period: Exclude<Period, 'today'>) => void;
-  uiPreview?: HoroscopeReaderUiPreview;
 };
 
 export const HoroscopeReader = memo<HoroscopeReaderProps>(
@@ -96,22 +89,19 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
     chartData,
     onOpenCharts,
     onRequestPremium,
-    uiPreview,
   }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
-  const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
   const [today, setToday] = useState(() => getMoscowTodayKey());
   const [period, setPeriod] = useState<Period>('today');
   const reduceMotion = useReducedMotion();
   const readingAnchorRef = useRef<HTMLDivElement | null>(null);
   const pendingReadingScrollRef = useRef<ZodiacKey | null>(null);
   const detectedOwnSign = useMemo(() => {
-    const fromPreview = normalizeZodiacKey(String(previewFixture?.sign || ''));
     const calculated = normalizeZodiacKey(String(chartData?.sun?.sign || ''));
     const fromBirth = normalizeZodiacKey(profile.birthDate ? sunSignFromDate(profile.birthDate) || '' : '');
     const selected = normalizeZodiacKey(String(profile.selectedZodiacSign || ''));
-    return fromPreview || calculated || fromBirth || selected || null;
-  }, [profile.birthDate, profile.selectedZodiacSign, chartData, previewFixture?.sign]);
+    return calculated || fromBirth || selected || null;
+  }, [profile.birthDate, profile.selectedZodiacSign, chartData]);
   const ownSign = detectedOwnSign?.toLowerCase();
   const initialIndex = useMemo(() => {
     const index = ZODIAC_KEYS.findIndex((item) => item.toLowerCase() === ownSign);
@@ -122,7 +112,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   const [readings, setReadings] = useState<Record<string, SignHoroscopeReadingV2 | null>>({});
   const [loadRevision, setLoadRevision] = useState(0);
   const [lastReadyReading, setLastReadyReading] = useState<ReadyReadingSnapshot | null>(null);
-  const [signPickerOpen, setSignPickerOpen] = useState(Boolean(previewFixture?.pickerOpen));
+  const [signPickerOpen, setSignPickerOpen] = useState(false);
 
   useEffect(() => {
     ZODIAC_KEYS.forEach((zodiacSign) => {
@@ -139,7 +129,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   }, [initialIndex, ownSign]);
 
   useEffect(() => {
-    if (previewFixture) return;
     const refreshPeriodKeys = () => setToday(getMoscowTodayKey());
     const timer = window.setInterval(refreshPeriodKeys, 60_000);
     const handleVisibilityChange = () => {
@@ -150,7 +139,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [previewFixture]);
+  }, []);
 
   const periodTabs = useMemo(() => ([
     { id: 'today', label: language === 'ru' ? 'Сегодня' : 'Today' },
@@ -168,10 +157,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
     : null;
   const readingKey = `${sign.toLowerCase()}|${period}|${periodKey}|${language}`;
   const localReading = useMemo(
-    () => previewFixture
-      ? previewFixture.readings[period]
-      : readLocalSignHoroscope(period, sign, periodKey, language),
-    [language, period, periodKey, previewFixture, sign],
+    () => readLocalSignHoroscope(period, sign, periodKey, language),
+    [language, period, periodKey, sign],
   );
   const hasReadingResult = Object.prototype.hasOwnProperty.call(readings, readingKey);
   const reading = hasReadingResult ? readings[readingKey] : localReading;
@@ -188,7 +175,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
       : null;
 
   useEffect(() => {
-    if (previewFixture || lockedPremiumPeriod) return;
+    if (lockedPremiumPeriod) return;
     let active = true;
     const load = async () => {
       try {
@@ -213,7 +200,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
     };
     void load();
     return () => { active = false; };
-  }, [language, loadRevision, lockedPremiumPeriod, period, periodKey, previewFixture, readingKey, sign]);
+  }, [language, loadRevision, lockedPremiumPeriod, period, periodKey, readingKey, sign]);
 
   const scrollForecastToTop = useCallback(() => {
     const target = readingAnchorRef.current;
@@ -382,16 +369,14 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
                 </div>
 
                 <HoroscopeActivityBar
-                  userId={!previewFixture && profile.id ? String(profile.id) : undefined}
+                  userId={profile.id ? String(profile.id) : undefined}
                   sign={displayedSign}
                   date={displayedEngagementDate}
                   period={displayedPeriod}
                   language={language}
-                  onShare={previewFixture
-                    ? () => undefined
-                    : () => shareToTelegram(language === 'ru'
-                      ? `Гороскоп для знака ${displayedSignLabel} в NEBO`
-                      : `${displayedSignLabel} horoscope in NEBO`)}
+                  onShare={() => shareToTelegram(language === 'ru'
+                    ? `Гороскоп для знака ${displayedSignLabel} в NEBO`
+                    : `${displayedSignLabel} horoscope in NEBO`)}
                 />
               </>
             ) : null}

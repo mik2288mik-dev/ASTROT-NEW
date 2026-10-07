@@ -2,9 +2,8 @@ import Document, { Head, Html, Main, NextScript } from 'next/document';
 
 export default class NeboDocument extends Document {
   render() {
-    const isUiPreviewBuild = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_UI_PREVIEW === '1';
     const isNativeMobileBuild = process.env.NEXT_PUBLIC_MOBILE_BUILD === '1' || process.env.MOBILE_BUILD === '1';
-    const loadTelegramAppDependencies = !isUiPreviewBuild && !isNativeMobileBuild;
+    const loadTelegramAppDependencies = !isNativeMobileBuild;
 
     return (
       <Html lang="ru" className="antialiased">
