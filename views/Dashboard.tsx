@@ -957,6 +957,7 @@ export const Dashboard = memo<DashboardProps>(({
           )}
           footer={(
             <>
+            {/* Today: what is true about you right now. */}
             <TodayAboutYou
               userId={String(profile.id || 'guest')}
               todayKey={periodKeys.day}
@@ -966,19 +967,6 @@ export const Dashboard = memo<DashboardProps>(({
               task={storySections.find((section) => !lockedSectionIds.has(section.id) && section.actionText?.trim())?.actionText?.trim() ?? null}
             />
             <DailyQuestionCard language={language} />
-            <HomeFeatureStrip
-              todayKey={periodKeys.day}
-              onOpenStories={onOpenStories}
-              onOpenSounds={onOpenSounds}
-              onOpenAntistress={onOpenAntistress}
-              onOpenTests={onOpenTests}
-              onOpenMatrix={onOpenMatrix}
-            />
-            <SeasonCard
-              userId={String(profile.id || 'guest')}
-              todayKey={periodKeys.day}
-              onOpenFuture={() => openFuture()}
-            />
             <ForYouBlock
               userId={String(profile.id || 'guest')}
               language={language}
@@ -993,6 +981,20 @@ export const Dashboard = memo<DashboardProps>(({
               gift={giftStatus ? { streak: giftStatus.streak, daysToGift: giftStatus.daysToGift, claimable: giftStatus.claimable, hasWeekGift: Boolean(giftStatus.weekGift) } : null}
               onAction={handleForYouAction}
             />
+            {/* Ahead: the coming month, then the season. */}
+            <FutureInviteCard
+              userId={String(profile.id || 'guest')}
+              todayKey={periodKeys.day}
+              timezone={timezone}
+              premium={premium}
+              onOpen={() => { onPeriodChange?.('month'); }}
+            />
+            <SeasonCard
+              userId={String(profile.id || 'guest')}
+              todayKey={periodKeys.day}
+              onOpenFuture={() => openFuture()}
+            />
+            {/* Your people. */}
             <PeopleBlock
               userId={String(profile.id || 'guest')}
               todayKey={periodKeys.day}
@@ -1001,12 +1003,14 @@ export const Dashboard = memo<DashboardProps>(({
               onAddPerson={onOpenSynastry}
               onGift={setGiftPerson}
             />
-            <FutureInviteCard
-              userId={String(profile.id || 'guest')}
+            {/* Deeper: sections to explore once the day is read. */}
+            <HomeFeatureStrip
               todayKey={periodKeys.day}
-              timezone={timezone}
-              premium={premium}
-              onOpen={() => { onPeriodChange?.('month'); }}
+              onOpenStories={onOpenStories}
+              onOpenSounds={onOpenSounds}
+              onOpenAntistress={onOpenAntistress}
+              onOpenTests={onOpenTests}
+              onOpenMatrix={onOpenMatrix}
             />
             <TodayExploreCards
               language={language}
