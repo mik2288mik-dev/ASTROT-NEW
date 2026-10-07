@@ -427,3 +427,18 @@
 .meou-onboarding img,
 .auth-editorial-page img { -webkit-user-drag: none; }
 
+/* Progress lines: whole pixels, equal widths, one gap, one baseline, on every onboarding screen. */
+.meou-onboarding .meou-progress { align-items: center; gap: 12px; min-height: 3px; }
+.meou-onboarding .meou-progress-lines { align-items: center; gap: 6px; height: 3px; }
+.meou-onboarding .meou-progress-lines span {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 3px !important;
+  border-radius: 3px;
+  transform: none !important;
+}
+.meou-onboarding[data-onboarding-phase='setup']:not([data-onboarding-screen='calculating']) .meou-progress-lines span { background: #d9dce6; }
+.meou-onboarding[data-onboarding-phase='setup']:not([data-onboarding-screen='calculating']) .meou-progress-lines .is-active { background: #171717; }
+.meou-onboarding .meou-progress-copy { min-width: 2.4rem; font-size: 0.75rem; line-height: 1; text-align: right; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-progress-copy { color: rgba(255, 255, 255, 0.8); }
+
