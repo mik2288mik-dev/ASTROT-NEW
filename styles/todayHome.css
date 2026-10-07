@@ -1156,10 +1156,6 @@
   overflow-wrap: normal;
 }
 
-.forecast-feed-page .ui-preview-long-forecast {
-  padding-top: clamp(1rem, 4vw, 1.35rem);
-}
-
 .forecast-period-title-thread {
   width: calc(100% + 2rem);
   height: clamp(2rem, 8vw, 2.45rem);

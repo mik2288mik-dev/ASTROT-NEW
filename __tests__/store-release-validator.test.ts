@@ -155,13 +155,11 @@ describe('store release validator', () => {
       CAPACITOR_LIVE_RELOAD: '1',
       CAPACITOR_LIVE_URL: 'http://192.168.1.4:3000',
       ALLOW_TEST_PREMIUM_SIMULATION: '1',
-      NEXT_PUBLIC_UI_PREVIEW: '1',
     });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('CAPACITOR_LIVE_RELOAD must be disabled');
     expect(result.stderr).toContain('CAPACITOR_LIVE_URL must not be configured');
     expect(result.stderr).toContain('ALLOW_TEST_PREMIUM_SIMULATION must be disabled');
-    expect(result.stderr).toContain('NEXT_PUBLIC_UI_PREVIEW must be disabled');
   });
 
   it('rejects a release when Android provider IDs are missing', () => {

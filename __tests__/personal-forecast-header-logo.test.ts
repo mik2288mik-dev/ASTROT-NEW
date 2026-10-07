@@ -11,7 +11,6 @@ describe('personal forecast header and shared navigation', () => {
     const logo = read('components/brand/NeboLogo.tsx');
     const loading = read('components/ui/Loading.tsx');
     const auth = read('views/AuthGate.tsx');
-    const preview = read('components/ui-preview/UiPreviewApp.tsx');
 
     expect(topBar).toContain("title === 'NEBO'");
     expect(topBar).toContain('<NeboLogo');
@@ -27,7 +26,6 @@ describe('personal forecast header and shared navigation', () => {
     expect(fs.existsSync(path.join(ROOT, 'public/assets/brand/nebo-cloud-logo.png'))).toBe(true);
     expect(loading).toContain('<NeboLogo decorative size="loading" priority />');
     expect(auth).toContain('<NeboLogo decorative priority />');
-    expect(preview).toContain('<NeboLogo className="ui-preview-wordmark" priority />');
   });
 
   it('uses the mark traced from the supplied production icon without the rounded tile', () => {

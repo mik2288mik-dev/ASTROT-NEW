@@ -1,6 +1,6 @@
 import type { NatalChartData } from '../types';
 import { PERSONAL_FORECAST_VOICE_VERSION } from '../lib/appVoice';
-import samples from '../components/ui-preview/readingSamples.json';
+import samples from './fixtures/readingSamples.json';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,

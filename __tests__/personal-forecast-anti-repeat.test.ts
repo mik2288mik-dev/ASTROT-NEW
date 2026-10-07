@@ -1,4 +1,4 @@
-import samples from '../components/ui-preview/readingSamples.json';
+import samples from './fixtures/readingSamples.json';
 import { PERSONAL_FORECAST_PROMPT_VERSION, PERSONAL_FORECAST_CACHE_VERSION } from '../lib/personalForecastContract';
 it('invalidates the removed writer chain and does not repeat one sample for every person',()=>{
   expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('dated-natal-horoscope');

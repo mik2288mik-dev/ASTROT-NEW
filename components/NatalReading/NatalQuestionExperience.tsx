@@ -29,7 +29,6 @@ type Props = {
   requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
-  uiPreview?: { snapshot: NatalQuestionSnapshot; phase?: 'ready' | 'loading' | 'error'; onAsk: (question: string) => Promise<NatalQuestionSnapshot> };
 };
 
 type QuestionPair = {
@@ -118,10 +117,8 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   requestPremium,
   premiumContinuation,
   onPremiumContinuationHandled,
-  uiPreview,
   compact = false,
 }) => {
-  const preview = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_UI_PREVIEW === '1' ? uiPreview : undefined;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const userId = profile.id ? String(profile.id) : '';
   const isPremium = hasFullPremium(profile);
@@ -155,11 +152,6 @@ export const NatalQuestionExperience: React.FC<Props> = ({
 
   useEffect(() => {
     if (!isPremium) { setSnapshot(null); setLoading(false); setError(null); return; }
-    if (preview) {
-      setSnapshot(preview.snapshot); setLoading(preview.phase === 'loading');
-      setError(preview.phase === 'error' ? formatQuestionError(null, language) : null);
-      return;
-    }
     if (!userId) return;
     let cancelled = false;
     setLoading(true);
@@ -180,7 +172,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [chartId, language, reportIdentity, retryToken, userId, preview, isPremium]);
+  }, [chartId, language, reportIdentity, retryToken, userId, isPremium]);
 
   useEffect(() => {
     if (
@@ -209,11 +201,11 @@ export const NatalQuestionExperience: React.FC<Props> = ({
     setSubmitting(true);
     setError(null);
     try {
-      const next = preview ? await preview.onAsk(value) : await askNatalQuestion(userId, value, chartId);
+      const next = await askNatalQuestion(userId, value, chartId);
       setSnapshot(next);
       setQuestionText('');
       setUnansweredQuestionText(null);
-      if (!preview) void recordUserAppEvent({
+      void recordUserAppEvent({
         eventType: 'question_sent',
         section: 'natal',
         source: 'natal_questions',
@@ -255,8 +247,6 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   const inputDisabled = !isPremium || loading || submitting || questionLimitReached || !userId;
   const statusText = submitting
     ? (language === 'ru' ? 'Готовим ответ…' : 'Preparing your answer…')
-    : !userId && preview
-      ? (language === 'ru' ? 'В локальном превью отправка отключена.' : 'Sending is disabled in the local preview.')
     : unansweredQuestionText
       ? (canRetryUnanswered
           ? (language === 'ru'

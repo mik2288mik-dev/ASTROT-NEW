@@ -225,9 +225,6 @@ if (enabled('ADMIN_WEB_DEV_AUTH_ENABLED')) {
 if (enabled('NEXT_PUBLIC_DEBUG_STORAGE_LOGS')) {
   errors.push('NEXT_PUBLIC_DEBUG_STORAGE_LOGS must be disabled in production');
 }
-if (enabled('NEXT_PUBLIC_UI_PREVIEW')) {
-  errors.push('NEXT_PUBLIC_UI_PREVIEW must be disabled in production');
-}
 if (raw('PERSONAL_FORECAST_TRACE') === 'full_eval') {
   errors.push('PERSONAL_FORECAST_TRACE=full_eval is not allowed in production');
 }

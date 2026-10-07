@@ -18,12 +18,6 @@ npm ci
 npm run dev
 ```
 
-Open the local UI Preview when you need deterministic product states:
-
-```powershell
-npm exec -- cross-env NEXT_PUBLIC_UI_PREVIEW=1 npm run dev
-```
-
 Run focused checks before broad checks:
 
 ```powershell

@@ -3,7 +3,7 @@ jest.mock('../lib/personalForecastDateContext', () => ({ buildPersonalForecastDa
 import { createLunaStructuredResponse } from '../lib/openaiResponses';
 import { generatePersonalForecastPackage } from '../lib/personalForecastGeneration';
 import { resolvePersonalForecastWindow, getPersonalForecastPackageValidationError } from '../lib/personalForecastContract';
-import samples from '../components/ui-preview/readingSamples.json';
+import samples from './fixtures/readingSamples.json';
 import type { NatalChartDataV2 } from '../lib/natalChartV2Types';
 const writer = createLunaStructuredResponse as jest.Mock;
 const natal = samples.people[0].chart as unknown as NatalChartDataV2;

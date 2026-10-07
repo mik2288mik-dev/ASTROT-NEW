@@ -47,13 +47,6 @@ describe('Settings feedback flow', () => {
     expect(styles).toContain('.settings-feedback-submit');
   });
 
-  it('uses a neutral email address in the local preview fixture', () => {
-    const fixtures = read('components/ui-preview/uiPreviewFixtures.ts');
-
-    expect(fixtures).toContain("email: 'preview@example.test'");
-    expect(fixtures).not.toContain('alina.preview@example.test');
-  });
-
   it('normalizes only public build identity fields', () => {
     expect(normalizeMobileBuildIdentity(
       { versionName: '1.0.2', versionCode: '5', channel: 'rustore' },

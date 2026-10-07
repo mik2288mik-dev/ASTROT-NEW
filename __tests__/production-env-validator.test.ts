@@ -22,7 +22,6 @@ function validProductionEnv(): NodeJS.ProcessEnv {
     ALLOW_TEST_PREMIUM_SIMULATION: '0',
     ADMIN_WEB_DEV_AUTH_ENABLED: '0',
     NEXT_PUBLIC_DEBUG_STORAGE_LOGS: '0',
-    NEXT_PUBLIC_UI_PREVIEW: '0',
     NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED: '0',
     NATIVE_APP_ORIGINS: 'https://localhost,capacitor://localhost',
   };
