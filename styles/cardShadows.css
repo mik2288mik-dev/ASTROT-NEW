@@ -4,7 +4,7 @@
 :is(
   [class$='-card'], [class*='-card '], [class$='-tile'], [class*='-tile '],
   [class*='_card__'], [class*='_tile__'], [class*='_moment__'], [class*='_panel__'],
-  .people-fact, .people-gift, .people-btn, .daily-question, .daily-question-option,
+  .people-fact, .people-gift, .people-btn, .daily-question:not(.is-embedded), .daily-question:not(.is-embedded) .daily-question-option,
   .season-step, .today-sky-personal, .listen-forecast-button, .for-you-card-cta,
   .tests-card, .stories-card, .sounds-tile, .sounds-row, .sounds-story-main,
   .compat-context-tile, .compat-sign-card, .mood-ready, .mood-report, .service-card, .services-card

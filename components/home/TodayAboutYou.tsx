@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check } from 'lucide-react';
 import type { NatalChartData } from '../../types';
-import { birthFacts, birthInstant, buildFastTransits, chartFactOfDay, dayIndex, todayMoonFacts, transitFactOfDay, type BirthFact, type ChartFact } from '../../lib/aboutYouFacts';
+import { birthFacts, birthInstant, buildFastTransits, chartFactOfDay, dayIndex, skyComparisonFacts, todayMoonFacts, transitFactOfDay, type BirthFact, type ChartFact } from '../../lib/aboutYouFacts';
 import { loadExploreCharts, peekExploreCharts } from '../PersonalForecastFeed/exploreCharts';
+import { worldTwinOfDay } from '../../lib/worldTwins';
 import { loadFeatureState, peekFeatureState, saveFeatureState } from '../../services/featureStateService';
 
 type TodayAboutYouProps = {
@@ -63,6 +64,7 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
   const [moonAtBirth, setMoonAtBirth] = useState<number | null>(null);
   const [todayFact, setTodayFact] = useState<ChartFact | null>(null);
   const [moonToday, setMoonToday] = useState<BirthFact[]>([]);
+  const [sky, setSky] = useState<ReturnType<typeof skyComparisonFacts> | null>(null);
   const [done, setDone] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'daily_task'));
 
   useEffect(() => {
@@ -106,6 +108,15 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
     return () => { active = false; };
   }, [todayKey]);
 
+  useEffect(() => {
+    let active = true;
+    engine ??= import('astronomy-engine');
+    void engine
+      .then((astro) => { if (active) setSky(skyComparisonFacts(astro, todayKey, chart, moonAtBirth)); })
+      .catch(() => { engine = null; });
+    return () => { active = false; };
+  }, [chart, moonAtBirth, todayKey]);
+
   // Today's aspect to the chart; the old chart-only fact is the fallback while it is not ready or none is close enough.
   const fact = useMemo(() => todayFact ?? chartFactOfDay(chart, todayKey), [todayFact, chart, todayKey]);
   const birth = useMemo(() => birthFacts({
@@ -117,13 +128,22 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
     moonAtBirth,
     todayKey,
   }), [birthDate, birthTime, birthTimeKnown, chart, moonAtBirth, todayKey]);
-  // Today's Moon, one birth fact that rotates by day, and the birthday countdown: the tiles never stand still.
+  // Four different kinds of tile, never the same theme twice: what the world got in your birth year,
+  // today's sky against your birth, a rare personal sky event (or a second world fact), the birthday countdown.
   const facts = useMemo(() => {
+    const day = dayIndex(todayKey);
     const countdown = birth[birth.length - 1];
-    const rest = birth.slice(0, -1);
-    const rotating = rest.length ? rest[dayIndex(todayKey) % rest.length] : null;
-    return [...moonToday, rotating, countdown].filter((item): item is BirthFact => Boolean(item));
-  }, [birth, moonToday, todayKey]);
+    const rest = birth.slice(0, -1).filter((item) => !item.value.startsWith('Луна'));
+    const rotating = rest.length ? rest[day % rest.length] : null;
+    const twin = worldTwinOfDay(birthDate, day);
+    const secondTwin = worldTwinOfDay(birthDate, day, 1);
+    return [
+      twin ?? sky?.moonSign ?? moonToday[0] ?? null,
+      sky?.birthSky ?? moonToday[1] ?? null,
+      sky?.moonSign ?? sky?.planetReturn ?? secondTwin ?? rotating,
+      countdown,
+    ].filter((item, index, list): item is BirthFact => Boolean(item) && list.indexOf(item) === index);
+  }, [birth, birthDate, moonToday, sky, todayKey]);
 
   const isDone = Boolean(done[todayKey]);
   const streak = streakOf(done, todayKey);

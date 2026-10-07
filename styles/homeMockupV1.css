@@ -1719,3 +1719,12 @@
 }
 .home-ahead > .season { margin-top: 12px; }
 .home-ahead > .season > h2 { display: none; }
+
+/* Embedded question: no card inside the card (it is excluded from the shared shadow in cardShadows.css). */
+.about-you-card .daily-question.is-embedded .daily-question-option {
+  border: 1px solid rgba(41, 39, 36, 0.12);
+  background: #fff;
+}
+.about-you-card .daily-question.is-embedded .daily-question-option.is-chosen {
+  border-color: #292724;
+}
