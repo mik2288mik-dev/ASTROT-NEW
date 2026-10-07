@@ -1471,3 +1471,27 @@
 .radio-card-sample small { color: rgba(255, 255, 255, 0.85); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
 .radio-card-sample p { margin: 0; color: #fff; font-size: 0.86rem; line-height: 1.45; }
 .radio-sheet-content .radio-card-head > div { display: none; }
+
+/* Notice after a purchase attempt. It was styled with Tailwind classes that App.tsx never gets compiled, so it fell to the top under the status bar. */
+.checkout-notice {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(88px + max(env(safe-area-inset-bottom, 0px), 0px));
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 12px 8px 12px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  background: #fff;
+  color: #171717;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  box-shadow: 0 10px 28px rgba(22, 32, 70, 0.18);
+}
+.checkout-notice-text { min-width: 0; flex: 1; }
+.checkout-notice-close { flex: none; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: inherit; font: inherit; font-size: 1.25rem; font-weight: 600; cursor: pointer; }
