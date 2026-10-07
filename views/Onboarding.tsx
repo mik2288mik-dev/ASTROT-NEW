@@ -8,8 +8,6 @@ import { VideoBackground } from '../components/lumia-ui/VideoBackground';
 import type { VideoBackgroundId } from '../lib/videoBackgrounds';
 import {
   BirthOrbitArtwork,
-  MeouSpark,
-  NatalWheelArtwork,
 } from '../components/onboarding/OnboardingArtwork';
 import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTime';
 import { validateDate, validateName } from '../lib/validation';
@@ -41,6 +39,7 @@ const SCREEN_VIDEOS: Partial<Record<OnboardingScreen, VideoBackgroundId>> = {
   calm: 'breathing',
   more: 'onboarding-more',
   choice: 'onboarding-choice',
+  calculating: 'onboarding-calculating',
 };
 const initialTimeMode = (profile?: UserProfile): Exclude<BirthTimeMode, 'range'> => {
   if (!profile) return 'exact';
@@ -471,13 +470,14 @@ export const Onboarding: React.FC<OnboardingProps> = ({
 
         {screen === 'calculating' ? (
           <section className="meou-calculating" aria-live="polite">
-            <div>
-              {<><h1>Считаем вашу<br />натальную карту<span>.</span></h1><p>Определяем положение Солнца, Луны<br />и планет на момент вашего рождения.</p></>}
-            </div>
-            {<NatalWheelArtwork compact />}
-            <div className="meou-calculating-footer">
-              {<MeouSpark />}
-              <p>{onboardingCalculationStatus(calculationElapsedSeconds, timeMode)}</p>
+            <div className="meou-calculating-stage" aria-hidden="true" />
+            <div className="meou-calculating-copy">
+              <div>
+                {<><h1>Считаем вашу<br />натальную карту<span>.</span></h1><p>Определяем положение Солнца, Луны<br />и планет на момент вашего рождения.</p></>}
+              </div>
+              <div className="meou-calculating-footer">
+                <p>{onboardingCalculationStatus(calculationElapsedSeconds, timeMode)}</p>
+              </div>
             </div>
           </section>
         ) : null}

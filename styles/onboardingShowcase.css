@@ -372,3 +372,37 @@
   box-shadow: 0 10px 22px rgba(10, 14, 30, 0.3);
 }
 
+/* Chart calculation: the same look as the welcome slides, a clip behind, big white words at the bottom on the dark fade. */
+.meou-onboarding[data-onboarding-screen='calculating'] { background: #0a0f24; color: #fff; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-progress-lines span { background: rgba(255, 255, 255, 0.35); }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-progress-lines .is-active { background: #fff; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-onboarding-logo { mix-blend-mode: normal; border-radius: 1rem; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating { padding-top: 0.5rem; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-stage { flex: 1 1 auto; min-height: 0; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-copy { margin-bottom: clamp(1.4rem, 6vh, 3rem); }
+.meou-onboarding[data-onboarding-screen='calculating'] h1 {
+  margin: 0;
+  color: #fff !important;
+  font-family: var(--fresh-font) !important;
+  font-size: clamp(1.7rem, 5.2vh, 2.5rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.025em !important;
+  text-align: left !important;
+  text-shadow: 0 2px 18px rgba(5, 8, 24, 0.55);
+}
+.meou-onboarding[data-onboarding-screen='calculating'] h1 span { color: inherit !important; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-copy p {
+  margin: 0.6rem 0 0 !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-size: clamp(0.92rem, 2.2vh, 1.05rem) !important;
+  line-height: 1.42 !important;
+  text-shadow: 0 1px 10px rgba(5, 8, 24, 0.6);
+}
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-footer { justify-items: start; margin-top: 0.9rem; padding-bottom: 0; gap: 0.35rem; text-align: left; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-footer p { margin: 0 !important; font-size: 0.85rem !important; color: rgba(255, 255, 255, 0.85) !important; }
+/* A lighter fade here: the sky and the planets are the picture, only the bottom needs to be dark for the words. */
+.meou-onboarding[data-onboarding-screen='calculating'] > .video-bg.is-scrim-bottom .video-bg-scrim {
+  background: linear-gradient(to top, rgba(6, 12, 40, 0.78) 0%, rgba(6, 12, 40, 0.45) 26%, rgba(6, 12, 40, 0) 52%) !important;
+}
+.meou-onboarding[data-onboarding-screen='calculating'] h1 { font-size: clamp(1.3rem, min(4.6vh, 8.2vw), 2.1rem) !important; }
