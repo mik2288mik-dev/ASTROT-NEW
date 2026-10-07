@@ -39,7 +39,7 @@ import {
   CompatibilityNarrativeError,
   COMPATIBILITY_NARRATIVE_VERSION,
 } from '../../../../lib/synastry/compatibilityNarrative';
-import { buildCompatibilityStoryPrompt, COMPATIBILITY_STORY_SCHEMA } from '../../../../lib/synastry/compatibilityVoice';
+import { buildCompatibilityStoryPrompt, compatibilitySpokenViolations, COMPATIBILITY_STORY_SCHEMA } from '../../../../lib/synastry/compatibilityVoice';
 import {
   normalizeRelationshipContext,
   type RelationshipContext,
@@ -657,6 +657,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     modelId = modelAssignment.model;
     if (!getOpenAIResponsesClient()) throw new Error('SYNASTRY_WRITER_UNAVAILABLE');
     let revisionReason: string | undefined;
+    let voiceFallback: typeof resultPayload | null = null;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const prompt = buildCompatibilityStoryPrompt({
         language: currentLanguage,
@@ -666,25 +667,46 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         revisionReason,
       });
       generationAttempts = attempt === 0 ? 1 : 2;
-      const response = await createLunaStructuredResponse({
-        instructions: prompt.system,
-        input: prompt.user,
-        maxOutputTokens: 2600,
-        reasoningEffort: 'low',
-        verbosity: 'low',
-        schemaName: 'calculated_compatibility_story',
-        schema: COMPATIBILITY_STORY_SCHEMA,
-      });
+      let response: Awaited<ReturnType<typeof createLunaStructuredResponse>>;
       try {
-        resultPayload = buildCompatibilityResult(calculated, JSON.parse(response.content), {
+        response = await createLunaStructuredResponse({
+          instructions: prompt.system,
+          input: prompt.user,
+          maxOutputTokens: 2600,
+          reasoningEffort: 'low',
+          verbosity: 'low',
+          schemaName: 'calculated_compatibility_story',
+          schema: COMPATIBILITY_STORY_SCHEMA,
+        });
+      } catch (error) {
+        if (!voiceFallback) throw error;
+        resultPayload = voiceFallback;
+        break;
+      }
+      try {
+        const story = JSON.parse(response.content);
+        resultPayload = buildCompatibilityResult(calculated, story, {
           subjectName: people.subject.name,
           partnerName: people.partner.name,
           subjectGender: people.subject.gender,
           partnerGender: people.partner.gender,
           language: currentLanguage,
         });
+        // A valid story that slips into hedged report language is rewritten once; the first draft
+        // stays as the fallback, so a failed rewrite never turns into an error for the reader.
+        const voiceIssues = attempt === 0 ? compatibilitySpokenViolations(story) : [];
+        if (voiceIssues.length) {
+          voiceFallback = resultPayload;
+          validationReason = `voice:${voiceIssues.join(',')}`;
+          revisionReason = `report-like wording (${voiceIssues.join(', ')}): write confidently in plain spoken Russian, at most one hedge word per answer, no long dash`;
+          continue;
+        }
         break;
       } catch (error) {
+        if (attempt === 1 && voiceFallback) {
+          resultPayload = voiceFallback;
+          break;
+        }
         const retryable = error instanceof CompatibilityNarrativeError || error instanceof SyntaxError;
         validationReason = error instanceof CompatibilityNarrativeError ? error.reason : retryable ? 'invalid_json' : undefined;
         if (retryable) {
