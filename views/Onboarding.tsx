@@ -9,6 +9,7 @@ import type { VideoBackgroundId } from '../lib/videoBackgrounds';
 import {
   BirthOrbitArtwork,
   MeouSpark,
+  NatalWheelArtwork,
 } from '../components/onboarding/OnboardingArtwork';
 import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTime';
 import { validateDate, validateName } from '../lib/validation';
@@ -40,7 +41,6 @@ const SCREEN_VIDEOS: Partial<Record<OnboardingScreen, VideoBackgroundId>> = {
   calm: 'breathing',
   more: 'onboarding-more',
   choice: 'onboarding-choice',
-  calculating: 'onboarding-calculating',
 };
 const initialTimeMode = (profile?: UserProfile): Exclude<BirthTimeMode, 'range'> => {
   if (!profile) return 'exact';
@@ -349,7 +349,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
       data-onboarding-phase={isWelcome ? 'welcome' : 'setup'}
       data-onboarding-screen={screen}
     >
-      {SCREEN_VIDEOS[screen] ? <VideoBackground key={screen} id={SCREEN_VIDEOS[screen] as VideoBackgroundId} scrim={screen === 'calculating' ? 'none' : 'bottom'} /> : null}
+      {SCREEN_VIDEOS[screen] ? <VideoBackground key={screen} id={SCREEN_VIDEOS[screen] as VideoBackgroundId} scrim="bottom" /> : null}
       <div
         className="meou-onboarding-shell"
         onClick={isIntro
@@ -474,7 +474,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
             <div>
               {<><h1>Считаем вашу<br />натальную карту<span>.</span></h1><p>Определяем положение Солнца, Луны<br />и планет на момент вашего рождения.</p></>}
             </div>
-            <div className="meou-calculating-stage" aria-hidden="true" />
+            {<NatalWheelArtwork compact />}
             <div className="meou-calculating-footer">
               {<MeouSpark />}
               <p>{onboardingCalculationStatus(calculationElapsedSeconds, timeMode)}</p>
