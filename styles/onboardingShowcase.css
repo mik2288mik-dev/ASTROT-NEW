@@ -190,7 +190,16 @@
 .meou-onboarding[data-onboarding-screen='birth'] .meou-birth { min-height: 0 !important; grid-template-rows: auto auto !important; align-content: start; }
 .meou-onboarding[data-onboarding-screen='birth'] .meou-birth-form { align-self: start; height: auto !important; min-height: 0 !important; }
 .meou-onboarding[data-onboarding-screen='birth'] .meou-time-field.is-empty input { color: transparent !important; }
-.meou-onboarding[data-onboarding-screen='birth'] .meou-time-placeholder { left: 14px !important; color: #a3a6b0 !important; }
+.meou-onboarding[data-onboarding-screen='birth'] .meou-field.meou-time-field > span.meou-time-placeholder {
+  left: 14px !important;
+  bottom: 14px !important;
+  color: #171717 !important;
+  font-family: inherit !important;
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
+}
 
 /* ── Sign-in screens (choose a way, email, create account): the same look as the app ── */
 .auth-editorial-page { background: #f4f6fb !important; }
@@ -237,3 +246,199 @@
 .auth-editorial-page .auth-provider-mark--yandex img { width: 2.1rem; height: 2.1rem; border-radius: 999px; }
 
 .auth-editorial-page .auth-yandex-wordmark { height: 1.45rem; width: auto; display: block; }
+
+/* Birth form fixes: the logo's white box melts into the grey page, every row has room, the pills never overlap. */
+.meou-onboarding[data-onboarding-screen='birth'] .meou-onboarding-logo,
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-onboarding-logo { mix-blend-mode: multiply; background: transparent; }
+
+.meou-onboarding[data-onboarding-screen='birth'] .meou-birth-form > .meou-field:first-of-type,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-city-field { grid-column: 1 / -1; }
+
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode > div,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode > div {
+  display: grid !important;
+  grid-template-columns: repeat(var(--pill-cols, 3), minmax(0, 1fr));
+  gap: 8px !important;
+  overflow: visible !important;
+  margin-top: 6px;
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode > div { --pill-cols: 2; }
+
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button {
+  min-width: 0;
+  padding: 0 8px;
+  border: 0 !important;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button > span { display: none; }
+
+/* The two inactive pills read as separate pills with a visible edge. */
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button:not(.is-active),
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button:not(.is-active) {
+  background: #eceef5 !important;
+}
+
+/* No backing strip and no dividers between the pills (they come from the old segmented control). */
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode > div::before,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode > div::after,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button::before,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-time-mode button::after,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode > div::before,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode > div::after,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button::before,
+.meou-onboarding[data-onboarding-screen='birth'] .meou-gender-mode button::after { display: none !important; content: none !important; }
+
+/* The location pin is drawn by the field's pseudo elements; centre it on the 48px input, 16px from the edge. */
+.meou-onboarding[data-onboarding-screen='birth'] .meou-city-field::after {
+  top: auto !important;
+  right: 16px !important;
+  bottom: 16.4px !important;
+}
+.meou-onboarding[data-onboarding-screen='birth'] .meou-city-field::before {
+  top: auto !important;
+  right: 21.1px !important;
+  bottom: 21.9px !important;
+}
+
+/* ── Consent screen: the same look as the data form (grey page, one white card, black pill button) ── */
+.legal-acknowledgement-screen { background: #f4f6fb !important; }
+.legal-acknowledgement-screen .legal-acknowledgement-logo { mix-blend-mode: multiply; background: transparent; }
+
+.legal-acknowledgement-screen h1 {
+  margin-top: 0.4rem !important;
+  font-family: var(--fresh-font) !important;
+  font-size: clamp(1.7rem, 4.8vh, 2.2rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.025em !important;
+  color: #171717;
+}
+.legal-acknowledgement-screen h1 + p { color: #5b564f !important; font-size: 0.9rem !important; line-height: 1.45 !important; }
+
+.legal-acknowledgement-screen .border-y {
+  margin-top: 1rem !important;
+  padding: 0.35rem 1rem;
+  border: 0 !important;
+  border-radius: 1.5rem;
+  background: #fff;
+  box-shadow: var(--nebo-card-shadow, 0 12px 28px rgba(22, 32, 70, 0.2));
+}
+.legal-acknowledgement-screen .border-y > div { border-color: rgba(23, 23, 23, 0.07) !important; padding-top: 0.85rem !important; padding-bottom: 0.85rem !important; align-items: center !important; }
+.legal-acknowledgement-screen .border-y > div:last-child { border-bottom: 0 !important; }
+
+.legal-acknowledgement-screen input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  place-content: center;
+  width: 1.65rem !important;
+  height: 1.65rem !important;
+  margin-top: 0 !important;
+  border: 2px solid #c5c9d6;
+  border-radius: 0.55rem;
+  background: #f1f2f7;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.legal-acknowledgement-screen input[type='checkbox']:checked {
+  border-color: transparent;
+  background: linear-gradient(135deg, #5b8dff, #2f6bff);
+  box-shadow: 0 5px 12px rgba(47, 107, 255, 0.35);
+}
+.legal-acknowledgement-screen input[type='checkbox']:checked::after {
+  content: '';
+  width: 0.45rem;
+  height: 0.8rem;
+  margin-top: -0.1rem;
+  border: solid #fff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+}
+.legal-acknowledgement-screen input[type='checkbox'][aria-invalid='true'] { border-color: #d6452f; }
+
+.legal-acknowledgement-screen .border-y a { color: #2f6bff; text-decoration-color: rgba(47, 107, 255, 0.4); font-weight: 600; }
+.legal-acknowledgement-screen .border-y label { font-weight: 500; }
+.legal-acknowledgement-screen p.mt-3 { color: #6c7280 !important; padding: 0 0.25rem; }
+.legal-acknowledgement-screen p.mt-3 a { color: #2f6bff; text-decoration-color: rgba(47, 107, 255, 0.4); }
+.legal-acknowledgement-screen #legal-error { color: #d6452f !important; font-weight: 600; }
+
+.legal-acknowledgement-screen button.rounded-full {
+  min-height: 3.2rem;
+  background: #171717 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 10px 22px rgba(10, 14, 30, 0.3);
+}
+
+/* Chart calculation: the same look as the welcome slides, a clip behind, big white words at the bottom on the dark fade. */
+.meou-onboarding[data-onboarding-screen='calculating'] { background: #0a0f24; color: #fff; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-progress-lines span { background: rgba(255, 255, 255, 0.35); }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-progress-lines .is-active { background: #fff; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-onboarding-logo { mix-blend-mode: normal; border-radius: 1rem; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating { padding-top: 0.5rem; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-stage { flex: 1 1 auto; min-height: 0; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-copy { margin-bottom: clamp(1.4rem, 6vh, 3rem); }
+.meou-onboarding[data-onboarding-screen='calculating'] h1 {
+  margin: 0;
+  color: #fff !important;
+  font-family: var(--fresh-font) !important;
+  font-size: clamp(1.7rem, 5.2vh, 2.5rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.025em !important;
+  text-align: left !important;
+  text-shadow: 0 2px 18px rgba(5, 8, 24, 0.55);
+}
+.meou-onboarding[data-onboarding-screen='calculating'] h1 span { color: inherit !important; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-copy p {
+  margin: 0.6rem 0 0 !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-size: clamp(0.92rem, 2.2vh, 1.05rem) !important;
+  line-height: 1.42 !important;
+  text-shadow: 0 1px 10px rgba(5, 8, 24, 0.6);
+}
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-footer { justify-items: start; margin-top: 0.9rem; padding-bottom: 0; gap: 0.35rem; text-align: left; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-footer p { margin: 0 !important; font-size: 0.85rem !important; color: rgba(255, 255, 255, 0.85) !important; }
+/* A lighter fade here: the sky and the planets are the picture, only the bottom needs to be dark for the words. */
+.meou-onboarding[data-onboarding-screen='calculating'] > .video-bg.is-scrim-bottom .video-bg-scrim {
+  background: linear-gradient(to top, rgba(6, 12, 40, 0.78) 0%, rgba(6, 12, 40, 0.45) 26%, rgba(6, 12, 40, 0) 52%) !important;
+}
+.meou-onboarding[data-onboarding-screen='calculating'] h1 { font-size: clamp(1.3rem, min(4.6vh, 8.2vw), 2.1rem) !important; }
+
+/* The welcome flow is not a document: no text selection, no long-press callout. Fields stay editable. */
+.meou-onboarding,
+.legal-acknowledgement-screen,
+.auth-editorial-page {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.meou-onboarding input,
+.meou-onboarding textarea,
+.legal-acknowledgement-screen input,
+.auth-editorial-page input,
+.auth-editorial-page textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+.meou-onboarding img,
+.auth-editorial-page img { -webkit-user-drag: none; }
+
+/* Progress lines: whole pixels, equal widths, one gap, one baseline, on every onboarding screen. */
+.meou-onboarding .meou-progress { align-items: center; gap: 12px; min-height: 3px; }
+.meou-onboarding .meou-progress-lines { align-items: center; gap: 6px; height: 3px; }
+.meou-onboarding .meou-progress-lines span {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 3px !important;
+  border-radius: 3px;
+  transform: none !important;
+}
+.meou-onboarding[data-onboarding-phase='setup']:not([data-onboarding-screen='calculating']) .meou-progress-lines span { background: #d9dce6; }
+.meou-onboarding[data-onboarding-phase='setup']:not([data-onboarding-screen='calculating']) .meou-progress-lines .is-active { background: #171717; }
+.meou-onboarding .meou-progress-copy { min-width: 2.4rem; font-size: 0.75rem; line-height: 1; text-align: right; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-progress-copy { color: rgba(255, 255, 255, 0.8); }
+

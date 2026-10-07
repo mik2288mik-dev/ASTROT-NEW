@@ -8,8 +8,6 @@ import { VideoBackground } from '../components/lumia-ui/VideoBackground';
 import type { VideoBackgroundId } from '../lib/videoBackgrounds';
 import {
   BirthOrbitArtwork,
-  MeouSpark,
-  NatalWheelArtwork,
 } from '../components/onboarding/OnboardingArtwork';
 import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTime';
 import { validateDate, validateName } from '../lib/validation';
@@ -41,6 +39,7 @@ const SCREEN_VIDEOS: Partial<Record<OnboardingScreen, VideoBackgroundId>> = {
   calm: 'breathing',
   more: 'onboarding-more',
   choice: 'onboarding-choice',
+  calculating: 'onboarding-calculating',
 };
 const initialTimeMode = (profile?: UserProfile): Exclude<BirthTimeMode, 'range'> => {
   if (!profile) return 'exact';
@@ -361,8 +360,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({
         <header className="meou-onboarding-header">
           <MeouLogo className="meou-onboarding-logo" fullCloud />
           {isWelcome ? <OnboardingProgress current={welcomeIndex} count={welcomeScreenCount} labelled={false} /> : null}
-          {screen === 'birth' ? <OnboardingProgress current={1} count={2} /> : null}
-          {screen === 'calculating' ? <OnboardingProgress current={2} count={2} /> : null}
         </header>
         {isIntro ? (
           <section
@@ -407,7 +404,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
         {screen === 'birth' ? (
           <section className="meou-birth">
             <div className="meou-birth-heading">
-              {<><h1>Немного данных —<br />и карта готова<span>.</span></h1><p>Нам нужны ваши дата, время<br />и место рождения. Без точного времени<br />тоже можно, мы всё учтём.</p><BirthOrbitArtwork /></>}
+              {<><h1>Немного данных,<br />и карта готова<span>.</span></h1><p>Нам нужны ваши дата, время<br />и место рождения. Без точного времени<br />тоже можно, мы всё учтём.</p><BirthOrbitArtwork /></>}
             </div>
 
             <form className="meou-birth-form" noValidate onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
@@ -471,13 +468,14 @@ export const Onboarding: React.FC<OnboardingProps> = ({
 
         {screen === 'calculating' ? (
           <section className="meou-calculating" aria-live="polite">
-            <div>
-              {<><h1>Считаем вашу<br />натальную карту<span>.</span></h1><p>Определяем положение Солнца, Луны<br />и планет на момент вашего рождения.</p></>}
-            </div>
-            {<NatalWheelArtwork compact />}
-            <div className="meou-calculating-footer">
-              {<MeouSpark />}
-              <p>{onboardingCalculationStatus(calculationElapsedSeconds, timeMode)}</p>
+            <div className="meou-calculating-stage" aria-hidden="true" />
+            <div className="meou-calculating-copy">
+              <div>
+                {<><h1>Считаем вашу<br />натальную карту<span>.</span></h1><p>Определяем положение Солнца, Луны<br />и планет на момент вашего рождения.</p></>}
+              </div>
+              <div className="meou-calculating-footer">
+                <p>{onboardingCalculationStatus(calculationElapsedSeconds, timeMode)}</p>
+              </div>
             </div>
           </section>
         ) : null}

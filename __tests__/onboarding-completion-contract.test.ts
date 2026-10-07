@@ -22,7 +22,7 @@ describe('first-run onboarding completion flow', () => {
       'className="meou-onboarding antialiased"',
       '<MeouLogo className="meou-onboarding-logo" fullCloud />',
       'CityAutocomplete',
-      'Немного данных —',
+      'Немного данных,',
       'Рассчитать вашу карту',
     ]) {
       expect(onboarding).toContain(preserved);
