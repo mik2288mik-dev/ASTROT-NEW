@@ -99,11 +99,10 @@ const CONTEXT_COPY: Record<PaywallContext['placement'], { ru: string; en: string
     ru: 'Личные прогнозы, подробные разборы и совместимость по картам.',
     en: 'Personal forecasts, detailed readings, and two-chart compatibility.',
   },
-  stories: { ru: 'Откроются все сериалы, все серии сразу, озвучка и новый рассказ каждый месяц.', en: 'Every series, every episode at once, the voice and a new story each month will open.' },
+  stories: { ru: 'Откроются все сериалы, все серии сразу и новый рассказ каждый месяц.', en: 'Every series, every episode at once and a new story each month will open.' },
   sounds: { ru: 'Откроются все истории для сна и весь архив.', en: 'Every bedtime story and the whole archive will open.' },
   tests: { ru: 'Откроются все тесты с разбором и сравнением с твоей картой.', en: 'Every test with its reading and a comparison with your chart will open.' },
   antistress: { ru: 'Откроются все техники дыхания, тело, привычки и дневник напряжения.', en: 'Every breathing technique, the body practice, habits and the tension diary will open.' },
-  listen: { ru: 'Живой голос диктора прочитает твой прогноз, гороскоп, натальную карту и весь твой день.', en: 'A natural narrator will read your forecast, horoscope, birth chart and your whole day.' },
   matrix: { ru: 'Откроется матрица целиком: деньги, отношения, возрасты и полный разбор.', en: 'The full matrix will open: money, relationships, life stages and the full reading.' },
   week: { ru: 'Откроется твоя личная неделя.', en: 'Your personal week will open.' },
   month: { ru: 'Откроется твой личный месяц.', en: 'Your personal month will open.' },
@@ -366,7 +365,6 @@ export const Paywall: React.FC<PaywallProps> = ({
 
   const benefits = ru
     ? [
-        { title: 'Озвучка и Радио NEBO', description: 'Прогноз, гороскоп знака и натальная карта живым голосом, и весь твой день одним эфиром', image: '/assets/home-tiles/sounds.webp' },
         { title: 'Личные прогнозы', description: 'Неделя и месяц вперёд, удачные дни', image: '/assets/home-tiles/future.webp' },
         { title: 'Натальный разбор', description: 'Характер, отношения, работа, деньги и свои вопросы', image: '/assets/premium/natal-chart.webp' },
         { title: 'Совместимость', description: 'Разбор вашей пары по двум картам', image: '/assets/home-tiles/compatibility.webp' },
@@ -375,7 +373,6 @@ export const Paywall: React.FC<PaywallProps> = ({
         { title: 'Антистресс и тесты', description: 'Все техники дыхания, дневник, привычки и все тесты', image: '/assets/home-tiles/antistress.webp' },
       ]
     : [
-        { title: 'Voice and NEBO Radio', description: 'Forecast, sign horoscope and birth chart in a natural voice, and your whole day in one show', image: '/assets/home-tiles/sounds.webp' },
         { title: 'Personal forecasts', description: 'Week and month ahead, lucky days', image: '/assets/home-tiles/future.webp' },
         { title: 'Birth chart reading', description: 'Character, relationships, work, money, and your questions', image: '/assets/premium/natal-chart.webp' },
         { title: 'Compatibility', description: 'Your relationship through two saved charts', image: '/assets/home-tiles/compatibility.webp' },

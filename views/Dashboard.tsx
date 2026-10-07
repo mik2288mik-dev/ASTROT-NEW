@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { ChevronLeft, LoaderCircle, Radio, RefreshCw } from 'lucide-react';
+import { ChevronLeft, LoaderCircle, RefreshCw } from 'lucide-react';
 import { useReducedMotion } from 'framer-motion';
 import type { UserProfile } from '../types';
 import { hasActivePremium } from '../lib/accessMatrix';
@@ -39,14 +39,10 @@ import { ForYouBlock } from '../components/home/ForYouBlock';
 import { TodayAboutYou } from '../components/home/TodayAboutYou';
 import { PeopleBlock } from '../components/home/PeopleBlock';
 import { HomeFeatureStrip } from '../components/home/HomeFeatureStrip';
-import { DailyRadioCard } from '../components/home/DailyRadioCard';
-import { CosmicSheet } from '../components/lumia-ui/CosmicSheet';
 import { SeasonCard } from '../components/home/SeasonCard';
 import { GiftIdeasSheet, type GiftPerson } from '../components/home/GiftIdeasSheet';
 import { peekExploreCharts } from '../components/PersonalForecastFeed/exploreCharts';
 import type { ForYouAction } from '../lib/forYou';
-import { ListenForecastButton } from '../components/audio/ListenForecastButton';
-import { buildForecastListenScript } from '../lib/tts/forecastListenScript';
 import { DailyQuestionCard } from '../components/home/DailyQuestionCard';
 import { claimWeekGift, loadGiftStatus, type GiftStatus } from '../services/giftService';
 import { FutureInviteCard } from '../components/PersonalForecastFeed/FutureInviteCard';
@@ -645,7 +641,6 @@ export const Dashboard = memo<DashboardProps>(({
   }, [onPeriodChange]);
 
   const [giftPerson, setGiftPerson] = useState<GiftPerson | null>(null);
-  const [radioOpen, setRadioOpen] = useState(false);
 
   const handleForYouAction = useCallback((action: Exclude<ForYouAction, { type: 'wishes' } | { type: 'month_review' }>) => {
     if (action.type === 'person_gift') {
@@ -753,14 +748,6 @@ export const Dashboard = memo<DashboardProps>(({
           />
         ) : readerForecast ? (
           <>
-          <ListenForecastButton
-            trackKey={`forecast:${period}:${readerForecast.periodKey}`}
-            period={period}
-            periodKey={readerForecast.periodKey}
-            text={buildForecastListenScript({ forecast: readerForecast, name: profile.name, language, lockedSectionIds: ready?.lockedSectionIds })}
-            language={language}
-            premium={premium}
-          />
           <article
             className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed"
             data-forecast-period={period}
@@ -962,23 +949,6 @@ export const Dashboard = memo<DashboardProps>(({
           personalAttribution={personalForecastAttribution}
           onRequestPremium={requestPremium}
           afterHero={entryTiles}
-          listen={(
-            <div className="sky-hero-listen-row">
-            <ListenForecastButton
-              trackKey={`forecast:day:${forecast.periodKey}`}
-              period="day"
-              periodKey={forecast.periodKey}
-              text={buildForecastListenScript({ forecast, name: profile.name, language, lockedSectionIds: result?.lockedSectionIds })}
-              language={language}
-              premium={premium}
-              onRequestPremium={canPromotePremium ? requestPremium : undefined}
-            />
-            <button type="button" className="sky-hero-radio-button" onClick={() => setRadioOpen(true)}>
-              <Radio size={17} strokeWidth={2.2} aria-hidden="true" />
-              <span>{language === 'ru' ? 'Радио NEBO' : 'NEBO Radio'}</span>
-            </button>
-            </div>
-          )}
           footer={(
             <>
             <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
@@ -1151,22 +1121,6 @@ export const Dashboard = memo<DashboardProps>(({
       )}
       </div>
       <GiftIdeasSheet person={giftPerson} onClose={() => setGiftPerson(null)} />
-      <CosmicSheet
-        open={radioOpen}
-        onClose={() => setRadioOpen(false)}
-        closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
-        title={language === 'ru' ? 'Радио NEBO' : 'NEBO Radio'}
-        subtitle={language === 'ru' ? 'Твой день вслух: гороскоп, Луна, вопрос дня' : 'Your day aloud: horoscope, the Moon, the question of the day'}
-        className="radio-sheet"
-        contentClassName="radio-sheet-content"
-      >
-        <DailyRadioCard
-          todayKey={periodKeys.day}
-          language={language}
-          premium={premium}
-          onRequestPremium={canPromotePremium ? () => { setRadioOpen(false); requestPremium(); } : undefined}
-        />
-      </CosmicSheet>
     </div>
   );
 });

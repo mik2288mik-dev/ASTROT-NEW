@@ -1,4 +1,3 @@
-import { ListenForecastButton } from '../audio/ListenForecastButton';
 import React, { useEffect, useMemo, useState } from 'react';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../../lib/natalChartV2Types';
@@ -234,15 +233,6 @@ export const NatalUnifiedReport: React.FC<Props> = ({
     <article className={styles.overview}>
       {mode === 'story' ? (
         <div className={styles.story}>
-          <ListenForecastButton
-            trackKey={`natal:${chartId ?? 'primary'}:story`}
-            source={{ type: 'natal_reading', part: 'story', chartId }}
-            label={language === 'ru' ? 'Слушать рассказ о карте' : 'Listen to the story of your chart'}
-            text={reading.story.map((block) => block.text).join('\n\n')}
-            language={language}
-            premium={isPremium}
-            onRequestPremium={canPromotePremium ? () => void requestPremium('natal_listen', { placement: 'deep_natal', featureKey: 'natal_deep', triggerType: 'locked_feature', returnView: 'chart' }) : undefined}
-          />
           {reading.story.map((block) => (
             <section key={block.id}>
               <p>{block.text}</p>
@@ -271,14 +261,6 @@ export const NatalUnifiedReport: React.FC<Props> = ({
           {reading.topics.map((topic) => (
             <section key={topic.key} id={`natal-topic-${topic.key}`} className={styles.unifiedTopic}>
               <h2>{topic.title}</h2>
-              <ListenForecastButton
-                trackKey={`natal:${chartId ?? 'primary'}:topic:${topic.key}`}
-                source={{ type: 'natal_reading', part: 'topic', topicKey: topic.key, chartId }}
-                label={language === 'ru' ? 'Слушать эту тему' : 'Listen to this topic'}
-                text={`${topic.title}. ${topic.blocks.map((block) => block.text).join('\n\n')}`}
-                language={language}
-                premium={isPremium}
-              />
               {topic.blocks.map((block) => (
                 <div key={block.id}>
                   <p>{block.text}</p>

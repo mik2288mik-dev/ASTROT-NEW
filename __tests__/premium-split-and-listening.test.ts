@@ -77,12 +77,11 @@ describe('what is free and what is NEBO Premium', () => {
     const app = read('App.tsx');
     expect(app).toContain("requestPremium('antistress'");
     expect(app).toContain("requestPremium('tests'");
-    const listen = read('pages/api/audio/listen.ts');
-    for (const source of ['sign_horoscope', 'natal_reading', 'daily_radio']) expect(listen).toContain(`'${source}'`);
-    expect(read('pages/api/radio/today.ts')).toContain('RADIO_PREMIUM_REQUIRED');
-    expect(read('components/NatalReading/NatalUnifiedReport.tsx')).toContain("part: 'story'");
-    expect(read('views/v2/HoroscopeReaderClassic.tsx')).toContain("type: 'sign_horoscope'");
-    expect(read('views/Dashboard.tsx')).toContain('<DailyRadioCard');
-    expect(read('views/Dashboard.tsx')).toContain('sky-hero-radio-button');
+    for (const file of ['views/Dashboard.tsx', 'views/v2/HoroscopeReaderClassic.tsx', 'components/NatalReading/NatalUnifiedReport.tsx', 'views/v2/StoriesRoom.tsx']) {
+      const source = read(file);
+      expect(source).not.toContain('ListenForecastButton');
+      expect(source).not.toContain('DailyRadioCard');
+    }
+    expect(read('views/Paywall.tsx')).not.toMatch(/Радио NEBO|озвучк/u);
   });
 });

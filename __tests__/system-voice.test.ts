@@ -63,12 +63,10 @@ describe('system voice for forecasts', () => {
     expect(getPlaybackState().playing).toBe(false);
   });
 
-  it('gives NEBO Premium the studio voice and everyone else the phone voice', () => {
+  it('reads the sleep stories aloud in the studio voice', () => {
     expect(read('android/app/src/main/java/ru/tvoygoroskop/app/MainActivity.java')).toContain('registerPlugin(NativeTtsPlugin.class);');
     expect(read('android/app/src/main/AndroidManifest.xml')).toContain('android.intent.action.TTS_SERVICE');
-    const button = read('components/audio/ListenForecastButton.tsx');
-    expect(button).toContain("requestListen({ type: 'personal_forecast', period, periodKey })");
-    expect(button).toContain('playSpeech(');
+    expect(read('views/v2/SoundsRoom.tsx')).toContain("requestListen({ type: 'sleep_story'");
     expect(read('components/audio/AudioMiniPlayer.tsx')).toContain('onClick={stopPlayback}');
   });
 

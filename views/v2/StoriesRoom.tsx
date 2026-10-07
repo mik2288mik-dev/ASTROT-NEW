@@ -1,15 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { BookOpen, ChevronRight, Gift, Headphones, LoaderCircle, Lock } from 'lucide-react';
+import { BookOpen, ChevronRight, Gift, LoaderCircle, Lock } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { AssetSlot } from '../../components/lumia-ui/AssetSlot';
-import { AudioMiniPlayer } from '../../components/audio/AudioMiniPlayer';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { STORY_GENRE_LABELS } from '../../lib/stories/series';
 import { FREE_STORY_EPISODES, isFreeStorySeries } from '../../lib/stories/access';
 import { loadEpisode, loadStories, type StoriesOverview, type StoryEpisode, type StorySeriesSummary } from '../../services/storiesService';
-import { playTrack, togglePlayback, unlockPlayback, useAudioPlayback } from '../../services/audioPlayback';
-import { requestListen } from '../../services/listenService';
 import { loadFeatureState, peekFeatureState, saveFeatureState } from '../../services/featureStateService';
 import { noteNativeStoryRead } from '../../services/nativeNotifications';
 import { VideoBackground } from '../../components/lumia-ui/VideoBackground';
@@ -48,8 +45,6 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
   const [episode, setEpisode] = useState<StoryEpisode | null>(null);
   const [episodeState, setEpisodeState] = useState<'loading' | 'locked' | 'unlock' | 'error' | null>(null);
   const [marks, setMarks] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'stories'));
-  const [listenState, setListenState] = useState<'preparing' | 'error' | null>(null);
-  const playback = useAudioPlayback();
 
   const refresh = useCallback(() => {
     setError(false);
@@ -71,7 +66,6 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
     lumiaSelectionHaptic();
     setScreen({ kind: 'read', seriesId, number });
     setEpisode(null);
-    setListenState(null);
     setEpisodeState('loading');
     try {
       const loaded = await loadEpisode(seriesId, number, unlock);
@@ -88,32 +82,10 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
     }
   }, [marks, refresh, userId]);
 
-  const listen = async (current: StoryEpisode) => {
-    const trackKey = `episode:${current.seriesId}:${current.number}`;
-    if (playback.trackKey === trackKey) {
-      togglePlayback();
-      return;
-    }
-    if (!overview?.premium) {
-      onRequestPremium?.();
-      return;
-    }
-    unlockPlayback();
-    setListenState('preparing');
-    try {
-      const ticket = await requestListen({ type: 'story_episode', seriesId: current.seriesId, number: current.number });
-      playTrack({ trackKey, src: ticket.src, title: current.title, durationHint: ticket.durationSec });
-      setListenState(null);
-    } catch {
-      setListenState('error');
-    }
-  };
-
   const seriesOf = (id: string): StorySeriesSummary | null => overview?.series.find((item) => item.id === id) ?? null;
 
   if (screen.kind === 'read') {
     const series = seriesOf(screen.seriesId);
-    const trackKey = episode ? `episode:${episode.seriesId}:${episode.number}` : '';
     return (
       <div className="fresh-page stories-room stories-room--read">
         <AppTopBar title={series?.title ?? (ru ? 'Рассказы' : 'Stories')} onBack={() => setScreen({ kind: 'series', seriesId: screen.seriesId })} />
@@ -128,7 +100,7 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
           <div className="stories-gate">
             <Gift size={22} aria-hidden="true" />
             <h2>{ru ? 'Серия дня, бесплатно' : 'Today’s free episode'}</h2>
-            <p>{ru ? 'Одну серию этого сериала в день можно открыть бесплатно. С NEBO Premium, все серии сразу и озвучка.' : 'One episode of this series a day opens for free. With NEBO Premium, every episode at once and audio.'}</p>
+            <p>{ru ? 'Одну серию этого сериала в день можно открыть бесплатно. С NEBO Premium, все серии сразу.' : 'One episode of this series a day opens for free. With NEBO Premium, every episode at once.'}</p>
             <button type="button" className="stories-primary" onClick={() => { void open(screen.seriesId, screen.number, true); }}>{ru ? 'Открыть бесплатно' : 'Open for free'}</button>
             {onRequestPremium ? <button type="button" className="stories-secondary" onClick={onRequestPremium}>{ru ? 'Все серии в NEBO Premium' : 'All episodes in NEBO Premium'}</button> : null}
           </div>
@@ -140,7 +112,7 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
               ? (ru ? 'Этот сериал в NEBO Premium' : 'This series is in NEBO Premium')
               : (ru ? 'Сегодняшняя бесплатная серия уже открыта' : 'Today’s free episode is already open')}</h2>
             <p>{!isFreeStorySeries(screen.seriesId)
-              ? (ru ? 'Бесплатно открыт «Тихий переулок». С NEBO Premium все сериалы, все серии сразу, озвучка и новый рассказ каждый месяц.' : 'The Quiet Lane is free. With NEBO Premium: every series, every episode at once, voice and a new story each month.')
+              ? (ru ? 'Бесплатно открыт «Тихий переулок». С NEBO Premium все сериалы, все серии сразу, новый рассказ каждый месяц.' : 'The Quiet Lane is free. With NEBO Premium: every series, every episode at once, a new story each month.')
               : (ru ? 'Завтра откроется следующая. Или читай все серии сразу с NEBO Premium.' : 'The next one opens tomorrow. Or read them all with NEBO Premium.')}</p>
             {onRequestPremium ? <button type="button" className="stories-primary" onClick={onRequestPremium}>{ru ? 'Открыть все в NEBO Premium' : 'Open all in NEBO Premium'}</button> : null}
           </div>
@@ -149,15 +121,6 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
           <article className={`stories-reader is-${series?.genre ?? 'detective'}`} lang={ru ? 'ru' : 'en'}>
             <p className="stories-kicker">{ru ? `Серия ${episode.number}` : `Episode ${episode.number}`} · {readingMinutes(episode.text)} {ru ? 'мин чтения' : 'min read'}</p>
             <h1 className="stories-title">{episode.title}</h1>
-            <div className="stories-listen">
-              <button type="button" className="stories-listen-button" onClick={() => { void listen(episode); }} disabled={listenState === 'preparing'}>
-                {listenState === 'preparing' ? <LoaderCircle className="audio-mini-player-spinner" size={16} aria-hidden="true" /> : overview?.premium ? <Headphones size={16} aria-hidden="true" /> : <Lock size={15} aria-hidden="true" />}
-                {listenState === 'preparing' ? (ru ? 'Готовим голос…' : 'Preparing the voice…') : (ru ? 'Слушать серию' : 'Listen')}
-                {!overview?.premium ? <small>Premium</small> : null}
-              </button>
-              {listenState === 'error' ? <p className="listen-forecast-error" role="alert">{ru ? 'Голос пока не готов. Попробуй через минуту.' : 'The voice is not ready yet. Try in a minute.'}</p> : null}
-              <AudioMiniPlayer trackKey={trackKey} language={ru ? 'ru' : 'en'} />
-            </div>
             <div className="stories-body">
               {episode.text.split(/\n{2,}/u).map((paragraph, index, all) => (
                 <p key={index} className={index === all.length - 1 ? 'is-hook' : index === 0 ? 'is-first' : undefined}>{paragraph}</p>
@@ -229,8 +192,8 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
         <VideoBackground id="stories-catalog" />
         <h1>{ru ? 'Сериалы на каждый день' : 'A series for every day'}</h1>
         <p>{ru
-          ? `Тихий переулок открыт всем: ${FREE_STORY_EPISODES} серии сразу, дальше по серии в день. Остальные сериалы, все серии сразу и озвучка с NEBO Premium. Каждый месяц добавляем новый рассказ.`
-          : `The Quiet Lane is free for everyone: ${FREE_STORY_EPISODES} episodes at once, then one a day. The other series, every episode at once and the voice come with NEBO Premium. A new story is added every month.`}</p>
+          ? `Тихий переулок открыт всем: ${FREE_STORY_EPISODES} серии сразу, дальше по серии в день. Остальные сериалы и все серии сразу с NEBO Premium. Каждый месяц добавляем новый рассказ.`
+          : `The Quiet Lane is free for everyone: ${FREE_STORY_EPISODES} episodes at once, then one a day. The other series, every episode at once come with NEBO Premium. A new story is added every month.`}</p>
       </section>
       {error ? (
         <div className="stories-status">
