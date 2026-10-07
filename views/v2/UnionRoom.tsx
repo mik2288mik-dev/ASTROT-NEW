@@ -21,7 +21,7 @@ import type { BirthTimeQuality, NatalChartData, SynastryResult, UserProfile } fr
 import { noteLoveInterest } from '../../lib/interestSignals';
 import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibility';
 import { getZodiacSign } from '../../constants';
-import { getProfilePremiumUntil, hasActivePremium } from '../../lib/accessMatrix';
+import { getProfilePremiumUntil, hasFullPremium } from '../../lib/accessMatrix';
 import { getCharts, type ChartListItem } from '../../services/storageService';
 import { getSignCompatibility, calculateExtendedSynastry, getCompatibilityPreview } from '../../services/astrologyService';
 import type { CompatibilityPreview } from '../../lib/synastry/compatibilityPreview';
@@ -692,7 +692,7 @@ export function UnionRoom(props: UnionRoomProps) {
 
   const [accessClock, setAccessClock] = useState(Date.now);
   const premiumUntil = getProfilePremiumUntil(profile);
-  const premium = hasActivePremium(profile, Math.max(accessClock, Date.now()));
+  const premium = hasFullPremium(profile, Math.max(accessClock, Date.now()));
   useEffect(() => {
     const refreshAccess = () => setAccessClock(Date.now());
     const deadline = premiumUntil ? Date.parse(premiumUntil) : NaN;

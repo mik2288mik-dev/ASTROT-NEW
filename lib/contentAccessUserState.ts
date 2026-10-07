@@ -2,6 +2,7 @@ import type { ContentSurface, ContentUnlock, ContentVariant } from '../types';
 import {
   getProfilePremiumUntil,
   hasActivePremium,
+  hasFullPremium,
   resolveEntitlementState,
   type ProfileAccessState,
 } from './accessMatrix';
@@ -81,7 +82,7 @@ export async function buildContentAccessUserState(
   return {
     userId,
     chartId: resolvedChartId,
-    isPremium: hasActivePremium(accessProfile),
+    isPremium: hasFullPremium(accessProfile),
     isAdmin: accessProfile.isAdmin,
     entitlementState,
     entitlementStatus: entitlement?.status ?? null,

@@ -1,12 +1,21 @@
 /**
- * Access to story episodes: the first three of every series are free; after
- * that one episode per series per day opens free, everything is open with NEBO Premium.
+ * Access to story episodes: only the free series (Тихий переулок) opens without NEBO Premium. In it the first
+ * three episodes are free; after that one episode per day opens free. Every other series, and everything
+ * else in all series, is open with NEBO Premium.
  */
 export const FREE_STORY_EPISODES = 3;
+/** The series open for everyone. A new series every month joins the premium ones. */
+export const FREE_STORY_SERIES: readonly string[] = ['quiet-lane'];
+
+export function isFreeStorySeries(seriesId: string | null | undefined): boolean {
+  return !seriesId || FREE_STORY_SERIES.includes(seriesId);
+}
 
 export type EpisodeAccess = 'open' | 'free_unlock_available' | 'locked';
 
 export function episodeAccess(input: {
+  /** The series of the episode; omitted only in code that does not know it (treated as a free series). */
+  seriesId?: string;
   number: number;
   premium: boolean;
   /** Already unlocked by this person earlier. */
@@ -14,7 +23,9 @@ export function episodeAccess(input: {
   /** A free unlock in this series was already used today. */
   usedTodayInSeries: boolean;
 }): EpisodeAccess {
-  if (input.premium || input.number <= FREE_STORY_EPISODES || input.unlocked) return 'open';
+  if (input.premium) return 'open';
+  if (!isFreeStorySeries(input.seriesId)) return 'locked';
+  if (input.number <= FREE_STORY_EPISODES || input.unlocked) return 'open';
   return input.usedTodayInSeries ? 'locked' : 'free_unlock_available';
 }
 

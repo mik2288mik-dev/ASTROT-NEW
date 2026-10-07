@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Armchair, BookHeart, Check, ChevronRight, Coffee, DoorClosed, Lamp, Monitor, Smartphone, SquareStack } from 'lucide-react';
+import { Armchair, BookHeart, Check, ChevronRight, Coffee, DoorClosed, Lamp, Lock, Monitor, Smartphone, SquareStack } from 'lucide-react';
+import { hasActivePremium } from '../../lib/accessMatrix';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { weeklyDiarySummary } from '../../lib/antistressDiary';
@@ -31,6 +32,8 @@ type AntistressRoomProps = {
   onBack: () => void;
   /** Opens the app's own «Звуки» room. */
   onOpenSounds: () => void;
+  /** Opens NEBO Premium for the locked techniques. */
+  onRequestPremium?: () => void;
 };
 
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -499,8 +502,9 @@ function Diary({ userId, today }: { userId: string; today: string }) {
   );
 }
 
-export function AntistressRoom({ profile, onBack, onOpenSounds }: AntistressRoomProps) {
+export function AntistressRoom({ profile, onBack, onOpenSounds, onRequestPremium }: AntistressRoomProps) {
   const userId = String(profile.id || 'guest');
+  const premium = hasActivePremium(profile);
   const today = useMemo(() => dayKeyOf(new Date()), []);
   const [screen, setScreen] = useState<Screen>('hub');
   const [technique, setTechnique] = useState<BreathTechnique>(BREATH_TECHNIQUES[0]);
@@ -515,8 +519,21 @@ export function AntistressRoom({ profile, onBack, onOpenSounds }: AntistressRoom
     window.scrollTo(0, 0);
   }, [screen, technique.id]);
 
-  const go = (next: Screen) => { lumiaSelectionHaptic(); setScreen(next); };
+  // Free: the two-minute breathing (also the red button). Everything else comes with NEBO Premium.
+  const go = (next: Screen) => {
+    lumiaSelectionHaptic();
+    if (!premium && (next === 'body' || next === 'ground' || next === 'habits' || next === 'diary')) {
+      onRequestPremium?.();
+      return;
+    }
+    setScreen(next);
+  };
   const openTechnique = (id: string, immediately = false) => {
+    if (!premium && id !== 'sigh') {
+      lumiaSelectionHaptic();
+      onRequestPremium?.();
+      return;
+    }
     setTechnique(BREATH_TECHNIQUES.find((item) => item.id === id) ?? BREATH_TECHNIQUES[0]);
     setAuto(immediately);
     go('player');
@@ -570,13 +587,13 @@ export function AntistressRoom({ profile, onBack, onOpenSounds }: AntistressRoom
             <p className="as-warn">Это приёмы самопомощи, не лечение. Если тревога держится неделями или бывают приступы паники, обратись к врачу или психологу.</p>
           </div>
           <div className="as-grid">
-            <button type="button" className="as-tile is-blue" onClick={() => go('breathe')}><TileBreath /><b>Дыхание</b><span>5 техник, от 1 минуты</span></button>
-            <button type="button" className="as-tile is-violet" onClick={() => go('body')}><TileBody /><b>Тело</b><span>Снять зажимы, 6 минут</span></button>
-            <button type="button" className="as-tile is-mint" onClick={() => go('ground')}><TileGround /><b>Здесь и сейчас</b><span>Остановить мысли по кругу</span></button>
+            <button type="button" className="as-tile is-blue" onClick={() => go('breathe')}><TileBreath /><b>Дыхание</b><span>{premium ? '5 техник, от 1 минуты' : '1 бесплатно, ещё 4 с Premium'}</span></button>
+            <button type="button" className="as-tile is-violet" onClick={() => go('body')}><TileBody /><b>Тело</b><span>{premium ? 'Снять зажимы, 6 минут' : 'С NEBO Premium'}</span></button>
+            <button type="button" className="as-tile is-mint" onClick={() => go('ground')}><TileGround /><b>Здесь и сейчас</b><span>{premium ? 'Остановить мысли по кругу' : 'С NEBO Premium'}</span></button>
             <button type="button" className="as-tile is-coral" onClick={() => { lumiaSelectionHaptic(); onOpenSounds(); }}><TileSounds /><b>Звуки</b><span>Дождь, море, истории</span></button>
           </div>
-          <button type="button" className="as-link" onClick={() => go('habits')}><span className="as-dot is-mint"><Check size={18} aria-hidden="true" /></span><span><b>Привычки против стресса</b><small>Прогулка, вода, кофе, экран перед сном</small></span><ChevronRight size={18} aria-hidden="true" /></button>
-          <button type="button" className="as-link" onClick={() => go('diary')}><span className="as-dot is-blue"><BookHeart size={18} aria-hidden="true" /></span><span><b>Дневник напряжения</b><small>Что тебя выбивает и когда</small></span><ChevronRight size={18} aria-hidden="true" /></button>
+          <button type="button" className="as-link" onClick={() => go('habits')}><span className="as-dot is-mint"><Check size={18} aria-hidden="true" /></span><span><b>Привычки против стресса</b><small>{premium ? 'Прогулка, вода, кофе, экран перед сном' : 'С NEBO Premium'}</small></span>{premium ? <ChevronRight size={18} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}</button>
+          <button type="button" className="as-link" onClick={() => go('diary')}><span className="as-dot is-blue"><BookHeart size={18} aria-hidden="true" /></span><span><b>Дневник напряжения</b><small>{premium ? 'Что тебя выбивает и когда' : 'С NEBO Premium'}</small></span>{premium ? <ChevronRight size={18} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}</button>
         </>
       ) : null}
 
@@ -590,8 +607,8 @@ export function AntistressRoom({ profile, onBack, onOpenSounds }: AntistressRoom
             {BREATH_TECHNIQUES.map((item) => (
               <button key={item.id} type="button" className="as-link" onClick={() => openTechnique(item.id)}>
                 <span className="as-dot is-blue as-min">{item.minutes} мин</span>
-                <span><b>{item.name}</b><small>{item.forWhom}</small></span>
-                <ChevronRight size={18} aria-hidden="true" />
+                <span><b>{item.name}</b><small>{premium || item.id === 'sigh' ? item.forWhom : 'С NEBO Premium'}</small></span>
+                {premium || item.id === 'sigh' ? <ChevronRight size={18} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}
               </button>
             ))}
           </div>

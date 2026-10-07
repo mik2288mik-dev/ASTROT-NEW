@@ -75,6 +75,13 @@ describe('story series', () => {
     expect(episodeAccess({ number: 40, premium: true, unlocked: false, usedTodayInSeries: true })).toBe('open');
   });
 
+  it('keeps every series except Тихий переулок for NEBO Premium', () => {
+    expect(episodeAccess({ seriesId: 'quiet-lane', number: 2, premium: false, unlocked: false, usedTodayInSeries: false })).toBe('open');
+    expect(episodeAccess({ seriesId: 'stair-neighbours', number: 1, premium: false, unlocked: false, usedTodayInSeries: false })).toBe('locked');
+    expect(episodeAccess({ seriesId: 'polyn-station', number: 4, premium: false, unlocked: true, usedTodayInSeries: false })).toBe('locked');
+    expect(episodeAccess({ seriesId: 'family-chat', number: 1, premium: true, unlocked: false, usedTodayInSeries: true })).toBe('open');
+  });
+
   it('generates only on the main server, never on the OpenAI relay host', () => {
     expect(storyGenerationEnabled({ OPENAI_API_KEY: 'k', OPENAI_RELAY_DIRECT: '1' } as any)).toBe(false);
     expect(storyGenerationEnabled({ OPENAI_API_KEY: 'k' } as any)).toBe(true);

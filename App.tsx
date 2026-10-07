@@ -2746,6 +2746,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onBack={() => { void handleBack(); }}
                             onOpenNatal={openBottomNatal}
                             onOpenMood={() => navigateTo('mood')}
+                            onRequestPremium={premiumPromotionAllowed ? () => { void requestPremium('tests', { placement: 'tests', featureKey: 'self_tests', triggerType: 'locked_feature', returnView: 'tests' }); } : undefined}
                         />
                     </div>
                 ) : view === 'sounds' ? (
@@ -2762,6 +2763,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             profile={profile}
                             onBack={() => { void handleBack(); }}
                             onOpenSounds={() => navigateTo('sounds')}
+                            onRequestPremium={premiumPromotionAllowed ? () => { void requestPremium('antistress', { placement: 'antistress', featureKey: 'antistress_full', triggerType: 'locked_feature', returnView: 'antistress' }); } : undefined}
                         />
                     </div>
                 ) : view === 'stories' ? (

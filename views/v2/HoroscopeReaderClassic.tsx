@@ -1,3 +1,5 @@
+import { ListenForecastButton } from '../../components/audio/ListenForecastButton';
+import { hasActivePremium } from '../../lib/accessMatrix';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
@@ -376,6 +378,20 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
               </div>
             ) : displayedReading ? (
               <>
+                <ListenForecastButton
+                  trackKey={`sign:${displayedSign}:${displayedPeriod}:${displayedReading.periodKey}`}
+                  source={{
+                    type: 'sign_horoscope',
+                    sign: displayedSign,
+                    period: displayedPeriod === 'today' ? 'day' : displayedPeriod,
+                    periodKey: displayedReading.periodKey,
+                    language,
+                  }}
+                  label={language === 'ru' ? 'Слушать гороскоп' : 'Listen to the horoscope'}
+                  text={`${displayedReading.headline}. ${displayedReading.text}`}
+                  language={language}
+                  premium={hasActivePremium(profile)}
+                />
                 <div className="horo-sign-story">
                   <p>{displayedReading.text}</p>
                 </div>

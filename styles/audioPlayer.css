@@ -156,3 +156,6 @@
     animation-duration: 2.4s;
   }
 }
+
+.listen-forecast-hint { margin: 6px 4px 0; color: #6c7280; font-size: 0.78rem; line-height: 1.35; }
+.sky-hero-listen .listen-forecast-hint { color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 8px rgba(5, 8, 24, 0.5); }

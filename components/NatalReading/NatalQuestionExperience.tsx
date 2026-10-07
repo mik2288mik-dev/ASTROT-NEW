@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Send } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
-import { hasActivePremium } from '../../lib/accessMatrix';
+import { hasFullPremium } from '../../lib/accessMatrix';
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
 import type { PaywallContext } from '../../lib/paywallContext';
 import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
@@ -124,7 +124,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   const preview = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_UI_PREVIEW === '1' ? uiPreview : undefined;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const userId = profile.id ? String(profile.id) : '';
-  const isPremium = hasActivePremium(profile);
+  const isPremium = hasFullPremium(profile);
   const reportIdentity = `${userId}:${chartId ?? 'primary'}:${buildNatalChartFingerprint(chartData)}`;
   const [snapshot, setSnapshot] = useState<NatalQuestionSnapshot | null>(null);
   const [questionText, setQuestionText] = useState('');

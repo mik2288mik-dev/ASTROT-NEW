@@ -3,6 +3,11 @@ import type { ViewState } from '../types';
 
 export type PaywallPlacement =
   | 'matrix'
+  | 'stories'
+  | 'sounds'
+  | 'tests'
+  | 'antistress'
+  | 'listen'
   | 'today'
   | 'week'
   | 'month'
@@ -39,6 +44,11 @@ export type PaywallContext = {
 
 const PAYWALL_PLACEMENTS = new Set<PaywallPlacement>([
   'matrix',
+  'stories',
+  'sounds',
+  'tests',
+  'antistress',
+  'listen',
   'today',
   'week',
   'month',
