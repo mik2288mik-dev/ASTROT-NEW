@@ -49,6 +49,8 @@ type ForYouBlockProps = {
   gift?: { streak: number; daysToGift: number; claimable: 'streak' | 'anniversary' | null; hasWeekGift: boolean } | null;
   /** Actions that leave the block: navigation, store, week reading. */
   onAction: (action: Exclude<ForYouAction, { type: 'wishes' } | { type: 'month_review' }>) => void;
+  /** Extra cards that close the row, such as today's invitation into a section. */
+  extra?: React.ReactNode;
 };
 
 function asWishRecord(value: unknown): WishRecord | null {
@@ -70,6 +72,7 @@ export function ForYouBlock({
   premiumAutoRenew,
   gift,
   onAction,
+  extra,
 }: ForYouBlockProps) {
   const ru = language === 'ru';
   const [dismissed, setDismissed] = useState<Record<string, string>>(
@@ -178,14 +181,14 @@ export function ForYouBlock({
       .map(({ key, record }) => ({ key, items: record!.items }));
   }, [sheet, wishes]);
 
-  if (!offers.length && !sheet) return null;
+  if (!offers.length && !sheet && !extra) return null;
 
   const wishSheetKey = sheet?.type === 'wishes' ? sheet.newMoonKey : null;
   const reviewMonth = sheet?.type === 'month_review' ? Number(sheet.monthKey.slice(5, 7)) - 1 : 0;
 
   return (
     <section className="for-you" aria-labelledby="for-you-title">
-      {offers.length ? <h2 id="for-you-title" className="for-you-title">{ru ? 'Для тебя' : 'For you'}</h2> : null}
+      {offers.length || extra ? <h2 id="for-you-title" className="for-you-title">{ru ? 'Для тебя' : 'For you'}</h2> : null}
       <div className="for-you-list">
         {offers.map((offer) => (
           <article key={offer.occurrence} className={`for-you-card is-${offer.id}`}>
@@ -205,6 +208,7 @@ export function ForYouBlock({
             </div>
           </article>
         ))}
+        {extra}
       </div>
 
       <WishesSheet

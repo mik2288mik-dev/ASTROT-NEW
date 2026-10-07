@@ -13,6 +13,8 @@ type TodayAboutYouProps = {
   birthTimeKnown: boolean;
   /** One concrete step from today's forecast; the card hides the task without it. */
   task: string | null;
+  /** Closing row of the card, such as the question of the day. */
+  children?: React.ReactNode;
 };
 
 let engine: Promise<typeof import('astronomy-engine')> | null = null;
@@ -54,7 +56,7 @@ function PickMeFinger() {
 }
 
 /** «Сегодня о тебе»: a chart fact that changes daily, birth facts and a mini-task from today's forecast. */
-export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTimeKnown, task }: TodayAboutYouProps) {
+export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTimeKnown, task, children }: TodayAboutYouProps) {
   const [chart, setChart] = useState<NatalChartData | null>(
     () => peekExploreCharts(userId)?.find((item) => item.is_primary)?.chart_data ?? null,
   );
@@ -187,6 +189,7 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
             </div>
           </div>
         ) : null}
+        {children}
       </div>
     </section>
   );

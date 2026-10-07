@@ -21,6 +21,8 @@ type HomeFeatureStripProps = {
   onOpenAntistress?: () => void;
   onOpenTests?: (testId?: string) => void;
   onOpenMatrix?: () => void;
+  /** «card»: one more card in the «Для тебя» row instead of a section of its own. */
+  variant?: 'section' | 'card';
 };
 
 const SLEEP_VIDEOS: Record<string, VideoBackgroundId> = {
@@ -42,7 +44,7 @@ function pick<T>(items: readonly T[], day: number, shift = 0): T {
  * «Загляни»: one invitation from every section, taken from the section's own content.
  * The story, the bedtime story and the test change from day to day, so the row is never the same twice.
  */
-export function HomeFeatureStrip({ todayKey, onOpenStories, onOpenSounds, onOpenAntistress, onOpenTests, onOpenMatrix }: HomeFeatureStripProps) {
+export function HomeFeatureStrip({ todayKey, onOpenStories, onOpenSounds, onOpenAntistress, onOpenTests, onOpenMatrix, variant = 'section' }: HomeFeatureStripProps) {
   const cards = useMemo<Card[]>(() => {
     const day = dayNumber(todayKey);
     const list: Card[] = [];
@@ -105,6 +107,25 @@ export function HomeFeatureStrip({ todayKey, onOpenStories, onOpenSounds, onOpen
   if (!cards.length) return null;
   // One section a day: the invitation rotates through the sections, so every day shows something new.
   const card = pick(cards, dayNumber(todayKey));
+
+  if (variant === 'card') {
+    return (
+      <article className="for-you-card for-you-feature">
+        <button type="button" className="for-you-feature-hit" onClick={card.onOpen}>
+          {card.video ? <VideoBackground key={card.video} id={card.video} scrim="none" /> : null}
+          <span className="for-you-feature-haze" aria-hidden="true" />
+          <span className="for-you-card-copy">
+            <em className="for-you-feature-kicker">{card.kicker}</em>
+            <h3>{card.title}</h3>
+            <p>{card.line}</p>
+            <span className="for-you-card-actions">
+              <span className="for-you-card-cta">Открыть</span>
+            </span>
+          </span>
+        </button>
+      </article>
+    );
+  }
 
   return (
     <section className="feature-strip" aria-labelledby="feature-strip-title">
