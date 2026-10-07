@@ -304,3 +304,21 @@
   bottom: 21.9px !important;
 }
 
+/* Chart calculation: the clip is the picture (the chart sits in its middle), the words go underneath it. */
+.meou-onboarding[data-onboarding-screen='calculating'] { background: #cfe6fb; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-onboarding-logo { mix-blend-mode: normal; border-radius: 1rem; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating { padding-top: 0.5rem; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating > div:first-child { order: 2; padding-bottom: 0.4rem; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-stage { order: 1; flex: 1 1 auto; min-height: 0; }
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-footer { order: 3; }
+.meou-onboarding[data-onboarding-screen='calculating'] h1 {
+  color: #0d2a5c !important;
+  font-size: clamp(1.45rem, 3.9vh, 1.9rem) !important;
+  text-shadow: 0 1px 14px rgba(255, 255, 255, 0.7);
+}
+.meou-onboarding[data-onboarding-screen='calculating'] > div p,
+.meou-onboarding[data-onboarding-screen='calculating'] .meou-calculating-footer p {
+  color: #25476f !important;
+  text-shadow: 0 1px 10px rgba(255, 255, 255, 0.7);
+}
+
