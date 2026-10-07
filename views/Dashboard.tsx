@@ -38,6 +38,7 @@ import { HomeEntryTiles } from '../components/home/HomeEntryTiles';
 import { ForYouBlock } from '../components/home/ForYouBlock';
 import { TodayAboutYou } from '../components/home/TodayAboutYou';
 import { PeopleBlock } from '../components/home/PeopleBlock';
+import { HomeFeatureStrip } from '../components/home/HomeFeatureStrip';
 import { SeasonCard } from '../components/home/SeasonCard';
 import { GiftIdeasSheet, type GiftPerson } from '../components/home/GiftIdeasSheet';
 import { peekExploreCharts } from '../components/PersonalForecastFeed/exploreCharts';
@@ -981,6 +982,14 @@ export const Dashboard = memo<DashboardProps>(({
               task={storySections.find((section) => !lockedSectionIds.has(section.id) && section.actionText?.trim())?.actionText?.trim() ?? null}
             />
             <DailyQuestionCard language={language} />
+            <HomeFeatureStrip
+              todayKey={periodKeys.day}
+              onOpenStories={onOpenStories}
+              onOpenSounds={onOpenSounds}
+              onOpenAntistress={onOpenAntistress}
+              onOpenTests={onOpenTests}
+              onOpenMatrix={onOpenMatrix}
+            />
             <ForYouBlock
               userId={String(profile.id || 'guest')}
               language={language}
