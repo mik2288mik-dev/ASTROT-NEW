@@ -40,7 +40,7 @@ const nextConfig = {
   webpack: (config, { isServer, webpack }) => {
     if (isMobileBuild) {
       config.plugins.push(new webpack.IgnorePlugin({
-        resourceRegExp: /^\.\/lib\/(notificationScheduler|natalReading\/preparation)$/,
+        resourceRegExp: /^\.\/lib\/(notificationScheduler|natalReading\/preparation|sleepStoryPrewarm|sleepStoriesWeekly)$/,
       }));
     }
     if (excludesTelegramStars) {
