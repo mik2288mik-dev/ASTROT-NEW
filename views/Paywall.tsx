@@ -488,7 +488,7 @@ export const Paywall: React.FC<PaywallProps> = ({
         <section className="pw2-included" aria-labelledby="pw2-benefits-title">
           <h2 id="pw2-benefits-title" className="pw2-section-title">{ru ? 'Что откроется' : 'What’s included'}</h2>
           <dl className="pw2-benefits">
-            {benefits.map((benefit, index) => { const Icon = BENEFIT_ICONS[index] ?? Sparkles; return <div key={benefit.title}><span className="pw2-benefit-icon" aria-hidden="true"><Icon size={17} strokeWidth={2.2} /></span><dt>{benefit.title}</dt><dd>{benefit.description}</dd></div>; })}
+            {benefits.map((benefit) => <div key={benefit.title} style={{ '--benefit-img': `url(${benefit.image})` } as React.CSSProperties}><dt>{benefit.title}</dt><dd>{benefit.description}</dd></div>)}
           </dl>
         </section>
         <div className="pw2-foot">
