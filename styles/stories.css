@@ -310,3 +310,14 @@
   outline: 2px solid #292724;
   outline-offset: 2px;
 }
+
+.stories-soon {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: #f1f2f7;
+  color: #292724;
+}
+.stories-soon strong { font-size: 1rem; font-weight: 800; }
+.stories-soon span { color: #5b5f6b; font-size: 0.88rem; line-height: 1.4; }

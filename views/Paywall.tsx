@@ -71,7 +71,7 @@ const PLAN_MONTHS: Partial<Record<string, number>> = { premium_month: 1, premium
 function perMonthLabel(planId: string, priceLabel: string, ru: boolean): string | null {
   const months = PLAN_MONTHS[planId];
   if (!months || months < 2) return null;
-  const match = /^\s*([\d\s .,]+?)\s*(\S.*)$/u.exec(priceLabel);
+  const match = /^\s*(\d[\d\s .,]*\d|\d)\s*([^\d\s.,].*)$/u.exec(priceLabel);
   if (!match) return null;
   const amount = Number.parseFloat(match[1].replace(/[\s ]/gu, '').replace(',', '.'));
   if (!Number.isFinite(amount) || amount <= 0) return null;
@@ -96,6 +96,11 @@ const CONTEXT_COPY: Record<PaywallContext['placement'], { ru: string; en: string
     ru: 'Личные прогнозы, подробные разборы и совместимость по картам.',
     en: 'Personal forecasts, detailed readings, and two-chart compatibility.',
   },
+  stories: { ru: 'Откроются все сериалы, все серии сразу, озвучка и новый рассказ каждый месяц.', en: 'Every series, every episode at once, the voice and a new story each month will open.' },
+  sounds: { ru: 'Откроются все истории для сна и весь архив.', en: 'Every bedtime story and the whole archive will open.' },
+  tests: { ru: 'Откроются все тесты с разбором и сравнением с твоей картой.', en: 'Every test with its reading and a comparison with your chart will open.' },
+  antistress: { ru: 'Откроются все техники дыхания, тело, привычки и дневник напряжения.', en: 'Every breathing technique, the body practice, habits and the tension diary will open.' },
+  listen: { ru: 'Живой голос диктора прочитает твой прогноз, гороскоп, натальную карту и весь твой день.', en: 'A natural narrator will read your forecast, horoscope, birth chart and your whole day.' },
   matrix: { ru: 'Откроется матрица целиком: деньги, отношения, возрасты и полный разбор.', en: 'The full matrix will open: money, relationships, life stages and the full reading.' },
   week: { ru: 'Откроется твоя личная неделя.', en: 'Your personal week will open.' },
   month: { ru: 'Откроется твой личный месяц.', en: 'Your personal month will open.' },
@@ -358,18 +363,22 @@ export const Paywall: React.FC<PaywallProps> = ({
 
   const benefits = ru
     ? [
-        { title: 'Личные прогнозы', description: 'Сегодня, неделя и месяц вперёд, удачные дни и озвучка', image: '/assets/home-tiles/future.webp' },
-        { title: 'Натальный разбор', description: 'Характер, отношения, работа, деньги и свои вопросы', image: '/assets/planets/jupiter.webp' },
+        { title: 'Личные прогнозы', description: 'Неделя и месяц вперёд, удачные дни', image: '/assets/home-tiles/future.webp' },
+        { title: 'Озвучка и Радио NEBO', description: 'Прогноз, гороскоп знака и натальная карта живым голосом, и весь твой день одним эфиром', image: '/assets/home-tiles/sounds.webp' },
+        { title: 'Натальный разбор', description: 'Характер, отношения, работа, деньги и свои вопросы', image: '/assets/premium/natal-chart.webp' },
         { title: 'Совместимость', description: 'Разбор вашей пары по двум картам', image: '/assets/home-tiles/compatibility.webp' },
-        { title: 'Мои карты', description: `Своя + до ${PREMIUM_SAVED_PERSON_LIMIT} карт других людей`, image: '/assets/for-you/pair.webp' },
-        { title: 'Рассказы и истории для сна', description: 'Все серии сразу и весь архив историй', image: '/assets/home-tiles/stories.webp' },
+        { title: 'Мои карты', description: `Своя + до ${PREMIUM_SAVED_PERSON_LIMIT} карт других людей`, image: '/assets/premium/saved-cards.webp' },
+        { title: 'Рассказы и истории для сна', description: 'Все сериалы, новый рассказ каждый месяц и весь архив историй', image: '/assets/home-tiles/stories.webp' },
+        { title: 'Антистресс и тесты', description: 'Все техники дыхания, дневник, привычки и все тесты', image: '/assets/home-tiles/antistress.webp' },
       ]
     : [
-        { title: 'Personal forecasts', description: 'Week and month ahead, lucky days and voice', image: '/assets/home-tiles/future.webp' },
-        { title: 'Birth chart reading', description: 'Character, relationships, work, money, and your questions', image: '/assets/planets/jupiter.webp' },
+        { title: 'Personal forecasts', description: 'Week and month ahead, lucky days', image: '/assets/home-tiles/future.webp' },
+        { title: 'Voice and NEBO Radio', description: 'Forecast, sign horoscope and birth chart in a natural voice, and your whole day in one show', image: '/assets/home-tiles/sounds.webp' },
+        { title: 'Birth chart reading', description: 'Character, relationships, work, money, and your questions', image: '/assets/premium/natal-chart.webp' },
         { title: 'Compatibility', description: 'Your relationship through two saved charts', image: '/assets/home-tiles/compatibility.webp' },
-        { title: 'My charts', description: `Yours + up to ${PREMIUM_SAVED_PERSON_LIMIT} other people`, image: '/assets/for-you/pair.webp' },
-        { title: 'Stories and bedtime tales', description: 'Every episode at once and the whole archive', image: '/assets/home-tiles/stories.webp' },
+        { title: 'My charts', description: `Yours + up to ${PREMIUM_SAVED_PERSON_LIMIT} other people`, image: '/assets/premium/saved-cards.webp' },
+        { title: 'Stories and bedtime tales', description: 'Every series, a new story each month and the whole archive', image: '/assets/home-tiles/stories.webp' },
+        { title: 'Anti-stress and tests', description: 'Every breathing technique, the diary, habits and all tests', image: '/assets/home-tiles/antistress.webp' },
       ];
   const renewalId = `premium-renewal-${context.paywallInstanceId}`;
 

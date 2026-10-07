@@ -1,1393 +1,1473 @@
-/* Home, mockup v1 (2026-10-04): live sky cover, sticker tiles, «Сегодня о тебе»,
-   «Ты и твои люди», «Твоя осень», «Что подарить?». Loaded after the older home sheets. */
-
-:root {
-  --home-safe-top: max(
-    env(safe-area-inset-top, 0px),
-    calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)),
-    18px
-  );
-}
-
-/* ── Top bar: «Сегодня | Будущее» pill, profile left, settings right ── */
-.app-top-bar .today-period-navigation {
-  position: static;
-  display: flex;
-  width: auto;
-  min-width: 0;
-  flex: 0 1 auto;
-  justify-content: center;
-  margin: 0 auto;
-  padding: 0;
-  border: 0;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-/* Home period switch in the bar: the same underline tabs as the sign horoscope
-   («Сегодня | Неделя | Месяц»); every other switch keeps its original look. */
-.app-top-bar .today-period-tabs {
-  display: inline-flex !important;
-  width: auto !important;
-  min-height: 0 !important;
-  gap: 18px;
-  margin: 0 auto;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-
-.app-top-bar .today-period-tabs > .today-period-tab {
-  position: relative;
-  min-height: 36px !important;
-  padding: 6px 2px !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  color: #817b75 !important;
-  font-size: 13px !important;
-  font-weight: 480 !important;
-}
-
-.app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'] {
-  background: transparent !important;
-  box-shadow: none !important;
-  color: #292724 !important;
-  font-weight: 680 !important;
-}
-
-.app-top-bar .today-period-tab-underline {
-  display: block;
-  bottom: 0;
-  width: 48px;
-  height: 1px;
-}
-
-/* ── One top bar and one bottom bar for the whole app: the same light glass ── */
-:root {
-  --nebo-glass-bg: rgba(255, 255, 255, 0.1);
-  /* Clear glass: a light blur only, no tint, so the page shows through. */
-  --nebo-glass-filter: blur(5px);
-  --nebo-glass-line: rgba(23, 23, 23, 0.07);
-}
-
-.app-top-bar,
-.app-top-bar.home-logo-bar,
-.forecast-feed-page .app-top-bar,
-.forecast-feed-page .app-top-bar.home-logo-bar {
-  border-bottom: 0 !important;
-  background: var(--nebo-glass-bg) !important;
-  box-shadow: none !important;
-  -webkit-backdrop-filter: var(--nebo-glass-filter) !important;
-  backdrop-filter: var(--nebo-glass-filter) !important;
-}
-
-.today-bottom-navigation::after {
-  top: 0.75rem;
-  border-top: 0 !important;
-  background: var(--nebo-glass-bg) !important;
-  -webkit-backdrop-filter: var(--nebo-glass-filter);
-  backdrop-filter: var(--nebo-glass-filter);
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  :root { --nebo-glass-bg: rgba(255, 255, 255, 0.96); }
-}
-
-/* Screens reserve the bar with its spacer; the page's own old top padding made
-   the gap twice as big. One rule: right under the bar, one even gap. */
-.fresh-page:has(> .app-top-bar-spacer),
-.fresh-page:has(> section > .app-top-bar-spacer) {
-  padding-top: 0 !important;
-}
-
-.fresh-page:not(.home-screen) > .app-top-bar-spacer {
-  margin-bottom: 16px;
-}
-
-/* ── Sky cover ── */
-.home-screen.has-sky-cover #today-period-panel > .today-editorial-feed {
-  margin-top: 0;
-  padding-top: 0;
-}
-
-.sky-hero {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  box-sizing: border-box;
-  min-height: 360px;
-  /* The sky starts at the very top, under the glass bar (bar height + a gap). */
-  padding: calc(var(--home-safe-top) + 48px + 14px) 20px 34px;
-  background: linear-gradient(180deg, #2c62b8 0%, #4a86da 48%, #86b4ea 82%, #c7dcf5 100%);
-  color: #fff;
-}
-
-.sky-hero.is-night {
-  background: linear-gradient(180deg, #070c1d 0%, #121e40 55%, #22335c 100%);
-}
-
-/* Soft bottom edge: the sky blurs progressively (::before) and melts into white on an eased curve (::after). */
-.sky-hero::before,
-.sky-hero::after {
-  position: absolute;
-  right: 0;
-  left: 0;
-  content: '';
-  pointer-events: none;
-}
-
-.sky-hero::before {
-  bottom: 0;
-  z-index: 0;
-  height: 96px;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 35%, #000 75%);
-  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 35%, #000 75%);
-}
-
-.sky-hero::after {
-  bottom: -1px;
-  z-index: 0;
-  height: 96px;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.06) 20%,
-    rgba(255, 255, 255, 0.22) 40%,
-    rgba(255, 255, 255, 0.5) 60%,
-    rgba(255, 255, 255, 0.82) 80%,
-    #fff 100%
-  );
-}
-
-.sky-hero-canvas {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  width: 100%;
-  height: 100%;
-}
-
-.sky-hero-moon {
-  position: absolute;
-  top: calc(var(--home-safe-top) + 48px + 8px);
-  right: 16px;
-  z-index: 2;
-  width: 56px;
-  height: 56px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.sky-hero-moon-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 999px;
-  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.35));
-}
-
-.sky-hero-content {
-  position: relative;
-  z-index: 1;
-  max-width: 40rem;
-  margin: 0 auto;
-  text-shadow: 0 1px 12px rgba(0, 10, 40, 0.3);
-}
-
-.sky-hero-date {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 12px;
-  padding-right: 64px;
-}
-
-.sky-hero-date,
-.sky-hero-date b,
-.sky-hero-kicker,
-.sky-hero-title {
-  color: #fff !important;
-}
-
-.sky-hero-date b {
-  font-size: 58px;
-  font-weight: 300;
-  letter-spacing: -0.04em;
-  line-height: 0.9;
-}
-
-.sky-hero-date span {
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.2;
-  opacity: 0.95;
-}
-
-.sky-hero-kicker {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  opacity: 0.9;
-}
-
-.sky-hero-title {
-  margin: 4px 0 10px;
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.12;
-}
-
-.sky-hero-text,
-.sky-hero-text * {
-  color: #fff !important;
-}
-
-.sky-hero-text > *,
-.sky-hero-text section,
-.sky-hero-text article,
-.sky-hero-text div {
-  margin-right: 0 !important;
-  margin-left: 0 !important;
-  padding-right: 0 !important;
-  padding-left: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.sky-hero-text {
-  margin-top: 6px;
-}
-
-.sky-hero-text p {
-  margin: 0 0 8px !important;
-  font-size: 15.5px;
-  line-height: 1.5;
-  text-indent: 0 !important;
-}
-
-.sky-hero-listen {
-  margin-top: 4px;
-}
-
-.sky-hero-text .today-minimal-closing,
-.sky-hero-text .today-minimal-closing-content {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.sky-hero-listen .listen-forecast-button {
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  background: rgba(255, 255, 255, 0.18) !important;
-  color: #fff !important;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-}
-
-.sky-hero.is-compact {
-  min-height: 0;
-  margin: 8px 16px 12px;
-  padding: 18px 18px 20px;
-  border-radius: 24px;
-}
-
-.sky-hero.is-compact::before,
-.sky-hero.is-compact::after {
-  display: none;
-}
-
-.sky-hero.is-compact .sky-hero-moon {
-  top: 12px;
-  right: 12px;
-}
-
-.sky-hero-loading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  font-size: 14px;
-}
-
-.sky-hero-loading p {
-  margin: 0;
-}
-
-/* ── Entry tiles: sticker on a soft pad, live code for the matrix ── */
-.home-entry-tiles {
-  margin-top: 10px;
-}
-
-.home-entry-tile {
-  width: 5.5rem;
-}
-
-.home-entry-tile-label {
-  font-size: 0.7rem;
-  letter-spacing: -0.01em;
-}
-
-.home-entry-tile-pad {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: #f4f2ee;
-}
-
-.home-entry-tile.is-future .home-entry-tile-pad { background: #eaf1fc; }
-.home-entry-tile.is-compatibility .home-entry-tile-pad { background: #fcede6; }
-.home-entry-tile.is-tests .home-entry-tile-pad { background: #eaf6ee; }
-.home-entry-tile.is-sounds .home-entry-tile-pad { background: #f1eefa; }
-.home-entry-tile.is-stories .home-entry-tile-pad { background: #fdf3e2; }
-
-.home-entry-tile-art {
-  width: 82%;
-  height: 82%;
-  border-radius: 0;
-  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.14));
-}
-
-.home-entry-tile-matrix {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: #030805;
-}
-
-.home-entry-tile-matrix .matrix-rain {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.home-entry-tile-matrix b {
-  position: relative;
-  color: #b8ffc8;
-  font-size: 26px;
-  font-weight: 800;
-  text-shadow: 0 0 12px rgba(64, 214, 110, 0.9);
-}
-
-.asset-slot.is-contain {
-  background: transparent;
-}
-
-.future-period-card-art.asset-slot {
-  width: 4.6rem;
-  height: 4.6rem;
-}
-
-.tests-card-art.asset-slot {
-  background: #f6f4f0;
-}
-
-.tests-card-art.asset-slot img,
-.future-period-card-art.asset-slot img {
-  padding: 6px;
-  box-sizing: border-box;
-}
-
-.asset-slot.is-contain img {
-  object-fit: contain;
-}
-
-/* ── «Небо сегодня» on the real sky ── */
-.today-sky-card.is-live {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-}
-
-.today-sky-canvas {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  width: 100%;
-  height: 100%;
-}
-
-.today-sky-card.is-live .today-sky-calendar li,
-.today-sky-card.is-live .today-sky-personal {
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-}
-
-/* ── «Будущее» card on a day sky ── */
-.future-invite-card.is-sky {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-}
-
-.future-invite-sky {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  width: 100%;
-  height: 100%;
-}
-
-/* ── «Сегодня о тебе» ── */
-.about-you,
-.people-block,
-.season {
-  box-sizing: border-box;
-  width: min(calc(100% - 2rem), 40rem);
-  margin: 0 auto;
-  padding: 1.1rem 0 0.4rem;
-}
-
-.about-you-heading small {
-  margin-left: 6px;
-  color: #9a948c;
-  font-size: 0.72rem;
-  font-weight: 500;
-}
-
-.about-you-card,
-.people-block-card {
-  padding: 16px;
-  border: 1px solid rgba(41, 39, 36, 0.08);
-  border-radius: 22px;
-  background: #fff;
-  box-shadow: 0 8px 22px rgba(41, 39, 36, 0.05);
-  color: #292724;
-}
-
-.about-you-kicker,
-.people-block-kicker,
-.season-kicker {
-  margin: 0;
-  color: #c4512e;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.about-you-title {
-  margin: 4px 0 4px;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.about-you-text {
-  margin: 0;
-  color: #4b4741;
-  font-size: 14.5px;
-  line-height: 1.5;
-}
-
-.about-you-facts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.about-you-facts > div {
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: #f7f5f1;
-}
-
-.about-you-facts b {
-  display: block;
-  font-size: 14.5px;
-}
-
-.about-you-facts span {
-  display: block;
-  margin-top: 2px;
-  color: #6f6a63;
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.about-you-task {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-top: 14px;
-  padding: 14px 14px 14px 12px;
-  border-radius: 18px;
-  background: linear-gradient(160deg, #fff4ea, #ffe6d4);
-}
-
-.about-you-check {
-  display: inline-flex;
-  flex: none;
-  width: 40px;
-  height: 40px;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #1f1d1a;
-  border-radius: 999px;
-  background: #fff;
-  color: transparent;
-  cursor: pointer;
-}
-
-.about-you-task.is-done .about-you-check {
-  border-color: #2a8a5f;
-  background: #2a8a5f;
-  color: #fff;
-}
-
-.about-you-pickme {
-  position: absolute;
-  top: 54px;
-  left: 22px;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  animation: about-pickme 1.6s ease-in-out infinite;
-}
-
-.about-you-pickme svg {
-  width: 30px;
-  height: 30px;
-}
-
-.about-you-pickme em {
-  color: #c4512e;
-  font-size: 10px;
-  font-style: normal;
-  font-weight: 700;
-}
-
-@keyframes about-pickme {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .about-you-pickme { animation: none; }
-}
-
-.about-you-task-text {
-  margin: 3px 0 0;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.about-you-task.is-done .about-you-task-text {
-  color: #6f6a63;
-  text-decoration: line-through;
-}
-
-.about-you-why {
-  margin: 6px 0 0;
-  color: #6f6a63;
-  font-size: 12.5px;
-  line-height: 1.4;
-}
-
-.about-you-streak {
-  display: inline-block;
-  margin: 8px 0 0;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: #fff;
-  color: #2a7a45;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-/* ── «Для тебя»: wide cards swiped sideways ── */
-.for-you {
-  width: 100%;
-  max-width: 42rem;
-}
-
-.for-you-title {
-  padding: 0 1rem;
-}
-
-.for-you-list {
-  display: flex;
-  gap: 12px;
-  padding: 2px 1rem 8px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-}
-
-.for-you-list::-webkit-scrollbar {
-  display: none;
-}
-
-.for-you-card {
-  position: relative;
-  flex: 0 0 86%;
-  min-height: 168px;
-  flex-direction: column;
-  border: 0;
-  background: linear-gradient(160deg, #fff4ec, #ffe0cd);
-  scroll-snap-align: center;
-}
-
-.for-you-card:nth-child(3n + 2) { background: linear-gradient(160deg, #eef4ff, #d6e5ff); }
-.for-you-card:nth-child(3n + 3) { background: linear-gradient(160deg, #f4f1ff, #e1d9ff); }
-
-.for-you-card:only-child {
-  flex-basis: 100%;
-}
-
-.for-you-card-art {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 4.4rem;
-  height: 4.4rem;
-  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.14));
-}
-
-.for-you-card-copy h3 {
-  padding-right: 4.6rem;
-  font-size: 1.05rem;
-}
-
-.for-you-card-copy p {
-  padding-right: 3.2rem;
-}
-
-/* ── «Ты и твои люди» ── */
-.people-block-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.people-block-heading > h2 {
-  margin: 0 !important;
-  line-height: 1.15;
-}
-
-.people-block-tune {
-  flex: 0 0 auto;
-  padding: 7px 14px;
-  border: 0;
-  border-radius: 999px;
-  background: #f1efeb;
-  color: #292724;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.people-block-empty {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: #f7f5f1;
-  color: #4b4741;
-  font-size: 13.5px;
-  line-height: 1.4;
-}
-
-.people-block-empty button,
-.people-btn {
-  flex: none;
-  padding: 10px 14px;
-  border: 0;
-  border-radius: 14px;
-  background: #1f1d1a;
-  color: #fff;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.people-btn.is-light {
-  background: #f1efeb;
-  color: #1f1d1a;
-}
-
-.people-block-row {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 14px;
-  scrollbar-width: none;
-}
-
-.people-chip {
-  position: relative;
-  display: inline-flex;
-  flex: none;
-  width: 50px;
-  height: 50px;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 14px;
-  border: 2px solid transparent;
-  border-radius: 999px;
-  font: inherit;
-  font-size: 18px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.people-chip.is-active {
-  border-color: #1f1d1a;
-}
-
-.people-chip i {
-  position: absolute;
-  top: 54px;
-  left: 50%;
-  max-width: 64px;
-  overflow: hidden;
-  color: #6f6a63;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  transform: translateX(-50%);
-  white-space: nowrap;
-}
-
-.people-chip.is-add {
-  border: 2px dashed rgba(41, 39, 36, 0.25);
-  background: #fff;
-  color: #6f6a63;
-}
-
-.people-fact {
-  position: relative;
-  display: block;
-  width: 100%;
-  margin-top: 8px;
-  padding: 11px 13px;
-  border: 0;
-  border-radius: 14px;
-  background: #f7f5f1;
-  color: #292724;
-  font: inherit;
-  text-align: left;
-}
-
-.people-fact b {
-  display: block;
-  font-size: 14.5px;
-}
-
-.people-fact span {
-  display: block;
-  margin-top: 2px;
-  color: #5f5a52;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.people-fact.is-locked {
-  padding-right: 70px;
-  cursor: pointer;
-}
-
-.people-fact.is-locked em,
-.people-fact.is-locked svg {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-}
-
-.people-fact.is-locked em {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px 7px;
-  border-radius: 999px;
-  background: #1f1d1a;
-  color: #fff;
-  font-size: 10.5px;
-  font-style: normal;
-  font-weight: 700;
-}
-
-.people-gift {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  padding: 12px 13px;
-  border: 0;
-  border-radius: 14px;
-  background: #fdeef3;
-  color: #8c2f52;
-  font: inherit;
-  font-size: 13.5px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.people-gift span {
-  flex: 1;
-}
-
-.people-block-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.people-tune {
-  display: grid;
-  gap: 4px;
-}
-
-.people-tune-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 2px;
-  border-bottom: 1px solid #ece8e2;
-  font-size: 15px;
-}
-
-.people-tune-row small {
-  color: #9a948c;
-}
-
-.people-tune-row input {
-  width: 22px;
-  height: 22px;
-  accent-color: #1f1d1a;
-}
-
-.people-tune-label {
-  margin: 14px 0 0;
-  color: #9a948c;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-/* ── «Что подарить?» ── */
-.gift-sheet-options {
-  display: grid;
-  gap: 8px;
-}
-
-.gift-sheet-label {
-  margin-top: 6px;
-  color: #6f6a63;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.gift-sheet-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.gift-sheet-chips button {
-  padding: 8px 12px;
-  border: 1.5px solid #ece8e2;
-  border-radius: 999px;
-  background: #fff;
-  color: #292724;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.gift-sheet-chips button.is-on {
-  border-color: #1f1d1a;
-  background: #1f1d1a;
-  color: #fff;
-}
-
-.gift-sheet-portrait {
-  margin: 14px 0 0;
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: linear-gradient(160deg, #fff4ea, #ffe2cc);
-  color: #4b4741;
-  font-size: 13.5px;
-  line-height: 1.45;
-}
-
-.gift-sheet-list {
-  margin: 10px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.gift-sheet-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 0;
-  border-top: 1px solid #ece8e2;
-}
-
-.gift-sheet-art {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  background: #f7f5f1;
-}
-
-.gift-sheet-item b {
-  display: block;
-  font-size: 15px;
-}
-
-.gift-sheet-item span {
-  display: block;
-  margin-top: 2px;
-  color: #5f5a52;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.gift-sheet-item em {
-  display: inline-block;
-  margin-top: 6px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: #eef6ee;
-  color: #2a7a45;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 700;
-}
-
-
-
-
-
-
-/* ── «Твоя осень» ── */
-.season-card {
-  position: relative;
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  overflow: hidden;
-  padding: 16px;
-  border: 0;
-  border-radius: 22px;
-  background: linear-gradient(160deg, #fff6ea, #ffe7c9);
-  color: #292724;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.season-leaf {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 92px;
-  height: 92px;
-  opacity: 0.9;
-  transform: rotate(12deg);
-}
-
-.season-kicker {
-  color: #b5651d;
-}
-
-.season-headline {
-  max-width: 260px;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.28;
-}
-
-.season-steps {
-  display: grid;
-  width: 100%;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.season-step {
-  display: flex;
-  gap: 10px;
-  padding: 9px 11px;
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.7);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.season-step b {
-  flex: none;
-  min-width: 52px;
-  color: #b5651d;
-}
-
-.season-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-top: 6px;
-  color: #b5651d;
-  font-size: 13.5px;
-  font-weight: 700;
-}
-
-/* ── «Узнать о себе больше»: one line on the pair card ── */
-.today-explore-teaser {
-  display: block;
-  margin-top: 6px;
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-/* ── Motion: falling leaves, the turning natal wheel, a swaying leaf ── */
-.season-falling {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.season-fall {
-  position: absolute;
-  top: -24px;
-  width: 16px;
-  height: 16px;
-  opacity: 0;
-  animation: nebo-leaf-fall 11s linear infinite;
-}
-
-.season-fall.is-0 { left: 58%; animation-delay: 0s; }
-.season-fall.is-1 { left: 76%; width: 12px; height: 12px; animation-delay: -3.5s; animation-duration: 13s; }
-.season-fall.is-2 { left: 88%; animation-delay: -7s; animation-duration: 10s; }
-.season-fall.is-3 { left: 68%; width: 11px; height: 11px; animation-delay: -9s; animation-duration: 14s; }
-
-@keyframes nebo-leaf-fall {
-  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
-  10% { opacity: 0.85; }
-  50% { transform: translate(-18px, 160px) rotate(160deg); }
-  90% { opacity: 0.7; }
-  100% { opacity: 0; transform: translate(10px, 330px) rotate(320deg); }
-}
-
-.season-leaf {
-  animation: nebo-leaf-sway 6s ease-in-out infinite;
-  transform-origin: 30% 80%;
-}
-
-@keyframes nebo-leaf-sway {
-  0%, 100% { transform: rotate(12deg); }
-  50% { transform: rotate(4deg); }
-}
-
-.today-explore-wheel {
-  animation: nebo-wheel-turn 120s linear infinite;
-  transform-origin: 50% 50%;
-}
-
-@keyframes nebo-wheel-turn {
-  to { transform: rotate(360deg); }
-}
-
-
-/* The bar is clear glass: white ink over a dark sky, dark ink over a light one. */
-[data-bar-ink='light'] .app-top-bar,
-[data-bar-ink='light'] .app-top-bar .app-top-bar-action,
-[data-bar-ink='light'] .app-top-bar .app-top-bar-title {
-  color: #fff !important;
-}
-
-[data-bar-ink='light'] .app-top-bar svg {
-  color: #fff;
-  stroke: currentColor;
-}
-
-[data-bar-ink='light'] .app-top-bar .today-period-tabs > .today-period-tab {
-  color: rgba(255, 255, 255, 0.66) !important;
-}
-
-[data-bar-ink='light'] .app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'] {
-  color: #fff !important;
-}
-
-[data-bar-ink='light'] .app-top-bar .today-period-tab-underline {
-  background: #fff !important;
-}
-
-/* Cards lift off the page with one soft shadow, the same everywhere. */
-:root { --nebo-card-shadow: 0 12px 28px rgba(22, 32, 70, 0.2), 0 3px 8px rgba(22, 32, 70, 0.12); }
-.today-explore-card,
-.today-sky-card,
-.season-card,
-.about-you-card,
-.for-you-card,
-.future-invite-card,
-.future-period-cards > *,
-.tests-card,
-.stories-card,
-.sounds-tile,
-.people-block-card,
-.lumia-home-passport-card,
-[class*='NatalHighlights_tile__'],
-[class*='NatalHighlights_moment__'] {
-  box-shadow: var(--nebo-card-shadow);
-}
-
-/* ── Cards on real scenes: blurred picture under a colour wash, slowly drifting ── */
-.future-invite-card.is-sky .future-invite-sky { display: none; }
-.future-invite-card.is-sky,
-.season-card.is-autumn,
-.today-explore-card.is-natal,
-.today-explore-card.is-compatibility,
-.today-explore-card.is-matrix {
-  isolation: isolate;
-  background: var(--scene-base);
-}
-.future-invite-card.is-sky::before,
-.season-card.is-autumn::before,
-.today-explore-card.is-natal::before,
-.today-explore-card.is-compatibility::before,
-.today-explore-card.is-matrix::before {
-  position: absolute;
-  inset: -12px;
-  z-index: -2;
-  background: var(--scene-image) center / cover no-repeat;
-  filter: blur(2px) saturate(1.1);
-  animation: nebo-scene-drift 14s ease-in-out infinite alternate;
-  content: '';
-  pointer-events: none;
-}
-.future-invite-card.is-sky::after,
-.season-card.is-autumn::after,
-.today-explore-card.is-natal::after,
-.today-explore-card.is-compatibility::after,
-.today-explore-card.is-matrix::after {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(160deg, var(--scene-a), var(--scene-b));
-  content: '';
-  pointer-events: none;
-}
-@keyframes nebo-scene-drift {
-  from { transform: scale(1.04) translate(8px, 4px); }
-  to { transform: scale(1.18) translate(-14px, -9px); }
-}
-.future-invite-card.is-sky { --scene-base: #2a64d8; --scene-image: url('/assets/card-scenes/future.webp'); --scene-a: rgba(28, 92, 224, 0.74); --scene-b: rgba(18, 54, 150, 0.82); }
-.season-card.is-autumn { --scene-base: #b9561a; --scene-image: url('/assets/card-scenes/autumn.webp'); --scene-a: rgba(226, 112, 24, 0.7); --scene-b: rgba(142, 52, 8, 0.82); color: #fff; }
-.season-card.is-autumn .season-kicker,
-.season-card.is-autumn .season-headline,
-.season-card.is-autumn .season-cta { color: #fff; text-shadow: 0 1px 8px rgba(30, 14, 4, 0.5); }
-.season-card.is-autumn .season-leaf { display: none; }
-.today-explore-card.is-natal { --scene-base: #3b3fc4; --scene-image: url('/assets/card-scenes/natal.webp'); --scene-a: rgba(64, 76, 224, 0.72); --scene-b: rgba(40, 36, 150, 0.82); }
-.today-explore-card.is-compatibility { --scene-base: #d6455f; --scene-image: url('/assets/card-scenes/compatibility.webp'); --scene-a: rgba(238, 84, 108, 0.7); --scene-b: rgba(168, 36, 72, 0.82); }
-.today-explore-card.is-matrix { --scene-base: #6a38b8; --scene-image: url('/assets/card-scenes/matrix.webp'); --scene-a: rgba(122, 64, 214, 0.72); --scene-b: rgba(64, 28, 140, 0.84); }
-
-/* Entry tiles: a little bigger, with the next one peeking out to show the row scrolls. */
-.home-entry-tile { width: 6.3rem; }
-.home-entry-tile-icon { width: 5.2rem; height: 5.2rem; }
-.home-entry-tile-label { font-size: 0.74rem; }
-.home-entry-tiles-row { gap: 0.55rem; }
-
-/* The slow motion on the home cards (drifting picture, falling leaves, turning wheel) is part of the look, so it keeps
-   playing even where the system asks for less animation; the global reduced-motion rule is overridden for it only. */
-@media (prefers-reduced-motion: reduce) {
-  .future-invite-card.is-sky::before,
-  .season-card.is-autumn::before,
-  .today-explore-card.is-natal::before,
-  .today-explore-card.is-compatibility::before,
-  .today-explore-card.is-matrix::before { animation-duration: 14s !important; animation-iteration-count: infinite !important; }
-  .season-card .season-fall.is-0 { animation-duration: 11s !important; animation-iteration-count: infinite !important; }
-  .season-card .season-fall.is-1 { animation-duration: 13s !important; animation-iteration-count: infinite !important; }
-  .season-card .season-fall.is-2 { animation-duration: 10s !important; animation-iteration-count: infinite !important; }
-  .season-card .season-fall.is-3 { animation-duration: 14s !important; animation-iteration-count: infinite !important; }
-  .today-explore-card .today-explore-wheel { animation-duration: 120s !important; animation-iteration-count: infinite !important; }
-}
-
-/* Entry tiles: each one is its own button with its own shadow. */
-.home-entry-tile-icon { box-shadow: var(--nebo-card-shadow) !important; background-clip: padding-box; }
-.home-entry-tiles-row { gap: 0.9rem; padding-bottom: 0.9rem; }
-.home-entry-tiles, .home-entry-tiles-row { border: 0; }
-
-/* No hairline between the entry tiles and «Небо сегодня»: the shadows already separate them. */
-.today-sky { border-top: 0; }
-
-/* ── Compact chrome (Telegram on iPhone): the bar keeps only what it needs below the system
-   safe area, so the content starts higher; the bottom bar loses its empty upper cap. ── */
-.app-top-bar,
-.app-top-bar.home-logo-bar {
-  height: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
-  min-height: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
-  padding-top: var(--app-top-bar-content-safe-top) !important;
-  padding-bottom: 0 !important;
-}
-
-.app-top-bar-spacer {
-  height: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
-  flex-basis: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
-}
-
-/* The bar is one 48px row under the status bar (the same as the «Вкусно и точка» header), content centred. */
-.app-top-bar-side {
-  top: var(--app-top-bar-content-safe-top) !important;
-  width: 40px;
-  height: 48px !important;
-}
-
-.app-top-bar-side--end.has-actions {
-  width: auto;
-}
-
-.app-top-bar-action {
-  width: 40px !important;
-  min-width: 40px !important;
-  max-width: 40px !important;
-  height: 40px !important;
-  min-height: 40px !important;
-  max-height: 40px !important;
-  flex-basis: 40px !important;
-}
-
-.app-top-bar .today-period-tabs > .today-period-tab {
-  min-height: 40px !important;
-}
-
-.lumia-app-shell.has-today-bottom-navigation {
-  --today-bottom-nav-height: 3.9rem;
-}
-
-.today-bottom-nav-action,
-.today-bottom-nav-services {
-  gap: 0.4rem;
-  padding-top: 1.05rem;
-}
-
-.today-bottom-nav-hub {
-  width: 3.7rem;
-  height: 3.7rem;
-  min-width: 3.7rem;
-  min-height: 3.7rem;
-  margin-top: -1.15rem;
-}
-
-.today-bottom-nav-hub-wrap {
-  justify-content: flex-start;
-}
-
-.today-bottom-nav-hub-wrap .today-bottom-nav-label {
-  margin-top: 0.49rem;
-}
-
-.today-bottom-nav-hub::before {
-  width: 3.3rem;
-  height: 3.3rem;
-}
-
-.today-bottom-nav-hub-chart {
-  width: 2.6rem;
-  height: 2.6rem;
-}
-
-.today-bottom-navigation::after {
-  top: 0.4rem;
-}
-
-/* ── «Загляни»: one invitation from every section, a row of picture cards ── */
-.feature-strip {
-  box-sizing: border-box;
-  width: min(calc(100% - 2rem), 40rem);
-  margin: 0 auto;
-  padding: 1.1rem 0 0.4rem;
-}
-.feature-strip-item {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 12.5rem;
-  margin-top: 10px;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  border-radius: 22px;
-  background: #1c2748;
-  color: #fff;
-  text-align: left;
-  cursor: pointer;
-  box-shadow: var(--nebo-card-shadow, 0 12px 28px rgba(22, 32, 70, 0.2));
-  -webkit-tap-highlight-color: transparent;
-}
-.feature-strip-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.feature-strip-fade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(8, 12, 30, 0.86) 0%, rgba(8, 12, 30, 0.5) 38%, rgba(8, 12, 30, 0) 68%);
-}
-.feature-strip-text {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 0 18px 18px;
-  text-shadow: 0 1px 8px rgba(5, 8, 24, 0.5);
-}
-.feature-strip .feature-strip-text em { color: rgba(255, 255, 255, 0.82) !important; font-size: 0.68rem; font-style: normal; font-weight: 600; letter-spacing: 0.01em; }
-.feature-strip .feature-strip-text b { color: #fff !important; font-size: 1.3rem; font-weight: 800; line-height: 1.12; letter-spacing: -0.02em; }
-.feature-strip .feature-strip-text span { color: rgba(255, 255, 255, 0.9) !important; font-size: 0.85rem; line-height: 1.3; }
-.feature-strip-item.is-plain { background: radial-gradient(circle at 30% 20%, #0f5a36 0%, #06180f 70%); }
-.feature-strip-item.is-plain .feature-strip-fade { background: linear-gradient(to top, rgba(2, 10, 6, 0.7) 0%, rgba(2, 10, 6, 0) 60%); }
-
-/* The shadow of a «Для тебя» card is no longer cut off at the bottom by the scrolling row. */
-.for-you-list { padding-top: 6px; padding-bottom: 34px; margin-bottom: -26px; }
-
-/* «Показать ещё» under the bedtime stories */
-.sounds-more {
-  display: block;
-  width: 100%;
-  min-height: 3rem;
-  margin-top: 12px;
-  border: 0;
-  border-radius: 999px;
-  background: #f1f2f7;
-  color: #171717;
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 700;
-  box-shadow: var(--nebo-card-shadow, 0 8px 18px rgba(22, 32, 70, 0.14));
-  cursor: pointer;
-}
+/* Home, mockup v1 (2026-10-04): live sky cover, sticker tiles, «Сегодня о тебе»,
+   «Ты и твои люди», «Твоя осень», «Что подарить?». Loaded after the older home sheets. */
+
+:root {
+  --home-safe-top: max(
+    env(safe-area-inset-top, 0px),
+    calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)),
+    18px
+  );
+}
+
+/* ── Top bar: «Сегодня | Будущее» pill, profile left, settings right ── */
+.app-top-bar .today-period-navigation {
+  position: static;
+  display: flex;
+  width: auto;
+  min-width: 0;
+  flex: 0 1 auto;
+  justify-content: center;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Home period switch in the bar: the same underline tabs as the sign horoscope
+   («Сегодня | Неделя | Месяц»); every other switch keeps its original look. */
+.app-top-bar .today-period-tabs {
+  display: inline-flex !important;
+  width: auto !important;
+  min-height: 0 !important;
+  gap: 18px;
+  margin: 0 auto;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.app-top-bar .today-period-tabs > .today-period-tab {
+  position: relative;
+  min-height: 36px !important;
+  padding: 6px 2px !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #817b75 !important;
+  font-size: 13px !important;
+  font-weight: 480 !important;
+}
+
+.app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'] {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #292724 !important;
+  font-weight: 680 !important;
+}
+
+.app-top-bar .today-period-tab-underline {
+  display: block;
+  bottom: 0;
+  width: 48px;
+  height: 1px;
+}
+
+/* ── One top bar and one bottom bar for the whole app: the same light glass ── */
+:root {
+  --nebo-glass-bg: rgba(255, 255, 255, 0.1);
+  /* Clear glass: a light blur only, no tint, so the page shows through. */
+  --nebo-glass-filter: blur(5px);
+  --nebo-glass-line: rgba(23, 23, 23, 0.07);
+}
+
+.app-top-bar,
+.app-top-bar.home-logo-bar,
+.forecast-feed-page .app-top-bar,
+.forecast-feed-page .app-top-bar.home-logo-bar {
+  border-bottom: 0 !important;
+  background: var(--nebo-glass-bg) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: var(--nebo-glass-filter) !important;
+  backdrop-filter: var(--nebo-glass-filter) !important;
+}
+
+.today-bottom-navigation::after {
+  top: 0.75rem;
+  border-top: 0 !important;
+  background: var(--nebo-glass-bg) !important;
+  -webkit-backdrop-filter: var(--nebo-glass-filter);
+  backdrop-filter: var(--nebo-glass-filter);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root { --nebo-glass-bg: rgba(255, 255, 255, 0.96); }
+}
+
+/* Screens reserve the bar with its spacer; the page's own old top padding made
+   the gap twice as big. One rule: right under the bar, one even gap. */
+.fresh-page:has(> .app-top-bar-spacer),
+.fresh-page:has(> section > .app-top-bar-spacer) {
+  padding-top: 0 !important;
+}
+
+.fresh-page:not(.home-screen) > .app-top-bar-spacer {
+  margin-bottom: 16px;
+}
+
+/* ── Sky cover ── */
+.home-screen.has-sky-cover #today-period-panel > .today-editorial-feed {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.sky-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-sizing: border-box;
+  min-height: 360px;
+  /* The sky starts at the very top, under the glass bar (bar height + a gap). */
+  padding: calc(var(--home-safe-top) + 48px + 14px) 20px 34px;
+  background: linear-gradient(180deg, #2c62b8 0%, #4a86da 48%, #86b4ea 82%, #c7dcf5 100%);
+  color: #fff;
+}
+
+.sky-hero.is-night {
+  background: linear-gradient(180deg, #070c1d 0%, #121e40 55%, #22335c 100%);
+}
+
+/* Soft bottom edge: the sky blurs progressively (::before) and melts into white on an eased curve (::after). */
+.sky-hero::before,
+.sky-hero::after {
+  position: absolute;
+  right: 0;
+  left: 0;
+  content: '';
+  pointer-events: none;
+}
+
+.sky-hero::before {
+  bottom: 0;
+  z-index: 0;
+  height: 96px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 35%, #000 75%);
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 35%, #000 75%);
+}
+
+.sky-hero::after {
+  bottom: -1px;
+  z-index: 0;
+  height: 96px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.06) 20%,
+    rgba(255, 255, 255, 0.22) 40%,
+    rgba(255, 255, 255, 0.5) 60%,
+    rgba(255, 255, 255, 0.82) 80%,
+    #fff 100%
+  );
+}
+
+.sky-hero-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+}
+
+.sky-hero-moon {
+  position: absolute;
+  top: calc(var(--home-safe-top) + 48px + 8px);
+  right: 16px;
+  z-index: 2;
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sky-hero-moon-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.35));
+}
+
+.sky-hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 40rem;
+  margin: 0 auto;
+  text-shadow: 0 1px 12px rgba(0, 10, 40, 0.3);
+}
+
+.sky-hero-date {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding-right: 64px;
+}
+
+.sky-hero-date,
+.sky-hero-date b,
+.sky-hero-kicker,
+.sky-hero-title {
+  color: #fff !important;
+}
+
+.sky-hero-date b {
+  font-size: 58px;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+}
+
+.sky-hero-date span {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  opacity: 0.95;
+}
+
+.sky-hero-kicker {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.sky-hero-title {
+  margin: 4px 0 10px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+}
+
+.sky-hero-text,
+.sky-hero-text * {
+  color: #fff !important;
+}
+
+.sky-hero-text > *,
+.sky-hero-text section,
+.sky-hero-text article,
+.sky-hero-text div {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.sky-hero-text {
+  margin-top: 6px;
+}
+
+.sky-hero-text p {
+  margin: 0 0 8px !important;
+  font-size: 15.5px;
+  line-height: 1.5;
+  text-indent: 0 !important;
+}
+
+.sky-hero-listen {
+  margin-top: 4px;
+}
+
+.sky-hero-text .today-minimal-closing,
+.sky-hero-text .today-minimal-closing-content {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.sky-hero-listen .listen-forecast-button {
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #fff !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.sky-hero.is-compact {
+  min-height: 0;
+  margin: 8px 16px 12px;
+  padding: 18px 18px 20px;
+  border-radius: 24px;
+}
+
+.sky-hero.is-compact::before,
+.sky-hero.is-compact::after {
+  display: none;
+}
+
+.sky-hero.is-compact .sky-hero-moon {
+  top: 12px;
+  right: 12px;
+}
+
+.sky-hero-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.sky-hero-loading p {
+  margin: 0;
+}
+
+/* ── Entry tiles: sticker on a soft pad, live code for the matrix ── */
+.home-entry-tiles {
+  margin-top: 10px;
+}
+
+.home-entry-tile {
+  width: 5.5rem;
+}
+
+.home-entry-tile-label {
+  font-size: 0.7rem;
+  letter-spacing: -0.01em;
+}
+
+.home-entry-tile-pad {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f4f2ee;
+}
+
+.home-entry-tile.is-future .home-entry-tile-pad { background: #eaf1fc; }
+.home-entry-tile.is-compatibility .home-entry-tile-pad { background: #fcede6; }
+.home-entry-tile.is-tests .home-entry-tile-pad { background: #eaf6ee; }
+.home-entry-tile.is-sounds .home-entry-tile-pad { background: #f1eefa; }
+.home-entry-tile.is-stories .home-entry-tile-pad { background: #fdf3e2; }
+
+.home-entry-tile-art {
+  width: 82%;
+  height: 82%;
+  border-radius: 0;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.14));
+}
+
+.home-entry-tile-matrix {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #030805;
+}
+
+.home-entry-tile-matrix .matrix-rain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.home-entry-tile-matrix b {
+  position: relative;
+  color: #b8ffc8;
+  font-size: 26px;
+  font-weight: 800;
+  text-shadow: 0 0 12px rgba(64, 214, 110, 0.9);
+}
+
+.asset-slot.is-contain {
+  background: transparent;
+}
+
+.future-period-card-art.asset-slot {
+  width: 4.6rem;
+  height: 4.6rem;
+}
+
+.tests-card-art.asset-slot {
+  background: #f6f4f0;
+}
+
+.tests-card-art.asset-slot img,
+.future-period-card-art.asset-slot img {
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.asset-slot.is-contain img {
+  object-fit: contain;
+}
+
+/* ── «Небо сегодня» on the real sky ── */
+.today-sky-card.is-live {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.today-sky-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+}
+
+.today-sky-card.is-live .today-sky-calendar li,
+.today-sky-card.is-live .today-sky-personal {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* ── «Будущее» card on a day sky ── */
+.future-invite-card.is-sky {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.future-invite-sky {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── «Сегодня о тебе» ── */
+.about-you,
+.people-block,
+.season {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin: 0 auto;
+  padding: 1.1rem 0 0.4rem;
+}
+
+.about-you-heading small {
+  margin-left: 6px;
+  color: #9a948c;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.about-you-card,
+.people-block-card {
+  padding: 16px;
+  border: 1px solid rgba(41, 39, 36, 0.08);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(41, 39, 36, 0.05);
+  color: #292724;
+}
+
+.about-you-kicker,
+.people-block-kicker,
+.season-kicker {
+  margin: 0;
+  color: #c4512e;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.about-you-title {
+  margin: 4px 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.about-you-text {
+  margin: 0;
+  color: #4b4741;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.about-you-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.about-you-facts > div {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f7f5f1;
+}
+
+.about-you-facts b {
+  display: block;
+  font-size: 14.5px;
+}
+
+.about-you-facts span {
+  display: block;
+  margin-top: 2px;
+  color: #6f6a63;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.about-you-task {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px 14px 14px 12px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #fff4ea, #ffe6d4);
+}
+
+.about-you-check {
+  display: inline-flex;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1f1d1a;
+  border-radius: 999px;
+  background: #fff;
+  color: transparent;
+  cursor: pointer;
+}
+
+.about-you-task.is-done .about-you-check {
+  border-color: #2a8a5f;
+  background: #2a8a5f;
+  color: #fff;
+}
+
+.about-you-pickme {
+  position: absolute;
+  top: 54px;
+  left: 22px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  animation: about-pickme 1.6s ease-in-out infinite;
+}
+
+.about-you-pickme svg {
+  width: 30px;
+  height: 30px;
+}
+
+.about-you-pickme em {
+  color: #c4512e;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+@keyframes about-pickme {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-you-pickme { animation: none; }
+}
+
+.about-you-task-text {
+  margin: 3px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.about-you-task.is-done .about-you-task-text {
+  color: #6f6a63;
+  text-decoration: line-through;
+}
+
+.about-you-why {
+  margin: 6px 0 0;
+  color: #6f6a63;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.about-you-streak {
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #fff;
+  color: #2a7a45;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── «Для тебя»: wide cards swiped sideways ── */
+.for-you {
+  width: 100%;
+  max-width: 42rem;
+}
+
+.for-you-title {
+  padding: 0 1rem;
+}
+
+.for-you-list {
+  display: flex;
+  gap: 12px;
+  padding: 2px 1rem 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.for-you-list::-webkit-scrollbar {
+  display: none;
+}
+
+.for-you-card {
+  position: relative;
+  flex: 0 0 86%;
+  min-height: 168px;
+  flex-direction: column;
+  border: 0;
+  background: linear-gradient(160deg, #fff4ec, #ffe0cd);
+  scroll-snap-align: center;
+}
+
+.for-you-card:nth-child(3n + 2) { background: linear-gradient(160deg, #eef4ff, #d6e5ff); }
+.for-you-card:nth-child(3n + 3) { background: linear-gradient(160deg, #f4f1ff, #e1d9ff); }
+
+.for-you-card:only-child {
+  flex-basis: 100%;
+}
+
+.for-you-card-art {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 4.4rem;
+  height: 4.4rem;
+  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.14));
+}
+
+.for-you-card-copy h3 {
+  padding-right: 4.6rem;
+  font-size: 1.05rem;
+}
+
+.for-you-card-copy p {
+  padding-right: 3.2rem;
+}
+
+/* ── «Ты и твои люди» ── */
+.people-block-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.people-block-heading > h2 {
+  margin: 0 !important;
+  line-height: 1.15;
+}
+
+.people-block-tune {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #f1efeb;
+  color: #292724;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.people-block-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #f7f5f1;
+  color: #4b4741;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+.people-block-empty button,
+.people-btn {
+  flex: none;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: #1f1d1a;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.people-btn.is-light {
+  background: #f1efeb;
+  color: #1f1d1a;
+}
+
+.people-block-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 14px;
+  scrollbar-width: none;
+}
+
+.people-chip {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 50px;
+  height: 50px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.people-chip.is-active {
+  border-color: #1f1d1a;
+}
+
+.people-chip i {
+  position: absolute;
+  top: 54px;
+  left: 50%;
+  max-width: 64px;
+  overflow: hidden;
+  color: #6f6a63;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.people-chip.is-add {
+  border: 2px dashed rgba(41, 39, 36, 0.25);
+  background: #fff;
+  color: #6f6a63;
+}
+
+.people-fact {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px 13px;
+  border: 0;
+  border-radius: 14px;
+  background: #f7f5f1;
+  color: #292724;
+  font: inherit;
+  text-align: left;
+}
+
+.people-fact b {
+  display: block;
+  font-size: 14.5px;
+}
+
+.people-fact span {
+  display: block;
+  margin-top: 2px;
+  color: #5f5a52;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.people-fact.is-locked {
+  padding-right: 70px;
+  cursor: pointer;
+}
+
+.people-fact.is-locked em,
+.people-fact.is-locked svg {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.people-fact.is-locked em {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #1f1d1a;
+  color: #fff;
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.people-gift {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px 13px;
+  border: 0;
+  border-radius: 14px;
+  background: #fdeef3;
+  color: #8c2f52;
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.people-gift span {
+  flex: 1;
+}
+
+.people-block-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.people-tune {
+  display: grid;
+  gap: 4px;
+}
+
+.people-tune-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 2px;
+  border-bottom: 1px solid #ece8e2;
+  font-size: 15px;
+}
+
+.people-tune-row small {
+  color: #9a948c;
+}
+
+.people-tune-row input {
+  width: 22px;
+  height: 22px;
+  accent-color: #1f1d1a;
+}
+
+.people-tune-label {
+  margin: 14px 0 0;
+  color: #9a948c;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ── «Что подарить?» ── */
+.gift-sheet-options {
+  display: grid;
+  gap: 8px;
+}
+
+.gift-sheet-label {
+  margin-top: 6px;
+  color: #6f6a63;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gift-sheet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gift-sheet-chips button {
+  padding: 8px 12px;
+  border: 1.5px solid #ece8e2;
+  border-radius: 999px;
+  background: #fff;
+  color: #292724;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gift-sheet-chips button.is-on {
+  border-color: #1f1d1a;
+  background: #1f1d1a;
+  color: #fff;
+}
+
+.gift-sheet-portrait {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #fff4ea, #ffe2cc);
+  color: #4b4741;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.gift-sheet-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gift-sheet-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid #ece8e2;
+}
+
+.gift-sheet-art {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: #f7f5f1;
+}
+
+.gift-sheet-item b {
+  display: block;
+  font-size: 15px;
+}
+
+.gift-sheet-item span {
+  display: block;
+  margin-top: 2px;
+  color: #5f5a52;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.gift-sheet-item em {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef6ee;
+  color: #2a7a45;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+
+
+
+
+
+/* ── «Твоя осень» ── */
+.season-card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  overflow: hidden;
+  padding: 16px;
+  border: 0;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #fff6ea, #ffe7c9);
+  color: #292724;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.season-leaf {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 92px;
+  height: 92px;
+  opacity: 0.9;
+  transform: rotate(12deg);
+}
+
+.season-kicker {
+  color: #b5651d;
+}
+
+.season-headline {
+  max-width: 260px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.28;
+}
+
+.season-steps {
+  display: grid;
+  width: 100%;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.season-step {
+  display: flex;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.season-step b {
+  flex: none;
+  min-width: 52px;
+  color: #b5651d;
+}
+
+.season-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+  color: #b5651d;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+/* ── «Узнать о себе больше»: one line on the pair card ── */
+.today-explore-teaser {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* ── Motion: falling leaves, the turning natal wheel, a swaying leaf ── */
+.season-falling {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.season-fall {
+  position: absolute;
+  top: -24px;
+  width: 16px;
+  height: 16px;
+  opacity: 0;
+  animation: nebo-leaf-fall 11s linear infinite;
+}
+
+.season-fall.is-0 { left: 58%; animation-delay: 0s; }
+.season-fall.is-1 { left: 76%; width: 12px; height: 12px; animation-delay: -3.5s; animation-duration: 13s; }
+.season-fall.is-2 { left: 88%; animation-delay: -7s; animation-duration: 10s; }
+.season-fall.is-3 { left: 68%; width: 11px; height: 11px; animation-delay: -9s; animation-duration: 14s; }
+
+@keyframes nebo-leaf-fall {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  10% { opacity: 0.85; }
+  50% { transform: translate(-18px, 160px) rotate(160deg); }
+  90% { opacity: 0.7; }
+  100% { opacity: 0; transform: translate(10px, 330px) rotate(320deg); }
+}
+
+.season-leaf {
+  animation: nebo-leaf-sway 6s ease-in-out infinite;
+  transform-origin: 30% 80%;
+}
+
+@keyframes nebo-leaf-sway {
+  0%, 100% { transform: rotate(12deg); }
+  50% { transform: rotate(4deg); }
+}
+
+.today-explore-wheel {
+  animation: nebo-wheel-turn 120s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes nebo-wheel-turn {
+  to { transform: rotate(360deg); }
+}
+
+
+/* The bar is clear glass: white ink over a dark sky, dark ink over a light one. */
+[data-bar-ink='light'] .app-top-bar,
+[data-bar-ink='light'] .app-top-bar .app-top-bar-action,
+[data-bar-ink='light'] .app-top-bar .app-top-bar-title {
+  color: #fff !important;
+}
+
+[data-bar-ink='light'] .app-top-bar svg {
+  color: #fff;
+  stroke: currentColor;
+}
+
+[data-bar-ink='light'] .app-top-bar .today-period-tabs > .today-period-tab {
+  color: rgba(255, 255, 255, 0.66) !important;
+}
+
+[data-bar-ink='light'] .app-top-bar .today-period-tabs > .today-period-tab[aria-selected='true'] {
+  color: #fff !important;
+}
+
+[data-bar-ink='light'] .app-top-bar .today-period-tab-underline {
+  background: #fff !important;
+}
+
+/* Cards lift off the page with one soft shadow, the same everywhere. */
+:root { --nebo-card-shadow: 0 12px 28px rgba(22, 32, 70, 0.2), 0 3px 8px rgba(22, 32, 70, 0.12); }
+.today-explore-card,
+.today-sky-card,
+.season-card,
+.about-you-card,
+.for-you-card,
+.future-invite-card,
+.future-period-cards > *,
+.tests-card,
+.stories-card,
+.sounds-tile,
+.people-block-card,
+.lumia-home-passport-card,
+[class*='NatalHighlights_tile__'],
+[class*='NatalHighlights_moment__'] {
+  box-shadow: var(--nebo-card-shadow);
+}
+
+/* ── Cards on real scenes: blurred picture under a colour wash, slowly drifting ── */
+.future-invite-card.is-sky .future-invite-sky { display: none; }
+.future-invite-card.is-sky,
+.season-card.is-autumn,
+.today-explore-card.is-natal,
+.today-explore-card.is-compatibility,
+.today-explore-card.is-matrix {
+  isolation: isolate;
+  background: var(--scene-base);
+}
+.future-invite-card.is-sky::before,
+.season-card.is-autumn::before,
+.today-explore-card.is-natal::before,
+.today-explore-card.is-compatibility::before,
+.today-explore-card.is-matrix::before {
+  position: absolute;
+  inset: -12px;
+  z-index: -2;
+  background: var(--scene-image) center / cover no-repeat;
+  filter: blur(2px) saturate(1.1);
+  animation: nebo-scene-drift 14s ease-in-out infinite alternate;
+  content: '';
+  pointer-events: none;
+}
+.future-invite-card.is-sky::after,
+.season-card.is-autumn::after,
+.today-explore-card.is-natal::after,
+.today-explore-card.is-compatibility::after,
+.today-explore-card.is-matrix::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(160deg, var(--scene-a), var(--scene-b));
+  content: '';
+  pointer-events: none;
+}
+@keyframes nebo-scene-drift {
+  from { transform: scale(1.04) translate(8px, 4px); }
+  to { transform: scale(1.18) translate(-14px, -9px); }
+}
+.future-invite-card.is-sky { --scene-base: #2a64d8; --scene-image: url('/assets/card-scenes/future.webp'); --scene-a: rgba(28, 92, 224, 0.74); --scene-b: rgba(18, 54, 150, 0.82); }
+.season-card.is-autumn { --scene-base: #b9561a; --scene-image: url('/assets/card-scenes/autumn.webp'); --scene-a: rgba(226, 112, 24, 0.7); --scene-b: rgba(142, 52, 8, 0.82); color: #fff; }
+.season-card.is-autumn .season-kicker,
+.season-card.is-autumn .season-headline,
+.season-card.is-autumn .season-cta { color: #fff; text-shadow: 0 1px 8px rgba(30, 14, 4, 0.5); }
+.season-card.is-autumn .season-leaf { display: none; }
+.today-explore-card.is-natal { --scene-base: #3b3fc4; --scene-image: url('/assets/card-scenes/natal.webp'); --scene-a: rgba(64, 76, 224, 0.72); --scene-b: rgba(40, 36, 150, 0.82); }
+.today-explore-card.is-compatibility { --scene-base: #d6455f; --scene-image: url('/assets/card-scenes/compatibility.webp'); --scene-a: rgba(238, 84, 108, 0.7); --scene-b: rgba(168, 36, 72, 0.82); }
+.today-explore-card.is-matrix { --scene-base: #6a38b8; --scene-image: url('/assets/card-scenes/matrix.webp'); --scene-a: rgba(122, 64, 214, 0.72); --scene-b: rgba(64, 28, 140, 0.84); }
+
+/* Entry tiles: a little bigger, with the next one peeking out to show the row scrolls. */
+.home-entry-tile { width: 6.3rem; }
+.home-entry-tile-icon { width: 5.2rem; height: 5.2rem; }
+.home-entry-tile-label { font-size: 0.74rem; }
+.home-entry-tiles-row { gap: 0.55rem; }
+
+/* The slow motion on the home cards (drifting picture, falling leaves, turning wheel) is part of the look, so it keeps
+   playing even where the system asks for less animation; the global reduced-motion rule is overridden for it only. */
+@media (prefers-reduced-motion: reduce) {
+  .future-invite-card.is-sky::before,
+  .season-card.is-autumn::before,
+  .today-explore-card.is-natal::before,
+  .today-explore-card.is-compatibility::before,
+  .today-explore-card.is-matrix::before { animation-duration: 14s !important; animation-iteration-count: infinite !important; }
+  .season-card .season-fall.is-0 { animation-duration: 11s !important; animation-iteration-count: infinite !important; }
+  .season-card .season-fall.is-1 { animation-duration: 13s !important; animation-iteration-count: infinite !important; }
+  .season-card .season-fall.is-2 { animation-duration: 10s !important; animation-iteration-count: infinite !important; }
+  .season-card .season-fall.is-3 { animation-duration: 14s !important; animation-iteration-count: infinite !important; }
+  .today-explore-card .today-explore-wheel { animation-duration: 120s !important; animation-iteration-count: infinite !important; }
+}
+
+/* Entry tiles: each one is its own button with its own shadow. */
+.home-entry-tile-icon { box-shadow: var(--nebo-card-shadow) !important; background-clip: padding-box; }
+.home-entry-tiles-row { gap: 0.9rem; padding-bottom: 0.9rem; }
+.home-entry-tiles, .home-entry-tiles-row { border: 0; }
+
+/* No hairline between the entry tiles and «Небо сегодня»: the shadows already separate them. */
+.today-sky { border-top: 0; }
+
+/* ── Compact chrome (Telegram on iPhone): the bar keeps only what it needs below the system
+   safe area, so the content starts higher; the bottom bar loses its empty upper cap. ── */
+.app-top-bar,
+.app-top-bar.home-logo-bar {
+  height: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
+  min-height: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
+  padding-top: var(--app-top-bar-content-safe-top) !important;
+  padding-bottom: 0 !important;
+}
+
+.app-top-bar-spacer {
+  height: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
+  flex-basis: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
+}
+
+/* The bar is one 48px row under the status bar (the same as the «Вкусно и точка» header), content centred. */
+.app-top-bar-side {
+  top: var(--app-top-bar-content-safe-top) !important;
+  width: 40px;
+  height: 48px !important;
+}
+
+.app-top-bar-side--end.has-actions {
+  width: auto;
+}
+
+.app-top-bar-action {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  flex-basis: 40px !important;
+}
+
+.app-top-bar .today-period-tabs > .today-period-tab {
+  min-height: 40px !important;
+}
+
+.lumia-app-shell.has-today-bottom-navigation {
+  --today-bottom-nav-height: 3.9rem;
+}
+
+.today-bottom-nav-action,
+.today-bottom-nav-services {
+  gap: 0.4rem;
+  padding-top: 1.05rem;
+}
+
+.today-bottom-nav-hub {
+  width: 3.7rem;
+  height: 3.7rem;
+  min-width: 3.7rem;
+  min-height: 3.7rem;
+  margin-top: -1.15rem;
+}
+
+.today-bottom-nav-hub-wrap {
+  justify-content: flex-start;
+}
+
+.today-bottom-nav-hub-wrap .today-bottom-nav-label {
+  margin-top: 0.49rem;
+}
+
+.today-bottom-nav-hub::before {
+  width: 3.3rem;
+  height: 3.3rem;
+}
+
+.today-bottom-nav-hub-chart {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
+.today-bottom-navigation::after {
+  top: 0.4rem;
+}
+
+/* ── «Загляни»: one invitation from every section, a row of picture cards ── */
+.feature-strip {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin: 0 auto;
+  padding: 1.1rem 0 0.4rem;
+}
+.feature-strip-item {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 10rem;
+  margin-top: 10px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 22px;
+  background: #1c2748;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--nebo-card-shadow, 0 12px 28px rgba(22, 32, 70, 0.2));
+  -webkit-tap-highlight-color: transparent;
+}
+.feature-strip-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.feature-strip-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(8, 12, 30, 0.86) 0%, rgba(8, 12, 30, 0.5) 38%, rgba(8, 12, 30, 0) 68%);
+}
+.feature-strip-text {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 18px 18px;
+  text-shadow: 0 1px 8px rgba(5, 8, 24, 0.5);
+}
+.feature-strip .feature-strip-text em { align-self: flex-start; margin-bottom: 4px; padding: 3px 11px; border-radius: 999px; background: rgba(255, 255, 255, 0.24); color: #fff !important; font-size: 0.86rem; font-style: normal; font-weight: 800; letter-spacing: 0.01em; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); text-shadow: none; }
+.feature-strip .feature-strip-text b { color: #fff !important; font-size: 1.3rem; font-weight: 800; line-height: 1.12; letter-spacing: -0.02em; }
+.feature-strip .feature-strip-text span { color: rgba(255, 255, 255, 0.9) !important; font-size: 0.85rem; line-height: 1.3; }
+.feature-strip-item.is-plain { background: radial-gradient(circle at 30% 20%, #0f5a36 0%, #06180f 70%); }
+.feature-strip-item.is-plain .feature-strip-fade { background: linear-gradient(to top, rgba(2, 10, 6, 0.7) 0%, rgba(2, 10, 6, 0) 60%); }
+
+/* The shadow of a «Для тебя» card is no longer cut off at the bottom by the scrolling row. */
+.for-you-list { padding-top: 6px; padding-bottom: 34px; margin-bottom: -26px; }
+
+/* «Показать ещё» under the bedtime stories */
+.sounds-more {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #f1f2f7;
+  color: #171717;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: var(--nebo-card-shadow, 0 8px 18px rgba(22, 32, 70, 0.14));
+  cursor: pointer;
+}
 .sounds-stories-lead { margin: -2px 0 12px; color: #6c7280; font-size: 0.85rem; line-height: 1.4; }
+
+/* ── «Радио NEBO»: the day aloud, a card that sells the voice ── */
+.radio-card {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 40rem);
+  margin: 1.1rem auto 0.4rem;
+  padding: 1.1rem 1.1rem 1rem;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(150deg, #1c2f78 0%, #2f6bff 55%, #6aa4ff 100%);
+  color: #fff;
+  box-shadow: var(--nebo-card-shadow, 0 14px 30px rgba(22, 32, 70, 0.24));
+}
+.radio-card-glow {
+  position: absolute;
+  top: -40px;
+  right: -30px;
+  z-index: -1;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 70%);
+}
+.radio-card-head { display: flex; align-items: center; gap: 12px; }
+.radio-card-icon { display: grid; width: 44px; height: 44px; flex: none; place-items: center; border-radius: 14px; background: rgba(255, 255, 255, 0.2); }
+.radio-card h2 { margin: 0; color: #fff; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+.radio-card-head p { margin: 3px 0 0; color: rgba(255, 255, 255, 0.9); font-size: 0.82rem; line-height: 1.3; }
+.radio-card-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; margin: 12px 0 0; padding: 0; list-style: none; }
+.radio-card-list li { color: rgba(255, 255, 255, 0.95); font-size: 0.8rem; font-weight: 600; }
+.radio-card-list li::before { content: ''; display: inline-block; width: 6px; height: 6px; margin: 0 8px 1px 0; border-radius: 50%; background: #fff; opacity: 0.85; }
+.radio-card-actions { display: flex; gap: 8px; margin-top: 14px; }
+.radio-card-primary,
+.radio-card-secondary {
+  display: inline-flex;
+  min-height: 2.9rem;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.radio-card-primary { flex: 1 1 auto; background: #fff; color: #14233f; box-shadow: 0 8px 18px rgba(8, 14, 40, 0.28); }
+.radio-card-secondary { flex: 0 0 auto; padding: 0 18px; background: rgba(255, 255, 255, 0.22); color: #fff; }
+.radio-card-primary:disabled { opacity: 0.7; }
+.radio-card-note { margin: 10px 2px 0; color: rgba(255, 255, 255, 0.92); font-size: 0.8rem; line-height: 1.4; }
+.radio-card-note.is-error { color: #ffe1dc; font-weight: 600; }
+.radio-card-text { display: grid; gap: 10px; margin-top: 14px; padding: 14px; border-radius: 18px; background: rgba(255, 255, 255, 0.96); color: #1d2433; }
+.radio-card-text p { margin: 0; font-size: 0.92rem; line-height: 1.5; }
+
+/* The Radio button next to the Moon, and the sheet it opens */
+.sky-hero-listen-row { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
+.sky-hero-radio-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.radio-sheet-content .radio-card { width: 100%; margin: 0; }
+.radio-card-sample { display: grid; gap: 6px; margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: rgba(255, 255, 255, 0.16); }
+.radio-card-sample small { color: rgba(255, 255, 255, 0.85); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.radio-card-sample p { margin: 0; color: #fff; font-size: 0.86rem; line-height: 1.45; }
+.radio-sheet-content .radio-card-head > div { display: none; }

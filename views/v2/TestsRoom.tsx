@@ -3,6 +3,7 @@ import { ArrowLeft, Check, ChevronRight, Lock, RotateCcw } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { VideoBackground } from '../../components/lumia-ui/VideoBackground';
+import { hasActivePremium } from '../../lib/accessMatrix';
 import { AssetSlot } from '../../components/lumia-ui/AssetSlot';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import {
@@ -11,6 +12,7 @@ import {
   resultOf,
   scoreSelfTest,
   SELF_TESTS,
+  FREE_SELF_TEST_IDS,
   type SelfTestDefinition,
   type SelfTestScore,
 } from '../../lib/selfTests/engine';
@@ -40,6 +42,8 @@ type TestsRoomProps = {
   onOpenNatal?: () => void;
   /** «Неделя настроения» lives next to the tests. */
   onOpenMood?: () => void;
+  /** Opens NEBO Premium for the locked tests. */
+  onRequestPremium?: () => void;
 };
 
 function asProgress(value: unknown): Progress | null {
@@ -53,10 +57,12 @@ function asResult(value: unknown): SavedResult | null {
 }
 
 /** «Тесты о себе»: personal, never shared. Results and unfinished tests are kept in the profile. */
-export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenMood }: TestsRoomProps) {
+export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenMood, onRequestPremium }: TestsRoomProps) {
   const ru = profile.language !== 'en';
   const language: 'ru' | 'en' = ru ? 'ru' : 'en';
   const userId = String(profile.id || 'guest');
+  const premium = hasActivePremium(profile);
+  const isLocked = (test: SelfTestDefinition) => !premium && !FREE_SELF_TEST_IDS.includes(test.id);
   const [items, setItems] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'tests'));
   const [chartData, setChartData] = useState<unknown>(
     () => peekExploreCharts(userId)?.find((chart) => chart.is_primary)?.chart_data ?? null,
@@ -84,10 +90,14 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
 
   const start = useCallback((test: SelfTestDefinition, fresh = false) => {
     lumiaSelectionHaptic();
+    if (!hasActivePremium(profile) && !FREE_SELF_TEST_IDS.includes(test.id)) {
+      onRequestPremium?.();
+      return;
+    }
     const progress = fresh ? null : progressOf(test.id);
     const answers = progress?.answers.slice(0, test.questions.length) ?? [];
     setScreen({ kind: 'run', testId: test.id, answers, index: Math.min(answers.length, test.questions.length - 1) });
-  }, [progressOf]);
+  }, [progressOf, profile, onRequestPremium]);
 
   useEffect(() => {
     if (!initialTestId) return;
@@ -243,20 +253,22 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
           const progress = progressOf(test.id);
           const last = history.find((item) => item.testId === test.id);
           return (
-            <button key={test.id} type="button" className="tests-card" onClick={() => start(test)}>
+            <button key={test.id} type="button" className={`tests-card${isLocked(test) ? ' is-locked' : ''}`} onClick={() => start(test)}>
               <AssetSlot src={TEST_IMAGES[test.id]} className="tests-card-art" />
               <span className="tests-card-copy">
                 <strong>{test.title[language]}</strong>
                 <small>{test.subtitle[language]}</small>
                 <span className="tests-card-meta">
-                  {progress
+                  {isLocked(test)
+                    ? (ru ? 'С NEBO Premium · все тесты и разбор' : 'With NEBO Premium · every test')
+                    : progress
                     ? (ru ? `Продолжить · вопрос ${progress.answers.length + 1} из ${test.questions.length}` : `Continue · question ${progress.answers.length + 1} of ${test.questions.length}`)
                     : last
                       ? (ru ? `Твой результат: ${resultOf(test, last.top).title.ru}` : `Your result: ${resultOf(test, last.top).title.en}`)
                       : (ru ? `${test.minutes} мин · ${test.questions.length} вопросов` : `${test.minutes} min · ${test.questions.length} questions`)}
                 </span>
               </span>
-              <ChevronRight size={18} aria-hidden="true" />
+              {isLocked(test) ? <Lock size={17} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
             </button>
           );
         })}

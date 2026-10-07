@@ -10,6 +10,9 @@ export type { SelfTestDefinition, SelfTestResult } from './types';
 /** Local, authored tests: no AI while the person answers. */
 export const SELF_TESTS: readonly SelfTestDefinition[] = [TEMPERAMENT_TEST, CONFLICT_TEST, LOVE_LANGUAGE_TEST, RECHARGE_TEST];
 
+/** The test open for everyone; the others come with NEBO Premium. */
+export const FREE_SELF_TEST_IDS: readonly string[] = ['temperament'];
+
 export function findSelfTest(id: string): SelfTestDefinition | null {
   return SELF_TESTS.find((test) => test.id === id) ?? null;
 }

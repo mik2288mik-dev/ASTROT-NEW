@@ -7,6 +7,14 @@ import { buildPersonalForecastPrewarmProfile } from '../../../lib/personalForeca
 import { getCompatibleStalePersonalForecast } from '../../../lib/personalForecastCache';
 import { isCurrentPersonalForecastPeriodKey, normalizeForecastTimezone, type PersonalForecastPeriod } from '../../../lib/personalForecastContract';
 import { buildForecastListenScript } from '../../../lib/tts/forecastListenScript';
+import { buildNatalListenScript, buildSignListenScript } from '../../../lib/tts/readingListenScript';
+import { composeDailyRadio } from '../../../lib/dailyRadio';
+import { normalizeZodiacKey } from '../../../lib/horoscope/signDaily';
+import { getSignHoroscopeCacheSnapshot } from '../../../lib/horoscope/signCache';
+import { getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey } from '../../../lib/date-utils';
+import { ensureValidContext } from '../../../lib/natalReading/apiHelper';
+import { getCachedNatalUnifiedReading } from '../../../lib/natalReading/unifiedApi';
+import { projectNatalUnifiedReadingForTier } from '../../../lib/natalReading/unifiedReading';
 import { TTS_DEFAULT_VOICE } from '../../../lib/tts/openaiSpeech';
 import { ensureAudio } from '../../../lib/tts/ttsStore';
 import { findSleepStory } from '../../../lib/sleepStories';
@@ -33,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const auth = await requireAppUser(req, { allowGuest: true });
     const userId = String(auth.userId);
-    const source = (req.body || {}).source as { type?: unknown; period?: unknown; periodKey?: unknown; id?: unknown; language?: unknown; seriesId?: unknown; number?: unknown } | undefined;
+    const source = (req.body || {}).source as { dayKey?: unknown; sign?: unknown; part?: unknown; topicKey?: unknown; chartId?: unknown; type?: unknown; period?: unknown; periodKey?: unknown; id?: unknown; language?: unknown; seriesId?: unknown; number?: unknown } | undefined;
     if (source?.type === 'story_episode') {
       // One narrator per series; the episode is voiced once for all listeners (NEBO Premium).
       const series = typeof source.seriesId === 'string' ? await findManagedSeries(source.seriesId) : null;
@@ -56,6 +64,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const language = source.language === 'en' ? 'en' : 'ru';
       const ticket = await ensureAudio({ text: story.text[language], voice: story.voice, style: 'sleep', ttlDays: null });
       return res.status(200).json({ audioId: ticket.id, durationSec: ticket.durationSec, cached: ticket.cached });
+    }
+    if (source?.type === 'sign_horoscope') {
+      // A sign horoscope is shared text; only the studio voice needs NEBO Premium (everyone else hears the phone voice).
+      if (!(await getPremiumEntitlementState(userId)).isPremium) return res.status(403).json({ code: 'LISTEN_PREMIUM_REQUIRED' });
+      const sign = normalizeZodiacKey(String(source.sign || ''));
+      const signPeriod = source.period;
+      if (!sign || (signPeriod !== 'day' && signPeriod !== 'week' && signPeriod !== 'month')) return res.status(400).json({ code: 'LISTEN_SOURCE_INVALID' });
+      const currentKey = signPeriod === 'day' ? getMoscowTodayKey() : signPeriod === 'week' ? getMoscowIsoWeekKey() : getMoscowMonthKey();
+      if (String(source.periodKey || '') !== currentKey) return res.status(400).json({ code: 'LISTEN_PERIOD_INVALID' });
+      const signLanguage = source.language === 'en' ? 'en' : 'ru';
+      const snapshot = await getSignHoroscopeCacheSnapshot(signPeriod, sign, currentKey, signLanguage);
+      if (!snapshot) return res.status(404).json({ code: 'LISTEN_FORECAST_NOT_READY' });
+      const signText = buildSignListenScript(snapshot.reading, signLanguage);
+      const signTicket = await ensureAudio({ text: signText, voice: TTS_DEFAULT_VOICE, style: 'forecast', ttlDays: TTL_DAYS[signPeriod] });
+      return res.status(200).json({ audioId: signTicket.id, durationSec: signTicket.durationSec, cached: signTicket.cached });
+    }
+    if (source?.type === 'daily_radio') {
+      // «Радио NEBO»: the whole day in one issue. NEBO Premium only; every piece is read from the server's own copy.
+      if (!(await getPremiumEntitlementState(userId)).isPremium) return res.status(403).json({ code: 'LISTEN_PREMIUM_REQUIRED' });
+      if (String(source.dayKey || '') !== getMoscowTodayKey()) return res.status(400).json({ code: 'LISTEN_PERIOD_INVALID' });
+      const issue = await composeDailyRadio(userId);
+      const radioTicket = await ensureAudio({ text: issue.text, voice: TTS_DEFAULT_VOICE, style: 'forecast', ttlDays: 3 });
+      return res.status(200).json({ audioId: radioTicket.id, durationSec: radioTicket.durationSec, cached: radioTicket.cached });
+    }
+    if (source?.type === 'natal_reading') {
+      if (!(await getPremiumEntitlementState(userId)).isPremium) return res.status(403).json({ code: 'LISTEN_PREMIUM_REQUIRED' });
+      const part = source.part === 'topic' ? 'topic' : source.part === 'story' ? 'story' : null;
+      if (!part || (part === 'topic' && typeof source.topicKey !== 'string')) return res.status(400).json({ code: 'LISTEN_SOURCE_INVALID' });
+      // The chart is named, the text is read from the stored reading of that chart.
+      const body = (req.body || {}) as Record<string, unknown>;
+      if (source.chartId != null) body.chartId = source.chartId;
+      req.body = body;
+      const ready = await ensureValidContext(req, res, { allowGuest: true, requireCanonicalSnapshot: true, repairCanonicalSnapshot: false });
+      if (!ready) return undefined;
+      const cachedReading = await getCachedNatalUnifiedReading(ready.ctx, 'premium');
+      if (!cachedReading) return res.status(404).json({ code: 'LISTEN_NATAL_NOT_READY' });
+      const natalLanguage = ready.ctx.profile.language === 'en' ? 'en' : 'ru';
+      const natalText = buildNatalListenScript(projectNatalUnifiedReadingForTier(cachedReading.content, 'premium'), part, part === 'topic' ? String(source.topicKey) : null, natalLanguage);
+      if (!natalText) return res.status(404).json({ code: 'LISTEN_NATAL_NOT_READY' });
+      const natalTicket = await ensureAudio({ text: natalText, voice: TTS_DEFAULT_VOICE, style: 'forecast', ttlDays: null });
+      return res.status(200).json({ audioId: natalTicket.id, durationSec: natalTicket.durationSec, cached: natalTicket.cached });
     }
     const period = source?.period;
     if (source?.type !== 'personal_forecast' || (period !== 'day' && period !== 'week' && period !== 'month') || typeof source.periodKey !== 'string') {

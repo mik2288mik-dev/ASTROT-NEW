@@ -26,6 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const [entitlement, unlocks] = await Promise.all([getPremiumEntitlementState(userId), readUnlocks(userId)]);
     let access = episodeAccess({
+      seriesId: series.id,
       number,
       premium: entitlement.isPremium,
       unlocked: unlocks.some((unlock) => unlock.seriesId === series.id && unlock.number === number),

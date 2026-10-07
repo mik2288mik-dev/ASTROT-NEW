@@ -35,6 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           title: episode.title,
           releaseDate: episode.releaseDate,
           access: episodeAccess({
+            seriesId: item.id,
             number: episode.number,
             premium: entitlement.isPremium,
             unlocked: unlocks.some((unlock) => unlock.seriesId === item.id && unlock.number === episode.number),
