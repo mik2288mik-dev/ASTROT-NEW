@@ -290,6 +290,23 @@ export function resolveEntitlementState(
   return 'free';
 }
 
+/** Read-once content that a store trial does not open: the deep natal reading, charts of other people, full matrix. */
+const TRIAL_LOCKED_FEATURES = new Set<FeatureKey>([
+  'natal_deep', 'personality_deep', 'natal_questions', 'synastry_by_charts', 'natal_love', 'natal_career',
+  'natal_shadow', 'natal_talents', 'personal_transits', 'blind_spot', 'natal_anger', 'natal_money',
+  'natal_family', 'natal_how_others_see_you', 'deep_report', 'matrix_full',
+]);
+
+export function isStoreTrial(profile?: ProfileAccessState | null, nowMs = Date.now()): boolean {
+  if (!profile || profile.isAdmin || profile.is_admin) return false;
+  return resolveEntitlementState(profile, nowMs) === 'store_trial';
+}
+
+/** Active Premium that is not a store trial: the trial opens habits (voice, radio, stories, tests), not the one-time readings. */
+export function hasFullPremium(profile?: ProfileAccessState | null, nowMs = Date.now()): boolean {
+  return hasActivePremium(profile, nowMs) && !isStoreTrial(profile, nowMs);
+}
+
 export function hasActivePremium(profile?: ProfileAccessState | null, nowMs = Date.now()): boolean {
   if (!profile) return false;
   if (profile.isAdmin || profile.is_admin) return true;
@@ -365,7 +382,7 @@ export function canAccessFeature(
     };
   }
 
-  if (config.tier === 'premium' && !premium) {
+  if (config.tier === 'premium' && (!premium || (TRIAL_LOCKED_FEATURES.has(featureKey) && isStoreTrial(profile, nowMs)))) {
     return {
       allowed: false,
       status: 'needs_premium',

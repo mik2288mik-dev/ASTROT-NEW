@@ -12,7 +12,7 @@ import { formatDisplayDate } from '../lib/date-utils';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
 import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
-import { FREE_SAVED_PERSON_LIMIT, hasActivePremium, PREMIUM_SAVED_PERSON_LIMIT } from '../lib/accessMatrix';
+import { FREE_SAVED_PERSON_LIMIT, hasFullPremium, PREMIUM_SAVED_PERSON_LIMIT } from '../lib/accessMatrix';
 import { getAccessibleSavedPersonIds, getChartSubjectType, isSelfChart } from '../lib/chartAccessPolicy';
 import type { PaywallContext } from '../lib/paywallContext';
 import type { BirthTimeMode } from '../lib/birthTime';
@@ -165,7 +165,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const savedCharts = charts.filter((chart) => getChartSubjectType(chart) === 'saved_person');
   // The profile carries the latest backend-validated entitlement. A cached
   // chart-list boolean must never outlive its dated canonical snapshot.
-  const hasPremiumAccess = hasActivePremium(profile, entitlementNow);
+  const hasPremiumAccess = hasFullPremium(profile, entitlementNow);
   const accessibleSavedIds = localNatalLimits && hasPremiumAccess ? new Set(savedCharts.map(chart => chart.id)) : getAccessibleSavedPersonIds(charts, hasPremiumAccess);
   const canAddMore = serverCanAddMore
     && savedCharts.length < (hasPremiumAccess ? localNatalLimits ? Infinity : PREMIUM_SAVED_PERSON_LIMIT : FREE_SAVED_PERSON_LIMIT);

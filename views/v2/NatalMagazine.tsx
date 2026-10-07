@@ -6,7 +6,7 @@ import { formatDisplayDate } from '../../lib/date-utils';
 import { NatalQuestionExperience } from '../../components/NatalReading/NatalQuestionExperience';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { InteractiveNatalMap } from '../../components/NatalReading/InteractiveNatalMap';
-import { hasActivePremium } from '../../lib/accessMatrix';
+import { hasFullPremium } from '../../lib/accessMatrix';
 import { NatalUnifiedReport } from '../../components/NatalReading/NatalUnifiedReport';
 import { NatalHighlights } from '../../components/NatalReading/NatalHighlights';
 import { NatalProfileTab } from '../../components/NatalReading/NatalProfileTab';
@@ -99,7 +99,7 @@ export function NatalMagazine({
   const subjectBirthTime = chartSubject ? (chartSubject.birth_time ?? '') : profile.birthTime;
   const subjectBirthPlace = chartSubject ? chartSubject.birth_place : profile.birthPlace;
   const isSavedPerson = isSavedPersonChartSubject(chartSubject);
-  const isPremium = hasActivePremium(profile);
+  const isPremium = hasFullPremium(profile);
   const previewConfig = process.env.NODE_ENV === 'development'
     && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
       ? uiPreview
