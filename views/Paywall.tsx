@@ -271,6 +271,7 @@ export const Paywall: React.FC<PaywallProps> = ({
     [language, planOrder, plans, rustorePaymentsEnabled],
   );
   const selectedPlan = plans[selected] || null;
+  const selectedPlanHasTrial = selectedPlan?.product?.subscriptionInfo?.periods.some((period) => period.type === 'TrialPeriod') === true;
   const catalogLoading = catalogState === 'loading';
   const operationBusy = paying
     || restoring
@@ -414,7 +415,7 @@ export const Paywall: React.FC<PaywallProps> = ({
           </p>
           {!alreadyPremium ? (
             <ul className="pw2-promises">
-              <li>{ru ? (telegramPaymentsEnabled ? 'Все функции в любом тарифе' : '3 дня бесплатно при первой подписке') : (telegramPaymentsEnabled ? 'Every feature in every plan' : '3 days free on your first subscription')}</li>
+              <li>{ru ? 'Все функции в любом тарифе' : 'Every feature in every plan'}</li>
               <li>{ru ? 'Отмена в RuStore в любой момент' : 'Cancel in RuStore any time'}</li>
             </ul>
           ) : null}
@@ -510,8 +511,8 @@ export const Paywall: React.FC<PaywallProps> = ({
               {selectedPlan
                 ? selectedPlan.autoRenew
                   ? (ru
-                      ? `Автопродление: ${selectedPlan.priceLabel} за ${selectedPlan.periodLabel}.${telegramPaymentsEnabled ? '' : ' Первые 3 дня бесплатно при первой подписке.'} Отмена в RuStore: Профиль → Подписки.`
-                      : `Renews at ${selectedPlan.priceLabel} per ${selectedPlan.periodLabel}.${telegramPaymentsEnabled ? '' : ' First 3 days free on your first subscription.'} Cancel in RuStore: Profile → Subscriptions.`)
+                      ? `Автопродление: ${selectedPlan.priceLabel} за ${selectedPlan.periodLabel}.${selectedPlanHasTrial ? ' Первые 3 дня бесплатно при первой подписке.' : ''} Отмена в RuStore: Профиль → Подписки.`
+                      : `Renews at ${selectedPlan.priceLabel} per ${selectedPlan.periodLabel}.${selectedPlanHasTrial ? ' First 3 days free on your first subscription.' : ''} Cancel in RuStore: Profile → Subscriptions.`)
                   : (ru ? `Разовая оплата: ${selectedPlan.priceLabel}. Без автопродления.` : `One-time payment: ${selectedPlan.priceLabel}. No auto-renewal.`)
                 : (ru ? 'Оплата будет доступна после загрузки цены.' : 'Checkout is available once the price loads.')}
             </p>

@@ -2985,12 +2985,12 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 <div
                     role="status"
                     aria-live="polite"
-                    className="fixed inset-x-4 bottom-6 z-[120] mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-mono-ink shadow-lg"
+                    className="checkout-notice"
                 >
-                    <span className="min-w-0 flex-1">{checkoutNotice}</span>
+                    <span className="checkout-notice-text">{checkoutNotice}</span>
                     <button
                         type="button"
-                        className="min-h-[44px] shrink-0 px-2 font-semibold"
+                        className="checkout-notice-close"
                         aria-label="Закрыть сообщение"
                         onClick={() => setCheckoutNotice(null)}
                     >
