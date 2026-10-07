@@ -360,8 +360,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({
         <header className="meou-onboarding-header">
           <MeouLogo className="meou-onboarding-logo" fullCloud />
           {isWelcome ? <OnboardingProgress current={welcomeIndex} count={welcomeScreenCount} labelled={false} /> : null}
-          {screen === 'birth' ? <OnboardingProgress current={1} count={2} /> : null}
-          {screen === 'calculating' ? <OnboardingProgress current={2} count={2} /> : null}
         </header>
         {isIntro ? (
           <section
