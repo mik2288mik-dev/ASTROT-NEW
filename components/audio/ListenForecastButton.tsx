@@ -15,7 +15,7 @@ type ListenForecastButtonProps = {
   text: string;
   language: 'ru' | 'en';
   premium: boolean;
-  /** Opens NEBO+ for people without it (omit when promotion is not allowed). */
+  /** Opens NEBO Premium for people without it (omit when promotion is not allowed). */
   onRequestPremium?: () => void;
 };
 
@@ -26,7 +26,7 @@ const LABELS = {
 } as const;
 
 /**
- * «Слушать прогноз». NEBO+ hears a natural studio voice (OpenAI, voiced once
+ * «Слушать прогноз». NEBO Premium hears a natural studio voice (OpenAI, voiced once
  * on the server and cached); everyone else hears the phone's own voice, free
  * and offline. If the studio voice fails, the phone's voice reads instead.
  */
@@ -44,7 +44,7 @@ export function ListenForecastButton({ trackKey, period, periodKey, text, langua
   }, [language]);
 
   if (!text.trim()) return null;
-  // Without NEBO+ and without a phone voice there is nothing to play; offer NEBO+ if allowed.
+  // Without NEBO Premium and without a phone voice there is nothing to play; offer NEBO Premium if allowed.
   if (!premium && !deviceVoice && !onRequestPremium) return null;
 
   const readWithDeviceVoice = () => playSpeech({ trackKey, title, text, language });
@@ -80,7 +80,7 @@ export function ListenForecastButton({ trackKey, period, periodKey, text, langua
             ? <LoaderCircle className="audio-mini-player-spinner" size={18} aria-hidden="true" />
             : !premium && !deviceVoice ? <LockKeyhole size={16} aria-hidden="true" /> : <Headphones size={18} aria-hidden="true" />}
           <span>{preparing ? (language === 'ru' ? 'Готовлю голос…' : 'Preparing the voice…') : title}</span>
-          {!premium && !deviceVoice ? <small>NEBO+</small> : null}
+          {!premium && !deviceVoice ? <small>Premium</small> : null}
         </button>
       ) : null}
       <AudioMiniPlayer trackKey={trackKey} language={language} />

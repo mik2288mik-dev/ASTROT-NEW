@@ -1,6 +1,6 @@
 /**
  * Access to story episodes: the first three of every series are free; after
- * that one episode per series per day opens free, everything is open with NEBO+.
+ * that one episode per series per day opens free, everything is open with NEBO Premium.
  */
 export const FREE_STORY_EPISODES = 3;
 

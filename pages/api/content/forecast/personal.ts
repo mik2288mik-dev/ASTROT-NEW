@@ -153,7 +153,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const periodKey = requestedPeriodKey
     || getPersonalForecastPeriodKey(period, new Date(), timezone);
   const entitlement = await getPremiumEntitlementState(userId);
-  // A gifted week (seven days in a row, a year with NEBO) opens the current week reading as for NEBO+.
+  // A gifted week (seven days in a row, a year with NEBO) opens the current week reading as for NEBO Premium.
   const weekGift = !entitlement.isPremium && period === 'week'
     && getPersonalForecastPeriodAccess({ accessTier: 'premium', period, periodKey, timezone }) === 'allowed'
     && await hasWeekGift(userId, periodKey).catch(() => false);

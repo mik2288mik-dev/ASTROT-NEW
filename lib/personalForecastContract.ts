@@ -407,7 +407,7 @@ export function isCurrentPersonalForecastPeriodKey(
 // Keep today's reading and the next four local calendar days ready in advance.
 export const PERSONAL_FORECAST_ROLLING_DAY_COUNT = 5;
 export const MAX_FUTURE_FORECAST_DAYS = 30;
-/** Free readers open today and tomorrow; NEBO+ opens the whole 30-day horizon. */
+/** Free readers open today and tomorrow; NEBO Premium opens the whole 30-day horizon. */
 export const FREE_FORECAST_DAYS = 2;
 
 /** Calendar dates, independent of DST and the device's own timezone. */

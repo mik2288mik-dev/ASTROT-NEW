@@ -15,7 +15,7 @@ import { PremiumHook } from '../../components/premium/PremiumHook';
 
 type Props = { profile: UserProfile; onBack: () => void; onOpenProfile?: () => void; onOpenCharts?: () => void; embedded?: boolean; onRequestPremium?: () => void };
 
-/** Free: the diagram, every number, the character theme. NEBO+: money, love, life stages and the full reading. */
+/** Free: the diagram, every number, the character theme. NEBO Premium: money, love, life stages and the full reading. */
 const PREMIUM_THEMES = new Set<Theme>(['money', 'love', 'age']);
 const PREMIUM_POINTS = new Set(['money', 'love']);
 type Theme = 'character' | 'money' | 'love' | 'age';
@@ -100,10 +100,10 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false, o
   const moneyNumber = result.lifeAreas.find((item) => item.key === 'money')?.arcana;
   const loveNumber = result.lifeAreas.find((item) => item.key === 'love')?.arcana;
   const lockedLead = (key: Theme) => key === 'money'
-    ? `Твоё число денег, ${moneyNumber}. Что оно значит, в NEBO+`
+    ? `Твоё число денег, ${moneyNumber}. Что оно значит, в NEBO Premium`
     : key === 'love'
-      ? `Твоё число отношений, ${loveNumber}. Что оно значит, в NEBO+`
-      : 'Три этапа жизни по твоей дате, в NEBO+';
+      ? `Твоё число отношений, ${loveNumber}. Что оно значит, в NEBO Premium`
+      : 'Три этапа жизни по твоей дате, в NEBO Premium';
   const chapters = [
     ['main', ru ? 'Главное' : 'Main', ru ? 'Главный вектор' : 'Main direction', selected.copy, ru ? 'Центр схемы помогает заметить повторяющийся способ действовать. Это не ярлык и не предсказание.' : 'The center helps notice a repeating pattern, not label you.'],
     ['character', ru ? 'Характер' : 'Character', themes.character.title, themes.character.lead, themes.character.blocks[1][1]],
@@ -121,7 +121,7 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false, o
       {screen.kind === 'home' && <>
         <p className={styles.dateLine}>{ru ? 'Дата рождения' : 'Birth date'} <strong>{date.split('-').reverse().join('.')}</strong></p>
         <details className={styles.recalculate}><summary>{ru ? 'Изменить дату' : 'Change date'}</summary><div><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /><button type="button" onClick={calculate}>{ru ? 'Пересчитать' : 'Recalculate'}</button></div></details>
-        <section className={styles.matrixBlock}><p className={styles.eyebrow}>{ru ? 'Твоя матрица' : 'Your matrix'}</p><Diagram points={points} selected={selectedId} onSelect={(point) => { lumiaSelectionHaptic(); setSelectedId(point.id); }} /><div className={styles.selection}><b>{selected.value}</b><span><strong>{selected.label}</strong><small style={{ fontSize: 13, fontWeight: 600 }}>{selected.formula}</small></span><button type="button" onClick={() => { if (locked && PREMIUM_POINTS.has(selected.id)) { requestPremium(); return; } lumiaSelectionHaptic(); setScreen({ kind: 'point', point: selected }); }}>{locked && PREMIUM_POINTS.has(selected.id) ? 'NEBO+' : (ru ? 'Разобрать' : 'Open')}</button></div></section>
+        <section className={styles.matrixBlock}><p className={styles.eyebrow}>{ru ? 'Твоя матрица' : 'Your matrix'}</p><Diagram points={points} selected={selectedId} onSelect={(point) => { lumiaSelectionHaptic(); setSelectedId(point.id); }} /><div className={styles.selection}><b>{selected.value}</b><span><strong>{selected.label}</strong><small style={{ fontSize: 13, fontWeight: 600 }}>{selected.formula}</small></span><button type="button" onClick={() => { if (locked && PREMIUM_POINTS.has(selected.id)) { requestPremium(); return; } lumiaSelectionHaptic(); setScreen({ kind: 'point', point: selected }); }}>{locked && PREMIUM_POINTS.has(selected.id) ? 'NEBO Premium' : (ru ? 'Разобрать' : 'Open')}</button></div></section>
         <section className={styles.themes}><h1>{ru ? 'Разбор' : 'Reading'}</h1><p>{ru ? 'Нажми на тему или число, откроем отдельный разбор.' : 'Choose a theme or a number for its own reading.'}</p>{(Object.keys(themes) as Theme[]).map((key) => { const closed = locked && PREMIUM_THEMES.has(key); return <button type="button" className={styles.themeRow} style={{ gridTemplateColumns: 'minmax(0, 1fr) 18px' }} key={key} onClick={() => { if (closed) { requestPremium(); return; } lumiaSelectionHaptic(); setScreen({ kind: 'theme', theme: key }); }}><span><strong>{themes[key].title}</strong><small>{closed ? lockedLead(key) : themes[key].lead}</small></span>{closed ? <LockKeyhole aria-hidden="true" size={16} /> : <ChevronRight aria-hidden="true" />}</button>; })}</section>
         {locked ? <PremiumHook
           title={`Деньги, ${moneyNumber}, отношения, ${loveNumber}: что это значит для тебя`}

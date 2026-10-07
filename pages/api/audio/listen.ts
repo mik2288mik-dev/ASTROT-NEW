@@ -20,7 +20,7 @@ export const config = { api: { bodyParser: { sizeLimit: '4kb' } }, maxDuration: 
 const TTL_DAYS: Record<PersonalForecastPeriod, number> = { day: 3, week: 9, month: 35 };
 
 /**
- * «Слушать прогноз» (NEBO+). The client names the reading, never the text: the
+ * «Слушать прогноз» (NEBO Premium). The client names the reading, never the text: the
  * server reads the person's own saved forecast, so the endpoint cannot be used
  * to voice arbitrary text. Returns the id of cached audio for /api/audio/file.
  */
@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const userId = String(auth.userId);
     const source = (req.body || {}).source as { type?: unknown; period?: unknown; periodKey?: unknown; id?: unknown; language?: unknown; seriesId?: unknown; number?: unknown } | undefined;
     if (source?.type === 'story_episode') {
-      // One narrator per series; the episode is voiced once for all listeners (NEBO+).
+      // One narrator per series; the episode is voiced once for all listeners (NEBO Premium).
       const series = typeof source.seriesId === 'string' ? await findManagedSeries(source.seriesId) : null;
       const number = Number(source.number);
       if (!series || !Number.isSafeInteger(number)) return res.status(400).json({ code: 'LISTEN_SOURCE_INVALID' });

@@ -42,7 +42,7 @@ describe('audio API', () => {
     });
   });
 
-  it('voices only the person’s own saved reading for NEBO+', async () => {
+  it('voices only the person’s own saved reading for NEBO Premium', async () => {
     const res = response();
     await listen({ method: 'POST', body: { source: { type: 'personal_forecast', period: 'day', periodKey: '2026-10-03' } }, headers: {} } as any, res);
     expect(res.status).toHaveBeenCalledWith(200);

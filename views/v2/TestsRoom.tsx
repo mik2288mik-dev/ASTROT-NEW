@@ -234,7 +234,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
     <div className="fresh-page tests-room">
       <AppTopBar title={ru ? 'Тесты о себе' : 'Tests about you'} onBack={onBack} />
       <section className="tests-intro video-hero">
-        <VideoBackground id="tests" still />
+        <VideoBackground id="tests" />
         <h1>{ru ? 'Узнай себя чуть лучше' : 'Get to know yourself a bit better'}</h1>
         <p>{ru ? 'Короткие тесты на пару минут. Без правильных ответов и без оценок, а в конце сравним с твоей картой.' : 'Short tests, a couple of minutes each. No right answers, no grades, and at the end we compare with your chart.'}</p>
       </section>

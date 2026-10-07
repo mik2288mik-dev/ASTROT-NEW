@@ -63,7 +63,7 @@ describe('system voice for forecasts', () => {
     expect(getPlaybackState().playing).toBe(false);
   });
 
-  it('gives NEBO+ the studio voice and everyone else the phone voice', () => {
+  it('gives NEBO Premium the studio voice and everyone else the phone voice', () => {
     expect(read('android/app/src/main/java/ru/tvoygoroskop/app/MainActivity.java')).toContain('registerPlugin(NativeTtsPlugin.class);');
     expect(read('android/app/src/main/AndroidManifest.xml')).toContain('android.intent.action.TTS_SERVICE');
     const button = read('components/audio/ListenForecastButton.tsx');

@@ -508,7 +508,7 @@ export const Dashboard = memo<DashboardProps>(({
     if (requestedPeriod === 'week') onPeriodChange?.('month');
   }, [onPeriodChange, requestedPeriod]);
 
-  // «Будущее» opens with both NEBO+ readings: the week one loads next to the month.
+  // «Будущее» opens with both NEBO Premium readings: the week one loads next to the month.
   const weekGifted = !premium && giftStatus?.weekGift?.periodKey === periodKeys.week;
   useEffect(() => {
     if (activePeriod === 'month' && (premium || weekGifted)) loadPeriod('week');
@@ -867,10 +867,10 @@ export const Dashboard = memo<DashboardProps>(({
         { id: 'future', onOpen: () => openFuture() },
         { id: 'compatibility', onOpen: onOpenSynastry },
         { id: 'matrix', onOpen: onOpenMatrix },
-        { id: 'antistress', onOpen: onOpenAntistress },
         { id: 'tests', onOpen: onOpenTests ? () => onOpenTests() : undefined },
         { id: 'sounds', onOpen: onOpenSounds },
         { id: 'stories', onOpen: onOpenStories },
+        { id: 'antistress', onOpen: onOpenAntistress },
       ]}
     />
   );

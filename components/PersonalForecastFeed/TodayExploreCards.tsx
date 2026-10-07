@@ -30,7 +30,7 @@ type SavedPerson = { name: string; sign: string };
 const COPY = {
   ru: {
     heading: 'Узнать о себе больше',
-    premium: 'NEBO+',
+    premium: 'Premium',
     natal: 'Натальная карта',
     natalFallback: 'Твой характер, сильные стороны и слабые места',
     compatibility: 'Совместимость',
@@ -41,7 +41,7 @@ const COPY = {
   },
   en: {
     heading: 'Discover more about yourself',
-    premium: 'NEBO+',
+    premium: 'Premium',
     natal: 'Birth chart',
     natalFallback: 'Your character, strengths and weak spots',
     compatibility: 'Compatibility',

@@ -173,7 +173,7 @@ export function buildForYouOffers(context: ForYouContext): ForYouOffer[] {
       offers.push({
         id: 'premium_ending',
         occurrence: `premium:${endKey}`,
-        title: ru ? `NEBO+ открыт до ${dateRu(endKey)}` : `NEBO+ is open until ${dateEn(endKey)}`,
+        title: ru ? `NEBO Premium открыт до ${dateRu(endKey)}` : `NEBO Premium is open until ${dateEn(endKey)}`,
         body: ru
           ? 'Говорим заранее, без спешки. Если захочешь продолжить, продлить можно в пару касаний, все карты и разборы останутся на месте.'
           : 'Just a heads-up. If you want to keep it, renewing takes a couple of taps, your charts and readings stay where they are.',

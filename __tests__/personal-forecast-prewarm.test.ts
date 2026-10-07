@@ -254,7 +254,7 @@ describe('personal forecast rolling prewarm', () => {
     expect(MAX_FUTURE_FORECAST_DAYS).toBe(30);
     for (const accessTier of ['free', 'premium'] as const) {
       expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-08' })).toBe('allowed');
-      // Tomorrow is free too; from the day after, the future belongs to NEBO+.
+      // Tomorrow is free too; from the day after, the future belongs to NEBO Premium.
       expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-09' })).toBe('allowed');
       expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-09-10' })).toBe(accessTier === 'premium' ? 'allowed' : 'premium_required');
       expect(getPersonalForecastPeriodAccess({ ...common, accessTier, periodKey: '2026-10-08' })).toBe(accessTier === 'premium' ? 'allowed' : 'premium_required');

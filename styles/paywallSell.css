@@ -1,0 +1,121 @@
+/* NEBO Premium: a screen that sells. A video hero, benefit cards with pictures, plans with the per-month price,
+   links under the button that sit straight. Loaded after the older paywall sheets. */
+
+.pw2-intro.is-sell {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 15.5rem;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  padding: 1.25rem 1.1rem 1.1rem;
+  border-radius: 26px;
+  background: #1b2a5c;
+  box-shadow: var(--nebo-card-shadow, 0 14px 30px rgba(22, 32, 70, 0.22));
+}
+.pw2 .pw2-intro.is-sell .pw2-kicker {
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-weight: 700;
+  text-shadow: 0 1px 8px rgba(5, 8, 24, 0.5);
+}
+.pw2 .pw2-intro.is-sell .pw2-title {
+  max-width: 14ch;
+  color: #fff !important;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.06;
+  text-shadow: 0 2px 16px rgba(5, 8, 24, 0.55);
+}
+.pw2 .pw2-intro.is-sell .pw2-sub {
+  color: rgba(255, 255, 255, 0.92) !important;
+  text-shadow: 0 1px 10px rgba(5, 8, 24, 0.6);
+}
+.pw2-promises { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
+.pw2-promises li {
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Plans: soft cards, the chosen one lifted, the saving named. */
+.pw2 .pw2-plan {
+  min-height: 72px;
+  border: 0 !important;
+  border-radius: 18px !important;
+  background: #f4f5fa !important;
+  box-shadow: none !important;
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+.pw2 .pw2-plan.is-sel {
+  background: #fff !important;
+  box-shadow: 0 0 0 2px #171717, var(--nebo-card-shadow, 0 10px 22px rgba(22, 32, 70, 0.16)) !important;
+}
+.pw2 .pw2-plan.is-sel .pw2-plan-selected { color: #171717; }
+
+/* Benefits: a card each, with its picture. */
+.pw2-benefits { gap: 10px; }
+.pw2-benefits > div {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-areas: 'img title' 'img text';
+  column-gap: 14px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: var(--nebo-card-shadow, 0 10px 22px rgba(22, 32, 70, 0.14));
+}
+.pw2-benefits > div::before {
+  grid-area: img;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--benefit-img) center / contain no-repeat, #f1f2f7;
+  content: '';
+}
+.pw2-benefits > div dt { grid-area: title; font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; }
+.pw2-benefits > div dd { grid-area: text; font-size: 0.86rem; line-height: 1.35; }
+
+/* The links under the button: no boxes, two even links on one line. */
+.pw2 .pw2-secondary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+}
+.pw2 .pw2-free {
+  min-height: 40px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #5b5f6b !important;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgba(91, 95, 107, 0.4);
+  text-underline-offset: 3px;
+}
+.pw2 .pw2-cta {
+  min-height: 3.2rem;
+  border-radius: 999px !important;
+  background: #171717 !important;
+  font-weight: 700;
+  box-shadow: 0 10px 22px rgba(10, 14, 30, 0.3);
+}
+
+/* Words above the clip, and a fade dark enough for white text on any frame. */
+.pw2-intro.is-sell > :not(.video-bg) { position: relative; z-index: 1; }
+.pw2-intro.is-sell > .video-bg.is-scrim-bottom .video-bg-scrim {
+  background: linear-gradient(to top, rgba(8, 12, 30, 0.86) 0%, rgba(8, 12, 30, 0.6) 50%, rgba(8, 12, 30, 0.3) 100%) !important;
+}

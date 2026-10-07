@@ -374,6 +374,8 @@
 
 .compat-live-sample-cta {
   width: 100%;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 @media (prefers-reduced-motion: reduce) {

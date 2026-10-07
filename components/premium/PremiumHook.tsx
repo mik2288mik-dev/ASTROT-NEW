@@ -13,14 +13,14 @@ type PremiumHookProps = {
 };
 
 /**
- * The one invitation to NEBO+ across the app. It shows what is inside for this
+ * The one invitation to NEBO Premium across the app. It shows what is inside for this
  * person (their placements, their numbers, their topics) and never cuts off
  * content that was already shown for free.
  */
-export function PremiumHook({ title, items, cta = 'Открыть в NEBO+', note, onOpen }: PremiumHookProps) {
+export function PremiumHook({ title, items, cta = 'Открыть в NEBO Premium', note, onOpen }: PremiumHookProps) {
   return (
-    <section className={styles.hook} aria-label="Доступ с NEBO+" data-premium-hook>
-      <span className={styles.label}><LockKeyhole size={14} aria-hidden="true" />NEBO+</span>
+    <section className={styles.hook} aria-label="Доступ с NEBO Premium" data-premium-hook>
+      <span className={styles.label}><LockKeyhole size={14} aria-hidden="true" />Premium</span>
       <h3 className={styles.title}>{title}</h3>
       {items.length ? (
         <ul className={styles.items}>

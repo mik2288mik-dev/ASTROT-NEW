@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { UserProfile } from '../types';
 import type { PremiumPlanId } from '../lib/premiumPricing';
+import { VideoBackground } from '../components/lumia-ui/VideoBackground';
 import type { PaywallContext } from '../lib/paywallContext';
 import { hasActivePremium, PREMIUM_SAVED_PERSON_LIMIT } from '../lib/accessMatrix';
 import { lumiaSelectionHaptic } from '../lib/haptics';
@@ -63,6 +64,21 @@ type CatalogPlan = {
 };
 
 const RUSTORE_PLAN_ORDER: PremiumPlanId[] = ['premium_month', 'premium_quarter', 'premium_year'];
+
+const PLAN_MONTHS: Partial<Record<string, number>> = { premium_month: 1, premium_quarter: 3, premium_year: 12 };
+
+/** «300 ₽ в месяц» from the plan's own price label; nothing when the price cannot be read or the plan is a single month. */
+function perMonthLabel(planId: string, priceLabel: string, ru: boolean): string | null {
+  const months = PLAN_MONTHS[planId];
+  if (!months || months < 2) return null;
+  const match = /^\s*([\d\s .,]+?)\s*(\S.*)$/u.exec(priceLabel);
+  if (!match) return null;
+  const amount = Number.parseFloat(match[1].replace(/[\s ]/gu, '').replace(',', '.'));
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  const unit = match[2].trim();
+  return `${Math.round(amount / months)} ${unit} ${ru ? 'в месяц' : 'a month'}`;
+}
+
 const TELEGRAM_PLAN_ORDER: PremiumPlanId[] = [
   'premium_week',
   'premium_month',
@@ -342,16 +358,18 @@ export const Paywall: React.FC<PaywallProps> = ({
 
   const benefits = ru
     ? [
-        { title: 'Личные прогнозы', description: 'Сегодня, неделя и месяц' },
-        { title: 'Натальный разбор', description: 'Характер, отношения, работа, деньги и свои вопросы' },
-        { title: 'Совместимость', description: 'Разбор вашей пары по двум картам' },
-        { title: 'Мои карты', description: `Своя + до ${PREMIUM_SAVED_PERSON_LIMIT} карт других людей` },
+        { title: 'Личные прогнозы', description: 'Сегодня, неделя и месяц вперёд, удачные дни и озвучка', image: '/assets/home-tiles/future.webp' },
+        { title: 'Натальный разбор', description: 'Характер, отношения, работа, деньги и свои вопросы', image: '/assets/planets/jupiter.webp' },
+        { title: 'Совместимость', description: 'Разбор вашей пары по двум картам', image: '/assets/home-tiles/compatibility.webp' },
+        { title: 'Мои карты', description: `Своя + до ${PREMIUM_SAVED_PERSON_LIMIT} карт других людей`, image: '/assets/for-you/pair.webp' },
+        { title: 'Рассказы и истории для сна', description: 'Все серии сразу и весь архив историй', image: '/assets/home-tiles/stories.webp' },
       ]
     : [
-        { title: 'Personal forecasts', description: 'Today, week, and month' },
-        { title: 'Birth chart reading', description: 'Character, relationships, work, money, and your questions' },
-        { title: 'Compatibility', description: 'Your relationship through two saved charts' },
-        { title: 'My charts', description: `Yours + up to ${PREMIUM_SAVED_PERSON_LIMIT} other people` },
+        { title: 'Personal forecasts', description: 'Week and month ahead, lucky days and voice', image: '/assets/home-tiles/future.webp' },
+        { title: 'Birth chart reading', description: 'Character, relationships, work, money, and your questions', image: '/assets/planets/jupiter.webp' },
+        { title: 'Compatibility', description: 'Your relationship through two saved charts', image: '/assets/home-tiles/compatibility.webp' },
+        { title: 'My charts', description: `Yours + up to ${PREMIUM_SAVED_PERSON_LIMIT} other people`, image: '/assets/for-you/pair.webp' },
+        { title: 'Stories and bedtime tales', description: 'Every episode at once and the whole archive', image: '/assets/home-tiles/stories.webp' },
       ];
   const renewalId = `premium-renewal-${context.paywallInstanceId}`;
 
@@ -365,14 +383,15 @@ export const Paywall: React.FC<PaywallProps> = ({
     >
       {!embedded ? <AppTopBar title="Premium" onBack={onClose} /> : null}
       <div className="pw2-content">
-        <div className="pw2-intro">
+        <div className={`pw2-intro${alreadyPremium ? '' : ' is-sell'}`}>
+          {!alreadyPremium ? <VideoBackground id="premium" scrim="bottom" /> : null}
           <p className="pw2-kicker">NEBO Premium</p>
           <h1 className="pw2-title">
             {alreadyPremium
               ? (ru ? 'Всё уже открыто' : 'You have full access')
               : natalAnswerTitle
                 ? (ru ? 'Больше о тебе' : 'More about you')
-                : (ru ? 'Больше о себе и о вас двоих' : 'More about you. And the two of you.')}
+                : (ru ? 'Открой NEBO на полную' : 'Unlock NEBO in full')}
           </h1>
           <p className="pw2-sub">
             {alreadyPremium
@@ -381,6 +400,12 @@ export const Paywall: React.FC<PaywallProps> = ({
                 ? (ru ? `Продолжим с «${natalAnswerTitle}».` : `Continue with “${natalAnswerTitle}”.`)
                 : CONTEXT_COPY[context.placement][language]}
           </p>
+          {!alreadyPremium ? (
+            <ul className="pw2-promises">
+              <li>{ru ? 'Все функции в любом тарифе' : 'Every feature in every plan'}</li>
+              <li>{ru ? 'Отмена в RuStore в любой момент' : 'Cancel in RuStore any time'}</li>
+            </ul>
+          ) : null}
         </div>
 
         {resumeNotice ? <p className="pw2-state" role="status">{resumeNotice}</p> : null}
@@ -429,7 +454,7 @@ export const Paywall: React.FC<PaywallProps> = ({
                     />
                     <div className="pw2-plan-heading">
                       <p className="pw2-plan-period">{plan.periodLabel}</p>
-                      <p className="pw2-plan-selected" aria-hidden="true">{isSelected ? (ru ? 'Выбрано' : 'Selected') : (ru ? 'Полный доступ' : 'Full access')}</p>
+                      <p className="pw2-plan-selected" aria-hidden="true">{(hasCatalogPrice ? perMonthLabel(plan.id, plan.priceLabel, ru) : null) ?? (isSelected ? (ru ? 'Выбрано' : 'Selected') : (ru ? 'Полный доступ' : 'Full access'))}</p>
                     </div>
                     <p className={`pw2-plan-price ${hasCatalogPrice ? '' : 'is-placeholder'}`}>{price}</p>
                   </label>
@@ -451,7 +476,7 @@ export const Paywall: React.FC<PaywallProps> = ({
         <section className="pw2-included" aria-labelledby="pw2-benefits-title">
           <h2 id="pw2-benefits-title" className="pw2-section-title">{ru ? 'Что откроется' : 'What’s included'}</h2>
           <dl className="pw2-benefits">
-            {benefits.map((benefit) => <div key={benefit.title}><dt>{null}{benefit.title}</dt><dd>{benefit.description}</dd></div>)}
+            {benefits.map((benefit) => <div key={benefit.title} style={{ '--benefit-img': `url(${benefit.image})` } as React.CSSProperties}><dt>{null}{benefit.title}</dt><dd>{benefit.description}</dd></div>)}
           </dl>
         </section>
         <div className="pw2-foot">
