@@ -13,6 +13,8 @@ export type SleepStory = {
   teaser: { ru: string; en: string };
   voiceLabel: { ru: string; en: string };
   text: { ru: string; en: string };
+  /** Reading length for stories whose text is not shipped with the client (the weekly ones). */
+  minutes?: number;
 };
 
 export const SLEEP_STORIES: readonly SleepStory[] = [

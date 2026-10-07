@@ -10,6 +10,7 @@ import { buildForecastListenScript } from '../../../lib/tts/forecastListenScript
 import { TTS_DEFAULT_VOICE } from '../../../lib/tts/openaiSpeech';
 import { ensureAudio } from '../../../lib/tts/ttsStore';
 import { findSleepStory } from '../../../lib/sleepStories';
+import { findWeeklySleepStory } from '../../../lib/sleepStoriesWeekly';
 import { findManagedSeries } from '../../../lib/stories/catalog';
 import { listEpisodes, moscowDayKey } from '../../../lib/stories/repository';
 import { releasedEpisodeNumbers } from '../../../lib/stories/access';
@@ -47,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     if (source?.type === 'sleep_story') {
       // Authored stories: voiced once for everyone, kept without expiry.
-      const story = typeof source.id === 'string' ? findSleepStory(source.id) : null;
+      const story = typeof source.id === 'string' ? (findSleepStory(source.id) ?? await findWeeklySleepStory(source.id)) : null;
       if (!story) return res.status(400).json({ code: 'LISTEN_SOURCE_INVALID' });
       if (!story.free && !(await getPremiumEntitlementState(userId)).isPremium) {
         return res.status(403).json({ code: 'LISTEN_PREMIUM_REQUIRED' });
