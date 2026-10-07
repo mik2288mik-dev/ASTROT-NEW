@@ -138,7 +138,7 @@ export function PeopleBlock({ userId, todayKey, premium, onOpenPair, onAddPerson
                 <button type="button" className="people-fact is-locked" onClick={() => onOpenPair(String(selected.id), name)}>
                   <b>Где вы задеваете друг друга</b>
                   <span>И что с этим делать, в полном разборе пары</span>
-                  {!premium ? <em><Lock size={11} aria-hidden="true" /> NEBO+</em> : <ChevronRight size={16} aria-hidden="true" />}
+                  {!premium ? <em><Lock size={11} aria-hidden="true" /> Premium</em> : <ChevronRight size={16} aria-hidden="true" />}
                 </button>
               ) : null}
               <button

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Armchair, BookHeart, Check, ChevronRight, Coffee, DoorClosed, Lamp, Monitor, Smartphone, SquareStack } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { weeklyDiarySummary } from '../../lib/antistressDiary';
 import { VideoBackground } from '../../components/lumia-ui/VideoBackground';
 import { MANNEQUIN_HINT, WoodenMannequin, type GuideStep, type MannequinPart } from '../../components/antistress/WoodenMannequin';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
@@ -96,7 +97,7 @@ function TileGround() {
   );
 }
 
-const TILE_SOUNDS = ['Дождь', 'Море', 'Камин', 'Лес'];
+const TILE_SOUNDS = ['Дождь', 'Море', 'Костёр', 'Лес'];
 
 function TileSounds() {
   const [index, setIndex] = useState(0);
@@ -447,6 +448,11 @@ function Diary({ userId, today }: { userId: string; today: string }) {
     void saveFeatureState(userId, 'antistress', `diary:${today}`, entry);
     setMessage(`Записано: ${level} из 5${causes.length ? `, причины: ${causes.join(', ')}` : ''}.`);
   };
+  const summary = useMemo(() => weeklyDiarySummary(days.map((day) => {
+    const entry = entries[day];
+    const value = day === today ? level || entry?.level || 0 : entry?.level ?? 0;
+    return { day, level: value, causes: day === today ? causes : entry?.causes ?? [] };
+  })), [days, entries, today, level, causes]);
   const frequent = useMemo(() => {
     const counts = new Map<string, number>();
     Object.values(entries).forEach((entry) => entry.causes.forEach((cause) => counts.set(cause, (counts.get(cause) ?? 0) + 1)));
@@ -467,6 +473,9 @@ function Diary({ userId, today }: { userId: string; today: string }) {
             const date = new Date(`${day}T12:00:00`);
             return <div key={day}><i className={day === today ? 'is-now' : ''} style={{ height: `${value ? value * 18 + 10 : 6}px` }} />{WEEKDAYS[(date.getDay() + 6) % 7]}</div>;
           })}
+        </div>
+        <div className="as-summary" aria-label="Разбор недели">
+          {summary.map((line) => <p key={line}>{line}</p>)}
         </div>
         {frequent.length ? <p className="as-mute">Чаще всего выбивало: {frequent.map(([cause, count]) => `${cause} (${count})`).join(', ')}.</p> : <p className="as-mute">Отметки появятся здесь по мере записей.</p>}
       </section>

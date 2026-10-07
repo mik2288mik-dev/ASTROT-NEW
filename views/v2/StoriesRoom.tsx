@@ -22,9 +22,11 @@ export const STORY_COVERS: Record<string, string> = {
   'family-chat': '/assets/stories/family-chat.webp',
 };
 
-// Only the clips that really match their story; the others keep the cover until a fitting clip is made.
 const STORY_VIDEOS: Record<string, VideoBackgroundId> = {
+  'quiet-lane': 'story-quiet-lane',
+  'stair-neighbours': 'story-stair-neighbours',
   'polyn-station': 'story-polyn-station',
+  'family-chat': 'story-family-chat',
 };
 
 type Screen = { kind: 'list' } | { kind: 'series'; seriesId: string } | { kind: 'read'; seriesId: string; number: number };
@@ -126,17 +128,17 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
           <div className="stories-gate">
             <Gift size={22} aria-hidden="true" />
             <h2>{ru ? 'Серия дня, бесплатно' : 'Today’s free episode'}</h2>
-            <p>{ru ? 'Одну серию этого сериала в день можно открыть бесплатно. С NEBO+, все серии сразу и озвучка.' : 'One episode of this series a day opens for free. With NEBO+, every episode at once and audio.'}</p>
+            <p>{ru ? 'Одну серию этого сериала в день можно открыть бесплатно. С NEBO Premium, все серии сразу и озвучка.' : 'One episode of this series a day opens for free. With NEBO Premium, every episode at once and audio.'}</p>
             <button type="button" className="stories-primary" onClick={() => { void open(screen.seriesId, screen.number, true); }}>{ru ? 'Открыть бесплатно' : 'Open for free'}</button>
-            {onRequestPremium ? <button type="button" className="stories-secondary" onClick={onRequestPremium}>{ru ? 'Все серии в NEBO+' : 'All episodes in NEBO+'}</button> : null}
+            {onRequestPremium ? <button type="button" className="stories-secondary" onClick={onRequestPremium}>{ru ? 'Все серии в NEBO Premium' : 'All episodes in NEBO Premium'}</button> : null}
           </div>
         ) : null}
         {episodeState === 'locked' ? (
           <div className="stories-gate">
             <Lock size={22} aria-hidden="true" />
             <h2>{ru ? 'Сегодняшняя бесплатная серия уже открыта' : 'Today’s free episode is already open'}</h2>
-            <p>{ru ? 'Завтра откроется следующая. Или читай все серии сразу с NEBO+.' : 'The next one opens tomorrow. Or read them all with NEBO+.'}</p>
-            {onRequestPremium ? <button type="button" className="stories-primary" onClick={onRequestPremium}>{ru ? 'Открыть все в NEBO+' : 'Open all in NEBO+'}</button> : null}
+            <p>{ru ? 'Завтра откроется следующая. Или читай все серии сразу с NEBO Premium.' : 'The next one opens tomorrow. Or read them all with NEBO Premium.'}</p>
+            {onRequestPremium ? <button type="button" className="stories-primary" onClick={onRequestPremium}>{ru ? 'Открыть все в NEBO Premium' : 'Open all in NEBO Premium'}</button> : null}
           </div>
         ) : null}
         {episode ? (
@@ -147,7 +149,7 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
               <button type="button" className="stories-listen-button" onClick={() => { void listen(episode); }} disabled={listenState === 'preparing'}>
                 {listenState === 'preparing' ? <LoaderCircle className="audio-mini-player-spinner" size={16} aria-hidden="true" /> : overview?.premium ? <Headphones size={16} aria-hidden="true" /> : <Lock size={15} aria-hidden="true" />}
                 {listenState === 'preparing' ? (ru ? 'Готовим голос…' : 'Preparing the voice…') : (ru ? 'Слушать серию' : 'Listen')}
-                {!overview?.premium ? <small>NEBO+</small> : null}
+                {!overview?.premium ? <small>Premium</small> : null}
               </button>
               {listenState === 'error' ? <p className="listen-forecast-error" role="alert">{ru ? 'Голос пока не готов. Попробуй через минуту.' : 'The voice is not ready yet. Try in a minute.'}</p> : null}
               <AudioMiniPlayer trackKey={trackKey} language={ru ? 'ru' : 'en'} />
@@ -219,11 +221,12 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
   return (
     <div className="fresh-page stories-room">
       <AppTopBar title={ru ? 'Рассказы' : 'Stories'} onBack={onBack} />
-      <section className="stories-intro">
+      <section className="stories-intro video-hero">
+        <VideoBackground id="stories-catalog" />
         <h1>{ru ? 'Сериалы на каждый день' : 'A series for every day'}</h1>
         <p>{ru
-          ? `Четыре истории, новая серия каждый день, на 5 минут чтения. Первые ${FREE_STORY_EPISODES} серии бесплатно, дальше одна серия в день бесплатно или все сразу с NEBO+.`
-          : `Four stories, a new episode every day, a 5-minute read. The first ${FREE_STORY_EPISODES} are free, then one a day for free or all at once with NEBO+.`}</p>
+          ? `Четыре истории, новая серия каждый день, на 5 минут чтения. Первые ${FREE_STORY_EPISODES} серии бесплатно, дальше одна серия в день бесплатно или все сразу с NEBO Premium.`
+          : `Four stories, a new episode every day, a 5-minute read. The first ${FREE_STORY_EPISODES} are free, then one a day for free or all at once with NEBO Premium.`}</p>
       </section>
       {error ? (
         <div className="stories-status">

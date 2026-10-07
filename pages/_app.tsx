@@ -34,6 +34,7 @@ import '../styles/videoBackground.css';
 import '../styles/cardShadows.css';
 import '../styles/antistress.css';
 import '../styles/onboardingShowcase.css';
+import '../styles/paywallSell.css';
 import '../styles/uiPreview.css';
 import '../styles/sharedShellFinal.css';
 import '../styles/natalMeaningMap.css';

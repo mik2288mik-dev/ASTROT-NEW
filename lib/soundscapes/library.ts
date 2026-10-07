@@ -27,7 +27,7 @@ export const SOUND_GROUP_LABELS: Record<SoundGroup, { ru: string; en: string }> 
   forest: { ru: 'Лес', en: 'Forest' },
   stream: { ru: 'Ручей', en: 'Stream' },
   sea: { ru: 'Море', en: 'Sea' },
-  fire: { ru: 'Камин', en: 'Fireplace' },
+  fire: { ru: 'Костёр', en: 'Campfire' },
   cafe: { ru: 'Кафе', en: 'Café' },
   night: { ru: 'Ночь', en: 'Night' },
 };
@@ -51,8 +51,8 @@ export const AMBIENT_TRACKS: readonly AmbientTrack[] = [
   { id: 'sea-beach', group: 'sea', kind: 'file', file: 'sea-beach.mp3', title: { ru: 'Волны на пляже', en: 'Beach waves' }, source: fs('DylanTheFish', 463250) },
   { id: 'sea-waves', group: 'sea', kind: 'file', file: 'sea-waves.mp3', title: { ru: 'Морские волны', en: 'Sea waves' }, source: fs('haldigital97', 241824) },
   { id: 'sea-synth', group: 'sea', kind: 'synth', synth: 'sea', title: { ru: 'Медленные волны, без интернета', en: 'Slow waves, offline' } },
-  { id: 'fire-fireplace', group: 'fire', kind: 'file', file: 'fire-fireplace.mp3', title: { ru: 'Камин', en: 'Fireplace' }, source: fs('martats', 138018) },
   { id: 'fire-campfire', group: 'fire', kind: 'file', file: 'fire-campfire.mp3', title: { ru: 'Костёр', en: 'Campfire' }, source: fs('Spandau', 40699) },
+  { id: 'fire-fireplace', group: 'fire', kind: 'file', file: 'fire-fireplace.mp3', title: { ru: 'Камин', en: 'Fireplace' }, source: fs('martats', 138018) },
   { id: 'fire-lit', group: 'fire', kind: 'file', file: 'fire-lit.mp3', title: { ru: 'Потрескивание дров', en: 'Crackling logs' }, source: fs('lurpsis', 444127) },
   { id: 'fire-synth', group: 'fire', kind: 'synth', synth: 'fire', title: { ru: 'Огонь, без интернета', en: 'Fire, offline' } },
   { id: 'cafe-coffee', group: 'cafe', kind: 'file', file: 'cafe-coffee.mp3', title: { ru: 'Кофейня', en: 'Coffee shop' }, source: fs('waweee', 370973) },
@@ -70,9 +70,6 @@ export const MUSIC_TRACKS: readonly MusicTrack[] = [
   { id: 'music-chopin-op9-2', kind: 'file', file: 'music-chopin-op9-2.mp3', title: { ru: 'Шопен, Ноктюрн ми-бемоль мажор', en: 'Chopin, Nocturne in E-flat' }, note: { ru: 'фортепиано, нежно', en: 'piano, tender' }, source: commons('Peter Johnston', 'https://commons.wikimedia.org/wiki/File:Chopin_Nocturne_No._2_in_E_Flat_Major,_Op._9.ogg', 'CC0 1.0') },
   { id: 'music-chopin-op72', kind: 'file', file: 'music-chopin-op72.mp3', title: { ru: 'Шопен, Ноктюрн ми минор', en: 'Chopin, Nocturne in E minor' }, note: { ru: 'фортепиано, вечернее', en: 'piano, evening' }, source: commons('Musopen', 'https://commons.wikimedia.org/wiki/File:Chopin_Nocturne_in_Em,_Op._posth._72.ogg', 'CC0 1.0') },
   { id: 'music-chopin-21', kind: 'file', file: 'music-chopin-21.mp3', title: { ru: 'Шопен, Ноктюрн до минор', en: 'Chopin, Nocturne in C minor' }, note: { ru: 'фортепиано, для засыпания', en: 'piano, for falling asleep' }, source: commons('Diana Hughes', 'https://commons.wikimedia.org/wiki/File:Chopin_Nocturne_21_in_C_minor_Posthumous_Diana_Hughes.ogg', 'CC0 1.0') },
-  { id: 'music-synth-morning', kind: 'synth', synth: 'morning', title: { ru: 'Тихое утро', en: 'Quiet morning' }, note: { ru: 'складывается заново, без интернета', en: 'composed anew, offline' } },
-  { id: 'music-synth-evening', kind: 'synth', synth: 'evening', title: { ru: 'Вечерний свет', en: 'Evening light' }, note: { ru: 'складывается заново, без интернета', en: 'composed anew, offline' } },
-  { id: 'music-synth-waves', kind: 'synth', synth: 'waves', title: { ru: 'Медленные волны', en: 'Slow waves' }, note: { ru: 'складывается заново, без интернета', en: 'composed anew, offline' } },
 ];
 
 export function tracksOfGroup(group: SoundGroup): AmbientTrack[] {

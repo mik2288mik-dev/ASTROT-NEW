@@ -2,9 +2,9 @@ import { formatDayRu, type CalendarDay, type PersonalEvent, type SkyEvent } from
 
 /**
  * Opening lines of the week and month cards in «Будущее» for people without
- * NEBO+. They are built from the person's own calendar (sky events and, when a
+ * NEBO Premium. They are built from the person's own calendar (sky events and, when a
  * chart is saved, transits to it), so the free preview is real and costs no AI.
- * The full AI reading opens with NEBO+.
+ * The full AI reading opens with NEBO Premium.
  */
 
 const MONTHS_IN_RU = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];

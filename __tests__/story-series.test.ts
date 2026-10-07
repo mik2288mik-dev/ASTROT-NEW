@@ -67,7 +67,7 @@ describe('story series', () => {
     expect(releasedEpisodeNumbers(rows, '2026-10-01')).toEqual([1]);
   });
 
-  it('opens the first three free, then one a day per series, all with NEBO+', () => {
+  it('opens the first three free, then one a day per series, all with NEBO Premium', () => {
     expect(episodeAccess({ number: 3, premium: false, unlocked: false, usedTodayInSeries: true })).toBe('open');
     expect(episodeAccess({ number: 4, premium: false, unlocked: false, usedTodayInSeries: false })).toBe('free_unlock_available');
     expect(episodeAccess({ number: 5, premium: false, unlocked: false, usedTodayInSeries: true })).toBe('locked');

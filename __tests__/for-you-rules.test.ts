@@ -74,7 +74,7 @@ describe('«Для тебя» rules', () => {
     expect(buildForYouOffers(context({ birthTimeKnown: false }))[0].action).toEqual({ type: 'birth_time' });
   });
 
-  it('reminds softly before NEBO+ ends without auto-renewal', () => {
+  it('reminds softly before NEBO Premium ends without auto-renewal', () => {
     const offer = buildForYouOffers(context({ premium: true, premiumEndsAt: '2026-10-17T10:00:00Z', premiumAutoRenew: false }))[0];
     expect(offer.id).toBe('premium_ending');
     expect(offer.body).not.toMatch(/потеря|сгор|последн/u);

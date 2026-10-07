@@ -303,7 +303,7 @@ export function buildFutureMonth(
   };
 }
 
-/** How far ahead NEBO+ opens, by the bought plan; rolling from today. */
+/** How far ahead NEBO Premium opens, by the bought plan; rolling from today. */
 export function futureHorizonDays(entitlement: { productId?: string | null; period?: string | null; startsAt?: string | null; endsAt?: string | null } | null | undefined): number {
   const id = `${entitlement?.productId ?? ''} ${entitlement?.period ?? ''}`.toLowerCase();
   if (/year|annual|12m|p1y|365/.test(id)) return 365;
@@ -319,7 +319,7 @@ export function futureHorizonDays(entitlement: { productId?: string | null; peri
   return 30;
 }
 
-/** Days a person may open one by one: today and tomorrow for free, the next 30 for NEBO+. */
+/** Days a person may open one by one: today and tomorrow for free, the next 30 for NEBO Premium. */
 export const FREE_OPEN_DAYS = 2;
 export const PREMIUM_DAILY_DAYS = 30;
 
