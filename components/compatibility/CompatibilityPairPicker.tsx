@@ -107,14 +107,8 @@ export function CompatibilityLiveSample({ yourSign, ru }: { yourSign: string; ru
           <span className="compat-live-sample-sign"><ZodiacIcon sign={sample.partner} size={18} strokeWidth={1.6} /></span>
         </strong>
       </header>
+      {/* No percentage: the birth-date reading promises not to grade a relationship, so its sample doesn't either. */}
       <div className="compat-live-sample-scale">
-        <div className="compat-live-sample-scale-top">
-          <span>{ru ? 'Совпадение' : 'Match'}</span>
-          <b>{sample.score}%</b>
-        </div>
-        <div className="compat-live-sample-bar" role="img" aria-label={ru ? `Совпадение ${sample.score} из 100` : `Match ${sample.score} of 100`}>
-          <span style={{ width: `${sample.score}%` }} />
-        </div>
         <small>{sample.verdict}</small>
       </div>
       <ol className="compat-live-sample-topics">

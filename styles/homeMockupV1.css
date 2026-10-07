@@ -1527,3 +1527,26 @@
     transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
   }
 }
+
+/* Moon phase dates keep the card's white ink; a global bold colour made them vanish on the night sky. */
+.today-sky-card .today-sky-calendar b { color: inherit; }
+
+/* «Меню» has seven sections: one sideways-scrolling row instead of three wrapped rows. */
+.services-screen-tabs {
+  display: flex !important;
+  gap: 4px;
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 16px !important;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 16px;
+  scrollbar-width: none;
+}
+.services-screen-tabs::-webkit-scrollbar { display: none; }
+.services-screen-tabs .editorial-tab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 12px;
+  white-space: nowrap;
+}

@@ -4,7 +4,6 @@ import type { NatalChartWheelSource } from '../../lib/natalChartWheelModel';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { buildMapData, explainMapSelection, mapObject, MAP_HOUSES, MAP_ASPECTS, type MapSelection } from './mapExplanation';
 import styles from './NatalSection.module.css';
-import { NatalArtwork, type NatalArt } from './NatalArtwork';
 
 type Row = MapSelection & { title: string; meaning: string; objectKey?: string };
 const PLANETS = new Set(['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto']);
@@ -30,19 +29,19 @@ export function NatalDetails({ chart, onSelect, isPremium = false }: {
   return <div aria-label="Подробности твоей карты">{groups.map(({title, Icon, rows, color}) => {
     const open = expanded.includes(title);
     const shown = open ? rows : rows.slice(0,3);
-    const art: NatalArt = title === 'Планеты' ? 'planets' : title === 'Дома' ? 'houses' : title === 'Аспекты' ? 'aspects' : 'points';
     return <section key={title} className={styles.detailsGroup} style={{'--section-accent':color} as React.CSSProperties}>
-      <header className={styles.detailsHeading}><NatalArtwork art={art}/><h2>{title}</h2>{rows.length > 3 ? <button type="button" className={styles.detailsMore} aria-expanded={open} onClick={() => setExpanded(current => open ? current.filter(item => item !== title) : [...current,title])}>{open ? 'Свернуть' : `Все ${rows.length}`}<ChevronDown size={17} aria-hidden="true" style={{transform:open?'rotate(180deg)':undefined}}/></button> : <small>{rows.length}</small>}</header>
+      <header className={styles.detailsHeading}><h2>{title}</h2>{rows.length > 3 ? <button type="button" className={styles.detailsMore} aria-expanded={open} onClick={() => setExpanded(current => open ? current.filter(item => item !== title) : [...current,title])}>{open ? 'Свернуть' : `Все ${rows.length}`}<ChevronDown size={17} aria-hidden="true" style={{transform:open?'rotate(180deg)':undefined}}/></button> : <small>{rows.length}</small>}</header>
       <div className={styles.detailsRows}>{shown.map(row => {
         const objectKey = 'objectKey' in row ? row.objectKey : undefined;
         const freeRow = (row.kind === 'point' && ['sun', 'ascendant'].includes(row.id))
           || (row.kind === 'house' && row.id === '1');
         const locked = !isPremium && !freeRow;
-        const rowMeaning = locked ? 'Доступно с Premium' : row.meaning;
+        // «1 дом» under «1 дом — …» repeats the title, so such a caption is dropped.
+        const rowMeaning = locked ? 'Доступно с Premium' : row.title.startsWith(row.meaning) ? '' : row.meaning;
         const AspectIcon = row.title.startsWith('Квадрат:') ? Square : row.title.startsWith('Секстиль:') ? Asterisk : Icon;
         return <button key={row.id} type="button" onClick={e => onSelect({kind:row.kind,id:row.id},e.currentTarget)}>
         {typeof objectKey === 'string' ? <PlanetIcon planet={objectKey === 'northNode' ? 'north-node' : objectKey === 'southNode' ? 'south-node' : objectKey === 'ascendant' ? 'asc' : objectKey === 'descendant' ? 'desc' : objectKey} size={30} stroke={mapObject(objectKey)?.color}/> : row.kind === 'house' ? <i className={styles.houseNumber} aria-hidden="true">{row.id}</i> : <AspectIcon size={26} color={row.title.startsWith('Квадрат:') ? '#ed3152' : row.title.startsWith('Тригон:') ? '#00a76d' : color} aria-hidden="true"/>}
-        <span><strong>{row.title}</strong><small>{rowMeaning}</small></span>{locked ? <LockKeyhole size={17} aria-hidden="true"/> : <ChevronRight size={17} aria-hidden="true"/>}
+        <span><strong>{row.title}</strong>{rowMeaning ? <small>{rowMeaning}</small> : null}</span>{locked ? <LockKeyhole size={17} aria-hidden="true"/> : <ChevronRight size={17} aria-hidden="true"/>}
       </button>})}</div>
       {!rows.length ? <p className={styles.detailsEmpty}>В сохранённой карте нет надёжных данных для этой группы.</p> : null}
     </section>;

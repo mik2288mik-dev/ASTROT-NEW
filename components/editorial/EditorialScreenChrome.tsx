@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Settings as SettingsIcon, UserRound } from 'lucide-react';
 
 export type EditorialTabItem<T extends string> = {
@@ -21,8 +21,19 @@ export function EditorialTabs<T extends string>({
   onTabChange,
   className,
 }: EditorialTabsProps<T>) {
+  const railRef = useRef<HTMLDivElement | null>(null);
+  // A rail with more tabs than fit scrolls sideways; keep the active tab in view when it changes.
+  useEffect(() => {
+    const rail = railRef.current;
+    const active = rail?.querySelector<HTMLElement>('.editorial-tab.is-active');
+    if (!rail || !active || rail.scrollWidth <= rail.clientWidth) return;
+    const target = active.offsetLeft - (rail.clientWidth - active.offsetWidth) / 2;
+    rail.scrollTo({ left: Math.max(0, target), behavior: 'auto' });
+  }, [activeTab]);
+
   return (
     <div
+      ref={railRef}
       className={['editorial-tabs', className].filter(Boolean).join(' ')}
       role="group"
       aria-label={label}
