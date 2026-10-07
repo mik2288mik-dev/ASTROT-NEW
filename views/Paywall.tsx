@@ -1,3 +1,4 @@
+import { BookOpen, CalendarDays, Headphones, HeartHandshake, Sparkles, Users, Wind } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import type { UserProfile } from '../types';
 import type { PremiumPlanId } from '../lib/premiumPricing';
@@ -66,6 +67,8 @@ type CatalogPlan = {
 const RUSTORE_PLAN_ORDER: PremiumPlanId[] = ['premium_month', 'premium_quarter', 'premium_year'];
 
 const PLAN_MONTHS: Partial<Record<string, number>> = { premium_month: 1, premium_quarter: 3, premium_year: 12 };
+
+const BENEFIT_ICONS = [Headphones, CalendarDays, Sparkles, HeartHandshake, Users, BookOpen, Wind];
 
 /** «300 ₽ в месяц» from the plan's own price label; nothing when the price cannot be read or the plan is a single month. */
 function perMonthLabel(planId: string, priceLabel: string, ru: boolean): string | null {
@@ -363,8 +366,8 @@ export const Paywall: React.FC<PaywallProps> = ({
 
   const benefits = ru
     ? [
-        { title: 'Личные прогнозы', description: 'Неделя и месяц вперёд, удачные дни', image: '/assets/home-tiles/future.webp' },
         { title: 'Озвучка и Радио NEBO', description: 'Прогноз, гороскоп знака и натальная карта живым голосом, и весь твой день одним эфиром', image: '/assets/home-tiles/sounds.webp' },
+        { title: 'Личные прогнозы', description: 'Неделя и месяц вперёд, удачные дни', image: '/assets/home-tiles/future.webp' },
         { title: 'Натальный разбор', description: 'Характер, отношения, работа, деньги и свои вопросы', image: '/assets/premium/natal-chart.webp' },
         { title: 'Совместимость', description: 'Разбор вашей пары по двум картам', image: '/assets/home-tiles/compatibility.webp' },
         { title: 'Мои карты', description: `Своя + до ${PREMIUM_SAVED_PERSON_LIMIT} карт других людей`, image: '/assets/premium/saved-cards.webp' },
@@ -372,8 +375,8 @@ export const Paywall: React.FC<PaywallProps> = ({
         { title: 'Антистресс и тесты', description: 'Все техники дыхания, дневник, привычки и все тесты', image: '/assets/home-tiles/antistress.webp' },
       ]
     : [
-        { title: 'Personal forecasts', description: 'Week and month ahead, lucky days', image: '/assets/home-tiles/future.webp' },
         { title: 'Voice and NEBO Radio', description: 'Forecast, sign horoscope and birth chart in a natural voice, and your whole day in one show', image: '/assets/home-tiles/sounds.webp' },
+        { title: 'Personal forecasts', description: 'Week and month ahead, lucky days', image: '/assets/home-tiles/future.webp' },
         { title: 'Birth chart reading', description: 'Character, relationships, work, money, and your questions', image: '/assets/premium/natal-chart.webp' },
         { title: 'Compatibility', description: 'Your relationship through two saved charts', image: '/assets/home-tiles/compatibility.webp' },
         { title: 'My charts', description: `Yours + up to ${PREMIUM_SAVED_PERSON_LIMIT} other people`, image: '/assets/premium/saved-cards.webp' },
@@ -485,7 +488,7 @@ export const Paywall: React.FC<PaywallProps> = ({
         <section className="pw2-included" aria-labelledby="pw2-benefits-title">
           <h2 id="pw2-benefits-title" className="pw2-section-title">{ru ? 'Что откроется' : 'What’s included'}</h2>
           <dl className="pw2-benefits">
-            {benefits.map((benefit) => <div key={benefit.title} style={{ '--benefit-img': `url(${benefit.image})` } as React.CSSProperties}><dt>{null}{benefit.title}</dt><dd>{benefit.description}</dd></div>)}
+            {benefits.map((benefit, index) => { const Icon = BENEFIT_ICONS[index] ?? Sparkles; return <div key={benefit.title}><span className="pw2-benefit-icon" aria-hidden="true"><Icon size={17} strokeWidth={2.2} /></span><dt>{benefit.title}</dt><dd>{benefit.description}</dd></div>; })}
           </dl>
         </section>
         <div className="pw2-foot">
