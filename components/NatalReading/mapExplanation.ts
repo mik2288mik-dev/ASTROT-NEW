@@ -59,7 +59,7 @@ function bodyMeta(key: string) {
     name: BODY_LABELS[canonical].ru,
     glyph: visual.glyph,
     color: visual.color,
-    what: `${BODY_LABELS[canonical].ru} помогает объяснить, ${BODY_ROLES[canonical].ru}.`,
+    what: `${BODY_LABELS[canonical].ru} отвечает за то, ${BODY_ROLES[canonical].ru}.`,
     topic: BODY_ROLES[canonical].ru,
   };
 }
@@ -76,7 +76,7 @@ export const MAP_OBJECTS: Record<string, { name: string; glyph: string; color: s
       name,
       glyph: visual.glyph,
       color: visual.color,
-      what: `${name} помогает объяснить, ${role}.`,
+      what: `${name} отвечает за то, ${role}.`,
       topic: role,
     }];
   }),
@@ -205,8 +205,8 @@ function conciseMeaning(values: readonly NatalMeaning[], limit: number): string 
 function aspectReference(type: string, orb?: number | null): string {
   const angles: Record<string, number> = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 };
   const angle = angles[type];
-  if (angle == null) return 'Линия соединяет две рассчитанные точки карты.';
-  return `Это связь двух точек под углом ${angle}°. ${orb == null ? '' : `Отклонение от точного угла, ${orb.toFixed(1)}°. `}Её объяснение зависит от обеих точек; один угол не описывает привычку или поступок.`;
+  if (angle == null) return 'Линия соединяет две точки карты.';
+  return `Это связь двух точек под углом ${angle}°. ${orb == null ? '' : `До точного угла ${orb.toFixed(1)}°. `}Смысл зависит от того, какие точки она соединяет.`;
 }
 
 function pointEvidenceIds(
@@ -297,7 +297,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
       ? conciseMeaning(primaryMeanings, 2)
       : meanings.length
         ? conciseMeaning(meanings.map((entry) => entry.meaning), 1)
-        : 'Знак показывает участок круга, в котором находится точка. Градусы, её место внутри этого участка.';
+        : 'Знак здесь показывает участок круга, где стоит точка, а градусы уточняют место внутри него.';
     return {
       title: meta.name,
       glyph: meta.glyph,
@@ -332,7 +332,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
     );
     const meaning = meanings.length
       ? conciseMeaning(meanings, 2)
-      : 'Для объяснения этого дома недостаточно данных.';
+      : 'По этому дому в карте нет отдельных подсказок.';
     return {
       title: `${house} дом`,
       glyph: '⌂',
@@ -356,7 +356,7 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
     const title = `${mapObject(left?.key || aspect.fromKey)?.name || aspect.fromKey} - ${mapObject(right?.key || aspect.toKey)?.name || aspect.toKey}`;
     const isAxis = ['ascendant:descendant', 'ic:mc'].includes([aspect.fromKey, aspect.toKey].sort().join(':'));
     const text = meaning?.text || (isAxis
-      ? 'Это два конца одной оси карты. Между ними всегда 180°. Здесь показано устройство карты; личные особенности объясняются положениями этих точек и другими связанными с ними элементами.'
+      ? 'Это два конца одной оси карты, между ними всегда 180°. Так устроена любая карта, а о характере говорят сами эти точки и их связи с планетами.'
       : aspectReference(aspect.type, interpretation?.evidence.find(fact => fact.id === `aspect:${aspect.id}`)?.orb));
     return {
       title: MAP_ASPECTS[aspect.type].name,
@@ -392,12 +392,12 @@ export function explainMapSelection(chart: NatalChartWheelSource, selection: Map
     .filter((meaning): meaning is NatalMeaning => !!meaning);
   const text = meanings.length
     ? conciseMeaning(meanings, 3)
-    : 'В этом знаке нет точек, по которым можно сделать отдельный вывод о тебе.';
+    : 'В этом знаке у тебя нет планет, поэтому отдельного вывода здесь нет.';
   return {
     title: MAP_SIGN_NAMES[signIndex],
     glyph: ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'][signIndex],
     color: '#008879',
-    what: 'Это один из двенадцати участков круга. Здесь видно, какие точки твоей карты находятся в этом знаке.',
+    what: 'Один из двенадцати участков круга. Здесь видно, какие точки твоей карты в нём стоят.',
     yours: occupants.map((point) => mapObject(point.key)?.name).filter(Boolean).join(' · ') || 'Нет рассчитанных точек',
     meaning: text,
     reasons: meanings.map((meaning) => reasonForMeaning(meaning, 'sign', 'Точка в этом знаке')),
