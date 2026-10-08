@@ -108,6 +108,12 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
     return placed;
   }, [nowBodies]);
   const focusExplanation = focus ? explainMapSelection(chart, focus) : null;
+  const [showAllParts, setShowAllParts] = useState(false);
+  useEffect(() => { setShowAllParts(false); }, [focus?.kind, focus?.id]);
+  // Each part of the chart behind the explanation, without repeating the main point above it.
+  const focusParts = useMemo(() => (focusExplanation?.reasons ?? [])
+    .filter((reason) => reason.text && !focusExplanation?.meaning.includes(reason.text))
+    .map((reason) => ({ title: reason.title, text: reason.text })), [focusExplanation]);
   const focusIsFree = Boolean(focus && ((focus.kind === 'point' && FREE_POINTS.has(focus.id)) || (focus.kind === 'house' && focus.id === '1')));
   // What lights up with the focus: a planet with its aspects and partners, an aspect with its two ends.
   const related = useMemo(() => {
@@ -319,17 +325,33 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
       <section className={styles.focusCard} aria-live="polite">
         <h2 className={styles.focusTitle}>{focusExplanation.title}</h2>
         {focusExplanation.yours ? <p className={styles.focusMeta}>{focusExplanation.yours}</p> : null}
-        {focusExplanation.meaning ? <p className={styles.focusText}>{firstSentence(focusExplanation.meaning)}</p> : null}
+        {/* The whole explanation in plain words right here: what the element is about, the main point,
+            then each part of the chart that says it, named the way an astrologer would. */}
+        {focusExplanation.what ? <p className={styles.focusRole}>{focusExplanation.what}</p> : null}
+        {focusExplanation.meaning ? <p className={styles.focusText}>{isPremium || focusIsFree ? focusExplanation.meaning : firstSentence(focusExplanation.meaning)}</p> : null}
+        {(isPremium || focusIsFree) && focusParts.length ? (
+          <div className={styles.focusParts}>
+            {(showAllParts ? focusParts : focusParts.slice(0, 3)).map((part, index) => (
+              <p key={index}><b>{part.title}</b>{part.text}</p>
+            ))}
+            {focusParts.length > 3 && !showAllParts ? (
+              <button type="button" className={styles.focusMore} onClick={() => setShowAllParts(true)}>Показать ещё {focusParts.length - 3}<ChevronDown size={16} aria-hidden="true"/></button>
+            ) : null}
+          </div>
+        ) : null}
         {focusLinks.length ? (
-          <div className={styles.focusLinks} aria-label="Связи">
+          <div className={styles.focusLinks}>
+            <span className={styles.focusLinksLabel}>Связи</span>
             {focusLinks.map((link) => (
               <button key={link.id} type="button" className={styles.modeChip} onClick={() => setFocus(link.target)}>{link.label}</button>
             ))}
           </div>
         ) : null}
-        <button type="button" className={styles.focusMore} onClick={(event) => choose(focus.kind, focus.id, event.currentTarget)}>
-          {isPremium || focusIsFree ? <>Подробнее<ChevronRight size={16} aria-hidden="true"/></> : <><LockKeyhole size={15} aria-hidden="true"/>Подробнее с Premium</>}
-        </button>
+        {isPremium || focusIsFree ? null : (
+          <button type="button" className={styles.focusMore} onClick={() => onRequestPremium?.(focus, 'map')}>
+            <LockKeyhole size={15} aria-hidden="true"/>Открыть полностью с Premium<ChevronRight size={16} aria-hidden="true"/>
+          </button>
+        )}
       </section>
     ) : null}
     {quality !== 'exact' ? <p className={styles.precision}>{quality === 'unknown' ? 'Время рождения не указано.' : 'Время рождения указано примерно.'} Показаны только надёжные положения. Меняющиеся точки и дома не используются в объяснениях.</p> : null}

@@ -63,3 +63,19 @@
 .nowList b{display:block;font-size:14px;font-weight:600}
 .nowList small{display:block;margin-top:1px;color:#6f6a64;font-size:12.5px;line-height:1.35}
 @media(prefers-reduced-motion:reduce){.bodyGroup,.aspect,.house,.sign{transition:none}}
+/* Five layers always fit one row: an even segmented strip instead of a scrolling chip row. */
+.modes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;overflow:visible}
+.modes .modeChip{min-width:0;padding:0 4px;font-size:12.5px}
+.focusText+.focusText{margin-top:8px}
+.focusLinks{align-items:center}
+.focusLinksLabel{color:#6f6a64;font-size:12.5px;font-weight:600;margin-right:2px}
+.focusBasis{margin-top:12px;border-top:1px solid rgba(41,39,36,.08);padding-top:4px}
+.focusBasis summary{display:flex;align-items:center;justify-content:space-between;min-height:40px;color:#6f6a64;font-size:13.5px;font-weight:600;list-style:none;cursor:pointer}
+.focusBasis summary::-webkit-details-marker{display:none}
+.focusBasis[open] summary svg{transform:rotate(180deg)}
+.focusBasis p{margin:0 0 8px;color:#49433d;font-size:13.5px;line-height:1.5}
+.focusRole{margin:8px 0 0;color:#6f6a64;font-size:13.5px;line-height:1.45}
+.focusParts{display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(41,39,36,.08)}
+.focusParts p{margin:0;color:#292724;font-size:14.5px;line-height:1.5}
+.focusParts b{display:block;margin-bottom:2px;color:#6f6a64;font-size:12.5px;font-weight:650}
+.focusParts .focusMore{margin-top:0}
