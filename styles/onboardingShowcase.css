@@ -247,6 +247,97 @@
 
 .auth-editorial-page .auth-yandex-wordmark { height: 1.45rem; width: auto; display: block; }
 
+/* Fit the entry choice to the available portrait viewport; forms keep their scroll. */
+@media (orientation: portrait) {
+  .auth-editorial-page[data-auth-layout='landing'] .auth-page-frame {
+    height: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+    padding: max(8px, env(safe-area-inset-top, 0px), calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px))) 12px max(12px, env(safe-area-inset-bottom, 0px));
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-page-card {
+    container-type: size;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 4px;
+    height: 100%;
+    min-height: 0;
+    margin-top: 0;
+    padding: clamp(8px, 1.5dvh, 16px) 16px !important;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-page-card > * {
+    flex-shrink: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-logo > span {
+    width: clamp(76px, 13cqh, 144px);
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-title {
+    font-size: clamp(21px, 3.25cqh, 27px);
+    line-height: 1.06;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-intro {
+    font-size: clamp(12px, 1.8cqh, 15px);
+    line-height: 1.3;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-message,
+  .auth-editorial-page[data-auth-layout='landing'] .auth-page-card > :is([role='alert'], [role='status']) {
+    padding: 6px 10px;
+    font-size: clamp(12px, 1.7cqh, 14px);
+    line-height: 1.3;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-features {
+    gap: clamp(4px, 0.8cqh, 8px) 12px;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-features strong {
+    font-size: clamp(12px, 1.8cqh, 14px);
+    line-height: 1.15;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-features span {
+    font-size: clamp(10.5px, 1.6cqh, 12.5px);
+    line-height: 1.22;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] :is(.auth-primary-button, .auth-provider-button) {
+    min-height: 44px !important;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-hint {
+    font-size: clamp(11px, 1.6cqh, 12px);
+    line-height: 1.25;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-divider {
+    line-height: 1.2;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-signin-title {
+    margin: 3px 0 6px;
+    line-height: 1.2;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-signin > .grid {
+    gap: 6px;
+  }
+}
+
+@media (orientation: portrait) and (max-height: 640px) {
+  .auth-editorial-page[data-auth-layout='landing'] .auth-page-card {
+    gap: 3px;
+    padding: 6px 10px !important;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-logo > span {
+    width: 48px;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-title {
+    font-size: 18px;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-features {
+    gap: 3px 10px;
+  }
+  .auth-editorial-page[data-auth-layout='landing'] .auth-landing-features span {
+    margin-top: 1px;
+    line-height: 1.16;
+  }
+}
+
 /* Birth form fixes: the logo's white box melts into the grey page, every row has room, the pills never overlap. */
 .meou-onboarding[data-onboarding-screen='birth'] .meou-onboarding-logo,
 .meou-onboarding[data-onboarding-screen='calculating'] .meou-onboarding-logo { mix-blend-mode: multiply; background: transparent; }

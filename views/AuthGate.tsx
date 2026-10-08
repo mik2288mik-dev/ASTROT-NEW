@@ -412,9 +412,9 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   const visibleTitle = isLanding ? registerTitle : isEmailRegistration ? 'Создать аккаунт' : title;
 
   return (
-    <main className="auth-editorial-page fixed inset-0 h-[100dvh] overflow-y-auto bg-white text-[#111827]">
-      <div className="flex min-h-full w-full items-start justify-center px-4 py-3 sm:py-7">
-        <section className="relative w-full max-w-[460px] bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="auth-editorial-page fixed inset-0 h-[100dvh] overflow-y-auto bg-white text-[#111827]" data-auth-layout={isLanding ? 'landing' : 'form'}>
+      <div className="auth-page-frame flex min-h-full w-full items-start justify-center px-4 py-3 sm:py-7">
+        <section className="auth-page-card relative w-full max-w-[460px] bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
           {!isLanding ? (
             <button
               type="button"
@@ -426,27 +426,27 @@ export const AuthGate: React.FC<AuthGateProps> = ({
               <ChevronLeft size={26} strokeWidth={1.75} aria-hidden="true" />
             </button>
           ) : null}
-          <div className={isLanding ? 'text-center' : 'mb-3 text-center'} role="img" aria-label="NEBO">
+          <div className={isLanding ? 'auth-landing-logo text-center' : 'mb-3 text-center'} role="img" aria-label="NEBO">
             <NeboLogo decorative priority />
           </div>
           <h1 className={isLanding
-            ? 'mx-auto text-center text-[27px] font-semibold leading-[1.06] tracking-[-0.03em]'
+            ? 'auth-landing-title mx-auto text-center text-[27px] font-semibold leading-[1.06] tracking-[-0.03em]'
             : 'text-center text-[29px] font-semibold leading-tight tracking-[-0.025em]'}
           >
             {visibleTitle}
           </h1>
           {(message || deleted) && isLanding && !authPreview ? (
-            <p className="mx-auto mt-3 rounded-2xl bg-[#fff3f2] px-4 py-3 text-center text-[14px] leading-5 text-[#9f2f28]">
+            <p className="auth-landing-message mx-auto mt-3 rounded-2xl bg-[#fff3f2] px-4 py-3 text-center text-[14px] leading-5 text-[#9f2f28]">
               {message || 'Аккаунт удалён. Можно создать новый или войти в существующий.'}
             </p>
           ) : null}
 
           {isLanding ? (
             <>
-              <p className="mx-auto mt-2.5 text-center text-[15px] leading-[1.35] text-[#62676f]">
+              <p className="auth-landing-intro mx-auto mt-2.5 text-center text-[15px] leading-[1.35] text-[#62676f]">
                 Личный прогноз на сегодня, неделю и месяц, по твоим данным рождения.
               </p>
-              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-left">
+              <div className="auth-landing-features mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-left">
                 {LANDING_FEATURES.map((item) => (
                   <div key={item.title} className="min-w-0">
                     <strong className="block text-[14px] leading-[1.15]">{item.title}</strong>
@@ -456,22 +456,22 @@ export const AuthGate: React.FC<AuthGateProps> = ({
               </div>
               <button
                 type="button"
-                className={`${primaryClass} mt-4`}
+                className={`${primaryClass} auth-landing-start mt-4`}
                 disabled={busy !== null}
                 onClick={() => { void runGuest(); }}
               >
                 {busy === 'guest' ? 'Создаём профиль…' : 'Начать без регистрации'}
               </button>
-              <p className="mt-2 text-center text-[12px] leading-4 text-[#777d85]">
+              <p className="auth-landing-hint mt-2 text-center text-[12px] leading-4 text-[#777d85]">
                 Аккаунт можно привязать позже.
               </p>
             </>
           ) : null}
 
           {isLanding && (availableProviders.length > 0 || telegramReady || emailLoginVisible) ? (
-            <div className="mt-2.5">
-              <p className="text-center text-[12px] leading-4 text-[#8a8f96]">или</p>
-              <p className="mb-2 mt-1 text-center text-[13px] font-medium leading-4 text-[#4f555d]">Войти с помощью</p>
+            <div className="auth-landing-signin mt-2.5">
+              <p className="auth-landing-divider text-center text-[12px] leading-4 text-[#8a8f96]">или</p>
+              <p className="auth-landing-signin-title mb-2 mt-1 text-center text-[13px] font-medium leading-4 text-[#4f555d]">Войти с помощью</p>
               <div className={`grid gap-2 ${availableProviders.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {availableProviders.map((provider) => (
                   <button
