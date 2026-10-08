@@ -64,7 +64,7 @@ describe('compatibility editorial layout', () => {
     expect(resultScore).toBeLessThan(resultCalculation);
     expect(resultCalculation).toBeLessThan(resultSummary);
     expect(resultSummary).toBeLessThan(resultMeta);
-    expect(room).toContain('Большие кольца показывают общий индекс');
+    expect(room).toContain('Процент складывается из четырёх сфер');
     expect(room).toContain("const resultPercent = !isPerson");
     expect(room).toContain('<CompatibilityStoryReader result={deep}');
     expect(room).toContain('isPerson && premium && deep');

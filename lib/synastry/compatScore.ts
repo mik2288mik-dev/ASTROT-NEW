@@ -96,6 +96,56 @@ export function getCompatScore(signAraw: string, signBraw: string, language: 'ru
   return { overall, dims, strongest, verdict };
 }
 
+const ELEMENT_RU: Record<Element, { gen: string; gives: string }> = {
+  fire: { gen: 'огня', gives: 'страсть и яркие чувства' },
+  earth: { gen: 'земли', gives: 'надёжность и заботу делом' },
+  air: { gen: 'воздуха', gives: 'лёгкое общение и общие интересы' },
+  water: { gen: 'воды', gives: 'тепло и умение чувствовать друг друга' },
+};
+
+/** The element each area leans on, in the same order the score above adds its bonus. */
+const AREA_ELEMENTS: Record<CompatDimension, Element[]> = {
+  love: ['fire'],
+  relationship: ['earth', 'water'],
+  friendship: ['air'],
+  work: ['earth'],
+};
+
+/**
+ * Why the strongest area came out on top, told from the same element rules the
+ * score uses, so the sentence matches the number. Names are display sign names.
+ */
+export function strongestAreaReason(
+  signAraw: string,
+  signBraw: string,
+  nameA: string,
+  nameB: string,
+  language: 'ru' | 'en' = 'ru',
+): string {
+  const a = SIGN_INFO[String(signAraw).toLowerCase()] || SIGN_INFO.aries;
+  const b = SIGN_INFO[String(signBraw).toLowerCase()] || SIGN_INFO.libra;
+  const { strongest } = getCompatScore(signAraw, signBraw, language);
+  const element = AREA_ELEMENTS[strongest].find((el) => a.el === el || b.el === el);
+  const owner = element ? (a.el === element ? nameA : nameB) : null;
+  const extra = a.el === b.el
+    ? (language === 'en' ? ' You also share an element and understand each other easily.' : ' Вдобавок вы из одной стихии и легко понимаете друг друга.')
+    : harmonious(a.el, b.el)
+      ? (language === 'en' ? ' Your elements also complement each other well.' : ' Вдобавок ваши стихии хорошо дополняют друг друга.')
+      : '';
+  if (language === 'en') {
+    return element && owner
+      ? `${owner} belongs to ${element}, and ${element} brings this area its strength.${extra}`
+      : `This area scored highest from how your two elements combine.${extra}`;
+  }
+  if (element && a.el === element && b.el === element) {
+    return `Оба ваших знака из стихии ${ELEMENT_RU[element].gen}, а она даёт паре ${ELEMENT_RU[element].gives}.${extra}`;
+  }
+  if (element && owner) {
+    return `${owner} из стихии ${ELEMENT_RU[element].gen}, а она даёт паре ${ELEMENT_RU[element].gives}.${extra}`;
+  }
+  return `Эта сфера получилась сильнее остальных благодаря сочетанию ваших стихий.${extra}`;
+}
+
 /** Солнечный знак по дате рождения 'YYYY-MM-DD' (тропический, стандартные границы) */
 export function sunSignFromDate(date?: string | null): string | null {
   if (!date) return null;

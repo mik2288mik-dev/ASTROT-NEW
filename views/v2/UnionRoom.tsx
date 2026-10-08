@@ -27,7 +27,7 @@ import { getSignCompatibility, calculateExtendedSynastry, getCompatibilityPrevie
 import type { CompatibilityPreview } from '../../lib/synastry/compatibilityPreview';
 import { formatDisplayDate, toDateInputValue } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
-import { getCompatScore, sunSignFromDate, DIMENSION_LABELS, type CompatResult, type CompatDimension } from '../../lib/synastry/compatScore';
+import { getCompatScore, strongestAreaReason, sunSignFromDate, DIMENSION_LABELS, type CompatResult, type CompatDimension } from '../../lib/synastry/compatScore';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
@@ -1978,13 +1978,13 @@ Check our compatibility from your side in NEBO.`
               <i aria-hidden="true" />
               <strong>{leftName}</strong>
               <small>{leftDetail}</small>
-              <small className="compat-result-person-zodiac">{getZodiacSign(lang, leftSun)}</small>
+              {getZodiacSign(lang, leftSun) !== leftName ? <small className="compat-result-person-zodiac">{getZodiacSign(lang, leftSun)}</small> : null}
             </span>
             <span className="is-right">
               <i aria-hidden="true" />
               <strong>{rightName}</strong>
               <small>{rightDetail}</small>
-              <small className="compat-result-person-zodiac">{getZodiacSign(lang, theirSun)}</small>
+              {getZodiacSign(lang, theirSun) !== rightName ? <small className="compat-result-person-zodiac">{getZodiacSign(lang, theirSun)}</small> : null}
             </span>
           </div>
           <div
@@ -2005,14 +2005,14 @@ Check our compatibility from your side in NEBO.`
       ) : null}
 
       {!isPerson && score ? (
-        <details className="compat-technical-data compat-technical-data--near-score">
+        <details className="compat-technical-data compat-technical-data--near-score" open>
           <summary>
             <span className="compat-calculation-heading">
               <strong>{ru ? 'Почему так?' : 'Why this result?'}</strong>
               <small>
                 {ru
-                  ? 'Большие кольца показывают общий индекс, среднее по всем сферам ниже. Чем выше процент, тем ближе кольца.'
-                  : 'The large rings show the overall index, the average across every area below. A higher score brings the rings closer.'}
+                  ? 'Процент складывается из четырёх сфер: любовь, отношения, дружба и работа.'
+                  : 'The score combines four areas: love, relationship, friendship and work.'}
               </small>
             </span>
           </summary>
@@ -2088,9 +2088,8 @@ Check our compatibility from your side in NEBO.`
         </>
       ) : !isPerson && score ? (
         <section className="compat-result-summary compat-result-summary--sign">
-          <span>{ru ? 'Общий результат' : 'Overall result'}</span>
-          <h2>{score.verdict}</h2>
           <p><strong>{ru ? 'Сильнее всего:' : 'Strongest:'}</strong> {strongestLabel}</p>
+          <p className="compat-result-reason">{strongestAreaReason(leftSun, theirSun, leftName, rightName, lang)}</p>
         </section>
       ) : null}
 
