@@ -1504,7 +1504,7 @@ Check our compatibility from your side in NEBO.`
 
               <section className="compat-date-hero">
                 <h2>{ru ? 'Какая у вас совместимость?' : 'How compatible are you?'}</h2>
-                <p>{ru ? 'Не ставим отношениям оценку. Смотрим, где вам легко вместе и где обычно начинаются сложности.' : 'This is not a relationship grade. It shows where you feel at ease and where friction may begin.'}</p>
+                <p>{ru ? 'Смотрим, где вам легко вместе и где обычно начинаются сложности.' : 'This is not a relationship grade. It shows where you feel at ease and where friction may begin.'}</p>
               </section>
 
               {recentPairs.length ? (

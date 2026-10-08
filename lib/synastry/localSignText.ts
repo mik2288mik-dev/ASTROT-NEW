@@ -1,6 +1,9 @@
 /**
  * Локальная совместимость по знакам — текст собирается из нашей базы (профили знаков +
- * динамика стихий). Без OpenAI, мгновенно. 78 пар покрываются композицией.
+ * динамика пары стихий). Без OpenAI, мгновенно. 78 пар покрываются композицией.
+ * Русские куски написаны так, чтобы склейка всегда оставалась грамотной: перечни
+ * через двоеточие (без согласования глагола с «Рыбы»/«Овен»), готовые формы «С Овном»,
+ * обращение на «ты» без родовых форм.
  */
 import type { Language } from '../../types';
 import { getZodiacSign } from '../../constants';
@@ -17,34 +20,96 @@ const ELEMENT: Record<string, Element> = {
   cancer: 'water', scorpio: 'water', pisces: 'water',
 };
 
-type Profile = { trait: string; friction: string; talk: string; traitEn: string; frictionEn: string; talkEn: string };
+type Profile = {
+  /** What the sign brings into a pair, a nominative list. */
+  gives: string;
+  /** The sign's weak spot, a nominative noun phrase. */
+  weak: string;
+  /** «С Овном»: the instrumental lead-in for how to talk with the sign. */
+  with: string;
+  /** How to talk with the sign, second person without gendered forms. */
+  talk: string;
+  traitEn: string;
+  frictionEn: string;
+  talkEn: string;
+};
 
 const P: Record<string, Profile> = {
-  aries: { trait: 'прямой азарт и желание действовать', friction: 'нетерпеливость и резкость', talk: 'говори прямо и по делу, без долгих намёков',
+  aries: { gives: 'прямота, азарт и смелость начинать первым', weak: 'нетерпение и резкие слова сгоряча', with: 'С Овном', talk: 'говори прямо и коротко, намёки здесь теряются',
     traitEn: 'direct drive and a need to act', frictionEn: 'impatience and bluntness', talkEn: 'be direct and to the point' },
-  taurus: { trait: 'спокойная надёжность и любовь к комфорту', friction: 'упрямство', talk: 'не дави и дай время, здесь ценят стабильность',
+  taurus: { gives: 'спокойствие, надёжность и умение создать уют', weak: 'упрямство, когда торопят', with: 'С Тельцом', talk: 'давай время подумать: решение без спешки Телец держит крепко',
     traitEn: 'calm reliability and love of comfort', frictionEn: 'stubbornness', talkEn: 'don’t rush, stability matters here' },
-  gemini: { trait: 'лёгкость, любопытство и общение', friction: 'непостоянство', talk: 'держи разговор живым и не грузи тяжёлым тоном',
+  gemini: { gives: 'лёгкость, любопытство и живой разговор', weak: 'переменчивость настроения и планов', with: 'С Близнецами', talk: 'держи разговор живым и лёгким, Близнецам важно, чтобы было интересно',
     traitEn: 'lightness, curiosity and talk', frictionEn: 'restlessness', talkEn: 'keep it light and engaging' },
-  cancer: { trait: 'забота, чувствительность и тепло', friction: 'обидчивость', talk: 'будь мягче и не отмахивайся от чувств',
+  cancer: { gives: 'забота, тепло и чуткость к настроению', weak: 'обидчивость и привычка молчать об обиде', with: 'С Раком', talk: 'говори мягко и спрашивай о чувствах, Раку важно, чтобы их замечали',
     traitEn: 'care, sensitivity and warmth', frictionEn: 'touchiness', talkEn: 'be gentle and take feelings seriously' },
-  leo: { trait: 'тепло, щедрость и желание быть замеченным', friction: 'гордость', talk: 'цени искренне, и получишь втрое больше',
+  leo: { gives: 'щедрость, тепло и яркость', weak: 'гордость и обида, когда старания не замечают', with: 'Со Львом', talk: 'хвали искренне и вслух, Льву это нужно как воздух',
     traitEn: 'warmth, generosity and a wish to be seen', frictionEn: 'pride', talkEn: 'give honest appreciation' },
-  virgo: { trait: 'внимание к деталям и желание помочь', friction: 'критичность', talk: 'будь конкретным, а замечания, это забота, не нападение',
+  virgo: { gives: 'внимательность, практичность и забота делом', weak: 'придирчивость к мелочам', with: 'С Девой', talk: 'говори конкретно и принимай её замечания как заботу',
     traitEn: 'attention to detail and a wish to help', frictionEn: 'criticism', talkEn: 'be specific; their notes are care, not attacks' },
-  libra: { trait: 'обаяние и тяга к гармонии в паре', friction: 'нерешительность', talk: 'помогай выбирать и держи атмосферу ровной',
+  libra: { gives: 'обаяние, такт и умение мирить', weak: 'долгие колебания перед выбором', with: 'С Весами', talk: 'помогай с выбором и держи спокойный тон, Весам важна гармония',
     traitEn: 'charm and a pull toward harmony', frictionEn: 'indecision', talkEn: 'help with choices and keep things even' },
-  scorpio: { trait: 'глубина, страсть и преданность', friction: 'ревность и контроль', talk: 'будь честным до конца, фальшь здесь чувствуют сразу',
+  scorpio: { gives: 'глубина, страсть и верность', weak: 'ревность и желание держать всё под контролем', with: 'Со Скорпионом', talk: 'говори честно до конца, фальшь Скорпион чувствует сразу',
     traitEn: 'depth, passion and loyalty', frictionEn: 'jealousy and control', talkEn: 'be fully honest, they sense pretense fast' },
-  sagittarius: { trait: 'свобода, оптимизм и тяга к новому', friction: 'прямота и непоседливость', talk: 'дай простор и не удерживай силой',
+  sagittarius: { gives: 'оптимизм, свобода и тяга к новому', weak: 'резкая прямота и непоседливость', with: 'Со Стрельцом', talk: 'оставляй простор и зови в новое, Стрельцу важна свобода',
     traitEn: 'freedom, optimism and a love of the new', frictionEn: 'bluntness and restlessness', talkEn: 'give space, don’t hold on tight' },
-  capricorn: { trait: 'надёжность, цели и ответственность', friction: 'закрытость и сдержанность', talk: 'показывай дела, а не слова, здесь верят поступкам',
+  capricorn: { gives: 'надёжность, ясные цели и ответственность', weak: 'сдержанность и закрытость в чувствах', with: 'С Козерогом', talk: 'показывай заботу делами, Козерог верит поступкам',
     traitEn: 'reliability, goals and responsibility', frictionEn: 'reserve', talkEn: 'show action, not words' },
-  aquarius: { trait: 'оригинальность, ум и независимость', friction: 'отстранённость', talk: 'уважай свободу и не дави эмоциями',
+  aquarius: { gives: 'оригинальность, ум и независимость', weak: 'отстранённость, если давить', with: 'С Водолеем', talk: 'уважай личное пространство и говори о чувствах спокойно',
     traitEn: 'originality, mind and independence', frictionEn: 'detachment', talkEn: 'respect their freedom, don’t pressure with emotion' },
-  pisces: { trait: 'мягкость, воображение и сочувствие', friction: 'уход в себя', talk: 'будь бережным и не руби сплеча',
+  pisces: { gives: 'мягкость, воображение и сочувствие', weak: 'привычка уходить в себя', with: 'С Рыбами', talk: 'говори бережно и давай время прийти в себя после обиды',
     traitEn: 'softness, imagination and empathy', frictionEn: 'withdrawing', talkEn: 'be tender and don’t cut sharply' },
 };
+
+type Dynamic = { attract: string; tension: string; advice: string };
+
+/** Every pair of elements, keyed by the two elements in alphabetical order. */
+const DYNAMIC_RU: Record<string, Dynamic> = {
+  'fire:fire': {
+    attract: 'Два огня: вам вместе ярко и быстро, скучать точно не придётся.',
+    tension: 'Вспыхиваете вы тоже вместе, поэтому споры разгораются за секунды.',
+    advice: 'Договоритесь о паузе в споре: кто первым остыл, тот и предлагает мир.' },
+  'earth:earth': {
+    attract: 'Две земли: вам спокойно и надёжно, в делах вы понимаете друг друга с полуслова.',
+    tension: 'Со временем легко увязнуть в рутине и забыть о радостях.',
+    advice: 'Планируйте вместе отдых и праздники так же старательно, как дела.' },
+  'air:air': {
+    attract: 'Два воздуха: вам всегда есть о чём поговорить, идеи рождаются на ходу.',
+    tension: 'Слов бывает больше, чем дел, и важное так и остаётся разговором.',
+    advice: 'Выбирайте из идей одну и доводите её до конца вместе.' },
+  'water:water': {
+    attract: 'Две воды: вы чувствуете друг друга без слов, рядом тепло и спокойно.',
+    tension: 'Обиды тоже чувствуются вдвойне и могут долго копиться молча.',
+    advice: 'Говорите о чувствах сразу, пока они маленькие.' },
+  'air:fire': {
+    attract: 'Огонь и воздух: один зажигает, другой раздувает пламя, вместе вы легко загораетесь идеями.',
+    tension: 'Обоим быстро становится скучно, и общие планы иногда рассыпаются.',
+    advice: 'Держите рядом одно общее дело, к которому хочется возвращаться.' },
+  'earth:water': {
+    attract: 'Земля и вода: один даёт опору, другой тепло, вместе получается надёжно и уютно.',
+    tension: 'Один показывает заботу делами, другой словами и вниманием, и каждый ждёт своего.',
+    advice: 'Расскажите друг другу прямо, что для каждого значит забота.' },
+  'earth:fire': {
+    attract: 'Огонь и земля: один зажигает идеей, другой делает её реальной.',
+    tension: 'Темп у вас разный: одному хочется сразу, другому сначала всё обдумать.',
+    advice: 'Договоритесь, где вы действуете быстро, а где берёте время подумать.' },
+  'fire:water': {
+    attract: 'Огонь и вода: вас тянет друг к другу именно разницей, рядом всегда сильные чувства.',
+    tension: 'Один вспыхивает быстро, другой глубоко переживает каждое слово.',
+    advice: 'В споре сбавляйте громкость и проговаривайте, что на самом деле задело.' },
+  'air:earth': {
+    attract: 'Земля и воздух: один приносит идеи, другой знает, как их воплотить.',
+    tension: 'Одному важны свобода и разнообразие, другому порядок и предсказуемость.',
+    advice: 'Оставьте место и для общих правил, и для личного пространства каждого.' },
+  'air:water': {
+    attract: 'Воздух и вода: один смотрит на всё легко, другой чувствует глубоко, и этим вы интересны друг другу.',
+    tension: 'Одному хочется всё обсудить, другому важнее почувствовать понимание.',
+    advice: 'Сначала выслушайте чувства, потом ищите решение.' },
+};
+
+function dynamicRu(a: Element, b: Element): Dynamic {
+  return DYNAMIC_RU[[a, b].sort().join(':')];
+}
 
 function elementPair(a: Element, b: Element): 'same' | 'harmonious' | 'challenging' {
   if (a === b) return 'same';
@@ -52,25 +117,16 @@ function elementPair(a: Element, b: Element): 'same' | 'harmonious' | 'challengi
   return harmonious ? 'harmonious' : 'challenging';
 }
 
-const DYNAMIC: Record<'same' | 'harmonious' | 'challenging', { attract: string; tension: string; advice: string; attractEn: string; tensionEn: string; adviceEn: string }> = {
+const DYNAMIC_EN: Record<'same' | 'harmonious' | 'challenging', { attractEn: string; tensionEn: string; adviceEn: string }> = {
   same: {
-    attract: 'Вы из одной стихии, похожи по темпу и легко чувствуете друг друга.',
-    tension: 'Минус, можете застревать в одинаковых реакциях и усиливать общие слабости.',
-    advice: 'Иногда специально вносите разнообразие, чтобы не вариться в одном и том же.',
     attractEn: 'You share an element, similar pace, easy to feel each other.',
     tensionEn: 'The risk: getting stuck in the same reactions and amplifying shared weak spots.',
     adviceEn: 'Add variety on purpose so you don’t loop in the same patterns.' },
   harmonious: {
-    attract: 'Ваши стихии усиливают друг друга, один зажигает, другой поддерживает.',
-    tension: 'Напряжение возможно, если один тянет вперёд, а другой хочет притормозить.',
-    advice: 'Цените разницу темпов, она и есть ваша сила.',
     attractEn: 'Your elements lift each other, one sparks, the other supports.',
     tensionEn: 'Friction shows up when one pushes forward and the other wants to slow down.',
     adviceEn: 'Value the difference in pace, it’s your strength.' },
   challenging: {
-    attract: 'Ваши стихии разные по природе, отсюда и притяжение, и искры.',
-    tension: 'Сложнее всего с темпом и приоритетами: что для одного важно, другому кажется лишним.',
-    advice: 'Не переделывайте друг друга, учитесь уважать чужой способ жить.',
     attractEn: 'Your elements differ in nature, hence both the pull and the sparks.',
     tensionEn: 'Pace and priorities clash most: what matters to one can feel like extra to the other.',
     adviceEn: 'Don’t remake each other, respect a different way of living.' },
@@ -94,29 +150,29 @@ function genderedSign(signName: string, gender: CompatGender | null, ru: boolean
 const CONTEXT_COPY = {
   ru: {
     romance: {
-      attraction: 'В любви одной искры мало, важно, выдерживает ли она обычную жизнь.',
-      difficulty: 'Химия не отменяет разницу характеров.',
-      communication: 'Не проверяй чувства догадками: здесь лучше один прямой вопрос, чем десять внутренних версий.',
+      attraction: 'В любви важно, чтобы искра жила и в обычные будни.',
+      difficulty: 'Влюблённость сглаживает разницу характеров только поначалу.',
+      communication: 'Если сомневаешься в чувствах, спроси прямо: один честный вопрос лучше десяти догадок.',
     },
     relationship: {
-      attraction: 'В отношениях важна не только искра, но и то, насколько спокойно вы проживаете обычные дни.',
-      difficulty: 'Знакомые роли могут включаться раньше, чем вы успеваете назвать реальную причину напряжения.',
-      communication: 'Отделяйте текущую просьбу от накопленных претензий и договаривайтесь об одном вопросе за раз.',
+      attraction: 'В отношениях важно, как вам вместе в самые обычные дни.',
+      difficulty: 'Старые привычки и роли включаются быстрее, чем вы успеваете назвать настоящую причину спора.',
+      communication: 'Обсуждайте один вопрос за раз и говорите о том, что происходит сейчас.',
     },
     friendship: {
-      attraction: 'В дружбе главное не эффектное знакомство, а можно ли рядом быть собой без постоянной игры.',
-      difficulty: 'Даже сильная дружба портится, когда один считает близость очевидной, а второй ждёт конкретных действий.',
-      communication: 'Говорите прямо о границах, времени и взаимности, дружба от этого не становится холоднее.',
+      attraction: 'В дружбе главное, чтобы рядом можно было быть собой.',
+      difficulty: 'Дружба остывает, когда один ждёт звонков, а другой уверен, что и так всё понятно.',
+      communication: 'Говорите прямо о времени, границах и взаимности: честность дружбу только укрепляет.',
     },
     work: {
-      attraction: 'В работе важна не симпатия, а то, усиливаете ли вы результат друг друга.',
-      difficulty: 'Главная проверка, темп, ответственность и отношение к договорённостям.',
-      communication: 'Фиксируйте роли и сроки словами: рабочую совместимость лучше не строить на телепатии.',
+      attraction: 'В работе важно, как вы усиливаете результат друг друга.',
+      difficulty: 'Главная проверка: темп, ответственность и верность договорённостям.',
+      communication: 'Проговаривайте роли и сроки вслух и записывайте договорённости.',
     },
     family: {
-      attraction: 'В семье связь уже дана, но качество контакта всё равно зависит от правил и уважения.',
-      difficulty: 'Старые роли легко включаются автоматически и заставляют спорить не о текущей ситуации.',
-      communication: 'Отделяйте конкретную просьбу от накопленной семейной истории, так разговор остаётся про настоящее.',
+      attraction: 'В семье связь уже есть, а тепло в ней держится на уважении и понятных правилах.',
+      difficulty: 'Старые семейные роли легко включаются сами и уводят спор в прошлое.',
+      communication: 'Говорите о сегодняшней просьбе и оставляйте старые семейные истории в прошлом.',
     },
   },
   en: {
@@ -172,9 +228,9 @@ export function buildLocalPersonSnapshot(
   return ru
     ? {
         headline: `${label}: сначала о человеке`,
-        body: `По солнечному знаку здесь сильнее всего видны ${profile.trait}. Это цепляет, но слабое место тоже заметное, ${profile.friction}. Не додумывай остальное за человека: смотри, совпадают ли слова и повторяющиеся поступки.`,
+        body: `Сильные стороны: ${profile.gives}. Слабое место: ${profile.weak}. Остальное лучше узнавать по поступкам, которые повторяются.`,
         contextLine: copy.attraction,
-        limitation: 'Это честный общий портрет по дате рождения. Время и место добавят Луну, Венеру, дома и сделают вывод точнее.',
+        limitation: 'Это общий портрет по дате рождения. Время и место рождения добавят Луну, Венеру и дома, и портрет станет точнее.',
       }
     : {
         headline: `${label}: the person first`,
@@ -189,8 +245,9 @@ export function signPairTeaser(first: string, second: string, language: Language
   const a = normalizeZodiacKey(first)?.toLowerCase();
   const b = normalizeZodiacKey(second)?.toLowerCase();
   if (!a || !b || !ELEMENT[a] || !ELEMENT[b]) return null;
-  const dyn = DYNAMIC[elementPair(ELEMENT[a], ELEMENT[b])];
-  return language === 'en' ? dyn.attractEn : dyn.attract;
+  return language === 'en'
+    ? DYNAMIC_EN[elementPair(ELEMENT[a], ELEMENT[b])].attractEn
+    : dynamicRu(ELEMENT[a], ELEMENT[b]).attract;
 }
 
 export function buildLocalSignCompatibility(
@@ -211,7 +268,6 @@ export function buildLocalSignCompatibility(
   if (!pa || !pb) return null;
 
   const ru = language !== 'en';
-  const dyn = DYNAMIC[elementPair(ELEMENT[ka], ELEMENT[kb])];
   const nameA = getZodiacSign(language, ka);
   const nameB = getZodiacSign(language, kb);
   const same = ka === kb;
@@ -227,14 +283,18 @@ export function buildLocalSignCompatibility(
   let communication: string;
 
   if (ru) {
+    const dyn = dynamicRu(ELEMENT[ka], ELEMENT[kb]);
     attraction = same
-      ? `Вы очень похожи: оба про ${pa.trait}. Это даёт быстрое узнавание и ощущение «свой человек». ${dyn.attract}`
-      : `${labelA} приносит ${pa.trait}, а ${labelB} - ${pb.trait}. ${dyn.attract} Вместе это и притягивает: каждый добавляет то, чего не хватает другому.`;
+      ? `У вас один знак, ${cap(nameA)}: ${pa.gives}. Вы быстро узнаёте друг друга и сразу чувствуете, что рядом свой человек. ${dyn.attract}`
+      : `${labelA}: ${pa.gives}. ${labelB}: ${pb.gives}. ${dyn.attract}`;
     difficulty = same
-      ? `Общая слабость тоже удваивается: ${pa.friction} с обеих сторон. ${dyn.tension}`
-      : `Сложности появляются там, где встречаются ${pa.friction} и ${pb.friction}. ${dyn.tension}`;
-    communication = `Чтобы понимать друг друга: ${pa.talk}; ${pb.talk}. ${dyn.advice}`;
+      ? `Слабое место у вас тоже общее: ${pa.weak}. ${dyn.tension}`
+      : `${labelA}: ${pa.weak}. ${labelB}: ${pb.weak}. ${dyn.tension}`;
+    communication = same
+      ? `${pa.with} ${pa.talk}. ${dyn.advice}`
+      : `${pa.with} ${pa.talk}. ${pb.with} ${pb.talk}. ${dyn.advice}`;
   } else {
+    const dyn = DYNAMIC_EN[elementPair(ELEMENT[ka], ELEMENT[kb])];
     attraction = same
       ? `You’re very alike: both about ${pa.traitEn}. That brings quick recognition. ${dyn.attractEn}`
       : `${labelA} brings ${pa.traitEn}, while ${labelB} brings ${pb.traitEn}. ${dyn.attractEn} That’s the pull: each adds what the other lacks.`;
@@ -255,7 +315,7 @@ export function buildLocalSignCompatibility(
     difficulty,
     communication,
     limitation: ru
-      ? 'Это общий разбор по солнечным знакам. Пол не используется как «объяснение характера»: время и место рождения, Луна и Венера могут заметно изменить картину.'
+      ? 'Это разбор по знакам Солнца. Время и место рождения обоих добавят Луну и Венеру, и картина станет точнее.'
       : 'This is a general Sun-sign reading. Gender is not used to explain character; birth time and place, the Moon and Venus can change the picture.',
   };
 }
