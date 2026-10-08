@@ -7,8 +7,12 @@ import {
   type NatalInterpretation,
   type NatalMeaning,
 } from '../natalInterpretation';
-import { getNatalStorySystemPrompt } from '../voice/contracts/natal';
-import { hasCoreVoiceViolation } from '../voice/validators';
+import { getNeboCoreVoice } from '../voice/core';
+import {
+  CORE_VOICE_CLICHE_PATTERNS,
+  CORE_VOICE_MYSTICISM_PATTERNS,
+  hasCoreVoiceViolation,
+} from '../voice/validators';
 import { natalPlainLanguageError } from '../natalInterpretation/plainLanguage';
 import {
   createLunaStructuredResponse,
@@ -27,16 +31,17 @@ import type {
 
 const MAX_ANSWER_ATTEMPTS = 2;
 
-export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question-v6');
-export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v8';
+export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question-v7');
+export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v9';
 
 const NATAL_QUESTION_RESPONSE_SCHEMA: StrictJsonSchema = {
   type: 'object',
   properties: {
     answer: { type: 'string' },
     meaning_ids: { type: 'array', items: { type: 'string' } },
+    evidence_ids: { type: 'array', items: { type: 'string' } },
   },
-  required: ['answer', 'meaning_ids'],
+  required: ['answer', 'meaning_ids', 'evidence_ids'],
   additionalProperties: false,
 };
 
@@ -45,8 +50,10 @@ const NATAL_QUESTION_SEMANTIC_REVIEW_SCHEMA: StrictJsonSchema = {
   properties: {
     ok: { type: 'boolean' },
     issues: { type: 'array', items: { type: 'string' } },
+    meaning_ids: { type: 'array', items: { type: 'string' } },
+    evidence_ids: { type: 'array', items: { type: 'string' } },
   },
-  required: ['ok', 'issues'],
+  required: ['ok', 'issues', 'meaning_ids', 'evidence_ids'],
   additionalProperties: false,
 };
 
@@ -78,6 +85,8 @@ export type NatalQuestionValidationCode =
   | 'MEANING_REQUIRED'
   | 'MEANING_UNKNOWN'
   | 'MEANING_SELECTION_TOO_BROAD'
+  | 'EVIDENCE_UNKNOWN'
+  | 'EVIDENCE_SELECTION_TOO_BROAD'
   | 'COPY_VIOLATION'
   | 'DIAGNOSTIC_CLAIM'
   | 'PROFESSIONAL_IMPERATIVE'
@@ -112,11 +121,15 @@ export type NatalQuestionSnapshot = {
 export type NatalQuestionPromptContext = {
   chartId: number;
   interpretationVersion: string;
+  gender?: UserProfile['gender'];
+  birthTimeQuality?: NatalInterpretation['birthTimeQuality'];
+  savedChartEvidence?: NatalInterpretation['evidence'];
   approvedMeanings: Array<{
     id: string;
     scope: NatalMeaning['scope'];
     topics: NatalMeaning['topics'];
     meaning: string;
+    topicMeanings?: NatalMeaning['topicText'];
     area?: string;
   }>;
   recentMessages: Array<{
@@ -129,11 +142,20 @@ export type NatalQuestionPromptContext = {
 type RawNatalQuestionAnswer = {
   answer?: unknown;
   meaning_ids?: unknown;
+  evidence_ids?: unknown;
 };
 
 type RawNatalQuestionSemanticReview = {
   ok?: unknown;
   issues?: unknown;
+  meaning_ids?: unknown;
+  evidence_ids?: unknown;
+};
+
+type NatalQuestionSemanticReview = {
+  issues: string[];
+  meaningIds: string[];
+  evidenceIds: string[];
 };
 
 type NatalReadingLanguage = 'ru' | 'en';
@@ -147,8 +169,12 @@ type NatalQuestionSemanticReviewer = (input: {
   language: NatalReadingLanguage;
   question: string;
   answer: string;
-  meanings: Array<Pick<NatalMeaning, 'id' | 'scope' | 'text'>>;
-}) => Promise<string[]>;
+  meanings: Array<Pick<NatalMeaning, 'id' | 'scope' | 'text' | 'topics' | 'topicText' | 'area'>>;
+  availableMeanings: NatalQuestionPromptContext['approvedMeanings'];
+  savedChartEvidence: NatalInterpretation['evidence'];
+  gender: UserProfile['gender'];
+  recentMessages: NatalQuestionPromptContext['recentMessages'];
+}) => Promise<NatalQuestionSemanticReview | string[]>;
 
 function text(value: unknown): string {
   return String(value ?? '').trim();
@@ -180,6 +206,8 @@ const INTERPRETIVE_INTENT_PATTERNS = [
 ] as const;
 
 const PERSONAL_PATTERN_DOMAIN_PATTERNS = [
+  /(?:богат|бога[тс]ств|финанс|заработ|успех|предприним|бизнес|призвани|предназначен|счаст|одиноч|ревност|брак|женить|замуж|самореализац|жизн|переезд|интим|сексуальн)/iu,
+  /(?:wealth|rich|financ|earn|success|business|entrepreneur|calling|purpose|happiness|loneliness|jealous|marriage|marry|life|relocation|intimacy|sexual)/iu,
   /(?:характер|черт[\p{L}-]*|сильн[\p{L}-]*\s+сторон|слаб[\p{L}-]*\s+сторон|талант|способност|реакц|реагир|эмоц|чувств|привыч|поведен|решен|выбор|сомнен|риск|общен|разговор|говор|конфликт|спор|границ|довер|помощ|отношен|любов|близост|симпати|семь|родител|друз|муж|жен|супруг|работ|карьер|профес|коллег|руковод|деньг|доход|трат|накоп|самооцен|уверен|страх|контрол|ответствен|мотивац|цел[ьи]|темп|ритм|инициатив|лидер|партн[её]р|прокраст|откладыв|дисциплин|организ|довож|начина|заметн|веду\s+себя|настаив|насто|мысл|разноглас|прийти\s+в\s+себя|комфорт|пространств|домашн|уклад|восстанав|восстанов|уч[её]б|учусь|учиться|обучен|разбира|понять|теори|отдых|нагруз|рутин|пауз|переключ)/iu,
   /(?:character|trait|strength|weakness|talent|abilit|reaction|react|emotion|feeling|habit|behavio|decision|choice|doubt|risk|communicat|conversation|speak|conflict|argument|boundar|trust|help|relationship|love|intimacy|attraction|interest|family|parent|friend|husband|wife|spouse|work|career|profession|colleague|manager|money|income|spend|saving|confidence|fear|control|responsibilit|motivation|goal|pace|rhythm|initiative|leader|partner|procrastinat|put\w*\s+off|disciplin|organi[sz]|follow\w*\s+through|start\w*|notice|stand\s+my\s+ground|explain|thought|what\s+i\s+mean|disagreement|comfort|personal\s+space|home|recover|routine|learn|understand|theory|rest|workload|break|switch\w*\s+off)/iu,
 ] as const;
@@ -195,8 +223,6 @@ const TIMING_DECISION_PATTERNS = [
 ] as const;
 
 const UNIVERSAL_ASSISTANT_TASK_PATTERNS = [
-  /(?:^|[^\p{L}])(?:приготовь|свари|испеки|пожарь|купи|закажи|подбери|посоветуй|выбери|напиши|сочини|переведи|исправь|отладь|запрограммируй|реши|нарисуй|создай|поставь|отправь|забронируй|построй|проложи|спланируй)(?!\p{L})/iu,
-  /(?:^|[^\p{L}])(?:сделай|составь)(?!\s+(?:мне\s+)?гороскоп)(?!\p{L})/iu,
   /(?:приготов|свари|испек|пожарь|рецепт|составь\s+меню|посчитай\s+калори|борщ|суп(?!\p{L}))/iu,
   /(?:(?:купи|закажи|подбери|посоветуй|выбери)(?!\p{L})[^.!?]{0,100}(?:телефон|ноутбук|товар|одежд|подарок|отел|ресторан|курс)|какой\s+(?:телефон|ноутбук|товар)\s+(?:купить|выбрать))/iu,
   /(?:напиши|сочини|расскажи|придумай|переведи|перевод|исправь|отладь|запрограммируй|реши|сделай)(?!\p{L})[^.!?]{0,100}(?:анекдот|шутк|истори|стих|песн|письм|пост|резюме|код|программ|скрипт|домашн|задач|контрольн|экзамен|презентац)/iu,
@@ -209,8 +235,6 @@ const UNIVERSAL_ASSISTANT_TASK_PATTERNS = [
   /(?:weather\s+forecast|temperature\s+outside|match\s+score|game\s+score|news|exchange\s+rate|who\s+(?:is\s+the\s+president|won))/iu,
   /(?:draw|create\s+(?:an?\s+)?(?:image|picture|video)|set\s+(?:a\s+)?reminder|send\s+(?:an?\s+)?(?:email|message)|book\s+(?:a\s+)?(?:hotel|table|flight))/iu,
   /(?:build|make|plan)\b[^.!?]{0,100}(?:route|trip|travel|schedule|workout|diet|budget)/iu,
-  /(?:^|[^\p{L}])(?:cook|boil|bake|fry|buy|order|pick|recommend|choose|write|compose|translate|fix|debug|program|solve|draw|create|set|send|book)(?!\p{L})/iu,
-  /(?:^|[^\p{L}])make(?!\s+(?:me\s+)?a\s+horoscope)(?!\p{L})/iu,
 ] as const;
 
 const FACTUAL_LOOKUP_PATTERNS = [
@@ -226,13 +250,6 @@ const GENERIC_FACT_LOOKUP_PATTERNS = [
 const CONTENT_RECOMMENDATION_PATTERNS = [
   /(?:како(?:й|ю|е|ие)\s+(?:фильм|сериал|книг\p{L}*|музык\p{L}*|игр\p{L}*)[^.!?]{0,80}(?:посмотреть|почитать|послушать|выбрать|скачать|купить)|что\s+мне\s+(?:посмотреть|почитать|послушать|поиграть))/iu,
   /(?:what|which)\s+(?:movie|film|series|show|book|music|game)[^.!?]{0,80}(?:should\s+i|to)\s+(?:watch|read|listen|play|choose|buy)|what\s+should\s+i\s+(?:watch|read|listen\s+to|play)/iu,
-] as const;
-
-const PRESCRIPTIVE_ASSISTANT_REQUEST_PATTERNS = [
-  /(?:как|что)\s+мне\s+(?:лучше\s+)?(?:сделать|делать|найти|получить|добиться|заработать|увеличить|выбрать|купить|продать|написать|составить|подготовить|выучить|помириться|вернуть|убедить|заставить|уволиться|устроиться|перейти|переехать|построить|общаться|вести\s+себя|поступить|решить)(?!\p{L})/iu,
-  /(?:дай|составь)\s+(?:мне\s+)?(?:совет|план|инструкц|список|стратег)/iu,
-  /(?:how|what)\s+(?:can|should|do)\s+i\s+(?:make|do|find|get|achieve|earn|increase|choose|buy|sell|write|prepare|learn|reconcile|win\s+back|convince|force|quit|apply|move|build|communicate|behave|decide)(?!\p{L})/iu,
-  /(?:give|make)\s+me\s+(?:advice|a\s+plan|an?\s+instruction|a\s+list|a\s+strategy)/iu,
 ] as const;
 
 const PROFESSIONAL_PRESCRIPTION_PATTERNS = [
@@ -261,8 +278,8 @@ const COMPATIBILITY_PATTERNS = [
 ] as const;
 
 const VAGUE_QUESTION_PATTERNS = [
-  /^(?:что\s+делать|как\s+быть|что\s+дальше|что\s+скажешь|что\s+в\s+(?:моей\s+)?(?:натальной\s+)?карт[еы]|расскажи(?:\s+мне)?|помоги|про\s+меня|обо\s+мне|про\s+отношения|про\s+работу|что[-\s]?нибудь)(?:\s+(?:по|согласно)\s+(?:моей\s+)?(?:натальной\s+)?карт[еы])?[?!.]*$/iu,
-  /^(?:what\s+should\s+i\s+do|what\s+now|what\s+do\s+you\s+think|what(?:'s|\s+is)\s+in\s+my\s+(?:natal\s+|birth\s+)?chart|tell\s+me|help\s+me|about\s+me|about\s+relationships|about\s+work|anything)(?:\s+(?:from|according\s+to)\s+my\s+(?:natal\s+|birth\s+)?chart)?[?!.]*$/iu,
+  /^(?:что\s+делать|как\s+быть|что\s+дальше|что\s+скажешь|расскажи(?:\s+мне)?|помоги|что[-\s]?нибудь)[?!.]*$/iu,
+  /^(?:what\s+should\s+i\s+do|what\s+now|what\s+do\s+you\s+think|tell\s+me|help\s+me|anything)[?!.]*$/iu,
 ] as const;
 
 const REQUEST_DIRECTIVE_START_SOURCE = String.raw`(?:(?:пожалуйста\s*,?\s*)?(?:расскажи(?:те)?|объясни(?:те)?|опиши(?:те)?|разбери(?:те)?|покажи(?:те)?|назови(?:те)?|дай(?:те)?|напиши(?:те)?|сочини(?:те)?|переведи(?:те)?|составь(?:те)?|сделай(?:те)?|приготовь(?:те)?|придумай(?:те)?|создай(?:те)?|реши(?:те)?|помоги(?:те)?|подскажи(?:те)?|посоветуй(?:те)?|выбери(?:те)?|купи(?:те)?|закажи(?:те)?|нарисуй(?:те)?|отправь(?:те)?|поставь(?:те)?|забронируй(?:те)?|спланируй(?:те)?|свари(?:те)?|испеки(?:те)?|пожарь(?:те)?)|(?:(?:please\s+)?(?:tell|explain|describe|interpret|show|name|give|write|compose|translate|make|cook|create|solve|help|suggest|recommend|choose|buy|order|draw|send|set|book|plan)))`;
@@ -278,6 +295,8 @@ const SEMANTIC_REQUEST_PART_BOUNDARY = new RegExp(
 );
 
 const CONTEXTUAL_INTERPRETATION_PATTERNS = [
+  /^(?:а\s+|и\s+)?(?:почему(?:\s+так)?|как\s+так|объясни(?:\s+подробнее)?|расскажи(?:\s+подробнее)?|подробнее|что\s+это\s+значит|что\s+с\s+этим\s+делать|а\s+дальше)[?!.]*$/iu,
+  /^(?:and\s+|but\s+)?(?:why(?:\s+is\s+that)?|how\s+so|explain(?:\s+more)?|tell\s+me\s+more|more\s+details|what\s+does\s+that\s+mean|what\s+can\s+i\s+do\s+about\s+that)[?!.]*$/iu,
   /(?:что\s+(?:это|этот|эта|эти|такое|такой|положение|аспект|связь)\s+(?:значит|означает|показывает)|как\s+(?:это|этот|эта|эти|такое|такой|положение|аспект|связь)\s+(?:влияет|проявляется|связано|работает|мешает|помогает)|почему\s+(?:это|этот|эта|эти|такое|такой|положение|аспект|связь)\s+(?:происходит|проявляется|повторяется|мешает|помогает)|(?:объясни|расскажи|опиши|разбери)(?:те)?[^.!?]{0,40}(?:его|е[её]|их|этого|этой|этих)\s+(?:влияни|значени|роль|проявлен))/iu,
   /(?:what\s+(?:does\s+)?(?:it|this|that|these|the\s+placement|the\s+aspect|the\s+connection)\s+(?:mean|show)|how\s+(?:it|this|that|these|the\s+placement|the\s+aspect|the\s+connection)\s+(?:affects?|shows?\s+up|relates?|works?|helps?|gets?\s+in\s+the\s+way)|why\s+(?:it|this|that|these|the\s+placement|the\s+aspect|the\s+connection)\s+(?:happens?|shows?\s+up|repeats?|helps?|gets?\s+in\s+the\s+way)|(?:explain|tell|describe|interpret)[^.!?]{0,40}(?:its|their|this|that)\s+(?:effect|meaning|role|influence))/iu,
 ] as const;
@@ -373,13 +392,17 @@ export function moderateNatalQuestion(input: {
   existingQuestions?: readonly string[];
 }): NatalQuestionModeration {
   const question = normalizePersonalForecastQuestionInput(input.question);
+  const isFollowUp = Boolean(input.existingQuestions?.length)
+    && matchesQuestionPolicy(question, CONTEXTUAL_INTERPRETATION_PATTERNS);
   const shared = moderatePersonalForecastCustomQuestion({
     question,
     language: input.language,
     period: 'month',
-    existingCustomQuestions: input.existingQuestions,
+    // Conversation follow-ups may revisit the same topic. The store still
+    // enforces the daily allowance and reuses unanswered requests on retry.
   });
-  if (shared.status === 'rejected' && shared.reason !== 'duplicate_catalog') {
+  if (shared.status === 'rejected' && shared.reason !== 'duplicate_catalog'
+    && !(shared.reason === 'too_short' && isFollowUp)) {
     return {
       status: 'rejected',
       reason: shared.reason,
@@ -415,13 +438,6 @@ export function moderateNatalQuestion(input: {
       normalizedQuestion: shared.normalizedQuestion,
     };
   }
-  if (matchesQuestionPolicy(question, PRESCRIPTIVE_ASSISTANT_REQUEST_PATTERNS)) {
-    return {
-      status: 'rejected',
-      reason: 'not_natal_question',
-      normalizedQuestion: shared.normalizedQuestion,
-    };
-  }
   if (matchesQuestionPolicy(question, PROFESSIONAL_PRESCRIPTION_PATTERNS)) {
     return {
       status: 'rejected',
@@ -443,7 +459,7 @@ export function moderateNatalQuestion(input: {
       normalizedQuestion: shared.normalizedQuestion,
     };
   }
-  if (matchesQuestionPolicy(question, VAGUE_QUESTION_PATTERNS)) {
+  if (!isFollowUp && matchesQuestionPolicy(question, VAGUE_QUESTION_PATTERNS)) {
     return {
       status: 'rejected',
       reason: 'needs_specificity',
@@ -466,12 +482,10 @@ export function moderateNatalQuestion(input: {
     && hasInterpretiveIntent
     && hasPersonalPatternDomain;
 
-  // Product rule: one free-form field accepts any concrete question ABOUT the
-  // user. It does not require a topic vocabulary. Generic astrology reference
-  // questions ("what does Saturn mean?") and unrelated recommendations are not
-  // personal questions, while an explicit "my chart" question can still be
-  // accepted when its wording clearly asks for a personal pattern.
-  if (!hasPersonalSubject && !isImplicitSelfChartQuestion && !isTimingQuestion) {
+  // This field already supplies the self-chart context: a life-area question
+  // such as "Какая профессия подходит?" does not need another "я" or "мне".
+  if (!hasPersonalSubject && !hasPersonalPatternDomain && !hasNatalScope
+    && !isImplicitSelfChartQuestion && !isTimingQuestion && !isFollowUp) {
     return {
       status: 'rejected',
       reason: shared.status === 'pending' ? 'needs_specificity' : 'not_natal_question',
@@ -539,11 +553,15 @@ export function buildNatalQuestionPromptContext(input: {
     context: {
       chartId: input.chartId,
       interpretationVersion: interpretation.schemaVersion,
+      gender: input.profile.gender || 'unspecified',
+      birthTimeQuality: interpretation.birthTimeQuality,
+      savedChartEvidence: interpretation.evidence,
       approvedMeanings: interpretation.meanings.map((meaning) => ({
         id: meaning.id,
         scope: meaning.scope,
         topics: meaning.topics,
         meaning: meaning.text,
+        ...(meaning.topicText ? { topicMeanings: meaning.topicText } : {}),
         ...(meaning.area ? { area: meaning.area } : {}),
       })),
       recentMessages: pairedRecentMessages(input.chartId, input.history),
@@ -556,46 +574,66 @@ export function buildNatalQuestionPrompt(
   language: NatalReadingLanguage,
   context: NatalQuestionPromptContext,
   repairErrors: readonly NatalQuestionValidationCode[] = [],
+  repairDetails: readonly string[] = [],
+  previousOutput?: RawNatalQuestionAnswer,
 ): string {
   const rules = language === 'ru'
     ? `## КОНТРАКТ ФУНКЦИИ: ВОПРОС ПО НАТАЛЬНОЙ КАРТЕ
 
 Отвечай по-русски и обращайся к человеку на «ты».
 
-Ты отвечаешь только по уже готовым смыслам единого натального интерпретатора. Ты НЕ астрологический интерпретатор и не имеешь права заново трактовать сырые данные карты.
+Это ответ на конкретный вопрос человека, а не новый общий рассказ о всей его карте. Пойми смысл вопроса целиком, даже если он написан коротко, разговорно или с опечатками. Для продолжения разговора восстанови тему из recentMessages.
+
+Основа ответа: достоверные положения и связи из сохранённой карты именно этого человека, savedChartEvidence. approvedMeanings дают уже проверенные наблюдения, но не ограничивают ответ набором коротких готовых фраз. Разбирай по карте именно заданный вопрос.
 
 ЖЁСТКИЕ ПРАВИЛА:
-- Во входе APPROVED_MEANINGS уже содержится весь разрешённый смысл.
-- Верни только JSON: {"answer":"краткий ответ обычными словами","meaning_ids":["существующий meaning id"]}. Достаточно 1–5 предложений, не добавляй фразы ради количества.
-- Сначала ответь на вопрос по делу. Используй только те meaning_ids, которые реально нужны для ответа: обычно 1–4, максимум 6.
-- Каждое личное утверждение в answer должно быть прямым пересказом выбранных approved meanings. Нельзя добавлять новую причину, мотив, биографию, событие или психологический ярлык.
-- Если готовые смыслы не подтверждают предпосылку вопроса, так и скажи простыми словами. Не подгоняй карту под вопрос.
+- savedChartEvidence содержит только достоверные основания. Используй положения, жизненные области и связи между ними в совокупности. Не вычисляй новую карту, не меняй знак, дом, тип связи или положение объекта и не дополняй отсутствующие основания. Если время рождения неточное, не восстанавливай исключённые из входа дома и углы.
+- Верни только JSON: {"answer":"цельный подробный ответ с абзацами","meaning_ids":["использованный approved meaning id"],"evidence_ids":["основание из savedChartEvidence"]}. meaning_ids может быть пустым, если готовые фразы не использованы; evidence_ids должны точно объяснять основания ответа.
+- Сначала прямо ответь на то, что человек спросил. Затем раскрой относящиеся к вопросу подробности: что именно подтверждено, как связаны наблюдения, в каких обстоятельствах каждое из них имеет значение. Если вопрос состоит из нескольких частей, ответь на каждую.
+- Обычно это 4–7 связанных абзацев, примерно 200–400 слов. Это ориентир для полноценного объяснения, а не обязательная квота. Не растягивай скудный материал повторениями и не обрезай богатый материал до пары фраз. Каждый абзац добавляет отдельную существенную мысль и продолжает предыдущий.
+- До написания ответа выбери существенные основания по вопросу из всей карты: относящиеся к нему жизненные области, положения объектов и их связи. Объясни, что они дают вместе, где поддерживают друг друга и где расходятся. Используй topics, area и topicMeanings как помощь, а не как запрет раскрыть вопрос подробнее. Не подменяй вопрос случайной чертой из другой области.
+- Все личные выводы должны опираться на конкретные savedChartEvidence или approvedMeanings. После написания проверь основания для каждого вывода. Укажи максимум 24 meaning_ids и 40 evidence_ids, только реально использованные существующие ID.
+- Разрешены подробное объяснение и связная интерпретация подтверждённых положений по вопросу. Пиши о склонностях и возможных условиях, не объявляй интерпретацию доказанным фактом биографии. Не придумывай жизненные события, причины из прошлого, мотивы или психологические ярлыки.
+- Смыслы scope=background описывают общий фон и не могут быть единственным основанием для личного вывода. Не превращай общий фон в индивидуальный факт.
+- Пиши как один связный ответ человеку, который впервые читает о своей карте. Не выдавай перечень характеристик, отдельные обрывки, таблицу, подзаголовки или универсальный шаблон. Меняй начала и длину предложений, не повторяй одну мысль другими словами.
+- Если человек спрашивает иначе о прежней теме, раскрой именно новую сторону вопроса. Не копируй предыдущий ответ. На «почему?» объясни уже названное, на «подробнее» добавь подтверждённые подробности, а не повтори вводные.
+- Если карта не подтверждает предпосылку вопроса, так и скажи простыми словами. Не подгоняй карту под вопрос.
 - Не называй в answer планеты, знаки, дома, аспекты, углы, ретроградность, орбы или градусы. Технические основания приложение покажет отдельно.
 - Не превращай ответ в коучинг: не давай человеку советы, инструкции, задания или «правильный путь».
 - Не пиши служебным языком вроде «в этой теме», «динамика», «сфера», «функция», «карта показывает», «астрологическая трактовка».
+- Не обсуждай «готовые смыслы», «выбранные наблюдения», «разрешённые данные» и сам процесс генерации. Человек читает ответ о себе, а не описание входных данных. Учитывай gender; при unspecified используй нейтральные по роду формулировки: «ты выбираешь», «тебе легче», «тебе важно». Не угадывай пол человека.
 - Не придумывай прошлое, травмы, страхи, диагнозы, отношения, профессию, доход, мысли других людей или гарантированные события.
-- previous messages нужны только для связности разговора. Они не являются доказательством и не расширяют APPROVED_MEANINGS.
-- Натальная карта не даёт календарных прогнозов. Если вопрос про сегодня/завтра/дату/когда случится, коротко обозначь эту границу и отвечай только о повторяющемся способе действия, который действительно есть в APPROVED_MEANINGS.
+- previous messages нужны только для связности разговора. Они не являются доказательством и не расширяют savedChartEvidence.
+- Натальная карта не даёт календарных прогнозов. Если вопрос про сегодня/завтра/дату/когда случится, коротко обозначь эту границу и подробно раскрой доступные наблюдения по теме самого вопроса. Не заканчивай ответ одним отказом и не придумывай дату.
 - Для timing-вопроса допустимая граница: «По натальной карте нельзя определить, лучший ли сегодня день, или назвать подходящую дату».
 - Не приветствуй, не благодари за вопрос и не рассказывай, что сейчас будешь делать.`
     : `## CONTENT CONTRACT: NATAL QUESTION
 
 Answer in English and address the reader as “you”.
 
-You answer only from the already approved meanings produced by the unified natal interpreter. You are NOT allowed to reinterpret raw chart data.
+This is an answer to the person's specific question, not a new general portrait of their entire chart. Understand the whole question, including informal wording or typos. Resolve follow-ups from recentMessages.
+
+Use the reliable placements and connections from this person's saved chart in savedChartEvidence. approvedMeanings supply previously checked observations, but do not limit the answer to a few short prepared phrases. Interpret the chart specifically for the question.
 
 STRICT RULES:
-- APPROVED_MEANINGS contains the entire allowed interpretation.
-- Return JSON only: {"answer":"a brief answer in ordinary words","meaning_ids":["existing meaning id"]}. Use 1–5 sentences; do not add sentences just to reach a count.
-- Answer the question directly. Use only the meaning_ids actually needed for the answer: normally 1–4, maximum 6.
-- Every personal claim in answer must be a direct paraphrase of the selected approved meanings. Add no new cause, motive, biography, event, or psychological label.
-- If the approved meanings do not support the premise of the question, say so plainly. Do not force the chart to fit the question.
+- savedChartEvidence contains reliable evidence only. Consider placements, life areas and connections together. Do not recalculate the chart, change signs, houses, connection types or object placements, or invent missing evidence. Do not reconstruct excluded houses or angles for uncertain birth times.
+- Return JSON only: {"answer":"a full connected answer with paragraphs","meaning_ids":["used approved meaning id"],"evidence_ids":["existing savedChartEvidence id"]}. meaning_ids may be empty when prepared observations are not used; evidence_ids must accurately support the answer.
+- Answer the actual question directly, then explain the relevant details, connections between supported observations and the circumstances each observation concerns. Address every part of a multi-part question.
+- Normally use 4–7 connected paragraphs, roughly 200–400 words. This is guidance for a complete explanation, not a mandatory quota. Do not pad sparse material or reduce rich material to two generic sentences. Each paragraph adds a distinct relevant point and continues the previous one.
+- Before writing, select substantial evidence relevant to the question from the full chart: life areas, object placements and their connections. Explain how these work together, support each other or differ. Use topics, area and topicMeanings as assistance, not a restriction on depth. Do not substitute an unrelated general trait for the requested subject.
+- Every personal conclusion must be grounded in specific savedChartEvidence or approvedMeanings. Check support for every conclusion after writing. Return up to 24 meaning_ids and 40 evidence_ids, using only actually relevant existing IDs.
+- Detailed explanation and connected interpretation of reliable placements are allowed. Describe tendencies and possible conditions rather than verified biography. Do not invent life events, causes from the person's past, motives or psychological labels.
+- A scope=background meaning is shared background, not enough on its own to establish an individual trait.
+- Write one continuous answer for a beginner. No trait checklist, fragments, table, headings or universal answer template. Vary sentence openings and rhythm; never restate a point just to increase length.
+- A new question on a familiar topic needs a new angle, not a copy of the previous answer. Explain the prior point for “why?” and add supported detail for “tell me more”.
+- If the chart does not support the premise of the question, say so plainly. Do not force it to fit the question.
 - Do not name planets, signs, houses, aspects, angles, retrograde motion, orbs, or degrees in answer. The app shows technical evidence separately.
 - Do not coach, advise, prescribe, or give the reader tasks or a “right path”.
 - Avoid meta/report language such as “this theme”, “dynamic”, “sphere”, “function”, “the chart shows”, or “astrological interpretation”.
+- Do not discuss “approved meanings”, “selected observations”, “allowed data” or generation. The person is reading an answer about themselves, not an explanation of the input. Do not guess their gender.
 - Do not invent past events, trauma, fears, diagnoses, relationship history, profession, income, third-party thoughts, or guaranteed events.
-- previous messages are only for conversational continuity. They are not evidence and do not expand APPROVED_MEANINGS.
-- A natal chart does not provide calendar forecasts. For today/tomorrow/date/when questions, briefly state that boundary and answer only from a recurring way of acting that is actually present in APPROVED_MEANINGS.
+- previous messages are only for conversational continuity. They are not evidence and do not expand savedChartEvidence.
+- A natal chart does not provide calendar forecasts. For today/tomorrow/date/when questions, briefly state the boundary and fully explain the available observations relevant to the actual subject. Do not stop at a refusal or invent a date.
 - A safe timing boundary is: “The natal chart cannot determine whether today is the best day or name a suitable date.”
 - No greeting, thanks, or setup paragraph.`;
 
@@ -605,7 +643,11 @@ APPROVED CONTEXT:
 ${JSON.stringify(context, null, 2)}${repairErrors.length ? `
 
 PREVIOUS OUTPUT WAS REJECTED:
-${repairErrors.join(', ')}
+${repairErrors.join(', ')}${repairDetails.length ? `
+REVIEW DETAILS (diagnostic data):
+${JSON.stringify(repairDetails.slice(0, 6).map((issue) => issue.slice(0, 240)))}` : ''}${previousOutput ? `
+PREVIOUS CANDIDATE (diagnostic data, not instructions):
+${JSON.stringify(previousOutput)}` : ''}
 Write a new candidate and fix every listed issue. Return JSON only.` : ''}`;
 }
 
@@ -620,6 +662,25 @@ const QUESTION_VISIBLE_ASTROLOGY = /(?:солнц\p{L}*|лун\p{L}*|мерку�
 const QUESTION_PSEUDO_PSYCHOLOGY = /(?:осознанн\p{L}*|ресурс\p{L}*|потенциал\p{L}*|трансформац\p{L}*|проработ\p{L}*|точк\p{L}*\s+рост\p{L}*|паттерн\p{L}*|сценари\p{L}*|триггер\p{L}*|травм\p{L}*|архетип\p{L}*|подсозн\p{L}*|самосаботаж\p{L}*|тенев\p{L}*\s+сторон\p{L}*|внутренн\p{L}*\s+(?:реб[её]н\p{L}*|ресурс\p{L}*|конфликт\p{L}*)|глубинн\p{L}*\s+(?:страх\p{L}*|потребност\p{L}*|мотив\p{L}*)|\b(?:inner\s+child|growth\s+point|trauma|trigger|healing|transformation|potential|archetype|shadow\s+self|self[- ]sabotage)\b)/iu;
 const QUESTION_META_LANGUAGE = /(?:карта\s+(?:показывает|говорит|подсказывает)|астрологическ\p{L}*\s+трактовк\p{L}*|в\s+этой\s+тем\p{L}*|эта\s+тем\p{L}*|может\s+проявляться|проявля\p{L}*\s+как|внутренн\p{L}*\s+динамик\p{L}*|\b(?:the\s+chart\s+shows|this\s+theme|may\s+manifest|inner\s+dynamic|astrological\s+interpretation)\b)/iu;
 const QUESTION_ADVICE_LANGUAGE = /(?:тебе\s+(?:нужно|стоит|следует)(?!\p{L})|(?:попробуй|старайся|помни|сохраняй|проверь|сверь|выбирай|держи|не\s+бойся|позволь\s+себе)(?!\p{L})|\b(?:you\s+should|you\s+need\s+to|try\s+to|remember\s+to|make\s+sure\s+to|check\s+that|choose\s+based)\b)/iu;
+
+function natalQuestionCopyRepairDetails(answer: string): string[] {
+  const phrases = [
+    ...CORE_VOICE_CLICHE_PATTERNS,
+    ...CORE_VOICE_MYSTICISM_PATTERNS,
+    QUESTION_VISIBLE_ASTROLOGY,
+    QUESTION_PSEUDO_PSYCHOLOGY,
+    QUESTION_META_LANGUAGE,
+    QUESTION_ADVICE_LANGUAGE,
+  ].flatMap((pattern) => {
+    const match = answer.match(pattern)?.[0];
+    return match ? [match] : [];
+  });
+  const plainLanguageError = natalPlainLanguageError(answer);
+  return [
+    ...new Set(phrases.map((phrase) => `Переформулируй обычными словами без этой запрещённой формулировки: ${JSON.stringify(phrase)}. Сохрани смысл и полноту.`)),
+    ...(plainLanguageError ? [`Исправь построение текста: ${plainLanguageError}.`] : []),
+  ];
+}
 
 const DIAGNOSTIC_ANSWER_EN = /\b(?:diagnos(?:e|ed|es|ing|is|tic)|disorders?|diseases?|illness(?:es)?)\b/iu;
 const DIAGNOSTIC_ANSWER_RU = /(?:диагноз\w*|диагностир\w*|расстройств\w*|болезн\w*)/iu;
@@ -660,6 +721,12 @@ function answerMeaningIds(raw: RawNatalQuestionAnswer): string[] {
     : [];
 }
 
+function answerEvidenceIds(raw: RawNatalQuestionAnswer): string[] {
+  return Array.isArray(raw?.evidence_ids)
+    ? [...new Set(raw.evidence_ids.map(text).filter(Boolean))]
+    : [];
+}
+
 function evidenceIdsForMeanings(
   interpretation: NatalInterpretation,
   meaningIds: readonly string[],
@@ -673,30 +740,40 @@ export function validateNatalQuestionAnswer(
   allowedMeaningIds: Set<string>,
   interpretation?: NatalInterpretation,
 ): NatalQuestionAnswer | null {
-  if (getNatalQuestionAnswerValidationErrors(raw, allowedMeaningIds).length > 0) return null;
+  const allowedEvidenceIds = interpretation
+    ? new Set(interpretation.evidence.map((evidence) => evidence.id))
+    : undefined;
+  if (getNatalQuestionAnswerValidationErrors(raw, allowedMeaningIds, allowedEvidenceIds).length > 0) return null;
   const meaningIds = answerMeaningIds(raw);
   return {
     text: text(raw?.answer),
     meaningIds,
-    evidenceIds: interpretation ? evidenceIdsForMeanings(interpretation, meaningIds) : [],
+    evidenceIds: [...new Set([
+      ...(interpretation ? evidenceIdsForMeanings(interpretation, meaningIds) : []),
+      ...answerEvidenceIds(raw),
+    ])],
   };
 }
 
 export function getNatalQuestionAnswerValidationErrors(
   raw: RawNatalQuestionAnswer,
   allowedMeaningIds: Set<string>,
+  allowedEvidenceIds?: Set<string>,
 ): NatalQuestionValidationCode[] {
   const answer = text(raw?.answer);
   const ids = answerMeaningIds(raw);
+  const evidenceIds = answerEvidenceIds(raw);
   const errors = new Set<NatalQuestionValidationCode>();
   const sentences = sentenceCount(answer);
 
-  if (answer.length < 40) errors.add('ANSWER_TOO_SHORT');
-  if (answer.length > 1600) errors.add('ANSWER_TOO_LONG');
-  if (sentences < 1 || sentences > 5) errors.add('SENTENCE_COUNT_INVALID');
-  if (ids.length === 0) errors.add('MEANING_REQUIRED');
+  if (answer.length < 240) errors.add('ANSWER_TOO_SHORT');
+  if (answer.length > 9000) errors.add('ANSWER_TOO_LONG');
+  if (sentences < 1 || sentences > 50) errors.add('SENTENCE_COUNT_INVALID');
+  if (ids.length === 0 && (evidenceIds.length === 0 || !allowedEvidenceIds)) errors.add('MEANING_REQUIRED');
   if (ids.some((id) => !allowedMeaningIds.has(id))) errors.add('MEANING_UNKNOWN');
-  if (ids.length > 6) errors.add('MEANING_SELECTION_TOO_BROAD');
+  if (ids.length > 24) errors.add('MEANING_SELECTION_TOO_BROAD');
+  if (evidenceIds.some((id) => !allowedEvidenceIds?.has(id))) errors.add('EVIDENCE_UNKNOWN');
+  if (evidenceIds.length > 40) errors.add('EVIDENCE_SELECTION_TOO_BROAD');
   if (
     hasCoreVoiceViolation(answer)
     || QUESTION_VISIBLE_ASTROLOGY.test(answer)
@@ -732,35 +809,55 @@ async function reviewNatalQuestionSemanticFidelity(input: {
   language: NatalReadingLanguage;
   question: string;
   answer: string;
-  meanings: Array<Pick<NatalMeaning, 'id' | 'scope' | 'text' | 'area'>>;
-}): Promise<string[]> {
+  meanings: Array<Pick<NatalMeaning, 'id' | 'scope' | 'text' | 'topics' | 'topicText' | 'area'>>;
+  availableMeanings: NatalQuestionPromptContext['approvedMeanings'];
+  savedChartEvidence: NatalInterpretation['evidence'];
+  gender: UserProfile['gender'];
+  recentMessages: NatalQuestionPromptContext['recentMessages'];
+}): Promise<NatalQuestionSemanticReview> {
   const instructions = input.language === 'ru'
-    ? `Проверь только соответствие ответа уже утверждённым смыслам.
-Не трактуй астрологию заново.
-ok=true только если candidate прямо отвечает на question, выбранные selected_meanings действительно относятся к question, все личные утверждения прямо поддерживаются selected_meanings и candidate не добавляет новую причину, мотив, биографию, событие, психологический ярлык или совет.
-Если selected_meanings не дают прямого ответа на предпосылку вопроса, candidate должен честно ограничить вывод, а не переключиться на случайную черту.
+    ? `Проверь ответ на конкретный вопрос по достоверным основаниям сохранённой карты.
+ok=true только если candidate полно и связно отвечает на question и его выводы обоснованно следуют из saved_chart_evidence или available_meanings. Подробная интерпретация положений и их сочетаний по вопросу допустима, но не изменение фактов карты или выдумывание биографии.
+Верни evidence_ids из saved_chart_evidence для всех реально использованных оснований, максимум 40, и meaning_ids для использованных готовых наблюдений, максимум 24. meaning_ids может быть пустым, если ответ основан на самостоятельной интерпретации достоверных положений. Исправь неточный или неполный выбор автора: подтверждённая фраза не становится выдумкой из-за пропущенного ID. Если вывод не поддерживается ни картой, ни готовыми наблюдениями, отклони его.
+Проверь знаки, дома, объекты и типы связей: они должны точно соответствовать переданным данным. Отсутствующие или исключённые недостоверные основания использовать нельзя. Положение одной медленной планеты само по себе не доказывает индивидуальную особенность.
+Связное объяснение и осторожный синтез подтверждённых наблюдений допустимы. Используй topics, area и topicMeanings для проверки контекста. Общий фон scope=background не доказывает индивидуальную черту сам по себе.
+Проверь полноту по available_meanings: раскрыты части вопроса, объяснены важные связи, абзацы добавляют разные подробности. Если ответ игнорирует существенную сторону вопроса и ограничивается двумя общими чертами, это ошибка. Не требуй отдельного пересказа каждого похожего смысла: несколько оснований могут быть раскрыты одной связной мыслью. Две общие фразы вместо содержательного ответа или повторение одной мысли считаются ошибкой. Если доступные смыслы действительно скудные, не требуй выдумок ради объёма.
+Понятное пояснение и интерпретация сочетания достоверных положений допустимы и не обязаны дословно повторять готовые фразы. Отличай объяснение склонностей и возможных условий от утверждения о случившемся личном факте. Не допускай выдуманную биографию, точные события, причины из прошлого или пол, не соответствующий gender. При gender=unspecified нужны нейтральные формулировки.
+recentMessages помогают понять продолжение разговора. Ответ на новый вопрос не должен копировать прежний ответ или заново выдавать общий портрет. Отметь конкретно, какая часть вопроса не раскрыта или какое утверждение не подтверждено.
+Если данные карты не дают ответа на предпосылку вопроса, candidate должен честно ограничить вывод, а не переключиться на случайную черту.
 Короткая фраза о том, что натальная карта не определяет дату или событие по календарю, допустима как граница продукта и не требует отдельного meaning.
-Если вопрос содержит предпосылку, которой нет в selected_meanings, ответ не должен выдавать её за доказанный факт.`
-    : `Check only whether the candidate is faithful to the selected approved meanings.
-Do not reinterpret astrology.
-ok=true only if the candidate directly addresses question, the selected_meanings are genuinely relevant to question, every personal claim is directly supported by selected_meanings, and the candidate adds no new cause, motive, biography, event, psychological label, or advice.
-If selected_meanings do not support the premise of the question, the candidate must state that limitation instead of switching to an unrelated trait.
+Если вопрос содержит предпосылку, которой карта не подтверждает, ответ не должен выдавать её за доказанный факт.`
+    : `Check the answer to the specific question against reliable evidence from the saved chart.
+ok=true only if the candidate answers question fully and coherently, and conclusions reasonably follow from saved_chart_evidence or available_meanings. Detailed interpretation of placements and their combinations is allowed; changing chart facts or inventing biography is not.
+Return evidence_ids from saved_chart_evidence for all actually used support, up to 40, and meaning_ids for used prepared observations, up to 24. meaning_ids may be empty for an interpretation grounded directly in reliable placements. Correct inaccurate or incomplete author selection: a supported statement is not invented because of an omitted ID. Reject claims unsupported by chart evidence or approved observations.
+Check signs, houses, objects and connection types against the supplied facts. Missing or excluded unreliable evidence must not be used. One slow-moving planet alone does not establish an individual trait.
+Clear explanation and careful synthesis of supported observations are allowed. Use topics, area and topicMeanings to check context. Shared scope=background alone does not establish an individual trait.
+Check depth against available_meanings: the answer addresses each part of the question, explains important connections and adds distinct relevant details across paragraphs. Ignoring a substantial part of the question and falling back to two general traits is an error. Do not demand a separate paraphrase of every similar meaning: several supporting observations may be covered by one connected point. Two generic sentences or repeated points instead of a substantive answer are errors. Do not demand invented details when source material is genuinely sparse.
+Clear explanation and interpretation of combinations of reliable placements need not copy prepared observations. Distinguish tendencies and possible conditions from claims of actual personal events. Do not allow invented biography, exact events, causes from the person's past or gender inconsistent with gender. Use neutral wording for unspecified gender.
+Use recentMessages to understand follow-ups. A new answer must not copy a previous answer or restart an unrelated general portrait. Identify the exact omitted question part or unsupported claim.
+If chart data do not support the premise of the question, the candidate must state that limitation instead of switching to an unrelated trait.
 A brief boundary saying a natal chart cannot determine a calendar date or event is allowed without a separate meaning.`;
 
   const response = await createLunaStructuredResponse({
     instructions,
     input: JSON.stringify({
       question: input.question,
+      recentMessages: input.recentMessages,
+      gender: input.gender,
+      saved_chart_evidence: input.savedChartEvidence,
+      available_meanings: input.availableMeanings,
       selected_meanings: input.meanings.map((meaning) => ({
         id: meaning.id,
         scope: meaning.scope,
         meaning: meaning.text,
+        topics: meaning.topics,
+        ...(meaning.topicText ? { topicMeanings: meaning.topicText } : {}),
         ...(meaning.area ? { area: meaning.area } : {}),
       })),
       candidate: input.answer,
     }),
-    maxOutputTokens: 500,
-    reasoningEffort: 'low',
+    maxOutputTokens: 2000,
+    reasoningEffort: 'medium',
     verbosity: 'low',
     store: false,
     schemaName: 'natal_question_semantic_review',
@@ -770,12 +867,15 @@ A brief boundary saying a natal chart cannot determine a calendar date or event 
   try {
     raw = JSON.parse(response.content) as RawNatalQuestionSemanticReview;
   } catch {
-    return ['semantic review returned invalid JSON'];
+    return { issues: ['semantic review returned invalid JSON'], meaningIds: [], evidenceIds: [] };
   }
-  if (raw.ok === true) return [];
-  return Array.isArray(raw.issues)
+  const meaningIds = answerMeaningIds(raw);
+  const evidenceIds = answerEvidenceIds(raw);
+  if (raw.ok === true) return { issues: [], meaningIds, evidenceIds };
+  const issues = Array.isArray(raw.issues)
     ? raw.issues.map(text).filter(Boolean)
-    : ['semantic mismatch'];
+    : [];
+  return { issues: issues.length ? issues : ['semantic mismatch'], meaningIds, evidenceIds };
 }
 
 async function requestStructuredNatalQuestionAnswer(input: {
@@ -783,9 +883,11 @@ async function requestStructuredNatalQuestionAnswer(input: {
   prompt: string;
 }): Promise<RawNatalQuestionAnswer> {
   const response = await createLunaStructuredResponse({
-    instructions: getNatalStorySystemPrompt(input.language),
+    instructions: getNeboCoreVoice(input.language),
     input: input.prompt,
-    maxOutputTokens: 900,
+    maxOutputTokens: 4500,
+    reasoningEffort: 'medium',
+    verbosity: 'medium',
     schemaName: 'natal_question_answer',
     schema: NATAL_QUESTION_RESPONSE_SCHEMA,
   });
@@ -811,35 +913,57 @@ export async function generateNatalQuestionAnswer(input: {
   const { interpretation, context } = buildNatalQuestionPromptContext(input);
   const byId = new Map(interpretation.meanings.map((meaning) => [meaning.id, meaning]));
   const allowedMeaningIds = new Set(byId.keys());
+  const allowedEvidenceIds = new Set(interpretation.evidence.map((evidence) => evidence.id));
   const requestAnswer = input.requestAnswer || requestStructuredNatalQuestionAnswer;
   const reviewAnswer = input.reviewAnswer || reviewNatalQuestionSemanticFidelity;
   let validationCodes: NatalQuestionValidationCode[] = [];
+  let semanticIssues: string[] = [];
+  let previousOutput: RawNatalQuestionAnswer | undefined;
 
   for (let attempt = 1; attempt <= MAX_ANSWER_ATTEMPTS; attempt += 1) {
     const raw = await requestAnswer({
       language,
-      prompt: buildNatalQuestionPrompt(language, context, validationCodes),
+      prompt: buildNatalQuestionPrompt(language, context, validationCodes, semanticIssues, previousOutput),
     });
-    validationCodes = getNatalQuestionAnswerValidationErrors(raw, allowedMeaningIds);
-    if (validationCodes.length > 0) continue;
+    previousOutput = raw;
+    validationCodes = getNatalQuestionAnswerValidationErrors(raw, allowedMeaningIds, allowedEvidenceIds);
+    if (validationCodes.length > 0) {
+      semanticIssues = validationCodes.includes('COPY_VIOLATION')
+        ? natalQuestionCopyRepairDetails(text(raw.answer))
+        : [];
+      continue;
+    }
 
     const meaningIds = answerMeaningIds(raw);
     const selectedMeanings = meaningIds
       .map((id) => byId.get(id))
       .filter((meaning): meaning is NatalMeaning => !!meaning);
-    const semanticIssues = await reviewAnswer({
+    const review = await reviewAnswer({
       language,
       question: context.question,
       answer: text(raw.answer),
       meanings: selectedMeanings,
+      availableMeanings: context.approvedMeanings,
+      savedChartEvidence: interpretation.evidence,
+      gender: context.gender || 'unspecified',
+      recentMessages: context.recentMessages,
     });
+    semanticIssues = Array.isArray(review) ? review : review.issues;
     if (semanticIssues.length > 0) {
       validationCodes = ['SEMANTIC_MISMATCH'];
       continue;
     }
 
+    const reviewedRaw = {
+      ...raw,
+      meaning_ids: Array.isArray(review) ? meaningIds : review.meaningIds,
+      evidence_ids: Array.isArray(review) ? answerEvidenceIds(raw) : review.evidenceIds,
+    };
+    validationCodes = getNatalQuestionAnswerValidationErrors(reviewedRaw, allowedMeaningIds, allowedEvidenceIds);
+    if (validationCodes.length > 0) continue;
+
     return {
-      ...validateNatalQuestionAnswer(raw, allowedMeaningIds, interpretation)!,
+      ...validateNatalQuestionAnswer(reviewedRaw, allowedMeaningIds, interpretation)!,
       model: OPENAI_LUNA_MODEL,
       generationAttempts: attempt as 1 | 2,
     };

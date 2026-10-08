@@ -1118,7 +1118,7 @@
   width: 100%;
   min-height: 74px;
   max-height: 180px;
-  resize: vertical;
+  resize: none;
   padding: 4px 0;
   border: 0;
   outline: 0;
@@ -1131,6 +1131,11 @@
 .natal-v3-composer-field textarea::placeholder {
   color: #929292;
   opacity: 1;
+}
+
+.natal-v3-page .natal-v3-composer-field textarea:focus-visible {
+  outline: 0 !important;
+  box-shadow: none;
 }
 
 .natal-v3-composer-field > button {
