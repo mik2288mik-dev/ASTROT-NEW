@@ -53,6 +53,6 @@
 
 /* Reading text set like the Today reading: justified, first-line indent, no gaps between paragraphs. */
 .story section,.unifiedTopic>div{margin-bottom:0}
-.story section p,.unifiedTopic>div p{margin:0;text-align:justify;text-align-last:left;text-indent:1.25em;-webkit-hyphens:auto;hyphens:auto}
+.story section p,.unifiedTopic>div p{margin:0;text-align:justify;text-align-last:left;text-indent:1.25em;-webkit-hyphens:auto;hyphens:auto;hyphenate-limit-chars:6 3 3}
 .readingHeading{margin:4px 0 0;color:#292724;font-size:17px;font-weight:650;letter-spacing:-.02em;line-height:1.25}
 .topicNav{position:sticky;top:calc(var(--app-top-bar-content-safe-top,18px) + 52px);z-index:5;margin:0 -16px 14px;background:rgba(255,255,255,.92);backdrop-filter:blur(6px)}.topicRail{display:flex;gap:8px;padding:8px 16px;overflow-x:auto;scrollbar-width:none}.topicRail::-webkit-scrollbar{display:none}.topicRail button{flex:none;min-height:36px;padding:0 14px;border:0;border-radius:999px;background:#f1f2f6;color:#2b2e38;font:inherit;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer}.topicRail button:active{background:#e3e6ee}.topicArrow{position:absolute;top:0;bottom:0;z-index:2;display:grid;width:38px;place-items:center;border:0;color:#2b2e38;font-size:26px;line-height:1;cursor:pointer;padding:0 0 3px}.topicArrowLeft{left:0;background:linear-gradient(90deg,#fff 55%,rgba(255,255,255,0))}.topicArrowRight{right:0;background:linear-gradient(270deg,#fff 55%,rgba(255,255,255,0))}.unifiedTopic{scroll-margin-top:calc(var(--app-top-bar-content-safe-top,18px) + 110px)}

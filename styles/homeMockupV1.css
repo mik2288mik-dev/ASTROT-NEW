@@ -1762,3 +1762,20 @@
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
+
+/* ── One reading measure for the whole app ──
+   Reading text keeps both edges straight; words are hyphenated so lines fill without holes between
+   words, and short words are never split. The natal story and the week/month readings already use it. */
+.sky-hero .forecast-feed-section-text,
+.horo-reader-page .horo-sign-story > p,
+.compat-story-summary p,
+.compat-story-chapter p,
+.about-you-text {
+  text-align: justify !important;
+  text-align-last: start;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+  hyphenate-limit-chars: 6 3 3;
+  overflow-wrap: normal;
+  text-wrap: pretty;
+}

@@ -474,3 +474,50 @@
   color: #6b665f;
   font-size: 12px;
 }
+
+/* ── White cards, like Home: the sky stays only as a soft planet picture ──
+   The big three are white tiles with dark text; the planet photo sits under a white haze that
+   leaves its top right corner clear. The highlights are white cards with the shared soft shadow. */
+.tile.day,
+.tile.evening,
+.tile.sunset {
+  background-color: #fff;
+  color: #292724;
+  text-shadow: none;
+}
+.tile.sunset { background-image: none; }
+.tile.withArt::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.9) 42%, rgba(255, 255, 255, 0.97) 100%);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.tile .tileIcon { background: #f1f1f4; }
+.tile .tileLabel { color: #6f6a64; opacity: 1; }
+.tile .tileTrait { color: #49433d; opacity: 1; }
+.moment { background: #fff; }
+/* Profile: the ruler card and the weekday tiles follow the same white style. */
+.hero.withArt,
+.dayTile.withArt,
+.hero,
+.dayTile {
+  background-color: #fff;
+  color: #292724;
+  text-shadow: none;
+}
+.withArt::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.9) 42%, rgba(255, 255, 255, 0.97) 100%);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.hero .heroLabel,
+.dayTile .dayCaption { color: #6f6a64; opacity: 1; }
+.hero .heroText,
+.dayTile .dayOrigin { color: #49433d; opacity: 1; }
+.hero .source { background: #f1f1f4; color: #49433d; }
+/* The ruler and weekday pictures are large: the haze runs left to right, as on the Home cards. */
+.hero.withArt::before,
+.dayTile.withArt::before {
+  -webkit-mask-image: none;
+  mask-image: none;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.92) 55%, rgba(255, 255, 255, 0.62) 100%);
+}
