@@ -20,7 +20,6 @@ import {
 } from '../lib/personalForecastContract';
 import {
   loadPersonalForecast,
-  readLastSavedPersonalForecast,
   readLocalPersonalForecast,
   selectActiveReadyPersonalForecast,
   type PersonalForecastClientError,
@@ -47,7 +46,6 @@ import { DailyQuestionCard } from '../components/home/DailyQuestionCard';
 import { claimWeekGift, loadGiftStatus, type GiftStatus } from '../services/giftService';
 import { FutureInviteCard } from '../components/PersonalForecastFeed/FutureInviteCard';
 import { futureHorizonDays } from '../lib/futureCalendar';
-import { SkyHero } from '../components/home/SkyHero';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { lumiaSelectionHaptic } from '../lib/haptics';
@@ -202,10 +200,6 @@ export const Dashboard = memo<DashboardProps>(({
     week: emptyPeriodState(),
     month: emptyPeriodState(),
   });
-  const [lastSavedDay, setLastSavedDay] = useState<{
-    contextKey: string;
-    result: PersonalForecastClientResult;
-  } | null>(null);
 
   const periodKeys = useMemo<Record<PersonalForecastPeriod, string>>(() => {
     const now = new Date();
@@ -281,7 +275,6 @@ export const Dashboard = memo<DashboardProps>(({
   useEffect(() => {
     requestsRef.current = {};
     if (!profile.name.trim() || !profile.birthDate.trim()) {
-      setLastSavedDay(null);
       setPeriodStates({
         day: emptyPeriodState(),
         week: emptyPeriodState(),
@@ -289,11 +282,6 @@ export const Dashboard = memo<DashboardProps>(({
       });
       return;
     }
-    const savedDay = readLastSavedPersonalForecast({
-      profile,
-      currentPeriodKey: periodKeys.day,
-    });
-    setLastSavedDay(savedDay ? { contextKey: productContextKey, result: savedDay } : null);
     setPeriodStates(Object.fromEntries(
       FORECAST_PERIODS.map((period) => {
         const local = readLocalPersonalForecast({
@@ -537,15 +525,6 @@ export const Dashboard = memo<DashboardProps>(({
     ? selectActiveReadyPersonalForecast(activePeriod, periodStates, periodKeys[activePeriod])
     : null;
   const forecast = result?.forecast || null;
-  const savedDayForecast = activePeriod === 'day' && !forecast
-    && lastSavedDay?.contextKey === productContextKey
-    ? lastSavedDay.result.forecast
-    : null;
-  const savedDayDate = savedDayForecast
-    ? new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
-      day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
-    }).format(new Date(`${savedDayForecast.periodKey}T12:00:00Z`))
-    : null;
   useEffect(() => {
     if (forecast?.meta.diagnosticCode !== 'PERSONAL_FORECAST_PARTIAL_RECOVERY') return;
     const timer = window.setInterval(() => {
@@ -839,6 +818,7 @@ export const Dashboard = memo<DashboardProps>(({
   const topBar = (reserveSpace: boolean) => (
     <AppTopBar
       title="NEBO"
+      onBack={activePeriod === 'month' ? () => selectPeriod('day') : undefined}
       leftAction={(
         <EditorialChartsButton
           label={language === 'ru' ? 'Открыть мои карты' : 'Open my charts'}
@@ -856,12 +836,11 @@ export const Dashboard = memo<DashboardProps>(({
       tiles={[
         { id: 'future', onOpen: () => openFuture() },
         { id: 'compatibility', onOpen: onOpenSynastry },
+        { id: 'matrix', onOpen: onOpenMatrix },
         { id: 'tests', onOpen: onOpenTests ? () => onOpenTests() : undefined },
         { id: 'sounds', onOpen: onOpenSounds },
         { id: 'stories', onOpen: onOpenStories },
         { id: 'antistress', onOpen: onOpenAntistress },
-        // The dark live-code tile sits last so the first, visible part of the row stays light.
-        { id: 'matrix', onOpen: onOpenMatrix },
       ]}
     />
   );
@@ -880,13 +859,9 @@ export const Dashboard = memo<DashboardProps>(({
         {topBar(!skyCover)}
       </section>
 
-      {!skyCover ? (
+      {!skyCover && activePeriod !== 'day' ? (
         <p className="today-period-personal-note">
-          {savedDayForecast
-            ? (language === 'ru'
-              ? 'Готовим твой прогноз на сегодня. Ниже, последний сохранённый.'
-              : 'Preparing today’s forecast. The last saved one is below.')
-            : personalForecastNote[activePeriod]}
+          {personalForecastNote[activePeriod]}
         </p>
       ) : null}
 
@@ -1056,65 +1031,8 @@ export const Dashboard = memo<DashboardProps>(({
               </p>
             ) : null}
         </article>
-      ) : savedDayForecast ? (
-        <>
-          <SkyHero
-            dayKey={periodKeys.day}
-            language={language}
-            kicker={language === 'ru' ? 'Готовим прогноз на сегодня' : 'Preparing today’s forecast'}
-            compact
-          >
-            <h1 className="sr-only">
-              {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
-            </h1>
-          </SkyHero>
-          <article
-            className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed"
-            data-forecast-period="day"
-            lang={language}
-          >
-            <p className="today-period-personal-note">
-              {language === 'ru'
-                ? `Последний сохранённый прогноз за ${savedDayDate}`
-                : `Last saved forecast for ${savedDayDate}`}
-            </p>
-            <ForecastSectionBlock
-              section={savedDayForecast.overview}
-              period="day"
-              language={language}
-              locked={false}
-              onRequestPremium={requestPremium}
-            />
-          </article>
-        </>
       ) : activePeriod === 'day' ? (
-        <div aria-live="polite" aria-busy={state.phase === 'loading'}>
-          <SkyHero
-            dayKey={periodKeys.day}
-            language={language}
-            kicker={language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
-            compact
-          >
-            <h1 className="sr-only">
-              {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
-            </h1>
-            <div className="sky-hero-loading" role="status">
-              {state.phase === 'error' ? (
-                <p>{language === 'ru' ? 'Готовим твой прогноз' : 'Preparing your forecast'}</p>
-              ) : (
-                <>
-                  <LoaderCircle
-                    className="forecast-feed-loading-spinner"
-                    size={20}
-                    strokeWidth={1.8}
-                    aria-hidden
-                  />
-                  <p>{loadingLabel(activePeriod, language)}</p>
-                </>
-              )}
-            </div>
-          </SkyHero>
-        </div>
+        <div aria-live="polite" aria-busy={state.phase === 'loading'} />
       ) : state.phase === 'error' ? (
         <section className="forecast-feed-status" aria-live="polite">
           <h1>{language === 'ru' ? 'Готовим твой прогноз' : 'Preparing your forecast'}</h1>

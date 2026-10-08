@@ -183,7 +183,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   if (mode === 'topics' && !isPremium) {
     return (
       <article className={styles.overview}>
-        <div className={styles.topics}>
+        <div className={`${styles.topics} ${styles.topicsTextOnly}`}>
           {interpretation.topics.map((topic) => (
             <button
               key={topic.key}
