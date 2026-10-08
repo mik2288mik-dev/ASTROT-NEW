@@ -61,7 +61,7 @@ export function HomeEntryTiles({
             <button type="button" className={`home-entry-tile is-${tile.id}`} onClick={tile.onOpen}>
               {tile.id === 'matrix' ? (
                 <span className="home-entry-tile-icon home-entry-tile-matrix" aria-hidden="true">
-                  <MatrixRain />
+                  <MatrixRain className="matrix-rain" />
                 </span>
               ) : (
                 <span className="home-entry-tile-icon home-entry-tile-pad" aria-hidden="true">

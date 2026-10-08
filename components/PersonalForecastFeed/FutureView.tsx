@@ -38,7 +38,7 @@ type FutureViewProps = {
   weekEndKey: string;
   language?: 'ru' | 'en';
   /**
-   * The week and month reading cards, shown first. They get opening lines built
+   * The week and month reading cards, shown after the calendar and day picker. They get opening lines built
    * from the person's calendar (null until the calendar is calculated).
    */
   renderPeriodCards?: (teasers: FuturePeriodTeasers | null) => ReactNode;
@@ -48,7 +48,17 @@ type FutureViewProps = {
 
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
 const MONTHS_IN_RU = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
-const MOON_MARK: Record<string, string> = { new: '●', first: '◐', full: '○', last: '◑' };
+
+function MoonMark({ phase }: { phase: NonNullable<CalendarDay['moonQuarter']> | 'eclipse' }) {
+  return (
+    <svg className="future-moon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <circle cx="10" cy="10" r="8.5" fill={phase === 'new' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" />
+      {phase === 'first' ? <path d="M10 1.5 A8.5 8.5 0 0 0 10 18.5 Z" fill="currentColor" /> : null}
+      {phase === 'last' ? <path d="M10 1.5 A8.5 8.5 0 0 1 10 18.5 Z" fill="currentColor" /> : null}
+      {phase === 'eclipse' ? <circle cx="10" cy="10" r="4.25" fill="none" stroke="currentColor" strokeWidth="1.5" /> : null}
+    </svg>
+  );
+}
 
 /** Title, the first two sentences of the day text and its closing thought. */
 function briefDayReading(sections: ForecastSection[], locked: ReadonlySet<string>): { title: string; text: string; closing: string } {
@@ -232,6 +242,7 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
     const past = day.dayKey < todayKey;
     const classes = [
       'future-day',
+      showPersonal && day.tone ? `is-${day.tone}` : '',
       pickedKeys.has(day.dayKey) ? 'is-picked' : '',
       past ? 'is-past' : '',
       day.dayKey === todayKey ? 'is-today' : '',
@@ -243,14 +254,14 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
         type="button"
         className={classes}
         disabled={past}
-        aria-label={`${formatDayRu(day.dayKey)}${day.moonQuarter ? ', фаза Луны' : ''}${showPersonal && day.tone ? (day.tone === 'good' ? ', лёгкий день' : ', напряжённый день') : ''}`}
+        aria-label={`${formatDayRu(day.dayKey)}${day.dayKey === todayKey ? ', сегодня' : ''}${day.moonQuarter ? ', фаза Луны' : ''}${showPersonal && day.tone ? (day.tone === 'good' ? ', лёгкий день' : ', напряжённый день') : ''}`}
         onClick={() => { setSelectedKey(day.dayKey); }}
       >
         <span className="future-day-number">{day.day}</span>
+        {day.dayKey === todayKey ? <span className="future-day-today">сегодня</span> : null}
         <span className="future-day-marks" aria-hidden="true">
-          {day.moonQuarter ? <span className="future-moon">{MOON_MARK[day.moonQuarter]}</span> : null}
-          {day.eclipse ? <span className="future-moon">◎</span> : null}
-          {showPersonal && day.tone ? <span className={`future-dot is-${day.tone}`} /> : null}
+          {day.moonQuarter ? <MoonMark phase={day.moonQuarter} /> : null}
+          {day.eclipse ? <MoonMark phase="eclipse" /> : null}
           {!showPersonal && day.personal.length ? <span className="future-dot is-hidden" /> : null}
         </span>
         {day.mercuryRetrograde ? <span className="future-retro" aria-hidden="true" /> : null}
@@ -292,49 +303,6 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
           {bestDays.length ? <span><b>Лучшие дни:</b> {bestDays.join(', ')}</span> : null}
           {cautionDays.length ? <span><b>Осторожно:</b> {cautionDays.join(', ')}</span> : null}
         </p>
-      ) : null}
-
-      {/* Calendar first (mockup v1), then the week and month readings. */}
-      {renderPeriodCards?.(teasers)}
-
-      {natal ? (
-        <section className="future-planner" aria-labelledby="future-planner-title">
-          <h3 id="future-planner-title">Подобрать день</h3>
-          <div className="future-goals" role="group" aria-label="Цель">
-            {DAY_GOALS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-pressed={goal === item.id}
-                className={goal === item.id ? 'is-active' : undefined}
-                onClick={() => setGoal((current) => (current === item.id ? null : item.id))}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          {goal ? (
-            !picks.length ? (
-              <p className="future-status">В {monthIn} подходящих дней не нашлось, загляни в следующий месяц.</p>
-            ) : showPersonal ? (
-              <ul className="future-picks">
-                {picks.map((pick) => (
-                  <li key={pick.dayKey}>
-                    <button type="button" onClick={() => { setSelectedKey(pick.dayKey); }}>
-                      <b>{formatDayRu(pick.dayKey)}</b>
-                      <span>{pick.reason}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <button type="button" className="future-read is-locked" onClick={onRequestPremium}>
-                <LockKeyhole size={15} aria-hidden="true" />
-                {`Подходящих дней: ${picks.length}. Даты, в NEBO Premium`}
-              </button>
-            )
-          ) : null}
-        </section>
       ) : null}
 
       {selected ? (
@@ -410,6 +378,48 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
       ) : (
         <p className="future-hint">Нажми на день, покажем, чем он будет для тебя.</p>
       )}
+
+      {natal ? (
+        <section className="future-planner" aria-labelledby="future-planner-title">
+          <h3 id="future-planner-title">Подобрать день</h3>
+          <div className="future-goals" role="group" aria-label="Цель">
+            {DAY_GOALS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={goal === item.id}
+                className={goal === item.id ? 'is-active' : undefined}
+                onClick={() => setGoal((current) => (current === item.id ? null : item.id))}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          {goal ? (
+            !picks.length ? (
+              <p className="future-status">В {monthIn} подходящих дней не нашлось, загляни в следующий месяц.</p>
+            ) : showPersonal ? (
+              <ul className="future-picks">
+                {picks.map((pick) => (
+                  <li key={pick.dayKey}>
+                    <button type="button" onClick={() => { setSelectedKey(pick.dayKey); }}>
+                      <b>{formatDayRu(pick.dayKey)}</b>
+                      <span>{pick.reason}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <button type="button" className="future-read is-locked" onClick={onRequestPremium}>
+                <LockKeyhole size={15} aria-hidden="true" />
+                {`Подходящих дней: ${picks.length}. Даты, в NEBO Premium`}
+              </button>
+            )
+          ) : null}
+        </section>
+      ) : null}
+
+      {renderPeriodCards?.(teasers)}
 
       {!premium && natal && visiblePersonal.length ? (
         <PremiumHook

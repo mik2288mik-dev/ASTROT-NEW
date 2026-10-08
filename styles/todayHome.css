@@ -2337,16 +2337,31 @@
 .future-day {
   position: relative;
   display: flex;
-  height: 2.9rem;
+  overflow: hidden;
+  height: 3.4rem;
   flex-direction: column;
   align-items: center;
-  padding: 0.35rem 0 0;
+  padding: 0.2rem 0 0;
   border: 0;
   border-radius: 0.75rem;
   background: #f6f7fa;
   color: var(--today-ink);
   font: inherit;
   cursor: pointer;
+}
+
+.future-day.is-good {
+  --future-day-tone: #b8e2cc;
+  --future-day-ink: var(--today-ink);
+  background: var(--future-day-tone);
+  color: var(--future-day-ink);
+}
+
+.future-day.is-hard {
+  --future-day-tone: #f6c7b7;
+  --future-day-ink: var(--today-ink);
+  background: var(--future-day-tone);
+  color: var(--future-day-ink);
 }
 
 .future-day.is-past {
@@ -2356,13 +2371,15 @@
 }
 
 .future-day.is-today {
+  padding-top: 0.15rem;
   box-shadow: inset 0 0 0 2px #2d7ff0;
   font-weight: 650;
 }
 
 .future-day.is-selected {
-  background: #2d7ff0;
-  color: #fff;
+  background: var(--future-day-tone, #2d7ff0);
+  box-shadow: inset 0 0 0 2px #2d7ff0;
+  color: var(--future-day-ink, #fff);
   font-weight: 650;
 }
 
@@ -2371,14 +2388,39 @@
   line-height: 1.1;
 }
 
+.future-day-today {
+  font-size: 0.52rem;
+  line-height: 1.1;
+}
+
+.future-day.is-today .future-day-marks {
+  margin-top: 0;
+}
+
 .future-day-marks {
+  position: relative;
   display: flex;
-  min-height: 0.7rem;
+  width: 100%;
+  min-height: 1.2rem;
+  flex-shrink: 0;
   align-items: center;
+  justify-content: center;
   gap: 0.15rem;
-  margin-top: 0.22rem;
+  margin-top: 0.1rem;
   font-size: 0.6rem;
   line-height: 1;
+}
+
+.future-moon {
+  display: block;
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: 0 0 1.2rem;
+}
+
+.future-moon ~ .future-dot {
+  position: absolute;
+  right: 0.2rem;
 }
 
 .future-dot {
