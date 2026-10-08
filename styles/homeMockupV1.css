@@ -1622,7 +1622,7 @@
 .future-invite-card.is-sky .future-invite-title,
 .season-card.is-autumn .season-kicker,
 .season-card.is-autumn .season-headline { display: block; padding-right: 76px; }
-.today-explore-card .today-explore-caption { color: var(--today-muted, #6f6a64) !important; }
+.today-explore-card .today-explore-caption { color: #393634 !important; }
 .future-invite-card.is-sky .future-invite-week > span { background: transparent !important; }
 .future-invite-card.is-sky .future-invite-week > span.is-today { background: #f1f1f4 !important; }
 /* The half-width cards get a smaller picture so their top line (signs, number) keeps its room. */
@@ -1631,7 +1631,7 @@
 .today-explore-card.is-matrix .today-explore-number-row,
 .today-explore-card.is-compatibility .today-explore-signs { padding-right: 56px; }
 .today-explore-card.is-natal .today-explore-copy { width: auto !important; max-width: calc(100% - 80px) !important; }
-.today-explore-card.is-natal > svg:not(:last-child) { display: none; }
+.today-explore-card.is-natal > .today-explore-wheel { display: block; }
 
 /* Scene pictures under a white haze (replaces the thumbnails): the card reads white where the text is,
    and the picture shows through softly towards the right edge. */
@@ -1668,6 +1668,35 @@
 .today-explore-card.is-matrix .today-explore-number-row,
 .today-explore-card.is-compatibility .today-explore-signs { padding-right: 0; }
 .today-explore-card.is-natal .today-explore-copy { max-width: 72% !important; }
+
+/* Keep the existing moving details legible on the white explore cards. */
+.today-explore-card.is-natal,
+.today-explore-card.is-compatibility,
+.today-explore-card.is-matrix {
+  color: #1c1c1c !important;
+  text-shadow: none;
+}
+.today-explore-card.is-natal::before,
+.today-explore-card.is-compatibility::before,
+.today-explore-card.is-matrix::before {
+  animation: nebo-scene-drift 14s ease-in-out infinite alternate;
+}
+.today-explore-wheel {
+  width: clamp(4.5rem, 24vw, 6rem);
+  height: auto;
+  align-self: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+}
+.today-explore-wheel .is-ring { stroke: #746ba3; }
+.today-explore-wheel .is-soft { stroke: #b0aac5; }
+.today-explore-wheel .is-core { fill: #f5f2fb; stroke: #b0aac5; }
+.today-explore-wheel .is-sector { fill: #ded6ef; }
+.today-explore-wheel .is-tick { stroke: #8d82b0; }
+.today-explore-wheel .is-planet { fill: #5a4a8a; }
+.today-explore-sign.is-add { border-color: #8a8580; color: #292724; background: #fff; }
+.today-explore-number-label { opacity: 1; }
+.today-explore-card .today-explore-arrow { color: #292724; opacity: 1; }
 
 /* ── Home in eight blocks ── */
 /* «Вопрос дня» is the last row of «Сегодня о тебе», not a card of its own. */
