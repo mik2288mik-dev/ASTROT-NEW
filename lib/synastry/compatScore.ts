@@ -69,7 +69,7 @@ const VERDICTS: Array<{ min: number; ru: string; en: string; noteRu: string; not
   { min: 82, ru: 'Отлично', en: 'Excellent', noteRu: 'Вам легко вместе почти во всём.', noteEn: 'You find it easy together in almost everything.' },
   { min: 70, ru: 'Хорошо', en: 'Good', noteRu: 'Вам хорошо вместе, а разница только добавляет интереса.', noteEn: 'You feel good together, and your differences add interest.' },
   { min: 58, ru: 'Нормально', en: 'Fine', noteRu: 'Есть притяжение и пара тем, о которых стоит договориться.', noteEn: 'There is a pull and a couple of things worth agreeing on.' },
-  { min: 46, ru: 'Плохо', en: 'Poor', noteRu: 'Разный темп и характер. Связь, в которой важно договариваться.', noteEn: 'A different pace and character. A bond that needs talking things through.' },
+  { min: 46, ru: 'Не очень', en: 'So-so', noteRu: 'Разный темп и характер. Связь, в которой важно договариваться.', noteEn: 'A different pace and character. A bond that needs talking things through.' },
   { min: 0, ru: 'Ужасно', en: 'Bad', noteRu: 'Вы очень разные, и вместе непросто. Зато есть чему поучиться друг у друга.', noteEn: 'You are very different and it is not easy together, yet you can learn a lot from each other.' },
 ];
 

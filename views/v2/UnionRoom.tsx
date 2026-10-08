@@ -2035,12 +2035,12 @@ Check our compatibility from your side in NEBO.`
               <i className="compat-orbit-glyph"><ZodiacSymbol sign={theirSun} size={36} /></i>
             </span>
             <span className="compat-result-orbit-center">
-              <CompatMoodFace level={compatLevel(resultPercent, lang).index} size={52} />
-              <small>{compatLevel(resultPercent, lang).label}</small>
+              <CompatMoodFace level={compatLevel(resultPercent, lang).index} size={64} />
             </span>
           </div>
           {resultVerdict ? (
             <p className="compat-result-verdict">
+              <strong>{resultVerdict}</strong>
               {score?.verdictNote ? <span>{score.verdictNote}</span> : null}
             </p>
           ) : null}

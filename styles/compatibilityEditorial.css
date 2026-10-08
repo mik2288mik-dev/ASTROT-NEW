@@ -1714,3 +1714,15 @@
   font-size: 14px;
   font-weight: 650;
 }
+
+/* Only the face sits in the centre of the rings; the word goes under them. */
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-center {
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-center .compat-mood-face {
+  filter: drop-shadow(0 4px 10px rgba(39, 45, 55, 0.18));
+}
