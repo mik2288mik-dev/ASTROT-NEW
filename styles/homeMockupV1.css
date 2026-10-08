@@ -1729,7 +1729,7 @@
   border-color: #292724;
 }
 
-/* «Ещё факты»: a quiet text button under the tiles, with the page counter; the new tiles fade in. */
+/* «Ещё факты»: a quiet text button under the tiles; the new tiles fade in. */
 .about-you-more {
   display: inline-flex;
   align-items: center;
@@ -1745,10 +1745,22 @@
   font-weight: 650;
   cursor: pointer;
 }
-.about-you-more span {
-  color: var(--today-muted, #8a847d);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
+/* «Фраза дня»: one light line between the facts and the task. */
+.about-you-phrase {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #f5f3ef;
+}
+.about-you-phrase .about-you-kicker {
+  margin: 0 0 4px;
+}
+.about-you-phrase-text {
+  margin: 0;
+  color: var(--today-ink, #292724);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 @media (prefers-reduced-motion: no-preference) {
   .about-you-facts > div {

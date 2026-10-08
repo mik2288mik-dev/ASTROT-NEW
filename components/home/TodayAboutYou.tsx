@@ -4,6 +4,7 @@ import type { NatalChartData } from '../../types';
 import { birthFacts, birthInstant, buildFastTransits, chartFactOfDay, dayIndex, skyComparisonFacts, todayMoonFacts, transitFactOfDay, type BirthFact, type ChartFact } from '../../lib/aboutYouFacts';
 import { loadExploreCharts, peekExploreCharts } from '../PersonalForecastFeed/exploreCharts';
 import { worldTwinOfDay, worldTwinsOfDay } from '../../lib/worldTwins';
+import { dailyPhrase } from '../../lib/dailyPhrases';
 import { loadFeatureState, peekFeatureState, saveFeatureState } from '../../services/featureStateService';
 
 type TodayAboutYouProps = {
@@ -175,6 +176,7 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
   const shownFacts = factPages[Math.min(factPage, factPages.length - 1)] ?? facts;
   const hasMoreFacts = factPage < factPages.length - 1;
 
+  const phrase = dailyPhrase(userId, dayIndex(todayKey));
   const isDone = Boolean(done[todayKey]);
   const streak = streakOf(done, todayKey);
 
@@ -224,9 +226,12 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
             onClick={() => setFactPage((page) => (hasMoreFacts ? page + 1 : 0))}
           >
             {hasMoreFacts ? 'Ещё факты' : 'Сначала'}
-            <span>{Math.min(factPage, factPages.length - 1) + 1}/{factPages.length}</span>
           </button>
         ) : null}
+        <div className="about-you-phrase">
+          <p className="about-you-kicker">Фраза дня</p>
+          <p className="about-you-phrase-text">{phrase}</p>
+        </div>
         {task ? (
           <div className={`about-you-task${isDone ? ' is-done' : ''}`}>
             {!isDone ? <PickMeFinger /> : null}
