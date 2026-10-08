@@ -64,13 +64,23 @@ function elementPairBase(a: Element, b: Element): number {
   return 62; // fire↔earth, air↔water
 }
 
+/** Five mood levels, from a sad blue face to a happy yellow one; index 0 is the lowest. */
 const VERDICTS: Array<{ min: number; ru: string; en: string; noteRu: string; noteEn: string }> = [
-  { min: 82, ru: 'Сильная связь', en: 'Strong bond', noteRu: 'Вам легко вместе почти во всём.', noteEn: 'You find it easy together in almost everything.' },
-  { min: 70, ru: 'Тёплая связь', en: 'Warm bond', noteRu: 'Вам хорошо вместе, а разница только добавляет интереса.', noteEn: 'You feel good together, and your differences add interest.' },
-  { min: 58, ru: 'С искрой', en: 'A spark', noteRu: 'Яркое притяжение и пара тем, о которых стоит договориться.', noteEn: 'A bright pull and a couple of things worth agreeing on.' },
-  { min: 46, ru: 'Непростая', en: 'Complex', noteRu: 'Разный темп и характер. Связь, в которой важно договариваться.', noteEn: 'A different pace and character. A bond that grows by talking things through.' },
-  { min: 0, ru: 'Вызов', en: 'Challenging', noteRu: 'Вы очень разные, и именно этим интересны друг другу.', noteEn: 'You are very different, and that is what makes you interesting to each other.' },
+  { min: 82, ru: 'Отлично', en: 'Excellent', noteRu: 'Вам легко вместе почти во всём.', noteEn: 'You find it easy together in almost everything.' },
+  { min: 70, ru: 'Хорошо', en: 'Good', noteRu: 'Вам хорошо вместе, а разница только добавляет интереса.', noteEn: 'You feel good together, and your differences add interest.' },
+  { min: 58, ru: 'Нормально', en: 'Fine', noteRu: 'Есть притяжение и пара тем, о которых стоит договориться.', noteEn: 'There is a pull and a couple of things worth agreeing on.' },
+  { min: 46, ru: 'Плохо', en: 'Poor', noteRu: 'Разный темп и характер. Связь, в которой важно договариваться.', noteEn: 'A different pace and character. A bond that needs talking things through.' },
+  { min: 0, ru: 'Ужасно', en: 'Bad', noteRu: 'Вы очень разные, и вместе непросто. Зато есть чему поучиться друг у друга.', noteEn: 'You are very different and it is not easy together, yet you can learn a lot from each other.' },
 ];
+
+export type CompatLevel = { index: 0 | 1 | 2 | 3 | 4; label: string };
+
+/** The mood level of any score: 0 «Ужасно» … 4 «Отлично». */
+export function compatLevel(value: number, language: 'ru' | 'en' = 'ru'): CompatLevel {
+  const position = VERDICTS.findIndex((v) => value >= v.min);
+  const row = VERDICTS[position < 0 ? VERDICTS.length - 1 : position];
+  return { index: (VERDICTS.length - 1 - (position < 0 ? VERDICTS.length - 1 : position)) as CompatLevel['index'], label: language === 'en' ? row.en : row.ru };
+}
 
 /** Love and romantic relationship are left out when both people are the same gender. */
 export function compatAreas(sameGender = false): CompatDimension[] {
