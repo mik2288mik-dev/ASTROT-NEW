@@ -1622,3 +1622,12 @@
   font-weight: 500;
   line-height: 1.45;
 }
+
+/* The rings sit below the two names instead of sliding up over them. */
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit {
+  margin-top: 10px !important;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-brand-caption {
+  display: none;
+}
