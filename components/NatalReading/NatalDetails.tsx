@@ -33,7 +33,7 @@ export function NatalDetails({ chart, onSelect, isPremium = false }: {
       <header className={styles.detailsHeading}><h2>{title}</h2>{rows.length > 3 ? <button type="button" className={styles.detailsMore} aria-expanded={open} onClick={() => setExpanded(current => open ? current.filter(item => item !== title) : [...current,title])}>{open ? 'Свернуть' : `Все ${rows.length}`}<ChevronDown size={17} aria-hidden="true" style={{transform:open?'rotate(180deg)':undefined}}/></button> : <small>{rows.length}</small>}</header>
       <div className={styles.detailsRows}>{shown.map(row => {
         const objectKey = 'objectKey' in row ? row.objectKey : undefined;
-        const freeRow = (row.kind === 'point' && ['sun', 'ascendant'].includes(row.id))
+        const freeRow = (row.kind === 'point' && ['sun', 'moon', 'ascendant'].includes(row.id))
           || (row.kind === 'house' && row.id === '1');
         const locked = !isPremium && !freeRow;
         // «1 дом» under «1 дом — …» repeats the title, so such a caption is dropped.
