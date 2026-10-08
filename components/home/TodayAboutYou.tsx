@@ -3,7 +3,7 @@ import { Check } from 'lucide-react';
 import type { NatalChartData } from '../../types';
 import { birthFacts, birthInstant, buildFastTransits, chartFactOfDay, dayIndex, skyComparisonFacts, todayMoonFacts, transitFactOfDay, type BirthFact, type ChartFact } from '../../lib/aboutYouFacts';
 import { loadExploreCharts, peekExploreCharts } from '../PersonalForecastFeed/exploreCharts';
-import { worldTwinOfDay } from '../../lib/worldTwins';
+import { worldTwinOfDay, worldTwinsOfDay } from '../../lib/worldTwins';
 import { loadFeatureState, peekFeatureState, saveFeatureState } from '../../services/featureStateService';
 
 type TodayAboutYouProps = {
@@ -19,6 +19,8 @@ type TodayAboutYouProps = {
 };
 
 let engine: Promise<typeof import('astronomy-engine')> | null = null;
+const FACTS_PER_PAGE = 4;
+const MAX_FACTS = 12;
 
 function previousDay(dayKey: string): string {
   const date = new Date(`${dayKey}T12:00:00Z`);
@@ -65,6 +67,8 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
   const [todayFact, setTodayFact] = useState<ChartFact | null>(null);
   const [moonToday, setMoonToday] = useState<BirthFact[]>([]);
   const [sky, setSky] = useState<ReturnType<typeof skyComparisonFacts> | null>(null);
+  const [factPage, setFactPage] = useState(0);
+  useEffect(() => { setFactPage(0); }, [todayKey]);
   const [done, setDone] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'daily_task'));
 
   useEffect(() => {
@@ -145,6 +149,32 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
     ].filter((item, index, list): item is BirthFact => Boolean(item) && list.indexOf(item) === index);
   }, [birth, birthDate, moonToday, sky, todayKey]);
 
+  // «Ещё факты»: today's four first, then the rest of the day's pool, four at a time, up to twelve.
+  const factPages = useMemo(() => {
+    const day = dayIndex(todayKey);
+    const pool: BirthFact[] = [...facts];
+    const seen = new Set(pool.map((item) => item.value));
+    const extras: Array<BirthFact | null | undefined> = [
+      ...worldTwinsOfDay(birthDate, day),
+      sky?.moonSign,
+      sky?.planetReturn,
+      ...birth.slice(0, -1).filter((item) => !item.value.startsWith('Луна')),
+      ...moonToday,
+    ];
+    for (const item of extras) {
+      if (!item || seen.has(item.value) || pool.length >= MAX_FACTS) continue;
+      seen.add(item.value);
+      pool.push(item);
+    }
+    const pages: BirthFact[][] = [];
+    for (let index = 0; index < pool.length; index += FACTS_PER_PAGE) pages.push(pool.slice(index, index + FACTS_PER_PAGE));
+    // A last page of one tile looks unfinished; fold it into the previous one.
+    if (pages.length > 1 && pages[pages.length - 1].length < 2) pages[pages.length - 2].push(...pages.pop()!);
+    return pages;
+  }, [birth, birthDate, facts, moonToday, sky, todayKey]);
+  const shownFacts = factPages[Math.min(factPage, factPages.length - 1)] ?? facts;
+  const hasMoreFacts = factPage < factPages.length - 1;
+
   const isDone = Boolean(done[todayKey]);
   const streak = streakOf(done, todayKey);
 
@@ -177,15 +207,25 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
             <p className="about-you-text">{fact.text}</p>
           </>
         ) : null}
-        {facts.length ? (
-          <div className="about-you-facts">
-            {facts.map((item) => (
+        {shownFacts.length ? (
+          <div className="about-you-facts" key={factPage}>
+            {shownFacts.map((item) => (
               <div key={item.caption}>
                 <b>{item.value}</b>
                 <span>{item.caption}</span>
               </div>
             ))}
           </div>
+        ) : null}
+        {factPages.length > 1 ? (
+          <button
+            type="button"
+            className="about-you-more"
+            onClick={() => setFactPage((page) => (hasMoreFacts ? page + 1 : 0))}
+          >
+            {hasMoreFacts ? 'Ещё факты' : 'Сначала'}
+            <span>{Math.min(factPage, factPages.length - 1) + 1}/{factPages.length}</span>
+          </button>
         ) : null}
         {task ? (
           <div className={`about-you-task${isDone ? ' is-done' : ''}`}>

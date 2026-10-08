@@ -1728,3 +1728,37 @@
 .about-you-card .daily-question.is-embedded .daily-question-option.is-chosen {
   border-color: #292724;
 }
+
+/* «Ещё факты»: a quiet text button under the tiles, with the page counter; the new tiles fade in. */
+.about-you-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--today-ink, #292724);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.about-you-more span {
+  color: var(--today-muted, #8a847d);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .about-you-facts > div {
+    animation: about-you-fact-in 260ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  .about-you-facts > div:nth-child(2) { animation-delay: 40ms; }
+  .about-you-facts > div:nth-child(3) { animation-delay: 80ms; }
+  .about-you-facts > div:nth-child(4) { animation-delay: 120ms; }
+}
+@keyframes about-you-fact-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
