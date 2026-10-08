@@ -5565,7 +5565,7 @@ a,
 /* The same store lives below Menu tabs, keeping its checkout above bottom navigation. */
 .services-screen-page .service-premium-content { padding: 0 0 20px; }
 .pw2--embedded .pw2-content { padding-top: 12px; }
-.pw2--embedded .pw2-checkout { position: sticky; bottom: calc(var(--lumia-bottom-tab-height) + var(--lumia-bottom-tab-safe-bottom) + var(--lumia-bottom-tab-bottom-gap) + 8px); }
+.pw2--embedded .pw2-checkout { position: fixed; right: 0; bottom: calc(var(--today-bottom-nav-height, var(--lumia-bottom-tab-height)) + var(--lumia-bottom-tab-safe-bottom)); left: 0; }
 @media (max-width: 359px) {
   .pw2-title { font-size: 1.5rem; }
   .pw2 .pw2-plan { gap: 10px; padding-inline: 10px; }
