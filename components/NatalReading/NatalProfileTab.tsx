@@ -90,18 +90,31 @@ export function NatalProfileTab({ chart }: { chart: NatalChartDataV2 }) {
           </p>
         </div>
 
-        <details className={styles.history}>
-          <summary>
-            <span>Историческая справка: что приписывали планете {profile.history.planetLabel}</span>
-            <span className={styles.historyAction}>Открыть</span>
-          </summary>
-          <ul className={styles.historyList}>
-            <li><b>Металл:</b> {profile.history.metal}</li>
-            <li><b>Цвета:</b> {profile.history.colors}</li>
-            <li><b>Деревья:</b> {profile.history.trees}</li>
-          </ul>
-          <p className={styles.disclaimer}>По книге Агриппы, XVI век. Это история астрологии, а не советы и не научные рекомендации.</p>
-        </details>
+      </section>
+
+      <section className={styles.block} aria-labelledby="natal-profile-set">
+        <h2 id="natal-profile-set" className={styles.heading}>Твоя классическая связка</h2>
+        <div className={styles.card}>
+          <p className={styles.kicker}>{profile.history.sign} · управитель {profile.history.planetLabel}</p>
+          <h3 className={styles.momentHeadline}>Что старые астрологи связывали с твоим знаком</h3>
+          <dl className={styles.setList}>
+            {[
+              ['Металл', profile.history.metal],
+              ['Камни', profile.history.stones],
+              ['Цвета', profile.history.colors],
+              ['Растения', profile.history.plants],
+              ['Деревья', profile.history.trees],
+              ['Число планеты', String(profile.history.number)],
+            ].map(([label, value]) => (
+              <div key={label} className={styles.setRow}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <span className={styles.source}>Агриппа, «Оккультная философия», XVI век</span>
+          <p className={styles.disclaimer}>Знак получает всё это от своей планеты. Это красивая часть истории астрологии, а не обязательные правила.</p>
+        </div>
       </section>
     </div>
   );
