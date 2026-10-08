@@ -12,6 +12,7 @@ export type CompatResult = {
   dims: Record<CompatDimension, number>; // 0..100 каждая
   strongest: CompatDimension;
   verdict: string;                       // короткое слово-вердикт
+  verdictNote: string;                   // одна фраза: что этот вердикт значит для пары
 };
 
 type Element = 'fire' | 'earth' | 'air' | 'water';
@@ -62,12 +63,12 @@ function elementPairBase(a: Element, b: Element): number {
   return 62; // fire↔earth, air↔water
 }
 
-const VERDICTS: Array<{ min: number; ru: string; en: string }> = [
-  { min: 82, ru: 'Сильная связь', en: 'Strong bond' },
-  { min: 70, ru: 'Тёплая связь', en: 'Warm bond' },
-  { min: 58, ru: 'С искрой', en: 'A spark' },
-  { min: 46, ru: 'Непростая', en: 'Complex' },
-  { min: 0, ru: 'Вызов', en: 'Challenging' },
+const VERDICTS: Array<{ min: number; ru: string; en: string; noteRu: string; noteEn: string }> = [
+  { min: 82, ru: 'Сильная связь', en: 'Strong bond', noteRu: 'Вам легко вместе почти во всём.', noteEn: 'You find it easy together in almost everything.' },
+  { min: 70, ru: 'Тёплая связь', en: 'Warm bond', noteRu: 'Вам хорошо вместе, а разница только добавляет интереса.', noteEn: 'You feel good together, and your differences add interest.' },
+  { min: 58, ru: 'С искрой', en: 'A spark', noteRu: 'Яркое притяжение и пара тем, о которых стоит договориться.', noteEn: 'A bright pull and a couple of things worth agreeing on.' },
+  { min: 46, ru: 'Непростая', en: 'Complex', noteRu: 'Сильные чувства и разный темп. Пара, в которой важно договариваться.', noteEn: 'Strong feelings and a different pace. A pair that grows by talking things through.' },
+  { min: 0, ru: 'Вызов', en: 'Challenging', noteRu: 'Вы очень разные, и именно этим интересны друг другу.', noteEn: 'You are very different, and that is what makes you interesting to each other.' },
 ];
 
 export function getCompatScore(signAraw: string, signBraw: string, language: 'ru' | 'en' = 'ru'): CompatResult {
@@ -91,9 +92,11 @@ export function getCompatScore(signAraw: string, signBraw: string, language: 'ru
   const overall = Math.round((dims.love + dims.relationship + dims.friendship + dims.work) / 4);
   const strongest = (Object.keys(dims) as CompatDimension[]).reduce((best, key) =>
     dims[key] > dims[best] ? key : best, 'love' as CompatDimension);
-  const verdict = (VERDICTS.find((v) => overall >= v.min) || VERDICTS[VERDICTS.length - 1])[language === 'en' ? 'en' : 'ru'];
+  const verdictRow = VERDICTS.find((v) => overall >= v.min) || VERDICTS[VERDICTS.length - 1];
+  const verdict = verdictRow[language === 'en' ? 'en' : 'ru'];
+  const verdictNote = language === 'en' ? verdictRow.noteEn : verdictRow.noteRu;
 
-  return { overall, dims, strongest, verdict };
+  return { overall, dims, strongest, verdict, verdictNote };
 }
 
 const ELEMENT_RU: Record<Element, { gen: string; gives: string }> = {

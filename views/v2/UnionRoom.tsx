@@ -1910,14 +1910,14 @@ Check our compatibility from your side in NEBO.`
     : theirName;
   const leftBirthDate = selected?.subjectDate || profile.birthDate;
   const leftDetail = selected?.kind === 'sign'
-    ? (ru ? 'Первый знак' : 'First sign')
+    ? ''
     : leftBirthDate
       ? `${genderWord(leftGender, ru)} - ${formatDisplayDate(leftBirthDate, lang)}`
       : `${genderWord(leftGender, ru)} · ${getZodiacSign(lang, leftSun)}`;
   const rightDetail = selected?.date
     ? `${selected.kind === 'sign' ? '' : `${genderWord(rightGender, ru)}, `}${formatDisplayDate(selected.date, lang)}`
     : selected?.kind === 'sign'
-      ? (ru ? 'Второй знак' : 'Second sign')
+      ? ''
       : `${genderWord(rightGender, ru)} · ${getZodiacSign(lang, theirSun)}`;
   const signReadingBlocks = selected?.kind === 'sign' && signText
     ? [
@@ -1977,13 +1977,13 @@ Check our compatibility from your side in NEBO.`
             <span className="is-left">
               <i aria-hidden="true" />
               <strong>{leftName}</strong>
-              <small>{leftDetail}</small>
+              {leftDetail ? <small>{leftDetail}</small> : null}
               {getZodiacSign(lang, leftSun) !== leftName ? <small className="compat-result-person-zodiac">{getZodiacSign(lang, leftSun)}</small> : null}
             </span>
             <span className="is-right">
               <i aria-hidden="true" />
               <strong>{rightName}</strong>
-              <small>{rightDetail}</small>
+              {rightDetail ? <small>{rightDetail}</small> : null}
               {getZodiacSign(lang, theirSun) !== rightName ? <small className="compat-result-person-zodiac">{getZodiacSign(lang, theirSun)}</small> : null}
             </span>
           </div>
@@ -1993,14 +1993,23 @@ Check our compatibility from your side in NEBO.`
             role="img"
             aria-label={ru ? `${leftName} и ${rightName}: индекс совместимости ${resultPercent} из 100` : `${leftName} and ${rightName}: compatibility index ${resultPercent} out of 100`}
           >
-            <span className="compat-result-orbit-circle is-left" aria-hidden="true" />
-            <span className="compat-result-orbit-circle is-right" aria-hidden="true" />
+            <span className="compat-result-orbit-circle is-left" aria-hidden="true">
+              <i className="compat-orbit-glyph"><ZodiacIcon sign={leftSun} size={26} strokeWidth={1.6} /></i>
+            </span>
+            <span className="compat-result-orbit-circle is-right" aria-hidden="true">
+              <i className="compat-orbit-glyph"><ZodiacIcon sign={theirSun} size={26} strokeWidth={1.6} /></i>
+            </span>
             <span className="compat-result-orbit-center">
               <strong>{resultPercent}%</strong>
               <small>{ru ? 'индекс связи' : 'connection index'}</small>
             </span>
           </div>
-          {resultVerdict ? <p>{resultVerdict}</p> : null}
+          {resultVerdict ? (
+            <p className="compat-result-verdict">
+              <strong>{resultVerdict}</strong>
+              {score?.verdictNote ? <span>{score.verdictNote}</span> : null}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
