@@ -46,7 +46,7 @@ export async function enqueueNatalReadingPreparation(chart: {
        status='pending',attempts=CASE WHEN natal_reading_jobs.status='obsolete' THEN 0 ELSE natal_reading_jobs.attempts END
      WHERE natal_reading_jobs.status IN ('pending','obsolete')`,
     [chart.user_id, chart.id, natalReadingPreparationInputHash(ctx), language, priority,
-      `${natalUnifiedReadingInputHash(ctx)}:${NATAL_PREVIOUS_COPY_REVISION}`],
+      NATAL_PREVIOUS_COPY_REVISION ? `${natalUnifiedReadingInputHash(ctx)}:${NATAL_PREVIOUS_COPY_REVISION}` : null],
   );
   ensureNatalReadingPreparationWorker();
 }

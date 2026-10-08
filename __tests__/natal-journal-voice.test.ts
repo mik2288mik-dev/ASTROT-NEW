@@ -24,8 +24,8 @@ describe('natal journal voice contract', () => {
   });
 
   it('forces a fresh saved-copy revision for the editorial replacement', () => {
-    expect(NATAL_PREVIOUS_COPY_REVISION).toBe('conversational-reading-20260930-r2');
-    expect(NATAL_COPY_REVISION).toBe('conversational-reading-20261001-journal-v1');
+    expect(NATAL_PREVIOUS_COPY_REVISION).toBeNull();
+    expect(NATAL_COPY_REVISION).toBe('nebo-voice-reading-20261008');
     expect(NATAL_UNIFIED_READING_PROMPT_VERSION).toContain('writer.v7');
   });
 });

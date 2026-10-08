@@ -5,8 +5,10 @@ export const NATAL_UNIFIED_READING_CONTRACT_VERSION = 'natal-unified-reading-v2'
 export const NATAL_UNIFIED_READING_PROMPT_VERSION = `${NATAL_UNIFIED_READING_CONTRACT_VERSION}.writer.v7`;
 // One explicitly requested editorial replacement. Never derive this from the
 // global voice version: routine deployments must not rewrite saved reports.
-export const NATAL_PREVIOUS_COPY_REVISION = 'conversational-reading-20260930-r2';
-export const NATAL_COPY_REVISION = 'conversational-reading-20261001-journal-v1';
+// The previous revision whose draft a new job may resume; null means the
+// replacement is written from scratch (the chart meanings themselves changed).
+export const NATAL_PREVIOUS_COPY_REVISION: string | null = null;
+export const NATAL_COPY_REVISION = 'nebo-voice-reading-20261008';
 export const NATAL_UNIFIED_READING_CACHE_KEY = 'natal.unified-reading.v3';
 
 export type NatalUnifiedReadingTier = 'free' | 'premium';
