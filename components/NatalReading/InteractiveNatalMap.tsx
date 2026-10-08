@@ -163,7 +163,6 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
     const a = (rotation - longitude - 90) * Math.PI / 180;
     return { x: 200 + Math.cos(a) * radius, y: 200 + Math.sin(a) * radius };
   };
-  const selected = (kind: MapSelection['kind'], id: string) => selection?.kind === kind && selection.id === id;
   const markers: { x: number; y: number }[] = [];
   const houseMarkers = data.houses.map(h => point(natalChartWheelHouseLabelLongitude(h, data.houses), 142));
   data.bodies.forEach(p => {
