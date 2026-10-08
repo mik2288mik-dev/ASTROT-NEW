@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, UserRound } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Settings as SettingsIcon, UserRound } from 'lucide-react';
 
 export type EditorialTabItem<T extends string> = {
   id: T;
@@ -31,7 +31,36 @@ export function EditorialTabs<T extends string>({
     rail.scrollTo({ left: Math.max(0, target), behavior: 'auto' });
   }, [activeTab]);
 
+  // Arrows show only on a side that still hides tabs.
+  const [edges, setEdges] = useState({ left: false, right: false });
+  const measure = useCallback(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const max = rail.scrollWidth - rail.clientWidth;
+    const next = { left: rail.scrollLeft > 4, right: max - rail.scrollLeft > 4 };
+    setEdges((prev) => (prev.left === next.left && prev.right === next.right ? prev : next));
+  }, []);
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return undefined;
+    measure();
+    rail.addEventListener('scroll', measure, { passive: true });
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(rail);
+    return () => { rail.removeEventListener('scroll', measure); observer?.disconnect(); };
+  }, [measure, tabs.length]);
+  const nudge = (direction: 1 | -1) => {
+    const rail = railRef.current;
+    rail?.scrollBy({ left: direction * rail.clientWidth * 0.6, behavior: 'smooth' });
+  };
+
   return (
+    <div className={`editorial-tabs-wrap${edges.left ? ' can-left' : ''}${edges.right ? ' can-right' : ''}`}>
+    {edges.left ? (
+      <button type="button" className="editorial-tabs-arrow is-left" tabIndex={-1} aria-hidden="true" onClick={() => nudge(-1)}>
+        <ChevronLeft size={18} strokeWidth={2} />
+      </button>
+    ) : null}
     <div
       ref={railRef}
       className={['editorial-tabs', className].filter(Boolean).join(' ')}
@@ -53,6 +82,12 @@ export function EditorialTabs<T extends string>({
           </button>
         );
       })}
+    </div>
+    {edges.right ? (
+      <button type="button" className="editorial-tabs-arrow is-right" tabIndex={-1} aria-hidden="true" onClick={() => nudge(1)}>
+        <ChevronRight size={18} strokeWidth={2} />
+      </button>
+    ) : null}
     </div>
   );
 }
