@@ -1790,3 +1790,44 @@
   overflow-wrap: normal;
   text-wrap: pretty;
 }
+
+/* A tab rail wider than the screen shows a soft fade and an arrow on each side that still hides tabs. */
+.editorial-tabs-wrap {
+  position: relative;
+}
+
+.editorial-tabs-arrow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  width: 44px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: #292724;
+  cursor: pointer;
+}
+
+.editorial-tabs-arrow.is-left {
+  left: 0;
+  justify-items: start;
+  padding-left: 8px;
+  background: linear-gradient(90deg, #fff 45%, rgba(255, 255, 255, 0));
+}
+
+.editorial-tabs-arrow.is-right {
+  right: 0;
+  justify-items: end;
+  padding-right: 8px;
+  background: linear-gradient(270deg, #fff 45%, rgba(255, 255, 255, 0));
+}
+
+.editorial-tabs-arrow svg {
+  width: 26px;
+  height: 26px;
+  padding: 4px;
+  border-radius: 50%;
+  background: #f2f3f5;
+}
