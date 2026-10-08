@@ -926,8 +926,8 @@ export const Dashboard = memo<DashboardProps>(({
           onRequestPremium={requestPremium}
           afterHero={(
             <>
-              <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
               {entryTiles}
+              <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
             </>
           )}
           footer={(

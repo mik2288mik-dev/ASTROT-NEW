@@ -81,6 +81,10 @@ export type HoroscopeReaderProps = {
   onOpenPersonalForecast?: () => void;
   onOpenCharts?: () => void;
   onRequestPremium?: (period: Exclude<Period, 'today'>) => void;
+  onBack?: () => void;
+  /** First-entry reading while the existing natal preparation continues. */
+  onboarding?: boolean;
+  preparationNotice?: React.ReactNode;
 };
 
 export const HoroscopeReader = memo<HoroscopeReaderProps>(
@@ -89,6 +93,9 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
     chartData,
     onOpenCharts,
     onRequestPremium,
+    onBack,
+    onboarding = false,
+    preparationNotice,
   }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const [today, setToday] = useState(() => getMoscowTodayKey());
@@ -278,7 +285,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
     <div className="fresh-page horo-reader-page">
       <AppTopBar
         title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}
-        rightAction={(
+        onBack={onBack}
+        rightAction={onboarding ? undefined : (
           <EditorialChartsButton
             label={language === 'ru' ? 'Открыть мои карты' : 'Open my charts'}
             onClick={onOpenCharts}
@@ -286,20 +294,23 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
         )}
       />
 
-      <div className="horo-reader-controls">
+      {preparationNotice}
+
+      {!onboarding ? <div className="horo-reader-controls">
         <FreshTabs
           className="horo-period-tabs"
           tabs={periodTabs}
           activeTab={period}
           onTabChange={choosePeriod}
         />
-      </div>
+      </div> : null}
 
       <header className="horo-reader-heading">
         <button
           type="button"
           className="horo-reader-sign-trigger"
-          aria-haspopup="dialog"
+          disabled={onboarding}
+          aria-haspopup={onboarding ? undefined : 'dialog'}
           aria-expanded={signPickerOpen}
           onClick={() => {
             lumiaSelectionHaptic();
@@ -307,7 +318,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
           }}
         >
           <span>{selectedSignLabel}</span>
-          <ChevronDown aria-hidden="true" strokeWidth={1.45} />
+          {!onboarding ? <ChevronDown aria-hidden="true" strokeWidth={1.45} /> : null}
         </button>
         <p className="horo-reader-sign-range">{selectedSignDateRange}</p>
       </header>
@@ -323,7 +334,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
           <button
             type="button"
             className="horo-reader-symbol-stage"
-            aria-label={language === 'ru' ? 'Выбрать другой знак зодиака' : 'Choose another zodiac sign'}
+            disabled={onboarding}
+            aria-label={onboarding ? selectedSignLabel : language === 'ru' ? 'Выбрать другой знак зодиака' : 'Choose another zodiac sign'}
             onClick={() => {
               lumiaSelectionHaptic();
               setSignPickerOpen(true);
@@ -379,12 +391,12 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
                     : `${displayedSignLabel} horoscope in NEBO`)}
                 />
               </>
-            ) : null}
+            ) : onboarding ? <p role="status">{language === 'ru' ? 'Загружаем гороскоп…' : 'Loading your horoscope…'}</p> : null}
           </div>
         </article>
       </div>
 
-      <LzSignPickerSheet
+      {!onboarding ? <LzSignPickerSheet
         open={signPickerOpen}
         language={profile.language}
         current={sign}
@@ -393,7 +405,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
         variant="editorial"
         onPick={chooseSign}
         onClose={() => setSignPickerOpen(false)}
-      />
+      /> : null}
     </div>
   );
 });

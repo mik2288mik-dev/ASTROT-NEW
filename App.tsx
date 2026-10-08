@@ -1131,8 +1131,23 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         };
     }, [loadPrimaryChartOnce, resetPrimaryChartState, resolveAuthoritativeAdminStatus, getFallbackAdminStatus, startupRetryNonce]);
 
-    const handleOnboardingComplete = async (newProfile: UserProfile) => {
-        if (onboardingCompletionRef.current) return;
+    const openOnboardingResult = () => {
+        const targetView = onboardingTargetViewRef.current || 'dashboard';
+        if (targetView === 'chart' || targetView === 'personality') {
+            setActiveChartId(undefined);
+            setActiveChartSubject(null);
+            setChartReturnView('dashboard');
+        }
+        setDashboardPeriod('day');
+        setView(targetView);
+        onboardingTargetViewRef.current = 'dashboard';
+    };
+
+    const handleOnboardingComplete = async (
+        newProfile: UserProfile,
+        onPhaseChange: (phase: 'chart' | 'reading') => void,
+    ): Promise<boolean> => {
+        if (onboardingCompletionRef.current) return false;
         onboardingCompletionRef.current = true;
         console.log('[App] Onboarding completed');
 
@@ -1148,7 +1163,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         const onboardingChartToken = primaryChartRequestGuardRef.current.begin(safeUserId);
         if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) {
             onboardingCompletionRef.current = false;
-            return;
+            return false;
         }
         const isGuestOnboarding = profile?.isGuest === true;
         const isAdmin = isGuestOnboarding ? false : getFallbackAdminStatus(safeUserId, profile?.isAdmin);
@@ -1196,7 +1211,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 }
             }
             if (pendingSaveError) throw pendingSaveError;
-            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return false;
 
             runReferralFromStartParam(safeUserId, (r) => {
                 if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
@@ -1216,7 +1231,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 pendingProfile,
                 () => primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken),
             );
-            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return false;
             
             if (!isReadableNatalChart(generatedChart)) {
                 throw new Error('Не удалось получить данные карты. Попробуйте ещё раз.');
@@ -1245,6 +1260,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             };
             
             console.log('[App] Chart calculated');
+            onPhaseChange('reading');
             clearNatalUnifiedReadingCache(safeUserId);
             const preparedChartId = await getPrimaryChartId(safeUserId);
             await waitForPreparedNatalReading({
@@ -1252,14 +1268,14 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 chartId: preparedChartId ?? undefined,
                 language: canonicalFullProfile.language, tier: 'free',
             }, { isCurrent: () => primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken) });
-            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return false;
 
             // Завершение фиксируется только после готовой карты. Повтор после сбоя
             // безопасен: профиль обновляется по тому же ID, а chartService читает
             // уже созданную primary chart вместо параллельного расчёта.
-            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return false;
             await saveProfile(canonicalFullProfile);
-            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return false;
             setProfile(canonicalFullProfile);
             if (!isGuestOnboarding) {
                 void resolveAuthoritativeAdminStatus(safeUserId, canonicalFullProfile.isAdmin)
@@ -1303,20 +1319,12 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
 
             setLoadingProgress(100);
             setLoadingMessage(undefined);
-            const targetView = onboardingTargetViewRef.current || 'dashboard';
-            if (targetView === 'chart' || targetView === 'personality') {
-                setActiveChartId(undefined);
-                setActiveChartSubject(null);
-                setChartReturnView('dashboard');
-            }
-            // First value is the saved chart followed by the personal Today.
-            // Premium remains absent until the user reaches and taps the inline teaser.
-            setDashboardPeriod('day');
-            setView(targetView);
-            onboardingTargetViewRef.current = 'dashboard';
+            // Onboarding opens Today for a waiting user, or offers it without
+            // interrupting someone who chose to read their sign horoscope.
+            return true;
             
         } catch (error: any) {
-            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return;
+            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return false;
             console.error('[App] Error during onboarding:', error);
             const originalMessage = error?.message || 'Неизвестная ошибка';
             const lowerMessage = originalMessage.toLowerCase();
@@ -2567,6 +2575,8 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 <div className="relative z-10 h-full w-full">
                     <Onboarding
                         onComplete={handleOnboardingComplete}
+                        onOpenPrepared={openOnboardingResult}
+                        accountProfile={profile}
                         initialStep={hasPendingOnboardingDraft ? 'birth' : onboardingInitialStep}
                         initialProfile={hasPendingOnboardingDraft || onboardingPrefillSaved ? profile : undefined}
                         onSkip={() => {
