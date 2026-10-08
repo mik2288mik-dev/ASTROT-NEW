@@ -63,6 +63,7 @@ import { buildSignCompatibilityReactionKey } from '../../lib/synastry/compatibil
 import { CompatibilityStoryReader } from '../../components/CompatibilityStoryReader';
 import { CompatibilityAnswers, CompatibilityCalculation, CompatibilityGauge, gaugeHeadline } from '../../components/CompatibilityAnswers';
 import { CompatibilityTalkCalendar, CompatibilityTopicSwitch } from '../../components/CompatibilityExtras';
+import { COMPATIBILITY_CHART_SAMPLE } from '../../lib/synastry/compatibilityChartSample';
 import {
   CompatibilityLiveSample,
   CompatibilityPairAvatars,
@@ -648,19 +649,24 @@ function CompatibilityResultPreviewSheet({
   onClose,
   ru,
   yourSign,
+  mode,
 }: {
   open: boolean;
   onClose: () => void;
   ru: boolean;
   yourSign: string;
+  mode: CompatibilityTab;
 }) {
+  const chartSample = COMPATIBILITY_CHART_SAMPLE[ru ? 'ru' : 'en'];
   return (
     <CosmicSheet
       open={open}
       onClose={onClose}
       closeLabel={ru ? 'Закрыть' : 'Close'}
       title={ru ? 'Посмотри, как это выглядит' : 'See how it looks'}
-      subtitle={ru ? 'Настоящий кусочек разбора, по твоему знаку.' : 'A real piece of the reading, for your sign.'}
+      subtitle={mode === 'sign'
+        ? ru ? 'Настоящий кусочек разбора, по твоему знаку.' : 'A real piece of the reading, for your sign.'
+        : ru ? 'Пример разбора по двум натальным картам.' : 'A sample reading based on two natal charts.'}
       className="compat-preview-sheet"
       contentClassName="compat-preview-sheet-content"
       footer={(
@@ -669,7 +675,19 @@ function CompatibilityResultPreviewSheet({
         </button>
       )}
     >
-      <CompatibilityLiveSample yourSign={yourSign} ru={ru} />
+      {mode === 'sign' ? <CompatibilityLiveSample yourSign={yourSign} ru={ru} /> : (
+        <article className="compat-chart-sample" aria-label={ru ? 'Образец разбора по двум картам' : 'Sample reading based on two charts'}>
+          <header className="compat-live-sample-cover">
+            <span className="compat-live-sample-kicker">{ru ? 'образец · по двум картам' : 'sample · by two charts'}</span>
+            <strong>{chartSample.names.subject} {ru ? 'и' : 'and'} {chartSample.names.partner}</strong>
+          </header>
+          <CompatibilityGauge score={chartSample.overallScore} questions={[]} language={ru ? 'ru' : 'en'} />
+          <CompatibilityAnswers rows={chartSample.questions} language={ru ? 'ru' : 'en'} />
+          <p className="compat-live-sample-note">{ru
+            ? 'Это часть разбора вымышленной пары. Ответы рассчитаны по двум картам. Ваш результат будет основан на данных рождения обоих.'
+            : 'This is part of a reading for a fictitious pair, calculated from two charts. Your result will use both people’s birth details.'}</p>
+        </article>
+      )}
     </CosmicSheet>
   );
 }
@@ -792,8 +810,8 @@ export function UnionRoom(props: UnionRoomProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (screen !== 'add' || entryMode !== 'birth') return;
-    const key = `nebo:compatibility-result-preview:v2:${profile.id || 'guest'}`;
+    if (screen !== 'add') return;
+    const key = `nebo:compatibility-result-preview:v3:${entryMode}:${profile.id || 'guest'}`;
     try {
       if (window.localStorage.getItem(key)) return;
       window.localStorage.setItem(key, 'seen');
@@ -1512,6 +1530,13 @@ Check our compatibility from your side in NEBO.`
     return (
       <div className="fresh-page compat-editorial-page compat-editorial-page--add">
         {compatibilityHeader()}
+        <CompatibilityResultPreviewSheet
+          open={resultPreviewOpen}
+          onClose={() => setResultPreviewOpen(false)}
+          ru={ru}
+          yourSign={youSign}
+          mode={entryMode}
+        />
 
         {entryMode === 'birth' ? (
           <>
@@ -1522,13 +1547,6 @@ Check our compatibility from your side in NEBO.`
                 submitAdd();
               }}
             >
-              <CompatibilityResultPreviewSheet
-                open={resultPreviewOpen}
-                onClose={() => setResultPreviewOpen(false)}
-                ru={ru}
-                yourSign={yourSun}
-              />
-
               <section className="compat-date-hero">
                 <h2>{ru ? 'Какая у вас совместимость?' : 'How compatible are you?'}</h2>
                 <p>{ru ? 'Смотрим, где вам легко вместе и где обычно начинаются сложности.' : 'This is not a relationship grade. It shows where you feel at ease and where friction may begin.'}</p>

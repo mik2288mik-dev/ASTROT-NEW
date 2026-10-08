@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { CheckCircle2, LoaderCircle } from 'lucide-react';
 import type { UserProfile } from '../types';
+import { getZodiacSign } from '../constants';
+import { sunSignFromDate } from '../lib/synastry/compatScore';
+import { normalizeZodiacKey } from '../lib/zodiacKeys';
+import { ZodiacSymbol } from '../components/icons/ZodiacArt';
+import { HoroscopeReader } from './v2/HoroscopeReader';
 import { ensureTelegramFullscreen } from '../lib/telegramFullscreen';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
 import { MeouLogo } from '../components/onboarding/MeouLogo';
@@ -15,12 +21,14 @@ import { onboardingCalculationStatus } from '../lib/onboardingCalculationStatus'
 import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
 
 type OnboardingStart = 'stories' | 'birth';
-type OnboardingScreen = 'hello' | 'natal' | 'future' | 'compat' | 'calm' | 'more' | 'choice' | 'birth' | 'calculating';
+type OnboardingScreen = 'hello' | 'natal' | 'future' | 'compat' | 'calm' | 'more' | 'choice' | 'birth' | 'calculating' | 'waiting' | 'horoscope';
 type FieldKey = 'name' | 'date' | 'time' | 'place';
 type ErrorField = FieldKey | null;
 
 interface OnboardingProps {
-  onComplete: (profile: UserProfile) => Promise<void>;
+  onComplete: (profile: UserProfile, onPhaseChange: (phase: 'chart' | 'reading') => void) => Promise<boolean>;
+  onOpenPrepared: () => void;
+  accountProfile: UserProfile;
   initialStep?: OnboardingStart;
   initialProfile?: UserProfile;
   onSkip: () => void;
@@ -74,6 +82,8 @@ const OnboardingProgress = ({ current, count, labelled = true }: { current: numb
 
 export const Onboarding: React.FC<OnboardingProps> = ({
   onComplete,
+  onOpenPrepared,
+  accountProfile,
   initialStep = 'stories',
   initialProfile,
   onSkip,
@@ -93,6 +103,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   const [errorField, setErrorField] = useState<ErrorField>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calculationElapsedSeconds, setCalculationElapsedSeconds] = useState(0);
+  const [preparationPhase, setPreparationPhase] = useState<'chart' | 'reading'>('chart');
+  const [prepared, setPrepared] = useState(false);
+  const [preparationError, setPreparationError] = useState('');
+  const [submittedProfile, setSubmittedProfile] = useState<UserProfile | null>(null);
+  const readingOpenRef = useRef(false);
   const submittingRef = useRef(false);
   const touchStartX = useRef<number | null>(null);
   const suppressTapUntilRef = useRef(0);
@@ -127,14 +142,16 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   }, [screen]);
 
   useEffect(() => {
-    if (screen !== 'calculating') return;
+    if (!isSubmitting) return;
     const startedAt = Date.now();
     setCalculationElapsedSeconds(0);
     const timer = window.setInterval(() => {
-      setCalculationElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+      setCalculationElapsedSeconds(elapsed);
+      if (elapsed >= 10) setScreen((current) => current === 'calculating' ? 'waiting' : current);
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [screen]);
+  }, [isSubmitting]);
 
   useEffect(() => {
     if (screen !== 'birth') return;
@@ -301,35 +318,47 @@ export const Onboarding: React.FC<OnboardingProps> = ({
       return;
     }
 
+    await prepare({
+      name: name.trim(),
+      gender,
+      birthDate: date,
+      birthTime: timeMode === 'unknown' ? '' : time,
+      birthTimeMode: timeMode,
+      birthTimeUncertaintyMinutes: timeMode === 'approximate' ? uncertainty : null,
+      birthTimeRangeStart: null,
+      birthTimeRangeEnd: null,
+      birthPlace: place.trim(),
+      birthLatitude: placeCoords?.lat ?? null,
+      birthLongitude: placeCoords?.lon ?? null,
+      birthTimezone: placeCoords?.timezone ?? null,
+      isSetup: false,
+      language: 'ru',
+      theme: 'light',
+      isPremium: false,
+      notificationFrequency: 'quiet',
+    });
+  };
+
+  const prepare = async (draft: UserProfile) => {
+    if (submittingRef.current) return;
     submittingRef.current = true;
     setIsSubmitting(true);
-    setScreen('calculating');
+    setPrepared(false);
+    setPreparationPhase('chart');
+    setPreparationError('');
+    setCalculationElapsedSeconds(0);
+    setSubmittedProfile(draft);
+    if (!readingOpenRef.current) setScreen('calculating');
     clearError();
     try {
-      await onComplete({
-        name: name.trim(),
-        gender,
-        birthDate: date,
-        birthTime: timeMode === 'unknown' ? '' : time,
-        birthTimeMode: timeMode,
-        birthTimeUncertaintyMinutes: timeMode === 'approximate' ? uncertainty : null,
-        birthTimeRangeStart: null,
-        birthTimeRangeEnd: null,
-        birthPlace: place.trim(),
-        birthLatitude: placeCoords?.lat ?? null,
-        birthLongitude: placeCoords?.lon ?? null,
-        birthTimezone: placeCoords?.timezone ?? null,
-        isSetup: false,
-        language: 'ru',
-        theme: 'light',
-        isPremium: false,
-        notificationFrequency: 'quiet',
-      });
+      const ready = await onComplete(draft, setPreparationPhase);
+      if (!ready) return;
+      setPrepared(true);
       showActionFeedback(ACTION_FEEDBACK.onboardingReady);
+      if (!readingOpenRef.current) onOpenPrepared();
     } catch (submitError: any) {
-      setScreen('birth');
-      setErrorField(null);
-      setError(submitError?.message || 'Не удалось сохранить данные и рассчитать карту. Попробуй ещё раз.');
+      setPreparationError(submitError?.message || 'Не удалось подготовить разбор. Проверь интернет и попробуй ещё раз.');
+      setScreen((current) => current === 'calculating' ? 'waiting' : current);
     } finally {
       submittingRef.current = false;
       setIsSubmitting(false);
@@ -340,6 +369,56 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   const isIntro = introIndex > 0;
   const welcomeIndex = welcomeScreens.indexOf(screen) + 1;
   const isWelcome = welcomeIndex > 0;
+  const waitingSign = normalizeZodiacKey(sunSignFromDate(submittedProfile?.birthDate || date));
+  const preparationTitle = preparationPhase === 'chart' ? 'Рассчитываем карту' : 'Собираем твой разбор';
+  const calculationNote = 'Расчёт карты может занять до 1 минуты. Это время нужно для точного расчёта положений планет на момент вашего рождения.';
+  const editBirthDetails = () => {
+    readingOpenRef.current = false;
+    setScreen('birth');
+    setError(preparationError);
+    setErrorField(null);
+  };
+  const retryPreparation = () => { if (submittedProfile) void prepare(submittedProfile); };
+
+  if (screen === 'horoscope' && submittedProfile) {
+    return (
+      <main className="onboarding-horoscope lumia-main-scroll scrollbar-hide">
+        <HoroscopeReader
+          profile={{ ...accountProfile, ...submittedProfile }}
+          chartData={null}
+          onboarding
+          onBack={() => {
+            readingOpenRef.current = false;
+            if (prepared) onOpenPrepared();
+            else setScreen('waiting');
+          }}
+          preparationNotice={(
+            <section className="onboarding-preparation-notice" aria-live="polite">
+              {preparationError ? (
+                <>
+                  <p role="alert">{preparationError}</p>
+                  <button type="button" className="fresh-btn-primary" onClick={retryPreparation}>Повторить</button>
+                  <button type="button" className="onboarding-wait-link" onClick={editBirthDetails}>Изменить данные</button>
+                </>
+              ) : prepared ? (
+                <>
+                  <strong><CheckCircle2 size={20} aria-hidden="true" />Твой личный разбор готов</strong>
+                  <p>Можно возвращаться на главную.</p>
+                  <button type="button" className="fresh-btn-primary" onClick={onOpenPrepared}>Открыть разбор</button>
+                </>
+              ) : (
+                <>
+                  <strong><LoaderCircle size={20} className="onboarding-wait-spinner" aria-hidden="true" />{preparationTitle}</strong>
+                  <p>Можешь читать гороскоп — подготовка продолжается.</p>
+                  <button type="button" className="onboarding-wait-link" onClick={() => { readingOpenRef.current = false; setScreen('waiting'); }}>Вернуться к ожиданию</button>
+                </>
+              )}
+            </section>
+          )}
+        />
+      </main>
+    );
+  }
 
   return (
     <main
@@ -471,12 +550,42 @@ export const Onboarding: React.FC<OnboardingProps> = ({
             <div className="meou-calculating-stage" aria-hidden="true" />
             <div className="meou-calculating-copy">
               <div>
-                {<><h1>Считаем вашу<br />натальную карту<span>.</span></h1><p>Определяем положение Солнца, Луны<br />и планет на момент вашего рождения.</p></>}
+                <h1>{preparationTitle}<span>.</span></h1>
+                <p>{preparationPhase === 'chart' ? calculationNote : 'Карта рассчитана. Готовим рассказ по твоей карте — он появится, как только будет готов.'}</p>
               </div>
               <div className="meou-calculating-footer">
-                <p>{onboardingCalculationStatus(calculationElapsedSeconds, timeMode)}</p>
+                <p>{preparationPhase === 'chart' ? onboardingCalculationStatus(calculationElapsedSeconds, timeMode) : 'Подготовка продолжается.'}</p>
               </div>
             </div>
+          </section>
+        ) : null}
+        {screen === 'waiting' ? (
+          <section className="onboarding-waiting">
+            {preparationError ? (
+              <>
+                <h1>Не удалось подготовить разбор</h1>
+                <p role="alert">{preparationError}</p>
+                <button type="button" className="fresh-btn-primary" onClick={retryPreparation}>Повторить</button>
+                <button type="button" className="onboarding-wait-link" onClick={editBirthDetails}>Изменить данные</button>
+              </>
+            ) : (
+              <>
+                <LoaderCircle size={32} className="onboarding-wait-spinner" aria-hidden="true" />
+                <div role="status"><h1>{preparationTitle}</h1></div>
+                <p>{preparationPhase === 'chart' ? calculationNote : 'Карта рассчитана. Готовим рассказ по твоей карте — он появится, как только будет готов.'}</p>
+                <p>А пока можешь посмотреть прогноз для своего знака.</p>
+              </>
+            )}
+            {waitingSign ? (
+              <div className="onboarding-wait-card">
+                <div className="onboarding-wait-sign">
+                  <ZodiacSymbol sign={waitingSign} size={48} />
+                  <div><strong>{getZodiacSign('ru', waitingSign)} — сегодня</strong><span>Гороскоп для твоего знака</span></div>
+                </div>
+                <button type="button" className="fresh-btn-primary" onClick={() => { readingOpenRef.current = true; setScreen('horoscope'); }}>Почитать гороскоп</button>
+                {!preparationError ? <p>Или останься здесь — разбор появится сам.</p> : null}
+              </div>
+            ) : null}
           </section>
         ) : null}
       </div>

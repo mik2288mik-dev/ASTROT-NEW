@@ -239,6 +239,21 @@
   width: 100%;
 }
 
+/* Keep the birth-date form compact so its action sits above the bottom bar. */
+.compat-entry-form--date .compat-date-hero { margin-top: 10px; margin-bottom: 12px; }
+.compat-entry-form--date .compat-pair-picker { margin-top: .25rem; margin-bottom: .5rem; }
+.compat-entry-form--date .compat-saved-people ul { margin-bottom: .25rem; padding-bottom: .2rem; }
+.compat-entry-form--date .compat-saved-people li { margin-bottom: 0; }
+.compat-entry-form--date .compat-saved-person-name, .compat-entry-form--date .compat-pair-avatar-name, .compat-entry-form--date .compat-pair-avatar-meta { line-height: 1.25; }
+.compat-editorial-page--add .compat-entry-form--date .compat-new-chart-note { margin-top: 4px; }
+.compat-entry-form--date .compat-entry-submit-bar { margin-top: 10px; }
+.compat-editorial-page--add .compat-entry-form--date .compat-entry-submit-bar .compat-entry-submit { margin-top: 0 !important; }
+
+.compat-chart-sample { --compat-editorial-ink: #171717; --compat-editorial-muted: #747474; --compat-editorial-line: rgba(23, 23, 23, .12); display: grid; gap: 16px; }
+.compat-chart-sample .compat-gauge { margin: 0; }
+.compat-chart-sample .compat-gauge-dial { width: min(100%, 220px); }
+.compat-chart-sample .compat-gauge h2 { font-size: 1.2rem; }
+
 /* Live sample of a compatibility reading. */
 .compat-live-sample {
   display: grid;
