@@ -1,6 +1,11 @@
 /* NEBO Premium: a screen that sells. A video hero, benefit cards with pictures, plans with the per-month price,
    links under the button that sit straight. Loaded after the older paywall sheets. */
 
+.pw2.pw2--overlay .app-top-bar,
+.pw2.pw2--overlay .app-top-bar :is(.app-top-bar-title, .app-top-bar-action, svg) {
+  color: var(--pw-ink) !important;
+}
+
 .pw2-intro.is-sell {
   position: relative;
   isolation: isolate;
