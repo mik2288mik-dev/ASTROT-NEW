@@ -234,7 +234,7 @@ describe('compatibility editorial layout', () => {
     expect(room).toContain('showLabels');
     expect(activity).toContain('showViews = true');
     expect(activity).toContain('showCounts = true');
-    expect(activity).toContain('{showViews ? (');
+    expect(activity).toContain('{showViews && views > 0 ? (');
     expect(activity).toContain('if (showViews) {');
     expect(activity).toContain('showViews={false}');
   });

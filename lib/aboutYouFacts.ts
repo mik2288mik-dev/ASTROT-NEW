@@ -215,3 +215,59 @@ export function birthInstant(birthDate: string, birthTime: string | null | undef
     return new Date(guess);
   }
 }
+
+const RETURN_YEARS: Record<'jupiter' | 'saturn', number> = { jupiter: 12, saturn: 29 };
+
+function percentLit(astro: typeof import('astronomy-engine'), date: Date): number {
+  const angle = astro.MoonPhase(date);
+  return Math.round(((1 - Math.cos((angle * Math.PI) / 180)) / 2) * 100);
+}
+
+/**
+ * Comparisons between today's sky and the person's own birth: the Moon in their sign, the sky
+ * that looks like their birthday, a slow planet back where it stood when they were born.
+ * Every tile is computed from the chart and today's real sky; a tile only appears when it is true.
+ */
+export function skyComparisonFacts(
+  astro: typeof import('astronomy-engine'),
+  dayKey: string,
+  chart: NatalChartData | null | undefined,
+  moonAtBirth: number | null,
+): { moonSign: BirthFact | null; birthSky: BirthFact | null; planetReturn: BirthFact | null } {
+  const [y, m, d] = dayKey.split('-').map(Number);
+  if (!y || !m || !d) return { moonSign: null, birthSky: null, planetReturn: null };
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  const signOf = (body: import('astronomy-engine').Body) => Math.floor(astro.Ecliptic(astro.GeoVector(body, date, true)).elon / 30) % 12;
+
+  const moonSignToday = signOf(astro.Body.Moon);
+  const sunSign = signIndex(chart?.sun?.sign);
+  const natalMoonSign = signIndex(chart?.moon?.sign);
+  const moonSign = moonSignToday === sunSign
+    ? { value: 'Луна в твоём знаке', caption: `сегодня Луна в ${SIGN_IN_RU[moonSignToday]}, как твоё Солнце: пара дней в месяц, когда ты на своей волне` }
+    : moonSignToday === natalMoonSign
+      ? { value: 'Луна как у тебя', caption: `сегодня Луна в ${SIGN_IN_RU[moonSignToday]}, там же, где при твоём рождении: настроение дня тебе знакомо` }
+      : null;
+
+  const litToday = percentLit(astro, date);
+  const litBirth = moonAtBirth !== null && Number.isFinite(moonAtBirth) ? Math.round(moonAtBirth) : null;
+  const birthSky = litBirth === null
+    ? null
+    : Math.abs(litToday - litBirth) <= 8
+      ? { value: 'Небо как в твой ДР', caption: `Луна сегодня ${litToday}%, в момент твоего рождения было ${litBirth}%` }
+      : { value: `Луна ${litToday}%`, caption: `сегодня, а когда ты родился, было ${litBirth}%` };
+
+  let planetReturn: BirthFact | null = null;
+  for (const body of ['saturn', 'jupiter'] as const) {
+    const natal = signIndex(chart?.[body]?.sign);
+    if (natal < 0) continue;
+    const today = signOf(body === 'saturn' ? astro.Body.Saturn : astro.Body.Jupiter);
+    if (today === natal) {
+      planetReturn = {
+        value: `${BODY_RU[body]} в ${SIGN_IN_RU[today]}`,
+        caption: `там же, где при твоём рождении: так бывает раз в ${RETURN_YEARS[body]} лет`,
+      };
+      break;
+    }
+  }
+  return { moonSign, birthSky, planetReturn };
+}

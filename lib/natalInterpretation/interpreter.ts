@@ -83,7 +83,7 @@ function meaningForEvidence(fact: NatalInterpretationEvidence, language: 'ru' | 
     const area = language === 'ru' ? HOUSE_AREAS_RU[fact.house] : houseOpeningsEn[fact.house];
     if (!area) return null;
     return { ...base, semanticKey: `house-cusp:${fact.house}:${fact.sign}`, scope: 'structural',
-      text: language === 'ru' ? moneyHouseMeaning(fact.house, fact.sign) || `Этот дом относится к следующим делам: ${area}. Знак на его границе, ${signName(fact.sign, language)}. Планеты в этом доме дают отдельные пояснения.` : `This house concerns ${area.toLowerCase()}. Its cusp is in ${fact.sign}; planets in the house have their own explanations.`,
+      text: language === 'ru' ? moneyHouseMeaning(fact.house, fact.sign) || `Этот дом отвечает за такие дела: ${area}. Он начинается в знаке ${signName(fact.sign, language)}, а планеты в нём добавляют свои подробности.` : `This house concerns ${area.toLowerCase()}. Its cusp is in ${fact.sign}; planets in the house have their own explanations.`,
       technicalText: `${fact.house} ${language === 'ru' ? 'дом' : 'house'} · ${signName(fact.sign, language)}${fact.degree == null ? '' : ` · ${fact.degree.toFixed(1)}°`}`,
       topics: HOUSE_TOPICS[fact.house] || ['general'] };
   }
@@ -117,7 +117,7 @@ export function interpretNatalChart(chart: NatalChartDataV2, language: 'ru' | 'e
         const areaTopics = HOUSE_TOPICS[house.house] || [];
         meaning.topics = unique([...meaning.topics, ...areaTopics]);
         meaning.topicText = Object.fromEntries(areaTopics.map(topic => [topic,
-          language === 'ru' ? `${meaning.text} Это наблюдение относится к следующим делам: ${meaning.area}.` : `${meaning.text} This observation concerns ${meaning.area}.`,
+          language === 'ru' ? `${meaning.text} Ярче всего это видно здесь: ${meaning.area}.` : `${meaning.text} This observation concerns ${meaning.area}.`,
         ]));
       }
     }

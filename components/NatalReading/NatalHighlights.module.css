@@ -183,10 +183,25 @@
   font-size: 12px;
 }
 
+.elementIntro {
+  margin: 4px 0 0;
+  color: #77716a;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .elementBars {
   display: grid;
-  gap: 5px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.elementWho {
+  grid-column: 1 / -1;
+  margin-top: -3px;
+  color: #8a847c;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .elementBar {
@@ -327,44 +342,30 @@
   background: #f4f6fa;
 }
 
-.history {
-  margin-top: 4px;
-  border-top: 1px solid #eef0f3;
-}
-
-.history summary {
-  display: flex;
-  min-height: 46px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: #55504a;
-  font-size: 13px;
-  cursor: pointer;
-  list-style: none;
-}
-
-.history summary::-webkit-details-marker {
-  display: none;
-}
-
-.historyAction {
-  flex: none;
-  color: #2d7ff0;
-  font-size: 12.5px;
-}
-
-.historyList {
+/* «Твоя классическая связка»: label on the left, the old list on the right. */
+.setList {
   display: grid;
-  gap: 6px;
-  margin: 0 0 8px;
-  padding: 0;
-  list-style: none;
-  font-size: 13px;
+  gap: 0;
+  margin: 10px 0 10px;
+}
+
+.setRow {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid #eef0f3;
+  font-size: 14px;
   line-height: 1.4;
 }
 
-.historyList b {
+.setRow dt {
+  color: #8a857e;
+}
+
+.setRow dd {
+  margin: 0;
+  color: #292724;
   font-weight: 600;
 }
 
@@ -473,4 +474,51 @@
   margin: 8px 0 0;
   color: #6b665f;
   font-size: 12px;
+}
+
+/* ── White cards, like Home: the sky stays only as a soft planet picture ──
+   The big three are white tiles with dark text; the planet photo sits under a white haze that
+   leaves its top right corner clear. The highlights are white cards with the shared soft shadow. */
+.tile.day,
+.tile.evening,
+.tile.sunset {
+  background-color: #fff;
+  color: #292724;
+  text-shadow: none;
+}
+.tile.sunset { background-image: none; }
+.tile.withArt::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.9) 42%, rgba(255, 255, 255, 0.97) 100%);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.tile .tileIcon { background: #f1f1f4; }
+.tile .tileLabel { color: #6f6a64; opacity: 1; }
+.tile .tileTrait { color: #49433d; opacity: 1; }
+.moment { background: #fff; }
+/* Profile: the ruler card and the weekday tiles follow the same white style. */
+.hero.withArt,
+.dayTile.withArt,
+.hero,
+.dayTile {
+  background-color: #fff;
+  color: #292724;
+  text-shadow: none;
+}
+.withArt::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.9) 42%, rgba(255, 255, 255, 0.97) 100%);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.hero .heroLabel,
+.dayTile .dayCaption { color: #6f6a64; opacity: 1; }
+.hero .heroText,
+.dayTile .dayOrigin { color: #49433d; opacity: 1; }
+.hero .source { background: #f1f1f4; color: #49433d; }
+/* The ruler and weekday pictures are large: the haze runs left to right, as on the Home cards. */
+.hero.withArt::before,
+.dayTile.withArt::before {
+  -webkit-mask-image: none;
+  mask-image: none;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.92) 55%, rgba(255, 255, 255, 0.62) 100%);
 }

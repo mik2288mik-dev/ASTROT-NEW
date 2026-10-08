@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check } from 'lucide-react';
 import type { NatalChartData } from '../../types';
-import { birthFacts, birthInstant, buildFastTransits, chartFactOfDay, dayIndex, todayMoonFacts, transitFactOfDay, type BirthFact, type ChartFact } from '../../lib/aboutYouFacts';
+import { birthFacts, birthInstant, buildFastTransits, chartFactOfDay, dayIndex, skyComparisonFacts, todayMoonFacts, transitFactOfDay, type BirthFact, type ChartFact } from '../../lib/aboutYouFacts';
 import { loadExploreCharts, peekExploreCharts } from '../PersonalForecastFeed/exploreCharts';
+import { worldTwinOfDay, worldTwinsOfDay } from '../../lib/worldTwins';
+import { dailyPhrase } from '../../lib/dailyPhrases';
 import { loadFeatureState, peekFeatureState, saveFeatureState } from '../../services/featureStateService';
 
 type TodayAboutYouProps = {
@@ -13,9 +15,13 @@ type TodayAboutYouProps = {
   birthTimeKnown: boolean;
   /** One concrete step from today's forecast; the card hides the task without it. */
   task: string | null;
+  /** Closing row of the card, such as the question of the day. */
+  children?: React.ReactNode;
 };
 
 let engine: Promise<typeof import('astronomy-engine')> | null = null;
+const FACTS_PER_PAGE = 4;
+const MAX_FACTS = 12;
 
 function previousDay(dayKey: string): string {
   const date = new Date(`${dayKey}T12:00:00Z`);
@@ -54,13 +60,16 @@ function PickMeFinger() {
 }
 
 /** «Сегодня о тебе»: a chart fact that changes daily, birth facts and a mini-task from today's forecast. */
-export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTimeKnown, task }: TodayAboutYouProps) {
+export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTimeKnown, task, children }: TodayAboutYouProps) {
   const [chart, setChart] = useState<NatalChartData | null>(
     () => peekExploreCharts(userId)?.find((item) => item.is_primary)?.chart_data ?? null,
   );
   const [moonAtBirth, setMoonAtBirth] = useState<number | null>(null);
   const [todayFact, setTodayFact] = useState<ChartFact | null>(null);
   const [moonToday, setMoonToday] = useState<BirthFact[]>([]);
+  const [sky, setSky] = useState<ReturnType<typeof skyComparisonFacts> | null>(null);
+  const [factPage, setFactPage] = useState(0);
+  useEffect(() => { setFactPage(0); }, [todayKey]);
   const [done, setDone] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'daily_task'));
 
   useEffect(() => {
@@ -104,6 +113,15 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
     return () => { active = false; };
   }, [todayKey]);
 
+  useEffect(() => {
+    let active = true;
+    engine ??= import('astronomy-engine');
+    void engine
+      .then((astro) => { if (active) setSky(skyComparisonFacts(astro, todayKey, chart, moonAtBirth)); })
+      .catch(() => { engine = null; });
+    return () => { active = false; };
+  }, [chart, moonAtBirth, todayKey]);
+
   // Today's aspect to the chart; the old chart-only fact is the fallback while it is not ready or none is close enough.
   const fact = useMemo(() => todayFact ?? chartFactOfDay(chart, todayKey), [todayFact, chart, todayKey]);
   const birth = useMemo(() => birthFacts({
@@ -115,14 +133,50 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
     moonAtBirth,
     todayKey,
   }), [birthDate, birthTime, birthTimeKnown, chart, moonAtBirth, todayKey]);
-  // Today's Moon, one birth fact that rotates by day, and the birthday countdown: the tiles never stand still.
+  // Four different kinds of tile, never the same theme twice: what the world got in your birth year,
+  // today's sky against your birth, a rare personal sky event (or a second world fact), the birthday countdown.
   const facts = useMemo(() => {
+    const day = dayIndex(todayKey);
     const countdown = birth[birth.length - 1];
-    const rest = birth.slice(0, -1);
-    const rotating = rest.length ? rest[dayIndex(todayKey) % rest.length] : null;
-    return [...moonToday, rotating, countdown].filter((item): item is BirthFact => Boolean(item));
-  }, [birth, moonToday, todayKey]);
+    const rest = birth.slice(0, -1).filter((item) => !item.value.startsWith('Луна'));
+    const rotating = rest.length ? rest[day % rest.length] : null;
+    const twin = worldTwinOfDay(birthDate, day);
+    const secondTwin = worldTwinOfDay(birthDate, day, 1);
+    return [
+      twin ?? sky?.moonSign ?? moonToday[0] ?? null,
+      sky?.birthSky ?? moonToday[1] ?? null,
+      sky?.moonSign ?? sky?.planetReturn ?? secondTwin ?? rotating,
+      countdown,
+    ].filter((item, index, list): item is BirthFact => Boolean(item) && list.indexOf(item) === index);
+  }, [birth, birthDate, moonToday, sky, todayKey]);
 
+  // «Ещё факты»: today's four first, then the rest of the day's pool, four at a time, up to twelve.
+  const factPages = useMemo(() => {
+    const day = dayIndex(todayKey);
+    const pool: BirthFact[] = [...facts];
+    const seen = new Set(pool.map((item) => item.value));
+    const extras: Array<BirthFact | null | undefined> = [
+      ...worldTwinsOfDay(birthDate, day),
+      sky?.moonSign,
+      sky?.planetReturn,
+      ...birth.slice(0, -1).filter((item) => !item.value.startsWith('Луна')),
+      ...moonToday,
+    ];
+    for (const item of extras) {
+      if (!item || seen.has(item.value) || pool.length >= MAX_FACTS) continue;
+      seen.add(item.value);
+      pool.push(item);
+    }
+    const pages: BirthFact[][] = [];
+    for (let index = 0; index < pool.length; index += FACTS_PER_PAGE) pages.push(pool.slice(index, index + FACTS_PER_PAGE));
+    // A last page of one tile looks unfinished; fold it into the previous one.
+    if (pages.length > 1 && pages[pages.length - 1].length < 2) pages[pages.length - 2].push(...pages.pop()!);
+    return pages;
+  }, [birth, birthDate, facts, moonToday, sky, todayKey]);
+  const shownFacts = factPages[Math.min(factPage, factPages.length - 1)] ?? facts;
+  const hasMoreFacts = factPage < factPages.length - 1;
+
+  const phrase = dailyPhrase(userId, dayIndex(todayKey));
   const isDone = Boolean(done[todayKey]);
   const streak = streakOf(done, todayKey);
 
@@ -155,9 +209,9 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
             <p className="about-you-text">{fact.text}</p>
           </>
         ) : null}
-        {facts.length ? (
-          <div className="about-you-facts">
-            {facts.map((item) => (
+        {shownFacts.length ? (
+          <div className="about-you-facts" key={factPage}>
+            {shownFacts.map((item) => (
               <div key={item.caption}>
                 <b>{item.value}</b>
                 <span>{item.caption}</span>
@@ -165,6 +219,19 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
             ))}
           </div>
         ) : null}
+        {factPages.length > 1 ? (
+          <button
+            type="button"
+            className="about-you-more"
+            onClick={() => setFactPage((page) => (hasMoreFacts ? page + 1 : 0))}
+          >
+            {hasMoreFacts ? 'Ещё факты' : 'Сначала'}
+          </button>
+        ) : null}
+        <div className="about-you-phrase">
+          <p className="about-you-kicker">Фраза дня</p>
+          <p className="about-you-phrase-text">{phrase}</p>
+        </div>
         {task ? (
           <div className={`about-you-task${isDone ? ' is-done' : ''}`}>
             {!isDone ? <PickMeFinger /> : null}
@@ -187,6 +254,7 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
             </div>
           </div>
         ) : null}
+        {children}
       </div>
     </section>
   );

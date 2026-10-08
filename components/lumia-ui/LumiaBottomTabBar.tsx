@@ -238,7 +238,7 @@ export function LumiaBottomTabBar({
           onClick={() => runNavigationAction(onOpenCompatibility)}
         >
           <Users aria-hidden="true" strokeWidth={1.25} />
-          <span className="today-bottom-nav-label" aria-hidden="true">Сравнить</span>
+          <span className="today-bottom-nav-label" aria-hidden="true">Совместимость</span>
         </button>
 
         <button

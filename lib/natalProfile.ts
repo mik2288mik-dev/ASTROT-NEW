@@ -44,15 +44,21 @@ const WEEKDAY: Record<ClassicalPlanet, { day: string; origin: string }> = {
   saturn: { day: 'Суббота', origin: 'По-английски Saturday, «день Сатурна»' },
 };
 
-/** Agrippa's planetary correspondences, shown only as a collapsed history note. */
-const HISTORY: Record<ClassicalPlanet, { metal: string; colors: string; trees: string }> = {
-  sun: { metal: 'золото', colors: 'жёлтый и золотой', trees: 'лавр, кедр, пальма' },
-  moon: { metal: 'серебро', colors: 'светлый, бледный', trees: 'олива, пальма' },
-  mercury: { metal: 'ртуть', colors: 'переливчатый, блестящий', trees: 'лещина' },
-  venus: { metal: 'медь', colors: 'белый сияющий', trees: 'мирт' },
-  mars: { metal: 'железо', colors: 'красный, огненный', trees: 'лавр, кизил' },
-  jupiter: { metal: 'олово', colors: 'светло-жёлтый, ясный', trees: 'дуб, бук, инжир, олива' },
-  saturn: { metal: 'свинец', colors: 'сине-свинцовый, тёмный', trees: 'сосна, кипарис' },
+/**
+ * Agrippa's planetary correspondences (De Occulta Philosophia, 16th c.).
+ * A sign inherits them from its traditional ruler; every list is several items
+ * because the old books never gave a sign one stone. The number is the planet's
+ * magic square, not a «lucky number».
+ */
+type PlanetSet = { metal: string; stones: string; colors: string; plants: string; trees: string; number: number };
+const HISTORY: Record<ClassicalPlanet, PlanetSet> = {
+  sun: { metal: 'золото', stones: 'рубин, топаз, хризолит, гиацинт', colors: 'жёлтый и золотой', plants: 'календула, пион, мелисса', trees: 'лавр, кедр, пальма', number: 6 },
+  moon: { metal: 'серебро', stones: 'жемчуг, горный хрусталь, селенит, берилл', colors: 'светлый, бледный', plants: 'розмарин, иссоп', trees: 'олива, пальма', number: 9 },
+  mercury: { metal: 'ртуть', stones: 'агат, изумруд, топаз', colors: 'переливчатый, блестящий', plants: 'майоран, петрушка', trees: 'лещина', number: 8 },
+  venus: { metal: 'медь', stones: 'изумруд, сапфир, сердолик, лазурит, коралл', colors: 'белый сияющий', plants: 'роза, фиалка, тимьян', trees: 'мирт', number: 7 },
+  mars: { metal: 'железо', stones: 'алмаз, кровавик, яшма, аметист', colors: 'красный, огненный', plants: 'крапива, горчица, чеснок', trees: 'лавр, кизил', number: 5 },
+  jupiter: { metal: 'олово', stones: 'сапфир, берилл, изумруд, гиацинт, зелёная яшма', colors: 'светло-жёлтый, ясный', plants: 'базилик, мята, лилия', trees: 'дуб, бук, инжир, олива', number: 4 },
+  saturn: { metal: 'свинец', stones: 'оникс, сапфир, халцедон, бурая яшма', colors: 'сине-свинцовый, тёмный', plants: 'мак, нарцисс, тмин', trees: 'сосна, кипарис', number: 3 },
 };
 
 const PLANET_DATIVE_PRONOUN: Record<ClassicalPlanet, string> = {
@@ -109,7 +115,7 @@ export type NatalProfile = {
   dignities: ProfileDignity[];
   strongCount: number;
   classicVsModern: { headline: string; body: string };
-  history: { planetLabel: string; metal: string; colors: string; trees: string };
+  history: { sign: string; planetLabel: string } & PlanetSet;
 };
 
 function rulerBody(chart: NatalChartDataV2, planet: ClassicalPlanet, ascendant: string): string {
@@ -207,6 +213,6 @@ export function buildNatalProfile(chart: NatalChartDataV2): NatalProfile | null 
     dignities,
     strongCount: dignities.filter((item) => item.strong).length,
     classicVsModern,
-    history: { planetLabel: BODY_LABELS[sunRuler].ru, ...HISTORY[sunRuler] },
+    history: { sign: SIGN_NOMINATIVE_RU[sunSign] ?? sunSign, planetLabel: BODY_LABELS[sunRuler].ru, ...HISTORY[sunRuler] },
   };
 }

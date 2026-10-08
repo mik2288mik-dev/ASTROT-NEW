@@ -32,7 +32,7 @@ async function request(method: 'GET' | 'POST', option?: number): Promise<Questio
 }
 
 /** «Вопрос дня»: one tap, then how people of your sign answered. */
-export function DailyQuestionCard({ language }: { language: 'ru' | 'en' }) {
+export function DailyQuestionCard({ language, embedded = false }: { language: 'ru' | 'en'; embedded?: boolean }) {
   const ru = language === 'ru';
   const [state, setState] = useState<QuestionState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -71,9 +71,11 @@ export function DailyQuestionCard({ language }: { language: 'ru' | 'en' }) {
     : (ru ? 'всех' : 'everyone');
 
   return (
-    <section className="daily-question" aria-labelledby="daily-question-title">
+    <section className={`daily-question${embedded ? ' is-embedded' : ''}`} aria-labelledby="daily-question-title">
       <p className="daily-question-kicker">{ru ? 'Вопрос дня' : 'Question of the day'}</p>
-      <h2 id="daily-question-title">{question.text[language]}</h2>
+      {embedded
+        ? <h3 id="daily-question-title">{question.text[language]}</h3>
+        : <h2 id="daily-question-title">{question.text[language]}</h2>}
       <div className="daily-question-options">
         {question.options.map((option, index) => {
           const chosen = myVote === index;

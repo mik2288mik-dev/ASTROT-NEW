@@ -68,19 +68,22 @@ function compact(n: number): string {
   return `${k >= 10 || n % 1000 < 100 ? Math.round(k) : k.toFixed(1)}k`;
 }
 
+// Zero is not shown: a «0» under the text reads as an empty app.
 const Count: React.FC<{ value: number }> = ({ value }) => (
   <span className="horo-act-count">
     <AnimatePresence mode="popLayout" initial={false}>
-      <motion.span
-        key={value}
-        initial={{ y: 7, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: -7, opacity: 0 }}
-        transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-        style={{ display: 'inline-block' }}
-      >
-        {compact(value)}
-      </motion.span>
+      {value > 0 ? (
+        <motion.span
+          key={value}
+          initial={{ y: 7, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -7, opacity: 0 }}
+          transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+          style={{ display: 'inline-block' }}
+        >
+          {compact(value)}
+        </motion.span>
+      ) : null}
     </AnimatePresence>
   </span>
 );
@@ -179,7 +182,7 @@ const ActivityBar: React.FC<ActivityProps> = ({
 
   return (
     <div className={`horo-act${className ? ` ${className}` : ''}`}>
-      {showViews ? (
+      {showViews && views > 0 ? (
         <div className="horo-act-item horo-act-views" aria-label={ru ? 'Просмотры' : 'Views'}>
           <Eye size={18} strokeWidth={2} />
           {showCounts ? <Count value={views} /> : null}

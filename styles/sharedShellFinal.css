@@ -20,16 +20,14 @@
   flex-basis: calc(var(--app-top-bar-content-safe-top) + 54px);
 }
 
+/* The sign horoscope title sits on one line at the shared title size, like every other screen. */
 .app-top-bar .app-top-bar-title.app-top-bar-title--sign-horoscope {
   width: calc(100% - var(--app-top-bar-title-rail) - var(--app-top-bar-title-rail));
   max-width: calc(100% - var(--app-top-bar-title-rail) - var(--app-top-bar-title-rail));
   margin: 0;
-  font-size: clamp(12px, 3.8vw, 15px);
-  line-height: 1.2;
-}
-
-.app-top-bar-title--sign-horoscope > span {
-  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-top-bar-title,

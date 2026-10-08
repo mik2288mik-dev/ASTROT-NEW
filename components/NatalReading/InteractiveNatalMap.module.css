@@ -24,3 +24,58 @@
 @keyframes sheetIn{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes detailIn{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
 @media(min-width:700px){.map{padding-inline:24px}.helpGrid{grid-template-columns:1fr 1fr}}
 @media(prefers-reduced-motion:reduce){.sheet,.detail{animation:none}.sheet,.sheet::backdrop,.map button,.sheet button,.sign path{transition:none}}
+
+/* ── Interactive wheel: layers, focus and «Сейчас» ── */
+.modes{display:flex;gap:6px;margin:4px 0 6px;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
+.modes::-webkit-scrollbar{display:none}
+.modeChip{flex:none;min-height:36px;padding:0 14px;border:1px solid rgba(41,39,36,.14);border-radius:999px;background:#fff;color:#292724;font:inherit;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;touch-action:manipulation}
+.modeChip[aria-pressed=true]{border-color:#292724;background:#292724;color:#fff}
+
+/* A bigger invisible target under every planet, so a thumb hits it on the first try. */
+.bodyHit{fill:transparent;stroke:none}
+
+/* Focus: the chosen element and its connections stay bright, everything else steps back. */
+.bodyGroup,.aspect,.house,.sign{transition:opacity 180ms cubic-bezier(.23,1,.32,1)}
+.wheel[data-focused] .bodyGroup:not(.isFocus):not(.isRelated){opacity:.28}
+.wheel[data-focused] .aspect:not(.isRelated) .aspectLine{opacity:.12}
+.wheel .aspect.isRelated .aspectLine{opacity:1;stroke-width:2.6}
+.bodyGroup.isFocus .bodyHalo{stroke:currentColor;stroke-width:2}
+.house.isFocus circle{stroke:#292724;stroke-width:1.5}
+.sign.isFocus path{stroke:#292724;stroke-width:1.5}
+
+/* Layers: the chosen layer stays in front, the others fade but keep their place. */
+.wheel[data-mode=planets] .house,.wheel[data-mode=planets] .aspect{opacity:.18}
+.wheel[data-mode=houses] .bodyGroup,.wheel[data-mode=houses] .aspect{opacity:.15}
+.wheel[data-mode=aspects] .house{opacity:.2}
+.wheel[data-mode=now] .bodyGroup,.wheel[data-mode=now] .aspect,.wheel[data-mode=now] .house{opacity:.3}
+.wheel[data-mode=now] .sign g{opacity:.25}
+.nowBody circle{fill:#fff;stroke:#292724;stroke-width:1.5}
+
+/* What is chosen, under the wheel. */
+.focusCard{margin:0 0 14px;padding:14px;border-radius:20px;background:#fff;box-shadow:0 6px 18px rgba(22,32,70,.1),0 1px 3px rgba(22,32,70,.08)}
+.focusTitle{margin:0;font-size:17px;font-weight:650;letter-spacing:-.02em;line-height:1.25}
+.focusMeta{margin:2px 0 0;color:#6f6a64;font-size:13px}
+.focusText{margin:8px 0 0;color:#292724;font-size:15px;line-height:1.5;text-wrap:pretty}
+.focusLinks{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.focusMore{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin-top:6px;padding:0;border:0;background:transparent;color:#245de7;font:inherit;font-size:14px;font-weight:650;cursor:pointer}
+.nowList{display:grid;gap:10px;margin:10px 0 0;padding:0;list-style:none}
+.nowList li{display:flex;gap:10px;align-items:flex-start}
+.nowList b{display:block;font-size:14px;font-weight:600}
+.nowList small{display:block;margin-top:1px;color:#6f6a64;font-size:12.5px;line-height:1.35}
+@media(prefers-reduced-motion:reduce){.bodyGroup,.aspect,.house,.sign{transition:none}}
+/* Five layers always fit one row: an even segmented strip instead of a scrolling chip row. */
+.modes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;overflow:visible}
+.modes .modeChip{min-width:0;padding:0 4px;font-size:12.5px}
+.focusText+.focusText{margin-top:8px}
+.focusLinks{align-items:center}
+.focusLinksLabel{color:#6f6a64;font-size:12.5px;font-weight:600;margin-right:2px}
+.focusBasis{margin-top:12px;border-top:1px solid rgba(41,39,36,.08);padding-top:4px}
+.focusBasis summary{display:flex;align-items:center;justify-content:space-between;min-height:40px;color:#6f6a64;font-size:13.5px;font-weight:600;list-style:none;cursor:pointer}
+.focusBasis summary::-webkit-details-marker{display:none}
+.focusBasis[open] summary svg{transform:rotate(180deg)}
+.focusBasis p{margin:0 0 8px;color:#49433d;font-size:13.5px;line-height:1.5}
+.focusRole{margin:8px 0 0;color:#6f6a64;font-size:13.5px;line-height:1.45}
+.focusParts{display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(41,39,36,.08)}
+.focusParts p{margin:0;color:#292724;font-size:14.5px;line-height:1.5}
+.focusParts b{display:block;margin-bottom:2px;color:#6f6a64;font-size:12.5px;font-weight:650}
+.focusParts .focusMore{margin-top:0}

@@ -957,6 +957,7 @@ export const Dashboard = memo<DashboardProps>(({
           )}
           footer={(
             <>
+            {/* Today: what is true about you right now, with the question of the day as its last row. */}
             <TodayAboutYou
               userId={String(profile.id || 'guest')}
               todayKey={periodKeys.day}
@@ -964,21 +965,10 @@ export const Dashboard = memo<DashboardProps>(({
               birthTime={profile.birthTime}
               birthTimeKnown={Boolean(profile.birthTime?.trim()) && profile.birthTimeMode !== 'unknown'}
               task={storySections.find((section) => !lockedSectionIds.has(section.id) && section.actionText?.trim())?.actionText?.trim() ?? null}
-            />
-            <DailyQuestionCard language={language} />
-            <HomeFeatureStrip
-              todayKey={periodKeys.day}
-              onOpenStories={onOpenStories}
-              onOpenSounds={onOpenSounds}
-              onOpenAntistress={onOpenAntistress}
-              onOpenTests={onOpenTests}
-              onOpenMatrix={onOpenMatrix}
-            />
-            <SeasonCard
-              userId={String(profile.id || 'guest')}
-              todayKey={periodKeys.day}
-              onOpenFuture={() => openFuture()}
-            />
+            >
+              <DailyQuestionCard language={language} embedded />
+            </TodayAboutYou>
+            {/* Personal suggestions; today's invitation into a section closes the row. */}
             <ForYouBlock
               userId={String(profile.id || 'guest')}
               language={language}
@@ -992,7 +982,35 @@ export const Dashboard = memo<DashboardProps>(({
               premiumAutoRenew={profile.premiumEntitlement?.autoRenew ?? null}
               gift={giftStatus ? { streak: giftStatus.streak, daysToGift: giftStatus.daysToGift, claimable: giftStatus.claimable, hasWeekGift: Boolean(giftStatus.weekGift) } : null}
               onAction={handleForYouAction}
+              extra={(
+                <HomeFeatureStrip
+                  variant="card"
+                  todayKey={periodKeys.day}
+                  onOpenStories={onOpenStories}
+                  onOpenSounds={onOpenSounds}
+                  onOpenAntistress={onOpenAntistress}
+                  onOpenTests={onOpenTests}
+                  onOpenMatrix={onOpenMatrix}
+                />
+              )}
             />
+            {/* Ahead: the coming month and the season, one part of the screen. */}
+            <section className="home-ahead" aria-labelledby="home-ahead-title">
+              <h2 id="home-ahead-title" className="today-explore-heading">{language === 'ru' ? 'Впереди' : 'Ahead'}</h2>
+              <FutureInviteCard
+                userId={String(profile.id || 'guest')}
+                todayKey={periodKeys.day}
+                timezone={timezone}
+                premium={premium}
+                onOpen={() => { onPeriodChange?.('month'); }}
+              />
+              <SeasonCard
+                userId={String(profile.id || 'guest')}
+                todayKey={periodKeys.day}
+                onOpenFuture={() => openFuture()}
+              />
+            </section>
+            {/* Your people. */}
             <PeopleBlock
               userId={String(profile.id || 'guest')}
               todayKey={periodKeys.day}
@@ -1001,13 +1019,7 @@ export const Dashboard = memo<DashboardProps>(({
               onAddPerson={onOpenSynastry}
               onGift={setGiftPerson}
             />
-            <FutureInviteCard
-              userId={String(profile.id || 'guest')}
-              todayKey={periodKeys.day}
-              timezone={timezone}
-              premium={premium}
-              onOpen={() => { onPeriodChange?.('month'); }}
-            />
+            {/* Deeper: what else to learn about yourself. */}
             <TodayExploreCards
               language={language}
               userId={String(profile.id || 'guest')}

@@ -1861,7 +1861,7 @@
   font-weight: 700;
   letter-spacing: -0.052em;
   line-height: 1.04;
-  hyphens: auto;
+  hyphens: manual;
   overflow-wrap: break-word;
   text-wrap: balance;
 }
@@ -1892,7 +1892,7 @@
   font-weight: 400;
   letter-spacing: -0.013em;
   line-height: 1.6;
-  hyphens: auto;
+  hyphens: manual;
   overflow-wrap: break-word;
   text-wrap: pretty;
 }
@@ -1953,7 +1953,7 @@
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1.18;
-  hyphens: auto;
+  hyphens: manual;
   overflow-wrap: break-word;
   text-wrap: balance;
   white-space: pre-line;
@@ -2045,7 +2045,7 @@
   font-weight: 500;
   letter-spacing: -0.018em;
   line-height: 1.48;
-  hyphens: auto;
+  hyphens: manual;
   overflow-wrap: break-word;
   text-wrap: pretty;
   white-space: pre-line;
@@ -2239,7 +2239,7 @@
   font-weight: 700;
   letter-spacing: -0.052em;
   line-height: 0.99;
-  hyphens: auto;
+  hyphens: manual;
   overflow-wrap: break-word;
   text-wrap: balance;
 }

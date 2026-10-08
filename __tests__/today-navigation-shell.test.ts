@@ -25,7 +25,7 @@ describe('Today minimal navigation shell', () => {
     expect(navigation).toContain("'charts'");
     expect(navigation).toContain("aria-current={natalIsCurrent ? 'page' : undefined}");
     expect(navigation).toContain("aria-current={servicesAreCurrent ? 'page' : undefined}");
-    ['Сегодня', 'Гороскоп', 'Натальная карта', 'Сравнить', 'Меню']
+    ['Сегодня', 'Гороскоп', 'Натальная карта', 'Совместимость', 'Меню']
       .forEach((label) => expect(navigation).toContain(`>${label}</span>`));
   });
 

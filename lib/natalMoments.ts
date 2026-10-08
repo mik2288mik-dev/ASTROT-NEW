@@ -19,7 +19,7 @@ export type MomentVisual =
   | { kind: 'moon'; illumination: number; waxing: boolean }
   | { kind: 'sun' }
   | { kind: 'retrograde' }
-  | { kind: 'elements'; counts: Record<NatalElement, number> };
+  | { kind: 'elements'; counts: Record<NatalElement, number>; planets: Record<NatalElement, string[]> };
 
 export type NatalMoment = {
   id: string;
@@ -90,6 +90,14 @@ export const ELEMENT_ORDER: readonly NatalElement[] = ['water', 'earth', 'air', 
 
 export const ELEMENT_LABEL_RU: Record<NatalElement, string> = {
   fire: 'Огонь', earth: 'Земля', air: 'Воздух', water: 'Вода',
+};
+
+/** The three signs of each element, so the card can say where a count comes from. */
+export const ELEMENT_SIGNS_RU: Record<NatalElement, string> = {
+  fire: 'Овен, Лев, Стрелец',
+  earth: 'Телец, Дева, Козерог',
+  air: 'Близнецы, Весы, Водолей',
+  water: 'Рак, Скорпион, Рыбы',
 };
 
 const ELEMENT_GENITIVE_RU: Record<NatalElement, string> = {
@@ -173,6 +181,8 @@ export function countElements(chart: NatalChartDataV2): Record<NatalElement, num
 
 function elementMoment(chart: NatalChartDataV2): NatalMoment | null {
   const counts = countElements(chart);
+  const planets: Record<NatalElement, string[]> = { fire: [], earth: [], air: [], water: [] };
+  for (const item of placed(chart)) planets[ELEMENT_OF_SIGN[item.sign]].push(PLANET_NAME_RU(item.key));
   const total = ELEMENT_ORDER.reduce((sum, element) => sum + counts[element], 0);
   if (total < 6) return null;
   const sorted = [...ELEMENT_ORDER].sort((a, b) => counts[b] - counts[a]);
@@ -187,11 +197,11 @@ function elementMoment(chart: NatalChartDataV2): NatalMoment | null {
     : counts[bottom] === 0 ? ELEMENT_ABSENT_RU[bottom] : ELEMENT_LEAST_RU[bottom];
   return {
     id: 'elements',
-    kicker: 'Из чего ты сделан',
+    kicker: 'Твои стихии',
     headline,
     body: `${lead}${tail}${tail ? '.' : ''}`.trim(),
     tone: 'neutral',
-    visual: { kind: 'elements', counts },
+    visual: { kind: 'elements', counts, planets },
   };
 }
 
