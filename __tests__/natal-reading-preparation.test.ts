@@ -81,17 +81,18 @@ describe('durable autonomous natal preparation', () => {
     await processNatalReadingPreparations();
     expect(mockGenerate).not.toHaveBeenCalled(); expect(mockRelease).toHaveBeenCalledTimes(1);
   });
-  it('resumes the previous editorial draft once without treating its finished reading as current', async () => {
+  it('writes the new revision from scratch instead of resuming an older draft', async () => {
+    expect(NATAL_PREVIOUS_COPY_REVISION).toBeNull();
     const raw = { story: [{ id: 'story:1', text: 'Уже написанный рассказ.' }], topics: [] };
-    const previousProgress = { writerStarted: true, repairs: 2, raw, reading: { copyRevision: NATAL_PREVIOUS_COPY_REVISION } };
-    jobs = [{ ...pending(), input_hash: `birth-ru:${NATAL_PREVIOUS_COPY_REVISION}`, status: 'ready', progress: previousProgress }];
+    const previousProgress = { writerStarted: true, repairs: 2, raw, reading: { copyRevision: 'conversational-reading-20261001-journal-v1' } };
+    jobs = [{ ...pending(), input_hash: 'birth-ru:conversational-reading-20261001-journal-v1', status: 'ready', progress: previousProgress }];
     const chart = { id: 9, user_id: '42', chart_data: canonicalNatalChart() };
     await enqueueNatalReadingPreparation(chart);
     await processNatalReadingPreparations();
     await enqueueNatalReadingPreparation(chart);
     await processNatalReadingPreparations();
     expect(mockGenerate).toHaveBeenCalledTimes(1);
-    expect(mockGenerate.mock.calls[0][0].progress).toEqual({ writerStarted: true, repairs: 2, raw });
+    expect(mockGenerate.mock.calls[0][0].progress).toBeUndefined();
     expect(jobs[0].progress).toEqual(previousProgress);
     expect(jobs.map(job => job.status)).toEqual(['ready', 'ready']);
   });
