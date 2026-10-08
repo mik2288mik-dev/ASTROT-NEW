@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { STORY_GENRE_LABELS, STORY_SERIES } from '../../lib/stories/series';
 import { SLEEP_STORIES } from '../../lib/sleepStories';
 import { SELF_TESTS } from '../../lib/selfTests/engine';
 import { VideoBackground } from '../lumia-ui/VideoBackground';
+import { MatrixRain } from './MatrixRain';
 import type { VideoBackgroundId } from '../../lib/videoBackgrounds';
 
 type Card = {
@@ -110,8 +112,9 @@ export function HomeFeatureStrip({ todayKey, onOpenStories, onOpenSounds, onOpen
 
   if (variant === 'card') {
     return (
-      <article className="for-you-card for-you-feature">
+      <article className={`for-you-card for-you-feature${card.id === 'matrix' ? ' is-matrix' : ''}`}>
         <button type="button" className="for-you-feature-hit" onClick={card.onOpen}>
+          {card.id === 'matrix' ? <MatrixRain className="for-you-matrix-rain" /> : null}
           {card.video ? <VideoBackground key={card.video} id={card.video} scrim="none" /> : null}
           <span className="for-you-feature-haze" aria-hidden="true" />
           <span className="for-you-card-copy">
@@ -119,7 +122,7 @@ export function HomeFeatureStrip({ todayKey, onOpenStories, onOpenSounds, onOpen
             <h3>{card.title}</h3>
             <p>{card.line}</p>
             <span className="for-you-card-actions">
-              <span className="for-you-card-cta">Открыть</span>
+              <span className="for-you-card-cta">Открыть<ChevronRight size={16} aria-hidden="true" /></span>
             </span>
           </span>
         </button>
