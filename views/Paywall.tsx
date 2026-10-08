@@ -1,5 +1,5 @@
 import { BookOpen, CalendarDays, Headphones, HeartHandshake, Sparkles, Users, Wind } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { UserProfile } from '../types';
 import type { PremiumPlanId } from '../lib/premiumPricing';
 import { VideoBackground } from '../components/lumia-ui/VideoBackground';
@@ -175,6 +175,20 @@ export const Paywall: React.FC<PaywallProps> = ({
   const [restorePending, setRestorePending] = useState(false);
   const [managingSubscription, setManagingSubscription] = useState(false);
   const [manageError, setManageError] = useState(false);
+  const checkoutRef = useRef<HTMLElement | null>(null);
+  const [checkoutHeight, setCheckoutHeight] = useState(0);
+
+  useEffect(() => {
+    if (!embedded || alreadyPremium) return;
+    const checkout = checkoutRef.current;
+    if (!checkout) return;
+
+    const updateHeight = () => setCheckoutHeight(checkout.getBoundingClientRect().height);
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(checkout);
+    return () => observer.disconnect();
+  }, [embedded, alreadyPremium]);
 
   useEffect(() => {
     let cancelled = false;
@@ -350,6 +364,7 @@ export const Paywall: React.FC<PaywallProps> = ({
   return (
     <div
       className={`fresh-page pw2 ${embedded ? 'pw2--embedded' : 'pw2--overlay'}`}
+      style={embedded && !alreadyPremium ? { paddingBottom: checkoutHeight } : undefined}
       data-paywall-instance-id={context.paywallInstanceId}
       data-paywall-placement={context.placement}
       data-paywall-mode={embedded ? 'embedded' : 'overlay'}
@@ -461,7 +476,7 @@ export const Paywall: React.FC<PaywallProps> = ({
       </div>
 
       {!alreadyPremium ? (
-        <footer className="pw2-checkout" aria-label={ru ? 'Оформление Premium' : 'Premium checkout'}>
+        <footer ref={checkoutRef} className="pw2-checkout" aria-label={ru ? 'Оформление Premium' : 'Premium checkout'}>
           <div className="pw2-checkout-inner">
             <div className="pw2-selection-summary" aria-live="polite" aria-atomic="true">
               <p>{selectedPlan ? `${selectedPlan.periodLabel} Premium` : (ru ? 'Premium' : 'Premium')}</p>
