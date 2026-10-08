@@ -6,6 +6,7 @@ import {
   buildChartMoments,
   buildSkyEventMoments,
   ELEMENT_LABEL_RU,
+  ELEMENT_SIGNS_RU,
   ELEMENT_ORDER,
   type MomentTone,
   type NatalMoment,
@@ -76,6 +77,9 @@ function MomentCard({ moment }: { moment: NatalMoment }) {
         <div className={styles.momentBody}>
           <p className={styles.kicker}>{moment.kicker}</p>
           <h3 className={styles.momentHeadline}>{moment.headline}</h3>
+          <p className={styles.elementIntro}>
+            Двенадцать знаков делятся на четыре стихии, по три знака в каждой. Цифра показывает, сколько твоих планет стоит в знаках этой стихии.
+          </p>
           <div className={styles.elementBars}>
             {ELEMENT_ORDER.map((element) => (
               <div key={element} className={styles.elementBar}>
@@ -86,6 +90,10 @@ function MomentCard({ moment }: { moment: NatalMoment }) {
                     style={{ width: `${(visual.counts[element] / max) * 100}%` }}
                   />
                 </span>
+                <small className={styles.elementWho}>
+                  {ELEMENT_SIGNS_RU[element]}
+                  {visual.planets?.[element]?.length ? `: ${visual.planets[element].join(', ')}` : ': у тебя здесь нет планет'}
+                </small>
               </div>
             ))}
           </div>

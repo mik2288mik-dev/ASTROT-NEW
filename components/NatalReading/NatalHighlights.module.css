@@ -183,10 +183,25 @@
   font-size: 12px;
 }
 
+.elementIntro {
+  margin: 4px 0 0;
+  color: #77716a;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .elementBars {
   display: grid;
-  gap: 5px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.elementWho {
+  grid-column: 1 / -1;
+  margin-top: -3px;
+  color: #8a847c;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .elementBar {
