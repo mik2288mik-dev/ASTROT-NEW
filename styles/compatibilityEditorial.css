@@ -1579,11 +1579,11 @@
   position: absolute;
   top: 50%;
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   place-items: center;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.72);
+  background: transparent;
   color: #292724;
   transform: translateY(-50%);
 }
@@ -1630,4 +1630,52 @@
 
 .compat-editorial-page.compat-editorial-page--result .compat-result-brand-caption {
   display: none;
+}
+
+/* Gender for each sign, right under its card, so two men or two women are compared as friends. */
+.compat-sign-genders {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+
+.compat-sign-genders .compat-gender {
+  justify-content: center;
+}
+
+.compat-editorial-page .compat-sign-genders .compat-gender.compat-choice-tabs {
+  display: flex !important;
+  gap: 0 !important;
+  padding: 3px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f2f3f5 !important;
+}
+
+.compat-editorial-page .compat-sign-genders .compat-choice-tab.compat-gender-btn {
+  flex: 1;
+  min-height: 34px !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #6b665f !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+}
+
+.compat-editorial-page .compat-sign-genders .compat-choice-tab.compat-gender-btn::after {
+  display: none !important;
+}
+
+.compat-editorial-page .compat-sign-genders .compat-choice-tab.compat-gender-btn.is-active {
+  background: #fff !important;
+  box-shadow: 0 2px 8px rgba(39, 45, 55, 0.12) !important;
+  color: #292724 !important;
+}
+
+.compat-editorial-page .compat-sign-genders .compat-choice-tab.compat-gender-btn:nth-child(3) {
+  display: none !important;
 }
