@@ -1522,3 +1522,112 @@
 .compat-pair-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; }
 .compat-pair-copy strong { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .compat-pair-copy small { font-size: 13px; color: var(--compat-editorial-muted); }
+
+/* Result in the white card style: no divider lines, one quiet pill to change the pair,
+   and a plain-language reason under «Сильнее всего». */
+.compat-editorial-page.compat-editorial-page--result :is(
+  .compat-technical-data,
+  .compat-score-list > div,
+  .compat-result-meta,
+  .compat-result-actions,
+  .horo-premium
+) {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-change {
+  min-height: 36px;
+  padding: 8px 16px;
+  border: 0 !important;
+  border-radius: 999px;
+  background: #f2f3f5;
+  color: #292724;
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-summary--sign > .compat-result-reason {
+  margin-top: 6px;
+  color: #4b4741;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-technical-data--near-score + .compat-result-summary--sign {
+  margin-top: -18px;
+  padding-top: 4px;
+}
+
+/* Score hero: two soft filled circles (sky and sunset) with the signs inside;
+   the overlap deepens where they meet, the verdict gets one plain sentence. */
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-circle {
+  border: 0 !important;
+  box-shadow: none !important;
+  mix-blend-mode: multiply;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-circle.is-left {
+  background: radial-gradient(circle at 35% 40%, #d9ebff 0%, #a9cdfb 70%, #93bff7 100%) !important;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-circle.is-right {
+  background: radial-gradient(circle at 65% 40%, #ffe3dc 0%, #ffbfb2 70%, #ffab9b 100%) !important;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-orbit-glyph {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  color: #292724;
+  transform: translateY(-50%);
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-circle.is-left .compat-orbit-glyph { left: 14px; }
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-circle.is-right .compat-orbit-glyph { right: 14px; }
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-center {
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(39, 45, 55, 0.1);
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-ring-people .is-left i { background: #93bff7 !important; box-shadow: none !important; }
+.compat-editorial-page.compat-editorial-page--result .compat-result-ring-people .is-right i { background: #ffab9b !important; box-shadow: none !important; }
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-score > .compat-result-verdict {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: 10px auto 0;
+  max-width: 19rem;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-verdict strong {
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: #f2f3f5;
+  color: #292724;
+  font-size: 14px;
+  font-weight: 720;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-verdict span {
+  color: #4b4741;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+/* The rings sit below the two names instead of sliding up over them. */
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit {
+  margin-top: 10px !important;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-brand-caption {
+  display: none;
+}
