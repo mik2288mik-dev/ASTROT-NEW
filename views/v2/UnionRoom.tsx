@@ -708,6 +708,9 @@ export function UnionRoom(props: UnionRoomProps) {
   const [youSign, setYouSign] = useState<string>(yourSun);
   const [youGender, setYouGender] = useState<CompatGender>(initialPrefill ? initialYouGender : 'unspecified');
   const [themGender] = useState<CompatGender>(initialThemGender);
+  // The sign tab keeps its own genders so the birth-date form stays untouched.
+  const [signYouGender, setSignYouGender] = useState<CompatGender>(initialYouGender);
+  const [signThemGender, setSignThemGender] = useState<CompatGender>('unspecified');
   const [relationshipContext, setRelationshipContext] = useState<RelationshipContext>('romance');
   const [relationshipFocus, setRelationshipFocus] = useState<CompatibilityFocus>('love');
   const [selected, setSelected] = useState<Selected | null>(
@@ -896,7 +899,9 @@ export function UnionRoom(props: UnionRoomProps) {
   const theirSun = selected
     ? String(selected.partnerSign || selected.sign || sunSignFromDate(selected.date) || 'libra').toLowerCase()
     : 'libra';
-  const score: CompatResult | null = selected ? getCompatScore(leftSun, theirSun, lang) : null;
+  // Two people of the same gender are compared as friends and colleagues, without love.
+  const sameGenderPair = leftGender !== 'unspecified' && leftGender === rightGender;
+  const score: CompatResult | null = selected ? getCompatScore(leftSun, theirSun, lang, sameGenderPair) : null;
   const theirName = selected ? (selected.kind === 'sign' ? getZodiacSign(lang, theirSun) : (selected.name || (ru ? 'Человек' : 'Person'))) : '';
 
   useEffect(() => {
@@ -1832,16 +1837,17 @@ Check our compatibility from your side in NEBO.`
             className="compat-sign-form compat-sign-form--cards"
             onSubmit={(event) => {
               event.preventDefault();
+              const sameGender = signYouGender !== 'unspecified' && signYouGender === signThemGender;
               openResult({
                 kind: 'sign',
-                relationshipContext,
+                relationshipContext: sameGender ? 'friendship' : 'romance',
                 sign: pickSign,
                 subjectSign: youSign,
                 partnerSign: pickSign,
                 calculationLevel: 'sign_only',
                 youSign,
-                youGender,
-                themGender,
+                youGender: signYouGender,
+                themGender: signThemGender,
               });
             }}
           >
@@ -1864,6 +1870,11 @@ Check our compatibility from your side in NEBO.`
                 language={profile.language}
                 onClick={() => { lumiaSelectionHaptic(); setSignSheet('partner'); }}
               />
+            </div>
+
+            <div className="compat-sign-genders">
+              <GenderToggle value={signYouGender} onChange={setSignYouGender} ru={ru} compact />
+              <GenderToggle value={signThemGender} onChange={setSignThemGender} ru={ru} compact />
             </div>
 
             <button type="submit" className="fresh-btn-primary compat-entry-submit">
@@ -1896,7 +1907,9 @@ Check our compatibility from your side in NEBO.`
 
   /* ── РЕЗУЛЬТАТ ── */
   const strongestLabel = score ? DIMENSION_LABELS[score.strongest][lang] : '';
-  const dimsOrder: CompatDimension[] = ['love', 'relationship', 'friendship', 'work'];
+  const dimsOrder: CompatDimension[] = score?.areas ?? ['love', 'relationship', 'friendship', 'work'];
+  const areasText = dimsOrder.map((key) => DIMENSION_LABELS[key][lang].toLowerCase());
+  const areasList = areasText.length > 1 ? `${areasText.slice(0, -1).join(', ')} ${ru ? 'и' : 'and'} ${areasText[areasText.length - 1]}` : areasText.join('');
   const isPerson = selected?.kind === 'person';
   const resultContext = selected?.relationshipContext || relationshipContext;
   const resultContextLabel = getRelationshipContextLabel(resultContext, lang);
@@ -1910,14 +1923,14 @@ Check our compatibility from your side in NEBO.`
     : theirName;
   const leftBirthDate = selected?.subjectDate || profile.birthDate;
   const leftDetail = selected?.kind === 'sign'
-    ? ''
+    ? (leftGender !== 'unspecified' ? genderWord(leftGender, ru) : '')
     : leftBirthDate
       ? `${genderWord(leftGender, ru)} - ${formatDisplayDate(leftBirthDate, lang)}`
       : `${genderWord(leftGender, ru)} · ${getZodiacSign(lang, leftSun)}`;
   const rightDetail = selected?.date
     ? `${selected.kind === 'sign' ? '' : `${genderWord(rightGender, ru)}, `}${formatDisplayDate(selected.date, lang)}`
     : selected?.kind === 'sign'
-      ? ''
+      ? (rightGender !== 'unspecified' ? genderWord(rightGender, ru) : '')
       : `${genderWord(rightGender, ru)} · ${getZodiacSign(lang, theirSun)}`;
   const signReadingBlocks = selected?.kind === 'sign' && signText
     ? [
@@ -1994,10 +2007,10 @@ Check our compatibility from your side in NEBO.`
             aria-label={ru ? `${leftName} и ${rightName}: индекс совместимости ${resultPercent} из 100` : `${leftName} and ${rightName}: compatibility index ${resultPercent} out of 100`}
           >
             <span className="compat-result-orbit-circle is-left" aria-hidden="true">
-              <i className="compat-orbit-glyph"><ZodiacIcon sign={leftSun} size={26} strokeWidth={1.6} /></i>
+              <i className="compat-orbit-glyph"><ZodiacSymbol sign={leftSun} size={30} /></i>
             </span>
             <span className="compat-result-orbit-circle is-right" aria-hidden="true">
-              <i className="compat-orbit-glyph"><ZodiacIcon sign={theirSun} size={26} strokeWidth={1.6} /></i>
+              <i className="compat-orbit-glyph"><ZodiacSymbol sign={theirSun} size={30} /></i>
             </span>
             <span className="compat-result-orbit-center">
               <strong>{resultPercent}%</strong>
@@ -2020,8 +2033,8 @@ Check our compatibility from your side in NEBO.`
               <strong>{ru ? 'Почему так?' : 'Why this result?'}</strong>
               <small>
                 {ru
-                  ? 'Процент складывается из четырёх сфер: любовь, отношения, дружба и работа.'
-                  : 'The score combines four areas: love, relationship, friendship and work.'}
+                  ? `Процент складывается из сфер: ${areasList}.`
+                  : `The score combines these areas: ${areasList}.`}
               </small>
             </span>
           </summary>
@@ -2098,7 +2111,7 @@ Check our compatibility from your side in NEBO.`
       ) : !isPerson && score ? (
         <section className="compat-result-summary compat-result-summary--sign">
           <p><strong>{ru ? 'Сильнее всего:' : 'Strongest:'}</strong> {strongestLabel}</p>
-          <p className="compat-result-reason">{strongestAreaReason(leftSun, theirSun, leftName, rightName, lang)}</p>
+          <p className="compat-result-reason">{strongestAreaReason(leftSun, theirSun, leftName, rightName, lang, sameGenderPair)}</p>
         </section>
       ) : null}
 
