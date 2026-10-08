@@ -27,7 +27,7 @@ import { getSignCompatibility, calculateExtendedSynastry, getCompatibilityPrevie
 import type { CompatibilityPreview } from '../../lib/synastry/compatibilityPreview';
 import { formatDisplayDate, toDateInputValue } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
-import { getCompatScore, strongestAreaReason, sunSignFromDate, DIMENSION_LABELS, type CompatResult, type CompatDimension } from '../../lib/synastry/compatScore';
+import { compatLevel, getCompatScore, strongestAreaReason, sunSignFromDate, DIMENSION_LABELS, type CompatResult, type CompatDimension } from '../../lib/synastry/compatScore';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
@@ -174,6 +174,28 @@ function compatibilityRequestKey(selected: Selected): string {
     selected.partnerSign, selected.partnerBirthTimeQuality,
     selected.youGender, selected.themGender, selected.relationshipContext,
   ]);
+}
+
+/* Шкала настроения пары: от грустного синего лица к улыбающемуся жёлтому. SVG, без эмодзи. */
+const MOOD_COLORS = ['#3f7fe6', '#6fb4f2', '#8fd8c8', '#c9e46b', '#ffc928'] as const;
+const MOOD_MOUTHS = [
+  'M8 17 Q12 12.6 16 17',
+  'M8.6 16.2 Q12 14 15.4 16.2',
+  'M8.6 15.4 H15.4',
+  'M8.6 14.4 Q12 17.2 15.4 14.4',
+  'M7.6 13.6 Q12 19.4 16.4 13.6 Z',
+] as const;
+
+function CompatMoodFace({ level, size = 24 }: { level: number; size?: number }) {
+  const index = Math.max(0, Math.min(4, level));
+  return (
+    <svg className="compat-mood-face" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="11" fill={MOOD_COLORS[index]} />
+      <circle cx="8.8" cy="9.6" r="1.25" fill="#292724" />
+      <circle cx="15.2" cy="9.6" r="1.25" fill="#292724" />
+      <path d={MOOD_MOUTHS[index]} fill={index === 4 ? '#292724' : 'none'} stroke="#292724" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 /* Переключатель пола М/Ж — две кнопки, без эмодзи. */
@@ -2013,13 +2035,12 @@ Check our compatibility from your side in NEBO.`
               <i className="compat-orbit-glyph"><ZodiacSymbol sign={theirSun} size={36} /></i>
             </span>
             <span className="compat-result-orbit-center">
-              <strong>{resultPercent}%</strong>
-              <small>{ru ? 'индекс связи' : 'connection index'}</small>
+              <CompatMoodFace level={compatLevel(resultPercent, lang).index} size={52} />
+              <small>{compatLevel(resultPercent, lang).label}</small>
             </span>
           </div>
           {resultVerdict ? (
             <p className="compat-result-verdict">
-              <strong>{resultVerdict}</strong>
               {score?.verdictNote ? <span>{score.verdictNote}</span> : null}
             </p>
           ) : null}
@@ -2033,7 +2054,7 @@ Check our compatibility from your side in NEBO.`
               <strong>{ru ? 'Почему так?' : 'Why this result?'}</strong>
               <small>
                 {ru
-                  ? `Процент складывается из сфер: ${areasList}.`
+                  ? `Оценка складывается из сфер: ${areasList}.`
                   : `The score combines these areas: ${areasList}.`}
               </small>
             </span>
@@ -2042,7 +2063,7 @@ Check our compatibility from your side in NEBO.`
             {dimsOrder.map((key) => (
               <div key={key} className={key === score.strongest ? 'is-strongest' : ''}>
                 <span>{DIMENSION_LABELS[key][lang]}</span>
-                <strong>{score.dims[key]}%</strong>
+                <strong className="compat-mood-level"><CompatMoodFace level={compatLevel(score.dims[key], lang).index} size={22} />{compatLevel(score.dims[key], lang).label}</strong>
               </div>
             ))}
           </div>

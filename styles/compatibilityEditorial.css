@@ -1688,3 +1688,29 @@
 .compat-editorial-page.compat-editorial-page--result .compat-result-orbit {
   overflow: visible !important;
 }
+
+/* Mood scale instead of percentages: a face and a word, from a sad blue to a happy yellow. */
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-center {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 14px 9px;
+  border-radius: 22px;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-center small {
+  color: #292724;
+  font-size: 14px;
+  font-weight: 720;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-mood-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 650;
+}
