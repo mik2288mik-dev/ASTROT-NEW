@@ -1588,8 +1588,8 @@
   transform: translateY(-50%);
 }
 
-.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-circle.is-left .compat-orbit-glyph { left: 14px; }
-.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-circle.is-right .compat-orbit-glyph { right: 14px; }
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-circle.is-left .compat-orbit-glyph { left: -50px; }
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit-circle.is-right .compat-orbit-glyph { right: -50px; }
 
 .compat-editorial-page.compat-editorial-page--result .compat-result-orbit-center {
   background: #fff;
@@ -1678,4 +1678,13 @@
 
 .compat-editorial-page .compat-sign-genders .compat-choice-tab.compat-gender-btn:nth-child(3) {
   display: none !important;
+}
+
+/* The sign symbols stand outside the rings, so the centre keeps only the score. */
+.compat-editorial-page.compat-editorial-page--result .compat-orbit-glyph {
+  mix-blend-mode: normal;
+}
+
+.compat-editorial-page.compat-editorial-page--result .compat-result-orbit {
+  overflow: visible !important;
 }

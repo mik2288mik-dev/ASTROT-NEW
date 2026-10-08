@@ -2007,10 +2007,10 @@ Check our compatibility from your side in NEBO.`
             aria-label={ru ? `${leftName} и ${rightName}: индекс совместимости ${resultPercent} из 100` : `${leftName} and ${rightName}: compatibility index ${resultPercent} out of 100`}
           >
             <span className="compat-result-orbit-circle is-left" aria-hidden="true">
-              <i className="compat-orbit-glyph"><ZodiacSymbol sign={leftSun} size={30} /></i>
+              <i className="compat-orbit-glyph"><ZodiacSymbol sign={leftSun} size={36} /></i>
             </span>
             <span className="compat-result-orbit-circle is-right" aria-hidden="true">
-              <i className="compat-orbit-glyph"><ZodiacSymbol sign={theirSun} size={30} /></i>
+              <i className="compat-orbit-glyph"><ZodiacSymbol sign={theirSun} size={36} /></i>
             </span>
             <span className="compat-result-orbit-center">
               <strong>{resultPercent}%</strong>
