@@ -158,9 +158,12 @@ export async function ensureNatalQuestionThread(input: {
 export async function listNatalQuestionMessages(input: {
   userId: string;
   chartId: number;
-  pairLimit?: number;
+  pairLimit?: number | null;
 }): Promise<NatalQuestionStoredMessage[]> {
-  const pairLimit = Math.max(1, Math.min(Number(input.pairLimit) || 8, 8));
+  // UI snapshots stay bounded; generation requests the entire conversation with null.
+  const pairLimit = input.pairLimit === null
+    ? null
+    : Math.max(1, Math.min(Number(input.pairLimit) || 8, 8));
   const result = await database().query(
     `WITH recent_pairs AS (
        SELECT question.id AS question_id, answer.id AS answer_id,
