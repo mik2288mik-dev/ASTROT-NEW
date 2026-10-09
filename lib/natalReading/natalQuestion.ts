@@ -11,7 +11,6 @@ import { getNeboCoreVoice } from '../voice/core';
 import {
   CORE_VOICE_CLICHE_PATTERNS,
   CORE_VOICE_MYSTICISM_PATTERNS,
-  hasCoreVoiceViolation,
 } from '../voice/validators';
 import { natalPlainLanguageError } from '../natalInterpretation/plainLanguage';
 import {
@@ -31,8 +30,8 @@ import type {
 
 const MAX_ANSWER_ATTEMPTS = 2;
 
-export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question-v7');
-export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v9';
+export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question-v8');
+export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v10';
 
 const NATAL_QUESTION_RESPONSE_SCHEMA: StrictJsonSchema = {
   type: 'object',
@@ -49,11 +48,12 @@ const NATAL_QUESTION_SEMANTIC_REVIEW_SCHEMA: StrictJsonSchema = {
   type: 'object',
   properties: {
     ok: { type: 'boolean' },
+    answer: { type: 'string' },
     issues: { type: 'array', items: { type: 'string' } },
     meaning_ids: { type: 'array', items: { type: 'string' } },
     evidence_ids: { type: 'array', items: { type: 'string' } },
   },
-  required: ['ok', 'issues', 'meaning_ids', 'evidence_ids'],
+  required: ['ok', 'answer', 'issues', 'meaning_ids', 'evidence_ids'],
   additionalProperties: false,
 };
 
@@ -147,12 +147,14 @@ type RawNatalQuestionAnswer = {
 
 type RawNatalQuestionSemanticReview = {
   ok?: unknown;
+  answer?: unknown;
   issues?: unknown;
   meaning_ids?: unknown;
   evidence_ids?: unknown;
 };
 
 type NatalQuestionSemanticReview = {
+  answer?: string;
   issues: string[];
   meaningIds: string[];
   evidenceIds: string[];
@@ -174,6 +176,7 @@ type NatalQuestionSemanticReviewer = (input: {
   savedChartEvidence: NatalInterpretation['evidence'];
   gender: UserProfile['gender'];
   recentMessages: NatalQuestionPromptContext['recentMessages'];
+  copyReviewDetails: string[];
 }) => Promise<NatalQuestionSemanticReview | string[]>;
 
 function text(value: unknown): string {
@@ -512,11 +515,14 @@ function canonicalNatalQuestionChart(
   return chart;
 }
 
-function pairedRecentMessages(
+function conversationMessages(
   chartId: number,
   history: readonly NatalQuestionStoredMessage[],
+  currentQuestionMessageId?: number,
 ): NatalQuestionPromptContext['recentMessages'] {
-  const chartMessages = history.filter((message) => message.chartId === chartId);
+  const chartMessages = history.filter((message) => (
+    message.chartId === chartId && message.id !== currentQuestionMessageId
+  ));
   const answersByQuestionId = new Map<number, NatalQuestionStoredMessage>();
   for (const message of chartMessages) {
     if (message.role !== 'assistant') continue;
@@ -528,13 +534,14 @@ function pairedRecentMessages(
     }
   }
   return chartMessages
-    .filter((message) => message.role === 'user' && answersByQuestionId.has(message.id))
-    .map((question) => [question, answersByQuestionId.get(question.id)!] as const)
-    .sort(([left], [right]) => (
+    .filter((message) => message.role === 'user')
+    .sort((left, right) => (
       left.createdAt.localeCompare(right.createdAt) || left.id - right.id
     ))
-    .slice(-8)
-    .flatMap(([question, answer]) => [question, answer])
+    .flatMap((question) => {
+      const answer = answersByQuestionId.get(question.id);
+      return answer ? [question, answer] : [question];
+    })
     .map((message) => ({ role: message.role, text: message.text }));
 }
 
@@ -544,6 +551,7 @@ export function buildNatalQuestionPromptContext(input: {
   chartData: NatalChartData | NatalChartDataV2;
   history: readonly NatalQuestionStoredMessage[];
   question: string;
+  questionMessageId?: number;
 }): { interpretation: NatalInterpretation; context: NatalQuestionPromptContext } {
   const language: NatalReadingLanguage = input.profile.language === 'en' ? 'en' : 'ru';
   const chart = canonicalNatalQuestionChart(input.chartData);
@@ -564,7 +572,7 @@ export function buildNatalQuestionPromptContext(input: {
         ...(meaning.topicText ? { topicMeanings: meaning.topicText } : {}),
         ...(meaning.area ? { area: meaning.area } : {}),
       })),
-      recentMessages: pairedRecentMessages(input.chartId, input.history),
+      recentMessages: conversationMessages(input.chartId, input.history, input.questionMessageId),
       question: normalizePersonalForecastQuestionInput(input.question),
     },
   };
@@ -582,7 +590,7 @@ export function buildNatalQuestionPrompt(
 
 Отвечай по-русски и обращайся к человеку на «ты».
 
-Это ответ на конкретный вопрос человека, а не новый общий рассказ о всей его карте. Пойми смысл вопроса целиком, даже если он написан коротко, разговорно или с опечатками. Для продолжения разговора восстанови тему из recentMessages.
+Это ответ на конкретный вопрос человека, а не новый общий рассказ о всей его карте. Пойми смысл вопроса целиком, даже если он написан коротко, разговорно или с опечатками. recentMessages содержит весь предыдущий диалог по этой карте в порядке разговора. Для уточнений, возражений и ссылок на прежние ответы восстанови конкретную тему из этого диалога и ответь на последнюю реплику.
 
 Основа ответа: достоверные положения и связи из сохранённой карты именно этого человека, savedChartEvidence. approvedMeanings дают уже проверенные наблюдения, но не ограничивают ответ набором коротких готовых фраз. Разбирай по карте именно заданный вопрос.
 
@@ -591,6 +599,7 @@ export function buildNatalQuestionPrompt(
 - Верни только JSON: {"answer":"цельный подробный ответ с абзацами","meaning_ids":["использованный approved meaning id"],"evidence_ids":["основание из savedChartEvidence"]}. meaning_ids может быть пустым, если готовые фразы не использованы; evidence_ids должны точно объяснять основания ответа.
 - Сначала прямо ответь на то, что человек спросил. Затем раскрой относящиеся к вопросу подробности: что именно подтверждено, как связаны наблюдения, в каких обстоятельствах каждое из них имеет значение. Если вопрос состоит из нескольких частей, ответь на каждую.
 - Обычно это 4–7 связанных абзацев, примерно 200–400 слов. Это ориентир для полноценного объяснения, а не обязательная квота. Не растягивай скудный материал повторениями и не обрезай богатый материал до пары фраз. Каждый абзац добавляет отдельную существенную мысль и продолжает предыдущий.
+- Границу о невозможности определить срок обозначь один раз и коротко. Основной объём посвяти ответу по карте, а не повторению отказа. На уточнение продолжай разговор с нужного места, без повторного вступления.
 - До написания ответа выбери существенные основания по вопросу из всей карты: относящиеся к нему жизненные области, положения объектов и их связи. Объясни, что они дают вместе, где поддерживают друг друга и где расходятся. Используй topics, area и topicMeanings как помощь, а не как запрет раскрыть вопрос подробнее. Не подменяй вопрос случайной чертой из другой области.
 - Все личные выводы должны опираться на конкретные savedChartEvidence или approvedMeanings. После написания проверь основания для каждого вывода. Укажи максимум 24 meaning_ids и 40 evidence_ids, только реально использованные существующие ID.
 - Разрешены подробное объяснение и связная интерпретация подтверждённых положений по вопросу. Пиши о склонностях и возможных условиях, не объявляй интерпретацию доказанным фактом биографии. Не придумывай жизненные события, причины из прошлого, мотивы или психологические ярлыки.
@@ -603,15 +612,15 @@ export function buildNatalQuestionPrompt(
 - Не пиши служебным языком вроде «в этой теме», «динамика», «сфера», «функция», «карта показывает», «астрологическая трактовка».
 - Не обсуждай «готовые смыслы», «выбранные наблюдения», «разрешённые данные» и сам процесс генерации. Человек читает ответ о себе, а не описание входных данных. Учитывай gender; при unspecified используй нейтральные по роду формулировки: «ты выбираешь», «тебе легче», «тебе важно». Не угадывай пол человека.
 - Не придумывай прошлое, травмы, страхи, диагнозы, отношения, профессию, доход, мысли других людей или гарантированные события.
-- previous messages нужны только для связности разговора. Они не являются доказательством и не расширяют savedChartEvidence.
-- Натальная карта не даёт календарных прогнозов. Если вопрос про сегодня/завтра/дату/когда случится, коротко обозначь эту границу и подробно раскрой доступные наблюдения по теме самого вопроса. Не заканчивай ответ одним отказом и не придумывай дату.
-- Для timing-вопроса допустимая граница: «По натальной карте нельзя определить, лучший ли сегодня день, или назвать подходящую дату».
+- Сведения о жизни, которые человек сам сообщил в диалоге, учитывай как его слова. Не выдавай их за вывод из карты. Предыдущие ответы ИИ не являются новыми основаниями: сверяй их с savedChartEvidence и исправляй прежнюю неточность, если она есть.
+- Натальная карта описывает склонности, но не даёт календарного прогноза событий. Вопрос про «в этом году», «сегодня», «когда» остаётся обычным вопросом по его предмету: работе, отношениям или другой названной области. При необходимости одной короткой фразой объясни, что точный срок или исход не определяется, затем полно ответь по существу на основе карты. Не превращай ответ в отказ и не подменяй предмет вопроса.
+- Можно упомянуть срок из вопроса, процитировать его или объяснить ограничение любой естественной формулировкой. Упоминание даты само по себе не является прогнозом. Не обещай события, сроки и исходы, которых нет во входных данных.
 - Не приветствуй, не благодари за вопрос и не рассказывай, что сейчас будешь делать.`
     : `## CONTENT CONTRACT: NATAL QUESTION
 
 Answer in English and address the reader as “you”.
 
-This is an answer to the person's specific question, not a new general portrait of their entire chart. Understand the whole question, including informal wording or typos. Resolve follow-ups from recentMessages.
+This is an answer to the person's specific question, not a new general portrait of their entire chart. Understand the whole question, including informal wording or typos. recentMessages contains the entire previous conversation for this chart in conversational order. Resolve clarifications, objections and references to earlier answers from that conversation, then answer the latest message.
 
 Use the reliable placements and connections from this person's saved chart in savedChartEvidence. approvedMeanings supply previously checked observations, but do not limit the answer to a few short prepared phrases. Interpret the chart specifically for the question.
 
@@ -620,6 +629,7 @@ STRICT RULES:
 - Return JSON only: {"answer":"a full connected answer with paragraphs","meaning_ids":["used approved meaning id"],"evidence_ids":["existing savedChartEvidence id"]}. meaning_ids may be empty when prepared observations are not used; evidence_ids must accurately support the answer.
 - Answer the actual question directly, then explain the relevant details, connections between supported observations and the circumstances each observation concerns. Address every part of a multi-part question.
 - Normally use 4–7 connected paragraphs, roughly 200–400 words. This is guidance for a complete explanation, not a mandatory quota. Do not pad sparse material or reduce rich material to two generic sentences. Each paragraph adds a distinct relevant point and continues the previous one.
+- State a timing limitation only once and briefly. Devote most of the answer to the actual chart interpretation, not repeated refusals. Continue a follow-up from the relevant point without a new introduction.
 - Before writing, select substantial evidence relevant to the question from the full chart: life areas, object placements and their connections. Explain how these work together, support each other or differ. Use topics, area and topicMeanings as assistance, not a restriction on depth. Do not substitute an unrelated general trait for the requested subject.
 - Every personal conclusion must be grounded in specific savedChartEvidence or approvedMeanings. Check support for every conclusion after writing. Return up to 24 meaning_ids and 40 evidence_ids, using only actually relevant existing IDs.
 - Detailed explanation and connected interpretation of reliable placements are allowed. Describe tendencies and possible conditions rather than verified biography. Do not invent life events, causes from the person's past, motives or psychological labels.
@@ -632,9 +642,9 @@ STRICT RULES:
 - Avoid meta/report language such as “this theme”, “dynamic”, “sphere”, “function”, “the chart shows”, or “astrological interpretation”.
 - Do not discuss “approved meanings”, “selected observations”, “allowed data” or generation. The person is reading an answer about themselves, not an explanation of the input. Do not guess their gender.
 - Do not invent past events, trauma, fears, diagnoses, relationship history, profession, income, third-party thoughts, or guaranteed events.
-- previous messages are only for conversational continuity. They are not evidence and do not expand savedChartEvidence.
-- A natal chart does not provide calendar forecasts. For today/tomorrow/date/when questions, briefly state the boundary and fully explain the available observations relevant to the actual subject. Do not stop at a refusal or invent a date.
-- A safe timing boundary is: “The natal chart cannot determine whether today is the best day or name a suitable date.”
+- Use life details the person supplied in the conversation as their own statements, not deductions from the chart. Previous AI answers are not new evidence: verify them against savedChartEvidence and correct earlier inaccuracies when necessary.
+- A natal chart describes tendencies, not a calendar forecast of events. A question about “this year”, “today” or “when” remains a normal question about its actual subject: work, relationships or another named area. When needed, briefly explain that exact timing or an outcome cannot be determined, then answer the actual subject fully from the chart. Do not turn the answer into a refusal or substitute an unrelated subject.
+- You may reference or quote timing from the question and explain the limitation naturally. A date reference alone is not a prediction. Do not promise events, dates or outcomes absent from the supplied data.
 - No greeting, thanks, or setup paragraph.`;
 
   return `${rules}
@@ -663,7 +673,7 @@ const QUESTION_PSEUDO_PSYCHOLOGY = /(?:осознанн\p{L}*|ресурс\p{L}*
 const QUESTION_META_LANGUAGE = /(?:карта\s+(?:показывает|говорит|подсказывает)|астрологическ\p{L}*\s+трактовк\p{L}*|в\s+этой\s+тем\p{L}*|эта\s+тем\p{L}*|может\s+проявляться|проявля\p{L}*\s+как|внутренн\p{L}*\s+динамик\p{L}*|\b(?:the\s+chart\s+shows|this\s+theme|may\s+manifest|inner\s+dynamic|astrological\s+interpretation)\b)/iu;
 const QUESTION_ADVICE_LANGUAGE = /(?:тебе\s+(?:нужно|стоит|следует)(?!\p{L})|(?:попробуй|старайся|помни|сохраняй|проверь|сверь|выбирай|держи|не\s+бойся|позволь\s+себе)(?!\p{L})|\b(?:you\s+should|you\s+need\s+to|try\s+to|remember\s+to|make\s+sure\s+to|check\s+that|choose\s+based)\b)/iu;
 
-function natalQuestionCopyRepairDetails(answer: string): string[] {
+function natalQuestionCopyReviewDetails(answer: string): string[] {
   const phrases = [
     ...CORE_VOICE_CLICHE_PATTERNS,
     ...CORE_VOICE_MYSTICISM_PATTERNS,
@@ -677,8 +687,8 @@ function natalQuestionCopyRepairDetails(answer: string): string[] {
   });
   const plainLanguageError = natalPlainLanguageError(answer);
   return [
-    ...new Set(phrases.map((phrase) => `Переформулируй обычными словами без этой запрещённой формулировки: ${JSON.stringify(phrase)}. Сохрани смысл и полноту.`)),
-    ...(plainLanguageError ? [`Исправь построение текста: ${plainLanguageError}.`] : []),
+    ...new Set(phrases.map((phrase) => `Проверь в контексте ответа: ${JSON.stringify(phrase)}.`)),
+    ...(plainLanguageError ? [`Проверь построение текста: ${plainLanguageError}.`] : []),
   ];
 }
 
@@ -689,31 +699,10 @@ const PROFESSIONAL_IMPERATIVE_RU = /(?:(?:прекрати|начни|измен
 const GUARANTEED_OUTCOME_EN = /(?:\b(?:guaranteed?|definitely|certainly)\s+(?:will\s+)?(?:happen|occur|return|profit|win|earn|get rich)\b|\b(?:risk[- ]free|guaranteed returns?)\b)/iu;
 const GUARANTEED_OUTCOME_RU = /(?:(?:гарантирован\w*|обязательно)\s+(?:случ\w*|произойд\w*|доход\w*|прибыл\w*|выигра\w*|разбогате\w*)|точно\s+произойд[её]т|безрисков\w*)/iu;
 const INVENTED_KARMIC_FACT = /(?:\b(?:in (?:a|your) past life|your karma proves|destined by karma)\b|(?:в прошлой жизни|твоя карма доказывает|кармой предопределено))/iu;
-const FUTURE_TIMING_EN = /(?:\b(?:today|tomorrow|tonight|next (?:week|month|year)|this (?:week|month|year)|(?:on|by|before) (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b|\b(?:in|within)\s+\d+\s+(?:days?|weeks?|months?|years?)\b|\b20\d{2}\b|\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b|\b(?:will|shall)\s+(?:happen|occur|arrive|begin)\b)/iu;
-const FUTURE_TIMING_RU = /(?:(?<!\p{L})(?:сегодня|завтра)(?!\p{L})|на\s+следующ(?:ей|ую)\s+(?:недел[\p{L}-]*|месяц[\p{L}-]*)|в\s+этом\s+(?:месяц[\p{L}-]*|году)|(?:в|до)\s+(?:понедельник[\p{L}-]*|вторник[\p{L}-]*|сред[\p{L}-]*|четверг[\p{L}-]*|пятниц[\p{L}-]*|суббот[\p{L}-]*|воскресень[\p{L}-]*)|через\s+\d+\s+(?:дн[\p{L}-]*|недел[\p{L}-]*|месяц[\p{L}-]*|лет|год[\p{L}-]*)|в\s+течение\s+\d+\s+(?:дн[\p{L}-]*|недел[\p{L}-]*|месяц[\p{L}-]*)|\b20\d{2}\b|(?<!\p{L})(?:январ[\p{L}-]*|феврал[\p{L}-]*|март[\p{L}-]*|апрел[\p{L}-]*|май|мая|мае|июн[\p{L}-]*|июл[\p{L}-]*|август[\p{L}-]*|сентябр[\p{L}-]*|октябр[\p{L}-]*|ноябр[\p{L}-]*|декабр[\p{L}-]*|случится|произойд[её]т|наступит)(?!\p{L}))/iu;
-const TIMING_REFUSAL_EN = /(?:natal|birth) chart[^.!?\n]{0,140}(?:(?:cannot|can't|does not|doesn't|is unable to|is not able to)\s+(?:determine|tell|say|show|predict|provide|identify|confirm|choose)?|(?:is not|isn't)\s+(?:a\s+)?(?:calendar|forecast))[^.!?\n]{0,140}(?:today|tomorrow|date|when|timing|forecast|whether|best\s+(?:day|time)|right\s+(?:day|time))/iu;
-const TIMING_REFUSAL_RU = /натальн[\p{L}-]*\s+карт[\p{L}-]*[^.!?\n]{0,140}(?:(?:не\s+(?:может|способна|позволяет)\s+(?:определить|подсказать|сказать|показать|предсказать|назвать|выбрать|подтвердить)?)|(?:не\s+(?:определяет|подсказывает|говорит|показывает|предсказывает|называет|выбирает|подтверждает|да[её]т))|(?:нельзя\s+(?:определить|подсказать|сказать|показать|предсказать|назвать|выбрать|подтвердить)))[^.!?\n]{0,140}(?:сегодня|завтра|дат[\p{L}-]*|когда|тайминг[\p{L}-]*|прогноз[\p{L}-]*|лучш[\p{L}-]*\s+(?:день|врем[\p{L}-]*)|подходящ[\p{L}-]*\s+(?:день|врем[\p{L}-]*)|стоит\s+ли|получится\s+ли|случится\s+ли|произойд[её]т\s+ли)/iu;
 const STRONG_GUARANTEE_EN = /(?:\b(?:you\s+)?(?:will|are going to)\s+(?:definitely|certainly)\b|\bthe chart (?:proves|guarantees)\b)/iu;
 const STRONG_GUARANTEE_RU = /(?:(?:ты\s+)?обязательно\s+(?:получишь|встретишь|станешь|сможешь|добь[её]шься|разбогатеешь|выйдешь|женишься)|карт\w*\s+(?:доказывает|гарантирует))/iu;
-const SPECIFIC_FUTURE_EVENT_EN = /\b(?:will|shall)\s+(?:meet\s+(?:(?:a|an|the|your)\s+)?(?:new\s+)?(?:partner|spouse|husband|wife|lover|love|person)|receive\s+(?:money|payment|an?\s+(?:offer|promotion|award|inheritance|diagnosis)|the\s+(?:offer|promotion|award|inheritance|diagnosis)))\b/iu;
-const SPECIFIC_FUTURE_EVENT_RU = /(?:(?<!\p{L})(?:ты\s+)?встретишь\s+(?:нов[\p{L}-]*\s+)?(?:партн[её]р[\p{L}-]*|любов[\p{L}-]*|мужчин[\p{L}-]*|женщин[\p{L}-]*|человек[\p{L}-]*)(?!\p{L})|(?<!\p{L})(?:ты\s+)?получишь\s+(?:деньг[\p{L}-]*|выплат[\p{L}-]*|предложен[\p{L}-]*|повышен[\p{L}-]*|наград[\p{L}-]*|наследств[\p{L}-]*|диагноз[\p{L}-]*)(?!\p{L}))/iu;
 const PRESCRIPTIVE_HIGH_STAKES_EN = /\b(?:quit your job|file a lawsuit|ignore (?:a|your) doctor|avoid medical care)\b/iu;
 const PRESCRIPTIVE_HIGH_STAKES_RU = /(?:увольняйся\s+с\s+работы|подавай\s+в\s+суд|не\s+слушай\s+врач\w*|откажись\s+от\s+лечен\w*)/iu;
-
-function hasUnsupportedFutureTiming(value: string): boolean {
-  return value
-    .split(/(?:(?<=[.!?…])\s+|\n+)/u)
-    .flatMap((sentence) => sentence.split(
-      /(?:,\s*(?:but|however|yet|and|но|однако|зато|а|и)\s+|[;:—–]\s*|\s+-\s+)/iu,
-    ))
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .some((sentence) => {
-      const hasTiming = FUTURE_TIMING_EN.test(sentence) || FUTURE_TIMING_RU.test(sentence);
-      if (!hasTiming) return false;
-      return !TIMING_REFUSAL_EN.test(sentence) && !TIMING_REFUSAL_RU.test(sentence);
-    });
-}
 
 function answerMeaningIds(raw: RawNatalQuestionAnswer): string[] {
   return Array.isArray(raw?.meaning_ids)
@@ -774,14 +763,6 @@ export function getNatalQuestionAnswerValidationErrors(
   if (ids.length > 24) errors.add('MEANING_SELECTION_TOO_BROAD');
   if (evidenceIds.some((id) => !allowedEvidenceIds?.has(id))) errors.add('EVIDENCE_UNKNOWN');
   if (evidenceIds.length > 40) errors.add('EVIDENCE_SELECTION_TOO_BROAD');
-  if (
-    hasCoreVoiceViolation(answer)
-    || QUESTION_VISIBLE_ASTROLOGY.test(answer)
-    || QUESTION_PSEUDO_PSYCHOLOGY.test(answer)
-    || QUESTION_META_LANGUAGE.test(answer)
-    || QUESTION_ADVICE_LANGUAGE.test(answer)
-    || natalPlainLanguageError(answer)
-  ) errors.add('COPY_VIOLATION');
   if (DIAGNOSTIC_ANSWER_EN.test(answer) || DIAGNOSTIC_ANSWER_RU.test(answer)) {
     errors.add('DIAGNOSTIC_CLAIM');
   }
@@ -798,10 +779,6 @@ export function getNatalQuestionAnswerValidationErrors(
   if (PRESCRIPTIVE_HIGH_STAKES_EN.test(answer) || PRESCRIPTIVE_HIGH_STAKES_RU.test(answer)) {
     errors.add('HIGH_STAKES_PRESCRIPTION');
   }
-  if (hasUnsupportedFutureTiming(answer)) errors.add('UNSUPPORTED_FUTURE_TIMING');
-  if (SPECIFIC_FUTURE_EVENT_EN.test(answer) || SPECIFIC_FUTURE_EVENT_RU.test(answer)) {
-    errors.add('UNSUPPORTED_FUTURE_EVENT');
-  }
   return [...errors];
 }
 
@@ -814,35 +791,45 @@ async function reviewNatalQuestionSemanticFidelity(input: {
   savedChartEvidence: NatalInterpretation['evidence'];
   gender: UserProfile['gender'];
   recentMessages: NatalQuestionPromptContext['recentMessages'];
+  copyReviewDetails: string[];
 }): Promise<NatalQuestionSemanticReview> {
   const instructions = input.language === 'ru'
     ? `Проверь ответ на конкретный вопрос по достоверным основаниям сохранённой карты.
-ok=true только если candidate полно и связно отвечает на question и его выводы обоснованно следуют из saved_chart_evidence или available_meanings. Подробная интерпретация положений и их сочетаний по вопросу допустима, но не изменение фактов карты или выдумывание биографии.
+Верни в answer окончательный ответ человеку. Если candidate уже корректен, сохрани его дословно. Если есть исправимые неточности, неподтверждённая фраза, повтор или нарушение голоса, исправь их непосредственно в answer, сохрани полезные подтверждённые подробности и связность. Не сокращай полноценный ответ до пары общих предложений. Не добавляй сведения, которых нет в карте или словах человека.
+Не повторяй оговорку о сроках в начале и в конце: достаточно одной короткой границы. Основной текст должен подробно отвечать по существу, объясняя относящиеся к вопросу наблюдения и их связь обычными словами. Убери советы вроде «полезно заранее уточнять»; опиши подтверждённую склонность и её значение для вопроса.
+ok=true только если окончательный answer полно и связно отвечает на question и все его выводы обоснованно следуют из saved_chart_evidence или available_meanings. После исправления проверь каждый вывод заново и выбери основания именно для окончательного текста. Подробная интерпретация положений и их сочетаний по вопросу допустима, но не изменение фактов карты или выдумывание биографии. Если получить обоснованный ответ не удалось, верни ok=false, answer="" и конкретные issues для повторной генерации. При успешной проверке верни issues=[].
+Проверь, что это понятный цельный ответ обычными словами: без явных астрологических терминов, мистики, психологических ярлыков, коучинга, повторов и служебного пересказа данных. copy_review_details содержит подсказки автоматического поиска, а не доказанные ошибки. Оцени каждую фразу в контексте: например, обычное описание нужных человеку условий не равно совету, а понятная формулировка не становится пустой из-за совпадения слов. Короткое упоминание натальной карты для объяснения границы ответа допустимо. Реальный недостаток голоса исправь простыми словами с сохранением смысла. Если исправление не удалось, верни COPY_VIOLATION: с точной цитатой и пояснением. Одного совпадения с подсказкой недостаточно для отклонения.
 Верни evidence_ids из saved_chart_evidence для всех реально использованных оснований, максимум 40, и meaning_ids для использованных готовых наблюдений, максимум 24. meaning_ids может быть пустым, если ответ основан на самостоятельной интерпретации достоверных положений. Исправь неточный или неполный выбор автора: подтверждённая фраза не становится выдумкой из-за пропущенного ID. Если вывод не поддерживается ни картой, ни готовыми наблюдениями, отклони его.
 Проверь знаки, дома, объекты и типы связей: они должны точно соответствовать переданным данным. Отсутствующие или исключённые недостоверные основания использовать нельзя. Положение одной медленной планеты само по себе не доказывает индивидуальную особенность.
 Связное объяснение и осторожный синтез подтверждённых наблюдений допустимы. Используй topics, area и topicMeanings для проверки контекста. Общий фон scope=background не доказывает индивидуальную черту сам по себе.
 Проверь полноту по available_meanings: раскрыты части вопроса, объяснены важные связи, абзацы добавляют разные подробности. Если ответ игнорирует существенную сторону вопроса и ограничивается двумя общими чертами, это ошибка. Не требуй отдельного пересказа каждого похожего смысла: несколько оснований могут быть раскрыты одной связной мыслью. Две общие фразы вместо содержательного ответа или повторение одной мысли считаются ошибкой. Если доступные смыслы действительно скудные, не требуй выдумок ради объёма.
 Понятное пояснение и интерпретация сочетания достоверных положений допустимы и не обязаны дословно повторять готовые фразы. Отличай объяснение склонностей и возможных условий от утверждения о случившемся личном факте. Не допускай выдуманную биографию, точные события, причины из прошлого или пол, не соответствующий gender. При gender=unspecified нужны нейтральные формулировки.
-recentMessages помогают понять продолжение разговора. Ответ на новый вопрос не должен копировать прежний ответ или заново выдавать общий портрет. Отметь конкретно, какая часть вопроса не раскрыта или какое утверждение не подтверждено.
+recentMessages содержит весь прежний диалог. Пойми последнюю реплику с учётом ссылок на прежние вопросы и ответы. Прямой ответ на уточнение или возражение не обязан снова охватить всю первоначальную тему. Не требуй повторения уже объяснённого или новой общей характеристики. Сведения о жизни, которые сам человек сообщил в диалоге, можно учитывать как его слова, но не как вывод из карты. Прежний ответ ИИ не доказывает новый вывод и может быть исправлен по сохранённым основаниям. Отметь конкретно, какая часть последнего вопроса не раскрыта или какое утверждение не подтверждено.
 Если данные карты не дают ответа на предпосылку вопроса, candidate должен честно ограничить вывод, а не переключиться на случайную черту.
-Короткая фраза о том, что натальная карта не определяет дату или событие по календарю, допустима как граница продукта и не требует отдельного meaning.
+Оцени смысл фразы о времени, а не наличие слов «сегодня», «в этом году», месяца или даты. Цитирование вопроса, ссылка на названный человеком срок, объяснение невозможности назвать срок или исход и условное описание склонностей не являются календарным прогнозом и не требуют отдельного meaning. Ответ с честной границей и содержательным объяснением по предмету вопроса считается ответом на вопрос, даже если точный срок неизвестен.
+Если candidate действительно предсказывает событие по календарю без таких данных, исправь ответ: убери выдуманный прогноз, кратко объясни ограничение и сохрани содержательное объяснение по карте. Если такое исправление не удалось, верни issue с префиксом UNSUPPORTED_FUTURE_TIMING: и точной цитатой утверждения. Для неисправленного обещания конкретного события без срока используй UNSUPPORTED_FUTURE_EVENT:. Не отклоняй ответ за одно упоминание времени и не требуй придумать прогноз ради полноты.
 Если вопрос содержит предпосылку, которой карта не подтверждает, ответ не должен выдавать её за доказанный факт.`
     : `Check the answer to the specific question against reliable evidence from the saved chart.
-ok=true only if the candidate answers question fully and coherently, and conclusions reasonably follow from saved_chart_evidence or available_meanings. Detailed interpretation of placements and their combinations is allowed; changing chart facts or inventing biography is not.
+Return the final answer to the person in answer. Preserve an already correct candidate verbatim. Directly correct fixable inaccuracies, unsupported phrases, repetition or voice defects while retaining useful supported detail and continuity. Do not shrink a substantive answer to two generic sentences. Do not add information absent from the chart or the person's statements.
+Do not repeat a timing disclaimer at both the beginning and end: one brief limitation is enough. Devote the main text to a substantive explanation of relevant observations and their connections in ordinary language. Remove advice such as “it is useful to clarify in advance”; describe the supported tendency and its relevance to the question.
+ok=true only if the final answer answers question fully and coherently, and every conclusion reasonably follows from saved_chart_evidence or available_meanings. After correcting it, verify every conclusion again and select evidence for the final text. Detailed interpretation of placements and their combinations is allowed; changing chart facts or inventing biography is not. If a grounded answer cannot be produced, return ok=false, answer="" and concrete issues for regeneration. Return issues=[] for a successful review.
+Check that this is a clear connected answer in ordinary language, without explicit astrology terminology, mysticism, psychological labels, coaching, repetition or mechanical input narration. copy_review_details contains automated search hints, not established errors. Judge each phrase in context: describing conditions the person needs is not necessarily advice, and matching words do not make an otherwise meaningful phrase empty. Briefly mentioning the natal chart to explain a limitation is allowed. Correct actual voice defects in plain language while preserving meaning. If correction fails, return COPY_VIOLATION: with the exact quote and explanation. A search hint alone is insufficient for rejection.
 Return evidence_ids from saved_chart_evidence for all actually used support, up to 40, and meaning_ids for used prepared observations, up to 24. meaning_ids may be empty for an interpretation grounded directly in reliable placements. Correct inaccurate or incomplete author selection: a supported statement is not invented because of an omitted ID. Reject claims unsupported by chart evidence or approved observations.
 Check signs, houses, objects and connection types against the supplied facts. Missing or excluded unreliable evidence must not be used. One slow-moving planet alone does not establish an individual trait.
 Clear explanation and careful synthesis of supported observations are allowed. Use topics, area and topicMeanings to check context. Shared scope=background alone does not establish an individual trait.
 Check depth against available_meanings: the answer addresses each part of the question, explains important connections and adds distinct relevant details across paragraphs. Ignoring a substantial part of the question and falling back to two general traits is an error. Do not demand a separate paraphrase of every similar meaning: several supporting observations may be covered by one connected point. Two generic sentences or repeated points instead of a substantive answer are errors. Do not demand invented details when source material is genuinely sparse.
 Clear explanation and interpretation of combinations of reliable placements need not copy prepared observations. Distinguish tendencies and possible conditions from claims of actual personal events. Do not allow invented biography, exact events, causes from the person's past or gender inconsistent with gender. Use neutral wording for unspecified gender.
-Use recentMessages to understand follow-ups. A new answer must not copy a previous answer or restart an unrelated general portrait. Identify the exact omitted question part or unsupported claim.
+recentMessages contains the entire prior conversation. Resolve the latest message using references to previous questions and answers. A direct answer to a clarification or objection need not cover the entire original subject again. Do not require repetition of earlier explanations or a new general portrait. Life details supplied by the person may be used as their statements, not chart deductions. Earlier AI answers are not proof and may be corrected from saved evidence. Identify the exact omitted part of the latest question or unsupported claim.
 If chart data do not support the premise of the question, the candidate must state that limitation instead of switching to an unrelated trait.
-A brief boundary saying a natal chart cannot determine a calendar date or event is allowed without a separate meaning.`;
+Evaluate temporal meaning, not the presence of “today”, “this year”, a month or a date. Quoting a question, referring to the person's timeframe, explaining the inability to determine timing or an outcome, and conditional descriptions of tendencies are not calendar forecasts and need no separate meaning. An honest limitation followed by a substantive explanation of the actual subject answers the question even when exact timing is unknown.
+If candidate actually predicts a calendar event without supplied data, correct the answer: remove the invented forecast, briefly explain the limitation and retain the substantive chart explanation. If correction fails, return an issue prefixed UNSUPPORTED_FUTURE_TIMING: with the exact unsupported claim. For an uncorrected promise of a specific event without timing use UNSUPPORTED_FUTURE_EVENT:. Do not reject a mere time reference or demand an invented forecast for completeness.`;
 
   const response = await createLunaStructuredResponse({
-    instructions,
+    instructions: `${getNeboCoreVoice(input.language)}\n\n${instructions}`,
     input: JSON.stringify({
       question: input.question,
       recentMessages: input.recentMessages,
+      copy_review_details: input.copyReviewDetails,
       gender: input.gender,
       saved_chart_evidence: input.savedChartEvidence,
       available_meanings: input.availableMeanings,
@@ -856,9 +843,9 @@ A brief boundary saying a natal chart cannot determine a calendar date or event 
       })),
       candidate: input.answer,
     }),
-    maxOutputTokens: 2000,
+    maxOutputTokens: 4500,
     reasoningEffort: 'medium',
-    verbosity: 'low',
+    verbosity: 'medium',
     store: false,
     schemaName: 'natal_question_semantic_review',
     schema: NATAL_QUESTION_SEMANTIC_REVIEW_SCHEMA,
@@ -871,7 +858,9 @@ A brief boundary saying a natal chart cannot determine a calendar date or event 
   }
   const meaningIds = answerMeaningIds(raw);
   const evidenceIds = answerEvidenceIds(raw);
-  if (raw.ok === true) return { issues: [], meaningIds, evidenceIds };
+  if (raw.ok === true && text(raw.answer)) {
+    return { answer: text(raw.answer), issues: [], meaningIds, evidenceIds };
+  }
   const issues = Array.isArray(raw.issues)
     ? raw.issues.map(text).filter(Boolean)
     : [];
@@ -906,6 +895,7 @@ export async function generateNatalQuestionAnswer(input: {
   chartData: NatalChartData | NatalChartDataV2;
   history: readonly NatalQuestionStoredMessage[];
   question: string;
+  questionMessageId?: number;
   requestAnswer?: NatalQuestionAnswerRequester;
   reviewAnswer?: NatalQuestionSemanticReviewer;
 }): Promise<NatalQuestionAnswer> {
@@ -928,9 +918,7 @@ export async function generateNatalQuestionAnswer(input: {
     previousOutput = raw;
     validationCodes = getNatalQuestionAnswerValidationErrors(raw, allowedMeaningIds, allowedEvidenceIds);
     if (validationCodes.length > 0) {
-      semanticIssues = validationCodes.includes('COPY_VIOLATION')
-        ? natalQuestionCopyRepairDetails(text(raw.answer))
-        : [];
+      semanticIssues = [];
       continue;
     }
 
@@ -947,15 +935,22 @@ export async function generateNatalQuestionAnswer(input: {
       savedChartEvidence: interpretation.evidence,
       gender: context.gender || 'unspecified',
       recentMessages: context.recentMessages,
+      copyReviewDetails: natalQuestionCopyReviewDetails(text(raw.answer)),
     });
     semanticIssues = Array.isArray(review) ? review : review.issues;
     if (semanticIssues.length > 0) {
-      validationCodes = ['SEMANTIC_MISMATCH'];
+      validationCodes = [...new Set(semanticIssues.map((issue): NatalQuestionValidationCode => (
+        issue.startsWith('COPY_VIOLATION:') ? 'COPY_VIOLATION'
+          : issue.startsWith('UNSUPPORTED_FUTURE_TIMING:') ? 'UNSUPPORTED_FUTURE_TIMING'
+            : issue.startsWith('UNSUPPORTED_FUTURE_EVENT:') ? 'UNSUPPORTED_FUTURE_EVENT'
+              : 'SEMANTIC_MISMATCH'
+      )))];
       continue;
     }
 
     const reviewedRaw = {
       ...raw,
+      answer: Array.isArray(review) ? raw.answer : review.answer ?? raw.answer,
       meaning_ids: Array.isArray(review) ? meaningIds : review.meaningIds,
       evidence_ids: Array.isArray(review) ? answerEvidenceIds(raw) : review.evidenceIds,
     };

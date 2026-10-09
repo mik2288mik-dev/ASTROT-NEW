@@ -13,7 +13,6 @@ import {
   NatalQuestionValidationError,
 } from '../../../../lib/natalReading/natalQuestion';
 import {
-  answeredNatalQuestionTexts,
   appendNatalQuestionMessage,
   ensureNatalQuestionThread,
   findNatalQuestionAnswer,
@@ -135,11 +134,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const question = normalizePersonalForecastQuestionInput(req.body?.question);
   const normalizedQuestion = normalizePersonalForecastQuestionSearch(question);
-  const history = await listNatalQuestionMessages({ userId, chartId, pairLimit: 8 });
+  const history = await listNatalQuestionMessages({ userId, chartId, pairLimit: null });
   const moderation = moderateNatalQuestion({
     question,
     language,
-    existingQuestions: answeredNatalQuestionTexts(history),
+    existingQuestions: history.filter((message) => message.role === 'user').map((message) => message.text),
   });
   if (moderation.status !== 'approved') {
     diagnostic.log('moderation', 'error', {
@@ -184,13 +183,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       generate: async () => {
         diagnostic.log('generation', 'start', { source: 'selected_chart_context' });
-        const currentHistory = await listNatalQuestionMessages({ userId, chartId, pairLimit: 8 });
+        const currentHistory = await listNatalQuestionMessages({ userId, chartId, pairLimit: null });
         const answer = await generateNatalQuestionAnswer({
           chartId,
           profile: ctx.profile,
           chartData: ctx.chartData!,
           history: currentHistory,
           question,
+          questionMessageId: reserved.message.id,
         });
         return appendNatalQuestionMessage({
           userId,
