@@ -2,8 +2,9 @@ import React, { useRef, useState } from 'react';
 import { CosmicSheet } from './lumia-ui/CosmicSheet';
 import { startAndroidUpdate } from '../services/androidUpdates';
 
-export function AndroidUpdatePrompt({ open, versionName, onClose }: {
+export function AndroidUpdatePrompt({ open, required, versionName, onClose }: {
   open: boolean;
+  required: boolean;
   versionName?: string | null;
   onClose(): void;
 }) {
@@ -15,16 +16,21 @@ export function AndroidUpdatePrompt({ open, versionName, onClose }: {
     running.current = true;
     setBusy(true);
     setError(false);
-    try { if (await startAndroidUpdate() === 'cancelled') onClose(); }
+    try { if (await startAndroidUpdate() === 'cancelled' || !required) onClose(); }
     catch { setError(true); }
     finally { running.current = false; setBusy(false); }
   };
   return (
-    <CosmicSheet open={open} title="Нужно обновить приложение" closeLabel="Отмена" closeButtonText="Отмена" onClose={onClose}
+    <CosmicSheet open={open} title={required ? 'Нужно обновить приложение' : 'Доступна новая версия NEBO'}
+      closeLabel={required ? 'Отмена' : 'Позже'} closeButtonText={required ? 'Отмена' : 'Позже'} onClose={onClose}
       footer={<button type="button" className="forecast-bottom-sheet-primary" disabled={busy} onClick={() => void update()}>
         {busy ? 'Открываем обновление…' : 'Обновить'}
       </button>}>
-      <p>Доступна новая версия NEBO{versionName ? ` ${versionName}` : ''}. Обнови приложение, чтобы пользоваться всеми разделами. Пока можно остаться на главной.</p>
+      {required ? (
+        <p>Доступна новая версия NEBO{versionName ? ` ${versionName}` : ''}. Обнови приложение, чтобы пользоваться всеми разделами. Пока можно остаться на главной.</p>
+      ) : (
+        <p>В RuStore доступно обновление. Скачай новую версию NEBO.</p>
+      )}
       {error ? <p role="alert">Не удалось открыть обновление. Попробуй ещё раз или открой NEBO в RuStore.</p> : null}
     </CosmicSheet>
   );

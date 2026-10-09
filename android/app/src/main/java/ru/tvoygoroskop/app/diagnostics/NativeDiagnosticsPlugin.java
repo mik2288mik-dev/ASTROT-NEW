@@ -2,6 +2,9 @@ package ru.tvoygoroskop.app.diagnostics;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.os.Build;
 import android.util.Log;
 
@@ -133,6 +136,21 @@ public class NativeDiagnosticsPlugin extends Plugin {
         result.put("versionCode", BuildConfig.VERSION_CODE);
         result.put("distributionChannel", BuildConfig.DISTRIBUTION_CHANNEL);
         call.resolve(result);
+    }
+
+    @PluginMethod
+    public void getNetworkInfo(PluginCall call) {
+        try {
+            ConnectivityManager manager = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+            Network network = manager == null ? null : manager.getActiveNetwork();
+            NetworkCapabilities capabilities = network == null ? null : manager.getNetworkCapabilities(network);
+            JSObject result = new JSObject();
+            // Check this app's connection: a VPN can exclude NEBO through split tunneling.
+            result.put("vpnActive", capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN));
+            call.resolve(result);
+        } catch (Exception error) {
+            call.reject("Network state unavailable", error);
+        }
     }
 
     @PluginMethod
