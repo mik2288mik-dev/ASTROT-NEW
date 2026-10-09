@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { createAndroidUpdateGate, type AndroidUpdatePolicy } from '../lib/androidUpdatePolicy';
-import { fetchAndroidUpdatePolicy, readCachedAndroidUpdatePolicy } from './androidUpdates';
+import { checkForAndroidUpdate, fetchAndroidUpdatePolicy, readCachedAndroidUpdatePolicy } from './androidUpdates';
 import { getClientRuntimeMetadata } from './clientRuntimeMetadata';
 import { isNativeAndroidRuntime } from './nativeRuntime';
 
 export function useAndroidUpdateGate() {
   const [gate] = useState(createAndroidUpdateGate);
   const [state, setState] = useState(gate.getState);
+  const [storeUpdateOpen, setStoreUpdateOpen] = useState(false);
+  const storeUpdateDismissed = useRef(false);
 
   useEffect(() => {
     if (!isNativeAndroidRuntime()) return;
@@ -23,8 +25,18 @@ export function useAndroidUpdateGate() {
     const refresh = async () => {
       if (disposed || refreshRunning) return;
       refreshRunning = true;
-      try { apply(await fetchAndroidUpdatePolicy()); }
-      catch { /* Keep the last confirmed policy across offline starts/resumes. */ }
+      try {
+        await Promise.all([
+          fetchAndroidUpdatePolicy().then(apply).catch(() => {
+            // Keep the last confirmed policy across offline starts/resumes.
+          }),
+          checkForAndroidUpdate().then((available) => {
+            if (!disposed) setStoreUpdateOpen(available && !storeUpdateDismissed.current);
+          }).catch(() => {
+            // An unavailable store must not interrupt app startup.
+          }),
+        ]);
+      }
       finally { refreshRunning = false; }
     };
     void getClientRuntimeMetadata().then((metadata) => {
@@ -52,6 +64,11 @@ export function useAndroidUpdateGate() {
     if (!allowed) setState(gate.getState());
     return allowed;
   }, [gate]);
-  const dismiss = useCallback(() => { gate.dismiss(); setState(gate.getState()); }, [gate]);
-  return { ...state, allowNavigation, dismiss };
+  const dismiss = useCallback(() => {
+    gate.dismiss();
+    setState(gate.getState());
+    storeUpdateDismissed.current = true;
+    setStoreUpdateOpen(false);
+  }, [gate]);
+  return { ...state, promptOpen: state.promptOpen || storeUpdateOpen, allowNavigation, dismiss };
 }

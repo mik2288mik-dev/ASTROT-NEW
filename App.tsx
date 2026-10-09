@@ -47,6 +47,8 @@ import { PromoBanner } from './components/PromoBanner';
 import { AppEntryAnnouncement } from './components/AppEntryAnnouncement';
 import { AndroidUpdatePrompt } from './components/AndroidUpdatePrompt';
 import { useAndroidUpdateGate } from './services/useAndroidUpdateGate';
+import { AndroidVpnWarning } from './components/AndroidVpnWarning';
+import { useAndroidVpnWarning } from './services/useAndroidVpnWarning';
 import { AppTopBar, AppTopBarSettingsProvider } from './components/lumia-ui/AppTopBar';
 import { ACTION_FEEDBACK, ActionFeedbackHost, showActionFeedback } from './components/lumia-ui/ActionFeedback';
 import { NeboLogo } from './components/brand/NeboLogo';
@@ -3044,13 +3046,19 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
 
 const App: React.FC = () => {
     const androidUpdate = useAndroidUpdateGate();
+    const androidVpnWarning = useAndroidVpnWarning();
     return (
         <>
             <AppContent androidUpdate={androidUpdate} />
             <AndroidUpdatePrompt
                 open={androidUpdate.promptOpen}
+                required={androidUpdate.required}
                 versionName={androidUpdate.policy?.versionName}
                 onClose={androidUpdate.dismiss}
+            />
+            <AndroidVpnWarning
+                open={androidVpnWarning.open && !androidUpdate.promptOpen}
+                onClose={androidVpnWarning.dismiss}
             />
         </>
     );

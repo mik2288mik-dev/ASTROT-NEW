@@ -42,6 +42,27 @@ public final class RuStoreUpdateBridge extends Plugin {
     }
 
     @PluginMethod
+    public void checkForUpdate(PluginCall call) {
+        Activity activity = getActivity();
+        if (activity == null) {
+            call.reject("RuStore update check unavailable", "UPDATE_CHECK_UNAVAILABLE");
+            return;
+        }
+        activity.runOnUiThread(() -> {
+            try {
+                ensureManager();
+                updateManager.getAppUpdateInfo().addOnSuccessListener(info -> {
+                    JSObject result = new JSObject();
+                    result.put("available", info.getUpdateAvailability() == UpdateAvailability.UPDATE_AVAILABLE);
+                    call.resolve(result);
+                }).addOnFailureListener(error -> call.reject("RuStore update check unavailable", "UPDATE_CHECK_UNAVAILABLE"));
+            } catch (RuntimeException | LinkageError error) {
+                call.reject("RuStore update check unavailable", "UPDATE_CHECK_UNAVAILABLE");
+            }
+        });
+    }
+
+    @PluginMethod
     public void startUpdate(PluginCall call) {
         getActivity().runOnUiThread(() -> {
             try {

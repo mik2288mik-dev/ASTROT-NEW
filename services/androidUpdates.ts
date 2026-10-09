@@ -3,6 +3,7 @@ import { apiFetchUnauthenticated } from './apiClient';
 import { parseAndroidUpdatePolicy, type AndroidUpdatePolicy } from '../lib/androidUpdatePolicy';
 
 const nativeUpdates = registerPlugin<{
+  checkForUpdate(): Promise<{ available: boolean }>;
   startUpdate(): Promise<{ status: 'started' | 'cancelled' }>;
   openStore(): Promise<void>;
 }>('RuStoreUpdate');
@@ -29,4 +30,19 @@ export async function fetchAndroidUpdatePolicy(): Promise<AndroidUpdatePolicy> {
 export async function startAndroidUpdate(): Promise<'started' | 'cancelled' | 'store'> {
   try { return (await nativeUpdates.startUpdate()).status; }
   catch { await nativeUpdates.openStore(); return 'store'; }
+}
+
+export async function checkForAndroidUpdate(): Promise<boolean> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const result = await Promise.race([
+      nativeUpdates.checkForUpdate(),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error('Update check timed out')), 10000);
+      }),
+    ]);
+    return result.available === true;
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
 }
