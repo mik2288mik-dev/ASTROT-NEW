@@ -21,6 +21,7 @@ export default function AdminPage() {
     activeSlug === 'ai' ? 'ai' :
     activeSlug === 'errors' ? 'errors' :
     activeSlug === 'analytics' ? 'analytics' :
+    activeSlug === 'journeys' ? 'journeys' :
     activeSlug === 'billing' ? 'billing' :
     activeSlug === 'charts' ? 'charts' :
     activeSlug === 'content' ? 'content' :

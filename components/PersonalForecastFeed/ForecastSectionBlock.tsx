@@ -82,6 +82,7 @@ export function ForecastSectionBlock({
     <section
       id={`forecast-section-${section.id}`}
       data-forecast-section={section.id}
+      data-telemetry-content={`Прогноз · ${period} · ${section.id}`}
       data-period={period}
       className={[
         'forecast-feed-section',

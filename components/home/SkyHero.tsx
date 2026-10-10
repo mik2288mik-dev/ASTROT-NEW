@@ -55,7 +55,7 @@ export function SkyHero({ dayKey, language, top, kicker, title, titleId, childre
   }, [barInk]);
 
   return (
-    <section ref={heroRef} className={`sky-hero${night ? ' is-night' : ''}${compact ? ' is-compact' : ''}`} aria-labelledby={titleId}>
+    <section data-telemetry-content="Личный прогноз" ref={heroRef} className={`sky-hero${night ? ' is-night' : ''}${compact ? ' is-compact' : ''}`} aria-labelledby={titleId}>
       {sky ? (
         <LiveSky sunAltitude={sky.sunAltitude} clouds={HOME_CLOUDS} className="sky-hero-canvas" />
       ) : null}

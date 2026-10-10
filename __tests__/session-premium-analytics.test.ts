@@ -1,4 +1,6 @@
 const mockApiFetch = jest.fn();
+const mockAppTrace = jest.fn();
+jest.mock('../services/appTelemetryClient',()=>({captureAppTrace:(...args:unknown[])=>mockAppTrace(...args)}));
 
 jest.mock('../services/apiClient', () => ({
   apiFetch: (...args: unknown[]) => mockApiFetch(...args),
@@ -51,6 +53,13 @@ describe('recordUserAppEvent', () => {
     localStorage.clear();
     sessionStorage.clear();
     mockApiFetch.mockResolvedValue({ ok: true });
+  });
+  it('adds sanitized function results to the full path without private payloads or passive samples',async()=> {
+    await recordUserAppEvent({eventType:'compatibility_ready',section:'synastry',source:'compatibility',eventPayload:{question:'Private',birthDate:'1990-01-01'}});
+    expect(mockAppTrace).toHaveBeenCalledWith('product_event',expect.objectContaining({event_name:'compatibility_ready',label:'Совместимость готова',section:'synastry'}));
+    expect(JSON.stringify(mockAppTrace.mock.calls)).not.toContain('Private');
+    mockAppTrace.mockClear();await recordUserAppEvent({eventType:'screen_view',section:'chart'});
+    expect(mockAppTrace).not.toHaveBeenCalled();
   });
 
   it('sanitizes analytics before it crosses the client API boundary', async () => {
@@ -177,7 +186,7 @@ describe('recordUserAppEvent', () => {
     await Promise.resolve();
     expect(mockApiFetch).toHaveBeenCalledTimes(1);
 
-    const later = Array.from({ length: 40 }, () => recordUserAppEvent({
+    const later = Array.from({ length: 500 }, () => recordUserAppEvent({
       eventType: 'natal_section_open',
       section: 'natal',
       source: 'deep_natal',
@@ -186,7 +195,7 @@ describe('recordUserAppEvent', () => {
     const cappedQueue = JSON.parse(
       localStorage.getItem('lumia_user_app_event_queue_v1') || '[]',
     );
-    expect(cappedQueue).toHaveLength(40);
+    expect(cappedQueue).toHaveLength(500);
     const queuedIds = cappedQueue.map((event: { eventId: string }) => event.eventId);
 
     resolveFirst({ ok: true });
@@ -196,7 +205,7 @@ describe('recordUserAppEvent', () => {
       .slice(1)
       .map((call) => JSON.parse(call[1].body).eventId);
     expect(deliveredIds).toEqual(queuedIds);
-    expect(mockApiFetch).toHaveBeenCalledTimes(41);
+    expect(mockApiFetch).toHaveBeenCalledTimes(501);
     expect(localStorage.getItem('lumia_user_app_event_queue_v1')).toBeNull();
   });
 

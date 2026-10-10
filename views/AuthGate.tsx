@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTelemetrySection } from '../services/useAppTelemetry';
 import { ChevronLeft, Eye, EyeOff, Mail } from 'lucide-react';
 import { NeboLogo } from '../components/brand/NeboLogo';
 import type { UserProfile } from '../types';
@@ -96,6 +97,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   onGuestStart,
 }) => {
   const [screen, setScreen] = useState<AuthScreen>('register');
+  useTelemetrySection('auth', screen);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');

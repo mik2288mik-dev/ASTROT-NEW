@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTelemetrySection } from '../../services/useAppTelemetry';
 import { MonoAvatar } from '../../components/mono-ui/MonoAvatar';
 import styles from '../../components/NatalReading/NatalSection.module.css';
 import type { NatalChartData, UserProfile } from '../../types';
@@ -86,6 +87,7 @@ export function NatalMagazine({
 
   const handledExternalQuestionRequestRef = useRef(0);
   const normalizedActiveTab = normalizeNatalScreenTab(activeTab, isSavedPerson);
+  useTelemetrySection('chart', normalizedActiveTab);
   const sectionRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const host = sectionRef.current?.closest('.lumia-main-scroll');

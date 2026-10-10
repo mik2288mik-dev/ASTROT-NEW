@@ -187,11 +187,11 @@ export function ForYouBlock({
   const reviewMonth = sheet?.type === 'month_review' ? Number(sheet.monthKey.slice(5, 7)) - 1 : 0;
 
   return (
-    <section className="for-you" aria-labelledby="for-you-title">
+    <section data-telemetry-content="Для тебя" className="for-you" aria-labelledby="for-you-title">
       {offers.length || extra ? <h2 id="for-you-title" className="for-you-title">{ru ? 'Для тебя' : 'For you'}</h2> : null}
       <div className="for-you-list">
         {offers.map((offer) => (
-          <article key={offer.occurrence} className={`for-you-card is-${offer.id}`}>
+          <article data-telemetry-content={`Для тебя · ${offer.id}`} key={offer.occurrence} className={`for-you-card is-${offer.id}`}>
             <AssetSlot src={FOR_YOU_IMAGES[offer.id]} fit="contain" className="for-you-card-art" />
             <div className="for-you-card-copy">
               <h3>{offer.title}</h3>

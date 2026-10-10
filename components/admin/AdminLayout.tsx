@@ -31,6 +31,7 @@ import { ChartsSection } from './sections/ChartsSection';
 import { ContentSection } from './sections/ContentSection';
 import { CommsSection } from './sections/CommsSection';
 import { SystemSection } from './sections/SystemSection';
+import { AdminJourneys } from '../admin2/AdminJourneys';
 
 export type AdminTab =
   | 'dashboard'
@@ -39,6 +40,7 @@ export type AdminTab =
   | 'ai'
   | 'errors'
   | 'analytics'
+  | 'journeys'
   | 'billing'
   | 'charts'
   | 'content'
@@ -68,6 +70,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: 'Аналитика',
     items: [
       { key: 'analytics', label: 'Воронки и когорты', icon: ChartNoAxesCombined },
+      { key: 'journeys', label: 'Аналитика продукта', icon: Activity },
       { key: 'billing', label: 'Оплаты и Premium', icon: CircleDollarSign },
       { key: 'ai', label: 'AI и модели', icon: Bot },
       { key: 'errors', label: 'Ошибки', icon: TriangleAlert },
@@ -91,6 +94,7 @@ const TITLES: Record<AdminTab, string> = {
   ai: 'AI и модели',
   errors: 'Центр ошибок',
   analytics: 'Воронки и когорты',
+  journeys: 'Аналитика продукта',
   billing: 'Оплаты и Premium',
   charts: 'Натальные карты',
   content: 'Контент',
@@ -196,6 +200,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             {currentTab === 'ai' && <AiSection />}
             {currentTab === 'errors' && <ErrorsSection />}
             {currentTab === 'analytics' && <AnalyticsSection />}
+            {currentTab === 'journeys' && <AdminJourneys me={me} />}
             {currentTab === 'billing' && <BillingSection onSelectUser={handleSelectUser} />}
             {currentTab === 'charts' && <ChartsSection onSelectUser={handleSelectUser} />}
             {currentTab === 'content' && <ContentSection me={me} onSelectUser={handleSelectUser} />}

@@ -1,3 +1,4 @@
+import { JOURNEY_EVENTS } from '../lib/journeyTelemetry';
 import {
   PREMIUM_ANALYTICS_EVENTS,
   PRODUCT_ANALYTICS_EVENTS,
@@ -44,6 +45,7 @@ describe('Premium analytics contract', () => {
       'restore_success',
       'share',
       'invite_open',
+      ...JOURNEY_EVENTS,
     ]);
     expect(USER_APP_EVENT_ALIASES).toMatchObject({
       paywall_impression: 'paywall_view',

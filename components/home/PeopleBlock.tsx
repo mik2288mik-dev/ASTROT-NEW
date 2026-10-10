@@ -86,7 +86,7 @@ export function PeopleBlock({ userId, todayKey, premium, onOpenPair, onAddPerson
   const name = selected ? firstName(selected.name) : '';
 
   return (
-    <section className="people-block" aria-labelledby="people-block-title">
+    <section data-telemetry-content="Твои люди" className="people-block" aria-labelledby="people-block-title">
       <div className="people-block-heading">
         <h2 id="people-block-title" className="today-explore-heading">Ты и твои люди</h2>
         {people.length ? <button type="button" className="people-block-tune" onClick={() => setTuning(true)}>Настроить</button> : null}

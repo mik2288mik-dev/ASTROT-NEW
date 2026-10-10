@@ -4,6 +4,11 @@
  * Сервер проверяет роль/право (RBAC) и пишет audit. См. lib/admin/*.
  */
 import { apiFetch } from './apiClient';
+import type { JourneyReport, JourneyAttempt, JourneyEvent } from '../lib/admin/journeyAnalytics';
+import type { AppTraceReport, AppTraceDetail } from '../lib/admin/appTelemetryAnalytics';
+export type { AppTraceReport, AppTraceDetail } from '../lib/admin/appTelemetryAnalytics';
+export type { JourneyReport, JourneyAttempt, JourneyEvent } from '../lib/admin/journeyAnalytics';
+export type JourneyDetail = { range: AdminActivityReport['range']; truncated: boolean; attempts: Array<Omit<JourneyAttempt, 'events'> & { events: Array<JourneyEvent & { label: string }> }>; screens: Array<JourneyEvent & { label: string }> };
 import type { AdminActivityParams, AdminActivityReport, AdminUserActivityReport } from '../lib/admin/activityTypes';
 export type { AdminActivityParams, AdminActivityReport, AdminUserActivityReport } from '../lib/admin/activityTypes';
 
@@ -409,6 +414,9 @@ export const admin2Auth = {
 export const admin2 = {
   clearDevAuth: admin2Auth.clearDevAuth,
   activity: (params: AdminActivityParams = {}) => req<AdminActivityReport>(`/api/admin/v2/activity?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))}`),
+  journeys: (params: AdminActivityParams & { version?: string } = {}) => req<JourneyReport>(`/api/admin/v2/journeys?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))}`),
+  userJourney: (userId: string, params: AdminActivityParams = {}) => req<JourneyDetail>(`/api/admin/v2/journeys?${new URLSearchParams({ userId, ...Object.fromEntries(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])) })}`),
+  appTelemetry: (params: AdminActivityParams & { userId?: string; visitId?: string; version?: string; segment?: string; compare?:string } = {}) => req<AppTraceReport | AppTraceDetail>(`/api/admin/v2/app-telemetry?${new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([,v]) => v != null).map(([k,v]) => [k,String(v)])))}`),
   userActivity: (id: string, params: AdminActivityParams = {}) => req<AdminUserActivityReport>(`/api/admin/v2/users/${encodeURIComponent(id)}/activity?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))}`),
   me: () => req<AdminMe>('/api/admin/v2/me'),
   dashboard: () => req<AdminDashboard>('/api/admin/v2/dashboard'),
