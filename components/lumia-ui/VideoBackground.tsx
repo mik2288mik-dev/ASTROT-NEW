@@ -9,6 +9,7 @@ type VideoBackgroundProps = {
   scrim?: 'bottom' | 'light' | 'none';
   /** Show the poster only, never the clip. */
   still?: boolean;
+  onPlaybackState?: (state: 'playing' | 'waiting' | 'failed' | 'poster') => void;
 };
 
 type ConnectionInfo = { saveData?: boolean; effectiveType?: string };
@@ -28,7 +29,7 @@ function motionAllowed(): boolean {
  * clip is requested only after the block has been on screen, plays only while
  * it is on screen, and quietly gives way to the poster if it cannot load.
  */
-export function VideoBackground({ id, className, scrim = 'bottom', still = false }: VideoBackgroundProps) {
+export function VideoBackground({ id, className, scrim = 'bottom', still = false, onPlaybackState }: VideoBackgroundProps) {
   const host = useRef<HTMLSpanElement | null>(null);
   const video = useRef<HTMLVideoElement | null>(null);
   const [motion, setMotion] = useState(false);
@@ -36,10 +37,14 @@ export function VideoBackground({ id, className, scrim = 'bottom', still = false
   const [inView, setInView] = useState(true);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const playbackCallback = useRef(onPlaybackState);
+  playbackCallback.current = onPlaybackState;
 
   useEffect(() => {
-    setMotion(motionAllowed());
-  }, []);
+    const allowed = motionAllowed();
+    setMotion(allowed);
+    if (!allowed || still) playbackCallback.current?.('poster');
+  }, [id, still]);
 
   useEffect(() => {
     setReady(false);
@@ -95,8 +100,9 @@ export function VideoBackground({ id, className, scrim = 'bottom', still = false
           preload="auto"
           disablePictureInPicture
           tabIndex={-1}
-          onPlaying={() => setReady(true)}
-          onError={() => setFailed(true)}
+          onPlaying={() => { setReady(true); onPlaybackState?.('playing'); }}
+          onWaiting={() => onPlaybackState?.('waiting')}
+          onError={() => { setFailed(true); onPlaybackState?.('failed'); }}
         />
       ) : null}
       {scrim === 'none' ? null : <span className="video-bg-scrim" />}

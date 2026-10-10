@@ -7,6 +7,7 @@ import React, {
   useState,
 } from 'react';
 import { ChevronLeft, LoaderCircle, RefreshCw } from 'lucide-react';
+import { useTelemetrySection } from '../services/useAppTelemetry';
 import { useReducedMotion } from 'framer-motion';
 import type { UserProfile } from '../types';
 import { hasActivePremium } from '../lib/accessMatrix';
@@ -187,6 +188,7 @@ export const Dashboard = memo<DashboardProps>(({
   const premium = hasActivePremium(profile);
   const activePeriod: PersonalForecastPeriod = requestedPeriod === 'week' ? 'month' : requestedPeriod || 'day';
   const [futureReader, setFutureReader] = useState<FutureReader | null>(requestedPeriod === 'week' ? 'week' : null);
+  useTelemetrySection('dashboard', futureReader || activePeriod);
   const [futureMonthKey, setFutureMonthKey] = useState<string | undefined>(undefined);
   const [giftStatus, setGiftStatus] = useState<GiftStatus | null>(null);
   const timezone = normalizeForecastTimezone(profile.birthTimezone);

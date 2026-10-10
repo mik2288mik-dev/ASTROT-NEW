@@ -12,6 +12,9 @@ import {
   sanitizeUserAppEvent,
   type SanitizedUserAppEvent,
 } from '../lib/premiumAnalytics';
+import { captureAppTrace } from './appTelemetryClient';
+import { JOURNEY_EVENTS } from '../lib/journeyTelemetry';
+import { eventLabel } from '../lib/admin/eventTaxonomy';
 import {
   createDiagnosticTraceId,
   diagnosticErrorCode,
@@ -33,7 +36,7 @@ import {
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 const SESSION_STORAGE_KEY = 'lumia_app_session_id';
 const USER_APP_EVENT_QUEUE_STORAGE_KEY = 'lumia_user_app_event_queue_v1';
-const MAX_QUEUED_USER_APP_EVENTS = 40;
+const MAX_QUEUED_USER_APP_EVENTS = 500;
 const NATIVE_GUEST_TIMEOUT_MS = 15_000;
 
 let userAppEventDeliveryChain: Promise<void> = Promise.resolve();
@@ -266,7 +269,7 @@ async function flushQueuedUserAppEvents(
     if (!await sendUserAppEvent(delivered)) return;
     if (expectedGeneration !== userAppEventQueueGeneration) return;
     // Re-read after delivery: another call may have appended an event while the
-    // request was in flight. At the 40-event cap the delivered entry may already
+    // request was in flight. At the queue cap the delivered entry may already
     // have been evicted, so remove by stable id instead of dropping the new head.
     const latest = readUserAppEventQueue(storage);
     const deliveredIndex = delivered.eventId
@@ -321,10 +324,18 @@ export async function recordUserAppEvent(payload: {
   if (typeof window === 'undefined' || !payload.eventType) return;
   const sanitizedEvent = sanitizeUserAppEvent({
     ...payload,
+    eventPayload: { client_at_ms: Date.now(), ...payload.eventPayload },
     ...(productActivitySessionId ? { sessionId: productActivitySessionId } : {}),
     eventId: createUserAppEventId(),
   });
   if (!sanitizedEvent) return;
+  if (!(JOURNEY_EVENTS as readonly string[]).includes(sanitizedEvent.eventType)
+    && !['screen_view','activity_heartbeat','app_opened'].includes(sanitizedEvent.eventType)) {
+    captureAppTrace('product_event',{event_name:sanitizedEvent.eventType,label:eventLabel(sanitizedEvent.eventType),
+      ...(sanitizedEvent.section ? {section:sanitizedEvent.section} : {}),...(sanitizedEvent.source ? {source:sanitizedEvent.source} : {}),
+      ...Object.fromEntries(['feature_key','placement','period','outcome'].flatMap(key=>
+        typeof sanitizedEvent.eventPayload[key]==='string' ? [[key,sanitizedEvent.eventPayload[key]]] : []))});
+  }
 
   ensureUserAppEventOnlineRetry();
   // Persist before entering the delivery chain. A later purchase_success must

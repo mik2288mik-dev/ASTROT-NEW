@@ -76,6 +76,7 @@ import {
 import type { PremiumPlanId } from './lib/premiumPricing';
 import { getAdminStatus } from './services/adminService';
 import { useProductActivity } from './services/useProductActivity';
+import { useAppTelemetry, useTelemetrySection } from './services/useAppTelemetry';
 import { reportClientError } from './services/clientErrorReport';
 import {
     clearQueuedUserAppEvents,
@@ -410,6 +411,10 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         setPaywallContextState(nextContext);
     }, [androidUpdate.allowNavigation]);
     paywallContextRef.current = paywallContext;
+    useAppTelemetry(profile?.id, loading ? 'startup' : requiresExplicitAuthentication(authSessionMode) || !profile ? 'auth'
+        : !legalAcknowledgementGateContract.hasAcceptedEveryDocument(profile.legalAcknowledgements || null) ? 'legal'
+        : paywallContext ? 'paywall' : view, nativeActive);
+    useTelemetrySection(view, `navigation:${navigationSheet || ''}`, Boolean(navigationSheet && view !== 'admin'));
     const [premiumContinuation, setPremiumContinuation] = useState<PaywallContext | null>(null);
     const [pendingPremiumRecovery, setPendingPremiumRecovery] = useState<{
         context: PaywallContext;

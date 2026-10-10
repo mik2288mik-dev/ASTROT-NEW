@@ -12,6 +12,7 @@ import { TTS_AUDIO_SCHEMA_SQL } from './tts/ttsSchema';
 import { STORY_SCHEMA_SQL } from './stories/schema';
 import { FORECAST_GIFTS_SCHEMA_SQL } from './forecastGifts';
 import { DAILY_QUESTION_SCHEMA_SQL } from './dailyQuestionRepository';
+import { APP_TELEMETRY_SCHEMA_SQL } from './appTelemetryRepository';
 
 const DATABASE_URL = resolveDatabaseUrl();
 const MIGRATION_LOCK_KEY = 20260711;
@@ -4321,6 +4322,7 @@ export async function runMigrations(): Promise<void> {
     await cancelStaleScheduledNotifications(migrationDb);
     await verifyTablesExist(migrationDb);
 
+    await pool.query(APP_TELEMETRY_SCHEMA_SQL);
     log.info('All Lumia migrations completed successfully');
   } catch (error: any) {
     log.error('Migration failed', { error: error.message, stack: error.stack });

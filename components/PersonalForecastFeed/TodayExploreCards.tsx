@@ -159,7 +159,7 @@ export function TodayExploreCards({
   if (!onOpenNatal && !onOpenCompatibility && !onOpenMatrix) return null;
 
   return (
-    <nav className="today-explore" aria-label={copy.heading}>
+    <nav data-telemetry-content="Узнать себя глубже" className="today-explore" aria-label={copy.heading}>
       <h2 className="today-explore-heading">{copy.heading}</h2>
       <div className="today-explore-grid">
         {onOpenNatal ? (

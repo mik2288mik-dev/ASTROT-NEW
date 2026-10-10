@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NeboLogo } from '../../components/brand/NeboLogo';
 import { AdminActivityDashboard, AdminUserActivity } from '../../components/admin2/AdminActivity';
+import { AdminJourneys } from '../../components/admin2/AdminJourneys';
 import HomeCardsEditor from '../../components/admin2/HomeCardsEditor';
 import { AppPushSection } from '../../components/admin2/AppPushSection';
 import { StoriesSection } from '../../components/admin2/StoriesSection';
@@ -48,10 +49,11 @@ import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeB
  * Меню и действия гейтятся по правам из /api/admin/v2/me (сервер — источник правды).
  */
 
-type SectionId = 'dashboard' | 'users' | 'charts' | 'billing' | 'cms' | 'stories' | 'ai' | 'push' | 'comms' | 'support' | 'roles' | 'audit' | 'settings';
+type SectionId = 'dashboard' | 'journeys' | 'users' | 'charts' | 'billing' | 'cms' | 'stories' | 'ai' | 'push' | 'comms' | 'support' | 'roles' | 'audit' | 'settings';
 
 const NAV: Array<{ id: SectionId; label: string; perm: string; icon: string }> = [
   { id: 'dashboard', label: 'Дашборд', perm: 'analytics.view', icon: 'M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm9 0h7V11h-7v9Zm0-16v5h7V4h-7Z' },
+  { id: 'journeys', label: 'Аналитика продукта', perm: 'analytics.view', icon: 'M4 18h3V9H4v9Zm6 0h3V4h-3v14Zm6 0h3v-7h-3v7Z' },
   { id: 'users', label: 'Пользователи', perm: 'users.view', icon: 'M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-8 1a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 2c-2.7 0-8 1.3-8 4v2h9v-2c0-1 .4-1.9 1-2.6A14 14 0 0 0 8 14Zm8 0c-3 0-9 1.5-9 4.5V21h18v-2.5c0-3-6-4.5-9-4.5Z' },
   { id: 'charts', label: 'Натальные профили', perm: 'charts.view', icon: 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Zm1-13h-2v6l5 3 1-1.7-4-2.3Z' },
   { id: 'billing', label: 'Монетизация', perm: 'billing.view', icon: 'M3 6h18v12H3V6Zm2 2v2h14V8H5Zm0 4v4h8v-4H5Z' },
@@ -1829,6 +1831,7 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {visible.length === 0 ? <div className="admin2-empty">У этой роли пока нет доступных разделов. Обратитесь к владельцу приложения.</div> : null}
             {visible.some((section) => section.id === active) && <>
             {active === 'dashboard' && <DashboardSection />}
+            {active === 'journeys' && <AdminJourneys me={me} />}
             {active === 'users' && <UsersSection me={me} />}
             {active === 'charts' && <ChartsSection me={me} />}
             {active === 'billing' && <BillingSection me={me} />}

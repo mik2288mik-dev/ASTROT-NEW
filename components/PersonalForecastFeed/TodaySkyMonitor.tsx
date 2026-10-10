@@ -103,11 +103,11 @@ export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
     : null;
 
   return (
-    <section id="today-sky" className="today-sky" aria-labelledby="today-sky-title">
+    <section data-telemetry-content="Небо сегодня" id="today-sky" className="today-sky" aria-labelledby="today-sky-title">
       <h2 id="today-sky-title" className="today-explore-heading">Небо сегодня</h2>
       <div className={`today-sky-card${now ? ' is-live' : ''}`}>
         {now ? <LiveSky sunAltitude={now.sunAltitude} moonPhase={null} className="today-sky-canvas" /> : null}
-        <div className="today-sky-row">
+        <div data-telemetry-content="Небо сегодня · Луна" className="today-sky-row">
           <MoonGlyph illumination={moon.illumination} waxing={moon.waxing} />
           <div className="today-sky-copy">
             <p className="today-sky-kicker">Луна</p>
@@ -129,7 +129,7 @@ export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
 
         <div className="today-sky-divider" />
 
-        <div className="today-sky-row">
+        <div data-telemetry-content="Небо сегодня · Меркурий" className="today-sky-row">
           <MercuryGlyph />
           <div className="today-sky-copy">
             <p className="today-sky-kicker">Меркурий</p>

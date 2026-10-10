@@ -1,5 +1,7 @@
 import { CapacitorHttp, type HttpResponse } from '@capacitor/core';
 import { diagnosticLog } from '../lib/runtimeDiagnostics';
+import { captureAppTrace, currentTraceScreen, traceGeneration, hasTraceIdentity } from './appTelemetryClient';
+import { traceOperation } from '../lib/appTelemetry';
 import {
   diagnosticErrorCode,
   formatDiagnosticFields,
@@ -703,6 +705,7 @@ async function fetchOnce(
       /^\/api\/auth\/[A-Za-z0-9/_-]+$/.test(metadataPath)
       || metadataPath === '/api/users/session'
       || metadataPath === '/api/users/events'
+      || metadataPath === '/api/telemetry'
       || metadataPath === '/api/app/client-error'
     )) {
       if (controller.signal.aborted) throw requestWasAborted();
@@ -738,7 +741,7 @@ export async function apiFetchUnauthenticated(
   init: RequestInit = {},
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<Response> {
-  return fetchOnce(path, init, timeoutMs, false);
+  return traceApiRequest(path, init, () => fetchOnce(path, init, timeoutMs, false));
 }
 
 async function invalidateSession(
@@ -765,14 +768,14 @@ async function tryRefreshAfterAccessFailure(code: string, signal?: AbortSignal):
   return !!(await refreshNativeSession(session, signal));
 }
 
-export async function apiFetch(
+async function apiFetchCore(
   path: string,
   init: RequestInit = {},
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<Response> {
   const callerSuppliedAuthorization = new Headers(init.headers || {}).has('Authorization');
   const requestSignal = init.signal || undefined;
-  if (!callerSuppliedAuthorization) await prepareSessionBeforeRequest(path, requestSignal);
+  if (!callerSuppliedAuthorization && !(path === '/api/telemetry' && !hasTraceIdentity())) await prepareSessionBeforeRequest(path, requestSignal);
   const requestNativeMutation = nativeSessionMutation;
   const response = await fetchOnce(path, init, timeoutMs);
   const code = await responseSessionCode(response);
@@ -805,6 +808,29 @@ export async function apiFetch(
     if (invalidatedSession) await invalidateSession(invalidatedSession, requestNativeMutation);
   }
   return response;
+}
+
+async function traceApiRequest(path: string, init: RequestInit, execute: () => Promise<Response>): Promise<Response> {
+  const operation = traceOperation(path);
+  const started = Date.now();
+  const origin = currentTraceScreen();
+  const generation = traceGeneration();
+  const requestId = operation && typeof globalThis.crypto?.randomUUID === 'function' ? crypto.randomUUID() : null;
+  if (requestId) captureAppTrace('request_started', { request_id: requestId, operation: operation! });
+  try {
+    const response = await execute();
+    if (requestId && generation === traceGeneration()) captureAppTrace('request_finished', { request_id: requestId, operation: operation!, duration_ms: Date.now() - started,
+      status: response.status, outcome: response.ok ? 'success' : 'http_error' }, origin);
+    return response;
+  } catch (error) {
+    if (requestId && generation === traceGeneration()) captureAppTrace('request_finished', { request_id: requestId, operation: operation!, duration_ms: Date.now() - started,
+      status: 0, outcome: init.signal?.aborted ? 'cancelled' : 'network_error' }, origin);
+    throw error;
+  }
+}
+
+export async function apiFetch(path: string, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Response> {
+  return traceApiRequest(path, init, () => apiFetchCore(path, init, timeoutMs));
 }
 
 export async function clearNativeSession(): Promise<void> {

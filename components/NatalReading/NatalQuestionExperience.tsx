@@ -13,6 +13,7 @@ import {
   type NatalQuestionServiceError,
 } from '../../services/natalQuestionService';
 import { recordUserAppEvent } from '../../services/sessionService';
+import { captureAppTrace, traceGeneration } from '../../services/appTelemetryClient';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import {
   NatalEvidenceSheet,
@@ -133,6 +134,19 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   const [retryToken, setRetryToken] = useState(0);
   const [explanation, setExplanation] = useState<NatalExplanationTarget | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const draftRef = useRef(questionText);
+  draftRef.current = questionText;
+  useEffect(() => {
+    const generation=traceGeneration();
+    const save=()=> {if(draftRef.current && generation===traceGeneration()) captureAppTrace('question_draft',{text:draftRef.current,length:draftRef.current.length},'chart');};
+    window.addEventListener('pagehide',save);
+    return ()=> {save();window.removeEventListener('pagehide',save);};
+  },[]);
+  useEffect(() => {
+    if (!questionText) return;
+    const timer = window.setTimeout(() => captureAppTrace('question_draft', { text: questionText, length: questionText.length }, 'chart'), 1500);
+    return () => clearTimeout(timer);
+  }, [questionText]);
   const pairs = useMemo(() => buildQuestionPairs(snapshot?.messages || []), [snapshot?.messages]);
 
   useEffect(() => {
@@ -200,8 +214,16 @@ export const NatalQuestionExperience: React.FC<Props> = ({
     if (!userId || !value || !retryMatches || loading || submitting) return;
     setSubmitting(true);
     setError(null);
+    const started = Date.now();
+    const requestId = crypto.randomUUID();
+    const generation = traceGeneration();
+    captureAppTrace('question_submit', { request_id:requestId, text: value, length: value.length }, 'chart');
     try {
       const next = await askNatalQuestion(userId, value, chartId);
+      const question = next.messages.filter(message => message.role === 'user').at(-1);
+      const answer = next.messages.find(message => message.role === 'assistant' && Number(message.payload?.questionMessageId) === question?.id);
+      if(generation === traceGeneration()) captureAppTrace('question_result', { request_id:requestId, duration_ms: Date.now() - started, outcome: 'success',
+        ...(question ? { question_id: question.id } : {}), ...(answer ? { answer_id: answer.id } : {}) }, 'chart');
       setSnapshot(next);
       setQuestionText('');
       setUnansweredQuestionText(null);
@@ -218,6 +240,8 @@ export const NatalQuestionExperience: React.FC<Props> = ({
       });
     } catch (submitError) {
       const code = (submitError as NatalQuestionServiceError)?.code;
+      if(generation === traceGeneration()) captureAppTrace('question_result', { request_id:requestId, duration_ms: Date.now() - started, outcome: 'failed',
+        error_kind: typeof code === 'string' && /^[A-Z_]{1,80}$/.test(code) ? code : 'unknown' }, 'chart');
       if (
         code === 'NATAL_QUESTION_GENERATION_FAILED'
         || code === 'NATAL_QUESTION_VALIDATION_FAILED'
@@ -325,6 +349,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                 name="natal-question"
                 value={questionText}
                 onChange={(event) => setQuestionText(event.target.value)}
+                onBlur={() => {if(questionText) captureAppTrace('question_draft',{text:questionText,length:questionText.length},'chart');}}
                 maxLength={300}
                 rows={compact ? 1 : 3}
                 placeholder={language === 'ru'
@@ -362,7 +387,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         </section>
       )}
 
-      <section hidden={compact && !loading && !error && !pairs.length} className="natal-v3-question-history" aria-labelledby="natal-v3-question-history-title">
+      <section data-telemetry-private hidden={compact && !loading && !error && !pairs.length} className="natal-v3-question-history" aria-labelledby="natal-v3-question-history-title">
         <div className="natal-v3-section-heading">
           <h2 id="natal-v3-question-history-title">
             {language === 'ru' ? 'Твои вопросы и ответы' : 'Your questions and answers'}
@@ -389,7 +414,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                     <h3>{question.text}</h3>
                   </div>
                   {answer ? (
-                    <div className="natal-v3-assistant-answer">
+                    <div data-telemetry-content={`Ответ на вопрос #${answer.id}`} className="natal-v3-assistant-answer">
                       <p>{language === 'ru' ? 'Ответ по карте' : 'Answer from the chart'}</p>
                       <FormattedAiText
                         text={answer.text}

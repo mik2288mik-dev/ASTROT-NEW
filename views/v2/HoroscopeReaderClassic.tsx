@@ -1,5 +1,6 @@
 import { hasActivePremium } from '../../lib/accessMatrix';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTelemetrySection } from '../../services/useAppTelemetry';
 import { useReducedMotion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../types';
@@ -116,6 +117,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   }, [ownSign]);
 
   const [signIndex, setSignIndex] = useState(initialIndex);
+  useTelemetrySection('horoscope', `${ZODIAC_KEYS[signIndex]}:${period}`);
   const [readings, setReadings] = useState<Record<string, SignHoroscopeReadingV2 | null>>({});
   const [loadRevision, setLoadRevision] = useState(0);
   const [lastReadyReading, setLastReadyReading] = useState<ReadyReadingSnapshot | null>(null);

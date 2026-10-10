@@ -1,5 +1,6 @@
 import { NATAL_REPORT_ANSWER_KEYS } from './natalReading/reportCatalog';
 import { ACTIVITY_SCREENS, activityId } from './productActivity';
+import { JOURNEY_EVENTS, JOURNEY_KEYS, sanitizeJourneyValue } from './journeyTelemetry';
 
 export const PREMIUM_ANALYTICS_EVENTS = [
   'first_value_viewed',
@@ -43,6 +44,7 @@ export const PRODUCT_ANALYTICS_EVENTS = [
   'restore_success',
   'share',
   'invite_open',
+  ...JOURNEY_EVENTS,
 ] as const;
 
 export type ProductAnalyticsEventName = typeof PRODUCT_ANALYTICS_EVENTS[number];
@@ -172,10 +174,10 @@ const INVITE_KEYS = ['content_type', 'source'] as const;
 
 const ALLOWED_PAYLOAD_KEYS_BY_EVENT: Record<string, readonly string[]> = {
   app_opened: [],
-  onboarding_started: [],
-  onboarding_completed: [],
-  birth_data_started: [],
-  birth_data_completed: [],
+  onboarding_started: JOURNEY_KEYS,
+  onboarding_completed: JOURNEY_KEYS,
+  birth_data_started: JOURNEY_KEYS,
+  birth_data_completed: JOURNEY_KEYS,
   horoscope_opened: ['forecast_period', 'access_state'],
   forecast_period_selected: ['forecast_period', 'access_state'],
   first_result_ready: FIRST_RESULT_KEYS,
@@ -207,7 +209,8 @@ const ALLOWED_PAYLOAD_KEYS_BY_EVENT: Record<string, readonly string[]> = {
   restore_failed: [...PAYWALL_CONTEXT_KEYS, 'reason_code'],
   subscription_cancelled: [...PAYWALL_CONTEXT_KEYS, ...PLAN_KEYS, ...ENTITLEMENT_KEYS],
   subscription_expired: [...PAYWALL_CONTEXT_KEYS, ...PLAN_KEYS, ...ENTITLEMENT_KEYS],
-  screen_view: [],
+  screen_view: ['client_at_ms'],
+  ...Object.fromEntries(JOURNEY_EVENTS.map(name => [name, JOURNEY_KEYS])),
   paywall_view: [...PAYWALL_CONTEXT_KEYS, ...PLAN_KEYS, ...LEGACY_STORY_KEYS],
   natal_story_open: LEGACY_STORY_KEYS,
   natal_card_impression: LEGACY_STORY_KEYS,
@@ -512,6 +515,7 @@ function sanitizeValue(
   key: string,
   value: unknown,
 ): SanitizedAnalyticsValue | null {
+  if ((JOURNEY_KEYS as readonly string[]).includes(key)) return sanitizeJourneyValue(key, value);
   if (typeof value === 'string') return safeAnalyticsString(eventType, key, value);
   if (typeof value === 'boolean') return value;
   if (typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= Number.MAX_SAFE_INTEGER) {

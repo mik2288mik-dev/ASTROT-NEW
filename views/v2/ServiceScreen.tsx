@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useTelemetrySection } from '../../services/useAppTelemetry';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import {
   EditorialChartsButton,
@@ -60,6 +61,7 @@ export function ServiceScreen({
   const [internalTab, setInternalTab] = useState<ServiceTab>(initialTab);
   const rootRef = useRef<HTMLDivElement>(null);
   const activeTab = controlledTab ?? internalTab;
+  useTelemetrySection('services', activeTab);
   const ru = profile.language !== 'en';
 
   const selectTab = (tab: ServiceTab) => {

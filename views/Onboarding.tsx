@@ -19,6 +19,7 @@ import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTim
 import { validateDate, validateName } from '../lib/validation';
 import { onboardingCalculationStatus } from '../lib/onboardingCalculationStatus';
 import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
+import { useOnboardingTelemetry } from '../services/useOnboardingTelemetry';
 
 type OnboardingStart = 'stories' | 'birth';
 type OnboardingScreen = 'hello' | 'natal' | 'future' | 'compat' | 'calm' | 'more' | 'choice' | 'birth' | 'calculating' | 'waiting' | 'horoscope';
@@ -116,6 +117,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   const dateRef = useRef<HTMLInputElement | null>(null);
   const timeRef = useRef<HTMLInputElement | null>(null);
   const placeRef = useRef<HTMLInputElement | null>(null);
+  const telemetry = useOnboardingTelemetry(screen, accountProfile.id);
+  const openPrepared = () => { telemetry.action('open_result'); telemetry.finish('created'); onOpenPrepared(); };
+  const skipSetup = () => { telemetry.action('look'); telemetry.finish('without_chart'); onSkip(); };
+  const signIn = () => { telemetry.action('sign_in'); telemetry.finish('sign_in'); onSignIn(); };
 
   useEffect(() => {
     const tg = (window as any).Telegram?.WebApp;
@@ -224,6 +229,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   };
 
   const focusField = (field: FieldKey) => {
+    telemetry.event('birth_validation_error', { field, error_kind: 'validation' });
     const refs: Record<FieldKey, React.RefObject<HTMLInputElement | null>> = {
       name: nameRef,
       date: dateRef,
@@ -237,7 +243,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
     const currentIndex = welcomeScreens.indexOf(screen);
     if (currentIndex < 0) return;
     const nextScreen = welcomeScreens[currentIndex + direction];
-    if (nextScreen) setScreen(nextScreen);
+    if (nextScreen) { telemetry.action(direction === 1 ? 'next' : 'back'); setScreen(nextScreen); }
   };
 
   const advanceStory = () => moveWelcome(1);
@@ -261,6 +267,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   };
 
   const chooseTimeMode = (mode: Exclude<BirthTimeMode, 'range'>) => {
+    telemetry.action(`time_${mode}`);
     setTimeMode(mode);
     clearError();
     if (mode === 'unknown') {
@@ -277,6 +284,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
 
   const handleSubmit = async () => {
     if (submittingRef.current) return;
+    telemetry.action('submit');
     const nameValidation = validateName(name);
     if (!nameValidation.isValid) {
       setError(!name.trim()
@@ -318,6 +326,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
       return;
     }
 
+    telemetry.event('birth_data_completed', { time_mode: timeMode });
     await prepare({
       name: name.trim(),
       gender,
@@ -350,13 +359,21 @@ export const Onboarding: React.FC<OnboardingProps> = ({
     setSubmittedProfile(draft);
     if (!readingOpenRef.current) setScreen('calculating');
     clearError();
+    telemetry.wait('chart');
     try {
-      const ready = await onComplete(draft, setPreparationPhase);
-      if (!ready) return;
+      const ready = await onComplete(draft, phase => {
+        telemetry.wait(phase);
+        setPreparationPhase(phase);
+      });
+      if (!ready) { telemetry.finishWait('cancelled'); return; }
+      telemetry.finishWait('ready');
+      telemetry.event('onboarding_result_ready');
       setPrepared(true);
       showActionFeedback(ACTION_FEEDBACK.onboardingReady);
-      if (!readingOpenRef.current) onOpenPrepared();
+      if (!readingOpenRef.current) { telemetry.finish('created'); onOpenPrepared(); }
     } catch (submitError: any) {
+      telemetry.finishWait('failed');
+      telemetry.event('onboarding_failed', { error_kind: /network|fetch|интернет|связаться/i.test(String(submitError?.message || '')) ? 'network' : 'calculation' });
       setPreparationError(submitError?.message || 'Не удалось подготовить разбор. Проверь интернет и попробуй ещё раз.');
       setScreen((current) => current === 'calculating' ? 'waiting' : current);
     } finally {
@@ -373,12 +390,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   const preparationTitle = preparationPhase === 'chart' ? 'Рассчитываем карту' : 'Собираем твой разбор';
   const calculationNote = 'Расчёт карты может занять до 1 минуты. Это время нужно для точного расчёта положений планет на момент вашего рождения.';
   const editBirthDetails = () => {
+    telemetry.action('edit');
     readingOpenRef.current = false;
     setScreen('birth');
     setError(preparationError);
     setErrorField(null);
   };
-  const retryPreparation = () => { if (submittedProfile) void prepare(submittedProfile); };
+  const retryPreparation = () => { if (submittedProfile) { telemetry.action('retry'); void prepare(submittedProfile); } };
 
   if (screen === 'horoscope' && submittedProfile) {
     return (
@@ -389,8 +407,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({
           onboarding
           onBack={() => {
             readingOpenRef.current = false;
-            if (prepared) onOpenPrepared();
-            else setScreen('waiting');
+            if (prepared) openPrepared();
+            else { telemetry.action('return_wait'); setScreen('waiting'); }
           }}
           preparationNotice={(
             <section className="onboarding-preparation-notice" aria-live="polite">
@@ -404,13 +422,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({
                 <>
                   <strong><CheckCircle2 size={20} aria-hidden="true" />Твой личный разбор готов</strong>
                   <p>Можно возвращаться на главную.</p>
-                  <button type="button" className="fresh-btn-primary" onClick={onOpenPrepared}>Открыть разбор</button>
+                  <button type="button" className="fresh-btn-primary" onClick={openPrepared}>Открыть разбор</button>
                 </>
               ) : (
                 <>
                   <strong><LoaderCircle size={20} className="onboarding-wait-spinner" aria-hidden="true" />{preparationTitle}</strong>
                   <p>Можешь читать гороскоп — подготовка продолжается.</p>
-                  <button type="button" className="onboarding-wait-link" onClick={() => { readingOpenRef.current = false; setScreen('waiting'); }}>Вернуться к ожиданию</button>
+                  <button type="button" className="onboarding-wait-link" onClick={() => { telemetry.action('return_wait'); readingOpenRef.current = false; setScreen('waiting'); }}>Вернуться к ожиданию</button>
                 </>
               )}
             </section>
@@ -427,7 +445,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
       data-onboarding-phase={isWelcome ? 'welcome' : 'setup'}
       data-onboarding-screen={screen}
     >
-      {SCREEN_VIDEOS[screen] ? <VideoBackground key={screen} id={SCREEN_VIDEOS[screen] as VideoBackgroundId} scrim="bottom" /> : null}
+      {SCREEN_VIDEOS[screen] ? <VideoBackground key={screen} id={SCREEN_VIDEOS[screen] as VideoBackgroundId} scrim="bottom" onPlaybackState={telemetry.video} /> : null}
       <div
         className="meou-onboarding-shell"
         onClick={isIntro
@@ -468,7 +486,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
               else retreatStory();
             }}
           >
-            <button type="button" className="ob-skip" onClick={() => setScreen('choice')}>Пропустить</button>
+            <button type="button" className="ob-skip" onClick={() => { telemetry.action('skip_stories'); setScreen('choice'); }}>Пропустить</button>
             <OnboardingShowcase slide={screen as ShowcaseSlide} />
             <button type="button" className="ob-next" onClick={advanceStory}>Дальше</button>
           </section>
@@ -476,7 +494,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
 
         {screen === 'choice' ? (
           <section className="meou-choice meou-choice--ready">
-            <OnboardingReady onCreate={() => setScreen('birth')} onLook={onSkip} onSignIn={onSignIn} />
+            <OnboardingReady onCreate={() => { telemetry.action('create'); setScreen('birth'); }} onLook={skipSetup} onSignIn={signIn} />
           </section>
         ) : null}
 
@@ -486,7 +504,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({
               {<><h1>Немного данных,<br />и карта готова<span>.</span></h1><p>Нам нужны ваши дата, время<br />и место рождения. Без точного времени<br />тоже можно, мы всё учтём.</p><BirthOrbitArtwork /></>}
             </div>
 
-            <form className="meou-birth-form" noValidate onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
+            <form className="meou-birth-form" noValidate onFocusCapture={event => {
+              const input = event.target;
+              if (!(input instanceof HTMLInputElement)) return;
+              const field = input.id === 'onboarding-name' ? 'name' : input.id === 'onboarding-birth-date' ? 'date' : input.id === 'onboarding-birth-time' ? 'time' : input.id === 'onboarding-birth-place' ? 'place' : null;
+              if (field) telemetry.field(field, Boolean(input.value.trim()));
+            }} onInputCapture={event => {
+              const input = event.target;
+              if (!(input instanceof HTMLInputElement)) return;
+              const field = input.id === 'onboarding-name' ? 'name' : input.id === 'onboarding-birth-date' ? 'date' : input.id === 'onboarding-birth-time' ? 'time' : input.id === 'onboarding-birth-place' ? 'place' : null;
+              if (field) telemetry.field(field, Boolean(input.value.trim()));
+            }} onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
               <label className="meou-field" htmlFor="onboarding-name">
                 <span>Имя</span>
                 <input id="onboarding-name" ref={nameRef} name="name" type="text" autoComplete="given-name" minLength={2} maxLength={100} value={name} placeholder={'Ваше имя'} onChange={(event) => { setName(event.target.value); clearError(); }} aria-invalid={errorField === 'name' || undefined} aria-describedby={errorField === 'name' ? 'onboarding-error' : undefined} />
@@ -582,7 +610,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
                   <ZodiacSymbol sign={waitingSign} size={48} />
                   <div><strong>{getZodiacSign('ru', waitingSign)} — сегодня</strong><span>Гороскоп для твоего знака</span></div>
                 </div>
-                <button type="button" className="fresh-btn-primary" onClick={() => { readingOpenRef.current = true; setScreen('horoscope'); }}>Почитать гороскоп</button>
+                <button type="button" className="fresh-btn-primary" onClick={() => { telemetry.action('read_horoscope'); readingOpenRef.current = true; setScreen('horoscope'); }}>Почитать гороскоп</button>
                 {!preparationError ? <p>Или останься здесь — разбор появится сам.</p> : null}
               </div>
             ) : null}

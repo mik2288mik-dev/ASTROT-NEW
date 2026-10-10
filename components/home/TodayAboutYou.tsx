@@ -197,7 +197,7 @@ export function TodayAboutYou({ userId, todayKey, birthDate, birthTime, birthTim
   };
 
   return (
-    <section className="about-you" aria-labelledby="about-you-title">
+    <section data-telemetry-content="Сегодня в твоей карте" className="about-you" aria-labelledby="about-you-title">
       <h2 id="about-you-title" className="today-explore-heading about-you-heading">
         Сегодня о тебе <small>меняется каждый день</small>
       </h2>
