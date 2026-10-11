@@ -47,6 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       releaseDate: episode.releaseDate,
       next,
       nextReleaseTomorrow: !next && episodes.some((item) => item.number === number + 1),
+      ...(req.query.scenes === '1' ? { scenes: episode.scenes } : {}),
     });
   } catch (error: any) {
     const status = typeof error?.status === 'number' ? error.status : 503;

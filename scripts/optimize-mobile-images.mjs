@@ -28,6 +28,8 @@ export async function optimizeMobileImages(outputDirectory) {
     if (original.length < MIN_BYTES) continue;
     try {
       const metadata = await sharp(original).metadata();
+      // A single-frame re-encode would flatten a moving story picture in the APK.
+      if ((metadata.pages || 1) > 1) continue;
       let image = sharp(original, { failOn: 'none' });
       if ((metadata.width || 0) > MAX_WIDTH) image = image.resize({ width: MAX_WIDTH, withoutEnlargement: true });
       const optimized = extension === '.png'

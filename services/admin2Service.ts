@@ -360,6 +360,7 @@ export type AdminStoryEpisode = {
   status: 'ready' | 'needs_review' | 'approved' | 'hold';
   title: string;
   body: string;
+  scenes?: import('../lib/stories/scenes').StoryScene[];
   summary: string;
   facts: string[];
   hook: string;
@@ -516,7 +517,7 @@ export const admin2 = {
   deleteNotificationTemplate: (id: number) =>
     req<{ ok: boolean }>(`/api/admin/v2/notifications/templates/${id}`, { method: 'DELETE' }),
   stories: () => req<AdminStoriesOverview>('/api/admin/v2/stories'),
-  updateStoryEpisode: (body: { seriesId: string; number: number; title?: string; body?: string; hook?: string; action: 'save' | 'approve' | 'hold' | 'release' }) =>
+  updateStoryEpisode: (body: { seriesId: string; number: number; title?: string; body?: string; hook?: string; scenes?: import('../lib/stories/scenes').StoryScene[]; action: 'save' | 'approve' | 'hold' | 'release' }) =>
     req<{ ok: boolean; episode: AdminStoryEpisode }>('/api/admin/v2/stories', { method: 'PATCH', body }),
   generateStories: (seriesId?: string) => req<{ ok: boolean }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'generate', seriesId } }),
   rewriteStoryEpisode: (seriesId: string, number: number, direction?: string) => req<{ ok: boolean; written: number }>('/api/admin/v2/stories', { method: 'POST', body: { action: 'rewrite', seriesId, number, direction } }),

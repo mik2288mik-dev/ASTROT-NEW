@@ -1,5 +1,6 @@
 import { apiFetch } from './apiClient';
 import { getTelegramInitDataHeaders } from './sessionService';
+import { parseStoryScenes, type StoryScene } from '../lib/stories/scenes';
 
 export type StoryAccess = 'open' | 'free_unlock_available' | 'locked';
 export type StorySeriesSummary = {
@@ -18,6 +19,7 @@ export type StoryEpisode = {
   releaseDate: string;
   next: number | null;
   nextReleaseTomorrow: boolean;
+  scenes?: StoryScene[];
 };
 export type StoryError = Error & { code?: string; status?: number };
 
@@ -43,6 +45,7 @@ export function loadStories(): Promise<StoriesOverview> {
 }
 
 /** `unlock` spends today's free episode of the series. */
-export function loadEpisode(seriesId: string, number: number, unlock = false): Promise<StoryEpisode> {
-  return call<StoryEpisode>(`/api/stories/${encodeURIComponent(seriesId)}/${number}`, unlock ? 'POST' : 'GET');
+export async function loadEpisode(seriesId: string, number: number, unlock = false): Promise<StoryEpisode> {
+  const episode = await call<StoryEpisode>(`/api/stories/${encodeURIComponent(seriesId)}/${number}?scenes=1`, unlock ? 'POST' : 'GET');
+  return { ...episode, scenes: parseStoryScenes(episode.scenes, episode.text) };
 }

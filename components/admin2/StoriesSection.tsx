@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { admin2, type AdminStoriesOverview, type AdminStoryEpisode, type AdminStorySeriesBible } from '../../services/admin2Service';
 import { EMPTY_SERIES, StorySeriesEditor } from './StorySeriesEditor';
 import { StoryPlanner } from './StoryPlanner';
+import { sceneAssetsForSeries } from '../../lib/stories/sceneCatalog';
+import { storyParagraphs, type StoryScene } from '../../lib/stories/scenes';
+import { apiUrl } from '../../services/apiClient';
 
 const card = 'admin2-card';
 const btnPrimary = 'admin2-button admin2-button--primary';
@@ -31,7 +34,7 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
   const [overview, setOverview] = useState<AdminStoriesOverview | null>(null);
   const [seriesId, setSeriesId] = useState<string | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
-  const [draft, setDraft] = useState<{ title: string; body: string; hook: string } | null>(null);
+  const [draft, setDraft] = useState<{ title: string; body: string; hook: string; scenes: StoryScene[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
   const series = overview?.series.find((item) => item.id === seriesId) ?? null;
   const episode = series?.episodes.find((item) => item.number === selected) ?? null;
   useEffect(() => {
-    setDraft(episode ? { title: episode.title, body: episode.body, hook: episode.hook } : null);
+    setDraft(episode ? { title: episode.title, body: episode.body, hook: episode.hook, scenes: episode.scenes ?? [] } : null);
   }, [episode?.seriesId, episode?.number, episode?.updatedAt]);
 
   const lastNumber = useMemo(() => Math.max(0, ...(series?.episodes.map((item) => item.number) ?? [0])), [series]);
@@ -203,6 +206,42 @@ export function StoriesSection({ canEdit, canPublish }: { canEdit: boolean; canP
             Крючок в конце
             <textarea className={inputCls} rows={3} value={draft.hook} disabled={!canEdit} onChange={(e) => setDraft({ ...draft, hook: e.target.value })} />
           </label>
+          <fieldset className="mb-4 space-y-3" disabled={!canEdit || busy}>
+            <legend className="text-sm font-semibold">Живые сцены</legend>
+            <p className="text-xs text-slate-500">Выберите действие и абзац, рядом с которым оно происходит. Текст серии остаётся полным.</p>
+            {draft.scenes.map((scene, index) => (
+              <div key={scene.id} className="flex flex-wrap items-start gap-2">
+                {scene.kind === 'image' ? <img src={apiUrl(scene.src)} alt={scene.alt} className="h-20 w-20 rounded-lg object-cover" /> : <video src={apiUrl(scene.src)} poster={apiUrl(scene.poster)} muted playsInline loop controls className="h-20 w-20 rounded-lg object-cover" aria-label={scene.alt} />}
+                <div className="min-w-0 flex-1 space-y-2">
+                  <label className="block text-xs">Сцена
+                    <select className={inputCls} value={scene.src} onChange={(event) => {
+                      const asset = sceneAssetsForSeries(episode.seriesId).find((item) => item.src === event.target.value);
+                      if (asset) setDraft({ ...draft, scenes: draft.scenes.map((item, i) => i === index ? { ...item, kind: asset.kind, src: asset.src, poster: asset.poster, alt: asset.action } : item) });
+                    }}>
+                      {sceneAssetsForSeries(episode.seriesId).map((asset) => <option key={asset.id} value={asset.src}>{asset.title}</option>)}
+                    </select>
+                  </label>
+                  <label className="block text-xs">Место в рассказе
+                    <select className={inputCls} value={scene.anchor} onChange={(event) => setDraft({ ...draft, scenes: draft.scenes.map((item, i) => i === index ? { ...item, anchor: event.target.value } : item) })}>
+                      {!storyParagraphs(draft.body).some((paragraph) => paragraph.includes(scene.anchor)) ? <option value={scene.anchor}>Абзац изменён — выберите место заново</option> : <option value={scene.anchor}>{storyParagraphs(draft.body).find((p) => p.includes(scene.anchor))?.slice(0, 90)}</option>}
+                      {storyParagraphs(draft.body).filter((p) => p.trim().length >= 12).map((paragraph, i) => <option key={i} value={paragraph.slice(0, 300)}>{paragraph.slice(0, 90)}</option>)}
+                    </select>
+                  </label>
+                  <label className="block text-xs">Расположение
+                    <select className={inputCls} value={scene.side} onChange={(event) => setDraft({ ...draft, scenes: draft.scenes.map((item, i) => i === index ? { ...item, side: event.target.value as StoryScene['side'] } : item) })}>
+                      <option value="right">Справа</option><option value="left">Слева</option>
+                    </select>
+                  </label>
+                </div>
+                <button type="button" className={btnGhost} onClick={() => setDraft({ ...draft, scenes: draft.scenes.filter((_, i) => i !== index) })}>Убрать сцену</button>
+              </div>
+            ))}
+            {canEdit && sceneAssetsForSeries(episode.seriesId).length ? <button type="button" className={btnGhost} disabled={draft.scenes.length >= 24} onClick={() => {
+              const asset = sceneAssetsForSeries(episode.seriesId)[0];
+              const paragraph = storyParagraphs(draft.body).find((p) => p.trim().length >= 12 && !draft.scenes.some((item) => p.includes(item.anchor)));
+              if (paragraph) setDraft({ ...draft, scenes: [...draft.scenes, { id: `scene-${Date.now()}`, kind: asset.kind, anchor: paragraph.slice(0, 300), src: asset.src, poster: asset.poster, alt: asset.action, side: 'right' }] });
+            }}>Добавить сцену</button> : null}
+          </fieldset>
           <div className="flex flex-wrap gap-2">
             {canEdit ? (
               <button type="button" className={btnGhost} disabled={busy} onClick={() => run(() => admin2.updateStoryEpisode({ seriesId: episode.seriesId, number: episode.number, ...draft, action: 'save' }), 'Сохранено')}>

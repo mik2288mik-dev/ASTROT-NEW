@@ -9,8 +9,8 @@ jest.mock('../lib/db', () => ({
         return { rows: rows.filter((row) => row.series_id === params[0]).sort((a, b) => Number(a.number) - Number(b.number)) };
       }
       if (sql.includes('INSERT INTO story_episodes')) {
-        const [series_id, number, release_date, title, body, summary, facts, hook, status, issues] = params as string[];
-        rows.push({ series_id, number, release_date, title, body, summary, facts: JSON.parse(facts), hook, status, issues: JSON.parse(issues), updated_at: new Date() });
+        const [series_id, number, release_date, title, body, summary, facts, hook, status, issues, , scenes] = params as string[];
+        rows.push({ series_id, number, release_date, title, body, summary, facts: JSON.parse(facts), hook, status, issues: JSON.parse(issues), scenes: JSON.parse(scenes), updated_at: new Date() });
         return { rows: [], rowCount: 1 };
       }
       throw new Error(`unexpected sql ${sql}`);
@@ -29,7 +29,7 @@ describe('story buffer', () => {
     const writer = async (_series: unknown, number: number, previous: PreviousEpisode[]): Promise<WrittenEpisode> => {
       seen.push(previous.length);
       const hook = `В конце серии ${number} Ёж сказал, что сигнал повторился.`;
-      return { title: `Серия про сигнал ${number}`, text: `${body}\n\n${hook}`, summary: `Итог серии ${number}.`, facts: [`факт ${number}`], hook, charactersUsed: ['Савва', 'Ирина'], newCharacters: [] };
+      return { title: `Серия про сигнал ${number}`, text: `${body}\n\n${hook}`, summary: `Итог серии ${number}.`, facts: [`факт ${number}`], hook, charactersUsed: ['Савва', 'Ирина'], newCharacters: [], sceneCues: [{ assetId: 'polyn-repair', anchor: 'Савва Громов чинил фильтр', side: 'right' }] };
     };
     const written = await ensureEpisodeBuffer('polyn-station', { today: '2026-10-03', writer });
     expect(written).toBe(STORY_BUFFER_DAYS);
@@ -38,6 +38,7 @@ describe('story buffer', () => {
     expect(dates[0]).toBe('2026-10-03');
     expect(dates[dates.length - 1]).toBe('2026-10-12');
     expect(rows.every((row) => row.status === 'ready')).toBe(true);
+    expect(rows.every((row) => (row.scenes as unknown[]).length === 1)).toBe(true);
 
     // Next day only the missing day is added.
     expect(await ensureEpisodeBuffer('polyn-station', { today: '2026-10-04', writer })).toBe(1);

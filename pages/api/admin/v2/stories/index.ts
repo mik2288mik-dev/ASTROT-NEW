@@ -51,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'PATCH') {
-      const { seriesId, number, title, body, hook, action } = (req.body || {}) as Record<string, unknown>;
+      const { seriesId, number, title, body, hook, scenes, action } = (req.body || {}) as Record<string, unknown>;
       const ctx = await requireAdminPermission(req, action === 'save' ? 'content.edit' : 'content.publish');
       if (typeof seriesId !== 'string' || !(await findManagedSeries(seriesId, { includeDisabled: true })) || !Number.isSafeInteger(Number(number))) {
         throw new AdminAuthError(400, 'BAD_EPISODE', 'seriesId and number are required');
@@ -66,6 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         title: clean(title, 120),
         body: clean(body, 20_000),
         hook: clean(hook, 1_000),
+        scenes,
         action,
         reviewer: ctx.userId,
       });
