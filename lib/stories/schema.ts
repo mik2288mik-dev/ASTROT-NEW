@@ -23,6 +23,7 @@ export const STORY_SCHEMA_SQL = `
     PRIMARY KEY (series_id, number)
   );
   CREATE INDEX IF NOT EXISTS story_episodes_release_idx ON story_episodes (series_id, release_date);
+  ALTER TABLE story_episodes ADD COLUMN IF NOT EXISTS scenes JSONB NOT NULL DEFAULT '[]'::jsonb;
   CREATE TABLE IF NOT EXISTS story_unlocks (
     user_id TEXT NOT NULL,
     series_id TEXT NOT NULL,

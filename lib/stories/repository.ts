@@ -17,6 +17,8 @@ import {
   type WrittenEpisode,
 } from './episodeWriter';
 import { releasedEpisodeNumbers, type EpisodeRow } from './access';
+import { parseStoryScenes, type StoryScene } from './scenes';
+import { scenesFromCues } from './sceneCatalog';
 
 /** Days of episodes kept ready, today included, so a failed day never leaves a gap. */
 export const STORY_BUFFER_DAYS = 10;
@@ -37,6 +39,7 @@ export type StoredEpisode = EpisodeRow & {
   seriesId: string;
   title: string;
   body: string;
+  scenes: StoryScene[];
   summary: string;
   facts: string[];
   hook: string;
@@ -54,6 +57,7 @@ function toEpisode(row: Record<string, any>): StoredEpisode {
     releaseDate: date,
     title: row.title,
     body: row.body,
+    scenes: parseStoryScenes(row.scenes, row.body),
     summary: row.summary,
     facts: Array.isArray(row.facts) ? row.facts : [],
     hook: row.hook || '',
@@ -106,7 +110,7 @@ export function ensureEpisodeBuffer(seriesId: string, options: { today?: string;
     const writer = options.writer ?? writeEpisodeWithAi;
     let written = 0;
     let last = episodes[episodes.length - 1];
-    const previous: PreviousEpisode[] = episodes.map((episode) => ({ number: episode.number, title: episode.title, summary: episode.summary, facts: episode.facts }));
+    const previous: PreviousEpisode[] = episodes.map((episode) => ({ number: episode.number, title: episode.title, summary: episode.summary, facts: episode.facts, hook: episode.hook }));
     while (written < (options.maxNew ?? STORY_BUFFER_DAYS)) {
       const releaseDate = last ? addDays(last.releaseDate < today ? addDays(today, -1) : last.releaseDate, 1) : today;
       if (releaseDate > addDays(today, STORY_BUFFER_DAYS - 1)) break;
@@ -115,13 +119,14 @@ export function ensureEpisodeBuffer(seriesId: string, options: { today?: string;
       if (!episode) break;
       const issues = checkEpisodeConsistency(series, episode, previous);
       const status = issues.length ? 'needs_review' : 'ready';
+      const scenes = scenesFromCues(seriesId, episode.text, episode.sceneCues);
       await pool.query(
-        `INSERT INTO story_episodes (series_id, number, release_date, title, body, summary, facts, hook, status, issues, model)
-         VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10::jsonb, $11) ON CONFLICT (series_id, number) DO NOTHING`,
-        [seriesId, number, releaseDate, episode.title, episode.text, episode.summary, JSON.stringify(episode.facts), episode.hook, status, JSON.stringify(issues), OPENAI_LUNA_MODEL],
+        `INSERT INTO story_episodes (series_id, number, release_date, title, body, summary, facts, hook, status, issues, model, scenes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10::jsonb, $11, $12::jsonb) ON CONFLICT (series_id, number) DO NOTHING`,
+        [seriesId, number, releaseDate, episode.title, episode.text, episode.summary, JSON.stringify(episode.facts), episode.hook, status, JSON.stringify(issues), OPENAI_LUNA_MODEL, JSON.stringify(scenes)],
       );
-      previous.push({ number, title: episode.title, summary: episode.summary, facts: episode.facts });
-      last = { seriesId, number, releaseDate, status, title: episode.title, body: episode.text, summary: episode.summary, facts: episode.facts, hook: episode.hook, issues, reviewedByHuman: false, reviewedAt: null, updatedAt: new Date().toISOString() };
+      previous.push({ number, title: episode.title, summary: episode.summary, facts: episode.facts, hook: episode.hook });
+      last = { seriesId, number, releaseDate, status, title: episode.title, body: episode.text, scenes, summary: episode.summary, facts: episode.facts, hook: episode.hook, issues, reviewedByHuman: false, reviewedAt: null, updatedAt: new Date().toISOString() };
       written += 1;
     }
     return written;
@@ -183,17 +188,26 @@ export async function updateEpisode(input: {
   title?: string;
   body?: string;
   hook?: string;
+  scenes?: unknown;
   action: 'save' | 'approve' | 'hold' | 'release';
   reviewer: string;
 }, pool: Pool = getPool()): Promise<StoredEpisode | null> {
   await ensureStorySchema(pool);
+  let scenes: StoryScene[] | null = null;
+  if (input.scenes !== undefined) {
+    const current = await pool.query('SELECT body FROM story_episodes WHERE series_id = $1 AND number = $2', [input.seriesId, input.number]);
+    if (!current.rows[0]) return null;
+    scenes = parseStoryScenes(input.scenes, input.body ?? current.rows[0].body);
+    if (!Array.isArray(input.scenes) || scenes.length !== input.scenes.length) throw Object.assign(new Error('Проверь сцены и их места в тексте'), { status: 400, code: 'BAD_STORY_SCENES' });
+  }
   const status = input.action === 'approve' || input.action === 'release' ? 'approved' : input.action === 'hold' ? 'hold' : null;
   const result = await pool.query(
     `UPDATE story_episodes SET
        title = COALESCE($3, title), body = COALESCE($4, body), hook = COALESCE($5, hook),
-       status = COALESCE($6, status), reviewed_by_human = TRUE, reviewed_by = $7, reviewed_at = NOW(), updated_at = NOW()
+       status = COALESCE($6, status), reviewed_by_human = TRUE, reviewed_by = $7, reviewed_at = NOW(), updated_at = NOW(),
+       scenes = COALESCE($8::jsonb, scenes)
      WHERE series_id = $1 AND number = $2 RETURNING *`,
-    [input.seriesId, input.number, input.title ?? null, input.body ?? null, input.hook ?? null, status, input.reviewer],
+    [input.seriesId, input.number, input.title ?? null, input.body ?? null, input.hook ?? null, status, input.reviewer, scenes === null ? null : JSON.stringify(scenes)],
   );
   return result.rows[0] ? toEpisode(result.rows[0]) : null;
 }

@@ -99,6 +99,8 @@ await optimizeMobileImages(outputDirectory);
 // Calm sounds, music and video backgrounds are streamed from the server; only posters stay in the app.
 fs.rmSync(path.join(outputDirectory, 'audio', 'library'), { recursive: true, force: true });
 fs.rmSync(path.join(outputDirectory, 'video', 'library'), { recursive: true, force: true });
+// Inline story scenes use apiUrl(), so new episodes and media arrive from the server.
+fs.rmSync(path.join(outputDirectory, 'assets', 'stories', 'scenes'), { recursive: true, force: true });
 
 const sourceCommitOverride = [
   process.env.SOURCE_COMMIT,

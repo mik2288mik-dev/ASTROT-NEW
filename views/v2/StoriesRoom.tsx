@@ -11,6 +11,8 @@ import { loadFeatureState, peekFeatureState, saveFeatureState } from '../../serv
 import { noteNativeStoryRead } from '../../services/nativeNotifications';
 import { VideoBackground } from '../../components/lumia-ui/VideoBackground';
 import type { VideoBackgroundId } from '../../lib/videoBackgrounds';
+import { StoryInlineScene } from '../../components/lumia-ui/StoryInlineScene';
+import { storyParagraphs } from '../../lib/stories/scenes';
 
 export const STORY_COVERS: Record<string, string> = {
   'quiet-lane': '/assets/stories/quiet-lane.webp',
@@ -45,6 +47,7 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
   const [episode, setEpisode] = useState<StoryEpisode | null>(null);
   const [episodeState, setEpisodeState] = useState<'loading' | 'locked' | 'unlock' | 'error' | null>(null);
   const [marks, setMarks] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'stories'));
+  const [scenesPaused, setScenesPaused] = useState(false);
 
   const refresh = useCallback(() => {
     setError(false);
@@ -121,10 +124,17 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
           <article className={`stories-reader is-${series?.genre ?? 'detective'}`} lang={ru ? 'ru' : 'en'}>
             <p className="stories-kicker">{ru ? `Серия ${episode.number}` : `Episode ${episode.number}`} · {readingMinutes(episode.text)} {ru ? 'мин чтения' : 'min read'}</p>
             <h1 className="stories-title">{episode.title}</h1>
+            {episode.scenes?.length ? <button type="button" className="stories-motion-button"
+              aria-pressed={scenesPaused} onClick={() => setScenesPaused((value) => !value)}>
+              {scenesPaused ? (ru ? 'Оживить сцены' : 'Play scenes') : (ru ? 'Остановить сцены' : 'Pause scenes')}
+            </button> : null}
             <div className="stories-body">
-              {episode.text.split(/\n{2,}/u).map((paragraph, index, all) => (
-                <p key={index} className={index === all.length - 1 ? 'is-hook' : index === 0 ? 'is-first' : undefined}>{paragraph}</p>
-              ))}
+              {storyParagraphs(episode.text).map((paragraph, index, all) => {
+                const scene = episode.scenes?.find((item) => paragraph.includes(item.anchor));
+                return <p key={`${episode.seriesId}:${episode.number}:${index}`} className={index === all.length - 1 ? 'is-hook' : index === 0 && /^\p{L}/u.test(paragraph) ? 'is-first' : undefined}>
+                  {scene ? <StoryInlineScene key={scene.id} scene={scene} paused={scenesPaused} /> : null}{paragraph}
+                </p>;
+              })}
             </div>
             <footer className="stories-next">
               {episode.next ? (
