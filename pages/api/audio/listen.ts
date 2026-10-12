@@ -19,6 +19,8 @@ import { TTS_DEFAULT_VOICE } from '../../../lib/tts/openaiSpeech';
 import { ensureAudio } from '../../../lib/tts/ttsStore';
 import { findSleepStory } from '../../../lib/sleepStories';
 import { findWeeklySleepStory } from '../../../lib/sleepStoriesWeekly';
+import { findRecordedSleepStory } from '../../../lib/recordedSleepStories';
+import { recordedStoryTicket } from '../../../lib/tts/recordedStoryAudio';
 import { findManagedSeries } from '../../../lib/stories/catalog';
 import { listEpisodes, moscowDayKey } from '../../../lib/stories/repository';
 import { releasedEpisodeNumbers } from '../../../lib/stories/access';
@@ -55,6 +57,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ audioId: ticket.id, durationSec: ticket.durationSec, cached: ticket.cached });
     }
     if (source?.type === 'sleep_story') {
+      const recorded = typeof source.id === 'string' ? findRecordedSleepStory(source.id) : null;
+      if (recorded) {
+        if (!recorded.free && !(await getPremiumEntitlementState(userId)).isPremium) {
+          return res.status(403).json({ code: 'LISTEN_PREMIUM_REQUIRED' });
+        }
+        // These are existing Russian recordings, including in the English UI.
+        const ticket = await recordedStoryTicket(recorded);
+        return res.status(200).json({ audioId: ticket.id, durationSec: ticket.durationSec, cached: ticket.cached });
+      }
       // Authored stories: voiced once for everyone, kept without expiry.
       const story = typeof source.id === 'string' ? (findSleepStory(source.id) ?? await findWeeklySleepStory(source.id)) : null;
       if (!story) return res.status(400).json({ code: 'LISTEN_SOURCE_INVALID' });

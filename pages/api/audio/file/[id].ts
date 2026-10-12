@@ -1,10 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { readStoredAudio } from '../../../../lib/tts/ttsStore';
+import { readRecordedStoryAudio } from '../../../../lib/tts/recordedStoryAudio';
 
 export const config = { api: { responseLimit: false } };
 
 /**
- * Serves cached audio by its id (a SHA-256 of the voiced text), with byte
+ * Serves cached TTS or an existing recording by its opaque id, with byte
  * ranges so the player can seek. The id is only known to someone who received
  * it from /api/audio/listen; an <audio> element cannot send auth headers, so
  * the id itself is the access key.
@@ -17,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const id = String(req.query.id || '').replace(/\.mp3$/u, '');
   if (!/^[a-f0-9]{64}$/u.test(id)) return res.status(404).end();
   try {
-    const audio = await readStoredAudio(id);
+    const audio = await readRecordedStoryAudio(id) ?? await readStoredAudio(id);
     if (!audio) return res.status(404).end();
     const total = audio.bytes.length;
     res.setHeader('Content-Type', audio.mime);
