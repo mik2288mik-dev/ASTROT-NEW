@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useScreenBack } from '../../lib/useScreenBack';
 import { ArrowLeft, Check, ChevronRight, Lock, RotateCcw } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
@@ -68,6 +69,8 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
     () => peekExploreCharts(userId)?.find((chart) => chart.is_primary)?.chart_data ?? null,
   );
   const [screen, setScreen] = useState<Screen>({ kind: 'list' });
+  const back = () => setScreen({ kind: 'list' });
+  useScreenBack(screen.kind !== 'list', back);
 
   useEffect(() => {
     let active = true;
@@ -142,7 +145,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
     const chosen = screen.answers[screen.index];
     return (
       <div className="fresh-page tests-room tests-room--run">
-        <AppTopBar title={test.title[language]} onBack={() => setScreen({ kind: 'list' })} />
+        <AppTopBar title={test.title[language]} onBack={back} />
         <section className="tests-run" aria-live="polite">
           <div className="tests-progress" role="progressbar" aria-valuemin={1} aria-valuemax={test.questions.length} aria-valuenow={screen.index + 1}>
             <span style={{ width: `${((screen.index + 1) / test.questions.length) * 100}%` }} />
@@ -185,7 +188,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
     const insight = buildChartInsight(test, chartData, screen.score.top, language);
     return (
       <div className="fresh-page tests-room tests-room--result">
-        <AppTopBar title={test.title[language]} onBack={() => setScreen({ kind: 'list' })} />
+        <AppTopBar title={test.title[language]} onBack={back} />
         <article className="tests-result">
           <p className="tests-result-kicker">{ru ? `Твой результат · ${dateLabel(screen.finishedAt)}` : `Your result · ${dateLabel(screen.finishedAt)}`}</p>
           <h1 className="tests-result-title">{result.title[language]}</h1>

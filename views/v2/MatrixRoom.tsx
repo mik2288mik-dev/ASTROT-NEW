@@ -5,6 +5,7 @@ import { computeMatrix, type MatrixLifeArea, type MatrixPosition } from '../../l
 import { getArcana, MATRIX_SUBTITLE, MATRIX_TITLE } from '../../lib/matrixArcana';
 import { toDateInputValue } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { useScreenBack } from '../../lib/useScreenBack';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { EditorialProfileButton } from '../../components/editorial/EditorialScreenChrome';
 import { ACTION_FEEDBACK, showActionFeedback } from '../../components/lumia-ui/ActionFeedback';
@@ -90,6 +91,7 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false, o
   const calculate = () => { lumiaSelectionHaptic(); setCalculatedDate(date || null); setSelectedId('center'); setScreen({ kind: 'home' }); if (date) showActionFeedback(ACTION_FEEDBACK.done); };
   const title = screen.kind === 'point' ? screen.point.label : screen.kind === 'theme' && themes ? themes[screen.theme].title : screen.kind === 'full' ? (ru ? 'Полный разбор' : 'Full reading') : MATRIX_TITLE[lang];
   const internal = screen.kind !== 'home';
+  useScreenBack(internal, goHome);
 
   if (!result || !selected || !themes) return <div className={`${embedded ? '' : 'fresh-page '} ${styles.page}`}>
     {!embedded && <AppTopBar title={MATRIX_TITLE[lang]} onBack={onBack} rightAction={<EditorialProfileButton label={ru ? 'Открыть мои карты' : 'Open my charts'} onClick={onOpenProfile} />} />}

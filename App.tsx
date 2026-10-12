@@ -2242,7 +2242,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         const handler = handleSurfaceBack;
         const isRoot = !paywallContext
             && !navigationSheet
-            && (view === 'dashboard' || view === 'onboarding');
+            && (view === 'onboarding' || (view === 'dashboard' && navigationHistoryRef.current.length === 0));
         if (isRoot) {
             backButton.hide?.();
             return;
@@ -2270,7 +2270,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             if (detail.handled) return;
 
             const currentView = viewRef.current;
-            if (currentView !== 'dashboard' && currentView !== 'onboarding') {
+            if (currentView !== 'onboarding' && (currentView !== 'dashboard' || navigationHistoryRef.current.length > 0)) {
                 void handleBack();
                 return;
             }
@@ -2331,15 +2331,15 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
 
     const openBottomToday = useCallback(() => {
         setDashboardPeriod('day');
-        navigateTo('dashboard', { replace: true });
+        navigateTo('dashboard');
     }, [navigateTo]);
 
     const openBottomZodiac = useCallback(() => {
-        navigateTo('horoscope', { replace: true });
+        navigateTo('horoscope');
     }, [navigateTo]);
 
     const openBottomNatal = useCallback(() => {
-        navigateTo('chart', { replace: true });
+        navigateTo('chart');
     }, [navigateTo]);
 
     const openSynastryFromHome = useCallback(() => {
@@ -2404,11 +2404,11 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         setPaywallContext(pending.context);
     }, [pendingPremiumRecovery]);
 
-    // Свайп назад от левого края (как в iOS) — на всех экранах, кроме корневых/модальных
+    // Today is a root only when there is no previous screen; overlays close first.
     const canSwipeBack =
-        view !== 'dashboard' &&
         view !== 'onboarding' &&
-        view !== 'paywall';
+        view !== 'paywall' &&
+        (view !== 'dashboard' || navigationHistoryRef.current.length > 0 || Boolean(navigationSheet || paywallContext));
     useSwipeBack({
         onSwipeBack: handleSurfaceBack,
         enabled: canSwipeBack,
@@ -2805,7 +2805,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <MatrixRoom
                             profile={profile}
-                            onBack={() => navigateTo('services', { replace: true })}
+                            onBack={() => { void handleBack(); }}
                             onOpenProfile={openProfileSheet}
                             onRequestPremium={() => { void requestPremium('matrix', { placement: 'matrix', featureKey: 'matrix_full', triggerType: 'locked_feature' }); }}
                         />

@@ -4,6 +4,7 @@ import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { AssetSlot } from '../../components/lumia-ui/AssetSlot';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { useScreenBack } from '../../lib/useScreenBack';
 import { STORY_GENRE_LABELS } from '../../lib/stories/series';
 import { FREE_STORY_EPISODES, isFreeStorySeries } from '../../lib/stories/access';
 import { loadEpisode, loadStories, type StoriesOverview, type StoryEpisode, type StorySeriesSummary } from '../../services/storiesService';
@@ -48,6 +49,12 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
   const [episodeState, setEpisodeState] = useState<'loading' | 'locked' | 'unlock' | 'error' | null>(null);
   const [marks, setMarks] = useState<Record<string, unknown>>(() => peekFeatureState(userId, 'stories'));
   const [scenesPaused, setScenesPaused] = useState(false);
+  const back = () => {
+    if (screen.kind === 'read') setScreen({ kind: 'series', seriesId: screen.seriesId });
+    else if (screen.kind === 'series') setScreen({ kind: 'list' });
+    else onBack();
+  };
+  useScreenBack(screen.kind !== 'list', back);
 
   const refresh = useCallback(() => {
     setError(false);
@@ -91,7 +98,7 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
     const series = seriesOf(screen.seriesId);
     return (
       <div className="fresh-page stories-room stories-room--read">
-        <AppTopBar title={series?.title ?? (ru ? 'Рассказы' : 'Stories')} onBack={() => setScreen({ kind: 'series', seriesId: screen.seriesId })} />
+        <AppTopBar title={series?.title ?? (ru ? 'Рассказы' : 'Stories')} onBack={back} />
         {episodeState === 'loading' ? <p className="stories-status" role="status"><LoaderCircle className="audio-mini-player-spinner" size={18} aria-hidden="true" />{ru ? 'Открываем серию…' : 'Opening the episode…'}</p> : null}
         {episodeState === 'error' ? (
           <div className="stories-status">
@@ -158,7 +165,7 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
     const continueNumber = series.episodes.find((item) => item.number === read + 1)?.number ?? null;
     return (
       <div className="fresh-page stories-room">
-        <AppTopBar title={series.title} onBack={() => setScreen({ kind: 'list' })} />
+        <AppTopBar title={series.title} onBack={back} />
         <section className={`stories-series-head${STORY_VIDEOS[series.id] ? ' video-hero' : ''}`}>
           {STORY_VIDEOS[series.id] ? <VideoBackground id={STORY_VIDEOS[series.id]} /> : null}
           <AssetSlot src={STORY_COVERS[series.id]} className="stories-cover" />
