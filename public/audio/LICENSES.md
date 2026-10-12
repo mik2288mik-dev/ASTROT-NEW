@@ -42,6 +42,31 @@ Streamed by `/api/audio/library/<file>`, cached on the device after the first pl
 | Generative music: «Тихое утро», «Вечерний свет», «Медленные волны» | Generated at playback time (`lib/soundscapes/synth.ts`) | Own work of the NEBO project |
 | Sleep stories | Texts written for NEBO (`lib/sleepStories.ts`), voiced by OpenAI TTS and cached in `tts_audio` | Texts — own work; generated audio belongs to the account owner under the OpenAI terms |
 
+## Recorded stories in `server-assets/audio/stories/`
+
+Original 128 kbps LibriVox MP3 files, with no additional lossy encoding. These
+files are outside `public/` and the mobile export. `/api/audio/listen` checks
+Premium before issuing an opaque playback ticket for `/api/audio/file/<id>.mp3`.
+The Docker server image includes the private directory explicitly.
+
+LibriVox dedicates its recordings to the public domain:
+https://librivox.org/pages/public-domain/ . Its guarantee is for the USA; other
+countries' copyright rules still apply. The source texts here are Danilevsky
+(1829–1890), Afanasyev's 1860s collection (1826–1871), and the Japanese tales
+translated by Aleksandr Fyodorov-Davydov (1875–1936). Each selected chapter has
+one reader. The recordings remain in Russian in either interface language.
+
+| File | Reading | Reader | Access | Original source |
+|---|---|---|---|---|
+| `librivox-steppe.mp3` | Степь | Anastasiia Solokha | Free | https://archive.org/download/stepnyyeskazki_2204_librivox/stepnyyeskazki_01_danilevsky_128kb.mp3 |
+| `librivox-wonder-teapot.mp3` | Диковинный чайник | Anastasiia Solokha | Premium | https://archive.org/download/yaponskienarodnyeskazki_1607_librivox/yaponskienarodnyeskazki_07_fyodorov-davydov_128kb.mp3 |
+| `librivox-japanese-children.mp3` | Японские дети | Anastasiia Solokha | Premium | https://archive.org/download/yaponskienarodnyeskazki_1607_librivox/yaponskienarodnyeskazki_09_fyodorov-davydov_128kb.mp3 |
+| `librivox-frost-sun-wind.mp3` | Мороз, солнце и ветер | Hanna Ponomarenko | Free | https://archive.org/download/russianfairytales3_2412_librivox/russianfairytales3_01_afanasyev_128kb.mp3 |
+| `librivox-frog-princess.mp3` | Царевна-лягушка | Лена Сухая | Free | https://archive.org/download/russianfairytales2_2103_librivox/russianfairytales2_23_afanasyev_128kb.mp3 |
+| `librivox-may-night.mp3` | Сон в майскую ночь | Anastasiia Solokha | Premium | https://archive.org/download/stepnyyeskazki_2204_librivox/stepnyyeskazki_05_danilevsky_128kb.mp3 |
+| `librivox-mouse-house.mp3` | Теремок мышки | Лена Сухая | Free | https://archive.org/download/russianfairytales3_2412_librivox/russianfairytales3_16_afanasyev_128kb.mp3 |
+| `librivox-ivan-the-fool.mp3` | Иван-дурак | Лена Сухая | Premium | https://archive.org/download/russianfairytales2_2103_librivox/russianfairytales2_06_afanasyev_128kb.mp3 |
+
 ## Adding audio
 
 - Only CC0 / public-domain recordings or our own recordings.

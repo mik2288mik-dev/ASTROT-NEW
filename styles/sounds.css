@@ -259,6 +259,18 @@
   gap: 0.5rem;
 }
 
+.sounds-story-art {
+  width: 3.5rem;
+  height: 4.5rem;
+  flex: none;
+  border-radius: 0.7rem;
+}
+
+.sounds-story-art + .sounds-row-icon {
+  width: 1.8rem;
+  height: 1.8rem;
+}
+
 .sounds-sleep-timer {
   justify-content: flex-start;
 }

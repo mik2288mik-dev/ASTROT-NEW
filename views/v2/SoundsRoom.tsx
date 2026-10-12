@@ -16,6 +16,7 @@ import {
   type SoundGroup,
 } from '../../lib/soundscapes/library';
 import { SLEEP_STORIES, type SleepStory } from '../../lib/sleepStories';
+import { RECORDED_SLEEP_STORIES, recordedStoryDuration, type RecordedSleepStory } from '../../lib/recordedSleepStories';
 import { videoBackgroundPoster, type VideoBackgroundId } from '../../lib/videoBackgrounds';
 import { playMusic, playSoundscape, setAmbientTimer, setMusicQueue, stopAmbient, useAmbientState } from '../../services/ambientPlayer';
 import { pausePlayback, playTrack, setSleepTimer, togglePlayback, unlockPlayback, useAudioPlayback } from '../../services/audioPlayback';
@@ -50,6 +51,7 @@ const STORY_VIDEOS: Record<string, VideoBackgroundId> = {
 };
 const STORY_VIDEO_POOL: VideoBackgroundId[] = ['sleep-sea-house', 'sleep-night-train', 'sleep-garden-rain'];
 const STORIES_PAGE = 5;
+type StoryCard = SleepStory | RecordedSleepStory;
 
 /** The authored stories have their own clip; a weekly one gets one of the three, the same one every time. */
 function storyVideo(id: string): VideoBackgroundId {
@@ -93,11 +95,11 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
     void loadWeeklySleepStories().then((items) => { if (alive) setWeekly(items); });
     return () => { alive = false; };
   }, []);
-  // New ones come first; the authored three follow. Five at a time, the rest under the button.
-  const allStories = [...weekly, ...SLEEP_STORIES];
+  // Keep weekly and authored stories first; the existing recordings follow.
+  const allStories: readonly StoryCard[] = [...weekly, ...SLEEP_STORIES, ...RECORDED_SLEEP_STORIES];
   const shownStories = allStories.slice(0, storiesShown);
 
-  const playStory = async (story: SleepStory) => {
+  const playStory = async (story: StoryCard) => {
     lumiaSelectionHaptic();
     if (!story.free && !premium) {
       onRequestPremium?.();
@@ -228,17 +230,22 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
             const trackKey = `story:${story.id}:${language}`;
             const playing = playback.trackKey === trackKey;
             const phase = storyPhase?.id === story.id ? storyPhase.state : null;
+            const video = 'video' in story ? story.video : storyVideo(story.id);
+            const duration = 'durationSec' in story
+              ? recordedStoryDuration(story.durationSec)
+              : `${story.minutes ?? Math.round(estimateSpeechSeconds(story.text[language], 'sleep') / 60)} ${ru ? 'мин' : 'min'}`;
             return (
               <li key={story.id} className={`sounds-story${playing ? ' is-active' : ''}`}>
                 <button type="button" className={`sounds-story-main${playing ? ' video-hero' : ''}`} onClick={() => { void playStory(story); }} disabled={phase === 'preparing'}>
-                  {playing ? <VideoBackground id={storyVideo(story.id)} /> : null}
+                  {playing ? <VideoBackground id={video} /> : null}
+                  {'video' in story ? <AssetSlot src={videoBackgroundPoster(video)} className="sounds-story-art" fit="cover" /> : null}
                   <span className="sounds-row-icon" aria-hidden="true">
                     {phase === 'preparing' ? <LoaderCircle className="audio-mini-player-spinner" size={16} /> : locked ? <Lock size={15} /> : playing && playback.playing ? <Pause size={16} /> : <Headphones size={16} />}
                   </span>
                   <span className="sounds-row-copy">
                     <strong>{story.title[language]}</strong>
                     <small>{story.teaser[language]}</small>
-                    <em>{`${story.minutes ?? Math.round(estimateSpeechSeconds(story.text[language], 'sleep') / 60)} ${ru ? 'мин' : 'min'} · ${story.voiceLabel[language]}${story.kind === 'calm' ? (ru ? ' · днём' : ' · daytime') : ''}${locked ? ' · NEBO Premium' : ''}`}</em>
+                    <em>{`${duration} · ${story.voiceLabel[language]}${'kind' in story && story.kind === 'calm' ? (ru ? ' · днём' : ' · daytime') : ''}${locked ? ' · NEBO Premium' : ''}`}</em>
                   </span>
                 </button>
                 {phase === 'error' ? <p className="listen-forecast-error" role="alert">{ru ? 'Голос пока не готов. Попробуй ещё раз через минуту.' : 'The voice is not ready yet. Try again in a minute.'}</p> : null}
@@ -270,7 +277,7 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
           </button>
         ) : null}
       </section>
-      <p className="sounds-note sounds-note--bottom">{ru ? 'Звуки и музыка складываются прямо в телефоне, работают без интернета.' : 'Sounds and music are made right on the phone, they work offline.'}</p>
+      <p className="sounds-note sounds-note--bottom">{ru ? 'Для прослушивания рассказов нужен интернет. Звуки и музыка с пометкой «без интернета» доступны офлайн.' : 'Stories need an internet connection. Sounds and music marked “offline” are available without it.'}</p>
     </div>
   );
 }
