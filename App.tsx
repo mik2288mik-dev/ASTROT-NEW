@@ -142,6 +142,8 @@ import { MoodWeekRoom } from './views/v2/MoodWeekRoom';
 import { SoundsRoom } from './views/v2/SoundsRoom';
 import { StoriesRoom } from './views/v2/StoriesRoom';
 import { startMediaSessionBridge } from './services/mediaSessionBridge';
+import { useAmbientState } from './services/ambientPlayer';
+import { AmbientMiniPlayer } from './components/audio/AmbientMiniPlayer';
 import {
     canRestorePaywallFocus,
     getPaywallFocusableElements,
@@ -382,6 +384,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     const [authSessionMode, setAuthSessionModeState] = useState<AuthSessionMode>('automatic');
     const [authGateMessage, setAuthGateMessage] = useState<string | null>(null);
     const [view, setViewState] = useState<ViewState>('onboarding');
+    const ambient = useAmbientState();
     const setView = useCallback((nextView: ViewState) => {
         if (androidUpdate.allowNavigation(nextView)) setViewState(nextView);
         else setViewState('dashboard');
@@ -2602,6 +2605,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     const isPrimaryChartView = !isSavedPersonChartView;
     const effectiveChartId = activeChartId ?? primaryChartId ?? undefined;
     const showsBottomNavigation = !paywallContext && shouldShowLumiaBottomNavigation(view);
+    const showsAmbientPlayer = view !== 'sounds' && Boolean(ambient.soundscape || ambient.music);
 
     const premiumPromotionAllowed = firstValueReached && !hasActivePremium(profile);
     const dashboardProps = {
@@ -2708,6 +2712,8 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         <div
             className={`lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
                 showsBottomNavigation ? 'has-today-bottom-navigation' : ''
+            } ${
+                showsAmbientPlayer ? 'has-ambient-player' : ''
             } ${
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
             } ${
@@ -2964,6 +2970,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                         {renderMyCharts('charts')}
                     </div>
                 ) : null}
+                {showsAmbientPlayer ? <AmbientMiniPlayer language={profile.language === 'en' ? 'en' : 'ru'} onOpen={() => navigateTo('sounds')} /> : null}
             </main>
 
             {paywallContext ? (

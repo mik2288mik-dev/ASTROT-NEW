@@ -335,3 +335,60 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* A large scene uses the existing streamed clip, with sound controls below it. */
+.sound-scene {
+  box-sizing: border-box;
+  width: min(calc(100% - 1.5rem), 40rem);
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 1.5rem;
+  background: #141719;
+  color: #fff;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sound-scene::backdrop { background: rgba(0, 0, 0, 0.6); }
+.sound-scene-content { width: 100%; }
+.sound-scene-video { position: relative; height: min(60dvh, 35rem); overflow: hidden; }
+.sound-scene-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  cursor: pointer;
+}
+.sound-scene-caption { position: absolute; right: 1.25rem; bottom: 1.25rem; left: 1.25rem; }
+.sound-scene-caption h2 { margin: 0; font-size: 1.5rem; line-height: 1.2; }
+.sound-scene-caption p { margin: 0.4rem 0 0; font-size: 0.9rem; line-height: 1.4; }
+.sound-scene-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 1rem; }
+.sound-scene button { min-height: 44px; font: inherit; font-size: 0.8rem; }
+.sound-scene-controls button,
+.sound-scene-variants button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border: 0;
+  border-radius: 999px;
+  background: #303638;
+  color: #fff;
+  cursor: pointer;
+}
+.sound-scene-variants { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0 1rem 1rem; }
+.sound-scene-variants button[aria-pressed='true'] { background: #fff; color: #141719; }
+.sound-scene-error { margin: 0; padding: 0 1rem 1rem; font-size: 0.85rem; line-height: 1.4; }
+.sound-scene button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.sounds-timer .sounds-stop { min-height: 44px; }

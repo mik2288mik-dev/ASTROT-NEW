@@ -4,6 +4,7 @@
  * work offline. Sources and licences are listed in public/audio/LICENSES.md.
  */
 import type { MusicPiece, Soundscape } from './synth';
+import type { VideoBackgroundId } from '../videoBackgrounds';
 
 export type SoundGroup = 'rain' | 'forest' | 'stream' | 'sea' | 'fire' | 'cafe' | 'night';
 export type TrackSource = { author: string; url: string; license: 'CC0 1.0' | 'Public domain' };
@@ -21,6 +22,11 @@ export type MusicTrack = {
 } & ({ kind: 'file'; file: string; source: TrackSource } | { kind: 'synth'; synth: MusicPiece });
 
 export const SOUND_GROUPS: readonly SoundGroup[] = ['rain', 'forest', 'stream', 'sea', 'fire', 'cafe', 'night'];
+
+export const SOUND_VIDEOS: Record<SoundGroup, VideoBackgroundId> = {
+  rain: 'sounds-rain', forest: 'sounds-forest', stream: 'sounds-stream',
+  sea: 'sounds-sea', fire: 'sounds-fire', cafe: 'sounds-cafe', night: 'sounds-night',
+};
 
 export const SOUND_GROUP_LABELS: Record<SoundGroup, { ru: string; en: string }> = {
   rain: { ru: 'Дождь', en: 'Rain' },
