@@ -236,11 +236,11 @@ export function CosmicSheet({
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+    window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack, true);
     return () => {
       window.cancelAnimationFrame(frame);
       document.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+      window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack, true);
       const shouldRestoreFocus = unregisterSheet(sheetId);
       if (shouldRestoreFocus) restoreSheetFocus(previousFocusRef);
       previousFocusRef.current = null;

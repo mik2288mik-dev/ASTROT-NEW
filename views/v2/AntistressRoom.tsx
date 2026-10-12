@@ -7,6 +7,7 @@ import { weeklyDiarySummary } from '../../lib/antistressDiary';
 import { VideoBackground } from '../../components/lumia-ui/VideoBackground';
 import { MANNEQUIN_HINT, WoodenMannequin, type GuideStep, type MannequinPart } from '../../components/antistress/WoodenMannequin';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { useScreenBack } from '../../lib/useScreenBack';
 import {
   BODY_RELEASE_SECONDS,
   BODY_STEPS,
@@ -550,6 +551,7 @@ export function AntistressRoom({ profile, onBack, onOpenSounds, onRequestPremium
     else if (screen === 'player') setScreen('breathe');
     else setScreen('hub');
   };
+  useScreenBack(screen !== 'hub', back);
 
   return (
     <div ref={rootRef} className="fresh-page antistress-room">

@@ -217,9 +217,10 @@ export function AstrologyEncyclopedia({
   useEffect(() => {
     if (current.screen === 'catalog') return;
     const handleNativeBack = (event: Event) => {
-      dispatch({ type: 'back' });
       const detail = (event as CustomEvent<NativeBackEventDetail>).detail;
+      if (detail?.handled) return;
       if (detail) detail.handled = true;
+      dispatch({ type: 'back' });
     };
     window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
     return () => window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);

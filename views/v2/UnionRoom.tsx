@@ -27,6 +27,7 @@ import { getSignCompatibility, calculateExtendedSynastry, getCompatibilityPrevie
 import type { CompatibilityPreview } from '../../lib/synastry/compatibilityPreview';
 import { formatDisplayDate, toDateInputValue } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { useScreenBack } from '../../lib/useScreenBack';
 import { compatLevel, getCompatScore, strongestAreaReason, sunSignFromDate, DIMENSION_LABELS, type CompatResult, type CompatDimension } from '../../lib/synastry/compatScore';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
@@ -1409,16 +1410,19 @@ Check our compatibility from your side in NEBO.`
     scrollCompatibilityToTop();
   };
 
+  const backToEntry = () => {
+    lumiaSelectionHaptic();
+    setEntryMode(selected?.kind === 'sign' ? 'sign' : 'birth');
+    setScreen('add');
+    scrollCompatibilityToTop();
+  };
+  useScreenBack(screen === 'result', backToEntry);
+
   const compatibilityHeader = (withBack = false) => (
     <>
       <AppTopBar
         title={ru ? 'Совместимость' : 'Compatibility'}
-        onBack={withBack ? () => {
-          lumiaSelectionHaptic();
-          setEntryMode(selected?.kind === 'sign' ? 'sign' : 'birth');
-          setScreen('add');
-          scrollCompatibilityToTop();
-        } : undefined}
+        onBack={withBack ? backToEntry : undefined}
         rightAction={(
           <EditorialChartsButton
             label={ru ? 'Открыть мои карты' : 'Open my charts'}
