@@ -58,8 +58,18 @@ LibriVox dedicates its recordings to the public domain:
 https://librivox.org/pages/public-domain/ . Its guarantee is for the USA; other
 countries' copyright rules still apply. The source texts here are Danilevsky
 (1829–1890), Afanasyev's 1860s collection (1826–1871), and the Japanese tales
-translated by Aleksandr Fyodorov-Davydov (1875–1936). Each selected chapter has
-one reader. The recordings remain in Russian in either interface language.
+translated by Aleksandr Fyodorov-Davydov (1875–1936), plus Pushkin's Belkin Tales
+(1799–1837) and Turgenev's A Sportsman's Sketches (1818–1883). Each selected
+chapter has one reader. The recordings remain in Russian in either interface
+language.
+
+The eight longer additions were checked over their full length with offline
+speech recognition, and promotion-like phrases were reviewed. No advertising
+was found inside the story bodies. Their edited beginnings and endings were
+checked again, preserving the spoken titles, epigraphs and final story text.
+Every audio packet in each export was verified against a contiguous span of
+the original recording. Reviewed exports are pinned by SHA-256 in
+`__tests__/recorded-sleep-stories.test.ts`.
 
 | File | Reading | Reader | Access | Original source |
 |---|---|---|---|---|
@@ -69,6 +79,14 @@ one reader. The recordings remain in Russian in either interface language.
 | `librivox-frog-princess.mp3` | Царевна-лягушка | Лена Сухая | Free | https://archive.org/download/russianfairytales2_2103_librivox/russianfairytales2_23_afanasyev_128kb.mp3 |
 | `librivox-mouse-house.mp3` | Теремок мышки | Лена Сухая | Free | https://archive.org/download/russianfairytales3_2412_librivox/russianfairytales3_16_afanasyev_128kb.mp3 |
 | `librivox-ivan-the-fool.mp3` | Иван-дурак | Лена Сухая | Premium | https://archive.org/download/russianfairytales2_2103_librivox/russianfairytales2_06_afanasyev_128kb.mp3 |
+| `librivox-young-lady-peasant.mp3` | Барышня-крестьянка | Xenium5 | Premium | https://archive.org/download/belkintales_1406_librivox/belkintales_05_pushkin_128kb.mp3 |
+| `librivox-blizzard.mp3` | Метель | Xenium5 | Premium | https://archive.org/download/belkintales_1406_librivox/belkintales_02_pushkin_128kb.mp3 |
+| `librivox-forest-steppe.mp3` | Лес и степь | tovarisch | Premium | https://archive.org/download/zapiskiohotnika_2409_librivox/zapiskiohotnika_25_turgenev_128kb.mp3 |
+| `librivox-bezhin-meadow.mp3` | Бежин луг | tovarisch | Premium | https://archive.org/download/zapiskiohotnika_2409_librivox/zapiskiohotnika_08_turgenev_128kb.mp3 |
+| `librivox-rejuvenating-apples.mp3` | Молодильные яблоки и живая вода | Mark Chulsky | Premium | https://archive.org/download/russianfairytales2_2103_librivox/russianfairytales2_28_afanasyev_128kb.mp3 |
+| `librivox-koschei.mp3` | Кощей Бессмертный | Mark Chulsky | Premium | https://archive.org/download/russianfairytales2_2103_librivox/russianfairytales2_25_afanasyev_128kb.mp3 |
+| `librivox-katigoroshek.mp3` | Катигорошек | Hanna Ponomarenko | Premium | https://archive.org/download/russianfairytales3_2412_librivox/russianfairytales3_02_afanasyev_128kb.mp3 |
+| `librivox-ivan-marfa.mp3` | Иван-царевич и Марфа-царевна | Лена Сухая | Premium | https://archive.org/download/russianfairytales2_2103_librivox/russianfairytales2_21_afanasyev_128kb.mp3 |
 
 ## Adding audio
 

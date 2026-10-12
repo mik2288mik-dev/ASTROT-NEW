@@ -19,6 +19,14 @@ import publicLibrary from '../pages/api/audio/library/[name]';
 const root = path.join(__dirname, '..');
 // Edited recording integrity: protects the reviewed title and story boundaries.
 const EDITED_SHA256: Record<string, string> = {
+  'librivox-forest-steppe': 'dfde65b93420984944127720a806076141f2207708bbf9fdb1feb5262909c915',
+  'librivox-ivan-marfa': '3d7a8cd9db80c7138383321148a8bc67814a7ed2833ca550a829b6eb5cbb15ed',
+  'librivox-rejuvenating-apples': '6c1a2804509d64d85ca74dc2d927ac444c7915a827e656cbdd3c543881d81300',
+  'librivox-young-lady-peasant': 'a7248229cb680359306814234006085fcf7d3fc59b69e92e057902c6fd2ee92f',
+  'librivox-katigoroshek': '69aa1eb703f7c30cee3fec2b44d058b08c22b431af4f81e50d3714a747715166',
+  'librivox-bezhin-meadow': '583a531d38559b4fd19bf795f50115862b1d19cf59432c4bd24ba5df0df2caa4',
+  'librivox-koschei': '94cda5f85b277e5301342945809598cd32b959115a98f8827257f5ce9a5ff099',
+  'librivox-blizzard': '77faa72314a402a8a8da4a714dd380db45ee29dc7a1b54216b9dd079720c7cbe',
   'librivox-frog-princess': 'fbb2b95d8647a5e51f2877976375ef23a0b3d5e42ed77839bf00ca8d393ab0cc',
   'librivox-ivan-the-fool': '178e223f5f848a1b75c645746b9fd6f8d61d82a8f6ec815e9c614d920778a7ce',
   'librivox-japanese-children': '55f1218cf3971af84dfceb5081974ebe408c5b0148c72ecd88425d9c70d146f3',
@@ -44,8 +52,8 @@ describe('ready narrated stories', () => {
     mockReadAudio.mockReset().mockResolvedValue(null);
   });
 
-  it('keeps the six recordings private and reuses existing covers', () => {
-    expect(RECORDED_SLEEP_STORIES).toHaveLength(6);
+  it('keeps the fourteen reviewed recordings private and reuses existing covers', () => {
+    expect(RECORDED_SLEEP_STORIES).toHaveLength(14);
     expect(RECORDED_SLEEP_STORIES.filter((story) => story.free).map((story) => story.id)).toEqual([
       'librivox-steppe', 'librivox-frog-princess', 'librivox-mouse-house',
     ]);
@@ -90,8 +98,10 @@ describe('ready narrated stories', () => {
     expect(mockEnsureAudio).not.toHaveBeenCalled();
   });
 
-  it('serves a granted recording with seeking and HEAD support', async () => {
-    const story = RECORDED_SLEEP_STORIES[1];
+  it.each([
+    RECORDED_SLEEP_STORIES[1],
+    RECORDED_SLEEP_STORIES.find((story) => story.id === 'librivox-bezhin-meadow')!,
+  ])('serves $title.ru with seeking and HEAD support', async (story) => {
     const ticket = await recordedStoryTicket(story);
     const expected = fs.readFileSync(path.join(root, 'server-assets/audio/stories', `${story.id}.mp3`));
     const res = response();
