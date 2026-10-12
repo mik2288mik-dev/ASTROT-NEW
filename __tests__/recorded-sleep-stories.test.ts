@@ -17,16 +17,15 @@ import audioFile from '../pages/api/audio/file/[id]';
 import publicLibrary from '../pages/api/audio/library/[name]';
 
 const root = path.join(__dirname, '..');
-// Internet Archive originals: detects a truncated download or accidental re-encoding.
-const SOURCE_MD5: Record<string, string> = {
-  'librivox-steppe': '50c1abb3f8cbd6103ac8b8bc4b47dc39',
-  'librivox-wonder-teapot': '6a1dc22f964788566384d3c3f3a20483',
-  'librivox-japanese-children': 'd242762ac0585eb1abd743885c9b0a96',
-  'librivox-frost-sun-wind': '4937f5ecf764e4a1bded5178553d6a69',
-  'librivox-frog-princess': '8c6625c5c5e1e1b90efef1a4c4273e3d',
-  'librivox-may-night': '4cad9e85943d5c93b88a4295dd24424b',
-  'librivox-mouse-house': '67b3de02051de9ef0ba9085df603694c',
-  'librivox-ivan-the-fool': '1ffc0ebf04cce83c27cce0625fd956bd',
+// Edited recording integrity: protects the reviewed title and story boundaries.
+const EDITED_SHA256: Record<string, string> = {
+  'librivox-frog-princess': 'fbb2b95d8647a5e51f2877976375ef23a0b3d5e42ed77839bf00ca8d393ab0cc',
+  'librivox-ivan-the-fool': '178e223f5f848a1b75c645746b9fd6f8d61d82a8f6ec815e9c614d920778a7ce',
+  'librivox-japanese-children': '55f1218cf3971af84dfceb5081974ebe408c5b0148c72ecd88425d9c70d146f3',
+  'librivox-may-night': '16297b68bbe652baf9501ed3b6acd5118641bdc1a970d4464de852ecbd535ee6',
+  'librivox-mouse-house': 'a8a9965a5cd5388996d3cbb6f9b9ec36bda9295c9f9665828e620356a4eecd56',
+  'librivox-steppe': '958dc234a57f15e2fc75a7c6bcba87a8d7de08f1e37381e31bc70aec29309bfc',
+  'librivox-wonder-teapot': '47a639198fe38850333b64923bfe9cb5ed0577f5a964a336408f19eca878e296',
 };
 
 function response() {
@@ -46,22 +45,33 @@ describe('ready narrated stories', () => {
     mockReadAudio.mockReset().mockResolvedValue(null);
   });
 
-  it('keeps the eight original recordings private and reuses existing covers', () => {
-    expect(RECORDED_SLEEP_STORIES).toHaveLength(8);
+  it('keeps the seven recordings private and reuses existing covers', () => {
+    expect(RECORDED_SLEEP_STORIES).toHaveLength(7);
     expect(RECORDED_SLEEP_STORIES.filter((story) => story.free).map((story) => story.id)).toEqual([
-      'librivox-steppe', 'librivox-frost-sun-wind', 'librivox-frog-princess', 'librivox-mouse-house',
+      'librivox-steppe', 'librivox-frog-princess', 'librivox-mouse-house',
     ]);
     const licenses = fs.readFileSync(path.join(root, 'public/audio/LICENSES.md'), 'utf8');
     for (const story of RECORDED_SLEEP_STORIES) {
       const name = `${story.id}.mp3`;
       const bytes = fs.readFileSync(path.join(root, 'server-assets/audio/stories', name));
-      expect(crypto.createHash('md5').update(bytes).digest('hex')).toBe(SOURCE_MD5[story.id]);
+      expect(crypto.createHash('sha256').update(bytes).digest('hex')).toBe(EDITED_SHA256[story.id]);
       expect(fs.existsSync(path.join(root, 'public/audio/library', name))).toBe(false);
       expect(fs.existsSync(path.join(root, 'public', videoBackgroundPoster(story.video)))).toBe(true);
       expect(fs.existsSync(path.join(root, 'public/video/library', `${story.video}.mp4`))).toBe(true);
       expect(licenses).toContain(name);
     }
-    expect(recordedStoryDuration(617.69)).toBe('10:18');
+    expect(recordedStoryDuration(585.273)).toBe('9:45');
+  });
+
+  it('removes Frost, Sun and Wind from the catalogue, assets and playback', async () => {
+    const id = 'librivox-frost-sun-wind';
+    expect(RECORDED_SLEEP_STORIES.some((story) => story.id === id)).toBe(false);
+    expect(fs.existsSync(path.join(root, 'server-assets/audio/stories', `${id}.mp3`))).toBe(false);
+    const res = response();
+    await listen({ method: 'POST', body: { source: { type: 'sleep_story', id, language: 'ru' } }, headers: {} } as any, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ code: 'LISTEN_SOURCE_INVALID' });
+    expect(mockEnsureAudio).not.toHaveBeenCalled();
   });
 
   it.each(RECORDED_SLEEP_STORIES)('checks free-account access to $title.ru without generating speech', async (story) => {

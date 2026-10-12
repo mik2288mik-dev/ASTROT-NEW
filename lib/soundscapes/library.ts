@@ -32,34 +32,34 @@ export const SOUND_GROUP_LABELS: Record<SoundGroup, { ru: string; en: string }> 
   night: { ru: 'Ночь', en: 'Night' },
 };
 
-const fs = (author: string, id: number): TrackSource => ({ author, url: `https://freesound.org/people/${author}/sounds/${id}/`, license: 'CC0 1.0' });
+const bigSoundBank = (page: string, author = 'Joseph SARDIN'): TrackSource => ({ author, url: `https://bigsoundbank.com/${page}.html`, license: 'CC0 1.0' });
 
 export const AMBIENT_TRACKS: readonly AmbientTrack[] = [
-  { id: 'rain-roof', group: 'rain', kind: 'file', file: 'rain-roof.mp3', title: { ru: 'Дождь по мансардному окну', en: 'Rain on a roof window' }, source: fs('Metadex', 235827) },
-  { id: 'rain-drip', group: 'rain', kind: 'file', file: 'rain-drip.mp3', title: { ru: 'Тихая капель', en: 'Soft dripping rain' }, source: fs('florianreichelt', 459983) },
-  { id: 'rain-forest', group: 'rain', kind: 'file', file: 'rain-forest.mp3', title: { ru: 'Дождь в тропическом лесу', en: 'Rain in a rainforest' }, source: fs('INNORECORDS', 457447) },
-  { id: 'rain-storm', group: 'rain', kind: 'file', file: 'rain-storm.mp3', title: { ru: 'Гроза', en: 'Thunderstorm' }, source: fs('regosss', 238295) },
+  { id: 'rain-roof', group: 'rain', kind: 'file', file: 'rain-roof-hq-v2.mp3', title: { ru: 'Дождь по стеклу', en: 'Rain on glass' }, source: bigSoundBank('rain-on-car-windshield-s1295') },
+  { id: 'rain-drip', group: 'rain', kind: 'file', file: 'rain-drip-hq-v2.mp3', title: { ru: 'Летний дождь', en: 'Summer rain' }, source: bigSoundBank('summer-rain-on-terrace-s1019') },
+  { id: 'rain-forest', group: 'rain', kind: 'file', file: 'rain-forest-hq-v2.mp3', title: { ru: 'Дождь по палатке', en: 'Rain on a tent' }, source: bigSoundBank('rain-and-storm-in-a-tent-s0820') },
+  { id: 'rain-storm', group: 'rain', kind: 'file', file: 'rain-storm-hq-v2.mp3', title: { ru: 'Гроза', en: 'Thunderstorm' }, source: bigSoundBank('rain-and-storm-2-s0740') },
   { id: 'rain-synth', group: 'rain', kind: 'synth', synth: 'rain', title: { ru: 'Ровный дождь, без интернета', en: 'Even rain, offline' } },
-  { id: 'forest-dawn', group: 'forest', kind: 'file', file: 'forest-dawn.mp3', title: { ru: 'Птицы на рассвете', en: 'Dawn chorus' }, source: fs('squashy555', 573080) },
-  { id: 'forest-spring', group: 'forest', kind: 'file', file: 'forest-spring.mp3', title: { ru: 'Весенний лес', en: 'Spring woods' }, source: fs('BurghRecords', 463903) },
-  { id: 'forest-afternoon', group: 'forest', kind: 'file', file: 'forest-afternoon.mp3', title: { ru: 'Лес после обеда', en: 'Forest in the afternoon' }, source: fs('bajko', 385280) },
-  { id: 'forest-rain-birds', group: 'forest', kind: 'file', file: 'forest-rain-birds.mp3', title: { ru: 'Птицы под дождём', en: 'Birds in the rain' }, source: fs('BurghRecords', 521360) },
+  { id: 'forest-dawn', group: 'forest', kind: 'file', file: 'forest-dawn-hq-v2.mp3', title: { ru: 'Птицы на рассвете', en: 'Dawn chorus' }, source: bigSoundBank('birds-waking-4-s1906') },
+  { id: 'forest-spring', group: 'forest', kind: 'file', file: 'forest-spring-hq-v2.mp3', title: { ru: 'Весенний лес', en: 'Spring woods' }, source: bigSoundBank('forest-2-s1348') },
+  { id: 'forest-afternoon', group: 'forest', kind: 'file', file: 'forest-afternoon-hq-v2.mp3', title: { ru: 'Лес и ветер', en: 'Forest and wind' }, source: bigSoundBank('forest-4-s2749') },
+  { id: 'forest-rain-birds', group: 'forest', kind: 'file', file: 'forest-rain-birds-hq-v2.mp3', title: { ru: 'На опушке леса', en: 'At the forest edge' }, source: bigSoundBank('forest-on-the-edge-s0905') },
   { id: 'forest-synth', group: 'forest', kind: 'synth', synth: 'forest', title: { ru: 'Ветер и птицы, без интернета', en: 'Wind and birds, offline' } },
-  { id: 'stream-wyre', group: 'stream', kind: 'file', file: 'stream-wyre.mp3', title: { ru: 'Лесной ручей', en: 'Forest stream' }, source: fs('turbostream', 220528) },
-  { id: 'stream-small', group: 'stream', kind: 'file', file: 'stream-small.mp3', title: { ru: 'Маленький ручеёк', en: 'A small brook' }, source: fs('Yuval', 197023) },
-  { id: 'sea-calm', group: 'sea', kind: 'file', file: 'sea-calm.mp3', title: { ru: 'Спокойный прибой', en: 'Calm surf' }, source: fs('craiggroshek', 176617) },
-  { id: 'sea-beach', group: 'sea', kind: 'file', file: 'sea-beach.mp3', title: { ru: 'Волны на пляже', en: 'Beach waves' }, source: fs('DylanTheFish', 463250) },
-  { id: 'sea-waves', group: 'sea', kind: 'file', file: 'sea-waves.mp3', title: { ru: 'Морские волны', en: 'Sea waves' }, source: fs('haldigital97', 241824) },
+  { id: 'stream-wyre', group: 'stream', kind: 'file', file: 'stream-wyre-hq-v2.mp3', title: { ru: 'Лесной ручей', en: 'Forest stream' }, source: bigSoundBank('mountain-stream-1-s2754') },
+  { id: 'stream-small', group: 'stream', kind: 'file', file: 'stream-small-hq-v2.mp3', title: { ru: 'Маленький ручеёк', en: 'A small brook' }, source: bigSoundBank('small-stream-s0823') },
+  { id: 'sea-calm', group: 'sea', kind: 'file', file: 'sea-calm-hq-v2.mp3', title: { ru: 'Спокойный прибой', en: 'Calm surf' }, source: bigSoundBank('small-waves-and-beach-1-s1446') },
+  { id: 'sea-beach', group: 'sea', kind: 'file', file: 'sea-beach-hq-v2.mp3', title: { ru: 'Волны на пляже', en: 'Beach waves' }, source: bigSoundBank('sea-of-the-beach-of-dellec-2-s2565') },
+  { id: 'sea-waves', group: 'sea', kind: 'file', file: 'sea-waves-hq-v2.mp3', title: { ru: 'Волны у камней', en: 'Waves by the rocks' }, source: bigSoundBank('small-waves-rocks-and-beach-s1445') },
   { id: 'sea-synth', group: 'sea', kind: 'synth', synth: 'sea', title: { ru: 'Медленные волны, без интернета', en: 'Slow waves, offline' } },
-  { id: 'fire-campfire', group: 'fire', kind: 'file', file: 'fire-campfire.mp3', title: { ru: 'Костёр', en: 'Campfire' }, source: fs('Spandau', 40699) },
-  { id: 'fire-fireplace', group: 'fire', kind: 'file', file: 'fire-fireplace.mp3', title: { ru: 'Камин', en: 'Fireplace' }, source: fs('martats', 138018) },
-  { id: 'fire-lit', group: 'fire', kind: 'file', file: 'fire-lit.mp3', title: { ru: 'Потрескивание дров', en: 'Crackling logs' }, source: fs('lurpsis', 444127) },
+  { id: 'fire-campfire', group: 'fire', kind: 'file', file: 'fire-campfire-hq-v2.mp3', title: { ru: 'Костёр', en: 'Campfire' }, source: bigSoundBank('big-branching-fire-3-s0989') },
+  { id: 'fire-fireplace', group: 'fire', kind: 'file', file: 'fire-fireplace-hq-v2.mp3', title: { ru: 'Камин', en: 'Fireplace' }, source: bigSoundBank('fireplace-3-s2855') },
+  { id: 'fire-lit', group: 'fire', kind: 'file', file: 'fire-lit-hq-v2.mp3', title: { ru: 'Потрескивание дров', en: 'Crackling logs' }, source: bigSoundBank('fireplace-4-s2856') },
   { id: 'fire-synth', group: 'fire', kind: 'synth', synth: 'fire', title: { ru: 'Огонь, без интернета', en: 'Fire, offline' } },
-  { id: 'cafe-coffee', group: 'cafe', kind: 'file', file: 'cafe-coffee.mp3', title: { ru: 'Кофейня', en: 'Coffee shop' }, source: fs('waweee', 370973) },
-  { id: 'cafe-chatter', group: 'cafe', kind: 'file', file: 'cafe-chatter.mp3', title: { ru: 'Разговоры за столиками', en: 'Table chatter' }, source: fs('oliverbrotzman', 125247) },
+  { id: 'cafe-coffee', group: 'cafe', kind: 'file', file: 'cafe-coffee-hq-v2.mp3', title: { ru: 'Кофейня', en: 'Coffee shop' }, source: bigSoundBank('atmosphere-bar-2-s0480', 'DavidGreck') },
+  { id: 'cafe-chatter', group: 'cafe', kind: 'file', file: 'cafe-chatter-hq-v2.mp3', title: { ru: 'Разговоры за столиками', en: 'Table chatter' }, source: bigSoundBank('small-restaurant-conversations-s3542', 'Joseph SARDIN & Axeline T.') },
   { id: 'cafe-synth', group: 'cafe', kind: 'synth', synth: 'cafe', title: { ru: 'Гул кафе, без интернета', en: 'Café hum, offline' } },
-  { id: 'night-porch', group: 'night', kind: 'file', file: 'night-porch.mp3', title: { ru: 'Сверчки у крыльца', en: 'Crickets by the porch' }, source: fs('hdfreema', 333221) },
-  { id: 'night-crickets', group: 'night', kind: 'file', file: 'night-crickets.mp3', title: { ru: 'Летняя ночь', en: 'Summer night' }, source: fs('Defelozedd94', 522299) },
+  { id: 'night-porch', group: 'night', kind: 'file', file: 'night-porch-hq-v2.mp3', title: { ru: 'Ночь со сверчками', en: 'Night with crickets' }, source: bigSoundBank('campaign-at-night-4-s1880') },
+  { id: 'night-crickets', group: 'night', kind: 'file', file: 'night-crickets-hq-v2.mp3', title: { ru: 'Вечерние птицы', en: 'Evening birds' }, source: bigSoundBank('evening-birds-s1859') },
 ];
 
 const commons = (author: string, page: string, license: TrackSource['license']): TrackSource => ({ author, url: page, license });
@@ -89,3 +89,12 @@ export const LIBRARY_FILES: ReadonlySet<string> = new Set([
   ...AMBIENT_TRACKS.flatMap((track) => (track.kind === 'file' ? [track.file] : [])),
   ...MUSIC_TRACKS.flatMap((track) => (track.kind === 'file' ? [track.file] : [])),
 ]);
+
+/** Installed clients can still request the previous names without retaining old assets. */
+export const LEGACY_AMBIENT_FILES: ReadonlyMap<string, string> = new Map(
+  AMBIENT_TRACKS.flatMap((track) => track.kind === 'file' ? [[`${track.id}.mp3`, track.file] as const] : []),
+);
+
+export function resolveLibraryFile(name: string): string | null {
+  return LIBRARY_FILES.has(name) ? name : LEGACY_AMBIENT_FILES.get(name) ?? null;
+}

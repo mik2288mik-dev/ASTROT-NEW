@@ -5,7 +5,7 @@ import { RECORDED_SLEEP_STORIES, type RecordedSleepStory } from '../recordedSlee
 import type { AudioTicket, StoredAudio } from './ttsStore';
 
 // Bump when replacing an MP3: previously cached bearer URLs are immutable.
-const ASSET_VERSION = '1';
+const ASSET_VERSION = '2';
 const assetPath = (story: RecordedSleepStory) => path.join(process.cwd(), 'server-assets', 'audio', 'stories', `${story.id}.mp3`);
 
 function recordingId(story: RecordedSleepStory): string {

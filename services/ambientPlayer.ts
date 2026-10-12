@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { createMusic, createSoundscape, type SoundVoice } from '../lib/soundscapes/synth';
 import { findAmbientTrack, findMusicTrack } from '../lib/soundscapes/library';
 import { apiUrl } from './apiClient';
+import { playableAudioSource } from './ambientAudioCache';
 
 /**
  * Calm sounds and music for «Звуки». Real recordings stream from the server
@@ -32,7 +33,6 @@ type Voice = {
 };
 
 const FADE_MS = 6_000;
-const CACHE_NAME = 'nebo-sounds-v1';
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let scapeVoice: Voice | null = null;
@@ -87,20 +87,6 @@ function synthVoice(make: (audio: AudioContext) => SoundVoice): Voice {
   };
 }
 
-/** The cached copy when there is one, otherwise the network URL (and cache it quietly). */
-async function playableSource(url: string): Promise<string> {
-  if (typeof caches === 'undefined') return url;
-  try {
-    const cache = await caches.open(CACHE_NAME);
-    const hit = await cache.match(url);
-    if (hit) return URL.createObjectURL(await hit.blob());
-    void fetch(url, { mode: 'cors' }).then((response) => (response.ok && response.status === 200 ? cache.put(url, response) : undefined)).catch(() => undefined);
-  } catch {
-    // Storage blocked: streaming still works.
-  }
-  return url;
-}
-
 function fileVoice(file: string, loop: boolean, onEnded?: () => void): Voice {
   const element = new Audio();
   element.preload = 'auto';
@@ -130,8 +116,11 @@ function fileVoice(file: string, loop: boolean, onEnded?: () => void): Voice {
   element.addEventListener('error', () => emit({ loading: false, error: true }));
   if (onEnded) element.addEventListener('ended', onEnded);
   emit({ loading: true, error: false });
-  void playableSource(apiUrl(`/api/audio/library/${file}`)).then((src) => {
-    if (stopped) return;
+  void playableAudioSource(apiUrl(`/api/audio/library/${file}`), loop).then((src) => {
+    if (stopped) {
+      if (src.startsWith('blob:')) URL.revokeObjectURL(src);
+      return;
+    }
     if (src.startsWith('blob:')) objectUrl = src;
     element.src = src;
     void element.play().then(() => rampTo(target, 2_500)).catch(() => emit({ loading: false }));
