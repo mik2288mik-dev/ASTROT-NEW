@@ -67,7 +67,6 @@ one reader. The recordings remain in Russian in either interface language.
 | `librivox-wonder-teapot.mp3` | Диковинный чайник | Anastasiia Solokha | Premium | https://archive.org/download/yaponskienarodnyeskazki_1607_librivox/yaponskienarodnyeskazki_07_fyodorov-davydov_128kb.mp3 |
 | `librivox-japanese-children.mp3` | Японские дети | Anastasiia Solokha | Premium | https://archive.org/download/yaponskienarodnyeskazki_1607_librivox/yaponskienarodnyeskazki_09_fyodorov-davydov_128kb.mp3 |
 | `librivox-frog-princess.mp3` | Царевна-лягушка | Лена Сухая | Free | https://archive.org/download/russianfairytales2_2103_librivox/russianfairytales2_23_afanasyev_128kb.mp3 |
-| `librivox-may-night.mp3` | Сон в майскую ночь | Anastasiia Solokha | Premium | https://archive.org/download/stepnyyeskazki_2204_librivox/stepnyyeskazki_05_danilevsky_128kb.mp3 |
 | `librivox-mouse-house.mp3` | Теремок мышки | Лена Сухая | Free | https://archive.org/download/russianfairytales3_2412_librivox/russianfairytales3_16_afanasyev_128kb.mp3 |
 | `librivox-ivan-the-fool.mp3` | Иван-дурак | Лена Сухая | Premium | https://archive.org/download/russianfairytales2_2103_librivox/russianfairytales2_06_afanasyev_128kb.mp3 |
 

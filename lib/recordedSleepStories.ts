@@ -33,12 +33,6 @@ export const RECORDED_SLEEP_STORIES: readonly RecordedSleepStory[] = [
     voiceLabel: { ru: 'Читает Лена Сухая', en: 'Russian · Lena Sukhaya' },
   },
   {
-    id: 'librivox-may-night', free: false, durationSec: 1208.163, video: 'onboarding-birth',
-    title: { ru: 'Сон в майскую ночь', en: 'A Dream on a May Night' },
-    teaser: { ru: 'Григорий Данилевский · рассказ из «Степных сказок»', en: 'Grigory Danilevsky · a story from Steppe Tales' },
-    voiceLabel: { ru: 'Читает Анастасия Солоха', en: 'Russian · Anastasiia Solokha' },
-  },
-  {
     id: 'librivox-mouse-house', free: true, durationSec: 105.352, video: 'sleep-garden-rain',
     title: { ru: 'Теремок мышки', en: 'The Mouse’s Little House' },
     teaser: { ru: 'Короткая русская народная сказка из сборника Афанасьева', en: 'A short Russian folk tale collected by Afanasyev' },

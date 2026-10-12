@@ -22,7 +22,6 @@ const EDITED_SHA256: Record<string, string> = {
   'librivox-frog-princess': 'fbb2b95d8647a5e51f2877976375ef23a0b3d5e42ed77839bf00ca8d393ab0cc',
   'librivox-ivan-the-fool': '178e223f5f848a1b75c645746b9fd6f8d61d82a8f6ec815e9c614d920778a7ce',
   'librivox-japanese-children': '55f1218cf3971af84dfceb5081974ebe408c5b0148c72ecd88425d9c70d146f3',
-  'librivox-may-night': '16297b68bbe652baf9501ed3b6acd5118641bdc1a970d4464de852ecbd535ee6',
   'librivox-mouse-house': 'a8a9965a5cd5388996d3cbb6f9b9ec36bda9295c9f9665828e620356a4eecd56',
   'librivox-steppe': '958dc234a57f15e2fc75a7c6bcba87a8d7de08f1e37381e31bc70aec29309bfc',
   'librivox-wonder-teapot': '47a639198fe38850333b64923bfe9cb5ed0577f5a964a336408f19eca878e296',
@@ -45,8 +44,8 @@ describe('ready narrated stories', () => {
     mockReadAudio.mockReset().mockResolvedValue(null);
   });
 
-  it('keeps the seven recordings private and reuses existing covers', () => {
-    expect(RECORDED_SLEEP_STORIES).toHaveLength(7);
+  it('keeps the six recordings private and reuses existing covers', () => {
+    expect(RECORDED_SLEEP_STORIES).toHaveLength(6);
     expect(RECORDED_SLEEP_STORIES.filter((story) => story.free).map((story) => story.id)).toEqual([
       'librivox-steppe', 'librivox-frog-princess', 'librivox-mouse-house',
     ]);
@@ -63,8 +62,7 @@ describe('ready narrated stories', () => {
     expect(recordedStoryDuration(585.273)).toBe('9:45');
   });
 
-  it('removes Frost, Sun and Wind from the catalogue, assets and playback', async () => {
-    const id = 'librivox-frost-sun-wind';
+  it.each(['librivox-frost-sun-wind', 'librivox-may-night'])('removes %s from the catalogue, assets and playback', async (id) => {
     expect(RECORDED_SLEEP_STORIES.some((story) => story.id === id)).toBe(false);
     expect(fs.existsSync(path.join(root, 'server-assets/audio/stories', `${id}.mp3`))).toBe(false);
     const res = response();
