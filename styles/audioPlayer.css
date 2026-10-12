@@ -172,6 +172,9 @@
   padding-bottom: calc(var(--ambient-mini-bottom) + var(--ambient-mini-height) + 1rem);
   scroll-padding-bottom: calc(var(--ambient-mini-bottom) + var(--ambient-mini-height) + 1rem);
 }
+.lumia-app-shell.has-ambient-player .pw2--embedded .pw2-checkout {
+  bottom: calc(var(--ambient-mini-bottom) + var(--ambient-mini-height) + 0.5rem);
+}
 .ambient-mini-player {
   position: fixed;
   z-index: 90;
