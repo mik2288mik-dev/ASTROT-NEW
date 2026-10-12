@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { LIBRARY_FILES } from '../../../../lib/soundscapes/library';
+import { resolveLibraryFile } from '../../../../lib/soundscapes/library';
 
 export const config = { api: { responseLimit: false } };
 
@@ -18,8 +18,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).end();
   }
   const name = String(req.query.name || '');
-  if (!LIBRARY_FILES.has(name)) return res.status(404).end();
-  const file = path.join(LIBRARY_DIR, name);
+  const resolved = resolveLibraryFile(name);
+  if (!resolved) return res.status(404).end();
+  const file = path.join(LIBRARY_DIR, resolved);
   let stat: fs.Stats;
   try {
     stat = await fs.promises.stat(file);

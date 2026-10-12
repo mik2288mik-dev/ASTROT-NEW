@@ -180,7 +180,7 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
             {ru ? 'Запись не загрузилась. Проверь интернет или выбери вариант «без интернета».' : 'The recording did not load. Check the connection or pick an offline variant.'}
           </p>
         ) : null}
-        <p className="sounds-note">{ru ? 'Настоящие записи загружаются один раз и потом играют без интернета.' : 'Real recordings download once and then play offline.'}</p>
+        <p className="sounds-note">{ru ? 'Недавно прослушанные записи сохраняются и доступны без интернета.' : 'Recently played recordings are saved for offline listening.'}</p>
       </section>
 
       <section className="sounds-section" aria-labelledby="sounds-music-title">

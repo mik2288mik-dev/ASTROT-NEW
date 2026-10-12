@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { AMBIENT_TRACKS, LIBRARY_FILES, MUSIC_TRACKS, SOUND_GROUPS, tracksOfGroup } from '../lib/soundscapes/library';
+import { AMBIENT_TRACKS, LEGACY_AMBIENT_FILES, LIBRARY_FILES, MUSIC_TRACKS, SOUND_GROUPS, tracksOfGroup } from '../lib/soundscapes/library';
 import handler from '../pages/api/audio/library/[name]';
 
 const root = path.join(__dirname, '..');
@@ -46,6 +46,18 @@ describe('sound library', () => {
     expect(head.status).toHaveBeenCalledWith(206);
     expect(head.headers['Content-Length']).toBe('100');
     expect(head.headers['Accept-Ranges']).toBe('bytes');
+  });
+
+  it('serves replacement files for the 20 old ambient URLs used by installed clients', async () => {
+    expect(LEGACY_AMBIENT_FILES.size).toBe(20);
+    for (const [oldName, replacement] of LEGACY_AMBIENT_FILES) {
+      expect(fs.existsSync(path.join(root, 'public/audio/library', oldName))).toBe(false);
+      const bytes = fs.statSync(path.join(root, 'public/audio/library', replacement)).size;
+      const head = response();
+      await handler({ method: 'HEAD', query: { name: oldName }, headers: { range: 'bytes=-100' } } as any, head);
+      expect(head.status).toHaveBeenCalledWith(206);
+      expect(head.headers['Content-Range']).toBe(`bytes ${bytes - 100}-${bytes - 1}/${bytes}`);
+    }
   });
 
   it('keeps sound playing with the screen locked through a media foreground service', () => {
