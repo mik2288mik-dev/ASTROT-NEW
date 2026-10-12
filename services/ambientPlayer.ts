@@ -94,6 +94,7 @@ function fileVoice(file: string, loop: boolean, onEnded?: () => void): Voice {
   element.volume = 0;
   let objectUrl: string | null = null;
   let stopped = false;
+  let paused = false;
   let target = level;
   let ramp: ReturnType<typeof setInterval> | null = null;
   const rampTo = (value: number, ms: number, done?: () => void) => {
@@ -111,10 +112,17 @@ function fileVoice(file: string, loop: boolean, onEnded?: () => void): Voice {
       }
     }, 50);
   };
-  element.addEventListener('playing', () => emit({ loading: false, error: false }));
-  element.addEventListener('waiting', () => emit({ loading: true }));
-  element.addEventListener('error', () => emit({ loading: false, error: true }));
-  if (onEnded) element.addEventListener('ended', onEnded);
+  const play = () => {
+    if (stopped || paused || !element.src) return;
+    void element.play().then(() => {
+      if (stopped || paused) { element.pause(); return; }
+      rampTo(target, 2_500);
+    }).catch(() => { if (!stopped) emit({ loading: false }); });
+  };
+  element.addEventListener('playing', () => { if (!stopped) emit({ loading: false, error: false }); });
+  element.addEventListener('waiting', () => { if (!stopped && !paused) emit({ loading: true }); });
+  element.addEventListener('error', () => { if (!stopped) emit({ loading: false, error: true }); });
+  if (onEnded) element.addEventListener('ended', () => { if (!stopped && !paused) onEnded(); });
   emit({ loading: true, error: false });
   void playableAudioSource(apiUrl(`/api/audio/library/${file}`), loop).then((src) => {
     if (stopped) {
@@ -123,12 +131,12 @@ function fileVoice(file: string, loop: boolean, onEnded?: () => void): Voice {
     }
     if (src.startsWith('blob:')) objectUrl = src;
     element.src = src;
-    void element.play().then(() => rampTo(target, 2_500)).catch(() => emit({ loading: false }));
+    play();
   });
   return {
     setVolume: (value) => { target = value; if (!ramp) element.volume = value; },
-    pause: () => element.pause(),
-    resume: () => { void element.play().catch(() => undefined); },
+    pause: () => { paused = true; element.pause(); },
+    resume: () => { paused = false; play(); },
     stop: () => {
       stopped = true;
       rampTo(0, 1_200, () => {
@@ -162,9 +170,10 @@ export function playSoundscape(id: string | null): void {
   const track = id ? findAmbientTrack(id) : null;
   if (track) {
     applyLevel(1);
+    musicVoice?.resume();
     scapeVoice = track.kind === 'file' ? fileVoice(track.file, true) : synthVoice((audio) => createSoundscape(audio, track.synth));
   }
-  emit({ soundscape: track?.id ?? null, paused: false, error: false, loading: track?.kind === 'file' });
+  emit({ soundscape: track?.id ?? null, paused: track ? false : state.paused, error: false, loading: track?.kind === 'file' });
   if (!track && !musicVoice) stopAmbient();
 }
 
@@ -176,11 +185,12 @@ export function playMusic(id: string | null): void {
   const track = id ? findMusicTrack(id) : null;
   if (track) {
     applyLevel(1);
+    scapeVoice?.resume();
     musicVoice = track.kind === 'file'
       ? fileVoice(track.file, false, () => playMusic(nextRecordedPiece(track.id)))
       : synthVoice((audio) => createMusic(audio, track.synth));
   }
-  emit({ music: track?.id ?? null, paused: false, error: false });
+  emit({ music: track?.id ?? null, paused: track ? false : state.paused, error: false });
   if (!track && !scapeVoice) stopAmbient();
 }
 
@@ -230,7 +240,7 @@ export function stopAmbient(): void {
   musicVoice = null;
   if (ctx && ctx.state === 'running') setTimeout(() => { if (!scapeVoice && !musicVoice) void ctx?.suspend(); }, 1_500);
   level = 1;
-  emit({ soundscape: null, music: null, paused: false, loading: false, endsAt: null, timerMinutes: null });
+  emit({ soundscape: null, music: null, paused: false, loading: false, error: false, endsAt: null, timerMinutes: null });
 }
 
 export function subscribeAmbient(listener: () => void): () => void {

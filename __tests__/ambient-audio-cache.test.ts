@@ -1,3 +1,5 @@
+export {};
+
 class MemoryCache {
   entries = new Map<string, Response>();
   async keys(): Promise<Request[]> { return [...this.entries.keys()].map((url) => new Request(url)); }
