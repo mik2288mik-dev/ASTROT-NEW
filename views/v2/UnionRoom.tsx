@@ -96,9 +96,12 @@ type UnionRoomProps = {
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
   onOpenEncyclopedia?: () => void;
+  /** «Близкие»: linked accounts with one shared reading, shown as the first tab. */
+  peopleHub?: React.ReactNode;
+  initialMode?: 'people' | 'birth' | 'sign';
 };
 
-type CompatibilityTab = 'birth' | 'sign';
+type CompatibilityTab = 'people' | 'birth' | 'sign';
 type CompatibilityFocus = 'love' | 'relationships' | 'ex' | 'friendship' | 'family' | 'work';
 
 const COMPATIBILITY_FOCUS_OPTIONS: readonly {
@@ -704,6 +707,8 @@ export function UnionRoom(props: UnionRoomProps) {
     premiumContinuation,
     onPremiumContinuationHandled,
     canPromotePremium = true,
+    peopleHub,
+    initialMode,
   } = props;
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
@@ -736,7 +741,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const [screen, setScreen] = useState<'add' | 'result'>(
     initialPrefill ? 'result' : 'add',
   );
-  const [entryMode, setEntryMode] = useState<'birth' | 'sign'>('birth');
+  const [entryMode, setEntryMode] = useState<CompatibilityTab>(() => (initialPrefill || (!peopleHub && initialMode === 'people') ? 'birth' : initialMode || 'birth'));
   const [availableCharts, setAvailableCharts] = useState<ChartListItem[]>([]);
   const [peopleLoaded, setPeopleLoaded] = useState(false);
   const [firstChartId, setFirstChartId] = useState<number | null>(null);
@@ -811,7 +816,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (screen !== 'add') return;
+    if (screen !== 'add' || entryMode === 'people') return;
     const key = `nebo:compatibility-result-preview:v3:${entryMode}:${profile.id || 'guest'}`;
     try {
       if (window.localStorage.getItem(key)) return;
@@ -1387,20 +1392,24 @@ Check our compatibility from your side in NEBO.`
   }, [screen, selected, peopleLoaded, premium, ru]);
 
   const compatibilityTabs = useMemo(() => [
-    { id: 'birth' as const, label: ru ? 'По дате рождения' : 'By birth date' },
-    { id: 'sign' as const, label: ru ? 'По знаку зодиака' : 'By zodiac sign' },
-  ], [ru]);
+    ...(peopleHub ? [{ id: 'people' as const, label: ru ? 'Близкие' : 'Close people' }] : []),
+    // Three tabs fit on one line only with the short names.
+    { id: 'birth' as const, label: ru ? (peopleHub ? 'По дате' : 'По дате рождения') : 'By birth date' },
+    { id: 'sign' as const, label: ru ? (peopleHub ? 'По знаку' : 'По знаку зодиака') : 'By zodiac sign' },
+  ], [ru, peopleHub]);
   const activeCompatibilityTab: CompatibilityTab = screen === 'result'
     ? selected?.kind === 'sign' ? 'sign' : 'birth'
       : entryMode === 'sign'
         ? 'sign'
-        : 'birth';
+        : entryMode === 'people' && peopleHub
+          ? 'people'
+          : 'birth';
 
   const selectCompatibilityTab = (tab: CompatibilityTab) => {
     lumiaSelectionHaptic();
     setError(null);
-    if (tab === 'birth') {
-      setEntryMode('birth');
+    if (tab === 'birth' || tab === 'people') {
+      setEntryMode(tab);
       setScreen('add');
       scrollCompatibilityToTop();
       return;
@@ -1539,10 +1548,10 @@ Check our compatibility from your side in NEBO.`
           onClose={() => setResultPreviewOpen(false)}
           ru={ru}
           yourSign={youSign}
-          mode={entryMode}
+          mode={entryMode === 'sign' ? 'sign' : 'birth'}
         />
 
-        {entryMode === 'birth' ? (
+        {entryMode === 'people' && peopleHub ? peopleHub : entryMode === 'birth' || entryMode === 'people' ? (
           <>
             <form
               className="compat-entry-form compat-entry-form--date"

@@ -143,7 +143,8 @@ export async function previewInvite(code: string, viewerUserId: string | null, p
   const avatar = parseChartAvatarChoice(row.inviter_avatar);
   const base = {
     inviterName: firstName(row.inviter_name),
-    inviterAvatar: avatar?.kind === 'cat' ? avatar : null,
+    // A forwarded link must not show a photo to strangers.
+    inviterAvatar: viewerUserId && avatar?.kind === 'photo' ? avatar : null,
     relationshipContext: normalizeLinkContext(row.relationship_context) || 'friendship' as LinkContext,
   };
   let linkId: string | null = null;
@@ -311,7 +312,7 @@ function toLinkedPerson(row: any, userId: string): LinkedPerson {
     linkId: String(row.id),
     name: firstName(row.partner_name),
     gender: normalizeGender(row.partner_gender),
-    avatar: avatar && avatar.kind !== 'telegram' ? avatar : null,
+    avatar: avatar?.kind === 'photo' ? avatar : null,
     sunSign: row.partner_sun_sign ? String(row.partner_sun_sign).toLowerCase() : null,
     birthday: row.partner_share_birthday === false ? null : monthDay(row.partner_birth_date),
     hasChart: row.partner_chart_id != null,
