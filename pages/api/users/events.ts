@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import { getPool } from '../../../lib/db';
-import { enqueueNeboOpsEvent, shouldDeliverNeboOpsEvent, wakeNeboOpsDelivery } from '../../../lib/neboOps';
+import { enqueueNeboOpsEvent, wakeNeboOpsDelivery } from '../../../lib/neboOps';
 import { readClientRuntimeMetadata } from '../../../lib/clientRuntimeMetadata';
 import {
   isUserAppEventBodyTooLarge,
@@ -58,16 +58,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ...(event.sessionId ? { session_id: event.sessionId } : {}),
             runtime: runtime.runtime,
             ...(runtime.appVersion ? { app_version: runtime.appVersion } : {}),
-            ...(typeof runtime.versionCode === 'number' ? { version_code: runtime.versionCode } : {}),
             ...(runtime.osName ? { platform: runtime.osName } : {}),
-            ...(runtime.distributionChannel ? { channel: runtime.distributionChannel } : {}),
-            ...(runtime.deviceModel ? { device: [runtime.deviceManufacturer, runtime.deviceModel].filter(Boolean).join(' ').slice(0, 80) } : {}),
           }),
         ],
       );
-      // Only actions the owner bot shows are queued; the event itself is already stored above.
-      const queued = Boolean(inserted.rows[0]) && shouldDeliverNeboOpsEvent('activity', { eventType: event.eventType });
-      if (queued) {
+      if (inserted.rows[0]) {
         await enqueueNeboOpsEvent(client, {
           eventKey: `activity:${inserted.rows[0].id}`,
           eventType: 'activity',
@@ -83,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
       await client.query('COMMIT');
-      if (queued) wakeNeboOpsDelivery();
+      if (inserted.rows[0]) wakeNeboOpsDelivery();
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
       throw error;

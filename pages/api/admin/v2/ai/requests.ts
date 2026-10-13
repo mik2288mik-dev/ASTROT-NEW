@@ -2,9 +2,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { handleAdminError } from '../../../../../lib/adminAuth';
 import { getAdminContext, roleHasPermission } from '../../../../../lib/admin/rbac';
 import { getPool } from '../../../../../lib/db';
-import { withAdminSource } from '../../../../../lib/admin/dataSource';
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
@@ -109,5 +108,3 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return handleAdminError(res, error);
   }
 }
-
-export default withAdminSource(handler);

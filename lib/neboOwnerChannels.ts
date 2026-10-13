@@ -7,9 +7,7 @@ import {
   OPERATION_TITLES,
   type NeboOwnerChannel,
 } from './neboOps';
-import { collectMetrics } from './productMetrics';
-import { reportPeriod } from './neboOpsReports';
-import { getRuStoreReviewsStatus, ruStoreReviewsConfigured } from './rustoreReviews';
+import { collectNeboCoreStats, collectNeboStats, neboReportPeriod, previousPeriod, type NeboReportKind } from './neboOpsStats';
 
 /** Menus and on-demand reports of the dedicated payments, support and errors bots. */
 export type NeboChannelReply = { text: string; replyMarkup?: TelegramReplyMarkup };
@@ -22,7 +20,7 @@ function msk(value: Date | string): string {
   const date = new Date(value);
   return Number.isFinite(date.getTime())
     ? new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(date)
-    : 'нет данных';
+    : '—';
 }
 function rub(value: number): string {
   return `${new Intl.NumberFormat('ru-RU').format(value)} ₽`;
@@ -75,23 +73,25 @@ export function neboChannelMenu(channel: NeboOwnerChannel): NeboChannelReply {
   };
 }
 
-export async function buildPaymentsReport(kind: 'today' | 'yesterday' | 'week' | 'month', now = new Date()): Promise<string> {
-  const period = reportPeriod(kind, { period: 'day', lastReportAt: null }, now);
-  const [m, previous] = await Promise.all([collectMetrics(period), collectMetrics(period.previous)]);
+export async function buildPaymentsReport(kind: NeboReportKind, now = new Date()): Promise<string> {
+  const period = neboReportPeriod(kind, now);
+  const before = previousPeriod(period);
+  const [stats, previous] = await Promise.all([
+    collectNeboStats(period.start, period.end),
+    collectNeboCoreStats(getPool(), before.start, before.end),
+  ]);
   const lines = [
     `💳 NEBO · Оплаты · ${period.label}`,
     `🖥 ${neboServerLabel()}`,
     '',
-    `💰 Выручка: ${rub(m.revenueRub)} (раньше ${rub(previous.revenueRub)})`,
-    `🧾 Оплат: ${m.payments} · первых ${m.firstPayments}, продлений ${m.renewals}${m.paymentsByPlan.length ? ` · ${m.paymentsByPlan.map((p) => `${p.label} ${p.count}`).join(' · ')}` : ''}`,
-    `🛒 Путь к оплате: открыли экран ${m.paywallViewers} → начали ${m.checkoutStarted} → оплатили ${m.buyers}`,
-    `💎 Premium сейчас у ${m.premiumActive}`,
+    `💰 Выручка: ${rub(stats.revenueRub)} (раньше ${rub(previous.revenueRub)})`,
+    `🧾 Покупок: ${stats.purchases}${stats.purchasesByPlan.length ? `, ${stats.purchasesByPlan.map((p) => `${p.label} ${p.count}`).join(' · ')}` : ''}`,
+    `🛒 Путь к оплате: открыли экран ${stats.paywallUsers} → начали ${stats.checkoutUsers} → купили ${stats.purchases}`,
+    `💎 Premium сейчас у ${stats.premiumActive}`,
   ];
-  if (m.trials > 0) lines.push(`🎁 Пробных периодов: ${m.trials}`);
-  if (m.cancellations > 0) lines.push(`↩️ Отключили автопродление: ${m.cancellations}`);
-  if (m.refunds > 0) lines.push(`↩️ Возвратов: ${m.refunds}`);
-  if (m.stars.payments > 0) lines.push(`⭐ Telegram Stars: ${m.stars.payments} · ${m.stars.amount} Stars`);
-  lines.push('', 'Выручка по цене тарифа, до комиссии RuStore. Цифры те же, что в админке.');
+  if (stats.trials > 0) lines.push(`🎁 Пробных периодов: ${stats.trials}`);
+  if (stats.starsPurchases > 0) lines.push(`⭐ Telegram Stars: ${stats.starsPurchases} · ${stats.starsAmount} Stars`);
+  lines.push('', 'Выручка, по цене тарифа, до комиссии RuStore.');
   return lines.join('\n');
 }
 
@@ -122,7 +122,7 @@ export async function buildErrorsSummary(days: 1 | 7): Promise<string> {
     `SELECT event_type,
             COALESCE(NULLIF(CONCAT_WS(' · ', payload_json->>'scope', payload_json->>'diagnosticEvent'), ''),
                      payload_json->>'operation', 'без раздела') AS place,
-            COALESCE(payload_json->>'errorCode', 'без кода') AS error_code,
+            COALESCE(payload_json->>'errorCode', '—') AS error_code,
             COUNT(*)::int AS count, MAX(occurred_at) AS last_at
      FROM nebo_ops_outbox
      WHERE event_type IN ('ai_error', 'technical_error') AND occurred_at >= NOW() - $1 * INTERVAL '1 day'
@@ -162,22 +162,8 @@ export async function buildHealthSummary(): Promise<string> {
   } catch {
     lines.push('❌ База не отвечает');
   }
-  const version = String(process.env.RAILWAY_GIT_COMMIT_SHA || '').trim();
+  const version = String(process.env.RAILWAY_GIT_COMMIT_SHA || process.env.NEBO_DEPLOY_MARKER || '').trim();
   if (/^[0-9a-f]{7,40}$/i.test(version)) lines.push(`🧱 Сборка: ${version.slice(0, 7)}`);
-  try {
-    const ai = (await pool.query(
-      `SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status <> 'success')::int AS failed
-       FROM app_ai_requests WHERE created_at >= NOW() - INTERVAL '24 hours' AND scenario <> 'content_diagnostic'`,
-    )).rows[0] || {};
-    lines.push(`🤖 Запросов к ИИ за сутки: ${Number(ai.total || 0)}, с ошибкой ${Number(ai.failed || 0)}`);
-  } catch {
-    // The AI log is optional for the health line.
-  }
-  if (ruStoreReviewsConfigured()) {
-    const reviews = getRuStoreReviewsStatus();
-    lines.push(reviews.ok === false ? `⭐ Отзывы RuStore: не читаются (${reviews.error})`
-      : reviews.checkedAt ? `⭐ Отзывы RuStore: проверены ${msk(reviews.checkedAt)}${reviews.rating != null ? `, рейтинг ${reviews.rating}` : ''}` : '⭐ Отзывы RuStore: ещё не проверялись');
-  }
   lines.push(`⏱ Сервер работает: ${Math.round(process.uptime() / 3600)} ч`);
   return lines.join('\n');
 }
