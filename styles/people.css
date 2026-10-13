@@ -6,7 +6,8 @@
   gap: 14px;
   width: min(100%, 40rem);
   margin: 4px auto 0;
-  padding: 0 16px 24px;
+  /* Room for the floating bottom bar, so the last line is never under it. */
+  padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 112px);
   color: #292724;
 }
 
@@ -236,7 +237,6 @@
 
 .people-actions {
   display: grid;
-  grid-template-columns: 1fr auto;
   gap: 8px;
 }
 

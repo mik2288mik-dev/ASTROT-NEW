@@ -19,7 +19,7 @@ import {
   type LinkedPerson,
   type PairReading,
 } from '../../services/peopleService';
-import { PeopleAvatar, birthdayLabel } from './PeopleAvatar';
+import { PeopleAvatar, avatarToneIndex, birthdayLabel } from './PeopleAvatar';
 
 const FIELD_WORDS: Record<'date' | 'time' | 'place', string> = { date: 'дата', time: 'время', place: 'место' };
 
@@ -176,7 +176,13 @@ export function PersonPage({ person: initialPerson, me, canPromotePremium, manua
         <section className="people-person-hero">
           <div className="people-pair-avatars" aria-hidden="true">
             <PeopleAvatar name={me.name} avatar={null} seed={me.seed} size={68} />
-            <PeopleAvatar name={name} avatar={person.avatar} seed={person.linkId} size={68} />
+            <PeopleAvatar
+              name={name}
+              avatar={person.avatar}
+              seed={person.linkId}
+              size={68}
+              toneShift={avatarToneIndex(me.seed) === avatarToneIndex(person.linkId) ? 1 : 0}
+            />
           </div>
           <h1 id="people-person-title">{me.name || 'Ты'} и {name}</h1>
           <p>

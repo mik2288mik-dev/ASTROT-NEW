@@ -107,7 +107,7 @@ import {
     clearPersonalForecastSessionCache,
 } from './services/personalForecastService';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
-import { hasLinkedPeopleHint, inviteCodeFromUrl, readPendingInvite, rememberPendingInvite } from './services/peopleService';
+import { fetchPeople, hasLinkedPeopleHint, inviteCodeFromUrl, readPendingInvite, rememberHasLinkedPeople, rememberPendingInvite } from './services/peopleService';
 import {
     clearNativeProviderCredentialState,
     loginWithTelegram,
@@ -2393,6 +2393,17 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         setSynastryMountKey((value) => value + 1);
         navigateTo('synastry');
     }, [navigateTo, peopleInviteSignal, peopleReady]);
+
+    // Someone may have accepted my invite on their phone: learn once per launch whether I have close people.
+    const peopleCheckedForRef = useRef<string | null>(null);
+    useEffect(() => {
+        const userId = profile?.id ? String(profile.id) : '';
+        if (!peopleReady || !userId || peopleCheckedForRef.current === userId) return;
+        peopleCheckedForRef.current = userId;
+        void fetchPeople()
+            .then((result) => rememberHasLinkedPeople(result.people.length > 0))
+            .catch(() => undefined);
+    }, [peopleReady, profile?.id]);
 
     const openRecoveryIdentity = useCallback(() => {
         setNavigationSheet(null);
