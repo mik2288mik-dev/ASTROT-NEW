@@ -3,12 +3,11 @@ import { Pool, types as pgTypes } from 'pg';
 import { handleAdminError } from '../adminAuth';
 import { runWithScopedPool } from '../db';
 import { getAdminContext } from './rbac';
-import { fetchFromTelegramServer, telegramAdminOrigin } from './adminRelay';
 
 /**
  * The admin reads this server's own database by default. The Telegram version
- * lives on another deployment with its own database: the admin reads it either
- * directly (read-only connection string) or by asking that server (adminRelay).
+ * lives on another deployment with its own database; when its connection string
+ * is configured, the admin can switch to it for reading only.
  */
 export type AdminSource = 'main' | 'telegram';
 export const ADMIN_SOURCE_HEADER = 'x-admin-source';
@@ -22,7 +21,7 @@ function telegramDatabaseUrl(env: NodeJS.ProcessEnv = process.env): string {
 }
 
 export function isTelegramSourceConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
-  return Boolean(telegramDatabaseUrl(env) || telegramAdminOrigin(env));
+  return Boolean(telegramDatabaseUrl(env));
 }
 
 function getTelegramPool(): Pool {
@@ -64,19 +63,11 @@ export function withAdminSource(handler: Handler): Handler {
       return res.status(409).json({ error: 'READ_ONLY_SOURCE', message: 'Telegram-версия открыта только для просмотра' });
     }
     // Access is always checked against this server's own accounts and roles.
-    let context: Awaited<ReturnType<typeof getAdminContext>>;
     try {
-      context = await getAdminContext(req);
+      await getAdminContext(req);
     } catch (error) {
       return handleAdminError(res, error);
     }
-    if (telegramDatabaseUrl()) return runWithScopedPool(getTelegramPool(), () => handler(req, res));
-    try {
-      const answer = await fetchFromTelegramServer(String(req.url || ''), context.role, context.userId);
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      return res.status(answer.status).send(answer.body);
-    } catch {
-      return res.status(502).json({ error: 'TELEGRAM_SERVER_UNAVAILABLE', message: 'Сервер Telegram-версии сейчас не отвечает' });
-    }
+    return runWithScopedPool(getTelegramPool(), () => handler(req, res));
   };
 }
