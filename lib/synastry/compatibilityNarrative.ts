@@ -20,6 +20,8 @@ export type CompatibilityNarrativeInput = {
   subjectGender?: 'male' | 'female' | 'unspecified';
   partnerGender?: 'male' | 'female' | 'unspecified';
   language: 'ru' | 'en';
+  /** A shared pair reading addresses nobody as «ты». */
+  audience?: 'reader' | 'pair';
 };
 
 export class CompatibilityNarrativeError extends Error {
@@ -102,7 +104,7 @@ function validateReaderVoice(texts: string[], input: CompatibilityNarrativeInput
     // the whole reading unavailable after two expensive model calls.
     if (!person.gender || person.gender === 'unspecified') continue;
     const names = person.name && namesDistinct ? [escapeRegex(person.name)] : [];
-    if (person.subject && input.language === 'ru') names.push('ты');
+    if (person.subject && input.language === 'ru' && input.audience !== 'pair') names.push('ты');
     if (!names.length) continue;
     if (input.language === 'ru') {
       const forbidden = RUSSIAN_PERSON_FORMS.flatMap(([male, female]) => person.gender === 'male' ? [female] : [male]);

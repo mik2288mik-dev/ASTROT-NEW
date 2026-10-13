@@ -13,6 +13,7 @@ import { STORY_SCHEMA_SQL } from './stories/schema';
 import { FORECAST_GIFTS_SCHEMA_SQL } from './forecastGifts';
 import { DAILY_QUESTION_SCHEMA_SQL } from './dailyQuestionRepository';
 import { APP_TELEMETRY_SCHEMA_SQL } from './appTelemetryRepository';
+import { PEOPLE_SCHEMA_SQL } from './people/schema';
 
 const DATABASE_URL = resolveDatabaseUrl();
 const MIGRATION_LOCK_KEY = 20260711;
@@ -4213,6 +4214,21 @@ async function mvp064GiftsAndQuestion(pool: Pool): Promise<void> {
   }
 }
 
+async function mvp065PeopleLinks(pool: Pool): Promise<void> {
+  const name = 'mvp_065_people_links';
+  if (await isMigrationApplied(pool, name)) return;
+  await pool.query('BEGIN');
+  try {
+    await pool.query(PEOPLE_SCHEMA_SQL);
+    await markMigrationApplied(pool, name);
+    await pool.query('COMMIT');
+    log.info(`Migration ${name} applied`);
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    throw error;
+  }
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -4310,6 +4326,7 @@ export async function runMigrations(): Promise<void> {
     await mvp062TtsAudio(migrationDb);
     await mvp063StorySeries(migrationDb);
     await mvp064GiftsAndQuestion(migrationDb);
+    await mvp065PeopleLinks(migrationDb);
     if (!await isMigrationApplied(migrationDb, 'mvp060_natal_reading_preparation')) {
       await migrationDb.query(NATAL_READING_JOBS_SCHEMA);
       await markMigrationApplied(migrationDb, 'mvp060_natal_reading_preparation');
