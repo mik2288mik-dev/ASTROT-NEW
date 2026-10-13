@@ -1,7 +1,7 @@
 import React from 'react';
 import { admin2, type AdminRangeKey, type AdminWaitRow } from '../../../services/admin2Service';
 import { Funnel } from '../charts';
-import { ago, Card, duration, Empty, ErrorBox, fmt, Loading, share, Tone, useLoad } from '../ui';
+import { ago, BarList, Card, duration, Empty, ErrorBox, fmt, Loading, share, Tone, useLoad } from '../ui';
 
 function WaitTable({ rows, empty }: { rows: AdminWaitRow[]; empty: string }) {
   if (!rows.length) return <Empty text={empty} />;
@@ -40,6 +40,10 @@ export function JourneySection({ range, source, onOpenPerson }: { range: AdminRa
 
       <Card title="Путь от первого запуска до оплаты" hint="Сколько людей дошли до каждого шага и сколько потерялись по дороге">
         <Funnel steps={funnel} />
+      </Card>
+
+      <Card title="Откуда открывают экран оплаты" hint="Место в приложении, где человек нажал на Premium, и сколько из них оплатили">
+        <BarList items={data.paywallPlaces} empty="В этом периоде экран оплаты не открывали." />
       </Card>
 
       <Card title="Первое знакомство" hint="Экраны, которые человек видит сразу после установки">

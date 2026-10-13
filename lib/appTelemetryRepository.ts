@@ -22,8 +22,16 @@ CREATE INDEX IF NOT EXISTS idx_product_trace_events_visit_time ON product_trace_
 CREATE INDEX IF NOT EXISTS idx_product_trace_events_time ON product_trace_events(occurred_at);
 `;
 const hash = (secret: string) => createHash('sha256').update(secret).digest('hex');
+// The live server does not run migrations on deploy: create the tables on first use.
+let schemaReady: Promise<void> | null = null;
+function ensureTelemetrySchema(): Promise<void> {
+  schemaReady ??= getPool().query(APP_TELEMETRY_SCHEMA_SQL).then(() => undefined)
+    .catch((error) => { schemaReady = null; throw error; });
+  return schemaReady;
+}
 export async function recordAppTrace(input: { token?: string | null; userId: string | null;
   events: AppTraceEvent[]; metadata: Record<string, unknown> }): Promise<string> {
+  if (process.env.NODE_ENV !== 'test') await ensureTelemetrySchema();
   const client = await getPool().connect();
   let token = input.token || null;
   try {

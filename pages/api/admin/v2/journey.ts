@@ -6,6 +6,7 @@ import { resolveRange } from '../../../../lib/admin/ranges';
 import {
   collectAbandonedOnboarding,
   collectOnboarding,
+  collectPaywallPlacements,
   collectProductFunnel,
   collectReading,
   collectWaits,
@@ -18,16 +19,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await requireAdminPermission(req, 'analytics.view');
     const range = resolveRange(req.query.range);
-    const [funnel, onboarding, waits, reading, stuck] = await Promise.all([
+    const [funnel, onboarding, waits, reading, stuck, paywallPlaces] = await Promise.all([
       collectProductFunnel(range),
       collectOnboarding(range),
       collectWaits(range),
       collectReading(range),
       collectAbandonedOnboarding(Math.max(24, range.days * 24)),
+      collectPaywallPlacements(range),
     ]);
     return res.status(200).json({
       range: { key: range.key, label: range.label },
-      funnel, onboarding, waits, reading, stuck,
+      funnel, onboarding, waits, reading, stuck, paywallPlaces,
     });
   } catch (error) {
     return handleAdminError(res, error);

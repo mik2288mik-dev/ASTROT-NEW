@@ -4,6 +4,7 @@ import { CHECKOUT_EVENTS, PAYWALL_EVENTS, type Period } from '../productMetrics'
 import { STEP_LABELS, ONBOARDING_STEPS } from '../journeyTelemetry';
 import { TRACE_SCREEN_LABELS } from '../appTelemetry';
 import { operationLabel, readableLabel } from './telemetryCopy';
+import { aiScenarioLabel } from '../aiScenarioLabels';
 
 /** Path, waits and reading: what the admin shows under «Путь и воронки». */
 
@@ -50,6 +51,34 @@ export async function collectProductFunnel(period: Period, db: Queryable = getPo
   ];
 }
 
+const PLACEMENT_LABELS: Record<string, string> = {
+  matrix: 'Матрица судьбы', today: 'Прогноз на сегодня', week: 'Прогноз на неделю', month: 'Прогноз на месяц',
+  deep_natal: 'Подробный разбор карты', personality_deep: 'Разбор личности', natal_questions: 'Спросить о себе',
+  compatibility_by_charts: 'Совместимость по картам', saved_people: 'Мои люди', settings: 'Настройки',
+};
+
+/** From which place in the app people open the Premium offer, and how many of them then paid. */
+export async function collectPaywallPlacements(period: Period, db: Queryable = getPool()): Promise<Array<{ label: string; count: number; note?: string }>> {
+  const result = await db.query(
+    `WITH views AS (
+       SELECT DISTINCT e.user_id, COALESCE(NULLIF(e.payload_json->>'placement', ''), e.section, 'unknown') AS placement
+       FROM user_app_events e
+       WHERE e.event_type = ANY($3::text[])
+         AND e.occurred_at >= $1::timestamptz AT TIME ZONE 'UTC' AND e.occurred_at < $2::timestamptz AT TIME ZONE 'UTC'
+     )
+     SELECT placement, COUNT(*)::int AS people,
+            COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM nebo_ops_outbox o WHERE o.user_id = v.user_id
+              AND o.event_type = 'payment_confirmed' AND o.occurred_at >= $1::timestamptz
+              AND COALESCE(o.payload_json->>'sandbox', 'false') <> 'true'))::int AS paid
+     FROM views v GROUP BY 1 ORDER BY people DESC LIMIT 12`,
+    [period.start.toISOString(), period.end.toISOString(), PAYWALL_EVENTS],
+  );
+  return result.rows.map((row) => ({
+    label: PLACEMENT_LABELS[String(row.placement)] || (row.placement === 'unknown' ? 'Место не известно' : String(row.placement).replace(/_/g, ' ')),
+    count: n(row.people),
+    note: n(row.paid) ? `оплатили ${n(row.paid)}` : undefined,
+  }));
+}
 export type OnboardingStep = { step: string; label: string; reached: number; leftHere: number; medianSeconds: number | null };
 
 /** Where the first acquaintance loses people: the last step each attempt reached. */
@@ -136,7 +165,7 @@ export async function collectWaits(period: Period, db: Queryable = getPool()): P
             percentile_cont(0.5) WITHIN GROUP (ORDER BY duration_ms) / 1000.0 AS median,
             percentile_cont(0.9) WITHIN GROUP (ORDER BY duration_ms) / 1000.0 AS p90
      FROM app_ai_requests WHERE created_at >= $1::timestamptz AND created_at < $2::timestamptz
-       AND scenario <> 'health_ping'
+       AND scenario <> 'content_diagnostic'
      GROUP BY scenario ORDER BY count DESC LIMIT 20`, params,
   ).catch(() => ({ rows: [] as any[] }))).rows.map((row) => ({
     key: String(row.scenario), label: aiScenarioLabel(String(row.scenario)), count: n(row.count), failed: n(row.failed),
@@ -169,17 +198,6 @@ export async function collectWaits(period: Period, db: Queryable = getPool()): P
     screens = [...merged.values()].sort((a, b) => (b.p90Seconds || 0) - (a.p90Seconds || 0)).slice(0, 15);
   }
   return { server, ai, screens };
-}
-
-const AI_SCENARIOS: Record<string, string> = {
-  personal_forecast: 'Личный прогноз', natal_reading: 'Разбор натальной карты', natal_question: 'Ответ на вопрос о себе',
-  synastry: 'Совместимость', sign_horoscope: 'Гороскоп по знаку', micro_forecast: 'Короткий прогноз', future_forecast: 'Прогноз на будущее',
-  text: 'Текст от ИИ', json: 'Ответ ИИ в формате данных',
-};
-export function aiScenarioLabel(scenario: string): string {
-  if (AI_SCENARIOS[scenario]) return AI_SCENARIOS[scenario];
-  const key = Object.keys(AI_SCENARIOS).find((name) => scenario.includes(name));
-  return key ? AI_SCENARIOS[key] : scenario.replace(/_/g, ' ');
 }
 
 export type ReadingRow = { screen: string; block: string; people: number; medianSeconds: number; focusSeconds: number };

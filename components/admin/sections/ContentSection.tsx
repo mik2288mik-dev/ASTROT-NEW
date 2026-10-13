@@ -98,7 +98,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ me, onSelectUser
     setCmsSaving(true);
     try {
       await admin2.updateCms(selectedCms.id, cmsBody, cmsTitle, selectedCms.version);
-      alert('CMS контент сохранен');
+      alert('Текст сохранён');
       loadCms();
       handleSelectCms(selectedCms.id);
     } catch (e: any) {
@@ -125,9 +125,9 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ me, onSelectUser
       {/* Header & Tabs */}
       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Управление контентом & Модерация</h2>
+          <h2 className="text-xl font-bold text-gray-900">Контент</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Вопросы к астрологу/прогнозу, витрина Home Cards и материалы CMS
+            Вопросы людей к прогнозу, карточки главного экрана и тексты
           </p>
         </div>
 
@@ -146,7 +146,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ me, onSelectUser
               activeTab === 'home_cards' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Home Cards
+            Карточки главного экрана
           </button>
           <button
             onClick={() => setActiveTab('cms')}
@@ -154,7 +154,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ me, onSelectUser
               activeTab === 'cms' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            CMS & Статьи
+            Тексты и статьи
           </button>
         </div>
       </div>

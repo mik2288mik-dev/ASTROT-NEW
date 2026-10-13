@@ -2,11 +2,7 @@ import React from 'react';
 import { admin2 } from '../../../services/admin2Service';
 import { BarList, Card, dateTime, Empty, ErrorBox, Loading, useLoad } from '../ui';
 import { ErrorsSection } from './ErrorsSection';
-
-const SCENARIOS: Record<string, string> = {
-  personal_forecast: 'Личный прогноз', natal_reading: 'Разбор карты', natal_question: 'Ответ на вопрос',
-  synastry: 'Совместимость', sign_horoscope: 'Гороскоп по знаку', text: 'Текст от ИИ', json: 'Ответ ИИ',
-};
+import { aiScenarioLabel } from '../../../lib/aiScenarioLabels';
 
 /** «Ошибки и версии»: what breaks, on which version and which phones. */
 export function QualitySection({ source }: { source: string }) {
@@ -32,7 +28,7 @@ export function QualitySection({ source }: { source: string }) {
             <div className="adm-table-wrap"><table className="adm-table">
               <thead><tr><th>Где</th><th>Причина</th><th className="num">Раз</th><th>Последний раз</th></tr></thead>
               <tbody>{data.aiFailures.map((row) => (
-                <tr key={row.scenario + row.errorCode}><td>{SCENARIOS[row.scenario] || row.scenario}</td><td>{row.errorCode || 'не указана'}</td>
+                <tr key={row.scenario + row.errorCode}><td>{aiScenarioLabel(row.scenario)}</td><td>{row.errorCode || 'не указана'}</td>
                   <td className="num">{row.count}</td><td>{dateTime(row.lastAt)}</td></tr>
               ))}</tbody>
             </table></div>

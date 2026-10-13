@@ -6,10 +6,13 @@ import type { TelegramReplyMarkup } from './telegramBot';
 import {
   ensureNeboOpsBotSetup,
   ensureNeboOwnerChannelBotSetup,
-  getNeboOpsPreferences,
-  isNeboOpsEventEnabled,
+  getNeboBotSettings,
+  isQuietHour,
+  quietEndsAt,
+  type EventToggle,
 } from './neboOpsSettings';
-import { CHANNEL_LABELS, planLabel, planPriceRub, PROVIDER_LABELS, SCREEN_LABELS } from './neboOpsStats';
+import { CHANNEL_LABELS, planLabel, planPriceRub, PROVIDER_LABELS, SCREEN_LABELS } from './productMetrics';
+import { aiScenarioLabel } from './aiScenarioLabels';
 
 type Queryable = Pick<PoolClient, 'query'>;
 type Payload = Record<string, unknown>;
@@ -21,6 +24,8 @@ export type NeboOpsEvent = {
   payload?: Payload;
 };
 export type NeboOpsConfig = { token: string; chatId: string };
+/** Buttons under a message, or Telegram's «reply to this» prompt for typed input. */
+export type NeboReplyMarkup = TelegramReplyMarkup | { force_reply: true; input_field_placeholder?: string };
 export type NeboOwnerChannel = 'payments' | 'support' | 'errors';
 type OpsRow = {
   id: string;
@@ -43,7 +48,10 @@ type UserSummary = {
   attribution_campaign?: string | null;
   attribution_at?: Date | string | null;
   visit_days?: number | string | null;
-  paid_purchases?: number | string | null;
+  paid_before?: number | string | null;
+  is_guest?: boolean | null;
+  first_identity_at?: Date | string | null;
+  runtime?: Payload | null;
 };
 type SendResult = {
   ok: boolean;
@@ -61,14 +69,18 @@ const EVENT_TYPES = new Set([
   'login', 'activity', 'payment_confirmed', 'trial_started',
   'subscription_grace', 'subscription_cancelled', 'subscription_expired', 'subscription_resumed',
   'payment_refunded', 'support_ticket', 'diagnostic', 'hourly_summary', 'daily_summary', 'ai_error', 'technical_error', 'attribution_received',
+  'review', 'onboarding_abandoned', 'old_version',
 ]);
 /** Everything the owner bots deliver. Reports are built on demand, never queued. */
 const DELIVERED_EVENT_TYPES = [
   'login', 'payment_confirmed', 'trial_started', 'subscription_grace', 'subscription_cancelled',
   'subscription_expired', 'subscription_resumed', 'payment_refunded', 'support_ticket',
-  'ai_error', 'technical_error', 'diagnostic', 'attribution_received',
+  'ai_error', 'technical_error', 'diagnostic', 'attribution_received', 'review', 'onboarding_abandoned', 'old_version',
 ];
-const DELIVERED_ACTIVITY = ['paywall_view', 'app_open', 'app_opened', 'purchase_failed', 'restore_failed'];
+const DELIVERED_ACTIVITY = ['paywall_view', 'app_open', 'app_opened', 'purchase_failed', 'purchase_cancelled', 'restore_failed'];
+/** Money and people writing to us are never dropped by pause or quiet hours, only delayed. */
+const ALWAYS_KEPT = new Set(['payment_confirmed', 'trial_started', 'subscription_grace', 'subscription_cancelled',
+  'subscription_expired', 'subscription_resumed', 'payment_refunded', 'support_ticket', 'review']);
 const PAYMENT_EVENTS = new Set([
   'payment_confirmed', 'trial_started', 'subscription_grace', 'subscription_cancelled',
   'subscription_expired', 'subscription_resumed', 'payment_refunded',
@@ -100,7 +112,7 @@ export const ACTIONS: Record<string, string> = {
   natal_paywall_dismiss: 'закрыл Premium',
 };
 const ACTION_ICONS: Record<string, string> = {
-  app_open: '👋', app_opened: '👋', paywall_view: '💳', purchase_failed: '⚠️', restore_failed: '⚠️',
+  app_open: '👋', app_opened: '👋', paywall_view: '💳', purchase_failed: '⚠️', purchase_cancelled: '↩️', restore_failed: '⚠️',
 };
 const TITLES: Record<string, string> = {
   payment_confirmed: '💰 Оплата', trial_started: '🎁 Пробный период',
@@ -151,7 +163,7 @@ function daysWord(count: number): string {
 }
 
 /** A secondary server (NEBO_OPS_ROLE=secondary) sends its own event cards only:
- * no bot webhooks/commands, scheduled reports or alarms — the primary owns those. */
+ * no bot webhooks/commands, scheduled reports or alarms; the primary owns those. */
 export function isNeboOpsSecondary(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.NEBO_OPS_ROLE === 'secondary';
 }
@@ -164,7 +176,7 @@ export function isNeboOpsEnabled(env: NodeJS.ProcessEnv = process.env): boolean 
 export function neboServerLabel(env: NodeJS.ProcessEnv = process.env): string {
   const configured = text(env.NEBO_SERVER_LABEL, 40);
   if (configured) return configured;
-  return env.RAILWAY_ENVIRONMENT_ID || env.RAILWAY_PROJECT_ID ? 'Railway' : 'Timeweb';
+  return env.RAILWAY_ENVIRONMENT_ID || env.RAILWAY_PROJECT_ID ? 'Railway' : 'Timeweb · RuStore';
 }
 
 export function getNeboOpsConfig(env: NodeJS.ProcessEnv = process.env): NeboOpsConfig | null {
@@ -203,7 +215,19 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
   }
   const attributionAt = validDate(input.attributionAt);
   if (attributionAt) result.attributionAt = attributionAt.toISOString();
-  if (input.operation === 'personal_forecast' || input.operation === 'natal_question') result.operation = input.operation;
+  const operation = code(input.operation);
+  if (operation) result.operation = operation;
+  if (typeof input.rating === 'number' && Number.isInteger(input.rating) && input.rating >= 1 && input.rating <= 5) result.rating = input.rating;
+  const reviewAuthor = text(input.reviewAuthor, 60);
+  if (reviewAuthor) result.reviewAuthor = reviewAuthor;
+  // A store review is public text written for us; it is the one free text the bot shows.
+  const reviewText = typeof input.reviewText === 'string' ? input.reviewText.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' ').trim().slice(0, 1500) : '';
+  if (reviewText) result.reviewText = reviewText;
+  const lastStep = text(input.lastStep, 60);
+  if (lastStep) result.lastStep = lastStep;
+  if (typeof input.latestVersion === 'string' && /^[0-9][0-9A-Za-z.+-]{0,63}$/.test(input.latestVersion)) result.latestVersion = input.latestVersion;
+  const hoursSince = positiveNumber(input.hoursSince);
+  if (hoursSince !== undefined) result.hoursSince = Math.round(hoursSince);
   if (['generation', 'lazy_refresh', 'request'].includes(String(input.stage))) result.stage = input.stage;
   if (['day', 'week', 'month'].includes(String(input.period))) result.period = input.period;
   if (typeof input.errorCode === 'string' && /^[A-Za-z0-9_.:-]{1,80}$/.test(input.errorCode)) result.errorCode = input.errorCode;
@@ -283,6 +307,24 @@ export function sanitizeNeboOpsPayload(input: Payload = {}): Payload {
     result.eventPayload = safe;
   }
   return result;
+}
+
+/** For callers outside a business transaction: its own short transaction, then wake delivery. */
+export async function enqueueNeboOpsEventNow(input: NeboOpsEvent): Promise<void> {
+  if (!isNeboOpsEnabled()) return;
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    await client.query("SET LOCAL statement_timeout = '5s'");
+    await enqueueNeboOpsEvent(client, input);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+  wakeNeboOpsDelivery();
 }
 
 export function shouldDeliverNeboOpsEvent(eventType: string, payload: Payload = {}): boolean {
@@ -382,13 +424,14 @@ function renderPayment(row: Pick<OpsRow, 'event_type' | 'user_id' | 'occurred_at
   const detail = (p.eventPayload || {}) as Payload;
   const product = String(p.productCode || p.productId || p.planId || detail.plan_id || '');
   const price = product ? planPriceRub(product) : 0;
-  const title = TITLES[row.event_type] || '💳 Подписка';
+  const paidBefore = Number(user.paid_before || 0);
+  const renewal = row.event_type === 'payment_confirmed' && paidBefore > 0;
+  const title = renewal ? '🔁 Продление' : TITLES[row.event_type] || '💳 Подписка';
   const lines = [`${title}${product ? ` · ${planLabel(product)}` : ''}${row.event_type === 'payment_confirmed' && price ? ` · ${price} ₽` : ''}`];
   const person = personLine(row, user);
   if (person) lines.push(person);
-  if (row.event_type === 'payment_confirmed') {
-    const paid = Number(user.paid_purchases || 0);
-    if (row.user_id) lines.push(paid > 1 ? `🔁 Продление · всего оплат: ${paid}` : '🆕 Первая покупка');
+  if (row.event_type === 'payment_confirmed' && row.user_id) {
+    lines.push(renewal ? `Это ${paidBefore + 1}-я оплата этого человека` : '🆕 Первая покупка');
   }
   if (typeof p.amountMinor === 'number' && p.currency) lines.push(`💵 Сумма: ${(p.amountMinor / 100).toFixed(2)} ${p.currency}`);
   if (typeof p.starsAmount === 'number') lines.push(`⭐ Сумма: ${p.starsAmount} Stars`);
@@ -435,7 +478,7 @@ function renderError(
   const errorCode = String(p.errorCode || '');
   const lines: string[] = [];
   if (row.event_type === 'ai_error') {
-    const what = OPERATION_TITLES[String(p.operation)] || 'текст от ИИ';
+    const what = OPERATION_TITLES[String(p.operation)] || (p.operation ? `«${aiScenarioLabel(String(p.operation))}»` : 'текст от ИИ');
     const period = p.operation === 'personal_forecast' ? PERIOD_TITLES[String(p.period)] || '' : '';
     lines.push(`🤖 Не получился ${what}${period ? ` ${period}` : ''}`);
     lines.push(`Причина: ${ERROR_REASONS[errorCode] || 'неизвестная ошибка генерации'}.`);
@@ -467,6 +510,44 @@ function renderError(
   return lines;
 }
 
+const GUEST_PROVIDERS = new Set(['guest', 'native', 'web_guest']);
+
+/** A first open of the app, a first real sign-in, or a returning person. */
+export function neboLoginKind(row: Pick<OpsRow, 'payload_json' | 'occurred_at'>, user: UserSummary = {}): 'first_launch' | 'registration' | 'return_visit' {
+  const p = row.payload_json || {};
+  const guest = GUEST_PROVIDERS.has(String(p.provider || '')) || (!p.provider && user.is_guest === true);
+  // A brand-new account: a guest is a first launch, a direct VK/Яндекс/email sign-up is a registration.
+  if (p.isFirstLogin === true) return guest ? 'first_launch' : 'registration';
+  // A guest who signs in for the first time: the first identity appears right now.
+  const firstIdentity = validDate(user.first_identity_at);
+  const occurred = validDate(row.occurred_at);
+  if (!guest && firstIdentity && occurred && Math.abs(occurred.getTime() - firstIdentity.getTime()) <= 15 * 60_000) return 'registration';
+  return 'return_visit';
+}
+
+/** Which owner switch controls this message (null: always delivered). */
+export function neboEventToggle(row: Pick<OpsRow, 'event_type' | 'payload_json' | 'occurred_at'>, user: UserSummary = {}): EventToggle | null {
+  const p = row.payload_json || {};
+  switch (row.event_type) {
+    case 'login': return neboLoginKind(row, user);
+    case 'attribution_received': return 'first_launch';
+    case 'activity':
+      return ['app_open', 'app_opened'].includes(String(p.eventType)) ? 'return_visit' : 'paywall';
+    case 'payment_confirmed': return Number(user.paid_before || 0) > 0 ? 'renewal' : 'payment';
+    case 'trial_started': return 'payment';
+    case 'subscription_grace': case 'subscription_resumed': case 'subscription_expired': return 'renewal';
+    case 'subscription_cancelled': return 'cancellation';
+    case 'payment_refunded': return 'refund';
+    case 'support_ticket': return 'support';
+    case 'ai_error': return 'ai_error';
+    case 'technical_error': return 'tech_error';
+    case 'review': return 'review';
+    case 'onboarding_abandoned': return 'onboarding_abandon';
+    case 'old_version': return 'old_version';
+    default: return null;
+  }
+}
+
 export function renderNeboOpsMessage(
   row: Pick<OpsRow, 'event_type' | 'user_id' | 'payload_json' | 'occurred_at'>,
   user: UserSummary = {},
@@ -476,13 +557,38 @@ export function renderNeboOpsMessage(
   const name = text(user.name, 70) || 'Пользователь';
   let lines: string[];
   if (row.event_type === 'login') {
-    lines = [p.isFirstLogin ? `👤 Новый пользователь · ${name}` : `🔑 ${name} вошёл в аккаунт`];
+    const kind = neboLoginKind(row, user);
+    lines = [kind === 'first_launch' ? `📲 Первый запуск · ${name}`
+      : kind === 'registration' ? `📝 Регистрация · ${name}` : `🔑 ${name} вошёл в аккаунт`];
     const person = personLine(row, user);
     if (person) lines.push(person);
     lines.push(...deviceLines(p), ...accountLines(row, user, p));
-    const source = p.isFirstLogin ? sourceLine(p, user) : null;
+    const source = kind !== 'return_visit' ? sourceLine(p, user) : null;
     if (source) lines.push(source);
     if (user.language === 'en') lines.push('🌐 Язык: английский');
+  } else if (row.event_type === 'review') {
+    const rating = Number(p.rating || 0);
+    lines = [`⭐ Новый отзыв в RuStore · ${'★'.repeat(rating)}${'☆'.repeat(Math.max(0, 5 - rating))} ${rating} из 5`];
+    if (p.reviewAuthor) lines.push(`👤 ${p.reviewAuthor}`);
+    lines.push(p.reviewText ? `💬 «${p.reviewText}»` : '💬 Только оценка, без текста');
+    const device = [p.appVersion ? `NEBO ${p.appVersion}` : '', p.deviceModel, p.osVersion].filter(Boolean).join(' · ');
+    if (device) lines.push(`📦 ${device}`);
+    if (rating && rating <= 3) lines.push('💡 Низкая оценка: стоит ответить в консоли RuStore.');
+  } else if (row.event_type === 'onboarding_abandoned') {
+    lines = [`🚪 Бросил знакомство · ${name}`];
+    const person = personLine(row, user);
+    if (person) lines.push(person);
+    lines.push(`Пришёл ${p.hoursSince ? `${p.hoursSince} ч назад` : 'недавно'} и так и не получил натальную карту.`);
+    if (p.lastStep) lines.push(`📍 Остановился на шаге «${p.lastStep}»`);
+    lines.push(...deviceLines(p.deviceModel ? p : sanitizeNeboOpsPayload(user.runtime || {})));
+    const source = sourceLine(p, user);
+    if (source) lines.push(source);
+    if (row.user_id) lines.push(`🔎 Вся история: /user ${row.user_id}`);
+  } else if (row.event_type === 'old_version') {
+    lines = [`📦 Старая версия приложения · ${name}`];
+    const person = personLine(row, user);
+    if (person) lines.push(person);
+    lines.push(`У него NEBO ${p.appVersion || '?'}, последняя ${p.latestVersion || '?'}. Старая версия не получает исправлений.`);
   } else if (row.event_type === 'activity') {
     const action = String(p.eventType || '');
     lines = [`${ACTION_ICONS[action] || '📍'} ${name} ${ACTIONS[action] || 'сделал действие'}`];
@@ -607,7 +713,7 @@ async function sendNeboOpsWithConfig(
   }
 }
 
-function withoutWebAppButtons(markup: TelegramReplyMarkup): TelegramReplyMarkup | undefined {
+function withoutWebAppButtons(markup: NeboReplyMarkup): NeboReplyMarkup | undefined {
   const keyboard = (markup as { inline_keyboard?: Array<Array<Record<string, unknown>>> }).inline_keyboard;
   if (!Array.isArray(keyboard)) return undefined;
   const rows = keyboard.map((row) => row.filter((button) => !button.web_app)).filter((row) => row.length);
@@ -617,9 +723,9 @@ function withoutWebAppButtons(markup: TelegramReplyMarkup): TelegramReplyMarkup 
 export async function sendNeboOpsTextWithConfig(
   config: NeboOpsConfig | null,
   message: string,
-  options?: { replyMarkup?: TelegramReplyMarkup; interactive?: boolean },
+  options?: { replyMarkup?: NeboReplyMarkup; interactive?: boolean },
 ): Promise<SendResult> {
-  const send = (replyMarkup?: TelegramReplyMarkup) => sendNeboOpsWithConfig(config, 'sendMessage', {
+  const send = (replyMarkup?: NeboReplyMarkup) => sendNeboOpsWithConfig(config, 'sendMessage', {
     text: message.slice(0, 3_800),
     disable_web_page_preview: true,
     reply_markup: replyMarkup,
@@ -640,7 +746,7 @@ export async function sendNeboOpsTextWithConfig(
 }
 
 /** Messages the owner asked for (menu, reports): retried until the shared sender is free. */
-export async function sendNeboOpsText(message: string, options?: { replyMarkup?: TelegramReplyMarkup }): Promise<SendResult> {
+export async function sendNeboOpsText(message: string, options?: { replyMarkup?: NeboReplyMarkup }): Promise<SendResult> {
   return sendNeboOpsTextWithConfig(getNeboOpsConfig(), message, { ...options, interactive: true });
 }
 
@@ -673,7 +779,7 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
   const result = { sent: 0, failed: 0, claimed: 0 };
   if (!getNeboOpsConfig()) return result;
   const pool = getPool();
-  const preferences = await getNeboOpsPreferences();
+  const settings = await getNeboBotSettings();
   await pool.query(
     `UPDATE nebo_ops_outbox SET status = CASE WHEN attempts >= $1 THEN 'dead' ELSE 'failed' END,
        locked_at = NULL, lease_token = NULL, next_attempt_at = NOW(), updated_at = NOW(),
@@ -695,7 +801,7 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
        last_error_code = 'STALE_SKIPPED', updated_at = NOW()
      WHERE status IN ('pending', 'failed') AND occurred_at < NOW() - INTERVAL '24 hours'
        AND NOT (event_type = ANY($1::text[]))`,
-    [[...PAYMENT_EVENTS, 'support_ticket']],
+    [[...PAYMENT_EVENTS, 'support_ticket', 'review']],
   );
   const count = Number.isFinite(limit) ? Math.min(MAX_BATCH, Math.max(1, Math.trunc(limit))) : MAX_BATCH;
   for (let index = 0; index < count; index++) {
@@ -725,26 +831,20 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
       );
       continue;
     }
-    if (!isNeboOpsEventEnabled(row.event_type, row.payload_json, preferences)) {
-      await pool.query(
-        `UPDATE nebo_ops_outbox SET status = 'dead', attempts = GREATEST(0, attempts - 1),
-           locked_at = NULL, lease_token = NULL, last_error_code = 'OWNER_SETTING_DISABLED', updated_at = NOW()
-         WHERE id = $1 AND lease_token = $2::uuid AND status = 'processing'`,
-        [row.id, lease],
-      );
-      continue;
-    }
     const includeMyTracker = process.env.MYTRACKER_ENABLED === '1';
     const user = row.user_id ? (await pool.query<UserSummary>(
-      `SELECT u.name, u.language, u.auth_provider,
+      `SELECT u.name, u.language, u.auth_provider, u.is_guest,
               u.created_at,
               ${includeMyTracker ? `mt.analytics_user_id::text AS mytracker_id,
               mt.traffic_source AS attribution_source, mt.campaign_title AS attribution_campaign,
               mt.attribution_at,` : ''}
               (SELECT COUNT(DISTINCT ((e.occurred_at AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow')::date)
                  FROM user_app_events e WHERE e.user_id = u.id)::int AS visit_days,
-              (SELECT COUNT(*) FROM store_purchases sp
-                 WHERE sp.user_id = u.id AND sp.status NOT IN ('store_trial', 'refunded'))::int AS paid_purchases,
+              (SELECT COUNT(*) FROM nebo_ops_outbox o WHERE o.user_id = u.id AND o.event_type = 'payment_confirmed'
+                 AND o.occurred_at < $2::timestamptz AND COALESCE(o.payload_json->>'sandbox', 'false') <> 'true')::int AS paid_before,
+              (SELECT MIN(ai.created_at) FROM account_identities ai WHERE ai.user_id = u.id) AT TIME ZONE 'UTC' AS first_identity_at,
+              (SELECT o.payload_json FROM nebo_ops_outbox o WHERE o.user_id = u.id AND o.payload_json ? 'deviceModel'
+                 ORDER BY o.occurred_at DESC LIMIT 1) AS runtime,
               GREATEST(u.premium_until, p.active_until AT TIME ZONE 'UTC') AS premium_until,
               COALESCE(GREATEST(u.premium_until, p.active_until AT TIME ZONE 'UTC') > NOW(), FALSE) AS has_premium
        FROM users u
@@ -753,11 +853,36 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
          SELECT MAX(ends_at) AS active_until FROM premium_entitlements
          WHERE user_id = u.id AND status = 'active' AND ends_at > (NOW() AT TIME ZONE 'UTC')
        ) p ON TRUE
-       WHERE u.id = $1`, [row.user_id],
+       WHERE u.id = $1`, [row.user_id, validDate(row.occurred_at)?.toISOString() || new Date().toISOString()],
     )).rows[0] : undefined;
     // A concurrently deleted account must not produce a late identity notification.
     if (row.user_id && !user) {
       await pool.query('DELETE FROM nebo_ops_outbox WHERE id = $1 AND lease_token = $2::uuid', [row.id, lease]);
+      continue;
+    }
+    const toggle = neboEventToggle(row, user);
+    const kept = ALWAYS_KEPT.has(row.event_type);
+    const quiet = isQuietHour(settings);
+    const skip = toggle && !settings.events[toggle] ? 'OWNER_SETTING_DISABLED'
+      : (settings.paused || quiet) && !kept ? (settings.paused ? 'OWNER_PAUSED' : 'QUIET_HOURS') : null;
+    if (skip) {
+      await pool.query(
+        `UPDATE nebo_ops_outbox SET status = 'dead', attempts = GREATEST(0, attempts - 1),
+           locked_at = NULL, lease_token = NULL, last_error_code = $3, updated_at = NOW()
+         WHERE id = $1 AND lease_token = $2::uuid AND status = 'processing'`,
+        [row.id, lease, skip],
+      );
+      continue;
+    }
+    if (settings.paused || quiet) {
+      // Money, support and reviews wait for the end of the pause or the quiet hours.
+      const until = settings.paused ? new Date(Date.now() + 15 * 60_000) : quietEndsAt(settings);
+      await pool.query(
+        `UPDATE nebo_ops_outbox SET status = 'pending', attempts = GREATEST(0, attempts - 1),
+           locked_at = NULL, lease_token = NULL, next_attempt_at = $3, last_error_code = $4, updated_at = NOW()
+         WHERE id = $1 AND lease_token = $2::uuid AND status = 'processing'`,
+        [row.id, lease, until.toISOString(), settings.paused ? 'OWNER_PAUSED_DEFERRED' : 'QUIET_HOURS_DEFERRED'],
+      );
       continue;
     }
     const errorContext: NeboErrorContext = {};
@@ -842,6 +967,7 @@ async function connectWakeupListener(): Promise<void> {
 }
 
 let lastAlarmCheckAt = 0;
+let lastScanAt = 0;
 let lastVisitScanAt = 0;
 
 /**
@@ -916,6 +1042,15 @@ export function wakeNeboOpsDelivery(): void {
           rememberWorkerError(state, error);
         }
       }
+      if (!isNeboOpsSecondary() && Date.now() - lastScanAt >= 10 * 60_000) {
+        lastScanAt = Date.now();
+        try {
+          const { runNeboOpsScans } = await import('./neboOpsScans');
+          if (await runNeboOpsScans(new Date(lastScanAt))) state.requested = true;
+        } catch (error) {
+          rememberWorkerError(state, error);
+        }
+      }
       if (!isNeboOpsSecondary() && Date.now() - lastAlarmCheckAt >= 5 * 60_000) {
         lastAlarmCheckAt = Date.now();
         try {
@@ -929,7 +1064,9 @@ export function wakeNeboOpsDelivery(): void {
         await getPool().query(
           `DELETE FROM nebo_ops_outbox WHERE id IN (
              SELECT id FROM nebo_ops_outbox WHERE status IN ('sent', 'dead')
-               AND updated_at < NOW() - INTERVAL '120 days' ORDER BY id LIMIT 1000
+               AND updated_at < NOW() - INTERVAL '120 days'
+               AND event_type NOT IN ('payment_confirmed', 'trial_started', 'subscription_cancelled', 'payment_refunded')
+             ORDER BY id LIMIT 1000
            )`,
         );
         state.lastCleanupAt = Date.now();

@@ -54,6 +54,7 @@ export type AdminJourney = {
   waits: { server: AdminWaitRow[]; ai: AdminWaitRow[]; screens: AdminWaitRow[] };
   reading: { blocks: Array<{ screen: string; block: string; people: number; medianSeconds: number; focusSeconds: number }>; screens: Array<{ screen: string; people: number; medianSeconds: number }> };
   stuck: Array<{ id: string; name: string | null; createdAt: string; lastStep: string | null }>;
+  paywallPlaces: Array<{ label: string; count: number; note?: string }>;
 };
 export type AdminQuality = {
   versions: AdminVersionStats; devices: AdminCount[];

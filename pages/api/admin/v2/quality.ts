@@ -27,7 +27,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       ),
       getPool().query(
         `SELECT scenario, error_code, COUNT(*)::int AS count, MAX(created_at) AS last_at
-         FROM app_ai_requests WHERE status <> 'success' AND scenario <> 'health_ping' AND created_at >= $1::timestamptz
+         FROM app_ai_requests WHERE status <> 'success' AND scenario <> 'content_diagnostic' AND created_at >= $1::timestamptz
          GROUP BY 1, 2 ORDER BY count DESC LIMIT 20`, [since],
       ).catch(() => ({ rows: [] as any[] })),
     ]);

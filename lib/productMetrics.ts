@@ -363,7 +363,7 @@ export async function collectDailySeries(days: number, now = new Date(), db: Que
 
 export type VersionStats = { latest: string | null; versions: Count[]; outdated: number; people: number };
 
-function compareVersions(a: string, b: string): number {
+export function compareVersions(a: string, b: string): number {
   const pa = a.split(/[.+-]/).map((part) => Number.parseInt(part, 10) || 0);
   const pb = b.split(/[.+-]/).map((part) => Number.parseInt(part, 10) || 0);
   for (let i = 0; i < Math.max(pa.length, pb.length); i++) {

@@ -87,7 +87,7 @@ export function AdminShell({ me, section, range, onNavigate, onRange, onLogout }
   // Only data sections read the Telegram version; tools always work on this server.
   const effectiveSource = current?.data ? source : 'main';
   const sourceKey = `${effectiveSource}`;
-  const mainLabel = me.server === 'Timeweb' ? 'RuStore · Timeweb' : me.server;
+  const mainLabel = me.server;
 
   if (!current) {
     return <div className="adm-root adm-center"><p>У твоей роли нет доступа ни к одному разделу.</p><button type="button" className="adm-btn" onClick={onLogout}>Выйти</button></div>;

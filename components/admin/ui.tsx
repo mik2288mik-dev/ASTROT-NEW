@@ -162,7 +162,6 @@ export function useLoad<T>(load: () => Promise<T>, deps: React.DependencyList) {
       (error) => { if (alive) setState((current) => ({ ...current, error, busy: false })); },
     );
     return () => { alive = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, nonce]);
   return { ...state, reload: () => setNonce((n) => n + 1) };
 }

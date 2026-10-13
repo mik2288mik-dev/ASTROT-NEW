@@ -21,6 +21,7 @@ jest.mock('../lib/adminAuth', () => ({
 
 jest.mock('../lib/db', () => ({
   getPool: () => ({ query: (...args: unknown[]) => mockQuery(...args) }),
+  getPrimaryPool: () => ({ query: (...args: unknown[]) => mockQuery(...args) }),
 }));
 
 import { getAdminContext } from '../lib/admin/rbac';

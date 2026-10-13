@@ -1,6 +1,8 @@
 import { getPool } from './db';
 import { ACTIONS, neboServerLabel } from './neboOps';
-import { CHANNEL_LABELS, planLabel, PROVIDER_LABELS, SCREEN_LABELS } from './neboOpsStats';
+import { CHANNEL_LABELS, planLabel, PROVIDER_LABELS, SCREEN_LABELS } from './productMetrics';
+import { getPersonStory, listPeople } from './admin/people';
+import { collectAbandonedOnboarding } from './admin/productInsights';
 
 /** On-demand owner views: who came in, who pays, one person, and quiet/error alarms. */
 
@@ -8,7 +10,7 @@ const MSK = 'Europe/Moscow';
 
 function msk(value: unknown, withDate = true): string {
   const date = value instanceof Date ? value : new Date(String(value || ''));
-  if (!Number.isFinite(date.getTime())) return '—';
+  if (!Number.isFinite(date.getTime())) return 'нет данных';
   return new Intl.DateTimeFormat('ru-RU', {
     timeZone: MSK, ...(withDate ? { day: '2-digit', month: '2-digit' } : {}), hour: '2-digit', minute: '2-digit',
   }).format(date);
@@ -55,7 +57,7 @@ export async function buildLatestVisitors(limit = 10): Promise<string> {
       `   ${[...new Set([PROVIDER_LABELS[String(row.auth_provider || '')], ...device(row.device).split(' · ')].filter(Boolean))].join(' · ') || 'устройство неизвестно'}`,
     );
   }
-  lines.push('', 'Подробно о человеке: /user ID');
+  lines.push('', 'Подробно о человеке: пришли его ID.');
   return lines.join('\n').slice(0, 3_800);
 }
 
@@ -85,56 +87,71 @@ export async function buildPremiumList(): Promise<string> {
   return lines.join('\n').slice(0, 3_800);
 }
 
+/** One person, the same story as in the admin: who, from where, money, last steps. */
 export async function buildUserCard(rawId: string): Promise<string> {
   const id = String(rawId || '').trim();
-  if (!/^-?\d{1,20}$/.test(id)) return 'Напиши так: /user 123456 (ID есть в каждом уведомлении).';
-  const pool = getPool();
-  const user = (await pool.query(
-    `SELECT u.id, u.name, u.language, u.auth_provider, u.platform, u.created_at, u.premium_until,
-            GREATEST((SELECT MAX(occurred_at) FROM user_app_events e WHERE e.user_id = u.id),
-                     (SELECT MAX(last_seen_at) FROM user_sessions us WHERE us.user_id = u.id)) AT TIME ZONE 'UTC' AS last_seen,
-            (SELECT COUNT(DISTINCT ((e.occurred_at AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow')::date)
-               FROM user_app_events e WHERE e.user_id = u.id)::int AS visit_days,
-            (SELECT COUNT(*) FROM store_purchases sp WHERE sp.user_id = u.id AND sp.status NOT IN ('store_trial', 'refunded'))::int AS paid,
-            (SELECT COUNT(*) FROM support_tickets t WHERE t.user_id = u.id)::int AS tickets,
-            (SELECT MAX(pe.ends_at) AT TIME ZONE 'UTC' FROM premium_entitlements pe WHERE pe.user_id = u.id AND pe.status = 'active') AS ent_until,
-            (SELECT o.payload_json FROM nebo_ops_outbox o WHERE o.user_id = u.id AND o.payload_json ? 'deviceModel'
-              ORDER BY o.occurred_at DESC LIMIT 1) AS device
-     FROM users u WHERE u.id = $1`, [id],
-  )).rows[0];
-  if (!user) return `🔎 Пользователь ${id} не найден.`;
-  const screens = (await pool.query(
-    `SELECT section, COUNT(*)::int AS n FROM user_app_events
-     WHERE user_id = $1 AND event_type = 'screen_view' AND section IS NOT NULL
-     GROUP BY section ORDER BY n DESC LIMIT 4`, [id],
-  )).rows;
-  const until = [user.premium_until, user.ent_until].map((v) => (v ? new Date(v).getTime() : 0)).reduce((a, b) => Math.max(a, b), 0);
+  if (!/^-?\d{1,20}$/.test(id)) return 'Пришли ID человека (он есть в каждом уведомлении) или часть имени.';
+  const story = await getPersonStory(id, { days: 14 });
+  if (!story) return `🔎 Человек с ID ${id} не найден.`;
+  const { person, money, visits } = story;
+  const premium = person.premiumUntil && new Date(person.premiumUntil) > new Date();
   const lines = [
-    `🔎 ${name(user.name)} · ID ${user.id}`,
-    `🔐 ${PROVIDER_LABELS[String(user.auth_provider || '')] || 'вход не известен'} · язык ${user.language || '—'}`,
+    `🔎 ${name(person.name || (person.isGuest ? 'Гость' : ''))} · ID ${person.id}`,
+    `🎯 Откуда: ${person.source}`,
+    `🔐 Вход: ${person.signInMethods.length ? person.signInMethods.join(', ') : person.signIn}${person.isGuest ? ' (гость, не зарегистрирован)' : ''}`,
   ];
-  const dev = device(user.device);
-  if (dev) lines.push(`📱 ${dev}`);
+  const device = [person.device, person.appVersion ? `NEBO ${person.appVersion}` : ''].filter(Boolean).join(' · ');
+  if (device) lines.push(`📱 ${device}`);
   lines.push(
-    `📅 С нами с ${msk(user.created_at).split(',')[0]} · заходил ${user.visit_days} дн. · последний раз ${msk(user.last_seen)}`,
-    until > Date.now() ? `💎 Premium до ${msk(new Date(until)).split(',')[0]}` : '🔓 Бесплатный доступ',
-    `💳 Оплат: ${user.paid} · ✉️ обращений: ${user.tickets}`,
+    `📅 Первый запуск ${msk(person.createdAt)} · последний раз ${msk(person.lastSeenAt)}`,
+    premium ? `💎 Premium до ${msk(person.premiumUntil).split(',')[0]}` : '🔓 Бесплатный доступ',
+    `🪐 Натальная карта: ${person.charts ? 'есть' : 'нет'} · 💳 оплат: ${person.payments} · ✉️ обращений: ${person.supportTickets.length}`,
   );
-  if (screens.length) lines.push(`🧭 Чаще всего: ${screens.map((s) => `${SCREEN_LABELS[s.section] || s.section} ${s.n}`).join(' · ')}`);
-  const recent = (await pool.query(
-    `SELECT event_type, section, occurred_at AT TIME ZONE 'UTC' AS at FROM user_app_events
-     WHERE user_id = $1 AND event_type <> 'activity_heartbeat' ORDER BY occurred_at DESC, id DESC LIMIT 15`, [id],
-  )).rows;
-  if (recent.length) {
-    lines.push('', '🕒 Последние действия:');
-    for (const row of recent.reverse()) lines.push(`${seconds(row.at)} · ${actionText(row.event_type, row.section)}`);
+  if (money.length) {
+    lines.push('', '💳 Деньги:');
+    for (const item of money.slice(0, 5)) lines.push(`${msk(item.at)} · ${item.text}`);
   }
+  const steps = visits.flatMap((visit) => [...visit.steps].reverse()).slice(0, 15).reverse();
+  if (steps.length) {
+    lines.push('', '🕒 Последние действия:');
+    for (const step of steps) lines.push(`${seconds(step.at)} · ${step.text}${step.note ? ` (${step.note})` : ''}`);
+  }
+  return lines.join('\n').slice(0, 3_800);
+}
+
+/** Search by ID or name: one match opens the card, several are listed with buttons. */
+export async function searchPeople(rawQuery: string): Promise<{ text: string; buttons: Array<{ text: string; callback_data: string }> }> {
+  const query = String(rawQuery || '').trim().slice(0, 60);
+  if (!query) return { text: 'Пришли ID или часть имени.', buttons: [] };
+  if (/^-?\d{3,20}$/.test(query)) {
+    const card = await buildUserCard(query);
+    if (!card.includes('не найден')) return { text: card, buttons: [] };
+  }
+  const found = await listPeople({ q: query, segment: 'all', limit: 8 });
+  if (!found.rows.length) return { text: `🔎 По запросу «${query}» никого не нашлось.`, buttons: [] };
+  if (found.rows.length === 1) return { text: await buildUserCard(found.rows[0].id), buttons: [] };
+  const lines = [`🔎 Нашлось ${found.total}${found.total > found.rows.length ? `, показываю ${found.rows.length}` : ''}. Нажми на человека:`];
+  return {
+    text: lines.join('\n'),
+    buttons: found.rows.map((row) => ({ text: `${name(row.name || (row.isGuest ? 'Гость' : ''))} · ${row.id}`.slice(0, 60), callback_data: `ops:user:${row.id}` })),
+  };
+}
+
+/** People who came within the last three days and did not get a natal chart. */
+export async function buildStuckList(): Promise<string> {
+  const stuck = await collectAbandonedOnboarding(72);
+  if (!stuck.length) return '🚪 За 3 дня все новые получили натальную карту.';
+  const lines = [`🚪 Пришли и не получили карту: ${stuck.length} (за 3 дня) · 🖥 ${neboServerLabel()}`, ''];
+  for (const person of stuck.slice(0, 20)) {
+    lines.push(`• ${name(person.name)} · ID ${person.id} · пришёл ${msk(person.createdAt)}${person.lastStep ? `, шаг «${person.lastStep}»` : ''}`);
+  }
+  lines.push('', 'Подробно о человеке: пришли его ID.');
   return lines.join('\n').slice(0, 3_800);
 }
 
 function seconds(value: unknown): string {
   const date = value instanceof Date ? value : new Date(String(value || ''));
-  if (!Number.isFinite(date.getTime())) return '—';
+  if (!Number.isFinite(date.getTime())) return 'нет данных';
   return new Intl.DateTimeFormat('ru-RU', {
     timeZone: MSK, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
   }).format(date);
@@ -162,12 +179,12 @@ export async function buildActivityFeed(limit = 40): Promise<string> {
   const lines = [`🕒 Лента действий · последние ${result.rows.length} · 🖥 ${neboServerLabel()}`, ''];
   let lastPerson = '';
   for (const row of result.rows) {
-    const person = `${name(row.name)} · ID ${row.user_id ?? '—'}`;
+    const person = `${name(row.name)} · ID ${row.user_id ?? 'нет'}`;
     if (person !== lastPerson) lines.push(`🙋 ${person}`);
     lastPerson = person;
     lines.push(`   ${seconds(row.at)} · ${actionText(row.event_type, row.section)}`);
   }
-  lines.push('', 'Вся история человека: /user ID');
+  lines.push('', 'Вся история человека: пришли его ID.');
   return lines.join('\n').slice(0, 3_800);
 }
 

@@ -59,9 +59,9 @@ export const ErrorsSection: React.FC = () => {
       {/* Header */}
       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Центр технических ошибок (Error Hub)</h2>
+          <h2 className="text-xl font-bold text-gray-900">Ошибки сервера</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Агрегация серверных сбоев, необработанных исключений и API 5xx по фингерпринтам
+            Одинаковые ошибки собраны в одну строку: сколько раз и у скольких людей
           </p>
         </div>
 
