@@ -17,7 +17,6 @@ const REJECTED_DRAFT_RECOVERY = 'validated-draft-recovery-20260930-r2';
 let schema: Promise<void> | undefined;
 let timer: ReturnType<typeof setInterval> | undefined;
 let processing = false;
-let scanAfter = 0;
 
 export async function ensureNatalReadingJobSchema(): Promise<void> {
   if (!schema) schema = getPool().query(NATAL_READING_JOBS_SCHEMA).then(() => undefined).catch((error) => {
@@ -27,7 +26,7 @@ export async function ensureNatalReadingJobSchema(): Promise<void> {
   await schema;
 }
 
-/** Called only after a chart write, or by the autonomous reconciliation scan. */
+/** Called only after a chart write. */
 export async function enqueueNatalReadingPreparation(chart: {
   id: number; user_id: string; chart_data: unknown;
 }, language: 'ru' | 'en' = 'ru', priority = 10): Promise<void> {
@@ -49,20 +48,6 @@ export async function enqueueNatalReadingPreparation(chart: {
       NATAL_PREVIOUS_COPY_REVISION ? `${natalUnifiedReadingInputHash(ctx)}:${NATAL_PREVIOUS_COPY_REVISION}` : null],
   );
   ensureNatalReadingPreparationWorker();
-}
-
-async function reconcileSavedCharts(): Promise<void> {
-  // Missing readings from before this release are prepared independently of visits.
-  const result = await getPool().query(
-    `SELECT c.id,c.user_id,c.chart_data,u.language FROM natal_charts c
-     JOIN users u ON u.id=c.user_id WHERE c.archived_at IS NULL AND c.id>$1
-     ORDER BY c.id LIMIT 50`, [scanAfter],
-  );
-  for (const chart of result.rows) {
-    await enqueueNatalReadingPreparation(chart, chart.language === 'en' ? 'en' : 'ru', 0);
-    scanAfter = Number(chart.id);
-  }
-  if (result.rows.length < 50) scanAfter = 0;
 }
 
 export async function hasFailedNatalReadingPreparation(ctx: ReadingContext): Promise<boolean> {
@@ -100,9 +85,11 @@ export async function processNatalReadingPreparations(): Promise<void> {
               OR COALESCE(progress->>'repairRevision','')<>$4)`,
       [`%:${NATAL_COPY_REVISION}`, REJECTED_DRAFT_RECOVERY, NATAL_MAX_BLOCK_REPAIRS, NATAL_COPY_REVISION],
     );
-    await reconcileSavedCharts();
     const pending = await client.query(
-      `SELECT * FROM natal_reading_jobs WHERE status='pending' AND attempts<2
+      // Only readings someone asked for: a new or edited chart. Old background
+      // jobs (priority 0, from the removed scan over every chart) never run;
+      // a person keeps seeing the last finished reading until they change the chart.
+      `SELECT * FROM natal_reading_jobs WHERE status='pending' AND attempts<2 AND priority>0
        AND available_at<=NOW() ORDER BY priority DESC,id LIMIT 1`,
     );
     const job = pending.rows[0];
