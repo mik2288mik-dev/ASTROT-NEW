@@ -1,14 +1,15 @@
 /**
  * RBAC для админ-панели приложения.
  *
- * Идентичность берётся из подписанных Telegram initData (lib/adminAuth), роль —
+ * Идентичность: сессия аккаунта приложения или подписанные Telegram initData, роль —
  * из таблицы admin_users. OWNER_ID всегда super_admin. Любой мутирующий админ-эндпоинт
  * обязан вызвать requireAdminPermission(req, '<key>'). Матрица прав — единственный
  * источник правды о том, что роль может делать. См. docs/ADMIN_PANEL_SPEC.md §7.
  */
 import type { NextApiRequest } from 'next';
 import { AdminAuthError, getVerifiedTelegramUser, getConfiguredOwnerId } from '../adminAuth';
-import { getPool } from '../db';
+import { getPrimaryPool } from '../db';
+import { requireAppUser } from '../auth/appAuth';
 
 export const ADMIN_ROLES = [
   'super_admin',
@@ -81,33 +82,68 @@ function normalizeRole(raw: unknown): AdminRole {
   return (ADMIN_ROLES as readonly string[]).includes(value) ? (value as AdminRole) : 'read_only';
 }
 
+const CONTEXT_KEY = Symbol.for('nebo.admin.context');
+type RequestWithContext = NextApiRequest & { [CONTEXT_KEY]?: AdminContext };
+
+function hasAppSession(req: NextApiRequest): boolean {
+  const authorization = String(req.headers?.authorization || '');
+  const cookie = String(req.headers?.cookie || '');
+  return authorization.startsWith('Bearer ') || /(?:^|;\s*)lumia_app_session=/.test(cookie);
+}
+
 /**
- * Резолвит админ-контекст из запроса: проверяет Telegram-подпись, читает роль из
- * admin_users (status='active'); OWNER_ID всегда super_admin. Бросает AdminAuthError,
- * если пользователь не админ.
+ * Резолвит админ-контекст из запроса. Вход в админку на сайте идёт обычным
+ * аккаунтом приложения (сессия), в Telegram остаётся подпись initData.
+ * Роль читается из admin_users (status='active'); OWNER_ID всегда super_admin.
+ * Результат запоминается на запросе: проверка доступа всегда идёт по базе
+ * этого сервера, даже когда админка читает данные другой версии.
  */
 export async function getAdminContext(req: NextApiRequest): Promise<AdminContext> {
-  const telegramUser = getVerifiedTelegramUser(req);
-  const telegramUserId = telegramUser.id;
-  const ownerId = getConfiguredOwnerId();
+  const request = req as RequestWithContext;
+  if (request[CONTEXT_KEY]) return request[CONTEXT_KEY]!;
+  const context = await resolveAdminContext(req);
+  request[CONTEXT_KEY] = context;
+  return context;
+}
 
+async function resolveAdminContext(req: NextApiRequest): Promise<AdminContext> {
+  if (hasAppSession(req)) {
+    try {
+      const user = await requireAppUser(req, { allowTelegramProof: false });
+      const identity = await getPrimaryPool().query(
+        `SELECT provider_subject FROM account_identities
+         WHERE user_id = $1 AND provider = 'telegram' LIMIT 1`,
+        [user.userId],
+      );
+      return contextForUser(user.userId, String(identity.rows[0]?.provider_subject || ''));
+    } catch (error) {
+      // A stale browser session must not hide a valid Telegram launch or local developer access.
+      const otherProof = String(req.headers?.['x-telegram-init-data'] || req.headers?.['x-admin-dev-user-id'] || '').trim();
+      if (!otherProof) throw error;
+    }
+  }
+  const telegramUserId = getVerifiedTelegramUser(req).id;
   // Telegram is the authenticated principal, while account_identities owns the
   // stable internal users.id used by admin_users after account migrations.
-  const identity = await getPool().query(
+  const identity = await getPrimaryPool().query(
     `SELECT user_id FROM account_identities
      WHERE provider = 'telegram' AND provider_subject = $1
      LIMIT 1`,
     [telegramUserId],
   );
-  const userId = String(identity.rows[0]?.user_id || telegramUserId);
+  return contextForUser(String(identity.rows[0]?.user_id || telegramUserId), telegramUserId);
+}
+
+async function contextForUser(userId: string, telegramUserId: string): Promise<AdminContext> {
+  const ownerId = getConfiguredOwnerId();
   const isOwner = !!ownerId
-    && (telegramUserId === String(ownerId) || userId === String(ownerId));
+    && ((!!telegramUserId && telegramUserId === String(ownerId)) || userId === String(ownerId));
 
   if (isOwner) {
     return { userId, role: 'super_admin', isOwner: true, permissions: permissionsForRole('super_admin') };
   }
 
-  const result = await getPool().query(
+  const result = await getPrimaryPool().query(
     `SELECT a.role, a.status, u.is_admin
        FROM users u
        LEFT JOIN admin_users a ON a.user_id = u.id

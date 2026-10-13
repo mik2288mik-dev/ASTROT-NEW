@@ -4,65 +4,33 @@ import { requireAdminPermission, roleHasPermission } from '../../../../../lib/ad
 import { recordAdminAction } from '../../../../../lib/admin/audit';
 import { setAccountBlockedState } from '../../../../../lib/auth/accountIdentity';
 import { db } from '../../../../../lib/db';
+import { withAdminSource } from '../../../../../lib/admin/dataSource';
+import { getPersonStory } from '../../../../../lib/admin/people';
 
-const MASK = '•••';
-
-function serialize(detail: any, showPii: boolean) {
-  const piiDate = showPii ? detail.birth_date : (detail.birth_date ? MASK : null);
+function account(detail: any) {
   return {
-    id: String(detail.id),
-    name: detail.name,
-    isPremium: detail.is_premium,
-    premiumUntil: detail.premium_until,
-    loginStreak: detail.login_streak,
-    chartSlots: detail.chart_slots,
-    isBlocked: detail.is_blocked,
-    isAdmin: detail.is_admin,
-    savedCharts: detail.saved_charts_count,
-    createdAt: detail.created_at,
-    lastSeenAt: detail.last_seen_at,
-    currentDevice: detail.current_device_label,
-    // PII — маскируется по умолчанию; раскрывается только с правом user.pii.view + ?pii=1
-    pii: {
-      revealed: showPii,
-      birthDate: piiDate,
-      birthTime: showPii ? detail.birth_time : (detail.birth_time ? MASK : null),
-      birthPlace: showPii ? detail.birth_place : (detail.birth_place ? MASK : null),
-    },
-    primaryChart: detail.primary_chart
-      ? {
-          id: detail.primary_chart.id,
-          name: detail.primary_chart.name,
-          birthDate: showPii ? detail.primary_chart.birth_date : (detail.primary_chart.birth_date ? MASK : null),
-          birthTime: showPii ? detail.primary_chart.birth_time : (detail.primary_chart.birth_time ? MASK : null),
-          birthPlace: showPii ? detail.primary_chart.birth_place : (detail.primary_chart.birth_place ? MASK : null),
-        }
-      : null,
-    recentSessions: detail.recent_sessions,
-    latestStarsPayment: detail.latest_stars_payment,
+    isBlocked: detail.is_blocked === true,
+    isAdmin: detail.is_admin === true,
+    chartSlots: Number(detail.chart_slots || 1),
   };
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const userId = String(req.query.id || '').trim();
   try {
     if (!userId) throw new AdminAuthError(400, 'USER_ID_REQUIRED', 'userId is required');
 
     if (req.method === 'GET') {
       const ctx = await requireAdminPermission(req, 'users.view');
-      const wantsPii = req.query.pii === '1' || req.query.pii === 'true';
-      const canPii = roleHasPermission(ctx.role, 'user.pii.view');
-      const showPii = wantsPii && canPii;
-
-      const detail = await db.admin.getUserDetail(userId);
-      if (!detail) throw new AdminAuthError(404, 'USER_NOT_FOUND', 'User not found');
-
-      if (showPii) {
-        await recordAdminAction({
-          req, actor: ctx, action: 'pii_viewed', entityType: 'user', entityId: userId,
-        });
+      // The birth city and question texts are personal: only with the right and an explicit request.
+      const includePrivate = (req.query.pii === '1' || req.query.pii === 'true') && roleHasPermission(ctx.role, 'user.pii.view');
+      const story = await getPersonStory(userId, { days: Number(req.query.days) || 30, includePrivate });
+      if (!story) throw new AdminAuthError(404, 'USER_NOT_FOUND', 'User not found');
+      const detail = await db.admin.getUserDetail(userId).catch(() => null);
+      if (includePrivate) {
+        await recordAdminAction({ req, actor: ctx, action: 'pii_viewed', entityType: 'user', entityId: userId });
       }
-      return res.status(200).json({ user: serialize(detail, showPii) });
+      return res.status(200).json({ ...story, account: detail ? account(detail) : null, privateShown: includePrivate });
     }
 
     if (req.method === 'PATCH') {
@@ -97,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         after: { name: after?.name, isBlocked: after?.is_blocked, chartSlots: after?.chart_slots },
       });
 
-      return res.status(200).json({ user: serialize(after, false) });
+      return res.status(200).json({ account: account(after) });
     }
 
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
@@ -105,3 +73,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return handleAdminError(res, error);
   }
 }
+
+export default withAdminSource(handler);

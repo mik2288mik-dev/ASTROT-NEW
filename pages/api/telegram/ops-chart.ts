@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { renderNeboChartPng, verifyNeboChart } from '../../../lib/neboOpsChart';
-import { collectNeboDailySeries } from '../../../lib/neboOpsStats';
+import { collectDailySeries } from '../../../lib/productMetrics';
 import { forwardNeboOpsRequest } from '../../../lib/neboOpsWebhook';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(404).end();
   }
   try {
-    const points = await collectNeboDailySeries(days);
+    const points = await collectDailySeries(days);
     const png = await renderNeboChartPng(points, `NEBO · последние ${days} дней`);
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'private, max-age=300');
