@@ -99,9 +99,9 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ onSelectUser }) =>
       {/* Header */}
       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Натальные карты & Астро-движок</h2>
+          <h2 className="text-xl font-bold text-gray-900">Натальные карты</h2>
           <p className="text-sm text-gray-500 mt-1">
-            База натальных профилей, расчет аспектов, асцендента и диагностика эфемерид
+            Карты людей, пересчёт и проверка расчёта по любой дате рождения
           </p>
         </div>
 

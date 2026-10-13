@@ -180,9 +180,9 @@ export const BillingSection: React.FC<BillingSectionProps> = ({ onSelectUser }) 
       {/* Header & Tabs */}
       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Монетизация & Биллинг</h2>
+          <h2 className="text-xl font-bold text-gray-900">Деньги</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Выручка Stars и RuStore, управление тарифами, реестр транзакций, возвраты и промокоды
+            Выручка, тарифы, все оплаты, подписки, возвраты и промокоды
           </p>
         </div>
 
