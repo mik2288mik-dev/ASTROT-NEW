@@ -155,18 +155,10 @@ export function normalizeInviteCodeInput(value: string): string | null {
   return INVITE_CODE.test(code) ? code : null;
 }
 
-/** https://…/i/CODE, nebo://invite/CODE or a bare code typed by hand. */
+/** https://…/i/CODE or nebo://invite/CODE; the code may carry a dash. */
 export function inviteCodeFromUrl(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    const parts = parsed.protocol === 'nebo:'
-      ? [parsed.hostname, ...parsed.pathname.split('/')]
-      : parsed.pathname.split('/');
-    const index = parts.findIndex((part) => part === 'i' || part === 'invite');
-    return index >= 0 ? normalizeInviteCodeInput(parts[index + 1] || '') : null;
-  } catch {
-    return null;
-  }
+  const match = /^(?:https?:\/\/[^/?#]+\/i\/|nebo:\/\/invite\/)([A-Za-z0-9-]{8,9})(?:[/?#]|$)/i.exec(String(url || '').trim());
+  return match ? normalizeInviteCodeInput(match[1]) : null;
 }
 
 const PENDING_INVITE_KEY = 'nebo.people.pendingInvite.v1';
