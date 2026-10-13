@@ -22,6 +22,7 @@ jest.mock('../lib/db', () => ({
 
 import { getAdminContext } from '../lib/admin/rbac';
 import { requestedAdminSource, withAdminSource } from '../lib/admin/dataSource';
+import { telegramAdminOrigin, verifiedRelayIdentity } from '../lib/admin/adminRelay';
 
 const response = () => {
   const res: any = {};
@@ -91,5 +92,38 @@ describe('Telegram version data switch', () => {
     expect(mockRequireAppUser).toHaveBeenCalled();
     expect(mockRunWithScopedPool).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('reading the Telegram server through a signed relay', () => {
+  const env = { ...process.env };
+  afterEach(() => { process.env = { ...env }; jest.restoreAllMocks(); });
+
+  it('relays only from the live server, never from Railway itself', () => {
+    expect(telegramAdminOrigin({ NEBO_OPS_WEBHOOK_SECRET: 's'.repeat(40) } as any)).toBe('https://astrot-production.up.railway.app');
+    expect(telegramAdminOrigin({ NEBO_OPS_WEBHOOK_SECRET: 's'.repeat(40), RAILWAY_PROJECT_ID: 'x' } as any)).toBe('');
+    expect(telegramAdminOrigin({ NEBO_OPS_WEBHOOK_SECRET: 'short' } as any)).toBe('');
+  });
+
+  it('accepts a fresh signed read for the same address and nothing else', async () => {
+    process.env.NEBO_OPS_WEBHOOK_SECRET = 's'.repeat(40);
+    delete process.env.NEBO_TELEGRAM_DATABASE_URL;
+    delete process.env.RAILWAY_PROJECT_ID;
+    delete process.env.RAILWAY_ENVIRONMENT_ID;
+    const fetchMock = jest.spyOn(global, 'fetch' as any).mockResolvedValue({ status: 200, text: async () => '{"ok":true}' } as any);
+    mockRequireAppUser.mockResolvedValue({ userId: '777', isGuest: false });
+    mockQuery.mockResolvedValue({ rows: [] });
+    const res = response();
+    res.setHeader = jest.fn(); res.send = jest.fn(() => res);
+    await withAdminSource(jest.fn())({ method: 'GET', url: '/api/admin/v2/overview?range=7d', headers: { 'x-admin-source': 'telegram', cookie: 'lumia_app_session=a' }, query: {} } as any, res);
+    expect(res.send).toHaveBeenCalledWith('{"ok":true}');
+    const [url, init] = fetchMock.mock.calls[0] as any[];
+    expect(url).toBe('https://astrot-production.up.railway.app/api/admin/v2/overview?range=7d');
+    const relayed = { method: 'GET', url: '/api/admin/v2/overview?range=7d', headers: init.headers } as any;
+    expect(verifiedRelayIdentity(relayed)).toEqual({ role: 'super_admin', userId: '777' });
+    expect(verifiedRelayIdentity({ ...relayed, method: 'POST' })).toBeNull();
+    expect(verifiedRelayIdentity({ ...relayed, url: '/api/admin/v2/users' })).toBeNull();
+    expect(verifiedRelayIdentity({ ...relayed, headers: { ...init.headers, 'x-admin-relay-role': 'admin' } })).toBeNull();
+    expect(verifiedRelayIdentity({ ...relayed, headers: { ...init.headers, 'x-admin-relay-ts': String(Date.now() - 120_000) } })).toBeNull();
   });
 });
