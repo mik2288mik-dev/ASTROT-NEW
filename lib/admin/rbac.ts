@@ -10,6 +10,7 @@ import type { NextApiRequest } from 'next';
 import { AdminAuthError, getVerifiedTelegramUser, getConfiguredOwnerId } from '../adminAuth';
 import { getPrimaryPool } from '../db';
 import { requireAppUser } from '../auth/appAuth';
+import { verifiedRelayIdentity } from './adminRelay';
 
 export const ADMIN_ROLES = [
   'super_admin',
@@ -107,6 +108,12 @@ export async function getAdminContext(req: NextApiRequest): Promise<AdminContext
 }
 
 async function resolveAdminContext(req: NextApiRequest): Promise<AdminContext> {
+  // A read request relayed by the live server for an admin it has already checked.
+  const relayed = verifiedRelayIdentity(req);
+  if (relayed) {
+    const role = normalizeRole(relayed.role);
+    return { userId: relayed.userId, role, isOwner: role === 'super_admin', permissions: permissionsForRole(role) };
+  }
   if (hasAppSession(req)) {
     try {
       const user = await requireAppUser(req, { allowTelegramProof: false });
