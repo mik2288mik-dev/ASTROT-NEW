@@ -1,6 +1,6 @@
 /**
  * Тонкий клиент проверки админ-доступа для App.tsx.
- * Полноценный клиент админки — в services/admin2Service.ts (Admin v2).
+ * Сама админка открывается на сайте (services/openAdmin.ts).
  */
 import { apiFetch } from './apiClient';
 
@@ -22,9 +22,10 @@ export class AdminApiError extends Error {
  */
 export async function getAdminStatus(): Promise<{ isAdmin: boolean; requesterId: string }> {
   try {
+    // The account session proves the user everywhere; Telegram adds its signed launch data.
     const initData = (window as any).Telegram?.WebApp?.initData;
-    if (!initData || typeof initData !== 'string') return { isAdmin: false, requesterId: '' };
-    const res = await apiFetch('/api/admin/v2/me', { headers: { [INIT_DATA_HEADER]: initData } });
+    const headers = typeof initData === 'string' && initData ? { [INIT_DATA_HEADER]: initData } : undefined;
+    const res = await apiFetch('/api/admin/v2/me', { headers });
     if (!res.ok) return { isAdmin: false, requesterId: '' };
     const payload = await res.json().catch(() => ({}));
     return { isAdmin: true, requesterId: String(payload.userId || '') };

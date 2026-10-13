@@ -3,7 +3,7 @@ import { hasTelegramMiniAppContext } from '../../services/authSessionIntent';
 
 const DRAWER_TOGGLE_EVENT = 'lumia:toggle-side-drawer';
 const DRAWER_STATE_EVENT = 'lumia:side-drawer-state';
-const BLOCKED_VIEWS = new Set(['onboarding', 'paywall', 'admin']);
+const BLOCKED_VIEWS = new Set(['onboarding', 'paywall']);
 
 type DrawerStateDetail = {
   open: boolean;

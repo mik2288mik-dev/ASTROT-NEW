@@ -1,16 +1,9 @@
 /**
- * Клиент новой админки (Admin v2). В production запросы идут с подписанными Telegram
- * initData; локально можно включить browser-dev доступ через ADMIN_WEB_DEV_AUTH_ENABLED.
- * Сервер проверяет роль/право (RBAC) и пишет audit. См. lib/admin/*.
+ * Клиент админки. На сайте вход идёт аккаунтом приложения (сессия в cookie),
+ * в Telegram подписью initData; локально можно включить browser-dev доступ через
+ * ADMIN_WEB_DEV_AUTH_ENABLED. Сервер проверяет роль/право (RBAC) и пишет audit.
  */
 import { apiFetch } from './apiClient';
-import type { JourneyReport, JourneyAttempt, JourneyEvent } from '../lib/admin/journeyAnalytics';
-import type { AppTraceReport, AppTraceDetail } from '../lib/admin/appTelemetryAnalytics';
-export type { AppTraceReport, AppTraceDetail } from '../lib/admin/appTelemetryAnalytics';
-export type { JourneyReport, JourneyAttempt, JourneyEvent } from '../lib/admin/journeyAnalytics';
-export type JourneyDetail = { range: AdminActivityReport['range']; truncated: boolean; attempts: Array<Omit<JourneyAttempt, 'events'> & { events: Array<JourneyEvent & { label: string }> }>; screens: Array<JourneyEvent & { label: string }> };
-import type { AdminActivityParams, AdminActivityReport, AdminUserActivityReport } from '../lib/admin/activityTypes';
-export type { AdminActivityParams, AdminActivityReport, AdminUserActivityReport } from '../lib/admin/activityTypes';
 
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 const ADMIN_DEV_USER_HEADER = 'x-admin-dev-user-id';
@@ -24,34 +17,66 @@ export type AdminRole =
 
 export type AdminMe = {
   userId: string;
+  name: string | null;
   role: AdminRole;
   isOwner: boolean;
   permissions: string[];
+  server: string;
+  sources: { telegram: boolean };
 };
 
-export type AdminCommerceAttributionStage = 'paywall_view' | 'checkout_start' | 'purchase_success';
-
-export type AdminCommerceAttributionRow = {
-  stage: AdminCommerceAttributionStage;
-  placement: string | null;
-  source: string | null;
-  events: number;
-  users: number;
+export type AdminSource = 'main' | 'telegram';
+export type AdminRangeKey = 'today' | 'yesterday' | '7d' | '30d' | 'month' | '90d';
+export type AdminCount = { label: string; count: number };
+export type AdminMetrics = {
+  firstLaunches: number; firstLaunchesApp: number; registrations: number; registrationsByProvider: AdminCount[];
+  active: number; returning: number; payments: number; firstPayments: number; renewals: number; revenueRub: number;
+  paymentsByPlan: AdminCount[]; trials: number; cancellations: number; refunds: number; expired: number;
+  stars: { payments: number; amount: number }; paywallViewers: number; checkoutStarted: number; buyers: number;
+  activation: { cohort: number; activated: number }; supportTickets: number; errors: number; sources: AdminCount[];
+  totalUsers: number; premiumActive: number;
+};
+export type AdminDayPoint = { day: string; active: number; firstLaunches: number; registrations: number; payments: number; revenueRub: number };
+export type AdminRetentionPoint = { day: number; cohort: number; returned: number };
+export type AdminVersionStats = { latest: string | null; versions: AdminCount[]; outdated: number; people: number };
+export type AdminHint = { tone: 'good' | 'warn' | 'bad'; title: string; text: string; section?: 'journey' | 'people' | 'money' | 'quality' };
+export type AdminOverview = {
+  range: { key: AdminRangeKey; label: string; start: string; end: string };
+  metrics: AdminMetrics; previous: AdminMetrics; audience: { dau: number; wau: number; mau: number };
+  retention: AdminRetentionPoint[]; series: AdminDayPoint[]; versions: AdminVersionStats; hints: AdminHint[];
+  glossary: Record<string, string>;
+};
+export type AdminWaitRow = { key: string; label: string; count: number; failed: number; medianSeconds: number | null; p90Seconds: number | null };
+export type AdminJourney = {
+  range: { key: AdminRangeKey; label: string };
+  funnel: Array<{ key: string; label: string; hint: string; count: number }>;
+  onboarding: { attempts: number; finished: number; steps: Array<{ step: string; label: string; reached: number; leftHere: number; medianSeconds: number | null }> };
+  waits: { server: AdminWaitRow[]; ai: AdminWaitRow[]; screens: AdminWaitRow[] };
+  reading: { blocks: Array<{ screen: string; block: string; people: number; medianSeconds: number; focusSeconds: number }>; screens: Array<{ screen: string; people: number; medianSeconds: number }> };
+  stuck: Array<{ id: string; name: string | null; createdAt: string; lastStep: string | null }>;
+};
+export type AdminQuality = {
+  versions: AdminVersionStats; devices: AdminCount[];
+  aiFailures: Array<{ scenario: string; errorCode: string | null; count: number; lastAt: string }>;
+};
+export type AdminPersonRow = {
+  id: string; name: string | null; isGuest: boolean; signIn: string; source: string; createdAt: string; lastSeenAt: string | null;
+  premiumUntil: string | null; payments: number; hasChart: boolean; appVersion: string | null; device: string | null;
+};
+export type AdminPeopleSegment = 'all' | 'active' | 'new' | 'premium' | 'paying' | 'stuck' | 'guests';
+export type AdminPeoplePage = { total: number; rows: AdminPersonRow[]; segment: AdminPeopleSegment; q: string; limit: number; offset: number };
+export type AdminStoryStep = { at: string; kind: 'screen' | 'action' | 'wait' | 'money' | 'error' | 'reading' | 'system' | 'onboarding'; text: string; note?: string; slow?: boolean };
+export type AdminPersonAccount = { isBlocked: boolean; isAdmin: boolean; chartSlots: number };
+export type AdminPersonStory = {
+  person: AdminPersonRow & { language: string | null; city: string | null; signInMethods: string[]; charts: number;
+    supportTickets: Array<{ id: string; subject: string; status: string; at: string | null }> };
+  money: Array<{ at: string; text: string }>;
+  visits: Array<{ start: string; end: string; seconds: number; device: string | null; steps: AdminStoryStep[] }>;
+  days: number; account: AdminPersonAccount | null; privateShown: boolean;
 };
 
-export type AdminDashboard = {
-  generatedAt: string;
-  kpis: {
-    totalUsers: number; activePremiumUsers: number; usersWithoutBirthData: number;
-    newUsers1d: number; newUsers7d: number; newUsers30d: number; totalCharts: number;
-    dau: number; wau: number; mau: number;
-    totalStars: number; totalPayments: number; stars30d: number; rustorePurchases: number; premiumRate: number;
-  };
-  funnel: Array<{ key: string; label: string; users: number; pctOfStart: number; pctOfPrev: number }>;
-  retention: { d1: number | null; d7: number | null; d30: number | null };
-  events: Array<{ type: string; label: string; count: number }>;
-  commerceAttribution: AdminCommerceAttributionRow[];
-};
+
+
 
 export type AdminChartRow = {
   id: number; userId: string; ownerName: string | null; name: string;
@@ -73,29 +98,8 @@ export type AdminChartTestResult = {
   result?: { sun: any; moon: any; ascendant: any; element: string; rulingPlanet: string; houses: number; aspects: number; birthTimeQuality: string };
 };
 
-export type AdminUserRow = {
-  id: string; name: string; isPremium: boolean; premiumUntil: string | null;
-  hasBirthData: boolean; savedCharts: number; chartSlots: number; loginStreak: number;
-  createdAt: string | null; lastSeenAt: string | null; isAdmin: boolean; isBlocked: boolean;
-};
 
-export type AdminUsersPage = {
-  users: AdminUserRow[];
-  pagination: { page: number; pageSize: number; total: number; totalPages: number };
-  overview: {
-    totalUsers: number; activePremiumUsers: number; activeUsers7d: number;
-    needAttentionUsers: number; usersWithoutBirthData: number;
-  };
-};
 
-export type AdminUserDetailV2 = {
-  id: string; name: string; isPremium: boolean; premiumUntil: string | null;
-  loginStreak: number; chartSlots: number; isBlocked: boolean; isAdmin: boolean;
-  savedCharts: number; createdAt: string | null; lastSeenAt: string | null; currentDevice: string | null;
-  pii: { revealed: boolean; birthDate: string | null; birthTime: string | null; birthPlace: string | null };
-  primaryChart: { id: number; name: string; birthDate: string | null; birthTime: string | null; birthPlace: string | null } | null;
-  recentSessions: any[]; latestStarsPayment: any;
-};
 
 export type AdminEntry = {
   userId: string; name: string | null; role: AdminRole; status: string; isOwner: boolean; createdAt: string | null;
@@ -116,14 +120,6 @@ export type AdminRevenue = {
   rustorePurchases: number; rustorePurchases30d: number;
 };
 
-export type AdminTimeseriesPoint = {
-  date: string;
-  activeUsers: number;
-  stars: number;
-  starPurchases: number;
-  rustorePurchases: number;
-  errors: number;
-};
 export type AdminPromo = {
   code: string; type: string; value: number; maxUses: number; usedCount: number;
   status: string; startsAt: string | null; expiresAt: string | null; createdAt: string | null;
@@ -337,11 +333,22 @@ function authHeaders(): Record<string, string> {
     };
   }
 
-  throw new Admin2Error('Откройте админку внутри Telegram Mini App или подключите browser-dev доступ.', 401, 'ADMIN_AUTH_REQUIRED');
+  // On the website the app session cookie authenticates the request.
+  return {};
+}
+
+const SOURCE_KEY = 'nebo_admin_source';
+export function getAdminSource(): AdminSource {
+  return storageGet(SOURCE_KEY) === 'telegram' ? 'telegram' : 'main';
+}
+export function setAdminSource(source: AdminSource) {
+  if (source === 'telegram') storageSet(SOURCE_KEY, 'telegram');
+  else storageRemove(SOURCE_KEY);
 }
 
 async function req<T>(path: string, opts: { method?: string; body?: any } = {}): Promise<T> {
   const headers: Record<string, string> = authHeaders();
+  if (getAdminSource() === 'telegram') headers['x-admin-source'] = 'telegram';
   if (opts.body) headers['Content-Type'] = 'application/json';
   const res = await apiFetch(path, {
     method: opts.method || 'GET',
@@ -412,31 +419,25 @@ export const admin2Auth = {
   },
 };
 
+const query = (params: Record<string, unknown>) => {
+  const search = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '').map(([k, v]) => [k, String(v)]));
+  return search.toString() ? `?${search}` : '';
+};
+
 export const admin2 = {
   clearDevAuth: admin2Auth.clearDevAuth,
-  activity: (params: AdminActivityParams = {}) => req<AdminActivityReport>(`/api/admin/v2/activity?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))}`),
-  journeys: (params: AdminActivityParams & { version?: string } = {}) => req<JourneyReport>(`/api/admin/v2/journeys?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))}`),
-  userJourney: (userId: string, params: AdminActivityParams = {}) => req<JourneyDetail>(`/api/admin/v2/journeys?${new URLSearchParams({ userId, ...Object.fromEntries(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])) })}`),
-  appTelemetry: (params: AdminActivityParams & { userId?: string; visitId?: string; version?: string; segment?: string; compare?:string } = {}) => req<AppTraceReport | AppTraceDetail>(`/api/admin/v2/app-telemetry?${new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([,v]) => v != null).map(([k,v]) => [k,String(v)])))}`),
-  userActivity: (id: string, params: AdminActivityParams = {}) => req<AdminUserActivityReport>(`/api/admin/v2/users/${encodeURIComponent(id)}/activity?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))}`),
+  overview: (range: AdminRangeKey, retention: number[]) => req<AdminOverview>(`/api/admin/v2/overview${query({ range, retention: retention.join(',') })}`),
+  journey: (range: AdminRangeKey) => req<AdminJourney>(`/api/admin/v2/journey${query({ range })}`),
+  quality: () => req<AdminQuality>('/api/admin/v2/quality'),
+  people: (params: { q?: string; segment?: AdminPeopleSegment; offset?: number; limit?: number } = {}) => req<AdminPeoplePage>(`/api/admin/v2/users${query(params)}`),
+  person: (id: string, params: { days?: number; pii?: boolean } = {}) =>
+    req<AdminPersonStory>(`/api/admin/v2/users/${encodeURIComponent(id)}${query({ days: params.days, pii: params.pii ? 1 : undefined })}`),
+  requestLoginLink: () => req<{ ok: boolean }>('/api/admin/v2/login-link', { method: 'POST' }),
+  loginWithPassword: (email: string, password: string) => req<{ profile: unknown }>('/api/auth/password/login', { method: 'POST', body: { email, password, sessionVersion: 2 } }),
+  logout: () => req<{ ok: boolean }>('/api/users/session/logout', { method: 'POST' }),
   me: () => req<AdminMe>('/api/admin/v2/me'),
-  dashboard: () => req<AdminDashboard>('/api/admin/v2/dashboard'),
-  listUsers: (params: { q?: string; premium?: string; segment?: string; sortBy?: string; sortOrder?: string; page?: number; pageSize?: number } = {}) => {
-    const s = new URLSearchParams();
-    if (params.q) s.set('q', params.q);
-    if (params.premium && params.premium !== 'all') s.set('premium', params.premium);
-    if (params.segment && params.segment !== 'all') s.set('segment', params.segment);
-    if (params.sortBy) s.set('sortBy', params.sortBy);
-    if (params.sortOrder) s.set('sortOrder', params.sortOrder);
-    if (params.page) s.set('page', String(params.page));
-    if (params.pageSize) s.set('pageSize', String(params.pageSize));
-    const suffix = s.toString() ? `?${s}` : '';
-    return req<AdminUsersPage>(`/api/admin/v2/users${suffix}`);
-  },
-  getUser: (id: string, pii = false) =>
-    req<{ user: AdminUserDetailV2 }>(`/api/admin/v2/users/${encodeURIComponent(id)}${pii ? '?pii=1' : ''}`).then((d) => d.user),
   patchUser: (id: string, patch: { name?: string; language?: 'ru' | 'en'; chartSlots?: number; isBlocked?: boolean }) =>
-    req<{ user: AdminUserDetailV2 }>(`/api/admin/v2/users/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch }).then((d) => d.user),
+    req<{ account: AdminPersonAccount }>(`/api/admin/v2/users/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch }).then((d) => d.account),
   setPremium: (id: string, action: 'grant' | 'revoke', days?: number) =>
     req<{ user: any }>(`/api/admin/v2/users/${encodeURIComponent(id)}/premium`, { method: 'POST', body: { action, ...(days ? { days } : {}) } }),
   listAdmins: () => req<{ admins: AdminEntry[]; roles: AdminRole[] }>('/api/admin/v2/roles'),
@@ -535,7 +536,6 @@ export const admin2 = {
   // Support
   listTickets: (status = 'all') => req<{ tickets: AdminTicketRow[] }>(`/api/admin/v2/support?status=${encodeURIComponent(status)}`),
   getTicket: (id: number) => req<AdminTicketDetail>(`/api/admin/v2/support/${id}`),
-  createTicket: (body: { userId?: string; subject?: string; body: string }) => req<{ ok: boolean; id: number }>('/api/admin/v2/support', { method: 'POST', body }),
   replyTicket: (id: number, body: string, internal = false) => req<{ ok: boolean }>(`/api/admin/v2/support/${id}`, { method: 'POST', body: { action: 'reply', body, internal } }),
   setTicketStatus: (id: number, status: string) => req<{ ok: boolean }>(`/api/admin/v2/support/${id}`, { method: 'POST', body: { action: 'status', status } }),
   // Settings / feature flags
@@ -550,7 +550,6 @@ export const admin2 = {
     return req<{ entries: AdminAuditRow[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>(`/api/admin/v2/audit${suffix}`);
   },
   // Observability & Pulse
-  pulse: () => req<AdminPulse>('/api/admin/v2/pulse'),
   aiRequests: (params: { page?: number; pageSize?: number; scenario?: string; status?: string; model?: string; userId?: string; traceId?: string } = {}) => {
     const s = new URLSearchParams();
     if (params.page) s.set('page', String(params.page));
@@ -567,36 +566,9 @@ export const admin2 = {
   patchAiDefect: (id: number, patch: { status?: string; adminNote?: string }) => req<{ ok: boolean }>('/api/admin/v2/ai/defects', { method: 'PATCH', body: { id, ...patch } }),
   errors: (status = 'all') => req<{ errors: AdminTechnicalErrorRow[] }>(`/api/admin/v2/errors?status=${encodeURIComponent(status)}`),
   patchError: (id: number, patch: { status?: string; adminNote?: string }) => req<{ ok: boolean }>('/api/admin/v2/errors', { method: 'PATCH', body: { id, ...patch } }),
-  funnels: (days = 30) => req<{ periodDays: number; steps: AdminFunnelStep[] }>(`/api/admin/v2/analytics/funnels?days=${days}`),
-  retentionCohorts: () => req<{ cohorts: AdminCohortRow[] }>('/api/admin/v2/analytics/retention'),
-  versions: () => req<{ versions: AdminVersionRow[] }>('/api/admin/v2/analytics/versions'),
-  acquisition: () => req<AdminAcquisitionData>('/api/admin/v2/analytics/acquisition'),
-  timeseries: (days = 30) => req<{ days: number; timezone: string; points: AdminTimeseriesPoint[] }>(`/api/admin/v2/analytics/timeseries?days=${days}`),
   systemHealth: () => req<AdminSystemHealth>('/api/admin/v2/system/health'),
-  events: (params: { page?: number; limit?: number; userId?: string; eventType?: string; section?: string; source?: string; search?: string; from?: string; to?: string } = {}) => {
-    const s = new URLSearchParams();
-    if (params.page && params.limit) s.set('offset', String((params.page - 1) * params.limit));
-    if (params.limit) s.set('limit', String(params.limit));
-    if (params.userId) s.set('user_id', params.userId);
-    if (params.eventType) s.set('event_type', params.eventType);
-    if (params.section) s.set('section', params.section);
-    if (params.source) s.set('source', params.source);
-    if (params.search) s.set('search', params.search);
-    if (params.from) s.set('from', params.from);
-    if (params.to) s.set('to', params.to);
-    const suffix = s.toString() ? `?${s}` : '';
-    return req<{ events: any[]; total: number; limit: number; offset: number; filterSuggestions: { eventTypes: string[]; sections: string[] } }>(`/api/admin/v2/events${suffix}`);
-  },
 };
 
-export type AdminPulse = {
-  pulse: { active5m: number; active15m: number; events15m: number; generatedAt: string };
-  recentRegistrations: Array<{ id: string; name: string; provider: string; createdAt: string; isPremium: boolean; device: string | null }>;
-  recentEvents: Array<{ id: number; userId: string; userName: string | null; eventType: string; label: string; section: string | null; source: string | null; occurredAt: string }>;
-  recentPayments: Array<{ id: string; userId: string; amount: number | null; currency: string; status: string; createdAt: string; provider: string }>;
-  recentErrors: Array<{ id: number; endpoint: string; httpStatus: number | null; errorCode: string; message: string; count: number; lastSeenAt: string }>;
-  recentAiDefects: Array<{ id: number; scenario: string; model: string; category: string; errorCode: string; message: string; count: number; lastSeenAt: string }>;
-};
 
 export type AdminAiRequestRow = {
   id: number; traceId: string; userId: string | null; userName: string | null;
@@ -623,24 +595,9 @@ export type AdminTechnicalErrorRow = {
   status: 'new' | 'investigating' | 'resolved' | 'ignored'; adminNote: string | null;
 };
 
-export type AdminFunnelStep = {
-  key: string; label: string; users: number; pctOfStart: number; pctOfPrev: number; dropOffPct: number;
-};
 
-export type AdminCohortRow = {
-  week: string; cohortSize: number; d1: number | null; d3: number | null; d7: number | null; d14: number | null; d30: number | null;
-};
 
-export type AdminVersionRow = {
-  version: string; totalUsers: number; activeUsers7d: number; newUsers30d: number;
-  premiumUsers: number; conversionPct: number; errorsCount: number; errorRate: number;
-  firstSeenAt: string; lastSeenAt: string;
-};
 
-export type AdminAcquisitionData = {
-  sources: Array<{ source: string; campaign: string; users: number; premiumUsers: number; active7d: number; conversionPct: number }>;
-  providers: Array<{ provider: string; users: number; premiumUsers: number; active7d: number; conversionPct: number }>;
-};
 
 export type AdminSystemHealth = {
   healthy: boolean;

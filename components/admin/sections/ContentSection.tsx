@@ -6,7 +6,7 @@ import {
   AdminCmsDetail,
   AdminMe,
 } from '../../../services/admin2Service';
-import HomeCardsEditor from '../../admin2/HomeCardsEditor';
+import HomeCardsEditor from './HomeCardsEditor';
 import { StatusBadge } from '../common/StatusBadge';
 
 interface ContentSectionProps {
