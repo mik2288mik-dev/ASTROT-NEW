@@ -161,7 +161,7 @@ function traceStep(row: Record<string, any>, includePrivate: boolean): StoryStep
     const failed = p.outcome && p.outcome !== 'success';
     if (ms < 1500 && !failed) return null;
     return { at, kind: failed ? 'error' : 'wait', text: `${failed ? 'Не загрузилось' : 'Ждал загрузку'}: ${operationLabel(String(p.operation || ''))}`,
-      note: `${seconds(ms)}${p.status ? ` · код ${p.status}` : ''}`, slow: ms >= 5000 };
+      note: `${seconds(ms)}${failed && p.status ? ` · код ответа ${p.status}` : ''}`, slow: ms >= 5000 };
   }
   if (type === 'client_error') return { at, kind: 'error', text: 'Ошибка в приложении', note: where };
   if (type === 'media_action' && ['play', 'ended'].includes(String(p.state))) {

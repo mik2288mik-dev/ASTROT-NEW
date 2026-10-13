@@ -180,7 +180,7 @@ const pairs = (buttons: Button[]): Button[][] => buttons.reduce<Button[][]>((row
 const back: Button[] = [{ text: '← Назад', callback_data: 'ops:menu' }];
 
 export function renderNeboOpsMenu(settings: NeboBotSettings, server = ''): Menu {
-  const off = EVENT_TOGGLES.filter((key) => !settings.events[key]).map((key) => EVENT_LABELS[key].toLowerCase());
+  const off = EVENT_TOGGLES.filter((key) => !settings.events[key]).map((key) => `«${EVENT_LABELS[key]}»`);
   return {
     text: [
       `🌌 NEBO · бот событий${server ? ` · 🖥 ${server}` : ''}`,

@@ -117,8 +117,9 @@ async function resolveAdminContext(req: NextApiRequest): Promise<AdminContext> {
       );
       return contextForUser(user.userId, String(identity.rows[0]?.provider_subject || ''));
     } catch (error) {
-      // A stale browser session must not hide a valid Telegram launch.
-      if (!String(req.headers?.['x-telegram-init-data'] || '').trim()) throw error;
+      // A stale browser session must not hide a valid Telegram launch or local developer access.
+      const otherProof = String(req.headers?.['x-telegram-init-data'] || req.headers?.['x-admin-dev-user-id'] || '').trim();
+      if (!otherProof) throw error;
     }
   }
   const telegramUserId = getVerifiedTelegramUser(req).id;

@@ -38,8 +38,10 @@ function roundedTop(x: number, base: number, w: number, h: number): string {
 }
 
 /** Daily columns for one measure, with a tooltip and an optional table. */
-export function DailyBars({ points, unit, format = fmt, label }: {
+export function DailyBars({ points, unit, format = fmt, label, average = false }: {
   points: Array<{ day: string; value: number }>; unit: string; format?: (v: number) => string; label: string;
+  /** People per day cannot be summed (the same person comes on many days): show the daily average. */
+  average?: boolean;
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
@@ -61,8 +63,8 @@ export function DailyBars({ points, unit, format = fmt, label }: {
   return (
     <div className="adm-chart" ref={ref}>
       <div className="adm-chart-summary">
-        <span>{active ? `${dayLabel(active.day, true)}: ` : `Всего за ${points.length} дн.: `}</span>
-        <strong>{format(active ? active.value : total)}</strong> <span>{unit}</span>
+        <span>{active ? `${dayLabel(active.day, true)}: ` : average ? `В среднем за день, ${points.length} дн.: ` : `Всего за ${points.length} дн.: `}</span>
+        <strong>{format(active ? active.value : average ? total / Math.max(1, points.length) : total)}</strong> <span>{unit}</span>
       </div>
       {table ? (
         <div className="adm-table-wrap"><table className="adm-table">
@@ -114,7 +116,7 @@ export function Funnel({ steps }: { steps: Array<{ key: string; label: string; h
               <span className="adm-funnel-label">{step.label}{step.hint ? <small>{step.hint}</small> : null}</span>
               <span className="adm-funnel-value"><strong>{fmt(step.count)}</strong> <small>{share(step.count, first)}</small></span>
             </div>
-            <div className="adm-funnel-track"><span style={{ width: `${Math.max(1, (step.count / first) * 100)}%` }} /></div>
+            <div className="adm-funnel-track"><span style={{ width: `${step.count ? Math.max(1, (step.count / first) * 100) : 0}%` }} /></div>
             {index > 0 && lost > 0 ? <p className="adm-funnel-lost">потеряли {fmt(lost)} ({share(lost, previous)} от прошлого шага)</p> : null}
           </li>
         );

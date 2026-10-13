@@ -57,7 +57,7 @@ export function OverviewSection({ range, source, onNavigate }: {
 
       <Card title="По дням" hint="Выбери, что показать"
         action={<Segmented label="Показатель" value={measure} onChange={setMeasure} options={MEASURES.map(({ value, label }) => ({ value, label }))} />}>
-        <DailyBars points={points} unit={current.unit} label={current.label} format={measure === 'revenueRub' ? rub : undefined} />
+        <DailyBars points={points} unit={current.unit} label={current.label} format={measure === 'revenueRub' ? rub : undefined} average={measure === 'active'} />
       </Card>
 
       <div className="adm-grid-2">

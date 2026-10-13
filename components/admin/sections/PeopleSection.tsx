@@ -19,8 +19,10 @@ const SEGMENTS: Array<{ value: AdminPeopleSegment; label: string; hint: string }
   { value: 'guests', label: 'Гости', hint: 'Не зарегистрировались' },
 ];
 
+const TICKET_STATUS: Record<string, string> = { open: 'открыто', new: 'новое', in_progress: 'в работе', pending: 'ждёт ответа', resolved: 'решено', closed: 'закрыто' };
+
 const KIND_LABEL: Record<AdminStoryStep['kind'], string> = {
-  screen: 'Экран', action: 'Действие', wait: 'Ожидание', money: 'Деньги', error: 'Ошибка', reading: 'Карта', system: 'Вход', onboarding: 'Знакомство',
+  screen: 'Экран', action: 'Действие', wait: 'Ожидание', money: 'Деньги', error: 'Ошибка', reading: 'Карта', system: 'Приложение', onboarding: 'Знакомство',
 };
 
 export function PeopleSection({ me, source, query, onQueryConsumed }: {
@@ -159,7 +161,7 @@ function PersonPanel({ id, me, readOnly, onClose }: { id: string; me: AdminMe; r
       ) : null}
       {person.supportTickets.length ? (
         <Card title="Обращения в поддержку">
-          <ul className="adm-plain-list">{person.supportTickets.map((t) => <li key={t.id}><time>{dateTime(t.at, true)}</time>{t.subject} · {t.status}</li>)}</ul>
+          <ul className="adm-plain-list">{person.supportTickets.map((t) => <li key={t.id}><time>{dateTime(t.at, true)}</time>{t.subject} · {TICKET_STATUS[t.status] || t.status}</li>)}</ul>
         </Card>
       ) : null}
 

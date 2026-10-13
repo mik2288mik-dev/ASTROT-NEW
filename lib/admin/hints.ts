@@ -4,6 +4,12 @@ import type { WaitRow } from './productInsights';
 export type Hint = { tone: 'good' | 'warn' | 'bad'; title: string; text: string; section?: 'journey' | 'people' | 'money' | 'quality' };
 
 const pct = (part: number, total: number) => (total > 0 ? Math.round((part * 100) / total) : 0);
+/** 1 разбор, 2 разбора, 5 разборов. */
+const plural = (count: number, one: string, few: string, many: string) => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  return mod10 === 1 && mod100 !== 11 ? one : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? few : many;
+};
 
 /** Plain advice from the numbers: what to look at first. Never more than five. */
 export function buildHints(input: {
@@ -25,9 +31,9 @@ export function buildHints(input: {
   if (reading && reading.count >= 2 && (reading.medianSeconds || 0) >= 120) {
     hints.push({ tone: (reading.medianSeconds || 0) >= 600 ? 'bad' : 'warn', section: 'journey',
       title: `Разбор карты готовится в среднем ${Math.round((reading.medianSeconds || 0) / 60)} мин`,
-      text: `Человек всё это время ждёт. ${reading.failed ? `И ${reading.failed} разборов вообще не получились. ` : ''}Стоит показывать карту сразу, а разбор догружать в фоне.` });
+      text: `Человек всё это время ждёт. ${reading.failed ? `И ${reading.failed} ${plural(reading.failed, 'разбор вообще не получился', 'разбора вообще не получились', 'разборов вообще не получились')}. ` : ''}Стоит показывать карту сразу, а разбор догружать в фоне.` });
   } else if (reading && reading.failed >= 2) {
-    hints.push({ tone: 'bad', section: 'quality', title: `${reading.failed} разборов карты не получились`, text: 'Люди не увидели свой разбор. Посмотри «Ошибки и версии».' });
+    hints.push({ tone: 'bad', section: 'quality', title: `${reading.failed} ${plural(reading.failed, 'разбор карты не получился', 'разбора карты не получились', 'разборов карты не получились')}`, text: 'Люди не увидели свой разбор. Посмотри «Ошибки и версии».' });
   }
   if (m.paywallViewers >= 3 && m.buyers === 0) {
     hints.push({ tone: 'warn', section: 'money', title: `Экран оплаты открыли ${m.paywallViewers}, никто не купил`,
@@ -39,11 +45,11 @@ export function buildHints(input: {
       text: 'Нормально для приложений гороскопов 25–35%. Помогают утреннее уведомление с личным прогнозом и повод зайти завтра.' });
   }
   if (input.versions.outdated > 0 && input.versions.latest) {
-    hints.push({ tone: 'warn', section: 'quality', title: `${input.versions.outdated} человек на старой версии`,
+    hints.push({ tone: 'warn', section: 'quality', title: `${input.versions.outdated} ${plural(input.versions.outdated, 'человек', 'человека', 'человек')} на старой версии`,
       text: `Последняя версия ${input.versions.latest}. Старые версии не получают исправления, напомни обновиться.` });
   }
   if (m.errors >= 5) {
-    hints.push({ tone: 'bad', section: 'quality', title: `${m.errors} ошибок за период`, text: 'Открой «Ошибки и версии», там сгруппировано по причинам.' });
+    hints.push({ tone: 'bad', section: 'quality', title: `${m.errors} ${plural(m.errors, 'ошибка', 'ошибки', 'ошибок')} за период`, text: 'Открой «Ошибки и версии», там сгруппировано по причинам.' });
   }
   if (!input.myTrackerEnabled && m.firstLaunchesApp > 0) {
     hints.push({ tone: 'warn', title: 'Не видно, откуда приходят люди',

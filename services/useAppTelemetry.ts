@@ -122,7 +122,8 @@ export function useAppTelemetry(accountKey: string | number | null | undefined, 
         const headingId=element.getAttribute('aria-labelledby');
         const name = (element.getAttribute('data-telemetry-content') || element.getAttribute('aria-label') || (headingId ? document.getElementById(headingId)?.textContent : '')
           || (element.matches('h1,h2,h3,[role=status]') ? element.textContent : element.querySelector('h1,h2,h3')?.textContent) || `Блок ${element.id || element.classList[0] || element.tagName.toLowerCase()}`).replace(/\s+/g, ' ').trim().slice(0, 80);
-        if (!name) continue;
+        // Unnamed technical wrappers say nothing to a person reading the admin.
+        if (!name || name.startsWith('Блок ')) continue;
         blocks.set(element, { name, clock:new ViewportBlockClock(Date.now), inView: false, lastSent:0 }); observer.observe(element);
       }
     }

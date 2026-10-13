@@ -213,6 +213,7 @@ export async function collectReading(period: Period, db: Queryable = getPool()):
               MAX((e.payload_json->>'visible_ms')::bigint) AS visible_ms, MAX(COALESCE((e.payload_json->>'focus_ms')::bigint, 0)) AS focus_ms
        FROM product_trace_events e JOIN product_trace_visits v ON v.id = e.visit_id
        WHERE e.event_type = 'content_view' AND e.payload_json ? 'block'
+         AND e.payload_json->>'block' NOT LIKE 'Блок %'
          AND e.occurred_at >= $1::timestamptz AND e.occurred_at < $2::timestamptz
        GROUP BY 1, 2, 3, 4, 5
      )

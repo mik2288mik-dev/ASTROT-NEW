@@ -456,11 +456,19 @@ export const ERROR_REASONS: Record<string, string> = {
   PERSONAL_FORECAST_GENERATION_FAILED: 'генерация прогноза упала с неизвестной ошибкой',
   AI_GENERATION_TIMEOUT: 'ИИ думал слишком долго, ответ не дождались',
   AI_GENERATION_FAILED: 'генерация упала с неизвестной ошибкой',
+  AI_TIMEOUT: 'ИИ думал слишком долго, ответ не дождались',
+  RATE_LIMIT: 'OpenAI ограничил число запросов или закончились деньги на счёте',
+  NETWORK_ERROR: 'сервер не смог связаться с OpenAI',
+  INVALID_SCHEMA: 'ИИ ответил не в том формате, который мы просили',
+  AI_EXCEPTION: 'генерация упала с неизвестной ошибкой',
 };
 const ERROR_ADVICE: Record<string, string> = {
   PERSONAL_FORECAST_WRITER_VALIDATION_FAILED: 'Если повторяется часто, проверка слишком строгая или ИИ пишет не по правилам, нужно смотреть тексты.',
   PERSONAL_FORECAST_WRITER_UNAVAILABLE: 'Обычно проходит само. Если идёт подряд, проверь ключ и баланс OpenAI.',
   AI_GENERATION_TIMEOUT: 'Если идёт подряд, OpenAI тормозит, обычно проходит само.',
+  AI_TIMEOUT: 'Если идёт подряд, OpenAI тормозит, обычно проходит само.',
+  RATE_LIMIT: 'Проверь баланс и лимиты в кабинете OpenAI.',
+  NETWORK_ERROR: 'Если идёт подряд, проверь связь сервера с OpenAI (через Railway).',
 };
 export const OPERATION_TITLES: Record<string, string> = {
   personal_forecast: 'личный прогноз', natal_question: 'ответ на вопрос «Спросить о себе»',
