@@ -75,7 +75,6 @@ import {
 } from './services/rustorePayService';
 import type { PremiumPlanId } from './lib/premiumPricing';
 import { getAdminStatus } from './services/adminService';
-import { openAdmin } from './services/openAdmin';
 import { useProductActivity } from './services/useProductActivity';
 import { useAppTelemetry, useTelemetrySection } from './services/useAppTelemetry';
 import { reportClientError } from './services/clientErrorReport';
@@ -156,6 +155,7 @@ const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => m
 const NatalMagazine = dynamic(() => import('./views/v2/NatalMagazine').then((module) => module.NatalMagazine), { ssr: false });
 const PersonalityReport = dynamic(() => import('./views/PersonalityReport').then((module) => module.PersonalityReport), { ssr: false });
 const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then((module) => module.HoroscopeReader), { ssr: false });
+const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) => module.AdminApp), { ssr: false });
 const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.Paywall), { ssr: false });
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
@@ -308,7 +308,7 @@ function getStartParamView(): ViewState | null {
     const resolved = resolveStartParamRoute(getStartParamRaw());
     if (!resolved) return null;
     const v = resolved.route.view as ViewState;
-    return NOTIFICATION_QUERY_VIEWS.has(v) || v === 'chart' ? v : null;
+    return NOTIFICATION_QUERY_VIEWS.has(v) || v === 'chart' || v === 'admin' ? v : null;
 }
 
 function getRequestedViewFromQuery(): ViewState | null {
@@ -317,6 +317,7 @@ function getRequestedViewFromQuery(): ViewState | null {
     if (requested) {
         if (LEGACY_NOTIFICATION_VIEW_ALIASES[requested]) return LEGACY_NOTIFICATION_VIEW_ALIASES[requested];
         if (NOTIFICATION_QUERY_VIEWS.has(requested as ViewState)) return requested as ViewState;
+        if (requested === 'admin') return 'admin';
     }
     return getStartParamView();
 }
@@ -416,7 +417,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     useAppTelemetry(profile?.id, loading ? 'startup' : requiresExplicitAuthentication(authSessionMode) || !profile ? 'auth'
         : !legalAcknowledgementGateContract.hasAcceptedEveryDocument(profile.legalAcknowledgements || null) ? 'legal'
         : paywallContext ? 'paywall' : view, nativeActive);
-    useTelemetrySection(view, `navigation:${navigationSheet || ''}`, Boolean(navigationSheet));
+    useTelemetrySection(view, `navigation:${navigationSheet || ''}`, Boolean(navigationSheet && view !== 'admin'));
     const [premiumContinuation, setPremiumContinuation] = useState<PaywallContext | null>(null);
     const [pendingPremiumRecovery, setPendingPremiumRecovery] = useState<{
         context: PaywallContext;
@@ -583,8 +584,9 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                     setTimeout(() => reject(new Error('admin-status-timeout')), ADMIN_STATUS_TIMEOUT_MS)
                 ),
             ]);
-            // A failed or slow check must not downgrade the server profile or
-            // the configured owner fallback.
+            // Native account sessions do not have Telegram initData. In that
+            // runtime getAdminStatus() returns false by design, so it must not
+            // downgrade the server profile or configured owner fallback.
             return fallbackIsAdmin || result.isAdmin;
         } catch (error: any) {
             console.warn('[App] Failed to fetch authoritative admin status:', error?.message || error);
@@ -1066,12 +1068,24 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                     }
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
                     if (cancelled) return;
-                    showStartupDashboard(requestedViewRef.current || 'dashboard');
+                    // Админ-ссылка из бота обязана сохранить Telegram-контекст и
+                    // не теряться из-за локального кэша натальной карты.
+                    // Не-владельцу всё равно не открываем экран до серверной
+                    // авторизации: UI остаётся на обычном дашборде.
+                    showStartupDashboard(
+                        requestedViewRef.current === 'admin' && updatedProfile.isAdmin
+                            ? 'admin'
+                            : requestedViewRef.current || 'dashboard',
+                    );
                     scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, startupChartId, true);
                     return;
                 }
 
-                showStartupDashboard(requestedViewRef.current || 'dashboard');
+                showStartupDashboard(
+                    requestedViewRef.current === 'admin' && !updatedProfile.isAdmin
+                        ? 'dashboard'
+                        : requestedViewRef.current || 'dashboard',
+                );
                 void loadPrimaryChartOnce(updatedProfile).then((chart) => {
                     if (cancelled || !chart?.sun || !chart?.moon) return;
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
@@ -2163,7 +2177,9 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         }
         const currentView = viewRef.current;
         const fallbackView =
-            currentView === 'charts'
+            currentView === 'admin'
+                ? 'settings'
+                : currentView === 'charts'
                   ? chartsReturnView
                   : currentView === 'personality'
                     ? 'chart'
@@ -2700,12 +2716,14 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 showsAmbientPlayer ? 'has-ambient-player' : ''
             } ${
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
+            } ${
+                view === 'admin' ? 'is-admin-view' : ''
             }`}
         >
             <ActionFeedbackHost />
             <main
                 className={`lumia-tg-main-gutter relative z-10 flex-1 w-full overflow-hidden min-h-0 bg-white ${
-                    'max-w-reading-wide mx-auto'
+                    view === 'admin' ? 'max-w-none' : 'max-w-reading-wide mx-auto'
                 }`}
                 aria-hidden={navigationSheet || paywallContext ? true : undefined}
                 inert={navigationSheet || paywallContext ? true : undefined}
@@ -2716,7 +2734,9 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 >
                     <Dashboard {...dashboardProps} scrollRef={dashboardScrollRef} />
                 </div>
-                {view === 'synastry' ? (
+                {view === 'admin' ? (
+                    <AdminApp onClose={() => { void handleBack(); }} />
+                ) : view === 'synastry' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <UnionRoom
                             profile={profile}
@@ -2933,7 +2953,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onRequestPremium={openServiceStore}
                             onRestorePurchase={() => restorePremiumPurchases()}
                             onManageSubscription={managePremiumSubscription}
-                            onOpenAdmin={openAdmin}
+                            onOpenAdmin={() => navigateTo('admin')}
                             onOpenCharts={openProfileCharts}
                             onLogout={handleLogout}
                             onDeleteAccount={handleDeleteAccount}

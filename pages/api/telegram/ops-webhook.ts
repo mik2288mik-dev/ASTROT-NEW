@@ -3,22 +3,22 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getNeboOpsConfig, neboServerLabel, sendNeboOpsText, type NeboOpsConfig } from '../../../lib/neboOps';
 import { sendNeboOpsBusinessReport, type NeboReportKind } from '../../../lib/neboOpsReports';
 import { telegramApiRequest } from '../../../lib/telegramRelay';
-import type { TelegramReplyMarkup } from '../../../lib/telegramBot';
 import {
-  applyNeboSettingsTap,
-  getNeboBotSettings,
-  renderNeboSettingsScreen,
-  updateNeboBotSettings,
+  cycleNeboOpsReportSchedule,
+  getNeboOpsPreferences,
+  renderNeboOpsMenu,
+  renderNeboOpsSettingsMenu,
+  toggleNeboOpsPreference,
+  type NeboOpsPreferenceKey,
 } from '../../../lib/neboOpsSettings';
-import { buildActivityFeed, buildLatestVisitors, buildPremiumList, buildStuckList, buildUserCard, searchPeople } from '../../../lib/neboOpsInsights';
+import { buildActivityFeed, buildLatestVisitors, buildPremiumList, buildUserCard } from '../../../lib/neboOpsInsights';
 import { buildHealthSummary } from '../../../lib/neboOwnerChannels';
-import { createOwnerLoginLink } from '../../../lib/admin/loginLinks';
 import { acknowledgeAndRun, forwardNeboOpsRequest, isRepeatedTelegramUpdate } from '../../../lib/neboOpsWebhook';
 
 type OpsUpdate = {
   update_id?: number;
   message?: { text?: string; from?: { id?: number }; chat?: { id?: number } };
-  callback_query?: { id?: string; data?: string; from?: { id?: number }; message?: { message_id?: number; chat?: { id?: number } } };
+  callback_query?: { id?: string; data?: string; from?: { id?: number }; message?: { chat?: { id?: number } } };
 };
 
 function safeEqual(left: string, right: string): boolean {
@@ -34,17 +34,14 @@ async function answerCallback(token: string, callbackId: string, text: string) {
   }, { signal: AbortSignal.timeout(8_000) }).catch(() => undefined);
 }
 
-/** Settings screens change in place, like switches; a new message only if editing is impossible. */
-async function showScreen(config: NeboOpsConfig, messageId: number | undefined, text: string, replyMarkup: TelegramReplyMarkup) {
-  if (messageId) {
-    const response = await telegramApiRequest(config.token, 'editMessageText', {
-      chat_id: config.chatId, message_id: messageId, text, reply_markup: replyMarkup, disable_web_page_preview: true,
-    }, { signal: AbortSignal.timeout(8_000) }).catch(() => null);
-    if (response?.ok) return;
-    const body = await response?.json().catch(() => null);
-    if (String(body?.description || '').includes('message is not modified')) return;
-  }
-  await sendNeboOpsText(text, { replyMarkup });
+async function sendMenu() {
+  const menu = renderNeboOpsMenu(await getNeboOpsPreferences(), neboServerLabel());
+  await sendNeboOpsText(menu.text, { replyMarkup: menu.replyMarkup });
+}
+
+async function sendSettings() {
+  const menu = renderNeboOpsSettingsMenu(await getNeboOpsPreferences());
+  await sendNeboOpsText(menu.text, { replyMarkup: menu.replyMarkup });
 }
 
 async function sendView(build: () => Promise<string>) {
@@ -52,105 +49,52 @@ async function sendView(build: () => Promise<string>) {
 }
 
 async function sendReport(kind: NeboReportKind) {
-  if (!(await sendNeboOpsBusinessReport(kind).catch(() => false))) {
+  if (!(await sendNeboOpsBusinessReport(kind))) {
     await sendNeboOpsText('⚠️ Не удалось отправить отчёт. Попробуй ещё раз через минуту.');
   }
-}
-
-async function sendAdminLink() {
-  const link = await createOwnerLoginLink().catch(() => null);
-  if (!link) {
-    await sendNeboOpsText('⚠️ Не получилось сделать ссылку: на сервере не найден аккаунт владельца или адрес сайта.');
-    return;
-  }
-  await sendNeboOpsText('🔑 Вход в админку\n\nКнопка откроет админку в браузере. Ссылка работает один раз и 10 минут.', {
-    replyMarkup: { inline_keyboard: [[{ text: '🔑 Открыть админку', url: link }]] },
-  });
-}
-
-async function sendSearch(query: string) {
-  const result = await searchPeople(query).catch(() => ({ text: '⚠️ Поиск не получился, попробуй ещё раз.', buttons: [] }));
-  await sendNeboOpsText(result.text, result.buttons.length
-    ? { replyMarkup: { inline_keyboard: result.buttons.map((button) => [button]) } }
-    : undefined);
 }
 
 async function handleUpdate(update: OpsUpdate, config: NeboOpsConfig): Promise<void> {
   const callback = update.callback_query;
   if (callback?.id) {
     const data = String(callback.data || '');
-    const messageId = callback.message?.message_id;
-    const server = neboServerLabel();
-    const screens: Record<string, 'events' | 'items' | 'times'> = { 'ops:events': 'events', 'ops:items': 'items', 'ops:times': 'times' };
-    if (screens[data]) {
-      await answerCallback(config.token, callback.id, 'Открываю');
-      const menu = renderNeboSettingsScreen(screens[data], await getNeboBotSettings(), server);
-      await showScreen(config, messageId, menu.text, menu.replyMarkup);
-      return;
-    }
-    if (data === 'ops:menu') {
-      await answerCallback(config.token, callback.id, 'Меню');
-      const menu = renderNeboSettingsScreen('menu', await getNeboBotSettings(), server);
-      await showScreen(config, messageId, menu.text, menu.replyMarkup);
-      return;
-    }
-    let screen: ReturnType<typeof applyNeboSettingsTap> = null;
-    const { settings } = await updateNeboBotSettings((current) => {
-      screen = applyNeboSettingsTap(current, data);
-      return screen !== null;
-    });
-    if (screen) {
-      await answerCallback(config.token, callback.id, data === 'ops:pause' ? (settings.paused ? 'Пауза включена' : 'Пауза снята') : 'Сохранено');
-      const menu = renderNeboSettingsScreen(screen, settings, server);
-      await showScreen(config, messageId, menu.text, menu.replyMarkup);
-      return;
-    }
-    const report = /^ops:report:(now|today|yesterday|week|month)$/.exec(data);
-    const user = /^ops:user:(-?\d{1,20})$/.exec(data);
-    if (report) {
+    const toggleMatch = /^ops:toggle:(notify_logins|notify_payments|notify_paywalls|notify_support)$/.exec(data);
+    if (toggleMatch) {
+      await toggleNeboOpsPreference(toggleMatch[1] as NeboOpsPreferenceKey);
+      await answerCallback(config.token, callback.id, 'Настройка сохранена');
+      await sendSettings();
+    } else if (data === 'ops:schedule:daily' || data === 'ops:schedule:weekly') {
+      await cycleNeboOpsReportSchedule(data.endsWith('daily') ? 'daily' : 'weekly');
+      await answerCallback(config.token, callback.id, 'Расписание обновлено');
+      await sendSettings();
+    } else if (/^ops:report:(today|yesterday|week|month)$/.test(data)) {
       await answerCallback(config.token, callback.id, 'Собираю отчёт…');
-      await sendReport(report[1] as NeboReportKind);
-    } else if (user) {
-      await answerCallback(config.token, callback.id, 'Открываю');
-      await sendView(() => buildUserCard(user[1]));
-    } else if (data === 'ops:find') {
-      await answerCallback(config.token, callback.id, 'Жду ID или имя');
-      await sendNeboOpsText('🔎 Пришли ID человека или часть имени, я найду.', { replyMarkup: { force_reply: true as const, input_field_placeholder: 'ID или имя' } });
-    } else if (data === 'ops:admin') {
-      await answerCallback(config.token, callback.id, 'Делаю ссылку');
-      await sendAdminLink();
-    } else if (['ops:latest', 'ops:premium', 'ops:health', 'ops:feed', 'ops:stuck'].includes(data)) {
+      await sendReport(data.slice('ops:report:'.length) as NeboReportKind);
+    } else if (data === 'ops:settings') {
+      await answerCallback(config.token, callback.id, 'Настройки');
+      await sendSettings();
+    } else if (data === 'ops:latest' || data === 'ops:premium' || data === 'ops:health' || data === 'ops:feed') {
       await answerCallback(config.token, callback.id, 'Собираю…');
       await sendView(data === 'ops:latest' ? () => buildLatestVisitors(10)
         : data === 'ops:feed' ? () => buildActivityFeed(40)
-        : data === 'ops:stuck' ? buildStuckList
         : data === 'ops:premium' ? buildPremiumList : buildHealthSummary);
     } else {
       await answerCallback(config.token, callback.id, 'Меню');
-      const menu = renderNeboSettingsScreen('menu', await getNeboBotSettings(), server);
-      await sendNeboOpsText(menu.text, { replyMarkup: menu.replyMarkup });
+      await sendMenu();
     }
     return;
   }
-  const textValue = String(update.message?.text || '').trim();
-  const words = textValue.split(/\s+/);
+  const words = String(update.message?.text || '').trim().split(/\s+/);
   const command = words[0].toLowerCase().replace(/@[^\s]+$/, '');
-  if (command === '/user' || command === '/find') {
-    if (words[1]) await sendSearch(words.slice(1).join(' '));
-    else await sendNeboOpsText('🔎 Пришли ID человека или часть имени, я найду.', { replyMarkup: { force_reply: true as const, input_field_placeholder: 'ID или имя' } });
-  } else if (command === '/who') await sendView(() => buildLatestVisitors(15));
+  if (command === '/user') await sendView(() => buildUserCard(words[1] || ''));
+  else if (command === '/who') await sendView(() => buildLatestVisitors(15));
   else if (command === '/feed') await sendView(() => buildActivityFeed(40));
   else if (command === '/premium') await sendView(buildPremiumList);
-  else if (command === '/report') await sendReport('now');
+  else if (command === '/report') await sendReport('today');
   else if (command === '/yesterday') await sendReport('yesterday');
   else if (command === '/week') await sendReport('week');
   else if (command === '/month') await sendReport('month');
-  else if (command === '/admin') await sendAdminLink();
-  else if (textValue && !textValue.startsWith('/')) await sendSearch(textValue);
-  else {
-    const menu = renderNeboSettingsScreen('menu', await getNeboBotSettings(), neboServerLabel());
-    await sendNeboOpsText(menu.text, { replyMarkup: menu.replyMarkup });
-  }
+  else await sendMenu();
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

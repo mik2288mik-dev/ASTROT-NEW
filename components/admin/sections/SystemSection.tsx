@@ -229,9 +229,9 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
       {/* Header & Tabs */}
       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Доступ и система</h2>
+          <h2 className="text-xl font-bold text-gray-900">Системный центр & Безопасность</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Состояние сервера, переключатели функций, кто имеет доступ к админке и журнал действий
+            Диагностика инфраструктуры, Feature Flags, разграничение прав (RBAC) и журнал аудита
           </p>
         </div>
 
@@ -260,7 +260,7 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
               activeTab === 'flags' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Переключатели функций
+            Feature Flags
           </button>
           <button
             onClick={() => setActiveTab('rbac')}
@@ -268,7 +268,7 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
               activeTab === 'rbac' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Доступ к админке
+            Роли (RBAC)
           </button>
           <button
             onClick={() => setActiveTab('audit')}
@@ -742,7 +742,7 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
                             onClick={() => setSelectedAudit(a)}
                             className="text-indigo-600 hover:underline font-semibold"
                           >
-                            Изменения
+                            Diff
                           </button>
                         </td>
                       </tr>

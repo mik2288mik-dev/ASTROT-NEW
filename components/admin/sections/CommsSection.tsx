@@ -9,16 +9,13 @@ import {
   AdminTicketDetail,
 } from '../../../services/admin2Service';
 import { StatusBadge } from '../common/StatusBadge';
-import { AppPushSection } from './AppPushSection';
 
 interface CommsSectionProps {
   onSelectUser?: (userId: string) => void;
-  /** «Уведомления» and «Поддержка» are separate menu items over the same tools. */
-  mode: 'notifications' | 'support';
 }
 
-export const CommsSection: React.FC<CommsSectionProps> = ({ onSelectUser, mode }) => {
-  const [activeTab, setActiveTab] = useState<'app' | 'health' | 'manual' | 'scenarios' | 'templates' | 'support'>(mode === 'support' ? 'support' : 'app');
+export const CommsSection: React.FC<CommsSectionProps> = ({ onSelectUser }) => {
+  const [activeTab, setActiveTab] = useState<'health' | 'manual' | 'scenarios' | 'templates' | 'support'>('health');
 
   // ===================== HEALTH =====================
   const [diagnostics, setDiagnostics] = useState<AdminNotificationDiagnostics | null>(null);
@@ -196,17 +193,58 @@ export const CommsSection: React.FC<CommsSectionProps> = ({ onSelectUser, mode }
 
   return (
     <div className="space-y-6">
-      {mode === 'notifications' ? (
-        <div className="adm-chips adm-chips--scroll" role="group" aria-label="Уведомления">
-          <button type="button" aria-pressed={activeTab === 'app'} onClick={() => setActiveTab('app')}>В приложении</button>
-          <button type="button" aria-pressed={activeTab === 'health'} onClick={() => setActiveTab('health')}>Состояние Telegram-уведомлений</button>
-          <button type="button" aria-pressed={activeTab === 'manual'} onClick={() => setActiveTab('manual')}>Отправить в Telegram</button>
-          <button type="button" aria-pressed={activeTab === 'scenarios'} onClick={() => setActiveTab('scenarios')}>Сценарии</button>
-          <button type="button" aria-pressed={activeTab === 'templates'} onClick={() => setActiveTab('templates')}>Шаблоны</button>
+      {/* Header & Tabs */}
+      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Коммуникации, Пуши & Поддержка</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Здоровье планировщика, ручные рассылки, сценарии триггеров и тикеты пользователей
+          </p>
         </div>
-      ) : null}
 
-      {activeTab === 'app' && <AppPushSection />}
+        <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+          <button
+            onClick={() => setActiveTab('health')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              activeTab === 'health' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Здоровье воркера
+          </button>
+          <button
+            onClick={() => setActiveTab('manual')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              activeTab === 'manual' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Ручной Push
+          </button>
+          <button
+            onClick={() => setActiveTab('scenarios')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              activeTab === 'scenarios' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Сценарии
+          </button>
+          <button
+            onClick={() => setActiveTab('templates')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              activeTab === 'templates' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Шаблоны
+          </button>
+          <button
+            onClick={() => setActiveTab('support')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              activeTab === 'support' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Тикеты саппорта
+          </button>
+        </div>
+      </div>
 
       {/* ===================== HEALTH ===================== */}
       {activeTab === 'health' && (

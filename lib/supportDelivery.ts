@@ -1,8 +1,8 @@
 import { logger } from './logger';
 import { getPool } from './db';
 import { getNeboOwnerChannelConfig, isNeboOpsEnabled, neboServerLabel, sendNeboOpsTextWithConfig } from './neboOps';
-import { PROVIDER_LABELS } from './productMetrics';
-import { getNeboBotSettings } from './neboOpsSettings';
+import { PROVIDER_LABELS } from './neboOpsStats';
+import { getNeboOpsPreferences } from './neboOpsSettings';
 import { sendTelegramTextMessage } from './telegramBot';
 
 export const SUPPORT_CATEGORIES = ['problem', 'idea', 'payment', 'question', 'other'] as const;
@@ -300,7 +300,7 @@ async function sendSupportTelegram(input: SupportDeliveryInput): Promise<Support
   const chatId = firstConfiguredValue(process.env.SUPPORT_TELEGRAM_CHAT_ID, process.env.OWNER_ID);
   if (!chatId) return { channel: 'telegram', result: 'unconfigured' };
   try {
-    if (isNeboOpsEnabled() && !(await getNeboBotSettings()).events.support) {
+    if (isNeboOpsEnabled() && !(await getNeboOpsPreferences()).notify_support) {
       return { channel: 'telegram', result: 'suppressed' };
     }
     const adminUrl = supportAdminUrl();

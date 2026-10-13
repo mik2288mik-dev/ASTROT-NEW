@@ -6,7 +6,6 @@
 // Format: postgresql://user:password@host:port/database
 
 import crypto from 'crypto';
-import { AsyncLocalStorage } from 'async_hooks';
 import { Pool, Client, types as pgTypes } from 'pg';
 import { LEGACY_NOTIFICATION_SEEDS, SCHEDULED_NOTIFICATION_SEEDS } from './adminNotificationSeedCatalog';
 import { resolveDatabaseUrl } from './database-url';
@@ -440,20 +439,7 @@ async function supportsDailyNatalCardsChartScope(): Promise<boolean> {
   return dailyNatalCardsChartScopeSupported;
 }
 
-// Admin requests can read another deployment's database (the Telegram version);
-// everything inside such a request resolves getPool() to that read-only pool.
-const scopedPool = new AsyncLocalStorage<Pool>();
-
-export function runWithScopedPool<T>(scoped: Pool, fn: () => T): T {
-  return scopedPool.run(scoped, fn);
-}
-
 export function getPool(): Pool {
-  return scopedPool.getStore() || getPrimaryPool();
-}
-
-/** This deployment's own database, even inside a scoped admin request. */
-export function getPrimaryPool(): Pool {
   if (!pool) {
     if (!DATABASE_URL) {
       throw new Error('DATABASE_URL is not configured');
@@ -3567,6 +3553,129 @@ export const db = {
   },
 
   admin: {
+    async listUsers(options?: {
+      q?: string;
+      premium?: AdminDbPremiumFilter;
+      segment?: AdminDbUserSegment;
+      page?: number;
+      pageSize?: number;
+      sortBy?: AdminDbUserSortBy;
+      sortOrder?: AdminDbSortOrder;
+      limit?: number;
+    }) {
+      if (!DATABASE_URL) {
+        return {
+          users: [],
+          pagination: { page: 1, pageSize: 25, total: 0, totalPages: 1 },
+        };
+      }
+
+      const queryText = (options?.q || '').trim();
+      const premium = options?.premium || 'all';
+      const segment = options?.segment || 'all';
+      const pageSize = Math.min(Math.max(options?.pageSize || options?.limit || 25, 1), 100);
+      const page = Math.max(options?.page || 1, 1);
+      const offset = (page - 1) * pageSize;
+      const sortBy = options?.sortBy || 'last_seen';
+      const sortOrder = options?.sortOrder || 'desc';
+      const like = `%${queryText}%`;
+      const orderBySql = getAdminUserSortSql(sortBy, sortOrder);
+
+      try {
+        const dbPool = getPool();
+        const [countResult, usersResult] = await Promise.all([
+          dbPool.query(
+            `${ADMIN_USER_METRICS_CTE}
+             SELECT COUNT(*)::int AS total
+             FROM user_metrics
+             WHERE
+               ($1 = '' OR COALESCE(name, '') ILIKE $2 OR CAST(id AS TEXT) ILIKE $2)
+               AND ${getAdminPremiumFilterSql(3)}
+               AND ${getAdminUserSegmentSql(4)}`,
+            [queryText, like, premium, segment]
+          ),
+          dbPool.query(
+            `${ADMIN_USER_METRICS_CTE}
+             SELECT *
+             FROM user_metrics
+             WHERE
+               ($1 = '' OR COALESCE(name, '') ILIKE $2 OR CAST(id AS TEXT) ILIKE $2)
+               AND ${getAdminPremiumFilterSql(3)}
+               AND ${getAdminUserSegmentSql(4)}
+             ORDER BY ${orderBySql}
+             LIMIT $5
+             OFFSET $6`,
+            [queryText, like, premium, segment, pageSize, offset]
+          ),
+        ]);
+
+        const total = Number(countResult.rows[0]?.total || 0);
+        return {
+          users: usersResult.rows.map((row: any) => ({
+            id: String(row.id),
+            name: row.name || 'Unnamed user',
+            premium_until: row.premium_until,
+            is_premium: !!(row.premium_until && new Date(row.premium_until) > new Date()),
+            login_streak: row.login_streak ?? 0,
+            chart_slots: row.chart_slots ?? 1,
+            saved_charts_count: row.saved_charts_count ?? 0,
+            birth_date: row.birth_date ?? null,
+            created_at: row.created_at,
+            last_login: row.last_login,
+            last_seen_at: row.last_seen_at ?? row.last_login ?? null,
+            is_admin: row.is_admin ?? false,
+            is_blocked: row.is_blocked ?? false,
+          })),
+          pagination: {
+            page,
+            pageSize,
+            total,
+            totalPages: Math.max(1, Math.ceil(total / pageSize)),
+          },
+        };
+      } catch (error: any) {
+        log.error('[DB] Error listing admin users', { error: error.message });
+        throw error;
+      }
+    },
+
+    async getUsersOverview() {
+      if (!DATABASE_URL) {
+        return {
+          total_users: 0,
+          active_premium_users: 0,
+          active_users_7d: 0,
+          need_attention_users: 0,
+          users_without_birth_data: 0,
+        };
+      }
+
+      try {
+        const dbPool = getPool();
+        const result = await dbPool.query(
+          `${ADMIN_USER_METRICS_CTE}
+           SELECT
+             COUNT(*)::int AS total_users,
+             COUNT(*) FILTER (WHERE premium_until IS NOT NULL AND premium_until > NOW())::int AS active_premium_users,
+             COUNT(*) FILTER (WHERE last_seen_at >= NOW() - INTERVAL '7 days')::int AS active_users_7d,
+             COUNT(*) FILTER (WHERE ${ADMIN_NEED_ATTENTION_SQL})::int AS need_attention_users,
+             COUNT(*) FILTER (WHERE birth_date IS NULL)::int AS users_without_birth_data
+           FROM user_metrics`
+        );
+
+        return result.rows[0] || {
+          total_users: 0,
+          active_premium_users: 0,
+          active_users_7d: 0,
+          need_attention_users: 0,
+          users_without_birth_data: 0,
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting admin users overview', { error: error.message });
+        throw error;
+      }
+    },
+
     async getUserDetail(userId: string) {
       const user = await db.users.get(userId);
       if (!user) return null;

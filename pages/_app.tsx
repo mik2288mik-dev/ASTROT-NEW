@@ -38,7 +38,7 @@ import '../styles/paywallSell.css';
 import '../styles/sharedShellFinal.css';
 import '../styles/natalMeaningMap.css';
 import '../styles/homeMockupV1.css';
-import '../styles/admin/admin.css';
+import '../styles/admin2/admin.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 import { installRuntimeDiagnostics } from '../lib/runtimeDiagnostics';
 

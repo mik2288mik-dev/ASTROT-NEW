@@ -3,14 +3,13 @@ import { AdminAuthError, handleAdminError } from '../../../../../lib/adminAuth';
 import { requireAdminPermission, roleHasPermission } from '../../../../../lib/admin/rbac';
 import { recordAdminAction } from '../../../../../lib/admin/audit';
 import { db } from '../../../../../lib/db';
-import { withAdminSource } from '../../../../../lib/admin/dataSource';
 
 const MASK = '•••';
 const sign = (p: any) => (p && typeof p === 'object' ? p.sign ?? null : null);
 const deg = (p: any) => (p && typeof p.degree === 'number' ? Number(p.degree.toFixed(2)) : null);
 
 /** Детали натального профиля. Право charts.view. Данные рождения маскируются (PII). */
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   const chartId = Number(req.query.id);
   try {
@@ -65,5 +64,3 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return handleAdminError(res, error);
   }
 }
-
-export default withAdminSource(handler);

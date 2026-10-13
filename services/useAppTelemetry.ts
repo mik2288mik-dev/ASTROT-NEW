@@ -16,21 +16,20 @@ export function useAppTelemetry(accountKey: string | number | null | undefined, 
     let dominant:Element | null=null;
     let scrollTimer:ReturnType<typeof setTimeout> | undefined;
     let lastScroller:Element | null=null;
-    const blocks = new Map<Element, { name: string; clock:ViewportBlockClock; inView: boolean; lastSent:number }>();
+    const blocks = new Map<Element, { name: string; clock:ViewportBlockClock; inView: boolean; control: string | null; emitted: boolean; lastSent:number }>();
     const readable = (element:Element) => !element.closest('[inert],[aria-hidden=true],[data-telemetry-exclude]');
     traceScreen(screen);
     startAppTrace((body, keepalive, signal) => apiFetch('/api/telemetry', { method: 'POST', credentials: 'include', keepalive, signal,
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }, body: JSON.stringify(body) }, 10_000));
     clock.sample(isTraceForeground());
     const emit = (type: 'screen_progress' | 'screen_exit') => captureAppTrace(type, { view_id: viewId, ...clock.sample() });
-    // One reading measurement per block and view, sent when the person leaves it,
-    // instead of a growing sample every few seconds.
-    const flushBlocks = (final = false) => {
+    const flushBlocks = () => {
       selectDominant();
       for (const block of blocks.values()) {
         const measured=block.clock.sample();
-        if (final && measured.visible_ms >= 1000 && measured.visible_ms>block.lastSent) {
-          captureAppTrace('content_view', { view_id: viewId, block: block.name, ...measured });
+        if (measured.visible_ms >= 1000 && measured.visible_ms>block.lastSent && (!block.control || !block.emitted)) {
+          captureAppTrace(block.control ? 'control_view' : 'content_view', { view_id: viewId, ...(block.control ? { control: block.control, label: block.name } : { block: block.name }), ...measured });
+          block.emitted = true;
           block.lastSent=measured.visible_ms;
         }
       }
@@ -38,22 +37,23 @@ export function useAppTelemetry(accountKey: string | number | null | undefined, 
     captureAppTrace('screen_view', { view_id: viewId });
     transition.current = (next, reset = false) => {
       if (screen === next && !reset) return;
-      if (!reset) { flushBlocks(true); snapshotPosition('leave'); emit('screen_exit'); }
+      if (!reset) { flushBlocks(); snapshotPosition('leave'); emit('screen_exit'); }
       observer?.disconnect(); blocks.clear(); dominant=null; clearTimeout(scrollTimer);lastScroller=null;
       screen = next; traceScreen(screen); viewId = crypto.randomUUID(); clock = new JourneyClock(Date.now(), Date.now);
       clock.sample(isTraceForeground()); captureAppTrace('screen_view', { view_id: viewId }); observeBlocks();
     };
     const visibility = () => {
-      flushBlocks(!isTraceForeground()); clock.sample(isTraceForeground());
+      flushBlocks(); clock.sample(isTraceForeground());
       captureAppTrace('visibility', { state: !isTraceForeground() ? 'hidden' : 'visible', view_id: viewId });
       emit('screen_progress'); void flushAppTrace(!isTraceForeground());
     };
-    const hide = () => { flushBlocks(true); snapshotPosition('leave'); emit('screen_exit'); clock.sample(false); void flushAppTrace(true); };
+    const hide = () => { flushBlocks(); snapshotPosition('leave'); emit('screen_exit'); clock.sample(false); void flushAppTrace(true); };
     const click = (event: Event) => {
       const target = event.target instanceof Element ? event.target.closest('button,a,[role=button],[role=tab],input[type=checkbox],input[type=radio],summary') : null;
       if (!target || !readable(target)) return;
       const privateContent = Boolean(target.closest('[data-telemetry-private]'));
       const label = privateContent ? 'Действие в переписке' : (target.getAttribute('aria-label') || target.getAttribute('title') || target.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+      flushBlocks(); // Record an already measured exposure before its click, even between timer ticks.
       const control = traceControlKey(target);
       captureAppTrace('ui_click', { view_id: viewId, label, control });
     };
@@ -70,7 +70,7 @@ export function useAppTelemetry(accountKey: string | number | null | undefined, 
       const depth = Math.min(100, Math.floor(el.scrollTop / (el.scrollHeight - el.clientHeight) * 100 / 25) * 25);
       if(depth>(depths.get(el) || 0)) {depths.set(el,depth);captureAppTrace('scroll_depth',{view_id:viewId,depth});}
       lastScroller=el;clearTimeout(scrollTimer);
-      scrollTimer=setTimeout(()=> {selectDominant();flushBlocks();},350);
+      scrollTimer=setTimeout(()=> {selectDominant();snapshotPosition('scroll_stop');flushBlocks();},350);
     };
     const media = (event: Event) => {
       const el = event.target;
@@ -87,7 +87,7 @@ export function useAppTelemetry(accountKey: string | number | null | undefined, 
       selectDominant();
     }, { threshold: [0,.5] }) : null;
     function selectDominant() {
-      const visible=[...blocks].filter(([el,b])=>b.inView && el.isConnected && readable(el));
+      const visible=[...blocks].filter(([el,b])=>b.inView && !b.control && el.isConnected && readable(el));
       const explicit=visible.filter(([el])=>el.hasAttribute('data-telemetry-content'));
       const candidates=(explicit.length ? explicit : visible).filter(([el])=>!explicit.some(([child])=>child!==el && el.contains(child)));
       let largest=0,next:Element | null=null;
@@ -99,7 +99,7 @@ export function useAppTelemetry(accountKey: string | number | null | undefined, 
       dominant=next;
       for(const [el,b] of blocks) b.clock.sample(b.inView && isTraceForeground() && readable(el),el===dominant && isTraceForeground());
     }
-    function snapshotPosition(state: 'leave') {
+    function snapshotPosition(state: 'scroll_stop' | 'leave') {
       const el=lastScroller || document.querySelector('.lumia-main-scroll') || document.scrollingElement;
       if(!el) return;
       const block=dominant ? blocks.get(dominant) : null;
@@ -111,20 +111,20 @@ export function useAppTelemetry(accountKey: string | number | null | undefined, 
       if (!observer) return;
       for(const [el,b] of blocks) if(!el.isConnected) {
         const measured=b.clock.sample(false,false);
-        if(measured.visible_ms>=1000 && measured.visible_ms>b.lastSent) captureAppTrace('content_view',{view_id:viewId,block:b.name,...measured});
+        if(!b.control && measured.visible_ms>=1000) captureAppTrace('content_view',{view_id:viewId,block:b.name,...measured});
         observer.unobserve(el);blocks.delete(el);
       }
-      // Reading is measured on content blocks only; buttons are counted by their clicks.
-      const elements = document.querySelectorAll('[data-telemetry-content],main section,main article,main h1,main h2,main h3,.lumia-main-scroll section,.lumia-main-scroll article,[role=status]');
+      const elements = document.querySelectorAll('[data-telemetry-content],main section,main article,main h1,main h2,main h3,.lumia-main-scroll section,.lumia-main-scroll article,[role=status],button,[role=button],[role=tab],input[type=checkbox],input[type=radio],summary,a');
       for (const element of elements) {
         if (blocks.size >= 500 || blocks.has(element) || !readable(element) || (element.closest('[data-telemetry-private]') && !element.hasAttribute('data-telemetry-content'))) continue;
-        if(!element.hasAttribute('data-telemetry-content') && (element.querySelector('section,article,[data-telemetry-content]') || element.parentElement?.closest('[data-telemetry-content]'))) continue;
+        const isControl = element.matches('button,a,[role=button],[role=tab],input[type=checkbox],input[type=radio],summary');
+        if(!isControl && !element.hasAttribute('data-telemetry-content') && (element.querySelector('section,article,[data-telemetry-content]') || element.parentElement?.closest('[data-telemetry-content]'))) continue;
         const headingId=element.getAttribute('aria-labelledby');
         const name = (element.getAttribute('data-telemetry-content') || element.getAttribute('aria-label') || (headingId ? document.getElementById(headingId)?.textContent : '')
-          || (element.matches('h1,h2,h3,[role=status]') ? element.textContent : element.querySelector('h1,h2,h3')?.textContent) || `Блок ${element.id || element.classList[0] || element.tagName.toLowerCase()}`).replace(/\s+/g, ' ').trim().slice(0, 80);
-        // Unnamed technical wrappers say nothing to a person reading the admin.
-        if (!name || name.startsWith('Блок ')) continue;
-        blocks.set(element, { name, clock:new ViewportBlockClock(Date.now), inView: false, lastSent:0 }); observer.observe(element);
+          || (isControl || element.matches('h1,h2,h3,[role=status]') ? element.textContent : element.querySelector('h1,h2,h3')?.textContent) || `Блок ${element.id || element.classList[0] || element.tagName.toLowerCase()}`).replace(/\s+/g, ' ').trim().slice(0, 80);
+        if (!name) continue;
+        blocks.set(element, { name, clock:new ViewportBlockClock(Date.now), inView: false, emitted:false,lastSent:0,
+          control: isControl ? traceControlKey(element) : null }); observer.observe(element);
       }
     }
     let mutationTimer: ReturnType<typeof setTimeout> | undefined;
@@ -132,7 +132,7 @@ export function useAppTelemetry(accountKey: string | number | null | undefined, 
       if (!mutationTimer) mutationTimer = setTimeout(() => { mutationTimer = undefined; observeBlocks(); selectDominant(); }, 250);
     }) : null;
     mutations?.observe(document.body, { childList: true, subtree: true, attributes:true,attributeFilter:['inert','aria-hidden'] }); observeBlocks();
-    const timer = window.setInterval(() => { if (isTraceForeground()) { flushBlocks(); emit('screen_progress'); } }, 30_000);
+    const timer = window.setInterval(() => { if (isTraceForeground()) { flushBlocks(); emit('screen_progress'); } }, 10_000);
     const sender = window.setInterval(() => { void flushAppTrace(); }, 5000);
     document.addEventListener('visibilitychange', visibility); window.addEventListener('pagehide', hide); window.addEventListener('online', flushOnline);
     window.addEventListener('nebo-app-visibility', visibility);
@@ -142,7 +142,7 @@ export function useAppTelemetry(accountKey: string | number | null | undefined, 
     for (const type of mediaEvents) document.addEventListener(type, media, true);
     function flushOnline() { void flushAppTrace(); }
     return () => {
-      flushBlocks(true); snapshotPosition('leave'); emit('screen_exit'); void flushAppTrace(true); stopAppTrace(); transition.current = null;
+      flushBlocks(); snapshotPosition('leave'); emit('screen_exit'); void flushAppTrace(true); stopAppTrace(); transition.current = null;
       clearInterval(timer); clearInterval(sender); clearTimeout(mutationTimer);clearTimeout(scrollTimer); observer?.disconnect(); mutations?.disconnect();
       document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pagehide', hide); window.removeEventListener('online', flushOnline);
       window.removeEventListener('nebo-app-visibility', visibility);

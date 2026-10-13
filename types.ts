@@ -1381,6 +1381,7 @@ export type ViewState =
   | 'encyclopedia'
   | 'matrix'
   | 'settings'
+  | 'admin'
   | 'charts'
   | 'tests'
   | 'mood'

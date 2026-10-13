@@ -213,9 +213,9 @@ export const AiSection: React.FC = () => {
       {/* Header & Tabs */}
       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">ИИ: запросы, ошибки и промпты</h2>
+          <h2 className="text-xl font-bold text-gray-900">Центр AI & Моделей (Luna / DeepSeek)</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Каждый запрос к ИИ: сколько ждали и чем закончился. Ошибки по причинам. Тексты промптов.
+            Мониторинг генераций, лог запросов, реестр дефектов и управление промптами
           </p>
         </div>
 

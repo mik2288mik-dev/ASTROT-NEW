@@ -4,7 +4,7 @@
  * Запись только на вставку — UI не редактирует и не удаляет журнал.
  */
 import type { NextApiRequest } from 'next';
-import { getPrimaryPool } from '../db';
+import { getPool } from '../db';
 import type { AdminContext } from './rbac';
 
 export type AdminAuditAction =
@@ -44,7 +44,7 @@ export async function recordAdminAction(params: {
   error?: string | null;
 }): Promise<void> {
   try {
-    await getPrimaryPool().query(
+    await getPool().query(
       `INSERT INTO admin_audit_log
          (actor_user_id, actor_role, action, entity_type, entity_id, before_json, after_json, ip, user_agent, result, error)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
@@ -100,7 +100,7 @@ export async function listAuditEntries(params: {
   const limit = Math.max(1, Math.min(Number(params.limit) || 50, 200));
   const offset = Math.max(0, Number(params.offset) || 0);
 
-  const pool = getPrimaryPool();
+  const pool = getPool();
   const countRes = await pool.query(`SELECT COUNT(*)::int AS total FROM admin_audit_log ${whereSql}`, vals);
   const rowsRes = await pool.query(
     `SELECT id, actor_user_id, actor_role, action, entity_type, entity_id, before_json, after_json,
