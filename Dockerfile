@@ -47,7 +47,10 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 
+# The Timeweb server has 1 GB and runs two copies during a deploy: cap the heap
+# so V8 collects garbage early instead of growing each copy until memory swaps.
 ENV NODE_ENV=production \
+    NODE_OPTIONS=--max-old-space-size=320 \
     NEXT_TELEMETRY_DISABLED=1 \
     NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt \
     HOSTNAME=0.0.0.0 \
@@ -96,8 +99,9 @@ USER nextjs
 EXPOSE 3000
 
 # Timeweb uses this check when its panel health path is empty. Probe IPv4
-# loopback directly so deployment still verifies an actual HTTP response.
+# loopback with busybox wget: starting a whole Node process every 10 seconds
+# cost ~40 MB and noticeable CPU, twice over while a deploy runs two copies.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=6 \
-  CMD node -e "const http=require('node:http');const port=Number(process.env.PORT||3000);const r=http.get({host:'127.0.0.1',port,path:'/api/health',timeout:2000},res=>{res.resume();process.exit(res.statusCode>=200&&res.statusCode<300?0:1)});r.on('timeout',()=>{r.destroy();process.exit(1)});r.on('error',()=>process.exit(1))"
+  CMD wget -q -T 2 -O /dev/null "http://127.0.0.1:${PORT:-3000}/api/health" || exit 1
 
 CMD ["sh", "-c", "HOSTNAME=0.0.0.0 exec node .next/standalone/server.js"]
