@@ -295,6 +295,7 @@ describe('durable owner notification queue', () => {
         occurred_at: '2026-09-09T09:00:00Z', attempts: 1, lease_token: values?.[1],
       }] };
       if (sql.includes('SELECT u.name, u.language, u.auth_provider')) return { rows: [{ name: 'Алина' }] };
+      if (sql.includes("INTERVAL '30 minutes'") && sql.includes("status = 'sent'")) return { rows: [], rowCount: 0 };
       return { rows: [], rowCount: 1 };
     });
     await expect(processNeboOpsOutbox(1)).resolves.toEqual({ claimed: 1, sent: 1, failed: 0 });
@@ -306,6 +307,23 @@ describe('durable owner notification queue', () => {
     expect(filtered[1][1]).toEqual(expect.arrayContaining(['paywall_view', 'app_open', 'app_opened']));
     expect(claim[1][3]).toEqual(expect.arrayContaining(['paywall_view', 'app_open', 'app_opened']));
     expect(claim[1][2]).toEqual(expect.arrayContaining(['login', 'payment_confirmed', 'ai_error', 'technical_error']));
+  });
+
+  it('sends one visit message per person per 30 minutes: every app launch starts a new session', async () => {
+    const updates: unknown[][] = [];
+    query.mockImplementation(async (sql: string, values?: unknown[]) => {
+      if (sql.includes('RETURNING id, event_type, user_id')) return { rows: [{
+        id: '43', event_type: 'login', user_id: '-9001', payload_json: { isFirstLogin: false, provider: 'telegram', runtime: 'telegram' },
+        occurred_at: '2026-09-09T09:00:00Z', attempts: 1, lease_token: values?.[1],
+      }] };
+      if (sql.includes('SELECT u.name, u.language, u.auth_provider')) return { rows: [{ name: 'Алина' }] };
+      if (sql.includes("INTERVAL '30 minutes'") && sql.includes("status = 'sent'")) return { rows: [{ '?column?': 1 }], rowCount: 1 };
+      if (sql.includes("last_error_code = 'DUPLICATE_VISIT'")) updates.push(values || []);
+      return { rows: [], rowCount: 1 };
+    });
+    await expect(processNeboOpsOutbox(1)).resolves.toEqual({ claimed: 1, sent: 0, failed: 0 });
+    expect(updates).toHaveLength(1);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('retires old noisy queue entries without sending them to Telegram', async () => {

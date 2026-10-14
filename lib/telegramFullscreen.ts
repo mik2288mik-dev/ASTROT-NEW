@@ -1,4 +1,7 @@
+import { expandTelegramAppOnPhones } from './telegramExpand';
+
 type TelegramWebAppLike = {
+  platform?: string;
   ready?: () => void;
   expand?: () => void;
   requestFullscreen?: () => void;
@@ -35,7 +38,7 @@ export function ensureTelegramFullscreen(): boolean {
 
   try {
     tg.ready?.();
-    tg.expand?.();
+    expandTelegramAppOnPhones(tg);
     tg.disableVerticalSwipes?.();
 
     const isDesktopOrWeb = isDesktopEnvironment(tg);

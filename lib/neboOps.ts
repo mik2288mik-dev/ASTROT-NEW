@@ -869,6 +869,26 @@ export async function processNeboOpsOutbox(limit = MAX_BATCH): Promise<{ sent: n
       continue;
     }
     const toggle = neboEventToggle(row, user);
+    if (toggle === 'return_visit' && row.user_id) {
+      // Opening the app starts a new session each time: one visit message per person per 30 minutes.
+      const recent = await pool.query(
+        `SELECT 1 FROM nebo_ops_outbox
+         WHERE user_id = $1 AND id <> $2 AND status = 'sent'
+           AND (event_type = 'login' OR (event_type = 'activity' AND payload_json->>'eventType' IN ('app_open', 'app_opened')))
+           AND occurred_at > $3::timestamptz - INTERVAL '30 minutes' AND occurred_at <= $3::timestamptz
+         LIMIT 1`,
+        [row.user_id, row.id, validDate(row.occurred_at)?.toISOString() || new Date().toISOString()],
+      );
+      if (recent.rowCount) {
+        await pool.query(
+          `UPDATE nebo_ops_outbox SET status = 'dead', attempts = GREATEST(0, attempts - 1),
+             locked_at = NULL, lease_token = NULL, last_error_code = 'DUPLICATE_VISIT', updated_at = NOW()
+           WHERE id = $1 AND lease_token = $2::uuid AND status = 'processing'`,
+          [row.id, lease],
+        );
+        continue;
+      }
+    }
     const kept = ALWAYS_KEPT.has(row.event_type);
     const quiet = isQuietHour(settings);
     const skip = toggle && !settings.events[toggle] ? 'OWNER_SETTING_DISABLED'

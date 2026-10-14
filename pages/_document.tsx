@@ -13,7 +13,7 @@ export default class NeboDocument extends Document {
         </Head>
         <body>
           {/* Early Telegram WebApp initialization and desktop platform detection */}
-          <script dangerouslySetInnerHTML={{ __html: `try{var tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready&&tg.ready();tg.expand&&tg.expand();}}catch(e){}` }} />
+          <script dangerouslySetInnerHTML={{ __html: `try{var tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready&&tg.ready();var p=String(tg.platform||'').toLowerCase();if(p==='android'||p==='android_x'||p==='ios'){tg.expand&&tg.expand();}}}catch(e){}` }} />
           <Main /><NextScript />
         </body>
       </Html>
