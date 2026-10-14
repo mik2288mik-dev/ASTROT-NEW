@@ -45,20 +45,31 @@ export function answerableCompatibilityQuestions(calculated: CalculatedCompatibi
   return calculated.questions.filter((question) => question.score != null);
 }
 
+/**
+ * reader: one person reads about the pair and is addressed as «ты».
+ * pair: two linked people read the very same text, so it speaks to both as «вы» by names.
+ */
+export type CompatibilityStoryAudience = 'reader' | 'pair';
+
 export function buildCompatibilityStoryPrompt(input: {
   language: 'ru' | 'en';
   calculated: CalculatedCompatibility;
   subject: WriterPerson;
   partner: WriterPerson;
   revisionReason?: string;
+  audience?: CompatibilityStoryAudience;
 }): { system: string; user: string } {
   const evidence = selectCompatibilityWriterEvidence(input.calculated);
   const availableIds = new Set(evidence.map((item) => item.id));
   
   const questions = answerableCompatibilityQuestions(input.calculated);
-  const readerRules = input.language === 'ru'
-    ? 'Пиши по-русски и обращайся к первому человеку на «ты». При unspecified пиши нейтрально: не приписывай человеку мужской или женский род. Пол меняет обращение, но не назначает характер.'
-    : 'Write natural, direct English and address the first person as “you”. When gender is unspecified, use neutral wording and do not infer a gender. Gender changes grammar only, not personality.';
+  const readerRules = input.audience === 'pair'
+    ? (input.language === 'ru'
+      ? 'Этот текст одновременно читают оба человека. Обращайся к ним вместе на «вы», каждого называй по имени. Никого не называй на «ты» и не пиши «твой» или «тебе». Ни один из них не главный: пиши о них одинаково бережно. При unspecified пиши нейтрально: не приписывай человеку мужской или женский род. Пол меняет обращение, но не назначает характер.'
+      : 'Both people read this very text together. Address them together as “you two” and refer to each by name. Neither person is the main reader: treat both equally. When gender is unspecified, use neutral wording and do not infer a gender. Gender changes grammar only, not personality.')
+    : input.language === 'ru'
+      ? 'Пиши по-русски и обращайся к первому человеку на «ты». При unspecified пиши нейтрально: не приписывай человеку мужской или женский род. Пол меняет обращение, но не назначает характер.'
+      : 'Write natural, direct English and address the first person as “you”. When gender is unspecified, use neutral wording and do not infer a gender. Gender changes grammar only, not personality.';
   const system = `${getCompatibilitySystemPrompt(input.language)}
 
 ${RELATIONSHIP_BRIEFS[input.calculated.relationshipContext]}
@@ -113,4 +124,14 @@ export function compatibilitySpokenViolations(story: unknown): string[] {
     if (hasCoreVoiceViolation(text)) codes.add('cliche');
   }
   return [...codes];
+}
+
+const SECOND_PERSON_SINGULAR = /(?:^|[^\p{L}])(?:ты|тебя|тебе|тобой|тобою|твой|твоя|твоё|твое|твои|твоего|твоей|твоему|твоим|твоих|твоими)(?!\p{L})/iu;
+
+/** A shared pair reading must not single out one reader as «ты». */
+export function pairAudienceViolations(story: unknown): string[] {
+  const value = story as { summary?: unknown; paragraphs?: Array<{ text?: unknown }> } | null;
+  const parts = [value?.summary, ...(Array.isArray(value?.paragraphs) ? value!.paragraphs.map((item) => item?.text) : [])]
+    .filter((text): text is string => typeof text === 'string');
+  return parts.some((text) => SECOND_PERSON_SINGULAR.test(text)) ? ['singular_address'] : [];
 }

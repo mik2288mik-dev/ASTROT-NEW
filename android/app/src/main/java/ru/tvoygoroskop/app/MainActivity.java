@@ -13,6 +13,7 @@ import ru.tvoygoroskop.app.notifications.NativeNotificationsPlugin;
 import ru.tvoygoroskop.app.speech.NativeSpeechPlugin;
 import ru.tvoygoroskop.app.speech.NativeTtsPlugin;
 import ru.tvoygoroskop.app.media.NativeMediaSessionPlugin;
+import ru.tvoygoroskop.app.share.NativeSharePlugin;
 
 /** Android entry point for the public RuStore application identity. */
 public class MainActivity extends BridgeActivity {
@@ -28,6 +29,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NativeSpeechPlugin.class);
         registerPlugin(NativeTtsPlugin.class);
         registerPlugin(NativeMediaSessionPlugin.class);
+        registerPlugin(NativeSharePlugin.class);
         if (isRuStoreBuild()) registerRuStoreUpdatePlugin();
         if (isRuStorePaymentsEnabled()) {
             registerRuStorePlugin();

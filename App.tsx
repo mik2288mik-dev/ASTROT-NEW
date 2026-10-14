@@ -107,6 +107,7 @@ import {
     clearPersonalForecastSessionCache,
 } from './services/personalForecastService';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
+import { fetchPeople, hasLinkedPeopleHint, inviteCodeFromUrl, readPendingInvite, rememberHasLinkedPeople, rememberPendingInvite } from './services/peopleService';
 import {
     clearNativeProviderCredentialState,
     loginWithTelegram,
@@ -158,6 +159,7 @@ const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then(
 const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) => module.AdminApp), { ssr: false });
 const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.Paywall), { ssr: false });
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
+const PeopleHub = dynamic(() => import('./components/people/PeopleHub').then((module) => module.PeopleHub), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
 const AstrologyEncyclopedia = dynamic(
     () => import('./views/v2/AstrologyEncyclopedia').then((module) => module.AstrologyEncyclopedia),
@@ -429,6 +431,11 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
     const [appEntryAnnouncement, setAppEntryAnnouncement] = useState<AppEntryAnnouncementData | null>(null);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
+    const [synastryMode, setSynastryMode] = useState<'people' | 'birth' | 'sign'>('birth');
+    const [synastryMountKey, setSynastryMountKey] = useState(0);
+    const [peopleInvite, setPeopleInvite] = useState<string | null>(null);
+    const [peopleInviteSignal, setPeopleInviteSignal] = useState(0);
+    const routedPeopleInvitesRef = useRef<Set<string>>(new Set());
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [currentDateKey, setCurrentDateKey] = useState(() => (
@@ -2318,6 +2325,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         if (!gateFeatureAccess('synastry_by_charts', 'synastry')) return;
         if (profile?.id) noteCompatibilityOpened(String(profile.id), prefill?.partnerChartId ?? null);
         setSynastryPrefill(prefill);
+        setSynastryMode('birth');
         navigateTo('synastry');
     }, [gateFeatureAccess, navigateTo, profile?.id]);
 
@@ -2345,8 +2353,70 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     const openSynastryFromHome = useCallback(() => {
         if (profile?.id) noteCompatibilityOpened(String(profile.id));
         setSynastryPrefill(null);
+        // People who already linked someone land on «Близкие»; everyone else on the calculator.
+        setSynastryMode(hasLinkedPeopleHint() ? 'people' : 'birth');
         navigateTo('synastry');
     }, [navigateTo, profile?.id]);
+
+    // Invite links open the app: https://api.tvoi-goroskop.ru/i/CODE or nebo://invite/CODE.
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+        let disposed = false;
+        let handle: { remove: () => Promise<void> } | undefined;
+        const take = (url?: string | null) => {
+            const code = url ? inviteCodeFromUrl(url) : null;
+            if (!code) return;
+            rememberPendingInvite(code);
+            setPeopleInviteSignal((value) => value + 1);
+        };
+        void CapacitorApp.getLaunchUrl().then((launch) => take(launch?.url)).catch(() => undefined);
+        void CapacitorApp.addListener('appUrlOpen', ({ url }) => take(url)).then((listener) => {
+            if (disposed) void listener.remove();
+            else handle = listener;
+        });
+        return () => {
+            disposed = true;
+            void handle?.remove();
+        };
+    }, []);
+
+    // A link opened before sign-in or onboarding waits in storage and opens once the app is ready.
+    const peopleReady = Boolean(profile?.id) && view !== 'onboarding' && !paywallContext;
+    useEffect(() => {
+        if (!peopleReady) return;
+        const code = readPendingInvite();
+        if (!code || routedPeopleInvitesRef.current.has(code)) return;
+        routedPeopleInvitesRef.current.add(code);
+        setPeopleInvite(code);
+        setSynastryPrefill(null);
+        setSynastryMode('people');
+        setSynastryMountKey((value) => value + 1);
+        navigateTo('synastry');
+    }, [navigateTo, peopleInviteSignal, peopleReady]);
+
+    // Someone may have accepted my invite on their phone: learn once per launch whether I have close people.
+    const peopleCheckedForRef = useRef<string | null>(null);
+    useEffect(() => {
+        const userId = profile?.id ? String(profile.id) : '';
+        if (!peopleReady || !userId || peopleCheckedForRef.current === userId) return;
+        peopleCheckedForRef.current = userId;
+        void fetchPeople()
+            .then((result) => rememberHasLinkedPeople(result.people.length > 0))
+            .catch(() => undefined);
+    }, [peopleReady, profile?.id]);
+
+    const openRecoveryIdentity = useCallback(() => {
+        setNavigationSheet(null);
+        navigateTo('settings');
+        if (typeof window === 'undefined') return;
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                const recoveryIdentity = document.getElementById('recovery-identity');
+                recoveryIdentity?.focus({ preventScroll: true });
+                recoveryIdentity?.scrollIntoView({ block: 'start' });
+            });
+        });
+    }, [navigateTo]);
 
     // Lock-screen controls for forecasts, stories and calm sounds (Android media notification / browser Media Session).
     const mediaLanguageRef = useRef<'ru' | 'en'>('ru');
@@ -2739,6 +2809,26 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 ) : view === 'synastry' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <UnionRoom
+                            key={`union-${synastryMountKey}`}
+                            initialMode={synastryMode}
+                            peopleHub={profile.language === 'en' ? undefined : (
+                                <PeopleHub
+                                    me={{ id: String(profile.id || ''), name: String(profile.name || '').trim().split(/\s+/u)[0] || '' }}
+                                    canPromotePremium={premiumPromotionAllowed}
+                                    pendingInvite={peopleInvite}
+                                    onPendingInviteHandled={() => setPeopleInvite(null)}
+                                    onRequireLogin={openRecoveryIdentity}
+                                    onRequestPremium={() => {
+                                        void requestPremium('compatibility_by_charts', {
+                                            placement: 'people_pair',
+                                            featureKey: 'synastry_by_charts',
+                                            triggerType: 'locked_feature',
+                                            returnView: 'synastry',
+                                        });
+                                    }}
+                                    onAddMyBirthData={openBottomNatal}
+                                />
+                            )}
                             profile={profile}
                             chartData={chartData}
                             chartId={primaryChartId ?? null}

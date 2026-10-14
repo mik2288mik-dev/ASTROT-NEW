@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ru.tvoygoroskop.app",
+      "sha256_cert_fingerprints": [
+        "55:03:7E:5A:70:DA:FE:C0:0B:9A:23:24:42:3A:97:62:6B:D0:F6:78:D3:CC:F5:D4:8F:25:ED:01:DC:59:6F:0B"
+      ]
+    }
+  }
+]
