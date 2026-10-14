@@ -65,13 +65,11 @@ COPY config/rustore-certificates/russian_trusted_root_ca.crt /usr/local/share/ca
 COPY config/rustore-certificates/russian_trusted_sub_ca.crt /usr/local/share/ca-certificates/russian_trusted_sub_ca.crt
 RUN update-ca-certificates
 
-# Large media rarely changes (~520 MB: sounds, narrated stories, ephemeris).
+# Large media rarely changes (~280 MB: sounds and ephemeris).
 # Copy it from the build context before the app code, so a normal deploy reuses
 # these cached layers instead of exporting and pushing them again every time.
 COPY --chown=nextjs:nodejs ephe ./ephe
 COPY --chown=nextjs:nodejs public ./public
-# Ready narrated stories stay private and are never part of the mobile export.
-COPY --chown=nextjs:nodejs server-assets ./server-assets
 
 # Standalone bundle contains only files needed at runtime.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
