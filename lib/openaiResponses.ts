@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import OpenAI from 'openai';
 import { OPENAI_LUNA_MODEL } from './openai-models';
+import { recordAiCall } from './aiLogger';
 
 export { OPENAI_LUNA_MODEL } from './openai-models';
 
@@ -192,32 +193,43 @@ export function readLunaResponseContent(
   return content;
 }
 
+function aiScenario(params: OpenAI.Responses.ResponseCreateParamsNonStreaming): string {
+  const format = (params.text as { format?: { type?: string; name?: string } } | undefined)?.format;
+  return format?.type === 'json_schema' && format.name ? format.name : format?.type === 'json_object' ? 'json' : 'text';
+}
+
 async function createLunaResponse(
   params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
   options: { allowIncompleteOutput?: boolean } = {},
 ): Promise<LunaResponseResult> {
+  const startedAt = Date.now();
+  const call = { scenario: aiScenario(params), model: String(params.model || ''), provider: 'openai' };
   let response: OpenAI.Responses.Response;
-
-  if (useDirectOpenAI()) {
-    const openai = getOpenAIResponsesClient();
-    if (!openai) throw new Error('OPENAI_API_KEY is not configured');
-    response = await openai.responses.create(params);
-  } else {
-    response = await createResponseViaRelay(params);
+  try {
+    if (useDirectOpenAI()) {
+      const openai = getOpenAIResponsesClient();
+      if (!openai) throw new Error('OPENAI_API_KEY is not configured');
+      response = await openai.responses.create(params);
+    } else {
+      response = await createResponseViaRelay(params);
+    }
+    const content = readLunaResponseContent(response, options);
+    recordAiCall({ ...call, durationMs: Date.now() - startedAt,
+      tokensPrompt: response.usage?.input_tokens, tokensCompletion: response.usage?.output_tokens });
+    return {
+      content,
+      responseId: response.id,
+      inputTokens: response.usage?.input_tokens || 0,
+      outputTokens: response.usage?.output_tokens || 0,
+      reasoningTokens: response.usage?.output_tokens_details?.reasoning_tokens || 0,
+      ...(response.status === 'incomplete'
+        ? { incompleteReason: response.incomplete_details?.reason || 'unknown' }
+        : {}),
+    };
+  } catch (error) {
+    recordAiCall({ ...call, durationMs: Date.now() - startedAt, error });
+    throw error;
   }
-
-  const content = readLunaResponseContent(response, options);
-
-  return {
-    content,
-    responseId: response.id,
-    inputTokens: response.usage?.input_tokens || 0,
-    outputTokens: response.usage?.output_tokens || 0,
-    reasoningTokens: response.usage?.output_tokens_details?.reasoning_tokens || 0,
-    ...(response.status === 'incomplete'
-      ? { incompleteReason: response.incomplete_details?.reason || 'unknown' }
-      : {}),
-  };
 }
 
 export async function createLunaStructuredResponse(

@@ -38,9 +38,10 @@ import '../styles/paywallSell.css';
 import '../styles/sharedShellFinal.css';
 import '../styles/natalMeaningMap.css';
 import '../styles/homeMockupV1.css';
-import '../styles/admin2/admin.css';
+import '../styles/admin/admin.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 import { installRuntimeDiagnostics } from '../lib/runtimeDiagnostics';
+import { expandTelegramAppOnPhones } from '../lib/telegramExpand';
 
 if (typeof window !== 'undefined') {
   installRuntimeDiagnostics();
@@ -52,7 +53,7 @@ export default function App({ Component, pageProps, router }: AppProps) {
       const tg = (window as any).Telegram?.WebApp;
       if (tg) {
         tg.ready?.();
-        tg.expand?.();
+        expandTelegramAppOnPhones(tg);
       }
     } catch {
       // ignore

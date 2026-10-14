@@ -9,13 +9,16 @@ import {
   neboServerLabel,
 } from '../../../lib/neboOps';
 import { getSchedulerStatus } from '../../../lib/notificationScheduler';
-import { getNeboOpsPreferences } from '../../../lib/neboOpsSettings';
+import { getNeboBotSettings } from '../../../lib/neboOpsSettings';
+import { getRuStoreReviewsStatus, ruStoreReviewsConfigured } from '../../../lib/rustoreReviews';
+import { isTelegramSourceConfigured } from '../../../lib/admin/dataSource';
+import { getMyTrackerConfig } from '../../../lib/myTracker';
 import { telegramApiRequest, telegramRelayAuthorized, useTelegramRelay } from '../../../lib/telegramRelay';
 
 /**
  * Read-only health of owner bots and notification delivery for the operator.
  * Authorized with a hash of the ops webhook secret (or the relay credential);
- * the response contains counts and error codes only — never tokens or user data.
+ * the response contains counts and error codes only, never tokens or user data.
  */
 function statusAuthorized(req: NextApiRequest): boolean {
   const supplied = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
@@ -46,9 +49,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!statusAuthorized(req)) return res.status(404).end();
 
   const ops = getNeboOpsConfig();
-  const [telegram, preferences, outbox] = await Promise.all([
+  const [telegram, settings, outbox, telemetry] = await Promise.all([
     telegramReachable(ops?.token),
-    getNeboOpsPreferences(),
+    getNeboBotSettings(),
     getPool().query(
       `SELECT
          (SELECT COALESCE(jsonb_object_agg(status, n), '{}'::jsonb) FROM (
@@ -65,6 +68,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
          (SELECT MIN(created_at) FROM nebo_ops_outbox WHERE status IN ('pending', 'failed')) AS oldest_waiting_at,
          (SELECT row_to_json(d) FROM (SELECT next_send_at, cooldown_until FROM nebo_ops_delivery_state WHERE id = 1) d) AS delivery_state`,
     ).then((result) => result.rows[0]).catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'query_failed' })),
+    // Is product analytics actually being written here? Counts only, no user data.
+    getPool().query(
+      `SELECT to_regclass('product_trace_events') IS NOT NULL AS trace_tables,
+              (SELECT COUNT(*)::int FROM user_app_events WHERE occurred_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '24 hours') AS app_events_24h,
+              (SELECT COUNT(DISTINCT payload_json->>'app_version') FROM user_app_events
+                 WHERE occurred_at > (NOW() AT TIME ZONE 'UTC') - INTERVAL '7 days' AND payload_json ? 'app_version')::int AS app_versions_7d,
+              (SELECT COUNT(*)::int FROM app_ai_requests WHERE created_at > NOW() - INTERVAL '24 hours') AS ai_requests_24h`,
+    ).then(async (result) => {
+      const row = result.rows[0] || {};
+      if (row.trace_tables) {
+        const trace = await getPool().query(
+          `SELECT (SELECT COUNT(*)::int FROM product_trace_visits WHERE started_at > NOW() - INTERVAL '24 hours') AS visits_24h,
+                  (SELECT COUNT(DISTINCT user_id)::int FROM product_trace_visits WHERE started_at > NOW() - INTERVAL '24 hours') AS people_24h,
+                  (SELECT COUNT(*)::int FROM product_trace_events WHERE occurred_at > NOW() - INTERVAL '24 hours') AS events_24h`,
+        );
+        Object.assign(row, trace.rows[0] || {});
+      }
+      return row;
+    }).catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'query_failed' })),
   ]);
   // User-facing pushes of the main bot: counts by status and the commonest error texts.
   const pushes = await getPool().query(
@@ -173,7 +195,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return res.status(200).json({
     server: neboServerLabel(),
-    commit: String(process.env.RAILWAY_GIT_COMMIT_SHA || process.env.NEBO_DEPLOY_MARKER || '').slice(0, 12) || null,
+    commit: String(process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 12) || null,
     uptimeSeconds: Math.round(process.uptime()),
     now: new Date().toISOString(),
     config: {
@@ -185,9 +207,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       mainBot: Boolean(process.env.BOT_TOKEN),
       telegramViaRelay: useTelegramRelay(),
       publicUrl: String(process.env.NEBO_OPS_PUBLIC_URL || '') || null,
+      telegramVersionDatabase: isTelegramSourceConfigured(),
+      myTracker: Boolean(getMyTrackerConfig()),
+      ruStoreReviews: ruStoreReviewsConfigured(),
     },
     telegram,
-    preferences,
+    settings: { ...settings, sentReports: settings.sentReports.slice(-5) },
+    telemetry,
+    reviews: getRuStoreReviewsStatus(),
     worker: getNeboOpsWorkerStatus(),
     scheduler: getSchedulerStatus(),
     outbox,

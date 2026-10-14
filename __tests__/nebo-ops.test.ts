@@ -151,9 +151,9 @@ describe('operational data and message formatting', () => {
       payload_json: { isFirstLogin: true, provider: 'vk_id', runtime: 'native', question: 'PRIVATE_QUESTION' },
     }, { name: '@vk_38523093', language: 'ru' });
     expect(message.split('\n')).toEqual([
-      '👤 Новый пользователь · @vk_38523093', '🙋 @vk_38523093 · ID 9000000003446',
+      '📝 Регистрация · @vk_38523093', '🙋 @vk_38523093 · ID 9000000003446',
       '📦 Приложение', '🔐 Вход: VK ID',
-      '🕒 04.09.2026, 19:03:09 МСК · 🖥 Timeweb',
+      '🕒 04.09.2026, 19:03:09 МСК · 🖥 Timeweb · RuStore',
     ]);
     expect(message).not.toContain('PRIVATE_QUESTION');
     expect(message).not.toContain('MyTracker');
@@ -182,7 +182,7 @@ describe('operational data and message formatting', () => {
       '🔑 Михаил вошёл в аккаунт', '🙋 Михаил · ID -9001',
       '📱 Samsung SM-A515F · Android 13', '📦 NEBO 1.0.5 (8) · установлено из RuStore',
       '🔐 Вход: Яндекс ID', '📅 С нами с 08.09.2026 · заходил 12 дней', '🔓 Бесплатный доступ',
-      '🕒 04.09.2026, 19:03:09 МСК · 🖥 Timeweb',
+      '🕒 04.09.2026, 19:03:09 МСК · 🖥 Timeweb · RuStore',
     ]);
   });
 
@@ -295,6 +295,7 @@ describe('durable owner notification queue', () => {
         occurred_at: '2026-09-09T09:00:00Z', attempts: 1, lease_token: values?.[1],
       }] };
       if (sql.includes('SELECT u.name, u.language, u.auth_provider')) return { rows: [{ name: 'Алина' }] };
+      if (sql.includes("INTERVAL '30 minutes'") && sql.includes("status = 'sent'")) return { rows: [], rowCount: 0 };
       return { rows: [], rowCount: 1 };
     });
     await expect(processNeboOpsOutbox(1)).resolves.toEqual({ claimed: 1, sent: 1, failed: 0 });
@@ -306,6 +307,23 @@ describe('durable owner notification queue', () => {
     expect(filtered[1][1]).toEqual(expect.arrayContaining(['paywall_view', 'app_open', 'app_opened']));
     expect(claim[1][3]).toEqual(expect.arrayContaining(['paywall_view', 'app_open', 'app_opened']));
     expect(claim[1][2]).toEqual(expect.arrayContaining(['login', 'payment_confirmed', 'ai_error', 'technical_error']));
+  });
+
+  it('sends one visit message per person per 30 minutes: every app launch starts a new session', async () => {
+    const updates: unknown[][] = [];
+    query.mockImplementation(async (sql: string, values?: unknown[]) => {
+      if (sql.includes('RETURNING id, event_type, user_id')) return { rows: [{
+        id: '43', event_type: 'login', user_id: '-9001', payload_json: { isFirstLogin: false, provider: 'telegram', runtime: 'telegram' },
+        occurred_at: '2026-09-09T09:00:00Z', attempts: 1, lease_token: values?.[1],
+      }] };
+      if (sql.includes('SELECT u.name, u.language, u.auth_provider')) return { rows: [{ name: 'Алина' }] };
+      if (sql.includes("INTERVAL '30 minutes'") && sql.includes("status = 'sent'")) return { rows: [{ '?column?': 1 }], rowCount: 1 };
+      if (sql.includes("last_error_code = 'DUPLICATE_VISIT'")) updates.push(values || []);
+      return { rows: [], rowCount: 1 };
+    });
+    await expect(processNeboOpsOutbox(1)).resolves.toEqual({ claimed: 1, sent: 0, failed: 0 });
+    expect(updates).toHaveLength(1);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('retires old noisy queue entries without sending them to Telegram', async () => {
@@ -391,7 +409,7 @@ describe('durable owner notification queue', () => {
     expect(url).toBe(`https://api.telegram.org/bot${TOKEN}/sendMessage`);
     const body = JSON.parse(String(request?.body));
     expect(body.chat_id).toBe(OWNER_ID);
-    expect(body.text).toContain('👤 Новый пользователь · Лёша');
+    expect(body.text).toContain('📝 Регистрация · Лёша');
     expect(body.parse_mode).toBeUndefined();
     expect(deliveryQuery).toHaveBeenCalledWith('SELECT pg_advisory_unlock(2026090401)');
     expect(release).toHaveBeenCalledTimes(1);
@@ -544,7 +562,7 @@ describe('notification integration with committed user actions', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => undefined);
   });
 
-  function userEventRequest() {
+  function userEventRequest(eventType = 'paywall_view') {
     jest.spyOn(appAuth, 'requireAppUser').mockResolvedValue({
       userId: '-9001', provider: 'native', isGuest: false,
     });
@@ -552,7 +570,7 @@ describe('notification integration with committed user actions', () => {
       method: 'POST', headers: {},
       body: {
         eventId: '6b8af41a-955d-4db1-8bf1-ec0eacc26f59',
-        eventType: 'screen_view', section: 'natal_reading',
+        eventType, section: eventType === 'paywall_view' ? 'premium' : 'natal_reading',
         eventPayload: { question: 'PRIVATE_QUESTION' },
       },
     } as Parameters<typeof userEventsHandler>[0];
@@ -602,6 +620,15 @@ describe('notification integration with committed user actions', () => {
     expect(outbox[1][3]).not.toContain('PRIVATE_QUESTION');
     expect(fetchMock).not.toHaveBeenCalled();
     expect(transactionRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it('stores a screen view without queuing an owner message for it', async () => {
+    const event = userEventRequest('screen_view');
+    await event.run();
+    expect(event.response.status).toHaveBeenCalledWith(200);
+    expect(statements.some((sql) => sql.includes('INSERT INTO user_app_events'))).toBe(true);
+    expect(statements.some((sql) => sql.includes('INSERT INTO nebo_ops_outbox'))).toBe(false);
+    expect(wakeup).not.toHaveBeenCalled();
   });
 
   it('acknowledges an already stored activity without inserting or waking a duplicate notification', async () => {
@@ -712,7 +739,7 @@ describe('AI generation error notifications', () => {
       '⏳ Ошибка старая, пришла с опозданием',
       '💡 Если повторяется часто, проверка слишком строгая или ИИ пишет не по правилам, нужно смотреть тексты.',
       '🔧 Для разработчика: PERSONAL_FORECAST_WRITER_VALIDATION_FAILED · HTTP 503 · trace forecast-day-42abc',
-      '🕒 24.09.2026, 18:54:00 МСК · 🖥 Timeweb · сборка abc1234',
+      '🕒 24.09.2026, 18:54:00 МСК · 🖥 Timeweb · RuStore · сборка abc1234',
     ]);
     expect(message).not.toContain('PRIVATE_');
   });
