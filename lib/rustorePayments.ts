@@ -103,7 +103,7 @@ function ruStorePrivateKey(): crypto.KeyObject {
   }
 }
 
-export async function requestRuStoreApiToken(): Promise<string> {
+async function requestRuStoreApiToken(): Promise<string> {
   const keyId = required('RUSTORE_KEY_ID');
   const privateKeyValue = required('RUSTORE_PRIVATE_KEY_BASE64').replace(/\s+/g, '');
   const identity = crypto.createHash('sha256').update(`${keyId}:${privateKeyValue}`).digest('hex');

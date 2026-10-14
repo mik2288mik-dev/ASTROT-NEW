@@ -2,10 +2,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { handleAdminError } from '../../../../../lib/adminAuth';
 import { requireAdminPermission } from '../../../../../lib/admin/rbac';
 import { getPool } from '../../../../../lib/db';
-import { withAdminSource } from '../../../../../lib/admin/dataSource';
 
 /** Подписки/триалы из users и канонических entitlement-записей. */
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   try {
     await requireAdminPermission(req, 'billing.view');
@@ -64,5 +63,3 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return handleAdminError(res, error);
   }
 }
-
-export default withAdminSource(handler);

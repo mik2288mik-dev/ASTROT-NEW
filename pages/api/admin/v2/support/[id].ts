@@ -9,14 +9,13 @@ import {
   sendSupportTelegramReply,
   type SupportDeliveryResult,
 } from '../../../../../lib/supportDelivery';
-import { withAdminSource } from '../../../../../lib/admin/dataSource';
 
 const STATUSES = new Set(['open', 'pending', 'closed']);
 const SUPPORT_REPLY_MAX_LENGTH = 4_000;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u;
 
 /** Тикет: детали+переписка (support.view), ответ/смена статуса (support.act). */
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const id = Number(req.query.id);
   try {
     if (!Number.isSafeInteger(id) || id < 1) throw new AdminAuthError(400, 'BAD_ID', 'Valid id required');
@@ -154,5 +153,3 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return handleAdminError(res, error);
   }
 }
-
-export default withAdminSource(handler);

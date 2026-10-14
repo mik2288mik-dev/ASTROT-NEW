@@ -1,6 +1,5 @@
 import { getPool } from './db';
-import { randomUUID } from 'crypto';
-import { enqueueNeboOpsEventNow } from './neboOps';
+import { enqueueNeboOpsEvent } from './neboOps';
 
 export type AiScenario =
   | 'personal_forecast_daily'
@@ -46,8 +45,6 @@ export type RecordAiRequestParams = {
   errorCode?: string;
   rejectionReason?: string;
   defectCategory?: AiDefectCategory;
-  /** false: log the failed attempt without a defect or an owner alert (it is retried). */
-  reportDefect?: boolean;
 };
 
 export function categorizeAiError(error: unknown, status?: number): { category: AiDefectCategory; code: string; message: string } {
@@ -109,7 +106,7 @@ export async function recordAiRequest(params: RecordAiRequestParams): Promise<nu
 
     const insertedId = res.rows[0]?.id ? Number(res.rows[0].id) : null;
 
-    if ((params.status === 'error' || params.status === 'rejected') && params.reportDefect !== false) {
+    if (params.status === 'error' || params.status === 'rejected') {
       const category = params.defectCategory || (params.status === 'rejected' ? 'rejected_result' : 'server_exception');
       const errorCode = params.errorCode || (params.status === 'rejected' ? 'REJECTED' : 'AI_ERROR');
       const message = params.rejectionReason || params.errorCode || 'AI operation defect';
@@ -180,10 +177,9 @@ export async function recordAiDefect(params: {
       ]
     );
 
-    // Owner alert, at most one per kind of failure per hour. It needs its own
-    // transaction: the outbox insert is guarded by a savepoint.
+    // Optional notification alert via nebo_ops_outbox (throttled by hour)
     try {
-      await enqueueNeboOpsEventNow({
+      await enqueueNeboOpsEvent(pool, {
         eventKey: `ai_defect:${groupKey}:${new Date().toISOString().slice(0, 13)}`,
         eventType: 'ai_error',
         userId: cleanUserId,
@@ -201,37 +197,4 @@ export async function recordAiDefect(params: {
   } catch (err: any) {
     console.error('[recordAiDefect] failed to record AI defect:', err?.message);
   }
-}
-
-/**
- * Every real AI call: how long it took and whether it worked. No prompt and no
- * answer text is stored. Feeds «Сколько ждут» in the admin and owner alerts.
- */
-export function recordAiCall(input: {
-  scenario: string;
-  model: string;
-  provider: string;
-  durationMs: number;
-  error?: unknown;
-  tokensPrompt?: number;
-  tokensCompletion?: number;
-}): void {
-  if (!process.env.DATABASE_URL || process.env.NODE_ENV === 'test') return;
-  const message = input.error instanceof Error ? input.error.message : input.error ? String(input.error) : '';
-  const failure = input.error ? categorizeAiError(input.error) : null;
-  // A response cut by the output budget is retried with a bigger budget by the caller.
-  const retried = message.startsWith('OPENAI_RESPONSE_INCOMPLETE:max_output_tokens');
-  void recordAiRequest({
-    traceId: randomUUID(),
-    scenario: input.scenario,
-    model: input.model,
-    provider: input.provider,
-    status: failure ? 'error' : 'success',
-    durationMs: input.durationMs,
-    tokensPrompt: input.tokensPrompt,
-    tokensCompletion: input.tokensCompletion,
-    errorCode: failure ? (retried ? 'OUTPUT_LIMIT_RETRIED' : failure.code) : undefined,
-    defectCategory: failure?.category,
-    reportDefect: !retried,
-  }).catch(() => undefined);
 }

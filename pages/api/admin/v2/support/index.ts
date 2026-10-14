@@ -2,10 +2,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { AdminAuthError, handleAdminError } from '../../../../../lib/adminAuth';
 import { requireAdminPermission } from '../../../../../lib/admin/rbac';
 import { getPool } from '../../../../../lib/db';
-import { withAdminSource } from '../../../../../lib/admin/dataSource';
 
 /** Тикеты поддержки: список (support.view) + создание от имени юзера (support.act). */
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method === 'GET') {
       await requireAdminPermission(req, 'support.view');
@@ -50,5 +49,3 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return handleAdminError(res, error);
   }
 }
-
-export default withAdminSource(handler);

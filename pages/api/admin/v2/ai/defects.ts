@@ -3,9 +3,8 @@ import { handleAdminError } from '../../../../../lib/adminAuth';
 import { getAdminContext, roleHasPermission } from '../../../../../lib/admin/rbac';
 import { getPool } from '../../../../../lib/db';
 import { recordAdminAction } from '../../../../../lib/admin/audit';
-import { withAdminSource } from '../../../../../lib/admin/dataSource';
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const ctx = await getAdminContext(req);
 
@@ -114,5 +113,3 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return handleAdminError(res, error);
   }
 }
-
-export default withAdminSource(handler);

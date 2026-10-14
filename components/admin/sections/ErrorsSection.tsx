@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { admin2, AdminTechnicalErrorRow } from '../../../services/admin2Service';
 import { StatusBadge } from '../common/StatusBadge';
 
-const STATUS_LABELS: Record<string, string> = { all: 'Все', new: 'Новые', investigating: 'Разбираемся', resolved: 'Исправлено', ignored: 'Скрытые' };
-
 export const ErrorsSection: React.FC = () => {
   const [errors, setErrors] = useState<AdminTechnicalErrorRow[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -61,9 +59,9 @@ export const ErrorsSection: React.FC = () => {
       {/* Header */}
       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Ошибки сервера</h2>
+          <h2 className="text-xl font-bold text-gray-900">Центр технических ошибок (Error Hub)</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Одинаковые ошибки собраны в одну строку: сколько раз и у скольких людей
+            Агрегация серверных сбоев, необработанных исключений и API 5xx по фингерпринтам
           </p>
         </div>
 
@@ -78,7 +76,7 @@ export const ErrorsSection: React.FC = () => {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              {STATUS_LABELS[st]}
+              {st === 'all' ? 'Все' : st}
             </button>
           ))}
           <button
@@ -123,7 +121,7 @@ export const ErrorsSection: React.FC = () => {
                     {err.endpoint}
                   </span>
                   <span className="text-[11px] font-mono text-gray-400">
-                    код {err.fingerprint.slice(0, 8)}
+                    FP: {err.fingerprint.slice(0, 12)}...
                   </span>
                 </div>
 
@@ -151,7 +149,7 @@ export const ErrorsSection: React.FC = () => {
                   onClick={() => handleOpenDetail(err)}
                   className="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap"
                 >
-                  Подробнее
+                  Стек & Управление
                 </button>
               </div>
             </div>
@@ -204,9 +202,9 @@ export const ErrorsSection: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-200 rounded-xl bg-white"
                     >
                       <option value="new">Новый (new)</option>
-                      <option value="investigating">Разбираемся</option>
-                      <option value="resolved">Исправлено</option>
-                      <option value="ignored">Не важно, скрыть</option>
+                      <option value="investigating">В процессе расследования (investigating)</option>
+                      <option value="resolved">Исправлено (resolved)</option>
+                      <option value="ignored">Игнорировать (ignored)</option>
                     </select>
                   </div>
 

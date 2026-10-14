@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import sharp from 'sharp';
-import type { DayPoint } from './productMetrics';
+import type { NeboDayPoint } from './neboOpsStats';
 import { neboOpsWebhookBase } from './neboOpsWebhook';
 
 /**
@@ -39,14 +39,14 @@ function escapeXml(value: string): string {
   return value.replace(/[<>&"']/g, (ch) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[ch] as string));
 }
 
-export function buildNeboChartSvg(points: DayPoint[], title: string): string {
+export function buildNeboChartSvg(points: NeboDayPoint[], title: string): string {
   const left = 70;
   const right = 30;
   const top = 110;
   const bottom = 80;
   const plotW = W - left - right;
   const plotH = H - top - bottom;
-  const max = Math.max(1, ...points.map((p) => p.active));
+  const max = Math.max(1, ...points.map((p) => p.visitors));
   const step = plotW / Math.max(1, points.length);
   const barW = Math.max(6, step * 0.42);
   const y = (value: number) => top + plotH - (value / max) * plotH;
@@ -58,22 +58,22 @@ export function buildNeboChartSvg(points: DayPoint[], title: string): string {
   }).join('');
   const bars = points.map((p, i) => {
     const x = left + i * step + (step - barW) / 2;
-    const visitors = `<rect x="${x}" y="${y(p.active)}" width="${barW}" height="${top + plotH - y(p.active)}" rx="6" fill="#9EC5F4"/>`;
-    const fresh = `<rect x="${x + barW * 0.2}" y="${y(p.firstLaunches)}" width="${barW * 0.6}" height="${top + plotH - y(p.firstLaunches)}" rx="4" fill="#1C5CAB"/>`;
-    const buy = p.payments > 0
-      ? `<circle cx="${x + barW / 2}" cy="${y(p.active) - 18}" r="11" fill="#0CA30C"/>`
-        + `<text x="${x + barW / 2}" y="${y(p.active) - 11}" font-size="16" font-weight="700" text-anchor="middle" fill="#fff" ${FONT}>${p.payments}</text>`
+    const visitors = `<rect x="${x}" y="${y(p.visitors)}" width="${barW}" height="${top + plotH - y(p.visitors)}" rx="6" fill="#B9C3FF"/>`;
+    const fresh = `<rect x="${x + barW * 0.2}" y="${y(p.newUsers)}" width="${barW * 0.6}" height="${top + plotH - y(p.newUsers)}" rx="4" fill="#4C5BD4"/>`;
+    const buy = p.purchases > 0
+      ? `<circle cx="${x + barW / 2}" cy="${y(p.visitors) - 18}" r="11" fill="#1FA971"/>`
+        + `<text x="${x + barW / 2}" y="${y(p.visitors) - 11}" font-size="16" font-weight="700" text-anchor="middle" fill="#fff" ${FONT}>${p.purchases}</text>`
       : '';
     const showLabel = points.length <= 14 || i % Math.ceil(points.length / 14) === 0 || i === points.length - 1;
     const label = showLabel
-      ? `<text x="${x + barW / 2}" y="${H - bottom + 34}" font-size="19" text-anchor="middle" fill="#5B6175" ${FONT}>${escapeXml(`${p.day.slice(8, 10)}.${p.day.slice(5, 7)}`)}</text>`
+      ? `<text x="${x + barW / 2}" y="${H - bottom + 34}" font-size="19" text-anchor="middle" fill="#5B6175" ${FONT}>${escapeXml(p.day)}</text>`
       : '';
     return visitors + fresh + buy + label;
   }).join('');
   const legend = [
-    ['#9EC5F4', 'Заходили'], ['#1C5CAB', 'Первые запуски'], ['#0CA30C', 'Оплаты'],
-  ].map(([color, text], i) => `<rect x="${left + i * 260}" y="62" width="22" height="22" rx="5" fill="${color}"/>`
-    + `<text x="${left + i * 260 + 32}" y="80" font-size="22" fill="#2B3040" ${FONT}>${text}</text>`).join('');
+    ['#B9C3FF', 'Заходили'], ['#4C5BD4', 'Новые'], ['#1FA971', 'Покупки'],
+  ].map(([color, text], i) => `<rect x="${left + i * 210}" y="62" width="22" height="22" rx="5" fill="${color}"/>`
+    + `<text x="${left + i * 210 + 32}" y="80" font-size="22" fill="#2B3040" ${FONT}>${text}</text>`).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <rect width="${W}" height="${H}" fill="#FFFFFF"/>
 <text x="${left}" y="44" font-size="30" font-weight="700" fill="#151826" ${FONT}>${escapeXml(title)}</text>
@@ -81,6 +81,6 @@ ${legend}${grid}${bars}
 </svg>`;
 }
 
-export async function renderNeboChartPng(points: DayPoint[], title: string): Promise<Buffer> {
+export async function renderNeboChartPng(points: NeboDayPoint[], title: string): Promise<Buffer> {
   return sharp(Buffer.from(buildNeboChartSvg(points, title), 'utf-8')).png({ compressionLevel: 8 }).toBuffer();
 }
