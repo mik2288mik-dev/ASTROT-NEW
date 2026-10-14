@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { Writable } from 'stream';
 import { RECORDED_SLEEP_STORIES, recordedStoryDuration } from '../lib/recordedSleepStories';
 import { recordedStoryTicket } from '../lib/tts/recordedStoryAudio';
 import { videoBackgroundPoster } from '../lib/videoBackgrounds';
@@ -41,6 +42,17 @@ function response() {
   res.status = jest.fn(() => res);
   res.json = jest.fn(() => res);
   res.end = jest.fn(() => res);
+  return res;
+}
+
+/** A real writable response: recordings are streamed, not passed to res.end(). */
+function streamResponse() {
+  const chunks: Buffer[] = [];
+  const res: any = new Writable({ write(chunk, _encoding, done) { chunks.push(Buffer.from(chunk)); done(); } });
+  res.headers = {} as Record<string, string>;
+  res.setHeader = jest.fn((key: string, value: string) => { res.headers[key] = value; });
+  res.status = jest.fn(() => res);
+  res.body = () => Buffer.concat(chunks);
   return res;
 }
 
@@ -104,11 +116,11 @@ describe('ready narrated stories', () => {
   ])('serves $title.ru with seeking and HEAD support', async (story) => {
     const ticket = await recordedStoryTicket(story);
     const expected = fs.readFileSync(path.join(root, 'server-assets/audio/stories', `${story.id}.mp3`));
-    const res = response();
+    const res = streamResponse();
     await audioFile({ method: 'GET', query: { id: `${ticket.id}.mp3` }, headers: { range: 'bytes=100-199' } } as any, res);
     expect(res.status).toHaveBeenCalledWith(206);
     expect(res.headers['Content-Range']).toBe(`bytes 100-199/${expected.length}`);
-    expect(res.end).toHaveBeenCalledWith(expected.subarray(100, 200));
+    expect(res.body()).toEqual(expected.subarray(100, 200));
     expect(mockReadAudio).not.toHaveBeenCalled();
     const head = response();
     await audioFile({ method: 'HEAD', query: { id: ticket.id }, headers: {} } as any, head);
