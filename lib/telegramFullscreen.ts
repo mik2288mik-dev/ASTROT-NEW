@@ -7,6 +7,7 @@ type TelegramWebAppLike = {
   requestFullscreen?: () => void;
   disableVerticalSwipes?: () => void;
   isFullscreen?: boolean;
+  exitFullscreen?: () => void;
   onEvent?: (event: string, handler: (...args: any[]) => void) => void;
   offEvent?: (event: string, handler: (...args: any[]) => void) => void;
 };
@@ -47,6 +48,12 @@ export function ensureTelegramFullscreen(): boolean {
       tg.requestFullscreen();
     }
 
+    // The bot launches in «Fullscreen» mode for phones. Telegram Desktop then
+    // opens a screen-sized window at an offset, mostly off screen: leave it.
+    if (isDesktopOrWeb && tg.isFullscreen && typeof tg.exitFullscreen === 'function') {
+      tg.exitFullscreen();
+    }
+
     return true;
   } catch (error: any) {
     console.warn('[TelegramFullscreen] Failed to request fullscreen:', error?.message || error);
@@ -77,7 +84,11 @@ export function installTelegramFullscreenGuard(): () => void {
 
       const handleActivated = () => ensureTelegramFullscreen();
       const handleFullscreenChanged = () => {
-        if (!isDesktopOrWeb && !getTelegramWebApp()?.isFullscreen) {
+        if (isDesktopOrWeb) {
+          ensureTelegramFullscreen();
+          return;
+        }
+        if (!getTelegramWebApp()?.isFullscreen) {
           window.setTimeout(() => {
             ensureTelegramFullscreen();
           }, 80);
