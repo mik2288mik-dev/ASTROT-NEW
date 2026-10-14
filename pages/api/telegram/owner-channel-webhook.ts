@@ -8,7 +8,7 @@ import {
   buildSupportList,
   neboChannelMenu,
 } from '../../../lib/neboOwnerChannels';
-import type { NeboReportKind } from '../../../lib/neboOpsStats';
+
 import { telegramApiRequest } from '../../../lib/telegramRelay';
 import { acknowledgeAndRun, forwardNeboOpsRequest, isRepeatedTelegramUpdate } from '../../../lib/neboOpsWebhook';
 
@@ -27,7 +27,7 @@ function safeEqual(left: string, right: string): boolean {
 async function reply(channel: NeboOwnerChannel, data: string): Promise<string | null> {
   if (channel === 'payments') {
     const match = /^ch:pay:(today|yesterday|week|month)$/.exec(data);
-    return match ? buildPaymentsReport(match[1] as NeboReportKind) : null;
+    return match ? buildPaymentsReport(match[1] as 'today' | 'yesterday' | 'week' | 'month') : null;
   }
   if (channel === 'support') {
     if (data === 'ch:sup:open') return buildSupportList(true);
