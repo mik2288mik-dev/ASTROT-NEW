@@ -65,6 +65,14 @@ COPY config/rustore-certificates/russian_trusted_root_ca.crt /usr/local/share/ca
 COPY config/rustore-certificates/russian_trusted_sub_ca.crt /usr/local/share/ca-certificates/russian_trusted_sub_ca.crt
 RUN update-ca-certificates
 
+# Large media rarely changes (~520 MB: sounds, narrated stories, ephemeris).
+# Copy it from the build context before the app code, so a normal deploy reuses
+# these cached layers instead of exporting and pushing them again every time.
+COPY --chown=nextjs:nodejs ephe ./ephe
+COPY --chown=nextjs:nodejs public ./public
+# Ready narrated stories stay private and are never part of the mobile export.
+COPY --chown=nextjs:nodejs server-assets ./server-assets
+
 # Standalone bundle contains only files needed at runtime.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 # Railway has historically retained an older standalone start path on some
@@ -83,10 +91,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/types.ts ./types.ts
 # Ensure Swiss Ephemeris native binary is always present in runtime image.
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/swisseph-v2/build ./node_modules/swisseph-v2/build
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-# Ready narrated stories stay private and are never part of the mobile export.
-COPY --from=builder --chown=nextjs:nodejs /app/server-assets ./server-assets
-COPY --from=builder --chown=nextjs:nodejs /app/ephe ./ephe
 COPY --from=builder --chown=nextjs:nodejs /app/metadata.json ./metadata.json
 
 USER nextjs

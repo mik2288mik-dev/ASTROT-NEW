@@ -1,8 +1,8 @@
 import crypto from 'crypto';
-import { readFile, stat } from 'fs/promises';
+import { stat } from 'fs/promises';
 import path from 'path';
 import { RECORDED_SLEEP_STORIES, type RecordedSleepStory } from '../recordedSleepStories';
-import type { AudioTicket, StoredAudio } from './ttsStore';
+import type { AudioTicket } from './ttsStore';
 
 // Bump when replacing an MP3: previously cached bearer URLs are immutable.
 const ASSET_VERSION = '2';
@@ -27,9 +27,16 @@ export async function recordedStoryTicket(story: RecordedSleepStory): Promise<Au
   return { id: recordingId(story), durationSec: story.durationSec, cached: true };
 }
 
-export async function readRecordedStoryAudio(id: string): Promise<StoredAudio | null> {
+export type RecordedStoryFile = { path: string; size: number; mime: 'audio/mpeg' };
+
+/**
+ * Finds the recording behind an opaque id without reading it: a story is up to
+ * 47 MB and the player asks for it many times while seeking, so the file is
+ * streamed by byte range instead of being loaded into memory per request.
+ */
+export async function findRecordedStoryFile(id: string): Promise<RecordedStoryFile | null> {
   const story = RECORDED_SLEEP_STORIES.find((item) => recordingId(item) === id);
   if (!story) return null;
-  const bytes = await readFile(assetPath(story));
-  return { id, mime: 'audio/mpeg', bytes, byteSize: bytes.length };
+  const file = await stat(assetPath(story));
+  return { path: assetPath(story), size: file.size, mime: 'audio/mpeg' };
 }
