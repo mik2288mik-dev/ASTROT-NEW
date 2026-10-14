@@ -5,10 +5,13 @@ import { isNativeAppRuntime } from './nativeRuntime';
  * the app only opens it in the browser, where the owner signs in with the
  * same account.
  */
+export const LIVE_ADMIN_ORIGIN = 'https://api.tvoi-goroskop.ru';
+
 export function adminUrl(): string {
-  const configured = String(process.env.NEXT_PUBLIC_API_URL || '').trim().replace(/\/+$/, '');
-  const base = /^https:\/\//.test(configured) ? configured : window.location.origin;
-  return `${base}/admin`;
+  // Always the live server: the Telegram version is served from another host,
+  // and its admin would show only that host's people.
+  const configured = String(process.env.NEXT_PUBLIC_ADMIN_URL || '').trim().replace(/\/+$/, '');
+  return `${/^https:\/\//.test(configured) ? configured : LIVE_ADMIN_ORIGIN}/admin`;
 }
 
 export function openAdmin(): void {
