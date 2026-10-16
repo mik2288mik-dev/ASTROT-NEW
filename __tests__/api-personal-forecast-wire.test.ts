@@ -31,6 +31,7 @@ async function request(input: {
   version?: unknown;
   promptVersion?: unknown;
   periodKey?: string;
+  regenerate?: boolean;
 }) {
   const result: { status: number; body: any } = { status: 200, body: null };
   const response = {
@@ -40,7 +41,7 @@ async function request(input: {
   await handler({
     method: input.method || 'GET', headers: {},
     query: { period: input.period, ...(input.periodKey ? { periodKey: input.periodKey } : {}), ...(input.version === undefined ? {} : { contractVersion: input.version }), ...(input.promptVersion === undefined ? {} : { promptVersion: input.promptVersion }) },
-    body: { period: input.period, ...(input.periodKey ? { periodKey: input.periodKey } : {}) },
+    body: { period: input.period, ...(input.periodKey ? { periodKey: input.periodKey } : {}), ...(input.regenerate ? { regenerate: true } : {}) },
   } as unknown as NextApiRequest, response);
   return result;
 }
@@ -52,6 +53,98 @@ describe('forecast API wire negotiation and entitlement', () => {
     (getPremiumEntitlementState as jest.Mock).mockResolvedValue({ isPremium: true });
     (getCachedPersonalForecast as jest.Mock).mockResolvedValue(null);
     (getCompatibleStalePersonalForecast as jest.Mock).mockResolvedValue(null);
+  });
+
+  it('returns an app-open forecast in the same installed-APK POST when preparation already owns the lock', async () => {
+    jest.useFakeTimers();
+    try {
+      const forecast = personalForecastFixture();
+      (getCachedPersonalForecast as jest.Mock)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ forecast });
+      (ensurePersonalForecast as jest.Mock).mockImplementationOnce(() => new Promise((resolve) => {
+        setTimeout(() => resolve({ status: 'in_progress', retryAfterMs: 1500 }), 1500);
+      }));
+      let responded = false;
+      const pending = request({ period: 'day', method: 'POST', version: RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION });
+      void pending.then(() => { responded = true; });
+
+      await jest.advanceTimersByTimeAsync(1500);
+      expect(responded).toBe(false);
+      await jest.advanceTimersByTimeAsync(3000);
+      const result = await pending;
+
+      expect(result.status).toBe(200);
+      expect(result.body).toMatchObject({ source: 'cache', forecast: {
+        meta: { contractVersion: RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION },
+      } });
+      expect(ensurePersonalForecast).toHaveBeenCalledTimes(1);
+      expect(jest.getTimerCount()).toBe(0);
+    } finally { jest.useRealTimers(); }
+  });
+
+  it('keeps the 20-second response budget and compatible pending response when preparation takes longer', async () => {
+    jest.useFakeTimers();
+    try {
+      (ensurePersonalForecast as jest.Mock).mockResolvedValue({ status: 'in_progress', retryAfterMs: 1500 });
+      let responded = false;
+      const pending = request({ period: 'day', method: 'POST', version: RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION });
+      void pending.then(() => { responded = true; });
+
+      await jest.advanceTimersByTimeAsync(19_999);
+      expect(responded).toBe(false);
+      await jest.advanceTimersByTimeAsync(1);
+      const result = await pending;
+
+      expect(result.status).toBe(202);
+      expect(result.body).toMatchObject({ code: 'GENERATION_IN_PROGRESS', retryAfterMs: 1500 });
+      expect(ensurePersonalForecast).toHaveBeenCalledTimes(1);
+      const readsAtResponse = (getCachedPersonalForecast as jest.Mock).mock.calls.length;
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(getCachedPersonalForecast).toHaveBeenCalledTimes(readsAtResponse);
+      expect(jest.getTimerCount()).toBe(0);
+    } finally { jest.useRealTimers(); }
+  });
+
+  it('keeps an empty cache-only GET immediate and never starts or waits for generation', async () => {
+    jest.useFakeTimers();
+    try {
+      const result = await request({ period: 'day', version: RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION });
+      expect(result.status).toBe(404);
+      expect(result.body.code).toBe('PERSONAL_FORECAST_NOT_READY');
+      expect(ensurePersonalForecast).not.toHaveBeenCalled();
+      expect(jest.getTimerCount()).toBe(0);
+    } finally { jest.useRealTimers(); }
+  });
+
+  it('does not return the previous saved text while waiting for an explicit regeneration', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-16T12:00:00Z'));
+    try {
+      const previous = personalForecastFixture();
+      previous.meta.generatedAt = '2026-10-16T11:00:00Z';
+      const fresh = personalForecastFixture();
+      fresh.meta.generatedAt = '2026-10-16T12:00:01Z';
+      (getCachedPersonalForecast as jest.Mock)
+        .mockResolvedValueOnce({ forecast: previous })
+        .mockResolvedValueOnce({ forecast: fresh });
+      (ensurePersonalForecast as jest.Mock).mockResolvedValue({ status: 'in_progress', retryAfterMs: 1500 });
+      let responded = false;
+      const pending = request({ period: 'day', method: 'POST', regenerate: true, version: RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION });
+      void pending.then(() => { responded = true; });
+
+      await jest.advanceTimersByTimeAsync(1500);
+      expect(responded).toBe(false);
+      await jest.advanceTimersByTimeAsync(1500);
+      const result = await pending;
+
+      expect(result.status).toBe(200);
+      expect(result.body.forecast.meta.generatedAt).toBe(fresh.meta.generatedAt);
+      expect(ensurePersonalForecast).toHaveBeenCalledWith(expect.anything(), {
+        forceRegenerate: true, minimumGeneratedAt: '2026-10-16T12:00:00.000Z',
+      });
+      expect(jest.getTimerCount()).toBe(0);
+    } finally { jest.useRealTimers(); }
   });
 
   it.each((['cache', 'stale', 'generated'] as const).flatMap((source) => (
