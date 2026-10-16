@@ -523,6 +523,10 @@ export const Dashboard = memo<DashboardProps>(({
   }, []);
 
   const state = activeState;
+  const hasForecastLoadError = state.phase === 'error'
+    && ![202, 404, 425, 429].includes(state.errorStatus || 0)
+    && state.errorCode !== 'GENERATION_IN_PROGRESS'
+    && state.errorCode !== 'PERSONAL_FORECAST_NOT_READY';
   const result = state.result
     ? selectActiveReadyPersonalForecast(activePeriod, periodStates, periodKeys[activePeriod])
     : null;
@@ -847,6 +851,83 @@ export const Dashboard = memo<DashboardProps>(({
     />
   );
 
+  const todayHomeSections = (
+    <>
+      {/* Today: what is true about you right now, with the question of the day as its last row. */}
+      <TodayAboutYou
+        userId={String(profile.id || 'guest')}
+        todayKey={periodKeys.day}
+        birthDate={profile.birthDate}
+        birthTime={profile.birthTime}
+        birthTimeKnown={Boolean(profile.birthTime?.trim()) && profile.birthTimeMode !== 'unknown'}
+        task={storySections.find((section) => !lockedSectionIds.has(section.id) && section.actionText?.trim())?.actionText?.trim() ?? null}
+      >
+        <DailyQuestionCard language={language} embedded />
+      </TodayAboutYou>
+      {/* Personal suggestions; today's invitation into a section closes the row. */}
+      <ForYouBlock
+        userId={String(profile.id || 'guest')}
+        language={language}
+        todayKey={periodKeys.day}
+        weekKey={periodKeys.week}
+        timezone={timezone}
+        birthDate={profile.birthDate}
+        birthTimeKnown={Boolean(profile.birthTime?.trim()) && profile.birthTimeMode !== 'unknown'}
+        premium={premium}
+        premiumEndsAt={profile.premiumEntitlement?.endsAt ?? null}
+        premiumAutoRenew={profile.premiumEntitlement?.autoRenew ?? null}
+        gift={giftStatus ? { streak: giftStatus.streak, daysToGift: giftStatus.daysToGift, claimable: giftStatus.claimable, hasWeekGift: Boolean(giftStatus.weekGift) } : null}
+        onAction={handleForYouAction}
+        extra={(
+          <HomeFeatureStrip
+            variant="card"
+            todayKey={periodKeys.day}
+            onOpenStories={onOpenStories}
+            onOpenSounds={onOpenSounds}
+            onOpenAntistress={onOpenAntistress}
+            onOpenTests={onOpenTests}
+            onOpenMatrix={onOpenMatrix}
+          />
+        )}
+      />
+      {/* Ahead: the coming month and the season, one part of the screen. */}
+      <section className="home-ahead" aria-labelledby="home-ahead-title">
+        <h2 id="home-ahead-title" className="today-explore-heading">{language === 'ru' ? 'Впереди' : 'Ahead'}</h2>
+        <FutureInviteCard
+          userId={String(profile.id || 'guest')}
+          todayKey={periodKeys.day}
+          timezone={timezone}
+          premium={premium}
+          onOpen={() => { onPeriodChange?.('month'); }}
+        />
+        <SeasonCard
+          userId={String(profile.id || 'guest')}
+          todayKey={periodKeys.day}
+          onOpenFuture={() => openFuture()}
+        />
+      </section>
+      {/* Your people. */}
+      <PeopleBlock
+        userId={String(profile.id || 'guest')}
+        todayKey={periodKeys.day}
+        premium={premium}
+        onOpenPair={onOpenPair}
+        onAddPerson={onOpenSynastry}
+        onGift={setGiftPerson}
+      />
+      {/* Deeper: what else to learn about yourself. */}
+      <TodayExploreCards
+        language={language}
+        userId={String(profile.id || 'guest')}
+        birthDate={profile.birthDate}
+        premium={premium}
+        onOpenNatal={onCreateNatalChart}
+        onOpenCompatibility={onOpenSynastry}
+        onOpenMatrix={onOpenMatrix}
+      />
+    </>
+  );
+
   return (
     <div
       id="personal-forecast-reading"
@@ -932,82 +1013,7 @@ export const Dashboard = memo<DashboardProps>(({
               <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
             </>
           )}
-          footer={(
-            <>
-            {/* Today: what is true about you right now, with the question of the day as its last row. */}
-            <TodayAboutYou
-              userId={String(profile.id || 'guest')}
-              todayKey={periodKeys.day}
-              birthDate={profile.birthDate}
-              birthTime={profile.birthTime}
-              birthTimeKnown={Boolean(profile.birthTime?.trim()) && profile.birthTimeMode !== 'unknown'}
-              task={storySections.find((section) => !lockedSectionIds.has(section.id) && section.actionText?.trim())?.actionText?.trim() ?? null}
-            >
-              <DailyQuestionCard language={language} embedded />
-            </TodayAboutYou>
-            {/* Personal suggestions; today's invitation into a section closes the row. */}
-            <ForYouBlock
-              userId={String(profile.id || 'guest')}
-              language={language}
-              todayKey={periodKeys.day}
-              weekKey={periodKeys.week}
-              timezone={timezone}
-              birthDate={profile.birthDate}
-              birthTimeKnown={Boolean(profile.birthTime?.trim()) && profile.birthTimeMode !== 'unknown'}
-              premium={premium}
-              premiumEndsAt={profile.premiumEntitlement?.endsAt ?? null}
-              premiumAutoRenew={profile.premiumEntitlement?.autoRenew ?? null}
-              gift={giftStatus ? { streak: giftStatus.streak, daysToGift: giftStatus.daysToGift, claimable: giftStatus.claimable, hasWeekGift: Boolean(giftStatus.weekGift) } : null}
-              onAction={handleForYouAction}
-              extra={(
-                <HomeFeatureStrip
-                  variant="card"
-                  todayKey={periodKeys.day}
-                  onOpenStories={onOpenStories}
-                  onOpenSounds={onOpenSounds}
-                  onOpenAntistress={onOpenAntistress}
-                  onOpenTests={onOpenTests}
-                  onOpenMatrix={onOpenMatrix}
-                />
-              )}
-            />
-            {/* Ahead: the coming month and the season, one part of the screen. */}
-            <section className="home-ahead" aria-labelledby="home-ahead-title">
-              <h2 id="home-ahead-title" className="today-explore-heading">{language === 'ru' ? 'Впереди' : 'Ahead'}</h2>
-              <FutureInviteCard
-                userId={String(profile.id || 'guest')}
-                todayKey={periodKeys.day}
-                timezone={timezone}
-                premium={premium}
-                onOpen={() => { onPeriodChange?.('month'); }}
-              />
-              <SeasonCard
-                userId={String(profile.id || 'guest')}
-                todayKey={periodKeys.day}
-                onOpenFuture={() => openFuture()}
-              />
-            </section>
-            {/* Your people. */}
-            <PeopleBlock
-              userId={String(profile.id || 'guest')}
-              todayKey={periodKeys.day}
-              premium={premium}
-              onOpenPair={onOpenPair}
-              onAddPerson={onOpenSynastry}
-              onGift={setGiftPerson}
-            />
-            {/* Deeper: what else to learn about yourself. */}
-            <TodayExploreCards
-              language={language}
-              userId={String(profile.id || 'guest')}
-              birthDate={profile.birthDate}
-              premium={premium}
-              onOpenNatal={onCreateNatalChart}
-              onOpenCompatibility={onOpenSynastry}
-              onOpenMatrix={onOpenMatrix}
-            />
-            </>
-          )}
+          footer={todayHomeSections}
         />
       ) : forecast ? (
         <article
@@ -1034,7 +1040,34 @@ export const Dashboard = memo<DashboardProps>(({
             ) : null}
         </article>
       ) : activePeriod === 'day' ? (
-        <div aria-live="polite" aria-busy={state.phase === 'loading'} />
+        <>
+          <section
+            className="forecast-feed-status today-forecast-status"
+            aria-live="polite"
+            aria-busy={!hasForecastLoadError}
+          >
+            {hasForecastLoadError ? (
+              <>
+                <h1>{language === 'ru' ? 'Не удалось загрузить прогноз' : 'Could not load your forecast'}</h1>
+                <button type="button" onClick={() => loadPeriod(activePeriod, { retry: true })}>
+                  <RefreshCw size={17} aria-hidden />
+                  {language === 'ru' ? 'Повторить' : 'Try again'}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="forecast-feed-loading-indicator" aria-hidden>
+                  <LoaderCircle className="forecast-feed-loading-spinner" size={28} strokeWidth={2} />
+                </div>
+                <p className="forecast-feed-loading-label">
+                  {language === 'ru' ? 'Загрузка прогноза…' : 'Loading your forecast…'}
+                </p>
+              </>
+            )}
+          </section>
+          <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={periodKeys.day} />
+          {todayHomeSections}
+        </>
       ) : state.phase === 'error' ? (
         <section className="forecast-feed-status" aria-live="polite">
           <h1>{language === 'ru' ? 'Готовим твой прогноз' : 'Preparing your forecast'}</h1>

@@ -229,10 +229,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const pendingGeneration = ensurePersonalForecast(cacheInput, {
-      forceRegenerate: regenerate,
-      minimumGeneratedAt: regenerationAfter,
-    });
+    const foregroundStartedAt = Date.now();
+    const minimumGeneratedAt = regenerationAfter
+      || (regenerate ? new Date(foregroundStartedAt).toISOString() : null);
+    const pendingGeneration = (async () => {
+      const generated = await ensurePersonalForecast(cacheInput, {
+        forceRegenerate: regenerate,
+        minimumGeneratedAt,
+      });
+      if (generated.status === 'ready') return generated;
+
+      // App-open prewarming may already own this generation. Keep the POST
+      // waiting within its existing budget instead of sending older APKs into
+      // increasingly slow client retries. Cache-only GETs remain immediate.
+      diagnostic.log('generation_wait', 'in_progress', { period });
+      while (Date.now() - foregroundStartedAt < FOREGROUND_GENERATION_WAIT_MS) {
+        const remainingMs = FOREGROUND_GENERATION_WAIT_MS - (Date.now() - foregroundStartedAt);
+        await new Promise((resolve) => setTimeout(resolve, Math.min(CONTENT_GENERATION_RETRY_AFTER_MS, remainingMs)));
+        if (Date.now() - foregroundStartedAt >= FOREGROUND_GENERATION_WAIT_MS) break;
+        const cached = await getCachedPersonalForecast(cacheInput);
+        if (
+          cached
+          && (!minimumGeneratedAt || Date.parse(cached.forecast.meta.generatedAt) > Date.parse(minimumGeneratedAt))
+        ) {
+          return { status: 'ready' as const, value: cached.forecast, fromCache: true };
+        }
+      }
+      return generated;
+    })();
     let foregroundTimer: ReturnType<typeof setTimeout> | undefined;
     const generated = await Promise.race([
       pendingGeneration,
