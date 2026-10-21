@@ -4,6 +4,10 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Alpine's own CDN crawls from the Timeweb builder (24 MB took 9 minutes and the
+# build hit its 28-minute limit); the Yandex mirror serves the same packages.
+RUN sed -i 's#dl-cdn.alpinelinux.org/alpine#mirror.yandex.ru/mirrors/alpine#' /etc/apk/repositories
+
 # node-gyp toolchain is needed only during build stage.
 RUN apk add --no-cache python3 make g++ libc6-compat && \
     ln -sf python3 /usr/bin/python
@@ -55,6 +59,9 @@ ENV NODE_ENV=production \
     NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt \
     HOSTNAME=0.0.0.0 \
     PORT=3000
+
+# Same Alpine mirror as the build stage.
+RUN sed -i 's#dl-cdn.alpinelinux.org/alpine#mirror.yandex.ru/mirrors/alpine#' /etc/apk/repositories
 
 # font-dejavu: owner bot charts render their labels with a real font.
 RUN apk add --no-cache ca-certificates libc6-compat font-dejavu && \
