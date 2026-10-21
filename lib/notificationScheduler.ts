@@ -23,7 +23,6 @@ import { ensureAllStoryBuffers, storyGenerationEnabled } from './stories/reposit
 
 const MSK_TZ = 'Europe/Moscow';
 const DISPATCH_INTERVAL_MS = 3 * 60 * 1000; // отправка очереди каждые 3 минуты
-const PERSONAL_FORECAST_INTERVAL_MS = 3 * 60 * 1000;
 const PLANNER_LIMIT = 500;
 
 type MskNow = { hour: number; minute: number; weekday: number; dateKey: string };
@@ -90,31 +89,6 @@ const status: SchedulerStatus = schedulerGlobal.__neboSchedulerStatusV1 ??= {
 
 export function getSchedulerStatus(): SchedulerStatus {
   return { ...status };
-}
-
-// Instrumentation and API routes can load separate copies of this module.
-// Share the guard so an unfinished batch never starts another scheduler pass.
-const forecastPrewarm = schedulerGlobal.__neboForecastPrewarmSchedulerV1 ??= {
-  inFlight: null,
-  lastStartedAt: null,
-};
-
-function personalForecastTick(): void {
-  const now = new Date();
-  if (forecastPrewarm.inFlight || (forecastPrewarm.lastStartedAt !== null
-    && now.getTime() - forecastPrewarm.lastStartedAt < PERSONAL_FORECAST_INTERVAL_MS)) return;
-  forecastPrewarm.lastStartedAt = now.getTime();
-  forecastPrewarm.inFlight = (async () => {
-    try {
-      // Keep this optional worker out of notification startup. Its bounded
-      // batches retain the existing entitlement, cache and generation locks.
-      const { prewarmPersonalForecastIncrement } = await import('./personalForecastPrewarm');
-      const counts = await prewarmPersonalForecastIncrement({ now });
-      console.log('[cron] personal-forecast-horizon done', counts);
-    } catch {
-      console.warn('[cron] personal-forecast-horizon failed');
-    }
-  })().finally(() => { forecastPrewarm.inFlight = null; });
 }
 
 async function runOnce(job: string, slotKey: string, fn: () => Promise<unknown>) {
@@ -218,12 +192,9 @@ export function startNotificationScheduler() {
   setTimeout(() => { plannerTick(); }, 25 * 1000);       // наполняем очередь за сегодня (catch-up)
   setTimeout(() => void dispatchTick(), 50 * 1000);      // отправляем только что наполненное
 
-  // Fill personal forecasts even when no external /api/cron/tick is configured.
-  // Start after notification catch-up without waiting for AI in either timer.
-  setTimeout(() => {
-    personalForecastTick();
-    setInterval(personalForecastTick, PERSONAL_FORECAST_INTERVAL_MS);
-  }, 35 * 1000);
+  // No background forecast prewarm: since 16 Oct it generated readings five days
+  // ahead for every account every 3 minutes and kept the 1 GB Timeweb server at
+  // 100% CPU. A reading is generated when its owner opens it.
 
   setInterval(() => void dispatchTick(), DISPATCH_INTERVAL_MS);
   setInterval(() => plannerTick(), 60 * 1000);
