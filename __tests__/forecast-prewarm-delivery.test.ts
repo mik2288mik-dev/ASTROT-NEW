@@ -33,7 +33,7 @@ describe('forecast delivery orchestration contract', () => {
     expect(userRoute).not.toContain('await prewarmPersonalForecastHorizon');
     expect(cronRoute).toContain('prewarmPersonalForecastIncrement({ now })');
     expect(cronRoute).not.toContain('db.users');
-    expect(inProcessScheduler).toContain('prewarmPersonalForecastIncrement({ now })');
+    expect(inProcessScheduler).not.toContain('prewarmPersonalForecastIncrement');
     expect(personalRoute).not.toContain("reason: 'forecast_open'");
   });
 

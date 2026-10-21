@@ -64,62 +64,12 @@ describe('in-process personal forecast preparation', () => {
     }
   });
 
-  it('prepares a bounded batch after startup and repeats without external cron', async () => {
+  it('never prepares forecasts in the background: the 1 GB server ran at 100% CPU', async () => {
     const { scheduler, worker } = loadScheduler();
     scheduler.ensureNotificationScheduler('test');
-    scheduler.ensureNotificationScheduler('test-again');
+    await jest.advanceTimersByTimeAsync(60 * 60_000);
     expect(scheduler.getSchedulerStatus().started).toBe(true);
     expect(worker).not.toHaveBeenCalled();
-
-    await jest.advanceTimersByTimeAsync(34_999);
-    expect(worker).not.toHaveBeenCalled();
-    await jest.advanceTimersByTimeAsync(1);
-    expect(worker).toHaveBeenCalledTimes(1);
-    expect(worker).toHaveBeenCalledWith({ now: new Date('2026-10-16T09:11:35.000Z') });
-    expect(console.log).toHaveBeenCalledWith('[cron] personal-forecast-horizon done', counts);
-
-    await jest.advanceTimersByTimeAsync(180_000);
-    expect(worker).toHaveBeenCalledTimes(2);
-  });
-
-  it('keeps notifications running while a long batch prevents overlapping passes', async () => {
-    const { scheduler, worker, notifications } = loadScheduler();
-    let finishBatch!: (result: typeof counts) => void;
-    worker.mockImplementationOnce(() => new Promise((resolve) => { finishBatch = resolve; }));
-    scheduler.ensureNotificationScheduler('test');
-    await jest.advanceTimersByTimeAsync(35_000 + 2 * 180_000);
-
-    expect(worker).toHaveBeenCalledTimes(1);
-    expect(notifications.dispatchScheduledNotifications.mock.calls.length).toBeGreaterThanOrEqual(4);
-    finishBatch(counts);
-    await jest.advanceTimersByTimeAsync(0);
-    await jest.advanceTimersByTimeAsync(180_000);
-    expect(worker).toHaveBeenCalledTimes(2);
-  });
-
-  it('shares its cadence guard across separately loaded Next bundles', async () => {
-    const first = loadScheduler();
-    first.scheduler.ensureNotificationScheduler('instrumentation');
-    await jest.advanceTimersByTimeAsync(35_000);
-    expect(first.worker).toHaveBeenCalledTimes(1);
-
-    jest.resetModules();
-    const second = loadScheduler();
-    second.scheduler.ensureNotificationScheduler('api-bundle');
-    await jest.advanceTimersByTimeAsync(35_000);
-    expect(second.worker).not.toHaveBeenCalled();
-  });
-
-  it('logs a failed batch and retries on the next interval', async () => {
-    const { scheduler, worker } = loadScheduler();
-    worker.mockRejectedValueOnce(new Error('unavailable'));
-    scheduler.ensureNotificationScheduler('test');
-    await jest.advanceTimersByTimeAsync(35_000);
-    expect(console.warn).toHaveBeenCalledWith('[cron] personal-forecast-horizon failed');
-
-    await jest.advanceTimersByTimeAsync(180_000);
-    expect(worker).toHaveBeenCalledTimes(2);
-    expect(console.log).toHaveBeenCalledWith('[cron] personal-forecast-horizon done', counts);
   });
 
   it.each([
