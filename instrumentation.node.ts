@@ -1,4 +1,7 @@
 import { ensureNotificationScheduler } from './lib/notificationScheduler';
+import { startRuntimeHealthLog } from './lib/runtimeHealthLog';
+
+startRuntimeHealthLog();
 
 // Notifications and owner bots start first and on their own: a failure in any
 // other background worker must never silence them.
