@@ -208,7 +208,7 @@ export async function getPersonStory(id: string, options: { days?: number; inclu
               ORDER BY occurred_at DESC LIMIT 300`, [id]),
     db.query(`SELECT created_at AT TIME ZONE 'UTC' AS at, is_primary, subject_type FROM natal_charts WHERE user_id = $1 ORDER BY created_at`, [id]),
     (await tableExists(db, 'natal_reading_jobs'))
-      ? db.query(`SELECT status, created_at, updated_at FROM natal_reading_jobs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20`, [id])
+      ? db.query(`SELECT status, last_error, created_at, updated_at FROM natal_reading_jobs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20`, [id])
       : Promise.resolve({ rows: [] as any[] }),
     db.query(`SELECT id, subject, status, created_at AT TIME ZONE 'UTC' AS at FROM support_tickets WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20`, [id]),
   ]);
@@ -251,7 +251,8 @@ export async function getPersonStory(id: string, options: { days?: number; inclu
   for (const row of jobs.rows) {
     const ms = new Date(row.updated_at).getTime() - new Date(row.created_at).getTime();
     if (row.status === 'ready') steps.push({ at: iso(row.updated_at)!, kind: 'wait', text: `Подробный разбор карты готов через ${seconds(ms)}`, slow: ms >= 120_000 });
-    else if (row.status === 'failed') steps.push({ at: iso(row.updated_at)!, kind: 'error', text: 'Подробный разбор карты не получился' });
+    else if (row.status === 'failed') steps.push({ at: iso(row.updated_at)!, kind: 'error',
+      text: `Подробный разбор карты не получился${row.last_error ? `: ${String(row.last_error).slice(0, 300)}` : ''}` });
   }
 
   steps.sort((a, b) => a.at.localeCompare(b.at));
