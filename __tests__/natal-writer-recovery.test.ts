@@ -78,6 +78,15 @@ describe('natal preparation preserves completed work', () => {
     await expect(generateNatalUnifiedReading({ chart, tier: 'premium', progress: saved })).rejects.toMatchObject({ code: 'NATAL_WRITER_REJECTED' });
     expect(mockResponse).toHaveBeenCalledTimes(1);
   });
+  it('names the banned advice phrases when a block is rejected for advice', async () => {
+    const { chart, raw, checks } = fixture(); const bad = JSON.parse(JSON.stringify(raw));
+    bad.story[0].text = `${raw.story[0].text} Попробуй сравнить варианты.`;
+    mockResponse.mockResolvedValueOnce(reply(bad)).mockResolvedValueOnce(reply({ story: [raw.story[0]], topics: [] }))
+      .mockResolvedValueOnce(reply({ checks }));
+    await expect(generateNatalUnifiedReading({ chart, tier: 'premium' })).resolves.toMatchObject({ tier: 'premium' });
+    expect(mockResponse.mock.calls[1][0].input).toContain(`${raw.story[0].id}: advice/instruction language`);
+    expect(mockResponse.mock.calls[1][0].input).toContain('Remove every one of these phrases: «тебе нужно»');
+  });
   it('repairs only a structurally invalid block instead of rewriting the report', async () => {
     const { chart, raw, checks } = fixture(); const bad = JSON.parse(JSON.stringify(raw));
     bad.story[0].text = 'Тебе нужно сохранять баланс и помнить, что любые решения лучше принимать только после паузы.';

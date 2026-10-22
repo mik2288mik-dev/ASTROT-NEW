@@ -206,7 +206,7 @@ function promptPlan(
 - Не додумывай характер, причины поведения, прошлое, отношения, страхи, травмы, диагнозы, профессию, деньги, события или мысли других людей.
 - Пиши простыми словами. Без психологических ярлыков, терапевтической лексики, коучинга и абстрактной шелухи.
 - Не пиши служебным языком вроде «в этой теме», «это проявляется», «динамика», «сфера», «функция», «карта показывает», «астрологическая трактовка».
-- Не давай советы и инструкции человеку.
+- Не давай советы и инструкции человеку. Не используй «тебе нужно», «тебе стоит», «тебе следует», «попробуй», «старайся», «помни», «сохраняй», «держи», «не бойся»: описывай, как обычно бывает, а не что делать.
 - Не делай обязательный конфликт, проблему, плюс, минус или вдохновляющий финал.
 - background, только фоновая поправка. Не превращай её в сильное утверждение о характере.
 - structural, описание устройства конкретной области, а не психологический диагноз.
@@ -234,7 +234,7 @@ STRICT RULES:
 - Do not invent personality claims, causes, biography, relationship history, fears, trauma, diagnosis, profession, income, events, or other people's thoughts.
 - Use ordinary language. No therapy jargon, coaching language, pseudo-psychology, or abstract filler.
 - Do not use process/report language such as "this theme", "this manifests", "dynamic", "sphere", "function", "the chart shows", or "astrological interpretation".
-- Give no advice or instructions.
+- Give no advice or instructions. Do not use "you should", "you need to", "try to", "remember to" or "make sure to": describe how things usually go, not what to do.
 - Do not force conflict, problems, positivity, negativity, or a motivational ending.
 - Keep background meanings as background modifiers. Do not inflate them into strong personality claims.
 - Structural meanings describe a life area, not a psychological diagnosis.
@@ -257,9 +257,12 @@ INPUT:
 ${JSON.stringify(payload, null, 2)}${errors.length ? `
 
 PREVIOUS OUTPUT WAS REJECTED:
-${errors.join('\n')}
+${errors.join('\n')}${errors.some(error => error.endsWith(': advice/instruction language')) ? `
+${NATAL_ADVICE_REPAIR_HINT}` : ''}
 Edit rejected_candidate only as much as necessary to fix the listed issues. Keep its grounded sentences and neighbouring continuity. Remove unsupported causes, conditions or claims instead of replacing them with new explanations. Do not introduce new claims while repairing. Use only supplied meaning IDs.` : ''}`;
 }
+
+const NATAL_ADVICE_REPAIR_HINT = 'advice/instruction language: rewrite those sentences as a description of how things usually go. Remove every one of these phrases: «тебе нужно», «тебе стоит», «тебе следует», «попробуй», «старайся», «помни», «сохраняй», «держи», «не бойся», "you should", "you need to", "try to", "remember to", "make sure to".';
 
 const VISIBLE_ASTROLOGY = /(?:солнц\p{L}*|лун\p{L}*|меркур\p{L}*|венер\p{L}*|марс\p{L}*|юпитер\p{L}*|сатурн\p{L}*|уран\p{L}*|нептун\p{L}*|плутон\p{L}*|хирон\p{L}*|узел\p{L}*|асцендент|десцендент|\bMC\b|\bIC\b|аспект\p{L}*|трин\p{L}*|секстил\p{L}*|квадрат\p{L}*|оппозиц\p{L}*|соединени\p{L}*|\d{1,2}\s+дом\p{L}*|орб\p{L}*|ретроград\p{L}*|\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|ascendant|descendant|aspect|trine|sextile|square|opposition|conjunction|retrograde)\b)/iu;
 
