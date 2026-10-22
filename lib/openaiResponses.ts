@@ -2,6 +2,8 @@ import { createHash } from 'crypto';
 import OpenAI from 'openai';
 import { OPENAI_LUNA_MODEL } from './openai-models';
 import { recordAiCall } from './aiLogger';
+import { buildDeepSeekChatParams } from './deepseekChat';
+import { getDeepSeekClient } from './deepseekClient';
 
 export { OPENAI_LUNA_MODEL } from './openai-models';
 
@@ -145,9 +147,93 @@ export function buildLunaTextResponseParams(input: LunaResponseInput) {
   } satisfies OpenAI.Responses.ResponseCreateParamsNonStreaming;
 }
 
+/** The part of the OpenAI client that Luna content uses. */
+export type LunaResponsesClient = {
+  responses: {
+    create(
+      params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
+      options?: { signal?: AbortSignal; maxRetries?: number },
+    ): Promise<OpenAI.Responses.Response>;
+  };
+};
+
+export const DEFAULT_DEEPSEEK_CONTENT_MODEL = 'deepseek-flash';
+
+/**
+ * Temporary switch while OpenAI is unavailable: AI_CONTENT_PROVIDER=deepseek
+ * sends all Luna content to DeepSeek Chat Completions. Removing the variable
+ * restores OpenAI without a code change.
+ */
+export function deepSeekContentEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return String(env.AI_CONTENT_PROVIDER || '').trim().toLowerCase() === 'deepseek';
+}
+
+function deepSeekContentModel(): string {
+  return String(process.env.DEEPSEEK_CONTENT_MODEL || '').trim() || DEFAULT_DEEPSEEK_CONTENT_MODEL;
+}
+
+/** DeepSeek has no strict JSON Schema output, so the schema goes into the system prompt. */
+export function buildDeepSeekContentParams(
+  params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
+): OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming {
+  const format = (params.text as { format?: { type?: string; schema?: unknown } } | undefined)?.format;
+  const jsonRule = format?.type === 'json_schema'
+    ? `\n\nReturn only one JSON object that matches this JSON Schema exactly, with every required key and no other keys:\n${JSON.stringify(format.schema)}`
+    : format?.type === 'json_object' ? '\n\nReturn only one JSON object.' : '';
+  return buildDeepSeekChatParams(deepSeekContentModel(), {
+    messages: [
+      { role: 'system', content: `${String(params.instructions || '')}${jsonRule}` },
+      { role: 'user', content: typeof params.input === 'string' ? params.input : JSON.stringify(params.input) },
+    ],
+    maxTokens: params.max_output_tokens ?? undefined,
+    temperature: 1,
+    jsonMode: Boolean(jsonRule),
+  });
+}
+
+/** Reshapes a Chat Completion into the Responses fields that readLunaResponseContent reads. */
+export function toLunaResponse(completion: OpenAI.Chat.Completions.ChatCompletion): OpenAI.Responses.Response {
+  const choice = completion.choices[0];
+  const text = choice?.message?.content || '';
+  const reason = choice?.finish_reason === 'length' ? 'max_output_tokens'
+    : choice?.finish_reason === 'content_filter' ? 'content_filter' : null;
+  const usage = completion.usage as (OpenAI.CompletionUsage & { prompt_cache_hit_tokens?: number }) | undefined;
+  return {
+    id: completion.id,
+    model: completion.model,
+    status: reason ? 'incomplete' : 'completed',
+    incomplete_details: reason ? { reason } : null,
+    output: [{
+      type: 'message', id: completion.id, role: 'assistant', status: 'completed',
+      content: [{ type: 'output_text', text, annotations: [] }],
+    }],
+    output_text: text,
+    usage: {
+      input_tokens: usage?.prompt_tokens || 0,
+      input_tokens_details: { cached_tokens: usage?.prompt_cache_hit_tokens || 0 },
+      output_tokens: usage?.completion_tokens || 0,
+      output_tokens_details: { reasoning_tokens: usage?.completion_tokens_details?.reasoning_tokens || 0 },
+      total_tokens: usage?.total_tokens || 0,
+    },
+  } as unknown as OpenAI.Responses.Response;
+}
+
+function getDeepSeekResponsesClient(): LunaResponsesClient | null {
+  const deepseek = getDeepSeekClient();
+  if (!deepseek) return null;
+  return {
+    responses: {
+      create: async (params, options) => toLunaResponse(
+        await deepseek.chat.completions.create(buildDeepSeekContentParams(params), options),
+      ),
+    },
+  };
+}
+
 let client: OpenAI | null = null;
 
-export function getOpenAIResponsesClient(): OpenAI | null {
+export function getOpenAIResponsesClient(): LunaResponsesClient | null {
+  if (deepSeekContentEnabled()) return getDeepSeekResponsesClient();
   if (client) return client;
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -203,13 +289,16 @@ async function createLunaResponse(
   options: { allowIncompleteOutput?: boolean } = {},
 ): Promise<LunaResponseResult> {
   const startedAt = Date.now();
-  const call = { scenario: aiScenario(params), model: String(params.model || ''), provider: 'openai' };
+  const deepseek = deepSeekContentEnabled();
+  const call = deepseek
+    ? { scenario: aiScenario(params), model: deepSeekContentModel(), provider: 'deepseek' }
+    : { scenario: aiScenario(params), model: String(params.model || ''), provider: 'openai' };
   let response: OpenAI.Responses.Response;
   try {
-    if (useDirectOpenAI()) {
-      const openai = getOpenAIResponsesClient();
-      if (!openai) throw new Error('OPENAI_API_KEY is not configured');
-      response = await openai.responses.create(params);
+    if (deepseek || useDirectOpenAI()) {
+      const provider = getOpenAIResponsesClient();
+      if (!provider) throw new Error(deepseek ? 'DEEPSEEK_API_KEY is not configured' : 'OPENAI_API_KEY is not configured');
+      response = await provider.responses.create(params);
     } else {
       response = await createResponseViaRelay(params);
     }
