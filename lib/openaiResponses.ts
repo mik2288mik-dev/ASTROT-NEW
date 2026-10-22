@@ -157,7 +157,7 @@ export type LunaResponsesClient = {
   };
 };
 
-export const DEFAULT_DEEPSEEK_CONTENT_MODEL = 'deepseek-flash';
+export const DEFAULT_DEEPSEEK_CONTENT_MODEL = 'deepseek-v4-flash';
 
 /**
  * All Luna content goes to DeepSeek Chat Completions while OpenAI is off.
