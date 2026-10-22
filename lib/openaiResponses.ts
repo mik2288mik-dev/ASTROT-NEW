@@ -160,16 +160,32 @@ export type LunaResponsesClient = {
 export const DEFAULT_DEEPSEEK_CONTENT_MODEL = 'deepseek-flash';
 
 /**
- * Temporary switch while OpenAI is unavailable: AI_CONTENT_PROVIDER=deepseek
- * sends all Luna content to DeepSeek Chat Completions. Removing the variable
- * restores OpenAI without a code change.
+ * All Luna content goes to DeepSeek Chat Completions while OpenAI is off.
+ * AI_CONTENT_PROVIDER=openai restores the OpenAI route without a code change.
  */
 export function deepSeekContentEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return String(env.AI_CONTENT_PROVIDER || '').trim().toLowerCase() === 'deepseek';
+  return String(env.AI_CONTENT_PROVIDER || '').trim().toLowerCase() !== 'openai';
 }
 
-function deepSeekContentModel(): string {
-  return String(process.env.DEEPSEEK_CONTENT_MODEL || '').trim() || DEFAULT_DEEPSEEK_CONTENT_MODEL;
+function deepSeekContentModel(env: NodeJS.ProcessEnv = process.env): string {
+  return String(env.DEEPSEEK_CONTENT_MODEL || '').trim() || DEFAULT_DEEPSEEK_CONTENT_MODEL;
+}
+
+/** The provider, model and key that Luna content currently runs on. */
+export function getLunaContentProvider(env: NodeJS.ProcessEnv = process.env): {
+  provider: 'deepseek' | 'openai';
+  model: string;
+  keyName: 'DEEPSEEK_API_KEY' | 'OPENAI_API_KEY';
+  keyPresent: boolean;
+} {
+  const deepseek = deepSeekContentEnabled(env);
+  const keyName = deepseek ? 'DEEPSEEK_API_KEY' : 'OPENAI_API_KEY';
+  return {
+    provider: deepseek ? 'deepseek' : 'openai',
+    model: deepseek ? deepSeekContentModel(env) : OPENAI_LUNA_MODEL,
+    keyName,
+    keyPresent: Boolean(String(env[keyName] || '').trim()),
+  };
 }
 
 /** DeepSeek has no strict JSON Schema output, so the schema goes into the system prompt. */
@@ -178,8 +194,8 @@ export function buildDeepSeekContentParams(
 ): OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming {
   const format = (params.text as { format?: { type?: string; schema?: unknown } } | undefined)?.format;
   const jsonRule = format?.type === 'json_schema'
-    ? `\n\nReturn only one JSON object that matches this JSON Schema exactly, with every required key and no other keys:\n${JSON.stringify(format.schema)}`
-    : format?.type === 'json_object' ? '\n\nReturn only one JSON object.' : '';
+    ? `\n\nOutput format: json. Return only one JSON object that matches this JSON Schema exactly, with every required key and no other keys:\n${JSON.stringify(format.schema)}`
+    : format?.type === 'json_object' ? '\n\nOutput format: json. Return only one JSON object.' : '';
   return buildDeepSeekChatParams(deepSeekContentModel(), {
     messages: [
       { role: 'system', content: `${String(params.instructions || '')}${jsonRule}` },

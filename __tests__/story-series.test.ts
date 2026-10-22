@@ -84,7 +84,9 @@ describe('story series', () => {
 
   it('generates only on the main server, never on the OpenAI relay host', () => {
     expect(storyGenerationEnabled({ OPENAI_API_KEY: 'k', OPENAI_RELAY_DIRECT: '1' } as any)).toBe(false);
-    expect(storyGenerationEnabled({ OPENAI_API_KEY: 'k' } as any)).toBe(true);
+    expect(storyGenerationEnabled({ DEEPSEEK_API_KEY: 'k' } as any)).toBe(true);
+    expect(storyGenerationEnabled({ OPENAI_API_KEY: 'k' } as any)).toBe(false);
+    expect(storyGenerationEnabled({ AI_CONTENT_PROVIDER: 'openai', OPENAI_API_KEY: 'k' } as any)).toBe(true);
     expect(storyGenerationEnabled({} as any)).toBe(false);
     expect(storyGenerationEnabled({ STORY_GENERATION_ENABLED: '0', OPENAI_API_KEY: 'k' } as any)).toBe(false);
   });
