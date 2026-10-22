@@ -26,11 +26,11 @@ function query(sql: string, params: unknown[] = []) {
       }
     }
   }
-  if (sql.includes("'{providerRecovery}'")) {
+  if (sql.includes("'providerRecovery'")) {
     for (const job of jobs) {
       const progress = (job.progress || {}) as { raw?: { story?: unknown[] }; writerStarted?: boolean; providerRecovery?: string };
       if (job.status === 'failed' && job.priority > 0 && Boolean(job.updated_at) && String(job.updated_at) >= String(params[1]) && String(job.updated_at) < String(params[2]) && progress.providerRecovery !== params[0]) {
-        const next: Record<string, unknown> = { ...progress, providerRecovery: params[0] };
+        const next: Record<string, unknown> = { ...progress, providerRecovery: params[0], repairs: 0 };
         if (!Array.isArray(progress.raw?.story)) delete next.writerStarted;
         job.status = 'pending'; job.attempts = 0; job.progress = next;
       }
@@ -128,13 +128,14 @@ describe('durable autonomous natal preparation', () => {
     expect(jobs[0].status).toBe('failed'); expect(mockGenerate).toHaveBeenCalledTimes(1);
   });
   it('reruns a reading that failed during the provider switch once, then keeps it failed', async () => {
-    jobs = [{ ...pending(), status: 'failed', attempts: 2, updated_at: '2026-10-22T10:00:00Z', progress: { writerStarted: true, repairs: 0 } },
+    jobs = [{ ...pending(), status: 'failed', attempts: 2, updated_at: '2026-10-22T10:00:00Z', progress: { writerStarted: true, repairs: 3 } },
       { ...pending(), id: 2, chart_id: 10, status: 'failed', attempts: 2, updated_at: '2026-10-20T10:00:00Z', progress: { writerStarted: true, repairs: 0 } },
       { ...pending(), id: 3, chart_id: 11, status: 'failed', attempts: 2, updated_at: '2026-11-02T10:00:00Z', progress: { writerStarted: true, repairs: 0 } }];
     mockGenerate.mockRejectedValue(Object.assign(new Error('invalid copy'), { code: 'NATAL_WRITER_REJECTED' }));
     await processNatalReadingPreparations();
     expect(mockGenerate).toHaveBeenCalledTimes(1);
     expect(mockGenerate.mock.calls[0][0].progress.writerStarted).toBeUndefined();
+    expect(mockGenerate.mock.calls[0][0].progress.repairs).toBe(0);
     expect(jobs[0].status).toBe('failed');
     await processNatalReadingPreparations();
     expect(mockGenerate).toHaveBeenCalledTimes(1);

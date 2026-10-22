@@ -14,7 +14,7 @@ export function natalReadingPreparationInputHash(ctx: ReadingContext): string {
 
 const WORKER_LOCK = 'natal-reading-preparation-v1';
 const REJECTED_DRAFT_RECOVERY = 'validated-draft-recovery-20260930-r2';
-const PROVIDER_SWITCH_RECOVERY = 'deepseek-switch-20261022';
+const PROVIDER_SWITCH_RECOVERY = 'deepseek-switch-20261022-r2';
 const PROVIDER_SWITCH_STARTED_AT = '2026-10-22T00:00:00Z';
 const PROVIDER_SWITCH_ENDED_AT = '2026-10-23T00:00:00Z';
 let schema: Promise<void> | undefined;
@@ -89,11 +89,13 @@ export async function processNatalReadingPreparations(): Promise<void> {
       [`%:${NATAL_COPY_REVISION}`, REJECTED_DRAFT_RECOVERY, NATAL_MAX_BLOCK_REPAIRS, NATAL_COPY_REVISION],
     );
     // Readings that failed during the OpenAI-to-DeepSeek switch get one fresh
-    // run. A writer that never returned a draft may start again.
+    // run with a new repair budget. A saved draft is kept and only repaired;
+    // a writer that never returned a draft may start again.
     await client.query(
       `UPDATE natal_reading_jobs SET status='pending',attempts=0,available_at=NOW(),updated_at=NOW(),
-         progress=jsonb_set(CASE WHEN jsonb_typeof(progress->'raw'->'story')='array'
-           THEN progress ELSE progress-'writerStarted' END,'{providerRecovery}',to_jsonb($1::text))
+         progress=(CASE WHEN jsonb_typeof(progress->'raw'->'story')='array'
+           THEN progress ELSE progress-'writerStarted' END)
+           || jsonb_build_object('providerRecovery',$1::text,'repairs',0)
        WHERE status='failed' AND priority>0 AND updated_at>=$2::timestamptz AND updated_at<$3::timestamptz
          AND COALESCE(progress->>'providerRecovery','')<>$1`,
       [PROVIDER_SWITCH_RECOVERY, PROVIDER_SWITCH_STARTED_AT, PROVIDER_SWITCH_ENDED_AT],
