@@ -10,7 +10,7 @@ jest.mock('../lib/natalReading/unifiedApi', () => ({ generateNatalUnifiedReading
 jest.mock('../lib/database-url', () => ({ resolveDatabaseUrl: () => '' }));
 import { enqueueNatalReadingPreparation, processNatalReadingPreparations } from '../lib/natalReading/preparation';
 
-type Job = { id: number; user_id: string; chart_id: number; input_hash: string; language: string; status: string; attempts: number; progress?: unknown; priority: number; last_error?: string };
+type Job = { id: number; user_id: string; chart_id: number; input_hash: string; language: string; status: string; attempts: number; progress?: unknown; priority: number; last_error?: string; updated_at?: string };
 let jobs: Job[]; let acquired: boolean;
 function query(sql: string, params: unknown[] = []) {
   if (sql.includes('pg_try_advisory_lock')) return { rows: [{ acquired }] };
@@ -23,6 +23,16 @@ function query(sql: string, params: unknown[] = []) {
         && (progress?.recoveryRevision !== params[1] || progress?.repairRevision !== params[3])) {
         job.status = 'pending'; job.attempts = 0;
         job.progress = { ...progress, recoveryRevision: params[1] };
+      }
+    }
+  }
+  if (sql.includes("'{providerRecovery}'")) {
+    for (const job of jobs) {
+      const progress = (job.progress || {}) as { raw?: { story?: unknown[] }; writerStarted?: boolean; providerRecovery?: string };
+      if (job.status === 'failed' && job.priority > 0 && Boolean(job.updated_at) && String(job.updated_at) >= String(params[1]) && String(job.updated_at) < String(params[2]) && progress.providerRecovery !== params[0]) {
+        const next: Record<string, unknown> = { ...progress, providerRecovery: params[0] };
+        if (!Array.isArray(progress.raw?.story)) delete next.writerStarted;
+        job.status = 'pending'; job.attempts = 0; job.progress = next;
       }
     }
   }
@@ -116,6 +126,20 @@ describe('durable autonomous natal preparation', () => {
     await enqueueNatalReadingPreparation({ id: 9, user_id: '42', chart_data: canonicalNatalChart() });
     await processNatalReadingPreparations();
     expect(jobs[0].status).toBe('failed'); expect(mockGenerate).toHaveBeenCalledTimes(1);
+  });
+  it('reruns a reading that failed during the provider switch once, then keeps it failed', async () => {
+    jobs = [{ ...pending(), status: 'failed', attempts: 2, updated_at: '2026-10-22T10:00:00Z', progress: { writerStarted: true, repairs: 0 } },
+      { ...pending(), id: 2, chart_id: 10, status: 'failed', attempts: 2, updated_at: '2026-10-20T10:00:00Z', progress: { writerStarted: true, repairs: 0 } },
+      { ...pending(), id: 3, chart_id: 11, status: 'failed', attempts: 2, updated_at: '2026-11-02T10:00:00Z', progress: { writerStarted: true, repairs: 0 } }];
+    mockGenerate.mockRejectedValue(Object.assign(new Error('invalid copy'), { code: 'NATAL_WRITER_REJECTED' }));
+    await processNatalReadingPreparations();
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    expect(mockGenerate.mock.calls[0][0].progress.writerStarted).toBeUndefined();
+    expect(jobs[0].status).toBe('failed');
+    await processNatalReadingPreparations();
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    expect(jobs[1].status).toBe('failed');
+    expect(jobs[2].status).toBe('failed');
   });
   it('recovers a prematurely rejected draft once and preserves completed or exhausted jobs', async () => {
     const draft = { writerStarted: true, raw: { story: [{ id: 'story:1', text: 'Сохранённый текст.' }] }, repairs: 1, repairRevision: NATAL_COPY_REVISION };

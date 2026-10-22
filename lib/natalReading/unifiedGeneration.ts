@@ -573,16 +573,27 @@ export async function generateNatalUnifiedReading(input: {
     }
     progress.writerStarted = true;
     await checkpoint();
-    const response = await createLunaStructuredResponse({
-      instructions: getNatalStorySystemPrompt(language),
-      input: promptPlan(interpretation, plan, input.tier, language),
-      maxOutputTokens: input.tier === 'premium' ? 6500 : 3500,
-      reasoningEffort: 'medium',
-      verbosity: 'medium',
-      store: false,
-      schemaName: 'natal_unified_reading',
-      schema: WRITER_SCHEMA,
-    });
+    let response: Awaited<ReturnType<typeof createLunaStructuredResponse>>;
+    try {
+      response = await createLunaStructuredResponse({
+        instructions: getNatalStorySystemPrompt(language),
+        input: promptPlan(interpretation, plan, input.tier, language),
+        maxOutputTokens: input.tier === 'premium' ? 6500 : 3500,
+        reasoningEffort: 'medium',
+        verbosity: 'medium',
+        store: false,
+        schemaName: 'natal_unified_reading',
+        schema: WRITER_SCHEMA,
+      });
+    } catch (error) {
+      // An HTTP error status means the provider refused the request and wrote
+      // no draft, so the job's next attempt may write. A timeout stays final.
+      if (typeof (error as { status?: unknown })?.status === 'number') {
+        progress.writerStarted = false;
+        await checkpoint().catch(() => undefined);
+      }
+      throw error;
+    }
     try {
       progress.raw = alignRaw(JSON.parse(response.content) as RawPayload, plan);
     } catch {

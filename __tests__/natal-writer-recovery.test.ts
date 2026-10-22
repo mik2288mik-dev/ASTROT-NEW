@@ -46,6 +46,17 @@ describe('natal preparation preserves completed work', () => {
     expect(repairInput).toContain('rejected_candidate');
     expect(repairInput).toContain('Remove unsupported causes');
   });
+  it('lets the writer run again after the provider answered with an HTTP error', async () => {
+    const { chart, raw, checks } = fixture();
+    let saved: NatalWriterProgress | undefined;
+    const onProgress = async (progress: NatalWriterProgress) => { saved = JSON.parse(JSON.stringify(progress)); };
+    mockResponse.mockRejectedValueOnce(Object.assign(new Error('400 provider rejected the request'), { status: 400 }));
+    await expect(generateNatalUnifiedReading({ chart, tier: 'premium', onProgress })).rejects.toThrow('400 provider rejected the request');
+    expect(saved?.writerStarted).toBe(false);
+    mockResponse.mockResolvedValueOnce(reply(raw)).mockResolvedValueOnce(reply({ checks }));
+    const result = await generateNatalUnifiedReading({ chart, tier: 'premium', progress: saved, onProgress });
+    expect(result.story[0].text).toBe(raw.story[0].text);
+  });
   it('resumes a stored draft after a review transport failure without writing it again', async () => {
     const { chart, raw, checks } = fixture();
     let saved: NatalWriterProgress | undefined;
