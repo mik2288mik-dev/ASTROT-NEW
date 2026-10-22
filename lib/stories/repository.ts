@@ -4,7 +4,7 @@
  */
 import type { Pool } from 'pg';
 import { getPool } from '../db';
-import { createLunaStructuredResponse, OPENAI_LUNA_MODEL } from '../openaiResponses';
+import { createLunaStructuredResponse, getLunaContentProvider, OPENAI_LUNA_MODEL } from '../openaiResponses';
 import { ensureStorySchema } from './schema';
 import type { StorySeries } from './series';
 import { findManagedSeries, loadStorySeries, readPlans } from './catalog';
@@ -135,11 +135,11 @@ export function ensureEpisodeBuffer(seriesId: string, options: { today?: string;
   return task;
 }
 
-/** Story generation runs on the main server only, never on the OpenAI relay host. */
+/** Story generation runs on the main server only, never on the OpenAI relay host, and needs the active provider's key. */
 export function storyGenerationEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.STORY_GENERATION_ENABLED === '0') return false;
   if (env.STORY_GENERATION_ENABLED === '1') return true;
-  return env.OPENAI_RELAY_DIRECT !== '1' && Boolean(String(env.OPENAI_API_KEY || '').trim());
+  return env.OPENAI_RELAY_DIRECT !== '1' && getLunaContentProvider(env).keyPresent;
 }
 
 export async function ensureAllStoryBuffers(): Promise<Record<string, number>> {

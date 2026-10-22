@@ -7,7 +7,9 @@ import {
   buildDeepSeekContentParams,
   buildLunaStructuredResponseParams,
   createLunaStructuredResponse,
+  getLunaContentProvider,
   getOpenAIResponsesClient,
+  OPENAI_LUNA_MODEL,
   readLunaResponseContent,
   toLunaResponse,
   deepSeekContentEnabled,
@@ -44,10 +46,19 @@ describe('DeepSeek content provider switch', () => {
     create.mockReset();
   });
 
-  it('is off unless AI_CONTENT_PROVIDER is deepseek', () => {
-    expect(deepSeekContentEnabled({} as unknown as NodeJS.ProcessEnv)).toBe(false);
-    expect(deepSeekContentEnabled({ AI_CONTENT_PROVIDER: 'openai' } as unknown as NodeJS.ProcessEnv)).toBe(false);
-    expect(deepSeekContentEnabled({ AI_CONTENT_PROVIDER: ' DeepSeek ' } as unknown as NodeJS.ProcessEnv)).toBe(true);
+  it('is on by default and off only when AI_CONTENT_PROVIDER is openai', () => {
+    expect(deepSeekContentEnabled({} as unknown as NodeJS.ProcessEnv)).toBe(true);
+    expect(deepSeekContentEnabled({ AI_CONTENT_PROVIDER: 'deepseek' } as unknown as NodeJS.ProcessEnv)).toBe(true);
+    expect(deepSeekContentEnabled({ AI_CONTENT_PROVIDER: ' OpenAI ' } as unknown as NodeJS.ProcessEnv)).toBe(false);
+  });
+
+  it('reports the active provider, model and whether its key is set', () => {
+    expect(getLunaContentProvider({ DEEPSEEK_API_KEY: 'ds' } as unknown as NodeJS.ProcessEnv))
+      .toEqual({ provider: 'deepseek', model: 'deepseek-flash', keyName: 'DEEPSEEK_API_KEY', keyPresent: true });
+    expect(getLunaContentProvider({ OPENAI_API_KEY: 'sk' } as unknown as NodeJS.ProcessEnv))
+      .toMatchObject({ provider: 'deepseek', keyPresent: false });
+    expect(getLunaContentProvider({ AI_CONTENT_PROVIDER: 'openai', OPENAI_API_KEY: 'sk' } as unknown as NodeJS.ProcessEnv))
+      .toEqual({ provider: 'openai', model: OPENAI_LUNA_MODEL, keyName: 'OPENAI_API_KEY', keyPresent: true });
   });
 
   it('moves instructions and the strict schema into a JSON-mode chat request', () => {
@@ -74,8 +85,8 @@ describe('DeepSeek content provider switch', () => {
       .toThrow('OPENAI_RESPONSE_INCOMPLETE:max_output_tokens');
   });
 
-  it('routes the shared client and the structured wrapper to DeepSeek, bypassing the OpenAI relay', async () => {
-    process.env.AI_CONTENT_PROVIDER = 'deepseek';
+  it('routes the shared client and the structured wrapper to DeepSeek by default, bypassing the OpenAI relay', async () => {
+    delete process.env.AI_CONTENT_PROVIDER;
     process.env.DEEPSEEK_API_KEY = 'ds-test';
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_RELAY_DIRECT;
@@ -91,8 +102,8 @@ describe('DeepSeek content provider switch', () => {
     expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ model: 'deepseek-flash' }), { signal, maxRetries: 0 });
   });
 
-  it('reports no provider when DeepSeek is selected without a key', () => {
-    process.env.AI_CONTENT_PROVIDER = 'deepseek';
+  it('reports no provider when DeepSeek has no key, even with an OpenAI key', () => {
+    delete process.env.AI_CONTENT_PROVIDER;
     delete process.env.DEEPSEEK_API_KEY;
     process.env.OPENAI_API_KEY = 'sk-test';
     expect(getOpenAIResponsesClient()).toBeNull();

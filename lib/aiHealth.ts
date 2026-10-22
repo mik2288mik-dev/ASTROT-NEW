@@ -1,8 +1,9 @@
 import { getNeboCoreVoice } from './voice/core';
-import { createLunaTextResponse, OPENAI_LUNA_MODEL } from './openaiResponses';
+import { createLunaTextResponse, getLunaContentProvider } from './openaiResponses';
 
-/** Runtime health for the fixed OpenAI Luna route. Zodiac is intentionally separate. */
+/** Runtime health for the Luna content route (DeepSeek while OpenAI is off). Zodiac is intentionally separate. */
 export type AiContentHealth = {
+  /** Whether the active content provider's key is set; the name predates the DeepSeek route. */
   openaiKeyPresent: boolean;
   model: string;
   surfaces: Array<{ surface: string; label: string; model: string }>;
@@ -18,15 +19,15 @@ const SURFACES: Array<{ surface: string; label: string }> = [
 ];
 
 export async function getAiContentHealth(): Promise<AiContentHealth> {
-  const openaiKeyPresent = Boolean(process.env.OPENAI_API_KEY);
-  const problems = openaiKeyPresent
+  const provider = getLunaContentProvider();
+  const problems = provider.keyPresent
     ? []
-    : ['OPENAI_API_KEY не задан, генерация Luna недоступна, остаются только безопасные фолбэки.'];
+    : [`${provider.keyName} не задан, генерация недоступна, остаются только безопасные фолбэки.`];
 
   return {
-    openaiKeyPresent,
-    model: OPENAI_LUNA_MODEL,
-    surfaces: SURFACES.map(({ surface, label }) => ({ surface, label, model: OPENAI_LUNA_MODEL })),
+    openaiKeyPresent: provider.keyPresent,
+    model: provider.model,
+    surfaces: SURFACES.map(({ surface, label }) => ({ surface, label, model: provider.model })),
     problems,
     checkedAt: new Date().toISOString(),
   };
@@ -43,26 +44,27 @@ export type AiPingResult = {
 import { recordAiRequest } from './aiLogger';
 import { randomUUID } from 'crypto';
 
-/** Calls the same OpenAI Responses API route as the production content writers. */
+/** Calls the same route as the production content writers. */
 export async function pingAiGeneration(): Promise<AiPingResult> {
   const started = Date.now();
   const traceId = randomUUID();
-  if (!process.env.OPENAI_API_KEY) {
+  const { provider, model, keyName, keyPresent } = getLunaContentProvider();
+  if (!keyPresent) {
     await recordAiRequest({
       traceId,
       scenario: 'content_diagnostic',
-      model: OPENAI_LUNA_MODEL,
-      provider: 'openai',
+      model,
+      provider,
       status: 'error',
       durationMs: 0,
-      errorCode: 'OPENAI_API_KEY_MISSING',
-      rejectionReason: 'OPENAI_API_KEY не задан, генерация недоступна.',
+      errorCode: `${keyName}_MISSING`,
+      rejectionReason: `${keyName} не задан, генерация недоступна.`,
     });
     return {
       ok: false,
-      model: OPENAI_LUNA_MODEL,
+      model,
       latencyMs: 0,
-      error: 'OPENAI_API_KEY не задан, генерация недоступна.',
+      error: `${keyName} не задан, генерация недоступна.`,
     };
   }
 
@@ -77,8 +79,8 @@ export async function pingAiGeneration(): Promise<AiPingResult> {
     await recordAiRequest({
       traceId,
       scenario: 'content_diagnostic',
-      model: OPENAI_LUNA_MODEL,
-      provider: 'openai',
+      model,
+      provider,
       status: sample ? 'success' : 'error',
       durationMs,
       outputText: sample,
@@ -86,19 +88,19 @@ export async function pingAiGeneration(): Promise<AiPingResult> {
     });
     return {
       ok: Boolean(sample),
-      model: OPENAI_LUNA_MODEL,
+      model,
       latencyMs: durationMs,
       sample: sample.slice(0, 120),
       error: sample ? undefined : 'Модель вернула пустой ответ.',
     };
   } catch (error: unknown) {
     const durationMs = Date.now() - started;
-    const errorMsg = error instanceof Error ? error.message : 'Ошибка вызова OpenAI.';
+    const errorMsg = error instanceof Error ? error.message : 'Ошибка вызова модели.';
     await recordAiRequest({
       traceId,
       scenario: 'content_diagnostic',
-      model: OPENAI_LUNA_MODEL,
-      provider: 'openai',
+      model,
+      provider,
       status: 'error',
       durationMs,
       errorCode: 'OPENAI_PING_ERROR',
@@ -106,7 +108,7 @@ export async function pingAiGeneration(): Promise<AiPingResult> {
     });
     return {
       ok: false,
-      model: OPENAI_LUNA_MODEL,
+      model,
       latencyMs: durationMs,
       error: errorMsg,
     };
