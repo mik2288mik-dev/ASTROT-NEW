@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { createHash } from 'crypto';
 import type OpenAI from 'openai';
 
 export const DEFAULT_ANTHROPIC_CONTENT_MODEL = 'claude-haiku-5-5';
@@ -7,7 +8,18 @@ export function anthropicContentModel(env: NodeJS.ProcessEnv = process.env): str
   return String(env.ANTHROPIC_CONTENT_MODEL || '').trim() || DEFAULT_ANTHROPIC_CONTENT_MODEL;
 }
 
+export const DEFAULT_ANTHROPIC_RELAY_URL = 'https://astrot-production.up.railway.app/api/internal/anthropic';
+
 let client: Anthropic | null = null;
+
+/** Railway (OPENAI_RELAY_DIRECT=1) reaches Anthropic itself; the Russian host goes through Railway. */
+export function anthropicViaRelay(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.OPENAI_RELAY_DIRECT !== '1';
+}
+
+export function anthropicRelayAuthToken(apiKey: string): string {
+  return createHash('sha256').update(`nebo-anthropic-relay-v1:${apiKey}`).digest('hex');
+}
 
 /**
  * Claude serves all Luna content (personal forecasts, natal readings,
@@ -16,7 +28,15 @@ let client: Anthropic | null = null;
 export function getAnthropicClient(): Anthropic | null {
   const apiKey = String(process.env.ANTHROPIC_API_KEY || '').trim();
   if (!apiKey) return null;
-  if (!client) client = new Anthropic({ apiKey });
+  if (!client) {
+    client = anthropicViaRelay()
+      ? new Anthropic({
+        apiKey: null,
+        authToken: anthropicRelayAuthToken(apiKey),
+        baseURL: String(process.env.ANTHROPIC_RELAY_URL || DEFAULT_ANTHROPIC_RELAY_URL).trim(),
+      })
+      : new Anthropic({ apiKey });
+  }
   return client;
 }
 

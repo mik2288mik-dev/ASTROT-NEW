@@ -96,3 +96,13 @@ describe('Claude content provider', () => {
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ model: 'claude-haiku-5-5' }), undefined);
   });
 });
+
+describe('Claude relay for the Russian host', () => {
+  it('goes through Railway unless this server reaches the providers directly', () => {
+    const { anthropicViaRelay, anthropicRelayAuthToken } = jest.requireActual('../lib/anthropicContent');
+    expect(anthropicViaRelay({} as NodeJS.ProcessEnv)).toBe(true);
+    expect(anthropicViaRelay({ OPENAI_RELAY_DIRECT: '1' } as unknown as NodeJS.ProcessEnv)).toBe(false);
+    expect(anthropicRelayAuthToken('sk-ant')).toMatch(/^[a-f0-9]{64}$/);
+    expect(anthropicRelayAuthToken('sk-ant')).not.toContain('sk-ant');
+  });
+});
