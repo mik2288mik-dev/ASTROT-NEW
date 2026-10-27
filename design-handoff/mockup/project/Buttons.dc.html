@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>NEBO: Кнопки: какой цвет взять</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.bx{animation:bxFlow 18s ease-in-out infinite alternate}
+@keyframes bxFlow{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+</style>
+</helmet>
+<div style="width: 1880px; height: 740px; box-sizing: border-box; padding: 44px 56px; background: #F6F6F9; color: #0B0D12; font-family: Onest, 'Segoe UI', sans-serif">
+<h1 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em">Кнопки: по умолчанию «Ночное небо»</h1>
+<p style="max-width: 1100px; margin: 10px 0 0; font-size: 17px; line-height: 1.5; color: rgba(60,60,67,.72)">Решили так: в приложении по умолчанию «Ночное небо». В профиле, в разделе «Внешний вид», рядом с темой можно выбрать «Чёрные» или «Золото», и кнопки сменятся во всём приложении. Остальные варианты оставлены здесь для сравнения.</p>
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 16px; margin-top: 30px">
+<sc-for list="{{ variants }}" as="v" hint-placeholder-count="7">
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="min-height: 112px">
+<div style="display: flex; align-items: center; gap: 8px"><strong style="font-size: 19px; font-weight: 700; letter-spacing: -0.01em">{{ v.name }}</strong><sc-if value="{{ v.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="padding: 3px 8px; border-radius: 999px; background: {{ v.badgeBg }}; color: {{ v.badgeFg }}; font-size: 11.5px; font-weight: 700; white-space: nowrap">{{ v.badge }}</span></sc-if></div>
+<p style="margin: 6px 0 0; font-size: 13.5px; line-height: 1.45; color: rgba(60,60,67,.72)">{{ v.note }}</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 18px 16px 16px; border-radius: 26px; background: #FFFFFF; box-shadow: 0 1px 0 rgba(11,13,18,.04), 0 12px 30px -18px rgba(11,13,18,.18)">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(60,60,67,.72)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6zM9 12l2 2 4-4"></path></svg>Профессиональный расчёт</span>
+<span class="{{ v.cls }}" style="display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 26px; background: {{ v.bg }}; background-size: 170% 100%; box-shadow: {{ v.shadow }}; color: {{ v.fg }}; font-size: 16px; font-weight: 600">Показать мой день</span>
+<span style="font-size: 11.5px; text-align: center; color: rgba(60,60,67,.5)">Данные останутся на этом телефоне</span>
+<span style="height: 1px; margin: 4px 0; background: rgba(11,13,18,.06)"></span>
+<span class="{{ v.cls }}" style="display: flex; align-items: center; justify-content: space-between; height: 48px; padding: 0 7px 0 14px; border-radius: 24px; background: {{ v.bg }}; background-size: 170% 100%; box-shadow: {{ v.shadow }}; color: {{ v.fg }}; font-size: 14.5px; font-weight: 600"><span>Все 12 глав</span><span style="display: inline-flex; align-items: center; height: 34px; padding: 0 10px; border-radius: 17px; background: {{ v.pill }}">590 ₽</span></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 26px; background: #1C1D21">
+<span class="{{ v.cls }}" style="display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 26px; background: {{ v.dbg }}; background-size: 170% 100%; box-shadow: {{ v.dshadow }}; color: {{ v.dfg }}; font-size: 16px; font-weight: 600">Показать мой день</span>
+<span class="{{ v.cls }}" style="display: flex; align-items: center; justify-content: space-between; height: 48px; padding: 0 7px 0 14px; border-radius: 24px; background: {{ v.dbg }}; background-size: 170% 100%; box-shadow: {{ v.dshadow }}; color: {{ v.dfg }}; font-size: 14.5px; font-weight: 600"><span>Все 12 глав</span><span style="display: inline-flex; align-items: center; height: 34px; padding: 0 10px; border-radius: 17px; background: {{ v.dpill }}">590 ₽</span></span>
+<span style="font-size: 11.5px; text-align: center; color: rgba(235,235,245,.5)">тёмная тема</span>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1880,"height":740}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const STARS = 'radial-gradient(1.3px 1.3px at 14% 34%, rgba(255,255,255,.8), rgba(255,255,255,0)), radial-gradient(1px 1px at 31% 72%, rgba(255,255,255,.55), rgba(255,255,255,0)), radial-gradient(1.6px 1.6px at 47% 22%, rgba(255,231,170,.9), rgba(255,231,170,0)), radial-gradient(1px 1px at 63% 64%, rgba(255,255,255,.6), rgba(255,255,255,0)), radial-gradient(1.2px 1.2px at 79% 30%, rgba(255,255,255,.7), rgba(255,255,255,0)), radial-gradient(1px 1px at 91% 70%, rgba(255,255,255,.5), rgba(255,255,255,0)), ';
+    const W = 'rgba(255,255,255,.2)', D = 'rgba(0,0,0,.08)';
+    // name, note, light [bg, shadow, fg, pill], dark [bg, shadow, fg, pill], flowing, recommended
+    const V = [
+      ['Сейчас: перелив', 'Синий переходит в фиолетовый. Узнаваемо, но такой градиент у многих ИИ-сервисов.', ['linear-gradient(110deg,#3B5BFF 0%,#4338CA 34%,#4C1D95 68%,#2E1065 100%)', '0 14px 28px -16px rgba(67,56,202,.6)', '#ffffff', W], ['linear-gradient(110deg,#3B5BFF 0%,#4338CA 34%,#4C1D95 68%,#2E1065 100%)', 'none', '#ffffff', W], true, false],
+      ['Ультрамарин', 'Один чистый синий без перелива. Спокойно и современно, как в банковских приложениях.', ['#2E46D8', '0 14px 28px -16px rgba(46,70,216,.55)', '#ffffff', W], ['#3B54E6', 'none', '#ffffff', W], false, false],
+      ['Ночное небо', 'Тёмно-синий с еле заметными звёздами. Про космос, а не про ИИ, и подходит к названию NEBO.', [STARS + 'linear-gradient(180deg,#1C2662 0%,#0F1640 100%)', '0 14px 28px -16px rgba(15,22,64,.65)', '#ffffff', W], [STARS + 'linear-gradient(180deg,#2A3786 0%,#1A2463 100%)', 'none', '#ffffff', W], false, true],
+      ['Чёрные', 'Почти чёрный графит, как у Apple. Строго и дорого на белом. В тёмной теме кнопка становится светлой.', ['#16171C', '0 14px 28px -16px rgba(10,10,20,.5)', '#ffffff', W], ['#F2F3F5', 'none', '#111216', D], false, false],
+      ['Тёмный фиолет', 'Наш фиолетовый, только ровный, без перелива. Мягче и спокойнее, чем сейчас.', ['#40249A', '0 14px 28px -16px rgba(64,36,154,.55)', '#ffffff', W], ['#5434C2', 'none', '#ffffff', W], false, false],
+      ['Золото', 'Тёплое золото с тёмным текстом. Звучит как астрология и премиум, но на белом очень заметно.', ['linear-gradient(180deg,#F4CD74 0%,#E2AC43 100%)', '0 14px 28px -16px rgba(170,110,20,.55)', '#2A1C02', 'rgba(255,255,255,.35)'], ['linear-gradient(180deg,#F4CD74 0%,#E2AC43 100%)', 'none', '#2A1C02', 'rgba(255,255,255,.35)'], false, false],
+      ['Светлый тон', 'Светлая подложка и синий текст, как кнопки в iOS. Мягко, но главное действие видно хуже.', ['#E7ECFF', 'none', '#2B3CC8', 'rgba(255,255,255,.7)'], ['rgba(165,180,252,.18)', 'none', '#C7D2FE', 'rgba(255,255,255,.1)'], false, false],
+    ];
+    const BADGE = { 'Ночное небо': ['По умолчанию', '#E3F7EA', '#15803D'], 'Чёрные': ['В настройках', '#E7EEFF', '#2B4CC8'], 'Золото': ['В настройках', '#E7EEFF', '#2B4CC8'] };
+    return { variants: V.map((v) => ({ name: v[0], note: v[1], bg: v[2][0], shadow: v[2][1], fg: v[2][2], pill: v[2][3], dbg: v[3][0], dshadow: v[3][1], dfg: v[3][2], dpill: v[3][3], cls: v[4] ? 'bx' : '', hasBadge: !!BADGE[v[0]], badge: BADGE[v[0]] ? BADGE[v[0]][0] : '', badgeBg: BADGE[v[0]] ? BADGE[v[0]][1] : 'transparent', badgeFg: BADGE[v[0]] ? BADGE[v[0]][2] : 'inherit' })) };
+  }
+}
+</script>
+</body>
+</html>

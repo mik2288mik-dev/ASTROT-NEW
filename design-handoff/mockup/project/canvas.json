@@ -1,0 +1,2439 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-21T22:24:44Z"
+ },
+ "title": "NEBO: всё приложение",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 270,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Всё приложение: нажимай что угодно"
+  },
+  "Splash.dc.html": {
+   "x": 0,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Заставка: логотип и орбита"
+  },
+  "Auth.dc.html": {
+   "x": 470,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Вход с небом, основной вариант"
+  },
+  "AuthSky.dc.html": {
+   "x": 940,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Вход: белый вариант (не выбран)"
+  },
+  "AuthYa.dc.html": {
+   "x": 1410,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Яндекс ID: переходим в сервис"
+  },
+  "AuthVk.dc.html": {
+   "x": 1880,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "VK ID: переходим в сервис"
+  },
+  "AuthOk.dc.html": {
+   "x": 2350,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Вошли: привет, Михаил"
+  },
+  "EntryYa.dc.html": {
+   "x": 2820,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Дата подтянулась из Яндекс ID"
+  },
+  "EntryVkNoYear.dc.html": {
+   "x": 3290,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "В VK скрыт год: выбрать только год"
+  },
+  "Email.dc.html": {
+   "x": 3760,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Вход по почте"
+  },
+  "Code.dc.html": {
+   "x": 4230,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Код из письма"
+  },
+  "CodeErr.dc.html": {
+   "x": 4700,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Код не подошёл"
+  },
+  "CodeOk.dc.html": {
+   "x": 5170,
+   "y": 1534,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Код подошёл, входим"
+  },
+  "Entry.dc.html": {
+   "x": 0,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Дата рождения, время и город сразу открыты"
+  },
+  "EntryFull.dc.html": {
+   "x": 470,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Время, город и согласие"
+  },
+  "EntryNoTime.dc.html": {
+   "x": 940,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Не знаю время рождения"
+  },
+  "Calc.dc.html": {
+   "x": 1410,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "«Считаем небо»: планеты на орбитах"
+  },
+  "Coach1.dc.html": {
+   "x": 1880,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подсказка 1 из 6: твой день"
+  },
+  "Coach2.dc.html": {
+   "x": 2350,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подсказка 2: прогноз и знак вопроса"
+  },
+  "Coach3.dc.html": {
+   "x": 2820,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подсказка 3: день, неделя, месяц, даты"
+  },
+  "Coach4.dc.html": {
+   "x": 3290,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подсказка 4: плашка аккаунта"
+  },
+  "Coach5.dc.html": {
+   "x": 3760,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подсказка 5: разделы внизу"
+  },
+  "Coach6.dc.html": {
+   "x": 4230,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подсказка 6: всё всерьёз"
+  },
+  "PopNotify.dc.html": {
+   "x": 4700,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "После подсказок: присылать день в 7:00?"
+  },
+  "SysNotif.dc.html": {
+   "x": 5170,
+   "y": 2798,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Системное окно Android"
+  },
+  "HintSigns.dc.html": {
+   "x": 0,
+   "y": 4062,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Знаки: листай знаки"
+  },
+  "HintMine.dc.html": {
+   "x": 470,
+   "y": 4062,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Моя карта: своя или чужая"
+  },
+  "HintMineWheel.dc.html": {
+   "x": 940,
+   "y": 4062,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Моя карта: нажми на планету, дом или знак"
+  },
+  "HintPair.dc.html": {
+   "x": 1410,
+   "y": 4062,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Совместимость: любые двое"
+  },
+  "HintPairRel.dc.html": {
+   "x": 1880,
+   "y": 4062,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Совместимость: тип отношений"
+  },
+  "HintRest.dc.html": {
+   "x": 2350,
+   "y": 4062,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Отдых: звуки для сна"
+  },
+  "HintMoon.dc.html": {
+   "x": 2820,
+   "y": 4062,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Луна: пять календарей"
+  },
+  "Today.dc.html": {
+   "x": 0,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Сегодня: гость"
+  },
+  "TodayHoro.dc.html": {
+   "x": 470,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Нажал «Твой прогноз на сегодня»: один прогноз на весь день"
+  },
+  "TodayLow.dc.html": {
+   "x": 940,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Ниже: Луна, карта дня, скоро"
+  },
+  "TodayPlus.dc.html": {
+   "x": 1410,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Михаил · Plus: близкие сегодня"
+  },
+  "TodayPromo.dc.html": {
+   "x": 1880,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "«Есть в NEBO»: каждый день одна скрытая вещь (подарок)"
+  },
+  "TodayPromoPoster.dc.html": {
+   "x": 2350,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "«Есть в NEBO»: постер"
+  },
+  "PopWhy.dc.html": {
+   "x": 2820,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Знак вопроса: почему так, три шага"
+  },
+  "PopHours.dc.html": {
+   "x": 3290,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "«Как считаем»: настроение по карте"
+  },
+  "PopInfo.dc.html": {
+   "x": 3760,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Событие: Меркурий назад"
+  },
+  "Week.dc.html": {
+   "x": 4230,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Неделя: настроение дальше в Plus"
+  },
+  "WeekPlus.dc.html": {
+   "x": 4700,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Неделя в Plus: настроение на все 7 дней"
+  },
+  "Month.dc.html": {
+   "x": 5170,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Месяц: дни нажимаются"
+  },
+  "MonthPlus.dc.html": {
+   "x": 5640,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Месяц в Plus: самые лёгкие и колючие дни"
+  },
+  "CalDay.dc.html": {
+   "x": 6110,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Нажал на 23 октября"
+  },
+  "Dates.dc.html": {
+   "x": 6580,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Даты: 20 дел"
+  },
+  "DateResult.dc.html": {
+   "x": 7050,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Крупная покупка: свои лучшие дни"
+  },
+  "DateInterview.dc.html": {
+   "x": 7520,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Собеседование: свои лучшие дни"
+  },
+  "DateLove.dc.html": {
+   "x": 7990,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Свидание: Венера идёт назад до 14 ноября"
+  },
+  "Card0.dc.html": {
+   "x": 8460,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Карта дня: выбери карту"
+  },
+  "Card2.dc.html": {
+   "x": 8930,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Карта дня открыта"
+  },
+  "PopInbox.dc.html": {
+   "x": 9400,
+   "y": 5326,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Входящие"
+  },
+  "Moon.dc.html": {
+   "x": 0,
+   "y": 6590,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Луна сегодня: сад и огород"
+  },
+  "MoonLow.dc.html": {
+   "x": 470,
+   "y": 6590,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Месяц вперёд: хорошие дни заливаются цветом"
+  },
+  "MoonBeauty.dc.html": {
+   "x": 940,
+   "y": 6590,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Стрижка и красота"
+  },
+  "MoonBeautyLock.dc.html": {
+   "x": 1410,
+   "y": 6590,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Месяц вперёд в Plus"
+  },
+  "MoonHealth.dc.html": {
+   "x": 1880,
+   "y": 6590,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Здоровье и питание"
+  },
+  "MoonDeals.dc.html": {
+   "x": 2350,
+   "y": 6590,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Дела в полнолуние 26 октября"
+  },
+  "MoonHome.dc.html": {
+   "x": 2820,
+   "y": 6590,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Дом и быт: месяц"
+  },
+  "MoonDay.dc.html": {
+   "x": 3290,
+   "y": 6590,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Нажал на день"
+  },
+  "MoonLockPop.dc.html": {
+   "x": 3760,
+   "y": 6590,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Что откроет Plus"
+  },
+  "MoonRegion.dc.html": {
+   "x": 4230,
+   "y": 6590,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Где твой сад"
+  },
+  "Signs.dc.html": {
+   "x": 0,
+   "y": 7854,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Знаки: витрина"
+  },
+  "SignsWeek.dc.html": {
+   "x": 470,
+   "y": 7854,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Неделя для знака"
+  },
+  "SignsLow.dc.html": {
+   "x": 940,
+   "y": 7854,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Все знаки"
+  },
+  "SignShare.dc.html": {
+   "x": 1410,
+   "y": 7854,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Поделиться гороскопом"
+  },
+  "Natal.dc.html": {
+   "x": 0,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Моя натальная карта"
+  },
+  "NatalGuide.dc.html": {
+   "x": 470,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Внизу карты: справочник планет, домов и аспектов"
+  },
+  "NatalLow.dc.html": {
+   "x": 940,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Ниже: главное, рассказ, цифры"
+  },
+  "NatalFresh.dc.html": {
+   "x": 1410,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Карта сразу, главы дописываются"
+  },
+  "Planet.dc.html": {
+   "x": 1880,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тап по Асценденту"
+  },
+  "Proof.dc.html": {
+   "x": 2350,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Как посчитана карта"
+  },
+  "Chapter.dc.html": {
+   "x": 2820,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Глава: чтение"
+  },
+  "Buy.dc.html": {
+   "x": 3290,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Покупка карты"
+  },
+  "Cat.dc.html": {
+   "x": 3760,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Кошка уносит замок"
+  },
+  "Matrix.dc.html": {
+   "x": 4230,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Матрица собирается по шагам"
+  },
+  "Numbers.dc.html": {
+   "x": 4700,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Числа: квадрат Пифагора"
+  },
+  "Ask.dc.html": {
+   "x": 5170,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Вопросы о карте: теперь внутри вкладки «Карта»"
+  },
+  "Tarot.dc.html": {
+   "x": 0,
+   "y": 10382,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Таро во вкладке «Моя карта»: карта дня, расклад 99 ₽, пример"
+  },
+  "TarotExample.dc.html": {
+   "x": 470,
+   "y": 10382,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Пример расклада: вопрос Кати"
+  },
+  "HintTarot.dc.html": {
+   "x": 940,
+   "y": 10382,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подсказка при первом заходе"
+  },
+  "TarotBuy.dc.html": {
+   "x": 1410,
+   "y": 10382,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Покупка расклада"
+  },
+  "TarotShuffle.dc.html": {
+   "x": 1880,
+   "y": 10382,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Колода перемешивается"
+  },
+  "TarotPick.dc.html": {
+   "x": 2350,
+   "y": 10382,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Выбираешь три карты"
+  },
+  "TarotPicked.dc.html": {
+   "x": 2820,
+   "y": 10382,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Карты выбраны"
+  },
+  "TarotRead.dc.html": {
+   "x": 3290,
+   "y": 10382,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Карты переворачиваются"
+  },
+  "TarotReadLow.dc.html": {
+   "x": 3760,
+   "y": 10382,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Что это значит и совет"
+  },
+  "TarotShare.dc.html": {
+   "x": 4230,
+   "y": 10382,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Поделиться раскладом"
+  },
+  "AskTyping.dc.html": {
+   "x": 0,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Вопрос отправлен"
+  },
+  "AskAnswer.dc.html": {
+   "x": 470,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Ответ по карте"
+  },
+  "AskDariya.dc.html": {
+   "x": 940,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Вопрос про Дарию"
+  },
+  "AskOut.dc.html": {
+   "x": 1410,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Вопросы в подарок закончились"
+  },
+  "Packs.dc.html": {
+   "x": 1880,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Пакеты: 3, 10, 30 вопросов"
+  },
+  "Guide.dc.html": {
+   "x": 2350,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Справочник: планеты"
+  },
+  "GuideHouses.dc.html": {
+   "x": 2820,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Справочник: дома"
+  },
+  "GuideItem.dc.html": {
+   "x": 3290,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Венера: что это и у тебя"
+  },
+  "YearCard.dc.html": {
+   "x": 3760,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "В «Моей карте»: твой год вперёд"
+  },
+  "Year.dc.html": {
+   "x": 4230,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Год вперёд: два месяца открыты"
+  },
+  "YearBuy.dc.html": {
+   "x": 4700,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Покупка года вперёд"
+  },
+  "YearOwned.dc.html": {
+   "x": 5170,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Год открыт целиком"
+  },
+  "OtherNatal.dc.html": {
+   "x": 0,
+   "y": 12910,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Карта Дарии"
+  },
+  "OtherChapter.dc.html": {
+   "x": 470,
+   "y": 12910,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Глава о Дарии"
+  },
+  "OtherMark.dc.html": {
+   "x": 940,
+   "y": 12910,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Карта Марка"
+  },
+  "OtherAdd.dc.html": {
+   "x": 1410,
+   "y": 12910,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Добавить человека"
+  },
+  "OtherBuy.dc.html": {
+   "x": 1880,
+   "y": 12910,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Купить карту Дарии"
+  },
+  "People.dc.html": {
+   "x": 0,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Совместимость: вариант Б, основной"
+  },
+  "PeopleA.dc.html": {
+   "x": 470,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Вариант А (не выбран)"
+  },
+  "PeopleB.dc.html": {
+   "x": 940,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Было раньше: круги (заменено)"
+  },
+  "PairStart.dc.html": {
+   "x": 1410,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Любые два человека"
+  },
+  "PairPick.dc.html": {
+   "x": 1880,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Выбор второго человека"
+  },
+  "PairNew.dc.html": {
+   "x": 2350,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Новый человек"
+  },
+  "PairOthers.dc.html": {
+   "x": 2820,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Ника и Марк"
+  },
+  "PairTopics.dc.html": {
+   "x": 3290,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Кто вы друг другу: список тем под кнопкой"
+  },
+  "PairResult.dc.html": {
+   "x": 3760,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Результат: шкала и 6 вопросов"
+  },
+  "PairResultLow.dc.html": {
+   "x": 4230,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Ниже: остальные вопросы"
+  },
+  "PairBusiness.dc.html": {
+   "x": 4700,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Бизнес-партнёры: свои 6 вопросов"
+  },
+  "PairFull.dc.html": {
+   "x": 5170,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Полный разбор пары"
+  },
+  "PairFullLow.dc.html": {
+   "x": 5640,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Кто на кого влияет, когда поговорить"
+  },
+  "PairBuy.dc.html": {
+   "x": 6110,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Покупка разбора пары"
+  },
+  "PairSigns.dc.html": {
+   "x": 6580,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "По знаку"
+  },
+  "PairSignResult.dc.html": {
+   "x": 7050,
+   "y": 14174,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Результат по знакам"
+  },
+  "Rest.dc.html": {
+   "x": 0,
+   "y": 15438,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Отдых: обложки, как в музыке"
+  },
+  "Player.dc.html": {
+   "x": 470,
+   "y": 15438,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Плеер: волны на пляже, таймер сна"
+  },
+  "PlayerRain.dc.html": {
+   "x": 940,
+   "y": 15438,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Дождь в лесу на паузе"
+  },
+  "Story.dc.html": {
+   "x": 1410,
+   "y": 15438,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тихий переулок: детектив, серия 1"
+  },
+  "StoryMail.dc.html": {
+   "x": 1880,
+   "y": 15438,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Соседи по лестнице: романтика"
+  },
+  "Test.dc.html": {
+   "x": 2350,
+   "y": 15438,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тест: вопрос 2 из 8"
+  },
+  "TestResult.dc.html": {
+   "x": 2820,
+   "y": 15438,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Результат теста"
+  },
+  "Breath.dc.html": {
+   "x": 3290,
+   "y": 15438,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Дыхание: круг вдох и выдох"
+  },
+  "Bubbles.dc.html": {
+   "x": 3760,
+   "y": 15438,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Пузыри: лопать и выдыхать"
+  },
+  "Profile.dc.html": {
+   "x": 0,
+   "y": 16702,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Профиль гостя: войти и сохранить"
+  },
+  "ProfilePlus.dc.html": {
+   "x": 470,
+   "y": 16702,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Профиль: Михаил · Plus"
+  },
+  "NotifSettings.dc.html": {
+   "x": 940,
+   "y": 16702,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Уведомления: что и когда"
+  },
+  "MyCharts.dc.html": {
+   "x": 1410,
+   "y": 16702,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Мои карты: близкие"
+  },
+  "MyChartsEmpty.dc.html": {
+   "x": 1880,
+   "y": 16702,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Мои карты: пока пусто"
+  },
+  "Purchases.dc.html": {
+   "x": 2350,
+   "y": 16702,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Покупки и восстановление"
+  },
+  "Support.dc.html": {
+   "x": 2820,
+   "y": 16702,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Поддержка: частые вопросы"
+  },
+  "PopLogout.dc.html": {
+   "x": 3290,
+   "y": 16702,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Выйти из аккаунта"
+  },
+  "DeleteAcc.dc.html": {
+   "x": 3760,
+   "y": 16702,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Удалить аккаунт навсегда"
+  },
+  "Plus.dc.html": {
+   "x": 0,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "NEBO Plus"
+  },
+  "PayPlus.dc.html": {
+   "x": 470,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Оплата через RuStore"
+  },
+  "Paying.dc.html": {
+   "x": 940,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подтверждаем оплату"
+  },
+  "PaidPlus.dc.html": {
+   "x": 1410,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Добро пожаловать в Plus"
+  },
+  "PayFail.dc.html": {
+   "x": 1880,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Оплата не прошла"
+  },
+  "Shop.dc.html": {
+   "x": 2350,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Магазин: пять разовых покупок"
+  },
+  "Gift.dc.html": {
+   "x": 2820,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подарить Plus"
+  },
+  "GiftPay.dc.html": {
+   "x": 3290,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Оплата подарка"
+  },
+  "GiftDone.dc.html": {
+   "x": 3760,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подарок готов: ссылка"
+  },
+  "Poster.dc.html": {
+   "x": 4230,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Постер «Небо в день рождения»"
+  },
+  "Tips.dc.html": {
+   "x": 4700,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Поддержать NEBO"
+  },
+  "PaidPoster.dc.html": {
+   "x": 5170,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Постер куплен"
+  },
+  "Lock.dc.html": {
+   "x": 0,
+   "y": 19230,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Утро: название дня и ответ"
+  },
+  "LockGarden.dc.html": {
+   "x": 470,
+   "y": 19230,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Лунный календарь напоминает о саде"
+  },
+  "BannerAnswer.dc.html": {
+   "x": 940,
+   "y": 19230,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Баннер: ответ готов"
+  },
+  "BannerPeople.dc.html": {
+   "x": 1410,
+   "y": 19230,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Баннер: у Дарии тёплый день"
+  },
+  "BannerMoon.dc.html": {
+   "x": 1880,
+   "y": 19230,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Баннер: день для чеснока"
+  },
+  "BannerVpn.dc.html": {
+   "x": 2350,
+   "y": 19230,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подсказка: включён VPN"
+  },
+  "Skeleton.dc.html": {
+   "x": 0,
+   "y": 20494,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "День загружается: на весь экран, фразы сменяются"
+  },
+  "ErrorScreen.dc.html": {
+   "x": 470,
+   "y": 20494,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Сервер не ответил"
+  },
+  "InboxEmpty.dc.html": {
+   "x": 940,
+   "y": 20494,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Входящие: пока тихо"
+  },
+  "PurchasesGuest.dc.html": {
+   "x": 1410,
+   "y": 20494,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Покупок пока нет"
+  },
+  "PopReview.dc.html": {
+   "x": 0,
+   "y": 21758,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Оценка: звёзды"
+  },
+  "PopReview5.dc.html": {
+   "x": 470,
+   "y": 21758,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Оценка 5"
+  },
+  "PopReview2.dc.html": {
+   "x": 940,
+   "y": 21758,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Оценка 2"
+  },
+  "PopSignin.dc.html": {
+   "x": 1410,
+   "y": 21758,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Перед покупкой: войти"
+  },
+  "PopPayFail.dc.html": {
+   "x": 1880,
+   "y": 21758,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Оплата не прошла"
+  },
+  "PopSuccess.dc.html": {
+   "x": 2350,
+   "y": 21758,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Покупка прошла"
+  },
+  "PopOffline.dc.html": {
+   "x": 2820,
+   "y": 21758,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Нет интернета"
+  },
+  "PopCity.dc.html": {
+   "x": 3290,
+   "y": 21758,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Город не найден"
+  },
+  "PopNoTime.dc.html": {
+   "x": 3760,
+   "y": 21758,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Без времени рождения"
+  },
+  "PopNatalData.dc.html": {
+   "x": 4230,
+   "y": 21758,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Добавить время и город"
+  },
+  "PopUpdate.dc.html": {
+   "x": 4700,
+   "y": 21758,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Новая версия"
+  },
+  "AuthDark.dc.html": {
+   "x": 0,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тёмная: вход"
+  },
+  "TodayDark.dc.html": {
+   "x": 470,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тёмная: Сегодня"
+  },
+  "MoonDark.dc.html": {
+   "x": 940,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тёмная: Луна"
+  },
+  "TarotDark.dc.html": {
+   "x": 1410,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тёмная: таро"
+  },
+  "ProfileDark.dc.html": {
+   "x": 1880,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тёмная: профиль"
+  },
+  "ShopDark.dc.html": {
+   "x": 2350,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тёмная: магазин"
+  },
+  "NatalDark.dc.html": {
+   "x": 2820,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тёмная: Моя карта"
+  },
+  "PairDark.dc.html": {
+   "x": 3290,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тёмная: Совместимость"
+  },
+  "AuthEN.dc.html": {
+   "x": 3760,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "English: sign in"
+  },
+  "EntryEN.dc.html": {
+   "x": 4230,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "English: вход"
+  },
+  "TodayEN.dc.html": {
+   "x": 4700,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "English: Сегодня"
+  },
+  "AuthES.dc.html": {
+   "x": 5170,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Español: entrar"
+  },
+  "EntryES.dc.html": {
+   "x": 5640,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Español: вход"
+  },
+  "TodayES.dc.html": {
+   "x": 6110,
+   "y": 23022,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Español: Сегодня"
+  },
+  "PosterDark.dc.html": {
+   "x": 5640,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Постер: тёмный вариант"
+  },
+  "PosterWall.dc.html": {
+   "x": 6110,
+   "y": 17966,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Постер в рамке на стене"
+  },
+  "PosterA3.dc.html": {
+   "x": 6580,
+   "y": 17966,
+   "w": 620,
+   "h": 877,
+   "title": "Постер A3 при печати: светлый"
+  },
+  "PosterA3Dark.dc.html": {
+   "x": 7280,
+   "y": 17966,
+   "w": 620,
+   "h": 877,
+   "title": "Постер A3 при печати: тёмный"
+  },
+  "NatalVenus.dc.html": {
+   "x": 5640,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тап по Венере: что это и у тебя"
+  },
+  "NatalHouse.dc.html": {
+   "x": 6110,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тап по дому: 4 дом"
+  },
+  "NatalSign.dc.html": {
+   "x": 6580,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тап по знаку: Рыбы"
+  },
+  "NatalAspects.dc.html": {
+   "x": 7050,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тап в центр круга: аспекты"
+  },
+  "OtherPlanet.dc.html": {
+   "x": 7520,
+   "y": 9118,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Карта Дарии: тап по Луне"
+  },
+  "GuidePoints.dc.html": {
+   "x": 5640,
+   "y": 11646,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Справочник: точки, Асцендент и узлы"
+  },
+  "Buttons.dc.html": {
+   "x": 0,
+   "y": 26814,
+   "w": 1880,
+   "h": 740,
+   "is_interactive": true,
+   "radius": 28,
+   "title": "Кнопки: 7 цветов рядом, на белом и на тёмном"
+  },
+  "BtnFlow.dc.html": {
+   "x": 1960,
+   "y": 26814,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Кнопка на экране: сейчас, перелив"
+  },
+  "BtnUltra.dc.html": {
+   "x": 2430,
+   "y": 26814,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Кнопка на экране: ультрамарин"
+  },
+  "BtnNight.dc.html": {
+   "x": 2900,
+   "y": 26814,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Кнопка на экране: ночное небо"
+  },
+  "BtnInk.dc.html": {
+   "x": 3370,
+   "y": 26814,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Кнопка на экране: чёрные"
+  },
+  "BtnViolet.dc.html": {
+   "x": 3840,
+   "y": 26814,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Кнопка на экране: тёмный фиолет"
+  },
+  "BtnGold.dc.html": {
+   "x": 4310,
+   "y": 26814,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Кнопка на экране: золото"
+  },
+  "BtnTint.dc.html": {
+   "x": 4780,
+   "y": 26814,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Кнопка на экране: светлый тон"
+  },
+  "TodayTiles.dc.html": {
+   "x": 0,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Сегодня: число дня и руна дня"
+  },
+  "DayNumber.dc.html": {
+   "x": 470,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Число дня: что значит и как посчитано"
+  },
+  "DayRune.dc.html": {
+   "x": 940,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Руна дня: значение и совет"
+  },
+  "Runes.dc.html": {
+   "x": 1410,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Руны: вкладка в «Моей карте»"
+  },
+  "RuneInfo.dc.html": {
+   "x": 1880,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Руны: значение любой из 24"
+  },
+  "RunesBuy.dc.html": {
+   "x": 2350,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Руны: покупка расклада, 99 ₽"
+  },
+  "RuneExample.dc.html": {
+   "x": 2820,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Руны: пример расклада до покупки"
+  },
+  "RuneRead.dc.html": {
+   "x": 3290,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Руны: готовый расклад из трёх рун"
+  },
+  "NumbersName.dc.html": {
+   "x": 3760,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Числа: личный месяц, день и число имени"
+  },
+  "NumbersBuy.dc.html": {
+   "x": 4230,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Числа: старое окно покупки, больше не используется"
+  },
+  "NumbersYear.dc.html": {
+   "x": 4700,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Числа: 2026 по месяцам"
+  },
+  "NumbersPairs.dc.html": {
+   "x": 5170,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Числа: пары с близкими"
+  },
+  "SignsChinese.dc.html": {
+   "x": 5640,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Знаки: китайский гороскоп"
+  },
+  "SignsChineseLow.dc.html": {
+   "x": 6110,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Китайский гороскоп: 2026 и с кем легко"
+  },
+  "PairMore.dc.html": {
+   "x": 6580,
+   "y": 24286,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Пара: по числам и по году рождения"
+  },
+  "TodayPromo2.dc.html": {
+   "x": 0,
+   "y": 25550,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подсказка сменилась сама: китайский гороскоп"
+  },
+  "TodayPromo4.dc.html": {
+   "x": 470,
+   "y": 25550,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Подсказка сменилась сама: тест недели"
+  },
+  "TestIntro.dc.html": {
+   "x": 940,
+   "y": 25550,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Тест: что получишь, перед стартом"
+  },
+  "Tests.dc.html": {
+   "x": 1410,
+   "y": 25550,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Все тесты по темам, тест недели"
+  },
+  "TestResultBattery.dc.html": {
+   "x": 1880,
+   "y": 25550,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Результат: батарейка, режим экономии"
+  },
+  "TestResultConflict.dc.html": {
+   "x": 2350,
+   "y": 25550,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Результат: как ты ведёшь себя в споре"
+  },
+  "ProfileButtons.dc.html": {
+   "x": 2820,
+   "y": 25550,
+   "w": 390,
+   "h": 844,
+   "is_interactive": true,
+   "radius": 44,
+   "title": "Профиль: выбор цвета кнопок"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Splash.dc.html",
+  "Auth.dc.html",
+  "AuthSky.dc.html",
+  "AuthYa.dc.html",
+  "AuthVk.dc.html",
+  "AuthOk.dc.html",
+  "EntryYa.dc.html",
+  "EntryVkNoYear.dc.html",
+  "Email.dc.html",
+  "Code.dc.html",
+  "CodeErr.dc.html",
+  "CodeOk.dc.html",
+  "Entry.dc.html",
+  "EntryFull.dc.html",
+  "EntryNoTime.dc.html",
+  "Calc.dc.html",
+  "Coach1.dc.html",
+  "Coach2.dc.html",
+  "Coach3.dc.html",
+  "Coach4.dc.html",
+  "Coach5.dc.html",
+  "Coach6.dc.html",
+  "PopNotify.dc.html",
+  "SysNotif.dc.html",
+  "HintSigns.dc.html",
+  "HintMine.dc.html",
+  "HintMineWheel.dc.html",
+  "HintPair.dc.html",
+  "HintPairRel.dc.html",
+  "HintRest.dc.html",
+  "HintMoon.dc.html",
+  "Today.dc.html",
+  "TodayHoro.dc.html",
+  "TodayLow.dc.html",
+  "TodayPlus.dc.html",
+  "TodayPromo.dc.html",
+  "TodayPromoPoster.dc.html",
+  "PopWhy.dc.html",
+  "PopHours.dc.html",
+  "PopInfo.dc.html",
+  "Week.dc.html",
+  "WeekPlus.dc.html",
+  "Month.dc.html",
+  "MonthPlus.dc.html",
+  "CalDay.dc.html",
+  "Dates.dc.html",
+  "DateResult.dc.html",
+  "DateInterview.dc.html",
+  "DateLove.dc.html",
+  "Card0.dc.html",
+  "Card2.dc.html",
+  "PopInbox.dc.html",
+  "Moon.dc.html",
+  "MoonLow.dc.html",
+  "MoonBeauty.dc.html",
+  "MoonBeautyLock.dc.html",
+  "MoonHealth.dc.html",
+  "MoonDeals.dc.html",
+  "MoonHome.dc.html",
+  "MoonDay.dc.html",
+  "MoonLockPop.dc.html",
+  "MoonRegion.dc.html",
+  "Signs.dc.html",
+  "SignsWeek.dc.html",
+  "SignsLow.dc.html",
+  "SignShare.dc.html",
+  "Natal.dc.html",
+  "NatalGuide.dc.html",
+  "NatalLow.dc.html",
+  "NatalFresh.dc.html",
+  "Planet.dc.html",
+  "Proof.dc.html",
+  "Chapter.dc.html",
+  "Buy.dc.html",
+  "Cat.dc.html",
+  "Matrix.dc.html",
+  "Numbers.dc.html",
+  "Ask.dc.html",
+  "Tarot.dc.html",
+  "TarotExample.dc.html",
+  "HintTarot.dc.html",
+  "TarotBuy.dc.html",
+  "TarotShuffle.dc.html",
+  "TarotPick.dc.html",
+  "TarotPicked.dc.html",
+  "TarotRead.dc.html",
+  "TarotReadLow.dc.html",
+  "TarotShare.dc.html",
+  "AskTyping.dc.html",
+  "AskAnswer.dc.html",
+  "AskDariya.dc.html",
+  "AskOut.dc.html",
+  "Packs.dc.html",
+  "Guide.dc.html",
+  "GuideHouses.dc.html",
+  "GuideItem.dc.html",
+  "YearCard.dc.html",
+  "Year.dc.html",
+  "YearBuy.dc.html",
+  "YearOwned.dc.html",
+  "OtherNatal.dc.html",
+  "OtherChapter.dc.html",
+  "OtherMark.dc.html",
+  "OtherAdd.dc.html",
+  "OtherBuy.dc.html",
+  "People.dc.html",
+  "PeopleA.dc.html",
+  "PeopleB.dc.html",
+  "PairStart.dc.html",
+  "PairPick.dc.html",
+  "PairNew.dc.html",
+  "PairOthers.dc.html",
+  "PairTopics.dc.html",
+  "PairResult.dc.html",
+  "PairResultLow.dc.html",
+  "PairBusiness.dc.html",
+  "PairFull.dc.html",
+  "PairFullLow.dc.html",
+  "PairBuy.dc.html",
+  "PairSigns.dc.html",
+  "PairSignResult.dc.html",
+  "Rest.dc.html",
+  "Player.dc.html",
+  "PlayerRain.dc.html",
+  "Story.dc.html",
+  "StoryMail.dc.html",
+  "Test.dc.html",
+  "TestResult.dc.html",
+  "Breath.dc.html",
+  "Bubbles.dc.html",
+  "Profile.dc.html",
+  "ProfilePlus.dc.html",
+  "NotifSettings.dc.html",
+  "MyCharts.dc.html",
+  "MyChartsEmpty.dc.html",
+  "Purchases.dc.html",
+  "Support.dc.html",
+  "PopLogout.dc.html",
+  "DeleteAcc.dc.html",
+  "Plus.dc.html",
+  "PayPlus.dc.html",
+  "Paying.dc.html",
+  "PaidPlus.dc.html",
+  "PayFail.dc.html",
+  "Shop.dc.html",
+  "Gift.dc.html",
+  "GiftPay.dc.html",
+  "GiftDone.dc.html",
+  "Poster.dc.html",
+  "Tips.dc.html",
+  "PaidPoster.dc.html",
+  "PosterDark.dc.html",
+  "PosterWall.dc.html",
+  "PosterA3.dc.html",
+  "PosterA3Dark.dc.html",
+  "Lock.dc.html",
+  "LockGarden.dc.html",
+  "BannerAnswer.dc.html",
+  "BannerPeople.dc.html",
+  "BannerMoon.dc.html",
+  "BannerVpn.dc.html",
+  "Skeleton.dc.html",
+  "ErrorScreen.dc.html",
+  "InboxEmpty.dc.html",
+  "PurchasesGuest.dc.html",
+  "PopReview.dc.html",
+  "PopReview5.dc.html",
+  "PopReview2.dc.html",
+  "PopSignin.dc.html",
+  "PopPayFail.dc.html",
+  "PopSuccess.dc.html",
+  "PopOffline.dc.html",
+  "PopCity.dc.html",
+  "PopNoTime.dc.html",
+  "PopNatalData.dc.html",
+  "PopUpdate.dc.html",
+  "AuthDark.dc.html",
+  "TodayDark.dc.html",
+  "MoonDark.dc.html",
+  "TarotDark.dc.html",
+  "ProfileDark.dc.html",
+  "ShopDark.dc.html",
+  "NatalDark.dc.html",
+  "PairDark.dc.html",
+  "AuthEN.dc.html",
+  "EntryEN.dc.html",
+  "TodayEN.dc.html",
+  "AuthES.dc.html",
+  "EntryES.dc.html",
+  "TodayES.dc.html",
+  "NatalVenus.dc.html",
+  "NatalHouse.dc.html",
+  "NatalSign.dc.html",
+  "NatalAspects.dc.html",
+  "OtherPlanet.dc.html",
+  "GuidePoints.dc.html",
+  "TodayTiles.dc.html",
+  "DayNumber.dc.html",
+  "DayRune.dc.html",
+  "Runes.dc.html",
+  "RuneInfo.dc.html",
+  "RunesBuy.dc.html",
+  "RuneExample.dc.html",
+  "RuneRead.dc.html",
+  "NumbersName.dc.html",
+  "NumbersBuy.dc.html",
+  "NumbersYear.dc.html",
+  "NumbersPairs.dc.html",
+  "SignsChinese.dc.html",
+  "SignsChineseLow.dc.html",
+  "PairMore.dc.html",
+  "TodayPromo2.dc.html",
+  "TodayPromo4.dc.html",
+  "TestIntro.dc.html",
+  "Tests.dc.html",
+  "TestResultBattery.dc.html",
+  "TestResultConflict.dc.html",
+  "ProfileButtons.dc.html",
+  "Buttons.dc.html",
+  "BtnFlow.dc.html",
+  "BtnUltra.dc.html",
+  "BtnNight.dc.html",
+  "BtnInk.dc.html",
+  "BtnViolet.dc.html",
+  "BtnGold.dc.html",
+  "BtnTint.dc.html"
+ ],
+ "notes": {
+  "rMain": {
+   "x": 0,
+   "y": 0,
+   "text": "NEBO целиком: можно нажимать всё подряд, как в настоящем приложении",
+   "kind": "title1",
+   "maxW": 1240
+  },
+  "rAuth": {
+   "x": 0,
+   "y": 1264,
+   "text": "Вход: выбор способа, Яндекс ID, VK ID, почта и код",
+   "kind": "title1",
+   "maxW": 5560
+  },
+  "rEntry": {
+   "x": 0,
+   "y": 2528,
+   "text": "Первый запуск: дата рождения, «Считаем небо», подсказки, уведомления",
+   "kind": "title1",
+   "maxW": 5560
+  },
+  "rHints": {
+   "x": 0,
+   "y": 3792,
+   "text": "Подсказки при первом заходе на каждую вкладку",
+   "kind": "title1",
+   "maxW": 3210
+  },
+  "rToday": {
+   "x": 0,
+   "y": 5056,
+   "text": "«Сегодня»: день, неделя, месяц, даты, карта дня",
+   "kind": "title1",
+   "maxW": 9790
+  },
+  "rMoon": {
+   "x": 0,
+   "y": 6320,
+   "text": "«Луна»: пять лунных календарей на настоящих данных, сад и огород бесплатно",
+   "kind": "title1",
+   "maxW": 4620
+  },
+  "rSigns": {
+   "x": 0,
+   "y": 7584,
+   "text": "«Знаки»: гороскоп по знаку и китайский гороскоп для всех",
+   "kind": "title1",
+   "maxW": 1800
+  },
+  "rMine": {
+   "x": 0,
+   "y": 8848,
+   "text": "«Моя карта»: карта, матрица, числа, таро, руны. Круг карты нажимается",
+   "kind": "title1",
+   "maxW": 7910
+  },
+  "rTarot": {
+   "x": 0,
+   "y": 10112,
+   "text": "Таро внутри «Моей карты»: вопрос, колода, выбор карт, расклад",
+   "kind": "title1",
+   "maxW": 4620
+  },
+  "rAsk": {
+   "x": 0,
+   "y": 11376,
+   "text": "Вопросы о карте (теперь внутри «Карты»), пакеты, справочник и «Год вперёд»",
+   "kind": "title1",
+   "maxW": 6030
+  },
+  "rOthers": {
+   "x": 0,
+   "y": 12640,
+   "text": "«Моя карта»: прочитать карту другого человека",
+   "kind": "title1",
+   "maxW": 2270
+  },
+  "rPair": {
+   "x": 0,
+   "y": 13904,
+   "text": "«Совместимость»: любые два человека",
+   "kind": "title1",
+   "maxW": 7440
+  },
+  "rRest": {
+   "x": 0,
+   "y": 15168,
+   "text": "«Отдых»: звуки для сна, рассказы на ночь, тесты, дыхание, пузыри",
+   "kind": "title1",
+   "maxW": 4150
+  },
+  "rProfile": {
+   "x": 0,
+   "y": 16432,
+   "text": "Профиль: уведомления, мои карты, покупки, поддержка, выход и удаление",
+   "kind": "title1",
+   "maxW": 4150
+  },
+  "rShop": {
+   "x": 0,
+   "y": 17696,
+   "text": "Plus, магазин, подарок другу, постер и оплата через RuStore",
+   "kind": "title1",
+   "maxW": 7900
+  },
+  "rNotif": {
+   "x": 0,
+   "y": 18960,
+   "text": "Уведомления: экран блокировки и баннер внутри приложения",
+   "kind": "title1",
+   "maxW": 2740
+  },
+  "rStates": {
+   "x": 0,
+   "y": 20224,
+   "text": "Состояния: загрузка, ошибка сервера, пусто",
+   "kind": "title1",
+   "maxW": 1800
+  },
+  "rPop": {
+   "x": 0,
+   "y": 21488,
+   "text": "Окна: разрешения, оценка, оплата, ошибки",
+   "kind": "title1",
+   "maxW": 5090
+  },
+  "rTheme": {
+   "x": 0,
+   "y": 22752,
+   "text": "Тёмная тема и три языка",
+   "kind": "title1",
+   "maxW": 6500
+  },
+  "rButtons": {
+   "x": 0,
+   "y": 26544,
+   "text": "Кнопки: по умолчанию «Ночное небо», в профиле можно выбрать чёрные или золото",
+   "kind": "title1",
+   "maxW": 5170
+  },
+  "rEso": {
+   "x": 0,
+   "y": 24016,
+   "text": "Эзотерика: число дня, руны, числа имени, китайский гороскоп, пара по числам и году",
+   "kind": "title1",
+   "maxW": 6970
+  },
+  "rPromo": {
+   "x": 0,
+   "y": 25280,
+   "text": "«Сегодня»: подсказка внизу сама меняется раз в 6 секунд и чаще зовёт туда, где ещё не был. Новые тесты",
+   "kind": "title1",
+   "maxW": 3210
+  }
+ },
+ "designSystems": []
+}
