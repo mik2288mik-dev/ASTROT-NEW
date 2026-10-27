@@ -96,14 +96,19 @@ afterEach(async () => {
 });
 
 describe('native notification permission and lifecycle boundaries', () => {
-  it('registers the custom Android bridge and leaves default preferences disabled', async () => {
+  it('registers the custom Android bridge with notifications on by default, without asking for permission', async () => {
     await notifications.setNativeNotificationContext(account());
     expect(mockRegisterPlugin).toHaveBeenCalledWith('NeboNotifications');
     expect(mockNative.configure).toHaveBeenCalledWith(expect.objectContaining({
-      accountId: 'account-a', enabled: false, mode: 'daily', readDate: '',
+      accountId: 'account-a', enabled: true, mode: 'daily', readDate: '',
     }));
-    expect(mockNative.getPermissionState).not.toHaveBeenCalled();
     expect(mockNative.requestDisplayPermission).not.toHaveBeenCalled();
+  });
+
+  it('stays silent when the person switched notifications off', async () => {
+    seedSettings({ enabled: false });
+    await notifications.setNativeNotificationContext(account());
+    expect(mockNative.getPermissionState).not.toHaveBeenCalled();
     expect(mockNative.schedule).not.toHaveBeenCalled();
   });
 
@@ -187,6 +192,8 @@ describe('native notification permission and lifecycle boundaries', () => {
   });
 
   it('does not open a stale permission dialog after switching accounts during the permission check', async () => {
+    seedSettings({ enabled: false });
+    seedSettings({ enabled: false }, 'account-b');
     await notifications.setNativeNotificationContext(account());
     const check = deferred<{ display: DisplayPermission }>();
     mockNative.getPermissionState.mockReturnValueOnce(check.promise);
@@ -369,6 +376,7 @@ describe('engagement extras', () => {
   });
 
   it('does not register for admin messages while notifications are off', async () => {
+    seedSettings({ enabled: false });
     await notifications.setNativeNotificationContext(account());
     expect(mockApiFetch).not.toHaveBeenCalled();
   });

@@ -48,15 +48,19 @@ const key = (day: number) => localNotificationDayKey(new Date(2026, 8, 5 + day))
 const BANNED = /космос|вселенн|энерги|звёзды (говорят|подскаж)|разбор|\{|\}|[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/iu;
 
 describe('native notification preferences and local clock', () => {
-  it('defaults to disabled, everything mode once enabled', () => {
+  it('defaults to enabled, everything mode', () => {
     expect(normalizeNativeNotificationSettings(undefined)).toEqual({
-      enabled: false, mode: 'daily', quietStart: '22:00', quietEnd: '09:00',
+      enabled: true, mode: 'daily', quietStart: '22:00', quietEnd: '09:00',
     });
     expect(DEFAULT_NATIVE_NOTIFICATION_SETTINGS).toEqual(normalizeNativeNotificationSettings(null));
   });
 
-  it.each([undefined, null, false, 1, 'true', 'false'])('requires a literal opt-in, not %p', (enabled) => {
-    expect(normalizeNativeNotificationSettings({ enabled }).enabled).toBe(false);
+  it.each([undefined, null, 1, 'true', 'false'])('stays on unless switched off explicitly, not by %p', (enabled) => {
+    expect(normalizeNativeNotificationSettings({ enabled }).enabled).toBe(true);
+  });
+
+  it('turns off only on a literal false', () => {
+    expect(normalizeNativeNotificationSettings({ enabled: false }).enabled).toBe(false);
   });
 
   it('preserves explicit choices and falls back safely for malformed settings', () => {
@@ -101,7 +105,7 @@ describe('notification sign', () => {
 
 describe('engagement schedule', () => {
   it('requires enabled settings, completed setup, an account and a valid clock', () => {
-    expect(planNativeNotifications(planInput({ settings: settings() }))).toEqual([]);
+    expect(planNativeNotifications(planInput({ settings: settings({ enabled: false }) }))).toEqual([]);
     expect(planNativeNotifications(planInput({ isSetup: false }))).toEqual([]);
     expect(planNativeNotifications(planInput({ accountId: '' }))).toEqual([]);
     expect(planNativeNotifications(planInput({ now: new Date(NaN) }))).toEqual([]);
@@ -252,7 +256,7 @@ describe('engagement schedule', () => {
 
 describe('ready native notification policy', () => {
   it('suppresses ready notifications when disabled, quiet, or the clock is invalid', () => {
-    expect(makeNativeReadyNotification(readyInput({ settings: settings() }))).toBeNull();
+    expect(makeNativeReadyNotification(readyInput({ settings: settings({ enabled: false }) }))).toBeNull();
     expect(makeNativeReadyNotification(readyInput({ now: new Date(2026, 8, 5, 22) }))).toBeNull();
     expect(makeNativeReadyNotification(readyInput({ now: new Date(NaN) }))).toBeNull();
     expect(makeNativeReadyNotification(readyInput({ now: new Date(2026, 8, 5, 21, 59, 59) }))).toBeNull();
