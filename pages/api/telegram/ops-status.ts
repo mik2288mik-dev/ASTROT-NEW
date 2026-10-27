@@ -155,6 +155,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })().catch((error) => ({ error: error instanceof Error ? error.message.slice(0, 200) : 'failed' }));
   }
 
+  // ?keys=1: whether each AI key is accepted and the DeepSeek balance (free read-only calls).
+  const aiKeys = req.query.keys === '1'
+    ? await (await import('../../../lib/aiKeysStatus')).getAiKeysStatus({ fresh: true }).catch((error) => ({ error: String(error?.message || error).slice(0, 200) }))
+    : undefined;
+
   // ?push=1: why the planner does or does not queue pushes (dry run, nothing is sent).
   let pushDiagnosis: unknown = undefined;
   if (req.query.push === '1') {
@@ -219,6 +224,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     scheduler: getSchedulerStatus(),
     outbox,
     pushes,
+    ...(aiKeys === undefined ? {} : { aiKeys }),
     ...(pushDiagnosis === undefined ? {} : { pushDiagnosis }),
     ...(visitors === undefined ? {} : { visitors }),
     ...(traces === undefined ? {} : { traces }),

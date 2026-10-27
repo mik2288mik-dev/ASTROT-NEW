@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   admin2,
   AdminSystemHealth,
+  AdminAiKeys,
   AdminFlag,
   AdminEntry,
   AdminRole,
@@ -37,6 +38,19 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
   // ===================== HEALTH =====================
   const [health, setHealth] = useState<AdminSystemHealth | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
+  const [aiKeys, setAiKeys] = useState<AdminAiKeys | null>(null);
+  const [aiKeysLoading, setAiKeysLoading] = useState(false);
+
+  const loadAiKeys = useCallback(async (fresh = false) => {
+    setAiKeysLoading(true);
+    try {
+      setAiKeys(await admin2.aiKeys(fresh));
+    } catch (e) {
+      // ignore
+    } finally {
+      setAiKeysLoading(false);
+    }
+  }, []);
 
   // ===================== FLAGS =====================
   const [flags, setFlags] = useState<AdminFlag[]>([]);
@@ -117,11 +131,11 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
   }, [auditPage]);
 
   useEffect(() => {
-    if (activeTab === 'health') loadHealth();
+    if (activeTab === 'health') { loadHealth(); loadAiKeys(); }
     if (activeTab === 'flags' || activeTab === 'announcement') loadFlags();
     if (activeTab === 'rbac') loadRbac();
     if (activeTab === 'audit') loadAudit();
-  }, [activeTab, loadHealth, loadFlags, loadRbac, loadAudit]);
+  }, [activeTab, loadHealth, loadAiKeys, loadFlags, loadRbac, loadAudit]);
 
   useEffect(() => {
     if (activeTab !== 'announcement') return;
@@ -282,6 +296,35 @@ export const SystemSection: React.FC<SystemSectionProps> = ({ me, onSelectUser }
       </div>
 
       {/* ===================== HEALTH ===================== */}
+      {activeTab === 'health' && (
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3 mb-6">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-gray-900 text-base">Ключи ИИ и баланс</h3>
+            <button type="button" onClick={() => loadAiKeys(true)} disabled={aiKeysLoading} className="text-xs font-semibold text-indigo-600 disabled:opacity-50">
+              {aiKeysLoading ? 'Проверяю...' : 'Проверить сейчас'}
+            </button>
+          </div>
+          {aiKeys ? (
+            <div className="space-y-2 text-xs">
+              {aiKeys.keys.map((key) => (
+                <div key={key.provider} className="flex items-center justify-between gap-3 py-2 border-b border-gray-100">
+                  <span className="font-semibold text-gray-700 w-20">{key.label}</span>
+                  <span className={`flex-1 ${key.ok ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {key.ok ? 'работает' : key.error || (key.httpStatus ? `ошибка ${key.httpStatus}` : 'не работает')}
+                    {key.balance ? ` · баланс ${key.balance}` : ''}
+                  </span>
+                  <a href={key.billingUrl} target="_blank" rel="noreferrer" className="text-indigo-600 font-semibold">
+                    {key.balance ? 'Пополнить' : 'Баланс и расходы'}
+                  </a>
+                </div>
+              ))}
+              <p className="text-gray-400">Баланс показывает только DeepSeek. У OpenAI и Claude остаток виден в их кабинете по ссылке. Проверка бесплатная, ничего не генерируется.</p>
+            </div>
+          ) : (
+            <div className="py-4 text-center text-gray-400">{aiKeysLoading ? 'Проверяю ключи...' : 'Нет данных'}</div>
+          )}
+        </div>
+      )}
       {activeTab === 'health' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
