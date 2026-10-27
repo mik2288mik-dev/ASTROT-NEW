@@ -568,6 +568,7 @@ export const admin2 = {
   errors: (status = 'all') => req<{ errors: AdminTechnicalErrorRow[] }>(`/api/admin/v2/errors?status=${encodeURIComponent(status)}`),
   patchError: (id: number, patch: { status?: string; adminNote?: string }) => req<{ ok: boolean }>('/api/admin/v2/errors', { method: 'PATCH', body: { id, ...patch } }),
   systemHealth: () => req<AdminSystemHealth>('/api/admin/v2/system/health'),
+  aiKeys: (fresh = false) => req<AdminAiKeys>('/api/admin/v2/system/ai-keys' + (fresh ? '?fresh=1' : '')),
 };
 
 
@@ -599,6 +600,11 @@ export type AdminTechnicalErrorRow = {
 
 
 
+
+export type AdminAiKeys = {
+  checkedAt: string;
+  keys: Array<{ provider: string; label: string; configured: boolean; ok: boolean; httpStatus?: number; error?: string; balance?: string; modelAvailable?: boolean; billingUrl: string }>;
+};
 
 export type AdminSystemHealth = {
   healthy: boolean;

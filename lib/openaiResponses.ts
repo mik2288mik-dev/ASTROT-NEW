@@ -158,7 +158,7 @@ export type LunaResponsesClient = {
   };
 };
 
-export const DEFAULT_DEEPSEEK_CONTENT_MODEL = 'deepseek-v4-flash';
+export const DEFAULT_DEEPSEEK_CONTENT_MODEL = 'deepseek-flash';
 
 export type LunaContentProviderName = 'anthropic' | 'deepseek' | 'openai';
 

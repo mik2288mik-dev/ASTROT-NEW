@@ -33,7 +33,7 @@ const structured = {
 
 function completion(content: string, finish = 'stop') {
   return {
-    id: 'cmpl-1', model: 'deepseek-v4-flash', object: 'chat.completion', created: 0,
+    id: 'cmpl-1', model: 'deepseek-flash', object: 'chat.completion', created: 0,
     choices: [{ index: 0, finish_reason: finish, message: { role: 'assistant', content } }],
     usage: { prompt_tokens: 120, completion_tokens: 30, total_tokens: 150, prompt_cache_hit_tokens: 100 },
   } as never;
@@ -54,7 +54,7 @@ describe('DeepSeek content provider switch', () => {
 
   it('reports the active provider, model and whether its key is set', () => {
     expect(getLunaContentProvider({ DEEPSEEK_API_KEY: 'ds' } as unknown as NodeJS.ProcessEnv))
-      .toEqual({ provider: 'deepseek', model: 'deepseek-v4-flash', keyName: 'DEEPSEEK_API_KEY', keyPresent: true });
+      .toEqual({ provider: 'deepseek', model: 'deepseek-flash', keyName: 'DEEPSEEK_API_KEY', keyPresent: true });
     expect(getLunaContentProvider({ OPENAI_API_KEY: 'sk' } as unknown as NodeJS.ProcessEnv))
       .toMatchObject({ provider: 'deepseek', keyPresent: false });
     expect(getLunaContentProvider({ AI_CONTENT_PROVIDER: 'openai', OPENAI_API_KEY: 'sk' } as unknown as NodeJS.ProcessEnv))
@@ -63,7 +63,7 @@ describe('DeepSeek content provider switch', () => {
 
   it('moves instructions and the strict schema into a JSON-mode chat request', () => {
     const params = buildDeepSeekContentParams(buildLunaStructuredResponseParams(structured));
-    expect(params.model).toBe('deepseek-v4-flash');
+    expect(params.model).toBe('deepseek-flash');
     expect(params.max_tokens).toBe(2000);
     expect(params.response_format).toEqual({ type: 'json_object' });
     expect(params.messages[0]).toEqual({
@@ -99,7 +99,7 @@ describe('DeepSeek content provider switch', () => {
     expect(provider).not.toBeNull();
     const signal = AbortSignal.timeout(1000);
     await provider!.responses.create(buildLunaStructuredResponseParams(structured), { signal, maxRetries: 0 });
-    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ model: 'deepseek-v4-flash' }), { signal, maxRetries: 0 });
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ model: 'deepseek-flash' }), { signal, maxRetries: 0 });
   });
 
   it('reports no provider when DeepSeek has no key, even with an OpenAI key', () => {
