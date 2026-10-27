@@ -26,7 +26,7 @@ describe('Luna content routing', () => {
   });
 
   it('does not allow the removed universal DeepSeek model setting', () => {
-    expect(normalizeInterpretationModelId('deepseek-v4-flash')).toBeNull();
+    expect(normalizeInterpretationModelId('deepseek-flash')).toBeNull();
     expect(normalizeInterpretationModelId(OPENAI_LUNA_MODEL)).toBe(OPENAI_LUNA_MODEL);
   });
 
