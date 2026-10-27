@@ -4,6 +4,7 @@ import { OPENAI_LUNA_MODEL } from './openai-models';
 import { recordAiCall } from './aiLogger';
 import { buildDeepSeekChatParams } from './deepseekChat';
 import { getDeepSeekClient } from './deepseekClient';
+import { anthropicContentModel, createAnthropicLunaResponse, getAnthropicClient } from './anthropicContent';
 
 export { OPENAI_LUNA_MODEL } from './openai-models';
 
@@ -159,12 +160,20 @@ export type LunaResponsesClient = {
 
 export const DEFAULT_DEEPSEEK_CONTENT_MODEL = 'deepseek-v4-flash';
 
+export type LunaContentProviderName = 'anthropic' | 'deepseek' | 'openai';
+
 /**
- * All Luna content goes to DeepSeek Chat Completions while OpenAI is off.
- * AI_CONTENT_PROVIDER=openai restores the OpenAI route without a code change.
+ * All Luna content goes to Claude once ANTHROPIC_API_KEY is set, and to DeepSeek
+ * until then. AI_CONTENT_PROVIDER=anthropic|deepseek|openai pins one route.
  */
+export function lunaContentProviderName(env: NodeJS.ProcessEnv = process.env): LunaContentProviderName {
+  const pinned = String(env.AI_CONTENT_PROVIDER || '').trim().toLowerCase();
+  if (pinned === 'anthropic' || pinned === 'deepseek' || pinned === 'openai') return pinned;
+  return String(env.ANTHROPIC_API_KEY || '').trim() ? 'anthropic' : 'deepseek';
+}
+
 export function deepSeekContentEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return String(env.AI_CONTENT_PROVIDER || '').trim().toLowerCase() !== 'openai';
+  return lunaContentProviderName(env) === 'deepseek';
 }
 
 function deepSeekContentModel(env: NodeJS.ProcessEnv = process.env): string {
@@ -173,16 +182,16 @@ function deepSeekContentModel(env: NodeJS.ProcessEnv = process.env): string {
 
 /** The provider, model and key that Luna content currently runs on. */
 export function getLunaContentProvider(env: NodeJS.ProcessEnv = process.env): {
-  provider: 'deepseek' | 'openai';
+  provider: LunaContentProviderName;
   model: string;
-  keyName: 'DEEPSEEK_API_KEY' | 'OPENAI_API_KEY';
+  keyName: 'ANTHROPIC_API_KEY' | 'DEEPSEEK_API_KEY' | 'OPENAI_API_KEY';
   keyPresent: boolean;
 } {
-  const deepseek = deepSeekContentEnabled(env);
-  const keyName = deepseek ? 'DEEPSEEK_API_KEY' : 'OPENAI_API_KEY';
+  const provider = lunaContentProviderName(env);
+  const keyName = provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : provider === 'deepseek' ? 'DEEPSEEK_API_KEY' : 'OPENAI_API_KEY';
   return {
-    provider: deepseek ? 'deepseek' : 'openai',
-    model: deepseek ? deepSeekContentModel(env) : OPENAI_LUNA_MODEL,
+    provider,
+    model: provider === 'anthropic' ? anthropicContentModel(env) : provider === 'deepseek' ? deepSeekContentModel(env) : OPENAI_LUNA_MODEL,
     keyName,
     keyPresent: Boolean(String(env[keyName] || '').trim()),
   };
@@ -246,10 +255,23 @@ function getDeepSeekResponsesClient(): LunaResponsesClient | null {
   };
 }
 
+function getAnthropicResponsesClient(): LunaResponsesClient | null {
+  const anthropic = getAnthropicClient();
+  if (!anthropic) return null;
+  return {
+    responses: {
+      create: (params, options) => createAnthropicLunaResponse(anthropic, params, options),
+    },
+  };
+}
+
 let client: OpenAI | null = null;
 
+/** The Luna content client for the active provider, despite the historical name. */
 export function getOpenAIResponsesClient(): LunaResponsesClient | null {
-  if (deepSeekContentEnabled()) return getDeepSeekResponsesClient();
+  const provider = lunaContentProviderName();
+  if (provider === 'anthropic') return getAnthropicResponsesClient();
+  if (provider === 'deepseek') return getDeepSeekResponsesClient();
   if (client) return client;
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -305,15 +327,17 @@ async function createLunaResponse(
   options: { allowIncompleteOutput?: boolean } = {},
 ): Promise<LunaResponseResult> {
   const startedAt = Date.now();
-  const deepseek = deepSeekContentEnabled();
-  const call = deepseek
-    ? { scenario: aiScenario(params), model: deepSeekContentModel(), provider: 'deepseek' }
-    : { scenario: aiScenario(params), model: String(params.model || ''), provider: 'openai' };
+  const { provider: providerName, model, keyName } = getLunaContentProvider();
+  const call = {
+    scenario: aiScenario(params),
+    model: providerName === 'openai' ? String(params.model || '') : model,
+    provider: providerName,
+  };
   let response: OpenAI.Responses.Response;
   try {
-    if (deepseek || useDirectOpenAI()) {
+    if (providerName !== 'openai' || useDirectOpenAI()) {
       const provider = getOpenAIResponsesClient();
-      if (!provider) throw new Error(deepseek ? 'DEEPSEEK_API_KEY is not configured' : 'OPENAI_API_KEY is not configured');
+      if (!provider) throw new Error(`${keyName} is not configured`);
       response = await provider.responses.create(params);
     } else {
       response = await createResponseViaRelay(params);
