@@ -3,6 +3,7 @@ import { handleAdminError } from '../../../../../lib/adminAuth';
 import { getAdminContext, roleHasPermission } from '../../../../../lib/admin/rbac';
 import { getPool } from '../../../../../lib/db';
 import { OPENAI_LUNA_MODEL } from '../../../../../lib/openai-models';
+import { anthropicContentModel } from '../../../../../lib/anthropicContent';
 import { SIGN_HOROSCOPE_MODEL } from '../../../../../lib/horoscope/signContract';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -74,6 +75,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       deepseek: {
         configured: Boolean(process.env.DEEPSEEK_API_KEY),
         model: SIGN_HOROSCOPE_MODEL,
+      },
+      anthropic: {
+        configured: Boolean(process.env.ANTHROPIC_API_KEY),
+        model: anthropicContentModel(),
       },
       telegramBot: {
         configured: Boolean(process.env.BOT_TOKEN),

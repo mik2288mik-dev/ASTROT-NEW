@@ -1,4 +1,8 @@
+import { createHash } from 'crypto';
+import { DEFAULT_ANTHROPIC_RELAY_URL } from './anthropicContent';
 import { SIGN_HOROSCOPE_MODEL } from './horoscope/signContract';
+
+const DEFAULT_OPENAI_RELAY_URL = 'https://astrot-production.up.railway.app/api/internal/openai-responses';
 
 /** One AI provider key as seen by the server: set, accepted, and what is known about money. */
 export type AiKeyStatus = {
@@ -65,16 +69,24 @@ async function checkDeepSeek(key: string): Promise<AiKeyStatus> {
   return status;
 }
 
+// The Russian host reaches OpenAI and Anthropic only through the Railway relay, so it checks the keys there too.
+const viaRelay = () => process.env.OPENAI_RELAY_DIRECT !== '1';
+const relayToken = (context: string, key: string) => createHash('sha256').update(`${context}:${key}`).digest('hex');
+
 async function checkOpenAI(key: string): Promise<AiKeyStatus> {
   const status: AiKeyStatus = { provider: 'openai', label: 'OpenAI', configured: true, ok: false, billingUrl: 'https://platform.openai.com/settings/organization/billing/overview' };
-  const response = await call('https://api.openai.com/v1/models', { authorization: `Bearer ${key}` });
+  const response = viaRelay()
+    ? await call(String(process.env.OPENAI_RELAY_URL || DEFAULT_OPENAI_RELAY_URL).trim(), { authorization: `Bearer ${relayToken('nebo-openai-relay-v1', key)}` })
+    : await call('https://api.openai.com/v1/models', { authorization: `Bearer ${key}` });
   if (response instanceof Error) return { ...status, error: response.message.slice(0, 120) };
   return { ...status, ok: response.ok, httpStatus: response.status, ...(response.ok ? {} : { error: await readError(response) }) };
 }
 
 async function checkAnthropic(key: string): Promise<AiKeyStatus> {
   const status: AiKeyStatus = { provider: 'anthropic', label: 'Claude', configured: true, ok: false, billingUrl: 'https://console.anthropic.com/settings/billing' };
-  const response = await call('https://api.anthropic.com/v1/models', { 'x-api-key': key, 'anthropic-version': '2023-06-01' });
+  const response = viaRelay()
+    ? await call(`${String(process.env.ANTHROPIC_RELAY_URL || DEFAULT_ANTHROPIC_RELAY_URL).trim()}/v1/models`, { authorization: `Bearer ${relayToken('nebo-anthropic-relay-v1', key)}`, 'anthropic-version': '2023-06-01' })
+    : await call('https://api.anthropic.com/v1/models', { 'x-api-key': key, 'anthropic-version': '2023-06-01' });
   if (response instanceof Error) return { ...status, error: response.message.slice(0, 120) };
   return { ...status, ok: response.ok, httpStatus: response.status, ...(response.ok ? {} : { error: await readError(response) }) };
 }

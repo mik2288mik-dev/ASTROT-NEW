@@ -1,7 +1,7 @@
 import { getNeboCoreVoice } from './voice/core';
 import { createLunaTextResponse, getLunaContentProvider } from './openaiResponses';
 
-/** Runtime health for the Luna content route (DeepSeek while OpenAI is off). Zodiac is intentionally separate. */
+/** Runtime health for the Luna content route (Claude, or DeepSeek until its key is set). Zodiac is intentionally separate. */
 export type AiContentHealth = {
   /** Whether the active content provider's key is set; the name predates the DeepSeek route. */
   openaiKeyPresent: boolean;

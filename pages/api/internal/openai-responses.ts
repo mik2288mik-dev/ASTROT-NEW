@@ -23,13 +23,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (process.env.OPENAI_RELAY_DIRECT !== '1') {
     return res.status(404).json({ error: 'NOT_FOUND' });
   }
-  if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
 
   try {
     if (!authorized(req)) return res.status(401).json({ error: 'UNAUTHORIZED' });
 
     const apiKey = String(process.env.OPENAI_API_KEY || '').trim();
     if (!apiKey) return res.status(503).json({ error: 'OPENAI_API_KEY_MISSING' });
+
+    // GET: the free key check from the admin «Ключи ИИ» card.
+    if (req.method === 'GET') {
+      const check = await fetch('https://api.openai.com/v1/models', { headers: { authorization: `Bearer ${apiKey}` }, signal: AbortSignal.timeout(15_000) });
+      res.status(check.status);
+      return res.json(check.ok ? { ok: true } : { error: { message: (await check.text()).slice(0, 300) } });
+    }
 
     const response = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
