@@ -5,7 +5,7 @@ import type { ZodiacKey } from '../zodiacKeys';
 
 export const SIGN_HOROSCOPE_READING_SCHEMA_VERSION = 'sign-horoscope-reading-v5' as const;
 export const SIGN_HOROSCOPE_CACHE_VERSION = 'sign-horoscope-v8-plain-deepseek' as const;
-export const SIGN_HOROSCOPE_MODEL = 'deepseek-v4-flash' as const;
+export const SIGN_HOROSCOPE_MODEL = 'deepseek-flash' as const;
 export const MAX_SIGN_HOROSCOPE_WORDS = 130;
 
 export function getSignForecastVoice(language: 'ru' | 'en'): string {

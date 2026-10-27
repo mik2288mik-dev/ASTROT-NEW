@@ -3,6 +3,7 @@ import { handleAdminError } from '../../../../../lib/adminAuth';
 import { getAdminContext, roleHasPermission } from '../../../../../lib/admin/rbac';
 import { getPool } from '../../../../../lib/db';
 import { OPENAI_LUNA_MODEL } from '../../../../../lib/openai-models';
+import { SIGN_HOROSCOPE_MODEL } from '../../../../../lib/horoscope/signContract';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -72,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       deepseek: {
         configured: Boolean(process.env.DEEPSEEK_API_KEY),
-        model: 'deepseek-chat',
+        model: SIGN_HOROSCOPE_MODEL,
       },
       telegramBot: {
         configured: Boolean(process.env.BOT_TOKEN),
