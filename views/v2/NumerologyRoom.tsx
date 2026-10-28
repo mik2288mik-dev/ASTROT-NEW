@@ -183,7 +183,7 @@ export function NumerologyRoom({ profile, onOpenSegment, onRequestPremium }: Num
             {([
               ['soul', 'Число души', names.soul],
               ['outer', 'Число образа', names.outer],
-              ['destiny', 'Число таланта', names.destiny],
+              ['talent', 'Число таланта', names.talent],
             ] as const).map(([kind, label, value]) => (
               <div key={kind} className="nebo-numbers-now-row">
                 <span className="nebo-numbers-tile is-blue" aria-hidden="true"><b>{value}</b></span>

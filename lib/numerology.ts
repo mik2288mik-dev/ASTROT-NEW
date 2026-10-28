@@ -162,7 +162,7 @@ const LETTER_VALUE: Record<string, number> = {
 };
 const VOWELS = new Set('аеёиоуыэюя'.split(''));
 
-export type NameNumbers = { soul: number; outer: number; destiny: number };
+export type NameNumbers = { soul: number; outer: number; talent: number };
 
 /** Души (гласные), внешнего образа (согласные) и всего имени. Works for Russian letters. */
 export function nameNumbers(name: string): NameNumbers | null {
@@ -174,20 +174,20 @@ export function nameNumbers(name: string): NameNumbers | null {
   return {
     soul: reduceNumber(sum(vowels), true),
     outer: reduceNumber(sum(consonants), true),
-    destiny: reduceNumber(sum(letters), true),
+    talent: reduceNumber(sum(letters), true),
   };
 }
 
 export const NAME_NUMBER_INTRO = {
   soul: 'Чего ты хочешь на самом деле, в глубине. Считается по гласным буквам имени.',
   outer: 'Каким тебя видят люди при первой встрече. Считается по согласным буквам имени.',
-  destiny: 'Твой природный талант, который даётся легко. Считается по всем буквам имени.',
+  talent: 'Твой природный талант, который даётся легко. Считается по всем буквам имени.',
 } as const;
 
 /** Each name number is told through the headline of the same number, from its own angle. */
 export function nameNumberText(kind: keyof NameNumbers, value: number): string {
   const base = LIFE_PATH[value] ?? LIFE_PATH[reduceNumber(value)];
-  const lead = { soul: 'В глубине', outer: 'Со стороны', destiny: 'Твой талант' }[kind];
+  const lead = { soul: 'В глубине', outer: 'Со стороны', talent: 'Твой талант' }[kind];
   return `${lead}: ${base.title.charAt(0).toLowerCase()}${base.title.slice(1)}.`;
 }
 
