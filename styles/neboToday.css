@@ -1,0 +1,368 @@
+/* NEBO «Сегодня» (canvas variant Б): white page, date, «Для тебя сегодня», the day title, one dark button. */
+
+.home-screen.forecast-feed-page {
+  background: #ffffff;
+}
+
+.nebo-today-hero {
+  position: relative;
+  min-height: 150px;
+  padding: 22px 20px 0;
+  color: #0b0d12;
+  animation: nebo-today-up 0.7s 0.1s ease both;
+}
+
+.nebo-today-date {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  opacity: 0.86;
+}
+
+.nebo-today-kicker {
+  margin: 14px 0 0;
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  opacity: 0.62;
+}
+
+.nebo-today-title {
+  max-width: 330px;
+  margin: 6px 0 0;
+  padding-bottom: 4px;
+  color: #0b0d12;
+  font-size: 39px;
+  line-height: 1.03;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.nebo-today-title::first-letter {
+  text-transform: uppercase;
+}
+
+.nebo-today-cta-row {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 20px 0;
+}
+
+.nebo-today-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 50px;
+  padding: 0 14px 0 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #1b2350 0%, #0f1533 100%);
+  box-shadow: 0 14px 26px -14px rgba(15, 21, 51, 0.7);
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nebo-today-cta svg {
+  transition: transform 0.35s ease;
+}
+
+.nebo-today-cta svg.is-open {
+  transform: rotate(180deg);
+}
+
+.nebo-today-cta:focus-visible {
+  outline: 2px solid #1f6bff;
+  outline-offset: 3px;
+}
+
+.nebo-today-reading {
+  margin-top: 14px;
+  animation: nebo-today-up 0.45s ease both;
+}
+
+@keyframes nebo-today-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nebo-today-hero,
+  .nebo-today-reading {
+    animation: none;
+  }
+}
+
+/* «День · Неделя · Месяц · Даты» under the bar, a gray pill with a white thumb (canvas). */
+.nebo-period-switch {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+  margin: 6px 16px 0;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(118, 118, 128, 0.12);
+}
+
+.nebo-period-switch-item {
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #5c6170;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nebo-period-switch-item[aria-pressed='true'] {
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(11, 13, 18, 0.08), 0 4px 10px rgba(11, 13, 18, 0.06);
+  color: #0b0d12;
+}
+
+.nebo-period-switch-item:focus-visible {
+  outline: 2px solid #1f6bff;
+  outline-offset: 1px;
+}
+
+/* Sky on «Сегодня» (canvas): two tiles and the red Mercury retrograde card. */
+.nebo-sky {
+  margin: 22px 16px 0;
+}
+
+.nebo-sky-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.nebo-sky-tile {
+  display: flex;
+  min-height: 150px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 14px 16px;
+  border-radius: 24px;
+  background: #f4f5f8;
+  color: #0b0d12;
+}
+
+.nebo-sky-tile-label {
+  margin: 0;
+  color: #9aa0ae;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.nebo-sky-moon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.nebo-sky-moon .today-sky-glyph {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.nebo-sky-moon strong {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.nebo-sky-tile-text {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.nebo-sky-tile-note {
+  margin: auto 0 0;
+  color: #5c6170;
+  font-size: 12.5px;
+}
+
+.nebo-sky-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13.5px;
+  line-height: 1.3;
+}
+
+.nebo-sky-phases b {
+  font-weight: 700;
+}
+
+.nebo-sky-personal {
+  margin: 10px 4px 0;
+  color: #5c6170;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.nebo-retro-card {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px 14px 14px 12px;
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  border-radius: 24px;
+  background: #fff4f4;
+  color: #0b0d12;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nebo-retro-card:not(.is-now) {
+  border-color: rgba(118, 118, 128, 0.16);
+  background: #f4f5f8;
+}
+
+.nebo-retro-glyph {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.nebo-retro-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nebo-retro-label {
+  color: #dc2626;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.nebo-retro-card:not(.is-now) .nebo-retro-label {
+  color: #5c6170;
+}
+
+.nebo-retro-copy strong {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.nebo-retro-sub {
+  color: #5c6170;
+  font-size: 13px;
+}
+
+.nebo-retro-chevron {
+  flex: none;
+  color: #9aa0ae;
+  transition: transform 0.3s ease;
+}
+
+.nebo-retro-chevron.is-open {
+  transform: rotate(90deg);
+}
+
+.nebo-retro-more {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: #f4f5f8;
+  color: #0b0d12;
+  font-size: 14.5px;
+  line-height: 1.5;
+  animation: nebo-today-up 0.4s ease both;
+}
+
+.nebo-retro-more p {
+  margin: 0;
+}
+
+.nebo-retro-more p + p {
+  margin-top: 8px;
+}
+
+/* Home sections in the canvas style: one heading size, solid light-gray cards, small uppercase labels. */
+.lumia-app-shell .home-screen .today-explore-heading {
+  margin: 28px 20px 10px;
+  color: #0b0d12;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  text-transform: none;
+}
+
+.lumia-app-shell .home-screen .about-you-card,
+.lumia-app-shell .home-screen .for-you-card,
+.lumia-app-shell .home-screen .people-block-card,
+.lumia-app-shell .home-screen .daily-question {
+  border: 0;
+  border-radius: 24px;
+  background-color: #f4f5f8;
+  box-shadow: none;
+}
+
+.lumia-app-shell .home-screen .future-invite,
+.lumia-app-shell .home-screen .season-card {
+  border-radius: 24px;
+}
+
+.lumia-app-shell .home-screen .about-you-kicker,
+.lumia-app-shell .home-screen .daily-question-kicker,
+.lumia-app-shell .home-screen .future-invite-kicker,
+.lumia-app-shell .home-screen .season-kicker,
+.lumia-app-shell .home-screen .for-you-feature-kicker {
+  color: #9aa0ae;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.lumia-app-shell .home-screen .about-you-title,
+.lumia-app-shell .home-screen .for-you-title {
+  color: #0b0d12;
+  font-weight: 700;
+}
+
+/* Explanations are plain dark text, not gray (canvas rule). */
+.lumia-app-shell .home-screen .about-you-text,
+.lumia-app-shell .home-screen .about-you-why,
+.lumia-app-shell .home-screen .people-fact {
+  color: #0b0d12;
+}

@@ -2,7 +2,6 @@ import { BookOpen, CalendarDays, Headphones, HeartHandshake, Sparkles, Users, Wi
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { UserProfile } from '../types';
 import type { PremiumPlanId } from '../lib/premiumPricing';
-import { VideoBackground } from '../components/lumia-ui/VideoBackground';
 import type { PaywallContext } from '../lib/paywallContext';
 import { hasActivePremium, PREMIUM_SAVED_PERSON_LIMIT } from '../lib/accessMatrix';
 import { lumiaSelectionHaptic } from '../lib/haptics';
@@ -17,6 +16,7 @@ import {
 } from '../services/rustorePayService';
 import { STORE_RELEASE_CONFIG } from '../lib/storeReleaseConfig';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
+import { NeboPlusCard } from '../components/nebo/NeboPlusCard';
 import type { PurchaseRestoreStatus } from '../services/paymentProvider';
 import { loadTelegramPremiumPlans } from '../services/paymentPlanCatalog';
 import { paymentFailureCopy } from '../lib/paymentFailureCopy';
@@ -370,11 +370,11 @@ export const Paywall: React.FC<PaywallProps> = ({
       data-paywall-mode={embedded ? 'embedded' : 'overlay'}
       data-close-label={ru ? 'Закрыть' : 'Close'}
     >
-      {!embedded ? <AppTopBar title="Premium" onBack={onClose} /> : null}
+      {!embedded ? <AppTopBar title="NEBO Plus" onBack={onClose} /> : null}
       <div className="pw2-content">
         <div className={`pw2-intro${alreadyPremium ? '' : ' is-sell'}`}>
-          {!alreadyPremium ? <VideoBackground id="premium" scrim="bottom" /> : null}
-          <p className="pw2-kicker">NEBO Premium</p>
+          <NeboPlusCard name={profile.name?.trim() || (ru ? 'Ты' : 'You')} label={ru ? 'Участник' : 'Member'} />
+          <p className="pw2-kicker">NEBO Plus</p>
           <h1 className="pw2-title">
             {alreadyPremium
               ? (ru ? 'Всё уже открыто' : 'You have full access')

@@ -33,7 +33,7 @@ type AntistressRoomProps = {
   onBack: () => void;
   /** Opens the app's own «Звуки» room. */
   onOpenSounds: () => void;
-  /** Opens NEBO Premium for the locked techniques. */
+  /** Opens NEBO Plus for the locked techniques. */
   onRequestPremium?: () => void;
 };
 
@@ -520,7 +520,7 @@ export function AntistressRoom({ profile, onBack, onOpenSounds, onRequestPremium
     window.scrollTo(0, 0);
   }, [screen, technique.id]);
 
-  // Free: the two-minute breathing (also the red button). Everything else comes with NEBO Premium.
+  // Free: the two-minute breathing (also the red button). Everything else comes with NEBO Plus.
   const go = (next: Screen) => {
     lumiaSelectionHaptic();
     if (!premium && (next === 'body' || next === 'ground' || next === 'habits' || next === 'diary')) {
@@ -590,12 +590,12 @@ export function AntistressRoom({ profile, onBack, onOpenSounds, onRequestPremium
           </div>
           <div className="as-grid">
             <button type="button" className="as-tile is-blue" onClick={() => go('breathe')}><TileBreath /><b>Дыхание</b><span>{premium ? '5 техник, от 1 минуты' : '1 бесплатно, ещё 4 с Premium'}</span></button>
-            <button type="button" className="as-tile is-violet" onClick={() => go('body')}><TileBody /><b>Тело</b><span>{premium ? 'Снять зажимы, 6 минут' : 'С NEBO Premium'}</span></button>
-            <button type="button" className="as-tile is-mint" onClick={() => go('ground')}><TileGround /><b>Здесь и сейчас</b><span>{premium ? 'Остановить мысли по кругу' : 'С NEBO Premium'}</span></button>
+            <button type="button" className="as-tile is-violet" onClick={() => go('body')}><TileBody /><b>Тело</b><span>{premium ? 'Снять зажимы, 6 минут' : 'С NEBO Plus'}</span></button>
+            <button type="button" className="as-tile is-mint" onClick={() => go('ground')}><TileGround /><b>Здесь и сейчас</b><span>{premium ? 'Остановить мысли по кругу' : 'С NEBO Plus'}</span></button>
             <button type="button" className="as-tile is-coral" onClick={() => { lumiaSelectionHaptic(); onOpenSounds(); }}><TileSounds /><b>Звуки</b><span>Дождь, море, истории</span></button>
           </div>
-          <button type="button" className="as-link" onClick={() => go('habits')}><span className="as-dot is-mint"><Check size={18} aria-hidden="true" /></span><span><b>Привычки против стресса</b><small>{premium ? 'Прогулка, вода, кофе, экран перед сном' : 'С NEBO Premium'}</small></span>{premium ? <ChevronRight size={18} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}</button>
-          <button type="button" className="as-link" onClick={() => go('diary')}><span className="as-dot is-blue"><BookHeart size={18} aria-hidden="true" /></span><span><b>Дневник напряжения</b><small>{premium ? 'Что тебя выбивает и когда' : 'С NEBO Premium'}</small></span>{premium ? <ChevronRight size={18} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}</button>
+          <button type="button" className="as-link" onClick={() => go('habits')}><span className="as-dot is-mint"><Check size={18} aria-hidden="true" /></span><span><b>Привычки против стресса</b><small>{premium ? 'Прогулка, вода, кофе, экран перед сном' : 'С NEBO Plus'}</small></span>{premium ? <ChevronRight size={18} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}</button>
+          <button type="button" className="as-link" onClick={() => go('diary')}><span className="as-dot is-blue"><BookHeart size={18} aria-hidden="true" /></span><span><b>Дневник напряжения</b><small>{premium ? 'Что тебя выбивает и когда' : 'С NEBO Plus'}</small></span>{premium ? <ChevronRight size={18} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}</button>
         </>
       ) : null}
 
@@ -609,7 +609,7 @@ export function AntistressRoom({ profile, onBack, onOpenSounds, onRequestPremium
             {BREATH_TECHNIQUES.map((item) => (
               <button key={item.id} type="button" className="as-link" onClick={() => openTechnique(item.id)}>
                 <span className="as-dot is-blue as-min">{item.minutes} мин</span>
-                <span><b>{item.name}</b><small>{premium || item.id === 'sigh' ? item.forWhom : 'С NEBO Premium'}</small></span>
+                <span><b>{item.name}</b><small>{premium || item.id === 'sigh' ? item.forWhom : 'С NEBO Plus'}</small></span>
                 {premium || item.id === 'sigh' ? <ChevronRight size={18} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}
               </button>
             ))}

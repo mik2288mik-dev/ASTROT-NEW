@@ -2694,6 +2694,11 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 if (viewRef.current !== 'settings') navigateTo('settings');
             }}
             onStepBack={view !== 'dashboard' ? () => { void handleBack(); } : null}
+            account={profile ? {
+                name: profile.name || '',
+                plus: hasActivePremium(profile),
+                guest: profile.isGuest === true,
+            } : null}
         >
         <div
             className={`lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
@@ -2789,6 +2794,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             profile={profile}
                             onBack={() => { void handleBack(); }}
                             onOpenProfile={openProfileSheet}
+                            onOpenNatal={() => navigateTo('chart')}
                             onRequestPremium={() => { void requestPremium('matrix', { placement: 'matrix', featureKey: 'matrix_full', triggerType: 'locked_feature' }); }}
                         />
                     </div>
@@ -2873,6 +2879,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onQuestionRequestHandled={() => setNatalQuestionRequest(0)}
                             onOpenCharts={openProfileCharts}
                             onOpenEncyclopedia={() => navigateTo('encyclopedia')}
+                            onOpenMatrix={() => navigateTo('matrix')}
                         />
                         <PromoBanner
                             category="zodiac"

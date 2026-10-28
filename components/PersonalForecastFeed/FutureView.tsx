@@ -29,7 +29,7 @@ export type FuturePeriodTeasers = { week: string[]; month: string[] };
 type FutureViewProps = {
   profile: UserProfile;
   premium: boolean;
-  /** Days ahead NEBO Premium opens, by the bought plan (30, 90 or 365). */
+  /** Days ahead NEBO Plus opens, by the bought plan (30, 90 or 365). */
   horizonDays: number;
   /** Today in the person's timezone, YYYY-MM-DD. */
   todayKey: string;
@@ -281,9 +281,9 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
       <p className="future-access">
         {premium
           ? horizonDays > PREMIUM_DAILY_DAYS
-            ? `NEBO Premium · по дням до ${formatDayRu(addDays(todayKey, PREMIUM_DAILY_DAYS))}, по месяцам до ${formatDayRu(lastOpenKey)}`
-            : `NEBO Premium · каждый день до ${formatDayRu(lastOpenKey)}`
-          : 'Бесплатно: сегодня и завтра. Дальше, с NEBO Premium'}
+            ? `NEBO Plus · по дням до ${formatDayRu(addDays(todayKey, PREMIUM_DAILY_DAYS))}, по месяцам до ${formatDayRu(lastOpenKey)}`
+            : `NEBO Plus · каждый день до ${formatDayRu(lastOpenKey)}`
+          : 'Бесплатно: сегодня и завтра. Дальше, с NEBO Plus'}
       </p>
 
       <div className="future-weekdays" aria-hidden="true">{WEEKDAYS.map((name) => <span key={name}>{name}</span>)}</div>
@@ -311,7 +311,7 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
             <p>{selected.dayKey === todayKey ? 'Сегодня' : selected.dayKey === addDays(todayKey, 1) ? 'Завтра' : new Date(`${selected.dayKey}T12:00:00Z`).toLocaleDateString('ru-RU', { weekday: 'long', timeZone: 'UTC' })}</p>
             <h3>{formatDayRu(selected.dayKey)}</h3>
             {showPersonal && selected.personal[0] ? <span>{selected.personal[0].body}.</span> : null}
-            {!showPersonal && selected.personal.length ? <span>В этот день у тебя личное событие. Что оно значит, в NEBO Premium.</span> : null}
+            {!showPersonal && selected.personal.length ? <span>В этот день у тебя личное событие. Что оно значит, в NEBO Plus.</span> : null}
             {!selected.personal.length && selected.sky[0] ? <span>{selected.sky[0].body}.</span> : null}
             {!selected.personal.length && !selected.sky.length ? <span>Спокойный день без особых событий на небе.</span> : null}
           </div>
@@ -370,7 +370,7 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
                 })()
             ) : <p className="future-status" role="status">Готовим прогноз на {formatDayRu(selected.dayKey)}…</p>
           ) : access === 'locked' ? (
-            <button type="button" className="future-read is-locked" onClick={onRequestPremium}><LockKeyhole size={15} aria-hidden="true" />Прогноз на этот день, в NEBO Premium</button>
+            <button type="button" className="future-read is-locked" onClick={onRequestPremium}><LockKeyhole size={15} aria-hidden="true" />Прогноз на этот день, в NEBO Plus</button>
           ) : access === 'events-only' ? (
             <p className="future-status">По дням открыт ближайший месяц. Этот день войдёт в него ближе к дате, а пока смотри главное месяца ниже.</p>
           ) : null}
@@ -412,7 +412,7 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
             ) : (
               <button type="button" className="future-read is-locked" onClick={onRequestPremium}>
                 <LockKeyhole size={15} aria-hidden="true" />
-                {`Подходящих дней: ${picks.length}. Даты, в NEBO Premium`}
+                {`Подходящих дней: ${picks.length}. Даты, в NEBO Plus`}
               </button>
             )
           ) : null}
@@ -426,7 +426,7 @@ export function FutureView({ profile, premium, horizonDays, todayKey, onRequestP
           title={`В ${monthIn} ${visiblePersonal.length} ${importantDaysWord(visiblePersonal.length)} для тебя`}
           items={visiblePersonal.slice(0, 4).map((event) => `${formatDayRu(event.dayKey)} - ${event.headline}`)}
           cta="Открыть своё будущее"
-          note={`С NEBO Premium каждый день на месяц вперёд и главное по месяцам, до года`}
+          note={`С NEBO Plus каждый день на месяц вперёд и главное по месяцам, до года`}
           onOpen={onRequestPremium}
         />
       ) : null}

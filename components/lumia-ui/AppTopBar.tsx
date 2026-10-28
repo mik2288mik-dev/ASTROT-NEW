@@ -15,7 +15,10 @@ type AppTopBarProps = {
   className?: string;
 };
 
-type AppTopBarSettingsContextValue = { onOpenSettings: () => void; onStepBack?: (() => void) | null } | null;
+/** Who is signed in, for the account chip on the right of the bar (as on the canvas). */
+export type AppTopBarAccount = { name: string; plus: boolean; guest: boolean };
+
+type AppTopBarSettingsContextValue = { onOpenSettings: () => void; onStepBack?: (() => void) | null; account?: AppTopBarAccount | null } | null;
 
 const AppTopBarSettingsContext = createContext<AppTopBarSettingsContextValue>(null);
 
@@ -23,15 +26,17 @@ const AppTopBarSettingsContext = createContext<AppTopBarSettingsContextValue>(nu
 export function AppTopBarSettingsProvider({
   onOpenSettings,
   onStepBack,
+  account,
   children,
 }: {
   onOpenSettings: () => void;
   /** One step back for screens whose bar has no «Back» of its own; null on the home screen. */
   onStepBack?: (() => void) | null;
+  account?: AppTopBarAccount | null;
   children: React.ReactNode;
 }) {
   return (
-    <AppTopBarSettingsContext.Provider value={{ onOpenSettings, onStepBack }}>
+    <AppTopBarSettingsContext.Provider value={{ onOpenSettings, onStepBack, account }}>
       {children}
     </AppTopBarSettingsContext.Provider>
   );
@@ -57,9 +62,34 @@ export function AppTopBar({
   // Every screen except the home one can step back, even when it did not ask for a «Back» itself.
   const onBack = onBackProp ?? (title !== 'NEBO' ? settings?.onStepBack ?? undefined : undefined);
   const showSettings = Boolean(settings) && title !== 'Настройки' && title !== 'Settings' && title !== 'Premium';
-  // One layout everywhere: profile on the left, settings on the right (as on the home screen).
-  const startAction = onBack ? null : leftAction ?? rightAction ?? null;
+  // Main screens (no «Back») follow the canvas: the NEBO brand on the left, the account chip on the right.
+  const mainScreen = !onBack;
+  const account = settings?.account ?? null;
+  const brand = (
+    <span className="nebo-bar-brand">
+      <img src="/assets/brand/nebo-app-icon-192.png" alt="" width={26} height={26} />
+      <strong>NEBO</strong>
+    </span>
+  );
+  const startAction = onBack ? null : brand;
   const endAction = onBack || leftAction ? rightAction : null;
+  const showChip = mainScreen && Boolean(account) && showSettings;
+  const chip = account ? (
+    <button
+      type="button"
+      className="nebo-account-chip"
+      onClick={settings?.onOpenSettings}
+      aria-label={account.guest ? 'Гость. Войти' : `Аккаунт: ${account.name}${account.plus ? ', Plus' : ''}`}
+    >
+      <span className={account.guest ? 'nebo-account-chip-avatar is-guest' : 'nebo-account-chip-avatar'} aria-hidden>
+        {account.guest ? null : (account.name.trim().charAt(0).toUpperCase() || 'N')}
+      </span>
+      <span className="nebo-account-chip-name">{account.guest ? 'Гость' : account.name.trim().split(/\s+/)[0]}</span>
+      <span className={account.plus ? 'nebo-account-chip-badge is-plus' : 'nebo-account-chip-badge'}>
+        {account.guest ? 'Войти' : account.plus ? 'Plus' : 'Free'}
+      </span>
+    </button>
+  ) : null;
 
   return (
     <>
@@ -77,7 +107,7 @@ export function AppTopBar({
           ) : startAction}
         </div>
 
-        {center ?? (
+        {center ?? (mainScreen ? <span className="app-top-bar-title nebo-bar-title-empty" /> : (
         <span
           className={`home-logo-wordmark app-top-bar-title${
             isPersonalForecastHeader ? ' app-top-bar-title--personal-forecast' : isSignHoroscopeHeader ? ' app-top-bar-title--sign-horoscope' : ''
@@ -92,13 +122,13 @@ export function AppTopBar({
             />
           ) : title}
         </span>
-        )}
+        ))}
 
         <div className={`app-top-bar-side app-top-bar-side--end${endAction || showSettings ? ' has-actions' : ''}`}>
           {endAction || showSettings ? (
             <div className="app-top-bar-actions">
               {endAction}
-              {showSettings ? (
+              {showChip ? chip : showSettings ? (
                 <button
                   className="app-top-bar-action app-top-bar-settings-button"
                   onClick={settings?.onOpenSettings}

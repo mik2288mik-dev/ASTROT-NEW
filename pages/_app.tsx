@@ -40,6 +40,8 @@ import '../styles/natalMeaningMap.css';
 import '../styles/homeMockupV1.css';
 import '../styles/admin/admin.css';
 import '../styles/neboTabBar.css';
+import '../styles/neboToday.css';
+import '../styles/neboScreens.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 import { installRuntimeDiagnostics } from '../lib/runtimeDiagnostics';
 import { expandTelegramAppOnPhones } from '../lib/telegramExpand';

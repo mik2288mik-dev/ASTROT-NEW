@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { buildSkyMonitor, type SkyMonitor } from '../../lib/skyMonitor';
 import { loadExploreCharts, peekExploreCharts } from './exploreCharts';
 import type { ChartListItem } from '../../services/storageService';
-import { LiveSky, MoonCanvas } from '../home/LiveSky';
-import { useSkyNow } from '../home/useSkyNow';
+import { MoonCanvas } from '../home/LiveSky';
 
 function housesFrom(charts: ChartListItem[] | null): number[] | null {
   const primary = charts?.find((chart) => chart.is_primary)?.chart_data as
@@ -21,8 +20,6 @@ type TodaySkyMonitorProps = {
 };
 
 let skyEngine: Promise<typeof import('astronomy-engine')> | null = null;
-
-const TIMELINE_DAYS = 60;
 
 function formatDay(date: Date): string {
   return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
@@ -43,21 +40,10 @@ function MoonGlyph({ illumination, waxing }: { illumination: number; waxing: boo
   return <MoonCanvas phase={waxing ? angle : 360 - angle} night className="today-sky-glyph" />;
 }
 
-function MercuryGlyph() {
-  return (
-    <svg className="today-sky-glyph" viewBox="0 0 48 48" aria-hidden="true">
-      <circle cx="24" cy="24" r="20" fill="rgba(255,255,255,0.18)" />
-      <circle cx="24" cy="25" r="6.5" fill="none" stroke="#fff" strokeWidth="2" />
-      <path d="M18.5 13.5a5.5 5.5 0 0 0 11 0" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-      <path d="M24 31.5v6.5M20.8 34.8h6.4" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
   const [sky, setSky] = useState<SkyMonitor | null>(null);
   const [failed, setFailed] = useState(false);
-  const now = useSkyNow();
+  const [retroOpen, setRetroOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -93,81 +79,79 @@ export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
     );
   }
   const { moon, mercury, calendar } = sky;
-  const nowMs = Date.now();
   const window = mercury.window;
-  const timeline = window && window.start.getTime() - nowMs < TIMELINE_DAYS * 86_400_000
-    ? {
-        left: Math.max(0, ((window.start.getTime() - nowMs) / (TIMELINE_DAYS * 86_400_000)) * 100),
-        width: Math.min(100, ((window.end.getTime() - Math.max(nowMs, window.start.getTime())) / (TIMELINE_DAYS * 86_400_000)) * 100),
-      }
-    : null;
 
+  const retroNow = mercury.retrograde;
+  const retroSoon = !retroNow && Boolean(window && mercury.daysUntilStart);
+  const retroLabel = retroNow
+    ? `Идёт сейчас${window ? ` · до ${formatDay(window.end)}` : ''}`
+    : retroSoon && window
+      ? `Через ${mercury.daysUntilStart} ${daysWord(mercury.daysUntilStart!)} · ${formatDay(window.start)} - ${formatDay(window.end)}`
+      : '';
+
+  // Canvas «Сегодня»: the Moon as a tile, Mercury retrograde as a red card that opens its explanation.
   return (
-    <section data-telemetry-content="Небо сегодня" id="today-sky" className="today-sky" aria-labelledby="today-sky-title">
-      <h2 id="today-sky-title" className="today-explore-heading">Небо сегодня</h2>
-      <div className={`today-sky-card${now ? ' is-live' : ''}`}>
-        {now ? <LiveSky sunAltitude={now.sunAltitude} moonPhase={null} className="today-sky-canvas" /> : null}
-        <div data-telemetry-content="Небо сегодня · Луна" className="today-sky-row">
-          <MoonGlyph illumination={moon.illumination} waxing={moon.waxing} />
-          <div className="today-sky-copy">
-            <p className="today-sky-kicker">Луна</p>
-            <p className="today-sky-title">{moon.phaseLabel} · {moon.illumination}%</p>
-            <p className="today-sky-text">Сейчас в {moon.signIn}. {moon.advice}.</p>
+    <section data-telemetry-content="Небо сегодня" id="today-sky" className="nebo-sky" aria-label="Небо сегодня">
+      <div className="nebo-sky-tiles">
+        <div data-telemetry-content="Небо сегодня · Луна" className="nebo-sky-tile">
+          <p className="nebo-sky-tile-label">Луна сегодня</p>
+          <div className="nebo-sky-moon">
+            <MoonGlyph illumination={moon.illumination} waxing={moon.waxing} />
+            <strong>{moon.phaseLabel}</strong>
           </div>
+          <p className="nebo-sky-tile-text">в {moon.signIn}</p>
+          <p className="nebo-sky-tile-note">Освещена на {moon.illumination}%</p>
         </div>
-        <ol className="today-sky-calendar" aria-label="Ближайшие фазы Луны">
-          {calendar.map((item, index) => (
-            <li key={item.label} className={index === 0 ? 'is-next' : undefined}>
-              <b>{formatDay(item.date)}</b>
-              {item.label}
-            </li>
-          ))}
-        </ol>
-        {moon.personal ? (
-          <p className="today-sky-personal">Для тебя: Луна идёт по {moon.personal.house} дому, {moon.personal.area}</p>
-        ) : null}
-
-        <div className="today-sky-divider" />
-
-        <div data-telemetry-content="Небо сегодня · Меркурий" className="today-sky-row">
-          <MercuryGlyph />
-          <div className="today-sky-copy">
-            <p className="today-sky-kicker">Меркурий</p>
-            {mercury.retrograde ? (
-              <>
-                <p className="today-sky-title">Ретроградный{window ? ` до ${formatDay(window.end)}` : ''}</p>
-                <p className="today-sky-text">Сейчас в {mercury.signIn}. Перепроверяй договорённости, билеты и сообщения перед отправкой.</p>
-              </>
-            ) : (
-              <>
-                <p className="today-sky-title">Идёт прямо</p>
-                <p className="today-sky-text">
-                  {window && mercury.daysUntilStart
-                    ? `Ретроград начнётся через ${mercury.daysUntilStart} ${daysWord(mercury.daysUntilStart)}: с ${formatDay(window.start)} по ${formatDay(window.end)}${mercury.windowSignIn ? `, в ${mercury.windowSignIn}` : ''}.`
-                    : `Сейчас в ${mercury.signIn}. Ретроградов в ближайшие месяцы нет.`}
-                </p>
-              </>
-            )}
-          </div>
+        <div className="nebo-sky-tile">
+          <p className="nebo-sky-tile-label">Ближайшие фазы</p>
+          <ol className="nebo-sky-phases" aria-label="Ближайшие фазы Луны">
+            {calendar.slice(0, 3).map((item) => (
+              <li key={item.label}><b>{formatDay(item.date)}</b> {item.label}</li>
+            ))}
+          </ol>
         </div>
-        {timeline ? (
-          <>
-            <div className="today-sky-timeline" aria-hidden="true">
-              <i style={{ left: `${timeline.left}%`, width: `${timeline.width}%` }} />
-              <em />
-            </div>
-            <div className="today-sky-timeline-labels" aria-hidden="true">
-              <span>сегодня</span>
-              <span>{window ? `${formatDay(window.start)} - ${formatDay(window.end)}` : ''}</span>
-            </div>
-          </>
-        ) : null}
-        {mercury.personal && window ? (
-          <p className="today-sky-personal">
-            Для тебя: {mercury.retrograde ? 'проходит' : 'пройдёт'} по {mercury.personal.house} дому, {mercury.personal.area}
-          </p>
-        ) : null}
       </div>
+      {moon.personal ? (
+        <p className="nebo-sky-personal">Луна идёт по твоему {moon.personal.house} дому: {moon.personal.area}</p>
+      ) : null}
+
+      {retroLabel ? (
+        <button
+          type="button"
+          data-telemetry-content="Небо сегодня · Меркурий"
+          className={retroNow ? 'nebo-retro-card is-now' : 'nebo-retro-card'}
+          aria-expanded={retroOpen}
+          onClick={() => setRetroOpen((open) => !open)}
+        >
+          <span className="nebo-retro-glyph" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+              <path d="M12 7a4 4 0 1 1 0 8a4 4 0 1 1 0-8M8.4 2.6a3.6 3.6 0 0 0 7.2 0M12 15v6.4M9 18.4h6" />
+            </svg>
+          </span>
+          <span className="nebo-retro-copy">
+            <span className="nebo-retro-label">{retroLabel}</span>
+            <strong>{retroNow ? 'Ретроградный Меркурий' : 'Скоро ретроградный Меркурий'}</strong>
+            <span className="nebo-retro-sub">Что он значит для тебя</span>
+          </span>
+          <svg className={retroOpen ? 'nebo-retro-chevron is-open' : 'nebo-retro-chevron'} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+      ) : null}
+      {retroLabel && retroOpen ? (
+        <div className="nebo-retro-more">
+          <p>
+            Ретроградный Меркурий: несколько недель кажется, что Меркурий идёт по небу назад. Меркурий отвечает за разговоры,
+            переписку, договоры и поездки, поэтому в эти дни люди чаще путаются в словах, сроках и билетах.
+          </p>
+          <p>
+            {retroNow
+              ? `Сейчас он в ${mercury.signIn}. Перечитывай сообщения перед отправкой, перепроверяй договорённости и билеты.`
+              : `Начнётся ${formatDay(window!.start)}${mercury.windowSignIn ? `, в ${mercury.windowSignIn}` : ''}. Важное лучше подписать и купить до этого.`}
+          </p>
+          {mercury.personal ? (
+            <p>Для тебя: {retroNow ? 'проходит' : 'пройдёт'} по твоему {mercury.personal.house} дому, {mercury.personal.area}</p>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

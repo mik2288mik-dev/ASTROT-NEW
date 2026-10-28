@@ -3,11 +3,11 @@ import { ChevronRight, LoaderCircle, LockKeyhole, RefreshCw } from 'lucide-react
 import { AssetSlot } from '../lumia-ui/AssetSlot';
 
 export type FuturePeriodCardData = {
-  /** Readable state of the NEBO Premium reading; free cards are always `locked`. */
+  /** Readable state of the NEBO Plus reading; free cards are always `locked`. */
   phase: 'locked' | 'loading' | 'ready' | 'error';
-  /** First sentences of the ready reading (NEBO Premium). */
+  /** First sentences of the ready reading (NEBO Plus). */
   opening: string;
-  /** Opening lines from the person's own calendar (free, and while NEBO Premium waits). */
+  /** Opening lines from the person's own calendar (free, and while NEBO Plus waits). */
   teaser: readonly string[];
 };
 
@@ -68,8 +68,8 @@ function PeriodCard({
         <p className="future-period-card-lock">
           <LockKeyhole size={14} aria-hidden="true" />
           {ru
-            ? (period === 'week' ? 'Полный разбор недели, в NEBO Premium' : 'Полный разбор месяца, в NEBO Premium')
-            : (period === 'week' ? 'The full week reading is in NEBO Premium' : 'The full month reading is in NEBO Premium')}
+            ? (period === 'week' ? 'Полный разбор недели, в NEBO Plus' : 'Полный разбор месяца, в NEBO Plus')
+            : (period === 'week' ? 'The full week reading is in NEBO Plus' : 'The full month reading is in NEBO Plus')}
         </p>
       ) : null}
       {data.phase === 'loading' ? (
@@ -95,7 +95,7 @@ function PeriodCard({
 }
 
 /**
- * The two NEBO Premium readings open «Будущее»: the week and the current month. Free
+ * The two NEBO Plus readings open «Будущее»: the week and the current month. Free
  * cards show real opening lines from the person's calendar and a lock — never
  * a blurred text.
  */
