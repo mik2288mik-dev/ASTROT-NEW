@@ -20,6 +20,7 @@ export type LunarDay = {
   exact: { q: 0 | 2 } | null;
   eclipse: boolean;
   mercuryRetrograde: boolean;
+  venusRetrograde: boolean;
 };
 
 export const SIGNS_IN = ['в Овне', 'в Тельце', 'в Близнецах', 'в Раке', 'во Льве', 'в Деве', 'в Весах', 'в Скорпионе', 'в Стрельце', 'в Козероге', 'в Водолее', 'в Рыбах'];
@@ -52,6 +53,8 @@ export function buildLunarDays(engine: AstronomyEngine, from: Date, count: numbe
     const phase = normalize(moon - sun);
     const mercuryNow = eclipticLongitude(engine, 'Mercury', noon);
     const mercuryLater = eclipticLongitude(engine, 'Mercury', new Date(noon.getTime() + 3_600_000));
+    const venusNow = eclipticLongitude(engine, 'Venus', noon);
+    const venusLater = eclipticLongitude(engine, 'Venus', new Date(noon.getTime() + 3_600_000));
     const key = dayKeyOf(noon);
     const nearNew = Math.min(phase, 360 - phase) < 6.1;
     const nearFull = Math.abs(phase - 180) < 6.1;
@@ -67,6 +70,7 @@ export function buildLunarDays(engine: AstronomyEngine, from: Date, count: numbe
       exact: nearNew ? { q: 0 } : nearFull ? { q: 2 } : null,
       eclipse: near(-1) || near(0) || near(1),
       mercuryRetrograde: signedDistance(mercuryLater, mercuryNow) < 0,
+      venusRetrograde: signedDistance(venusLater, venusNow) < 0,
     };
   });
 }
@@ -178,6 +182,12 @@ const DEAL_SPECS: DealSpec[] = [
 
 const DEALS: Operation[] = DEAL_SPECS.map((spec) => ({ id: spec.id, name: spec.name, hint: spec.hint, evaluate: (day) => dealVerdict(spec, day) }));
 
+/** A deal-like operation with its own good signs (used by «Хорошие даты»). */
+export function makeDealOperation(id: string, good: number[], options: { merc?: boolean; anyPhase?: boolean } = {}): Operation {
+  const spec: DealSpec = { id, name: id, hint: '', good, merc: options.merc, anyPhase: options.anyPhase };
+  return { id, name: id, hint: '', evaluate: (day) => dealVerdict(spec, day) };
+}
+
 type HomeSpec = { id: string; name: string; hint: string; phase: Phase; good: number[]; bad: number[]; blocksOnMoveDays?: boolean; goodWhy?: string; badWhy?: string; wrong?: string; neutral?: string; strictPhase?: boolean };
 
 function homeVerdict(spec: HomeSpec, day: LunarDay): Verdict {
@@ -249,3 +259,12 @@ export function bestDays(operation: Operation, days: LunarDay[], limit = 5): Lun
 }
 
 export type { Operation };
+
+/** Any calendar operation by its id, e.g. 'contracts', 'move', 'hair_grow', 'detox'. */
+export function operationById(id: string): Operation | null {
+  for (const category of LUNAR_CATEGORIES) {
+    const found = category.operations.find((op) => op.id === id);
+    if (found) return found;
+  }
+  return null;
+}
