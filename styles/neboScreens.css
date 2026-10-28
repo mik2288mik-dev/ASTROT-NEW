@@ -263,3 +263,81 @@
   box-shadow: 0 1px 2px rgba(11, 13, 18, 0.08), 0 4px 10px rgba(11, 13, 18, 0.06);
   color: #0b0d12;
 }
+
+/* Отдых: big picture cards, the first one is the hero (canvas). */
+.nebo-rest {
+  background: #ffffff;
+}
+
+.nebo-rest-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 16px 0;
+}
+
+.nebo-rest-card {
+  position: relative;
+  display: flex;
+  min-height: 190px;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  padding: 14px;
+  border: 0;
+  border-radius: 24px;
+  background: #f4f5f8;
+  color: #0b0d12;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nebo-rest-card.is-hero {
+  grid-column: 1 / -1;
+  min-height: 210px;
+  background: linear-gradient(160deg, #dcebff 0%, #e9f6ff 100%);
+}
+
+.nebo-rest-card img {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 58%;
+  max-width: 150px;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.nebo-rest-card.is-hero img {
+  top: 8px;
+  right: 12px;
+  width: 44%;
+  max-width: 170px;
+}
+
+.nebo-rest-card-copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nebo-rest-card-copy strong {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.nebo-rest-card.is-hero .nebo-rest-card-copy strong {
+  font-size: 22px;
+}
+
+.nebo-rest-card-copy span {
+  color: #0b0d12;
+  font-size: 13px;
+  line-height: 1.35;
+  opacity: 0.8;
+}
