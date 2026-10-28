@@ -2940,7 +2940,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onTabChange={setServiceTab}
                             onOpenCharts={openProfileCharts}
                             onOpenMatrix={() => navigateTo('matrix')}
-                            onOpenTests={() => { setTestsInitialId(null); navigateTo('tests'); }}
+                            onOpenTests={(testId?: string) => { setTestsInitialId(testId ?? null); navigateTo('tests'); }}
                             onOpenSounds={() => navigateTo('sounds')}
                             onOpenAntistress={() => navigateTo('antistress')}
                             onOpenStories={() => navigateTo('stories')}

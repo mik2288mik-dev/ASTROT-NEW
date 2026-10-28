@@ -232,32 +232,47 @@ export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: O
   }
 
   if (stage === 'pick') {
+    const left = 3 - picked.length;
     return (
-      <div className={`fresh-page nebo-oracle is-${kind}`}>
-        {header}
-        <section className="nebo-oracle-pick" aria-labelledby="nebo-oracle-pick-title">
-          <h2 id="nebo-oracle-pick-title">{copy.pickTitle}</h2>
-          <p className="nebo-oracle-intro">{copy.pickText}</p>
-          {question.trim() ? <p className="nebo-oracle-question">«{question.trim()}»</p> : null}
-          <div className="nebo-oracle-deck" role="group" aria-label="Колода">
+      <div className={`nebo-oracle-night is-${kind}`}>
+        <header className="nebo-oracle-night-bar">
+          <button type="button" onClick={goHome} aria-label="Назад">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+          </button>
+          <strong>{kind === 'tarot' ? 'Расклад таро' : 'Расклад рун'}</strong>
+          <span />
+        </header>
+        <section className="nebo-oracle-night-body" aria-labelledby="nebo-oracle-pick-title">
+          <p className="nebo-oracle-night-kicker">{copy.spreadName}</p>
+          <h2 id="nebo-oracle-pick-title">{left > 0 ? `Выбери ${left} ${kind === 'tarot' ? (left === 1 ? 'карту' : 'карты') : (left === 1 ? 'руну' : 'руны')}` : 'Открываем…'}</h2>
+          {question.trim() ? <p className="nebo-oracle-night-question">«{question.trim()}»</p> : <p className="nebo-oracle-night-question">{copy.pickText}</p>}
+          <div className="nebo-oracle-night-deck" role="group" aria-label="Колода">
             {slots.map((index) => {
               const chosen = picked.indexOf(index);
               return (
                 <button
                   key={index}
                   type="button"
-                  className={`nebo-oracle-slot${chosen >= 0 ? ' is-chosen' : ''}`}
+                  className={`nebo-oracle-night-card${chosen >= 0 ? ' is-chosen' : ''}`}
+                  style={{ '--i': index, '--n': slots.length } as React.CSSProperties}
                   aria-pressed={chosen >= 0}
-                  aria-label={chosen >= 0 ? `Выбрано: ${chosen + 1}` : 'Выбрать'}
+                  aria-label={chosen >= 0 ? `Выбрано: ${SPREAD_POSITIONS[chosen].label}` : 'Выбрать'}
                   onClick={() => pickSlot(index)}
                 >
                   {kind === 'tarot' ? <img src={TAROT_BACK} alt="" loading="lazy" /> : <span className="nebo-oracle-stone is-m"><b>?</b></span>}
-                  {chosen >= 0 ? <em>{chosen + 1}</em> : null}
                 </button>
               );
             })}
           </div>
-          <p className="nebo-oracle-count">{picked.length} из 3</p>
+          <div className="nebo-oracle-night-slots">
+            {SPREAD_POSITIONS.map((position, index) => (
+              <span key={position.id} className={index < picked.length ? 'is-filled' : ''}>
+                <i>{index < picked.length ? (kind === 'tarot' ? <img src={TAROT_BACK} alt="" /> : <span className="nebo-oracle-stone is-s"><b>?</b></span>) : null}</i>
+                <b>{position.label}</b>
+              </span>
+            ))}
+          </div>
+          <p className="nebo-oracle-night-left">{left > 0 ? `Ещё ${left}` : ''}</p>
         </section>
       </div>
     );

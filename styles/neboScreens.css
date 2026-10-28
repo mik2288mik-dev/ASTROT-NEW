@@ -1289,3 +1289,74 @@
 .nebo-shop-options strong { font-size: 15px; }
 .nebo-shop-options small { color: #5c6170; font-size: 13px; }
 .nebo-shop-bigcode { padding: 18px; border-radius: 18px; background: #f4f5f8; color: #0b0d12; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 26px; font-weight: 700; letter-spacing: 0.08em; text-align: center; }
+
+/* «Отдых» home (canvas Rest) */
+.nebo-rest-home { display: flex; flex-direction: column; padding: 4px 0 28px; color: #0b0d12; }
+.nebo-rest-head { text-align: center; }
+.nebo-rest-head h1 { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 28px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.nebo-rest-head h1 span { width: 44px; height: 1px; background: linear-gradient(90deg, transparent, #8a8f9c); }
+.nebo-rest-head h1 span:last-child { background: linear-gradient(90deg, #8a8f9c, transparent); }
+.nebo-rest-head p { margin: 4px 0 0; color: #8a8f9c; font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.nebo-rest-hero { position: relative; display: flex; align-items: flex-end; min-height: 232px; margin: 16px 16px 0; padding: 18px; overflow: hidden; border: 0; border-radius: 30px; background: #9ccbe0 center / cover no-repeat; color: #ffffff; font: inherit; text-align: left; cursor: pointer; }
+.nebo-rest-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(10, 30, 60, 0.55) 100%); }
+.nebo-rest-hero-copy { position: relative; display: flex; flex-direction: column; gap: 4px; padding-right: 60px; }
+.nebo-rest-hero-copy small { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.85; }
+.nebo-rest-hero-copy strong { font-size: 26px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-rest-hero-copy span { font-size: 14px; line-height: 1.35; opacity: 0.92; }
+.nebo-rest-play { position: absolute; right: 18px; bottom: 18px; display: inline-flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255, 255, 255, 0.28); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.nebo-shelf { margin-top: 24px; }
+.nebo-shelf h2, .nebo-shelf-head { margin: 0 20px 12px; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.nebo-shelf-head { display: flex; align-items: baseline; justify-content: space-between; }
+.nebo-shelf-head h2 { margin: 0; }
+.nebo-shelf-head button { border: 0; background: none; color: #4f46e5; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.nebo-shelf-row { display: flex; gap: 12px; padding: 0 16px 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.nebo-shelf-row::-webkit-scrollbar { display: none; }
+.nebo-shelf-card { display: flex; width: 150px; flex: none; flex-direction: column; gap: 4px; padding: 0; border: 0; background: none; color: #0b0d12; font: inherit; text-align: left; scroll-snap-align: start; cursor: pointer; }
+.nebo-shelf-art { display: block; width: 150px; height: 200px; border-radius: 22px; background: #eef1f6 center / cover no-repeat; }
+.nebo-shelf-card.is-tall .nebo-shelf-art { width: 168px; height: 210px; }
+.nebo-shelf-card.is-tall { width: 168px; }
+.nebo-shelf-card strong { margin-top: 6px; font-size: 15px; font-weight: 600; line-height: 1.25; }
+.nebo-shelf-card small { color: #8a8f9c; font-size: 13px; }
+.nebo-test-card { position: relative; display: flex; width: 168px; min-height: 200px; flex: none; flex-direction: column; gap: 4px; padding: 14px; border: 0; border-radius: 24px; color: #0b0d12; font: inherit; text-align: left; scroll-snap-align: start; cursor: pointer; }
+.nebo-test-card img { width: 88px; height: 88px; margin: 14px auto 8px; object-fit: contain; }
+.nebo-test-card strong { font-size: 15px; line-height: 1.25; font-weight: 700; }
+.nebo-test-card small { color: #5c6170; font-size: 12.5px; }
+.nebo-test-badge { position: absolute; left: 12px; top: 12px; padding: 4px 9px; border-radius: 999px; background: #ffffff; color: #0b0d12; font-size: 11.5px; font-weight: 700; }
+.nebo-calm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0 16px; }
+.nebo-calm-card { display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 0; border-radius: 24px; background: #f4f5f8; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; }
+.nebo-calm-card img { width: 100%; aspect-ratio: 1.2; border-radius: 16px; object-fit: cover; }
+.nebo-calm-card strong { margin-top: 6px; font-size: 15px; font-weight: 600; }
+.nebo-calm-card small { color: #8a8f9c; font-size: 13px; }
+.nebo-rest-moon { margin: 24px 16px 0; }
+
+/* «Моя карта» header, canvas look: warm glow on top, serif caps title between ornaments, grey caps subtitle */
+.nebo-mychart-header::before { content: ""; position: absolute; left: -16px; right: -16px; top: -90px; height: 360px; z-index: -1; background: radial-gradient(120% 80% at 50% 0%, rgba(255, 214, 170, 0.55), rgba(255, 255, 255, 0) 70%); pointer-events: none; }
+.nebo-mychart-header .nebo-page-title { text-align: center; }
+.nebo-mychart-header .nebo-page-title h1 { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 26px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.nebo-mychart-header .nebo-page-title h1::before, .nebo-mychart-header .nebo-page-title h1::after { content: ""; width: 40px; height: 1px; flex: none; background: linear-gradient(90deg, transparent, #8a8f9c); }
+.nebo-mychart-header .nebo-page-title h1::after { background: linear-gradient(90deg, #8a8f9c, transparent); }
+.nebo-mychart-header .nebo-page-title p { margin: 4px 0 0; color: #8a8f9c; font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* Picking cards or runes (canvas TarotPick): a night screen with the deck and three places */
+.nebo-oracle-night { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; overflow-y: auto; background: radial-gradient(90% 60% at 50% 45%, #4a3a8f 0%, #261a6b 45%, #120c3d 100%); color: #ffffff; }
+.nebo-oracle-night::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(1.5px 1.5px at 12% 18%, rgba(255,255,255,.7), transparent), radial-gradient(1px 1px at 70% 12%, rgba(255,255,255,.6), transparent), radial-gradient(1.5px 1.5px at 85% 40%, rgba(255,255,255,.5), transparent), radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,.6), transparent), radial-gradient(1px 1px at 55% 80%, rgba(255,255,255,.5), transparent), radial-gradient(1.5px 1.5px at 20% 88%, rgba(255,255,255,.6), transparent); pointer-events: none; }
+.nebo-oracle-night-bar { position: relative; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: calc(10px + env(safe-area-inset-top)) 14px 0; }
+.nebo-oracle-night-bar button { display: inline-flex; width: 40px; height: 40px; align-items: center; justify-content: center; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 50%; background: rgba(255, 255, 255, 0.12); color: #ffffff; cursor: pointer; }
+.nebo-oracle-night-bar strong { text-align: center; font-size: 17px; font-weight: 600; }
+.nebo-oracle-night-body { position: relative; display: flex; flex: 1; flex-direction: column; align-items: center; padding: 18px 16px calc(28px + env(safe-area-inset-bottom)); text-align: center; }
+.nebo-oracle-night-kicker { margin: 0; color: rgba(255, 255, 255, 0.7); font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.nebo-oracle-night-body h2 { margin: 6px 0 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-oracle-night-question { margin: 8px 0 0; max-width: 320px; color: rgba(255, 255, 255, 0.85); font-size: 15px; line-height: 1.4; }
+.nebo-oracle-night-deck { position: relative; width: 100%; max-width: 380px; height: 250px; margin-top: 26px; }
+.nebo-oracle-night-card { position: absolute; left: 50%; bottom: 0; width: 74px; height: 112px; margin-left: -37px; padding: 0; border: 1.5px solid rgba(255, 255, 255, 0.75); border-radius: 10px; background: #1e1458; box-shadow: 0 14px 24px -12px rgba(0, 0, 0, 0.7); transform-origin: 50% 260%; transform: rotate(calc((var(--i) - (var(--n) - 1) / 2) * 6deg)); transition: transform 0.35s cubic-bezier(.22, 1, .36, 1), opacity 0.3s ease; cursor: pointer; }
+.nebo-oracle-night-card:hover { transform: rotate(calc((var(--i) - (var(--n) - 1) / 2) * 6deg)) translateY(-10px); }
+.nebo-oracle-night-card img { width: 100%; height: 100%; border-radius: 9px; object-fit: cover; }
+.nebo-oracle-night-card.is-chosen { opacity: 0; pointer-events: none; }
+.nebo-oracle-night-slots { display: flex; justify-content: center; gap: 14px; margin-top: 26px; }
+.nebo-oracle-night-slots span { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.nebo-oracle-night-slots i { display: flex; width: 76px; height: 114px; align-items: center; justify-content: center; border: 1.5px dashed rgba(255, 255, 255, 0.45); border-radius: 12px; }
+.nebo-oracle-night-slots span.is-filled i { border-style: solid; border-color: rgba(255, 255, 255, 0.85); animation: nbSlotIn 0.4s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes nbSlotIn { from { transform: translateY(-40px) scale(0.9); opacity: 0; } to { transform: none; opacity: 1; } }
+.nebo-oracle-night-slots i img { width: 100%; height: 100%; border-radius: 10px; object-fit: cover; }
+.nebo-oracle-night-slots b { font-size: 13.5px; font-weight: 600; }
+.nebo-oracle-night-left { min-height: 20px; margin: 20px 0 0; color: rgba(255, 255, 255, 0.75); font-size: 14px; }
