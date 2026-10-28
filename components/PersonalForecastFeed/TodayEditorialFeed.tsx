@@ -1,3 +1,4 @@
+import { WhyButton } from '../nebo/WhyButton';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
@@ -87,6 +88,7 @@ function StoryFragment({
 export function TodayEditorialFeed({
   sections,
   lockedSectionIds,
+  userId,
   periodKey,
   language,
   personalAttribution,
@@ -145,6 +147,7 @@ export function TodayEditorialFeed({
             <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
+        <WhyButton userId={userId} dayKey={periodKey} overview={overview ?? null} />
       </div>
       {readingOpen ? (
         <div id="today-reading" className="nebo-today-reading">

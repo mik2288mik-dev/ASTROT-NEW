@@ -156,3 +156,19 @@ export async function getAppPushOverview() {
     })),
   };
 }
+
+export type UserInboxMessage = AppPushInboxMessage & { sentAt: string };
+
+/** In-app «Входящие»: the messages meant for this person (all, them, or their sign), newest first. */
+export async function readUserInbox(userId: string, sign: string | null, limit = 30): Promise<UserInboxMessage[]> {
+  const pool = getPool();
+  await ensureAppPushSchema(pool);
+  const messages = await pool.query(
+    `SELECT id, title, body, route, send_at FROM app_push_messages
+     WHERE cancelled_at IS NULL AND send_at <= NOW() AND expires_at > NOW()
+       AND (audience = 'all' OR (audience = 'user' AND target = $1) OR (audience = 'sign' AND LOWER(target) = LOWER($2)))
+     ORDER BY send_at DESC, id DESC LIMIT $3`,
+    [userId, sign || '', Math.max(1, Math.min(limit, 50))],
+  );
+  return messages.rows.map((m: any) => ({ id: Number(m.id), title: m.title, body: m.body, route: m.route, sentAt: new Date(m.send_at).toISOString() }));
+}

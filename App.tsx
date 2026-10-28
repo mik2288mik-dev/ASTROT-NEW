@@ -51,6 +51,7 @@ import { useAndroidUpdateGate } from './services/useAndroidUpdateGate';
 import { AndroidVpnWarning } from './components/AndroidVpnWarning';
 import { useAndroidVpnWarning } from './services/useAndroidVpnWarning';
 import { AppTopBar, AppTopBarSettingsProvider } from './components/lumia-ui/AppTopBar';
+import { resolveNotificationSign } from './lib/nativeNotificationPolicy';
 import { ACTION_FEEDBACK, ActionFeedbackHost, showActionFeedback } from './components/lumia-ui/ActionFeedback';
 import { NeboLogo } from './components/brand/NeboLogo';
 import {
@@ -2718,6 +2719,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             account={profile ? {
                 id: profile.id || '',
                 name: profile.name || '',
+                sign: resolveNotificationSign(profile.selectedZodiacSign, profile.birthDate),
                 plus: hasActivePremium(profile),
                 guest: profile.isGuest === true,
             } : null}

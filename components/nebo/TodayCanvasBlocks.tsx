@@ -10,6 +10,7 @@ const DAY_TITLES: Record<number, string> = {
   6: 'День близких', 7: 'День тишины', 8: 'День результатов', 9: 'День итогов', 11: 'День озарений', 22: 'День больших дел',
 };
 import { chineseAdjective, chineseSign } from '../../lib/chineseZodiac';
+import { CardOfDayOverlay } from './CardOfDayOverlay';
 
 let engineModule: Promise<typeof import('astronomy-engine')> | null = null;
 
@@ -108,10 +109,13 @@ export function TodayTiles({ userId, birthDate, onOpenMoon, onOpenTarot, onOpenN
   }, [today]);
 
   const illumination = moon ? Math.round(((1 - Math.cos((moon.phase * Math.PI) / 180)) / 2) * 100) : null;
-  const openCard = () => {
+  const [cardOpen, setCardOpen] = useState(false);
+  const openCard = () => setCardOpen(true);
+  const closeCard = (opened: boolean) => {
+    setCardOpen(false);
+    if (!opened) return;
     try { window.localStorage.setItem(cardSeenKey, '1'); } catch { /* storage may be unavailable */ }
     setCardSeen(true);
-    onOpenTarot?.();
   };
 
   return (
@@ -123,7 +127,8 @@ export function TodayTiles({ userId, birthDate, onOpenMoon, onOpenTarot, onOpenN
         <span className="nebo-tile-foot">{illumination !== null ? `Освещена на ${illumination}%` : ''}</span>
         <TileChevron />
       </button>
-      <button type="button" className="nebo-tile is-tall is-card" onClick={openCard} disabled={!onOpenTarot}>
+      {cardOpen ? <CardOfDayOverlay card={card} onClose={closeCard} onOpenTarot={onOpenTarot ? () => { closeCard(true); onOpenTarot(); } : undefined} /> : null}
+      <button type="button" className="nebo-tile is-tall is-card" onClick={openCard}>
         <span className="nebo-tile-kicker"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5" /><path d="M12 8.5l1.2 2.3 2.3 1.2-2.3 1.2L12 15.5l-1.2-2.3L8.5 12l2.3-1.2z" /></svg>Карта дня</span>
         {cardSeen ? (
           <>
