@@ -1289,3 +1289,42 @@
 .nebo-shop-options strong { font-size: 15px; }
 .nebo-shop-options small { color: #5c6170; font-size: 13px; }
 .nebo-shop-bigcode { padding: 18px; border-radius: 18px; background: #f4f5f8; color: #0b0d12; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 26px; font-weight: 700; letter-spacing: 0.08em; text-align: center; }
+
+/* «Отдых» home (canvas Rest) */
+.nebo-rest-home { display: flex; flex-direction: column; padding: 4px 0 28px; color: #0b0d12; }
+.nebo-rest-head { text-align: center; }
+.nebo-rest-head h1 { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 28px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.nebo-rest-head h1 span { width: 44px; height: 1px; background: linear-gradient(90deg, transparent, #8a8f9c); }
+.nebo-rest-head h1 span:last-child { background: linear-gradient(90deg, #8a8f9c, transparent); }
+.nebo-rest-head p { margin: 4px 0 0; color: #8a8f9c; font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.nebo-rest-hero { position: relative; display: flex; align-items: flex-end; min-height: 232px; margin: 16px 16px 0; padding: 18px; overflow: hidden; border: 0; border-radius: 30px; background: #9ccbe0 center / cover no-repeat; color: #ffffff; font: inherit; text-align: left; cursor: pointer; }
+.nebo-rest-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(10, 30, 60, 0.55) 100%); }
+.nebo-rest-hero-copy { position: relative; display: flex; flex-direction: column; gap: 4px; padding-right: 60px; }
+.nebo-rest-hero-copy small { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.85; }
+.nebo-rest-hero-copy strong { font-size: 26px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-rest-hero-copy span { font-size: 14px; line-height: 1.35; opacity: 0.92; }
+.nebo-rest-play { position: absolute; right: 18px; bottom: 18px; display: inline-flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255, 255, 255, 0.28); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.nebo-shelf { margin-top: 24px; }
+.nebo-shelf h2, .nebo-shelf-head { margin: 0 20px 12px; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.nebo-shelf-head { display: flex; align-items: baseline; justify-content: space-between; }
+.nebo-shelf-head h2 { margin: 0; }
+.nebo-shelf-head button { border: 0; background: none; color: #4f46e5; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.nebo-shelf-row { display: flex; gap: 12px; padding: 0 16px 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.nebo-shelf-row::-webkit-scrollbar { display: none; }
+.nebo-shelf-card { display: flex; width: 150px; flex: none; flex-direction: column; gap: 4px; padding: 0; border: 0; background: none; color: #0b0d12; font: inherit; text-align: left; scroll-snap-align: start; cursor: pointer; }
+.nebo-shelf-art { display: block; width: 150px; height: 200px; border-radius: 22px; background: #eef1f6 center / cover no-repeat; }
+.nebo-shelf-card.is-tall .nebo-shelf-art { width: 168px; height: 210px; }
+.nebo-shelf-card.is-tall { width: 168px; }
+.nebo-shelf-card strong { margin-top: 6px; font-size: 15px; font-weight: 600; line-height: 1.25; }
+.nebo-shelf-card small { color: #8a8f9c; font-size: 13px; }
+.nebo-test-card { position: relative; display: flex; width: 168px; min-height: 200px; flex: none; flex-direction: column; gap: 4px; padding: 14px; border: 0; border-radius: 24px; color: #0b0d12; font: inherit; text-align: left; scroll-snap-align: start; cursor: pointer; }
+.nebo-test-card img { width: 88px; height: 88px; margin: 14px auto 8px; object-fit: contain; }
+.nebo-test-card strong { font-size: 15px; line-height: 1.25; font-weight: 700; }
+.nebo-test-card small { color: #5c6170; font-size: 12.5px; }
+.nebo-test-badge { position: absolute; left: 12px; top: 12px; padding: 4px 9px; border-radius: 999px; background: #ffffff; color: #0b0d12; font-size: 11.5px; font-weight: 700; }
+.nebo-calm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0 16px; }
+.nebo-calm-card { display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 0; border-radius: 24px; background: #f4f5f8; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; }
+.nebo-calm-card img { width: 100%; aspect-ratio: 1.2; border-radius: 16px; object-fit: cover; }
+.nebo-calm-card strong { margin-top: 6px; font-size: 15px; font-weight: 600; }
+.nebo-calm-card small { color: #8a8f9c; font-size: 13px; }
+.nebo-rest-moon { margin: 24px 16px 0; }

@@ -9,6 +9,7 @@ import type { UserProfile } from '../../types';
 import { AstrologyEncyclopedia } from './AstrologyEncyclopedia';
 
 import { NeboShop } from '../../components/nebo/NeboShop';
+import { RestHome } from '../../components/nebo/RestHome';
 
 export type ServiceTab = 'matrix' | 'antistress' | 'tests' | 'sounds' | 'stories' | 'knowledge' | 'store';
 
@@ -17,7 +18,7 @@ export type ServiceScreenProps = {
   onOpenCharts: () => void;
   onOpenMatrix: () => void;
   onOpenAntistress: () => void;
-  onOpenTests: () => void;
+  onOpenTests: (testId?: string) => void;
   onOpenSounds: () => void;
   onOpenStories: () => void;
   onOpenMoon?: () => void;
@@ -101,7 +102,15 @@ export function ServiceScreen({
   return (
     <div ref={rootRef} className={restHome ? 'fresh-page services-screen-page nebo-rest' : 'fresh-page services-screen-page'}>
       <AppTopBar title={restHome ? (ru ? 'Отдых' : 'Unwind') : (ru ? 'Меню' : 'Menu')} />
-      {restHome ? (
+      {restHome && ru ? (
+        <RestHome
+          onOpenSounds={onOpenSounds}
+          onOpenStories={onOpenStories}
+          onOpenTests={onOpenTests}
+          onOpenAntistress={onOpenAntistress}
+          onOpenMoon={onOpenMoon}
+        />
+      ) : restHome ? (
         <>
           <div className="nebo-page-title">
             <h1>{ru ? 'Отдых' : 'Unwind'}</h1>
