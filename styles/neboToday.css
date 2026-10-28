@@ -366,3 +366,59 @@
 .lumia-app-shell .home-screen .people-fact {
   color: #0b0d12;
 }
+
+/* Today below the reading, as on the canvas: yes / no, mood, four tiles, news, natal invite, footer */
+.nebo-tile-kicker { display: flex; align-items: center; gap: 6px; color: #6b7080; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.nebo-yn { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 18px 16px 0; border-radius: 26px; background: #f4f5f8; color: #0b0d12; }
+.nebo-yn-col { display: flex; flex-direction: column; gap: 9px; padding: 14px 12px 16px 16px; }
+.nebo-yn-col.is-no { border-left: 1px solid rgba(118, 118, 128, 0.18); }
+.nebo-yn-item { position: relative; padding-left: 13px; font-size: 14.5px; line-height: 1.32; font-weight: 500; }
+.nebo-yn-item::before { content: ""; position: absolute; left: 0; top: 7px; width: 5px; height: 5px; border-radius: 50%; }
+.nebo-yn-item.is-yes::before { background: #16a34a; }
+.nebo-yn-item.is-no::before { background: #ea580c; }
+.nebo-yn-item.is-empty { padding-left: 0; color: #8a8f9c; font-weight: 400; }
+.nebo-mood { display: flex; align-items: center; gap: 14px; width: calc(100% - 32px); margin: 12px 16px 0; padding: 14px 16px; border: 0; border-radius: 26px; background: #f4f5f8; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; }
+.nebo-mood-face { display: inline-flex; flex: none; }
+.nebo-mood-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 4px; }
+.nebo-mood-copy strong { font-size: 16px; line-height: 1.35; font-weight: 600; }
+.nebo-mood-chev { flex: none; color: #8a8f9c; transition: transform 0.3s ease; }
+.nebo-mood-chev.is-open { transform: rotate(180deg); }
+.nebo-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 12px 16px 0; }
+.nebo-tile { position: relative; display: flex; flex-direction: column; gap: 6px; height: 132px; box-sizing: border-box; padding: 14px 16px; overflow: hidden; border: 0; border-radius: 26px; background: #f4f5f8; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; }
+.nebo-tile.is-tall { height: 172px; }
+.nebo-tile:disabled { cursor: default; }
+.nebo-tile-chev { position: absolute; right: 14px; top: 15px; color: #a3a7b3; }
+.nebo-tile-moon { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.nebo-tile-moon img { width: 44px; height: 44px; flex: none; object-fit: contain; }
+.nebo-tile-moon strong { font-size: 18px; line-height: 1.15; font-weight: 600; }
+.nebo-tile-note { color: #6b7080; font-size: 13.5px; line-height: 1.35; }
+.nebo-tile-foot { margin-top: auto; color: #6b7080; font-size: 13px; line-height: 1.3; font-weight: 500; }
+.nebo-tile-foot.is-strong { color: #0b0d12; font-size: 13.5px; font-weight: 600; max-width: 120px; }
+.nebo-tile-foot.is-accent { max-width: 96px; color: #4f46e5; font-size: 13.5px; font-weight: 700; }
+.nebo-tile-tarot-word { position: absolute; left: 14px; top: 62px; font-family: "Cormorant Garamond", Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; color: #3b2a8a; }
+.nebo-tile-card-back { position: absolute; right: 16px; top: 36px; width: 54px; height: 82px; border-radius: 9px; background: #1e1458 url(/assets/tarot/back.webp) center / cover no-repeat; border: 1.5px solid rgba(255, 255, 255, 0.85); box-shadow: 0 10px 20px -8px rgba(10, 20, 80, 0.6); }
+.nebo-tile-card-back.is-a { z-index: 2; transform: translate(8px, -2px) rotate(8deg); animation: nbTileShuffle 7s cubic-bezier(.45, 0, .25, 1) infinite; }
+.nebo-tile-card-back.is-b { z-index: 1; transform: translate(-6px, 4px) rotate(-6deg); animation: nbTileShuffle 7s cubic-bezier(.45, 0, .25, 1) -3.5s infinite; }
+@keyframes nbTileShuffle { 0%, 40%, 100% { translate: 0 0; } 50% { translate: -14px 0; } 60% { translate: 0 0; } }
+.nebo-tile-card-face { position: absolute; right: 12px; top: 30px; width: 62px; height: 94px; border-radius: 9px; background: #1e1458 center / cover no-repeat; border: 1.5px solid rgba(255, 255, 255, 0.85); box-shadow: 0 10px 20px -8px rgba(10, 20, 80, 0.5); transform: rotate(5deg); }
+.nebo-tile-card-name { position: absolute; left: 16px; top: 44px; max-width: 80px; font-family: "Cormorant Garamond", Georgia, serif; font-size: 21px; line-height: 1.05; font-weight: 700; }
+.nebo-tile-number { position: absolute; right: 16px; top: 28px; font-size: 64px; line-height: 1; font-weight: 300; letter-spacing: -0.04em; background: linear-gradient(160deg, #2c5bea 0%, #8b5cf6 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.nebo-tile-stone { position: absolute; right: 16px; top: 34px; display: inline-flex; width: 44px; height: 54px; align-items: center; justify-content: center; border-radius: 48% 52% 46% 54% / 56% 50% 50% 44%; background: radial-gradient(120% 90% at 30% 22%, #8794a1 0%, #4e5b69 50%, #29323c 100%); box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.25), inset 0 -4px 8px rgba(0, 0, 0, 0.35), 0 10px 18px -8px rgba(20, 30, 50, 0.6); transform: rotate(8deg); }
+.nebo-tile-stone b { color: #f1c86b; font-size: 24px; font-weight: 700; text-shadow: 0 0 8px rgba(241, 200, 107, 0.55); }
+.nebo-promo { margin: 12px 16px 0; }
+.nebo-promo-card { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 40px 14px 16px; border: 0; border-radius: 26px; background: #f4f5f8; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; animation: nbPromoIn 0.45s ease both; }
+@keyframes nbPromoIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+.nebo-promo-glyph { display: inline-flex; width: 52px; height: 52px; flex: none; align-items: center; justify-content: center; border-radius: 50%; background: radial-gradient(circle at 34% 28%, #ffffff 0%, #eef1f6 44%, #c3cad7 100%); box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.75), 0 10px 20px -12px rgba(20, 30, 80, 0.5); color: #2a3142; font-family: "Noto Serif SC", "Songti SC", Georgia, serif; font-size: 22px; font-weight: 600; }
+.nebo-promo-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
+.nebo-promo-copy strong { font-size: 16.5px; font-weight: 700; }
+.nebo-promo-copy small { color: #5c6170; font-size: 13.5px; line-height: 1.35; }
+.nebo-promo-dots { display: flex; justify-content: center; gap: 5px; margin-top: 10px; }
+.nebo-promo-dots i { width: 6px; height: 6px; border-radius: 3px; background: rgba(118, 118, 128, 0.3); transition: width 0.3s ease; }
+.nebo-promo-dots i.is-on { width: 16px; background: #4f46e5; }
+.nebo-natal-invite { display: flex; align-items: center; gap: 14px; margin: 12px 16px 0; padding: 16px; border-radius: 26px; background: #f4f5f8; color: #0b0d12; }
+.nebo-natal-invite-art { display: inline-flex; flex: none; }
+.nebo-natal-invite-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
+.nebo-natal-invite-copy strong { font-size: 18px; line-height: 1.2; font-weight: 700; }
+.nebo-natal-invite-copy small { color: #5c6170; font-size: 13.5px; line-height: 1.35; }
+.nebo-natal-invite button { flex: none; height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: #4f46e5; color: #ffffff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.nebo-tomorrow { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 22px 16px 8px; color: #8a8f9c; font-size: 13.5px; }

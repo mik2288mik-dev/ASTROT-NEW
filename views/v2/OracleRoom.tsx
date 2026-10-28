@@ -120,7 +120,16 @@ type OracleRoomProps = {
 
 export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: OracleRoomProps) {
   const copy = COPY[kind];
-  const [stage, setStage] = useState<Stage>('home');
+  const [stage, setStage] = useState<Stage>(() => {
+    // The «Карта дня» tile on Today opens the card of the day directly.
+    try {
+      if (kind === 'tarot' && window.sessionStorage.getItem('nebo.open.tarot') === 'day') {
+        window.sessionStorage.removeItem('nebo.open.tarot');
+        return 'day';
+      }
+    } catch { /* storage may be unavailable */ }
+    return 'home';
+  });
   useTelemetrySection(kind, stage);
   const [question, setQuestion] = useState('');
   const [picked, setPicked] = useState<number[]>([]);

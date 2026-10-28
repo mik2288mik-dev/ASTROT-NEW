@@ -17,6 +17,8 @@ type TodaySkyMonitorProps = {
   userId: string;
   /** Calendar day the home screen shows; the monitor recomputes when it changes. */
   periodKey: string;
+  /** The canvas Today shows the Moon as its own tile, so here only Mercury stays. */
+  retroOnly?: boolean;
 };
 
 let skyEngine: Promise<typeof import('astronomy-engine')> | null = null;
@@ -40,7 +42,7 @@ function MoonGlyph({ illumination, waxing }: { illumination: number; waxing: boo
   return <MoonCanvas phase={waxing ? angle : 360 - angle} night className="today-sky-glyph" />;
 }
 
-export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
+export function TodaySkyMonitor({ userId, periodKey, retroOnly = false }: TodaySkyMonitorProps) {
   const [sky, setSky] = useState<SkyMonitor | null>(null);
   const [failed, setFailed] = useState(false);
   const [retroOpen, setRetroOpen] = useState(false);
@@ -92,7 +94,7 @@ export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
   // Canvas «Сегодня»: the Moon as a tile, Mercury retrograde as a red card that opens its explanation.
   return (
     <section data-telemetry-content="Небо сегодня" id="today-sky" className="nebo-sky" aria-label="Небо сегодня">
-      <div className="nebo-sky-tiles">
+      {!retroOnly ? <div className="nebo-sky-tiles">
         <div data-telemetry-content="Небо сегодня · Луна" className="nebo-sky-tile">
           <p className="nebo-sky-tile-label">Луна сегодня</p>
           <div className="nebo-sky-moon">
@@ -110,8 +112,8 @@ export function TodaySkyMonitor({ userId, periodKey }: TodaySkyMonitorProps) {
             ))}
           </ol>
         </div>
-      </div>
-      {moon.personal ? (
+      </div> : null}
+      {moon.personal && !retroOnly ? (
         <p className="nebo-sky-personal">Луна идёт по твоему {moon.personal.house} дому: {moon.personal.area}</p>
       ) : null}
 

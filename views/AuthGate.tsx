@@ -87,8 +87,8 @@ const LANDING_FEATURES: ReadonlyArray<{ title: string; text: string }> = [
   { title: 'Рассказы и тесты', text: 'Что-то новое каждый день' },
 ];
 
-const fieldClass = 'min-h-[50px] w-full rounded-2xl border border-[#dfe3e8] bg-white px-4 text-[16px] text-[#111827] outline-none transition-colors placeholder:text-[#9aa0aa] focus:border-[#4f6f62] disabled:bg-[#f5f6f7]';
-const primaryClass = 'auth-primary-button min-h-12 w-full rounded-2xl px-5 text-[16px] font-semibold disabled:cursor-not-allowed disabled:opacity-50';
+const fieldClass = 'nebo-auth-input';
+const primaryClass = 'nebo-auth-cta';
 const providerClass = 'auth-provider-button min-h-12 w-full rounded-2xl px-3 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-50';
 
 export const AuthGate: React.FC<AuthGateProps> = ({
@@ -405,9 +405,9 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   const title = screen === 'register'
     ? 'Начать'
     : screen === 'verify'
-      ? 'Подтвердить email'
+      ? 'Введи код из письма'
       : screen === 'login'
-        ? 'Войти по email'
+        ? 'Вход по почте'
         : screen === 'forgot'
           ? 'Восстановить пароль'
           : 'Новый пароль';
@@ -445,12 +445,10 @@ export const AuthGate: React.FC<AuthGateProps> = ({
               <ChevronLeft size={26} strokeWidth={1.75} aria-hidden="true" />
             </button>
           ) : null}
-          <div className={isLanding ? 'auth-landing-logo text-center' : 'mb-3 text-center'} role="img" aria-label="NEBO">
-            <NeboLogo decorative priority />
-          </div>
+          <img className="nebo-auth-mail-art" src="/assets/auth/mail.svg" alt="" width={92} height={92} />
           <h1 className={isLanding
             ? 'auth-landing-title mx-auto text-center text-[27px] font-semibold leading-[1.06] tracking-[-0.03em]'
-            : 'text-center text-[29px] font-semibold leading-tight tracking-[-0.025em]'}
+            : 'nebo-auth-form-title'}
           >
             {visibleTitle}
           </h1>
@@ -625,18 +623,24 @@ export const AuthGate: React.FC<AuthGateProps> = ({
             ) : null}
 
             {(screen === 'verify' || screen === 'reset') ? (
-              <label className="grid gap-1.5 text-[13px] font-medium text-[#4b5563]">
-                Шестизначный код из письма
+              <label className="nebo-auth-code">
+                <span className="nebo-auth-code-label">{email ? <>Отправили на <b>{email}</b></> : 'Шестизначный код из письма'}</span>
+                <span className={`nebo-auth-code-boxes${error ? ' is-error' : ''}`} aria-hidden="true">
+                  {Array.from({ length: 6 }, (_, index) => (
+                    <i key={index} className={index === code.length ? 'is-current' : code[index] ? 'is-filled' : ''}>{code[index] || ''}</i>
+                  ))}
+                </span>
                 <input
-                  className={fieldClass}
+                  className="nebo-auth-code-input"
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   maxLength={6}
                   value={code}
                   onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
+                  aria-label="Шестизначный код из письма"
                   disabled={busy !== null}
+                  autoFocus
                 />
               </label>
             ) : null}
