@@ -532,3 +532,725 @@
     animation: none;
   }
 }
+
+/* Small uppercase label used in the new «Моя карта» parts. */
+.nebo-kicker {
+  margin: 0;
+  color: #9aa0ae;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Числа */
+.nebo-numbers {
+  background: #ffffff;
+  padding-bottom: 8px;
+}
+
+.nebo-numbers-empty {
+  margin: 20px 16px 0;
+  padding: 22px;
+  border-radius: 24px;
+  background: #f4f5f8;
+  color: #0b0d12;
+}
+
+.nebo-numbers-empty h2 { margin: 0 0 6px; font-size: 20px; }
+.nebo-numbers-empty p { margin: 0; color: #5c6170; font-size: 15px; line-height: 1.5; }
+
+.nebo-numbers-life {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  margin: 18px 16px 0;
+  padding: 18px;
+  border-radius: 28px;
+  background: #f4f5f8;
+  color: #0b0d12;
+}
+
+.nebo-numbers-bignum {
+  grid-row: 1;
+  align-self: center;
+  color: #3b5bff;
+  font-size: 84px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.nebo-numbers-life-copy h2 {
+  margin: 4px 0 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.nebo-numbers-formula {
+  margin: 6px 0 0;
+  color: #9aa0ae;
+  font-size: 13px;
+}
+
+.nebo-numbers-life-text {
+  grid-column: 1 / -1;
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.nebo-numbers-now,
+.nebo-numbers-square,
+.nebo-numbers-names {
+  margin: 26px 16px 0;
+  color: #0b0d12;
+}
+
+.nebo-numbers-now h2,
+.nebo-numbers-square h2,
+.nebo-numbers-names h2 {
+  margin: 0 4px 8px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.nebo-numbers-intro {
+  margin: 0 4px 12px;
+  color: #0b0d12;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.nebo-numbers-now-list {
+  overflow: hidden;
+  border-radius: 24px;
+  background: #f4f5f8;
+}
+
+.nebo-numbers-now-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.nebo-numbers-now-row + .nebo-numbers-now-row {
+  border-top: 1px solid rgba(118, 118, 128, 0.14);
+}
+
+.nebo-numbers-tile {
+  display: inline-flex;
+  width: 56px;
+  height: 56px;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ffa94d 0%, #f2772e 100%);
+  box-shadow: 0 10px 18px -10px rgba(242, 119, 46, 0.7);
+  color: #ffffff;
+}
+
+.nebo-numbers-tile.is-blue {
+  background: linear-gradient(135deg, #6f8cff 0%, #3b5bff 100%);
+  box-shadow: 0 10px 18px -10px rgba(59, 91, 255, 0.7);
+}
+
+.nebo-numbers-tile b {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.nebo-numbers-tile small {
+  margin-top: 1px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.92;
+}
+
+.nebo-numbers-now-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nebo-numbers-now-copy strong {
+  font-size: 15.5px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.nebo-numbers-now-copy > span:last-child:not(.nebo-kicker) {
+  color: #0b0d12;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.nebo-square-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgba(118, 118, 128, 0.18);
+}
+
+.nebo-square-cell {
+  display: flex;
+  min-height: 92px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 0;
+  background: #f4f5f8;
+  color: #0b0d12;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nebo-square-cell.is-open {
+  background: #e7ebff;
+}
+
+.nebo-square-digits {
+  color: #3b5bff;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+.nebo-square-cell.is-empty .nebo-square-digits {
+  color: #9aa0ae;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.nebo-square-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #5c6170;
+}
+
+.nebo-square-detail,
+.nebo-square-summary {
+  margin: 12px 4px 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.nebo-square-detail {
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: #f4f5f8;
+}
+
+.nebo-square-detail strong { display: block; margin-bottom: 4px; font-size: 15px; }
+.nebo-square-detail p { margin: 0; }
+
+.nebo-numbers-lock,
+.nebo-oracle-lock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 22px;
+  background: #f4f5f8;
+  color: #0b0d12;
+}
+
+.nebo-numbers-lock p,
+.nebo-oracle-lock p { margin: 0; font-size: 14.5px; line-height: 1.5; }
+
+.nebo-numbers-lock button,
+.nebo-oracle-lock button {
+  height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #1b2350 0%, #0f1533 100%);
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nebo-oracle-lock {
+  margin: 14px 16px 0;
+}
+
+/* Таро и Руны */
+.nebo-oracle {
+  background: #ffffff;
+  padding-bottom: 8px;
+  color: #0b0d12;
+}
+
+.nebo-oracle.is-tarot { background: linear-gradient(180deg, #fff1da 0%, #ffffff 360px); }
+.nebo-oracle.is-runes { background: linear-gradient(180deg, #ddeeef 0%, #ffffff 360px); }
+
+.nebo-oracle-hero {
+  position: relative;
+  display: flex;
+  min-height: 170px;
+  align-items: flex-end;
+  overflow: hidden;
+  margin: 16px 16px 0;
+  padding: 18px;
+  border-radius: 28px;
+  background: linear-gradient(150deg, #1b2350 0%, #2b1f5e 55%, #14213f 100%);
+  color: #ffffff;
+}
+
+.nebo-oracle-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 58%;
+}
+
+.nebo-oracle-hero-copy .nebo-kicker { color: rgba(255, 255, 255, 0.7); }
+.nebo-oracle-hero-copy h2 { margin: 6px 0 6px; font-size: 24px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-oracle-hero-copy p:last-child { margin: 0; font-size: 14px; line-height: 1.4; opacity: 0.85; }
+
+.nebo-oracle-hero-art {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 42%;
+  height: 150px;
+}
+
+.nebo-oracle-hero-art > * {
+  position: absolute;
+  width: 74px;
+  height: 116px;
+  border-radius: 10px;
+  box-shadow: 0 14px 24px -12px rgba(0, 0, 0, 0.7);
+  object-fit: cover;
+}
+
+.nebo-oracle-hero-art > :nth-child(1) { right: 54px; top: 18px; transform: rotate(-9deg); }
+.nebo-oracle-hero-art > :nth-child(2) { right: 6px; top: 6px; transform: rotate(8deg); }
+
+.nebo-oracle-day-row {
+  display: flex;
+  width: calc(100% - 32px);
+  align-items: center;
+  gap: 14px;
+  margin: 12px 16px 0;
+  padding: 12px 16px 12px 12px;
+  border: 0;
+  border-radius: 22px;
+  background: #f4f5f8;
+  color: #0b0d12;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nebo-oracle-day-row span { display: flex; flex: 1; flex-direction: column; gap: 2px; }
+.nebo-oracle-day-row strong { font-size: 16px; }
+.nebo-oracle-day-row small { color: #5c6170; font-size: 13px; }
+.nebo-oracle-day-row svg { color: #9aa0ae; }
+
+.nebo-oracle-ask { margin: 20px 16px 0; }
+
+.nebo-oracle-ask textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 8px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 20px;
+  background: #f4f5f8;
+  color: #0b0d12;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  resize: none;
+  outline: none;
+}
+
+.nebo-oracle-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.nebo-oracle-chips button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(118, 118, 128, 0.12);
+  color: #0b0d12;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nebo-oracle-primary {
+  display: block;
+  width: calc(100% - 32px);
+  height: 54px;
+  margin: 18px 16px 0;
+  border: 0;
+  border-radius: 27px;
+  background: linear-gradient(135deg, #1b2350 0%, #0f1533 100%);
+  box-shadow: 0 14px 26px -14px rgba(15, 21, 51, 0.7);
+  color: #ffffff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nebo-oracle-secondary {
+  height: 44px;
+  margin-top: 10px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(118, 118, 128, 0.12);
+  color: #0b0d12;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nebo-oracle-note {
+  margin: 10px 20px 0;
+  color: #5c6170;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.nebo-oracle-pick,
+.nebo-oracle-read,
+.nebo-oracle-day {
+  margin: 18px 16px 0;
+}
+
+.nebo-oracle-pick h2,
+.nebo-oracle-read h2,
+.nebo-oracle-day h2 {
+  margin: 6px 0 4px;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.nebo-oracle-intro { margin: 0; color: #5c6170; font-size: 14.5px; }
+.nebo-oracle-question { margin: 10px 0 0; font-size: 16px; line-height: 1.4; }
+.nebo-oracle-count { margin: 12px 0 0; color: #9aa0ae; font-size: 13px; text-align: center; }
+
+.nebo-oracle-deck {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.nebo-oracle-slot {
+  position: relative;
+  display: flex;
+  aspect-ratio: 2 / 3;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.35s cubic-bezier(0.3, 1.3, 0.5, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nebo-oracle-slot img {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  box-shadow: 0 8px 14px -8px rgba(15, 21, 51, 0.6);
+  object-fit: cover;
+}
+
+.nebo-oracle-slot.is-chosen {
+  transform: translateY(-10px) scale(1.04);
+}
+
+.nebo-oracle-slot em {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #3b5bff;
+  color: #ffffff;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.nebo-oracle-card {
+  display: inline-flex;
+  flex: none;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #1e1458;
+  box-shadow: 0 0 0 1.5px rgba(255, 236, 190, 0.9), 0 14px 22px -12px rgba(15, 21, 51, 0.7);
+}
+
+.nebo-oracle-card img { width: 100%; height: 100%; object-fit: cover; }
+.nebo-oracle-card.is-s { width: 44px; height: 66px; border-radius: 8px; }
+.nebo-oracle-card.is-m { width: 100%; max-width: 104px; aspect-ratio: 2 / 3; }
+.nebo-oracle-card.is-l { width: 200px; height: 300px; border-radius: 20px; }
+
+.nebo-oracle-card.is-drawn {
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 6px;
+  background: linear-gradient(160deg, #2b1f6e 0%, #1a1450 60%, #0f1533 100%);
+  color: #f7e7b4;
+  text-align: center;
+}
+
+.nebo-oracle-card.is-drawn i { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-style: normal; font-weight: 600; letter-spacing: 0.06em; }
+.nebo-oracle-card.is-drawn b { font-size: 11.5px; line-height: 1.2; font-weight: 600; }
+.nebo-oracle-card.is-l.is-drawn i { font-size: 44px; }
+.nebo-oracle-card.is-l.is-drawn b { font-size: 20px; }
+.nebo-oracle-card.is-s.is-drawn i { font-size: 15px; }
+.nebo-oracle-card.is-s.is-drawn b { display: none; }
+
+.nebo-oracle-stone {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #6c7a80 0%, #3d484d 55%, #263034 100%);
+  box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.25), 0 12px 20px -10px rgba(15, 21, 51, 0.7);
+  color: #e6f6f4;
+}
+
+.nebo-oracle-stone b { font-family: 'Noto Sans Runic', 'Segoe UI Historic', 'Segoe UI Symbol', serif; font-weight: 400; line-height: 1; }
+.nebo-oracle-stone.is-s { width: 44px; height: 44px; }
+.nebo-oracle-stone.is-s b { font-size: 24px; }
+.nebo-oracle-stone.is-m { width: 100%; max-width: 78px; aspect-ratio: 1; }
+.nebo-oracle-stone.is-m b { font-size: 36px; }
+.nebo-oracle-stone.is-l { width: 150px; height: 150px; }
+.nebo-oracle-stone.is-l b { font-size: 76px; }
+
+.nebo-oracle-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.nebo-oracle-pos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  text-align: center;
+}
+
+.nebo-oracle-pos strong { font-size: 13px; line-height: 1.25; font-weight: 600; }
+
+.nebo-oracle-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 18px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgba(118, 118, 128, 0.14);
+}
+
+.nebo-oracle-texts article {
+  padding: 16px 18px;
+  background: #f4f5f8;
+}
+
+.nebo-oracle-texts article p:last-child {
+  margin: 6px 0 0;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.nebo-oracle-texts article.is-advice { background: #e7ebff; }
+
+.nebo-oracle-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.nebo-oracle-keyword { margin: 0; color: #5c6170; font-size: 15px; }
+.nebo-oracle-text { margin: 8px 0 0; font-size: 17px; line-height: 1.55; }
+.nebo-oracle-advice { margin: 6px 0 0; padding: 14px 16px; border-radius: 20px; background: #f4f5f8; font-size: 15px; line-height: 1.5; text-align: left; }
+.nebo-oracle-advice b { font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nebo-oracle-slot { transition: none; }
+}
+
+/* Аватарки */
+.nebo-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.nebo-avatar-picker { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-bottom: 8px; }
+.nebo-avatar-upload { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; color: #0b0d12; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.nebo-avatar-upload-circle { position: relative; display: inline-flex; width: 120px; height: 120px; align-items: center; justify-content: center; border-radius: 50%; background: linear-gradient(140deg, #5b5bf7, #4527d6); color: #fff; }
+.nebo-avatar-letter { font-size: 44px; font-weight: 600; }
+.nebo-avatar-upload-badge { position: absolute; right: 2px; bottom: 2px; display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center; border: 3px solid #fff; border-radius: 50%; background: #0b0d12; color: #fff; }
+.nebo-avatar-upload-text { font-size: 15px; font-weight: 600; }
+.nebo-avatar-match { width: 100%; min-height: 48px; border: 0; border-radius: 16px; background: #0b0d12; color: #fff; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.nebo-avatar-match:disabled { background: rgba(118, 118, 128, 0.16); color: #5c6170; }
+.nebo-avatar-why { margin: 0; color: #0b0d12; font-size: 15px; line-height: 1.4; text-align: center; }
+.nebo-avatar-hint, .nebo-avatar-error { margin: 0; color: #5c6170; font-size: 13px; line-height: 1.35; text-align: center; }
+.nebo-avatar-error { color: #c0392b; }
+.nebo-avatar-tabs { display: flex; width: 100%; padding: 3px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); }
+.nebo-avatar-tabs button { flex: 1; min-height: 34px; border: 0; border-radius: 10px; background: none; color: #5c6170; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-avatar-tabs button.is-active { background: #fff; color: #0b0d12; box-shadow: 0 1px 4px rgba(11, 13, 18, 0.12); }
+.nebo-avatar-grid { display: grid; width: 100%; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.nebo-avatar-grid button { aspect-ratio: 1; padding: 0; overflow: hidden; border: 3px solid transparent; border-radius: 50%; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.nebo-avatar-grid button.is-picked { border-color: #0b0d12; }
+.nebo-avatar-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nebo-avatar-colors { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.nebo-avatar-colors button { width: 30px; height: 30px; border: 3px solid transparent; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(11, 13, 18, 0.12); cursor: pointer; }
+.nebo-avatar-colors button.is-picked { border-color: #0b0d12; }
+.nebo-avatar-reset { border: 0; background: none; color: #5c6170; font: inherit; font-size: 14px; cursor: pointer; }
+.nebo-account-chip-avatar { overflow: hidden; }
+.nebo-profile-avatar { position: relative; overflow: hidden; border: 0; padding: 0; cursor: pointer; font-family: inherit; }
+.nebo-profile-avatar-edit { color: #5b5bf7; font-size: 14px; font-weight: 600; border: 0; background: none; font-family: inherit; cursor: pointer; }
+.nebo-profile-avatar-button { border: 0; padding: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+/* Китайский гороскоп */
+.nebo-cn-modes { display: flex; margin: 0 16px 14px; padding: 3px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); }
+.nebo-cn-modes button { flex: 1; min-height: 34px; border: 0; border-radius: 10px; background: none; color: #5c6170; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-cn-modes button.is-active { background: #fff; color: #0b0d12; box-shadow: 0 1px 4px rgba(11, 13, 18, 0.12); }
+.nebo-cn { display: flex; flex-direction: column; gap: 12px; padding: 0 16px 24px; }
+.nebo-cn-hero { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.nebo-cn-hero img { width: 220px; height: 220px; object-fit: contain; }
+.nebo-cn-hero h2 { margin: 0; color: #0b0d12; font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }
+.nebo-cn-char { color: #8a94a6; font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif; font-size: 22px; }
+.nebo-cn-mine { margin-top: 6px; padding: 5px 12px; border-radius: 999px; background: rgba(245, 185, 74, 0.22); color: #4a2c00; font-size: 13px; font-weight: 700; }
+.nebo-cn-years { margin: 6px 0 0; color: #5c6170; font-size: 13px; line-height: 1.4; }
+.nebo-cn-card { padding: 16px; border-radius: 22px; background: #fff; }
+.nebo-cn-card h3, .nebo-cn-all h3 { margin: 0 0 8px; color: #0b0d12; font-size: 18px; font-weight: 700; }
+.nebo-cn-card p { margin: 0; color: #0b0d12; font-size: 15.5px; line-height: 1.55; }
+.nebo-cn-card .nebo-cn-second { margin-top: 14px; }
+.nebo-cn-element { margin-top: 10px !important; padding-left: 10px; border-left: 3px solid #8a94a6; }
+.nebo-cn-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.nebo-cn-chip { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px 0 6px; border: 0; border-radius: 999px; background: rgba(118, 118, 128, 0.12); color: #0b0d12; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-cn-chip-char { font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif; font-size: 17px; color: #2a3142; }
+.nebo-cn-all { padding: 4px 0 0; }
+.nebo-cn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.nebo-cn-grid button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px; border: 0; border-radius: 16px; background: #fff; color: #0b0d12; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.nebo-cn-grid button.is-picked { background: #e6ecff; }
+.nebo-cn-grid .nebo-cn-chip-char { font-size: 24px; }
+.nebo-cn-year-input { width: 100%; margin-top: 10px; height: 46px; padding: 0 14px; border: 1px solid rgba(118, 118, 128, 0.3); border-radius: 14px; background: #fff; color: #0b0d12; font: inherit; font-size: 17px; }
+.nebo-cn-hint { margin-top: 6px !important; color: #c0392b !important; font-size: 13px !important; }
+.nebo-cn-pair { margin-top: 14px; text-align: center; }
+.nebo-cn-pair-signs { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.nebo-cn-pair-signs span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; }
+.nebo-cn-pair-signs img { width: 64px; height: 64px; object-fit: contain; }
+.nebo-cn-pair-and { color: #8a94a6; font-size: 18px !important; }
+.nebo-cn-pair strong { display: inline-block; margin: 10px 0 6px; padding: 4px 12px; border-radius: 999px; background: #e6ecff; font-size: 13px; }
+.nebo-cn-note { margin: 4px 6px 0; color: #5c6170; font-size: 12.5px; line-height: 1.5; }
+
+/* Лунные календари */
+.nebo-rest-card--moon { grid-column: 1 / -1; min-height: 150px; background: linear-gradient(160deg, #fff3d0 0%, #ffe4a6 100%); }
+.nebo-rest-card--moon::before { content: ''; position: absolute; top: 18px; right: 22px; width: 84px; height: 84px; border-radius: 50%; background: #ffffff; box-shadow: inset -26px 0 0 0 #f5b94a; }
+.nebo-moon { padding-bottom: 28px; }
+.nebo-moon-note { margin: 8px 16px; color: #5c6170; font-size: 14px; }
+.nebo-moon-hero { display: flex; flex-direction: column; gap: 3px; margin: 0 16px 12px; padding: 16px; border-radius: 22px; background: linear-gradient(160deg, #fff3d0 0%, #ffe4a6 100%); color: #0b0d12; }
+.nebo-moon-hero strong { font-size: 22px; font-weight: 700; }
+.nebo-moon-hero span { font-size: 14.5px; line-height: 1.4; }
+.nebo-moon-retro { color: #a2331b; font-weight: 600; }
+.nebo-moon-cats { display: flex; gap: 8px; margin: 0 16px; padding: 2px 0 8px; overflow-x: auto; scrollbar-width: none; }
+.nebo-moon-cats::-webkit-scrollbar { display: none; }
+.nebo-moon-cats button { display: inline-flex; flex: none; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: rgba(118, 118, 128, 0.12); color: #0b0d12; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-moon-cats button.is-active { background: #0b0d12; color: #fff; }
+.nebo-moon-cats small { padding: 2px 6px; border-radius: 999px; background: linear-gradient(90deg, #ffe29a, #f5b94a); color: #4a2c00; font-size: 11px; font-weight: 700; }
+.nebo-moon-sub { margin: 0 16px 10px; color: #5c6170; font-size: 14px; }
+.nebo-moon-card { margin: 0 16px 12px; padding: 16px; border-radius: 22px; background: #fff; }
+.nebo-moon-card h2 { margin: 0 0 8px; color: #0b0d12; font-size: 19px; font-weight: 700; }
+.nebo-moon-card h3 { margin: 14px 0 8px; color: #0b0d12; font-size: 16px; font-weight: 700; }
+.nebo-moon-row { display: flex; width: 100%; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 12px 0; border: 0; border-top: 1px solid rgba(118, 118, 128, 0.18); background: none; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; }
+.nebo-moon-row:first-of-type { border-top: 0; }
+.nebo-moon-row-copy { display: flex; flex-direction: column; gap: 2px; }
+.nebo-moon-row-copy strong { font-size: 15.5px; font-weight: 600; }
+.nebo-moon-row-copy small { color: #5c6170; font-size: 13px; }
+.nebo-moon-row-copy em { margin-top: 2px; color: #0b0d12; font-size: 14px; font-style: normal; line-height: 1.4; }
+.nebo-moon-pill { flex: none; padding: 5px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+.is-good.nebo-moon-pill, .nebo-moon-legend .is-good { background: rgba(34, 197, 94, 0.18); color: #11793a; }
+.is-ok.nebo-moon-pill, .nebo-moon-legend .is-ok { background: rgba(245, 158, 11, 0.2); color: #8a5300; }
+.is-bad.nebo-moon-pill, .nebo-moon-legend .is-bad { background: rgba(249, 115, 22, 0.16); color: #a3410a; }
+.nebo-moon-more { margin-top: 4px; padding: 8px 0; border: 0; background: none; color: #5b5bf7; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-moon-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.nebo-moon-chips button { padding: 6px 11px; border: 0; border-radius: 999px; background: rgba(118, 118, 128, 0.12); color: #0b0d12; font: inherit; font-size: 13px; cursor: pointer; }
+.nebo-moon-chips button.is-active { background: #0b0d12; color: #fff; }
+.nebo-moon-months { display: flex; padding: 3px; margin-bottom: 10px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); }
+.nebo-moon-months button { flex: 1; min-height: 32px; border: 0; border-radius: 10px; background: none; color: #5c6170; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-moon-months button.is-active { background: #fff; color: #0b0d12; box-shadow: 0 1px 4px rgba(11, 13, 18, 0.12); }
+.nebo-moon-grid-wrap { position: relative; }
+.nebo-moon-grid-wrap.is-locked .nebo-moon-grid { filter: blur(5px); }
+.nebo-moon-weekdays, .nebo-moon-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.nebo-moon-weekdays { margin-bottom: 5px; color: #8a8f9c; font-size: 11.5px; text-align: center; }
+.nebo-moon-cell { aspect-ratio: 1; border: 2px solid transparent; border-radius: 12px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-moon-cell.is-good { background: rgba(34, 197, 94, 0.22); color: #11793a; }
+.nebo-moon-cell.is-ok { background: rgba(245, 158, 11, 0.22); color: #8a5300; }
+.nebo-moon-cell.is-bad { background: rgba(249, 115, 22, 0.16); color: #a3410a; }
+.nebo-moon-cell.is-today { border-color: #0b0d12; }
+.nebo-moon-cell.is-picked { box-shadow: 0 0 0 2px #5b5bf7; }
+.nebo-moon-unlock { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 12px 18px; border: 0; border-radius: 999px; background: linear-gradient(90deg, #ffe29a, #f5b94a); color: #4a2c00; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.nebo-moon-legend { display: flex; gap: 6px; margin-top: 10px; }
+.nebo-moon-legend span { padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.nebo-moon-pick { margin-top: 12px; padding: 12px; border-radius: 16px; background: #f4f5f8; }
+.nebo-moon-pick strong { display: block; font-size: 15.5px; }
+.nebo-moon-pick p { margin: 4px 0; font-size: 14.5px; line-height: 1.45; }
+.nebo-moon-pick small { color: #5c6170; font-size: 13px; }
+.nebo-moon-best-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.nebo-moon-best-list button { padding: 7px 12px; border: 0; border-radius: 999px; background: rgba(34, 197, 94, 0.18); color: #11793a; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-moon-foot { margin: 6px 22px 0; color: #5c6170; font-size: 12.5px; line-height: 1.5; }
+
+/* Подсказки при первом заходе */
+.nebo-coach { position: fixed; inset: 0; z-index: 9000; }
+.nebo-coach-dim { position: absolute; inset: 0; background: rgba(4, 8, 24, 0.66); }
+.nebo-coach-spot { position: absolute; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 0 0 9999px rgba(4, 8, 24, 0.66); pointer-events: none; transition: all 0.25s ease; }
+.nebo-coach-card { position: absolute; left: 16px; right: 16px; display: flex; flex-direction: column; gap: 6px; max-width: 420px; margin: 0 auto; padding: 16px; border-radius: 22px; background: #fff; color: #0b0d12; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); }
+.nebo-coach-card strong { font-size: 17px; font-weight: 700; line-height: 1.25; }
+.nebo-coach-card p { margin: 0; color: #4a4f5c; font-size: 14.5px; line-height: 1.5; }
+.nebo-coach-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.nebo-coach-skip { height: 38px; padding: 0 4px; border: 0; background: none; color: #8a8f9c; font: inherit; font-size: 14px; cursor: pointer; }
+.nebo-coach-dots { display: inline-flex; gap: 5px; }
+.nebo-coach-dots i { width: 6px; height: 6px; border-radius: 3px; background: rgba(118, 118, 128, 0.3); }
+.nebo-coach-dots i.is-on { width: 16px; background: #5b5bf7; }
+.nebo-coach-next { height: 40px; padding: 0 20px; border: 0; border-radius: 999px; background: #0b0d12; color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }

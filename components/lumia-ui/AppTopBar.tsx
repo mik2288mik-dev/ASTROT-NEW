@@ -1,6 +1,7 @@
 import React, { createContext, useContext } from 'react';
 import { ChevronLeft, Settings } from 'lucide-react';
 import { NeboLogo } from '../brand/NeboLogo';
+import { AvatarCircle } from '../nebo/AvatarPicker';
 
 type AppTopBarProps = {
   title: string;
@@ -16,7 +17,7 @@ type AppTopBarProps = {
 };
 
 /** Who is signed in, for the account chip on the right of the bar (as on the canvas). */
-export type AppTopBarAccount = { name: string; plus: boolean; guest: boolean };
+export type AppTopBarAccount = { id: string; name: string; plus: boolean; guest: boolean };
 
 type AppTopBarSettingsContextValue = { onOpenSettings: () => void; onStepBack?: (() => void) | null; account?: AppTopBarAccount | null } | null;
 
@@ -81,9 +82,9 @@ export function AppTopBar({
       onClick={settings?.onOpenSettings}
       aria-label={account.guest ? 'Гость. Войти' : `Аккаунт: ${account.name}${account.plus ? ', Plus' : ''}`}
     >
-      <span className={account.guest ? 'nebo-account-chip-avatar is-guest' : 'nebo-account-chip-avatar'} aria-hidden>
-        {account.guest ? null : (account.name.trim().charAt(0).toUpperCase() || 'N')}
-      </span>
+      {account.guest
+        ? <span className="nebo-account-chip-avatar is-guest" aria-hidden />
+        : <AvatarCircle userId={account.id} name={account.name} className="nebo-account-chip-avatar" />}
       <span className="nebo-account-chip-name">{account.guest ? 'Гость' : account.name.trim().split(/\s+/)[0]}</span>
       <span className={account.plus ? 'nebo-account-chip-badge is-plus' : 'nebo-account-chip-badge'}>
         {account.guest ? 'Войти' : account.plus ? 'Plus' : 'Free'}
