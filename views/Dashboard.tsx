@@ -782,41 +782,43 @@ export const Dashboard = memo<DashboardProps>(({
   // The canvas «Сегодня» is a white page under a regular bar; the sky cover is retired.
   const skyCover = false;
 
+  // The canvas switch under the bar: День · Неделя · Месяц · Даты. Week and month open their readings, «Даты» the calendar.
+  type HomeSegment = 'day' | 'week' | 'month' | 'dates';
+  const activeSegment: HomeSegment = activePeriod === 'day' ? 'day' : futureReader ?? 'dates';
+  const openSegment = (segment: HomeSegment) => {
+    if (segment === activeSegment) return;
+    if (segment === 'day') { selectPeriod('day'); return; }
+    lumiaSelectionHaptic();
+    if (segment === 'dates') {
+      setFutureReader(null);
+      if (activePeriod !== 'month') onPeriodChange?.('month');
+      return;
+    }
+    if (!premium && !(segment === 'week' && weekGifted)) { requestPremiumFor(segment); return; }
+    if (activePeriod !== 'month') onPeriodChange?.('month');
+    setFutureReader(segment);
+  };
+  const segmentLabels: Record<HomeSegment, string> = language === 'ru'
+    ? { day: 'День', week: 'Неделя', month: 'Месяц', dates: 'Даты' }
+    : { day: 'Day', week: 'Week', month: 'Month', dates: 'Dates' };
   const periodSwitch = (
-  <nav
-    className="today-period-navigation"
-    role="tablist"
-    aria-label={language === 'ru' ? 'Период личного прогноза' : 'Personal forecast period'}
-  >
-    <div className="today-period-tabs" role="presentation">
-      {HOME_TABS.map((period) => (
+    <nav
+      className="nebo-period-switch"
+      aria-label={language === 'ru' ? 'Период личного прогноза' : 'Personal forecast period'}
+    >
+      {(['day', 'week', 'month', 'dates'] as const).map((segment) => (
         <button
-          key={period}
-          id={`today-period-tab-${period}`}
+          key={segment}
+          id={`today-period-tab-${segment}`}
           type="button"
-          className="today-period-tab"
-          role="tab"
-          ref={(node) => {
-            periodTabRefs.current[period] = node;
-          }}
-          aria-controls="today-period-panel"
-          aria-selected={period === activePeriod}
-          tabIndex={period === focusedPeriod ? 0 : -1}
-          onFocus={() => setFocusedPeriod(period)}
-          onKeyDown={(event) => handlePeriodTabKeyDown(event, period)}
-          onClick={() => selectPeriod(period)}
+          className="nebo-period-switch-item"
+          aria-pressed={segment === activeSegment}
+          onClick={() => openSegment(segment)}
         >
-          <span>{periodLabels[period]}</span>
-          {period === activePeriod ? (
-            <span
-              className="today-period-tab-underline"
-              aria-hidden="true"
-            />
-          ) : null}
+          {segmentLabels[segment]}
         </button>
       ))}
-    </div>
-  </nav>
+    </nav>
   );
 
   const topBar = (reserveSpace: boolean) => (
@@ -829,7 +831,6 @@ export const Dashboard = memo<DashboardProps>(({
           onClick={onOpenCharts}
         />
       )}
-      center={periodSwitch}
       reserveSpace={reserveSpace}
     />
   );
@@ -923,6 +924,7 @@ export const Dashboard = memo<DashboardProps>(({
       >
         {/* On the sky cover the sky runs under the glass bar; elsewhere the bar reserves its space. */}
         {topBar(!skyCover)}
+        {periodSwitch}
       </section>
 
       {!skyCover && activePeriod !== 'day' ? (
@@ -935,7 +937,7 @@ export const Dashboard = memo<DashboardProps>(({
       <div
         id="today-period-panel"
         role="tabpanel"
-        aria-labelledby={`today-period-tab-${activePeriod}`}
+        aria-labelledby={`today-period-tab-${activeSegment}`}
       >
       {!profile.name.trim() || !profile.birthDate.trim() ? (
         <section className="forecast-feed-status">
