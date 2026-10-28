@@ -42,7 +42,7 @@ describe('numerology', () => {
   });
 
   it('counts the numbers of a Russian name and ignores other letters', () => {
-    expect(nameNumbers('Михаил')).toEqual({ soul: 3, outer: 5, destiny: 8 });
+    expect(nameNumbers('Михаил')).toEqual({ soul: 3, outer: 5, talent: 8 });
     expect(nameNumbers('Q')).toBeNull();
     expect(nameNumberText('soul', 3)).toMatch(/^В глубине: тебе нужно выражать себя\.$/);
   });

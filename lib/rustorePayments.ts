@@ -189,6 +189,12 @@ async function ruStoreGet(path: string, sandbox: boolean): Promise<RuStoreApiBod
   }
 }
 
+/** One-time purchases are checked by their invoice (Pay SDK payments, prod or sandbox). */
+export async function fetchRuStoreInvoice(invoiceId: string, sandbox: boolean): Promise<RuStoreApiBody> {
+  if (!/^\d{1,20}$/.test(invoiceId)) throw new RuStorePaymentError('RUSTORE_INVOICE_ID_REQUIRED');
+  return ruStoreGet(`/v2/invoices/${invoiceId}`, sandbox);
+}
+
 function asDate(value: unknown): Date | null {
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric <= 0) return null;

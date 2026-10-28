@@ -225,6 +225,87 @@ public class RuStorePayPlugin extends Plugin {
             .addOnFailureListener(error -> call.reject("RUSTORE_PRODUCTS_FAILED", asException(error)));
     }
 
+    /**
+     * One-time products (consumable or not). Paid in one step, so a successful
+     * result is a confirmed payment; our API still checks the invoice with RuStore.
+     */
+    @PluginMethod
+    public void purchaseProduct(PluginCall call) {
+        String productId = call.getString("productId", "").trim();
+        String appUserId = call.getString("appUserId", "").trim();
+        String orderId = call.getString("orderId", "").trim();
+        if (productId.isEmpty() || appUserId.isEmpty() || orderId.isEmpty()) {
+            call.reject("RUSTORE_PURCHASE_ARGUMENTS_REQUIRED");
+            return;
+        }
+        List<ProductId> productIds = new ArrayList<>();
+        productIds.add(new ProductId(productId));
+        client().getProductInteractor().getProducts(productIds)
+            .addOnSuccessListener(products -> {
+                if (products.size() != 1) {
+                    call.reject("RUSTORE_PRODUCT_NOT_PUBLISHED");
+                    return;
+                }
+                ru.rustore.sdk.pay.model.Product catalogProduct =
+                    (ru.rustore.sdk.pay.model.Product) products.get(0);
+                ProductType type = catalogProduct.getType();
+                if (!catalogProduct.getProductId().getValue().equals(productId)
+                    || (type != ProductType.CONSUMABLE_PRODUCT && type != ProductType.NON_CONSUMABLE_PRODUCT)) {
+                    call.reject("RUSTORE_PRODUCT_NOT_ONE_TIME");
+                    return;
+                }
+                ProductPurchaseParams params = new ProductPurchaseParams(
+                    new ProductId(productId),
+                    null,
+                    new ru.rustore.sdk.pay.model.OrderId(orderId),
+                    null,
+                    new AppUserId(appUserId),
+                    null
+                );
+                client().getPurchaseInteractor()
+                    .purchase(params, PreferredPurchaseType.ONE_STEP, SdkTheme.LIGHT, null)
+                    .addOnSuccessListener(result -> {
+                        JSObject payload = new JSObject();
+                        payload.put("productId", productId);
+                        payload.put("productType", result.getProductType().name());
+                        payload.put("orderId", orderId);
+                        if (result.getPurchaseId() != null) payload.put("purchaseId", result.getPurchaseId().getValue());
+                        if (result.getInvoiceId() != null) payload.put("invoiceId", result.getInvoiceId().getValue());
+                        call.resolve(payload);
+                    })
+                    .addOnFailureListener(error -> {
+                        if (error instanceof RuStorePaymentException.ProductPurchaseCancelled) {
+                            JSObject payload = new JSObject();
+                            payload.put("productId", productId);
+                            payload.put("orderId", orderId);
+                            payload.put("status", "CANCELLED");
+                            call.resolve(payload);
+                            return;
+                        }
+                        call.reject("RUSTORE_PURCHASE_FAILED", asException(error));
+                    });
+            })
+            .addOnFailureListener(error -> call.reject("RUSTORE_PRODUCTS_FAILED", asException(error)));
+    }
+
+    /** Tells RuStore the bought item was delivered (after our API granted it). */
+    @PluginMethod
+    public void acknowledgePurchase(PluginCall call) {
+        String purchaseId = call.getString("purchaseId", "").trim();
+        if (purchaseId.isEmpty()) {
+            call.reject("RUSTORE_PURCHASE_ID_REQUIRED");
+            return;
+        }
+        client().getPurchaseInteractor()
+            .updateAcknowledgementState(
+                new ru.rustore.sdk.pay.model.PurchaseId(purchaseId),
+                ru.rustore.sdk.pay.model.AcknowledgementState.ACKNOWLEDGED,
+                null
+            )
+            .addOnSuccessListener(state -> call.resolve(new JSObject().put("state", state.name())))
+            .addOnFailureListener(error -> call.reject("RUSTORE_ACKNOWLEDGE_FAILED", asException(error)));
+    }
+
     @PluginMethod
     public void getPurchases(PluginCall call) {
         client().getPurchaseInteractor().getPurchases(null, null, null)
@@ -245,6 +326,10 @@ public class RuStorePayPlugin extends Plugin {
                             (ru.rustore.sdk.pay.model.ProductPurchase) purchase;
                         value.put("productId", productPurchase.getProductId().getValue());
                         value.put("productType", productPurchase.getProductType().name());
+                        value.put("status", productPurchase.getStatus().toString());
+                        if (productPurchase.getAcknowledgementState() != null) {
+                            value.put("acknowledgementState", productPurchase.getAcknowledgementState().name());
+                        }
                     }
                     if (purchase.getPurchaseId() != null) value.put("purchaseId", purchase.getPurchaseId().getValue());
                     if (purchase.getInvoiceId() != null) value.put("invoiceId", purchase.getInvoiceId().getValue());

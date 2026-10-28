@@ -8,6 +8,8 @@ import {
 import type { UserProfile } from '../../types';
 import { AstrologyEncyclopedia } from './AstrologyEncyclopedia';
 
+import { NeboShop } from '../../components/nebo/NeboShop';
+
 export type ServiceTab = 'matrix' | 'antistress' | 'tests' | 'sounds' | 'stories' | 'knowledge' | 'store';
 
 export type ServiceScreenProps = {
@@ -147,7 +149,7 @@ export function ServiceScreen({
         />
       ) : activeTab === 'store' ? (
         <div className="service-premium-content">
-          {premiumStoreContent}
+          <NeboShop profile={profile} plusContent={premiumStoreContent} />
         </div>
       ) : null}
     </div>
