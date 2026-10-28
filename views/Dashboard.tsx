@@ -172,6 +172,8 @@ import {
   TodayMood, TodayNatalInvite, TodayPromoCarousel, TodayTiles, TodayTomorrowNote, TodayYesNo, type TodayPromo,
 } from '../components/nebo/TodayCanvasBlocks';
 
+import { DatesView, MonthView, WeekView } from '../components/nebo/PeriodViews';
+
 export const Dashboard = memo<DashboardProps>(({
   profile,
   currentDateKey,
@@ -802,19 +804,15 @@ export const Dashboard = memo<DashboardProps>(({
 
   // The canvas switch under the bar: День · Неделя · Месяц · Даты. Week and month open their readings, «Даты» the calendar.
   type HomeSegment = 'day' | 'week' | 'month' | 'dates';
-  const activeSegment: HomeSegment = activePeriod === 'day' ? 'day' : futureReader ?? 'dates';
+  const [homeSegment, setHomeSegment] = useState<Exclude<HomeSegment, 'day'>>(requestedPeriod === 'week' ? 'week' : 'dates');
+  const activeSegment: HomeSegment = activePeriod === 'day' ? 'day' : homeSegment;
   const openSegment = (segment: HomeSegment) => {
-    if (segment === activeSegment) return;
-    if (segment === 'day') { selectPeriod('day'); return; }
+    if (segment === activeSegment && !futureReader) return;
+    if (segment === 'day') { setFutureReader(null); selectPeriod('day'); return; }
     lumiaSelectionHaptic();
-    if (segment === 'dates') {
-      setFutureReader(null);
-      if (activePeriod !== 'month') onPeriodChange?.('month');
-      return;
-    }
-    if (!premium && !(segment === 'week' && weekGifted)) { requestPremiumFor(segment); return; }
+    setFutureReader(null);
+    setHomeSegment(segment);
     if (activePeriod !== 'month') onPeriodChange?.('month');
-    setFutureReader(segment);
   };
   const segmentLabels: Record<HomeSegment, string> = language === 'ru'
     ? { day: 'День', week: 'Неделя', month: 'Месяц', dates: 'Даты' }
@@ -938,6 +936,30 @@ export const Dashboard = memo<DashboardProps>(({
         </section>
       ) : activePeriod === 'month' && futureReader ? (
         renderFutureReader(futureReader)
+      ) : activePeriod === 'month' && homeSegment === 'week' ? (
+        <WeekView
+          profile={profile}
+          todayKey={periodKeys.day}
+          premium={premium}
+          onRequestPremium={() => requestPremiumFor('week')}
+          onReadWeek={() => setFutureReader('week')}
+          onOpenDay={() => openSegment('day')}
+        />
+      ) : activePeriod === 'month' && homeSegment === 'month' ? (
+        <MonthView
+          profile={profile}
+          todayKey={periodKeys.day}
+          premium={premium}
+          onRequestPremium={() => requestPremiumFor('month')}
+          onReadMonth={() => setFutureReader('month')}
+        />
+      ) : activePeriod === 'month' && homeSegment === 'dates' ? (
+        <DatesView
+          profile={profile}
+          todayKey={periodKeys.day}
+          premium={premium}
+          onRequestPremium={() => requestPremiumFor('month')}
+        />
       ) : activePeriod === 'month' ? (
         <FutureView
           profile={profile}

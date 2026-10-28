@@ -422,3 +422,92 @@
 .nebo-natal-invite-copy small { color: #5c6170; font-size: 13.5px; line-height: 1.35; }
 .nebo-natal-invite button { flex: none; height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: #4f46e5; color: #ffffff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .nebo-tomorrow { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 22px 16px 8px; color: #8a8f9c; font-size: 13.5px; }
+
+/* Week, Month and Dates as on the canvas */
+.nebo-period { display: flex; flex-direction: column; gap: 0; padding: 18px 0 28px; color: #0b0d12; }
+.nebo-period-loading { margin: 40px 16px; color: #8a8f9c; text-align: center; }
+.nebo-period-kicker { margin: 0 20px; color: #8a8f9c; font-size: 15px; }
+.nebo-period-title { margin: 6px 20px 0; font-size: 34px; line-height: 1.08; font-weight: 700; letter-spacing: -0.03em; }
+.nebo-period-text { margin: 10px 20px 0; color: #5c6170; font-size: 16px; line-height: 1.5; }
+.nebo-period-card { margin: 18px 16px 0; padding: 14px 16px 16px; border-radius: 26px; background: #f4f5f8; }
+.nebo-period-card.is-list { padding: 6px 8px; }
+.nebo-period-note { margin: 10px 0 0; color: #5c6170; font-size: 14.5px; line-height: 1.45; }
+.nebo-period-cta { margin: 18px 16px 0; height: 54px; border: 0; border-radius: 27px; background: linear-gradient(180deg, #1c2160 0%, #10133d 100%); color: #ffffff; font: inherit; font-size: 16.5px; font-weight: 600; cursor: pointer; }
+.nebo-period-more { display: block; width: 100%; margin-top: 4px; padding: 12px; border: 0; background: none; color: #4f46e5; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.nebo-curve { position: relative; margin-top: 12px; padding-bottom: 22px; }
+.nebo-curve svg { display: block; overflow: visible; }
+.nebo-curve-now { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 3px #5b8cff, 0 0 0 7px rgba(91, 140, 255, 0.18); }
+.nebo-curve-hi, .nebo-curve-lo { position: absolute; right: 0; font-size: 10.5px; font-weight: 600; }
+.nebo-curve-hi { top: 0; color: #16a34a; }
+.nebo-curve-lo { top: 96px; color: #ef4444; }
+.nebo-curve-ticks { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; color: #8a8f9c; font-size: 11.5px; }
+.nebo-curve-lock { position: absolute; top: -34px; right: 0; display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: rgba(79, 70, 229, 0.1); color: #4f46e5; font-size: 12px; font-weight: 600; }
+.nebo-week-row { display: flex; width: 100%; align-items: center; gap: 12px; padding: 10px 8px; border: 0; border-radius: 16px; background: none; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; }
+.nebo-week-row + .nebo-week-row { border-top: 1px solid rgba(118, 118, 128, 0.14); }
+.nebo-week-row.is-today { background: rgba(79, 70, 229, 0.1); border-top-color: transparent; }
+.nebo-week-row.is-today + .nebo-week-row { border-top-color: transparent; }
+.nebo-week-row img { width: 44px; height: 44px; flex: none; object-fit: contain; }
+.nebo-week-row.is-locked img { opacity: 0.45; }
+.nebo-week-date { display: flex; width: 34px; flex: none; flex-direction: column; align-items: center; }
+.nebo-week-date small { color: #8a8f9c; font-size: 12px; }
+.nebo-week-date b { font-size: 20px; font-weight: 600; }
+.nebo-week-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
+.nebo-week-copy strong { font-size: 15.5px; line-height: 1.3; font-weight: 600; }
+.nebo-week-row.is-locked .nebo-week-copy strong { color: #8a8f9c; }
+.nebo-week-copy small { color: #8a8f9c; font-size: 13px; line-height: 1.35; }
+.nebo-week-lock { flex: none; color: #a3a7b3; }
+.nebo-month-event { display: flex; align-items: flex-start; gap: 12px; padding: 12px 8px; }
+.nebo-month-event + .nebo-month-event { border-top: 1px solid rgba(118, 118, 128, 0.14); }
+.nebo-month-event .nebo-week-copy small { color: #5c6170; font-size: 13.5px; }
+.nebo-cal-head, .nebo-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.nebo-cal-head { margin-bottom: 6px; color: #8a8f9c; font-size: 12px; text-align: center; }
+.nebo-cal-cell { position: relative; display: flex; aspect-ratio: 1; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; border-radius: 12px; background: transparent; color: #0b0d12; font: inherit; font-size: 15px; cursor: pointer; }
+.nebo-cal-cell.is-good { background: rgba(34, 197, 94, 0.22); }
+.nebo-cal-cell.is-best { background: #4f46e5; color: #ffffff; font-weight: 700; }
+.nebo-cal-cell.is-retro { background: rgba(249, 115, 22, 0.16); }
+.nebo-cal-cell.is-hard { background: rgba(249, 115, 22, 0.16); }
+.nebo-cal-cell.is-past { color: #b4b8c2; background: transparent; }
+.nebo-cal-cell.is-today { box-shadow: inset 0 0 0 2px #4f46e5; }
+.nebo-cal-cell.is-picked { box-shadow: inset 0 0 0 2px #0b0d12; }
+.nebo-cal-moon { width: 8px; height: 8px; border-radius: 50%; }
+.nebo-cal-moon.is-new { background: #0b0d12; }
+.nebo-cal-moon.is-full { box-shadow: inset 0 0 0 1.5px #0b0d12; }
+.nebo-cal-moon.is-first { background: linear-gradient(90deg, transparent 50%, #0b0d12 50%); box-shadow: inset 0 0 0 1.5px #0b0d12; }
+.nebo-cal-moon.is-last { background: linear-gradient(90deg, #0b0d12 50%, transparent 50%); box-shadow: inset 0 0 0 1.5px #0b0d12; }
+.nebo-cal-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; color: #5c6170; font-size: 12.5px; }
+.nebo-cal-legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 50%; vertical-align: -1px; }
+.nebo-cal-legend .is-good::before { background: rgba(34, 197, 94, 0.4); }
+.nebo-cal-legend .is-best::before { background: #4f46e5; }
+.nebo-cal-legend .is-retro::before, .nebo-cal-legend .is-hard::before { background: rgba(249, 115, 22, 0.3); }
+.nebo-sheet-scrim { position: fixed; inset: 0; z-index: 8000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(4, 8, 24, 0.45); }
+.nebo-day-pop { position: relative; width: 100%; max-width: 360px; max-height: 80vh; overflow: auto; padding: 22px 20px 20px; border-radius: 28px; background: #ffffff; color: #0b0d12; }
+.nebo-day-pop-close { position: absolute; right: 14px; top: 14px; display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: rgba(118, 118, 128, 0.12); cursor: pointer; }
+.nebo-day-pop-num { display: block; color: #4f46e5; font-size: 56px; line-height: 1; font-weight: 300; }
+.nebo-day-pop-date { margin: 4px 0 0; color: #8a8f9c; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.nebo-day-pop h3 { margin: 10px 0 6px; font-size: 22px; font-weight: 700; }
+.nebo-day-pop-facts { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; margin: 12px 0; padding: 12px 14px; border-radius: 16px; background: #f4f5f8; font-size: 14px; }
+.nebo-day-pop-facts dt { color: #8a8f9c; }
+.nebo-day-pop-facts dd { margin: 0; font-weight: 600; }
+.nebo-day-pop-text { margin: 8px 0 0; font-size: 15px; line-height: 1.5; }
+.nebo-day-pop .nebo-period-cta { width: 100%; margin: 14px 0 0; }
+.nebo-dates-back { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; margin: 0 16px 14px; padding: 8px 14px 8px 10px; border: 0; border-radius: 999px; background: #f4f5f8; color: #5c6170; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.nebo-dates-topic { display: flex; align-items: center; gap: 10px; margin: 0 20px 18px; color: #5c6170; font-size: 17px; font-weight: 600; }
+.nebo-dates-pick { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid rgba(118, 118, 128, 0.18); font-size: 14.5px; line-height: 1.5; }
+.nebo-dates-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px 8px; }
+.nebo-dates-row + .nebo-dates-row { border-top: 1px solid rgba(118, 118, 128, 0.14); }
+.nebo-dates-row i { width: 10px; height: 10px; margin-top: 6px; flex: none; border-radius: 50%; }
+.nebo-dates-row i.is-best { background: #4f46e5; }
+.nebo-dates-row i.is-good { background: rgba(34, 197, 94, 0.6); }
+.nebo-dates-row span { display: flex; flex-direction: column; gap: 3px; }
+.nebo-dates-row strong { font-size: 15.5px; font-weight: 600; }
+.nebo-dates-row small { color: #5c6170; font-size: 13.5px; line-height: 1.45; }
+.nebo-dates-search { display: flex; align-items: center; gap: 10px; margin: 18px 16px 6px; padding: 0 16px; height: 52px; border-radius: 18px; background: #f4f5f8; color: #8a8f9c; }
+.nebo-dates-search input { flex: 1; min-width: 0; border: 0; background: none; color: #0b0d12; font: inherit; font-size: 16px; outline: none; }
+.nebo-dates-group { margin: 16px 16px 0; }
+.nebo-dates-group h2 { margin: 0 4px 10px; }
+.nebo-dates-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.nebo-dates-item { display: flex; align-items: center; gap: 10px; min-height: 72px; padding: 12px; border: 0; border-radius: 20px; background: #f4f5f8; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; }
+.nebo-dates-item img { width: 40px; height: 40px; flex: none; object-fit: contain; }
+.nebo-dates-item span { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.nebo-dates-item strong { font-size: 15px; line-height: 1.2; font-weight: 600; }
+.nebo-dates-item small { color: #8a8f9c; font-size: 12.5px; line-height: 1.3; }
