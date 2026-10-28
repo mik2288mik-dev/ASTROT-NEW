@@ -19,13 +19,8 @@ export type TarotCard = {
 
 export const TAROT_BACK = '/assets/tarot/back.webp';
 
-/** Only some cards have a painted face so far; the rest are drawn as a framed numeral. */
-export const TAROT_FACES: Record<string, string> = {
-  strength: '/assets/tarot/strength.webp',
-  star: '/assets/tarot/star.webp',
-  wheel: '/assets/tarot/wheel.webp',
-  sun: '/assets/tarot/sun.webp',
-};
+/** Every major arcana card has its painted face in /assets/tarot/<slug>.webp. */
+export const TAROT_FACE_DIR = '/assets/tarot';
 
 export const TAROT_CARDS: readonly TarotCard[] = [
   { n: 0, roman: '0', slug: 'fool', name: 'Шут', keyword: 'Новое начало', day: 'Сегодня хорошо сделать шаг без долгих расчётов. Лёгкость и любопытство работают лучше, чем перестраховка.', past: 'Раньше ты решался на новое, не оглядываясь, и это оставило в тебе вкус свободы.', now: 'Сейчас у тебя есть шанс начать с чистого листа. Не нужно знать весь путь, чтобы сделать первый шаг.', next: 'Дальше открывается неожиданное и незнакомое. Оно приятнее, если не цепляться за привычный план.', advice: 'Доверься лёгкости, но возьми с собой самое нужное.' },
@@ -105,5 +100,5 @@ export function weekKeyOf(date: Date): string {
 }
 
 export function cardImage(card: TarotCard): string | null {
-  return TAROT_FACES[card.slug] ?? null;
+  return `${TAROT_FACE_DIR}/${card.slug}.webp`;
 }

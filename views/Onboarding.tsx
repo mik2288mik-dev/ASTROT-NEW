@@ -4,7 +4,8 @@ import type { UserProfile } from '../types';
 import { getZodiacSign } from '../constants';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { normalizeZodiacKey } from '../lib/zodiacKeys';
-import { ZodiacSymbol } from '../components/icons/ZodiacArt';
+import { ZodiacIllustration, ZodiacSymbol } from '../components/icons/ZodiacArt';
+import { DateWheel } from '../components/nebo/DateWheel';
 import { HoroscopeReader } from './v2/HoroscopeReader';
 import { ensureTelegramFullscreen } from '../lib/telegramFullscreen';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
@@ -48,7 +49,6 @@ const SCREEN_VIDEOS: Partial<Record<OnboardingScreen, VideoBackgroundId>> = {
   calm: 'breathing',
   more: 'onboarding-more',
   choice: 'onboarding-choice',
-  calculating: 'onboarding-calculating',
 };
 const initialTimeMode = (profile?: UserProfile): Exclude<BirthTimeMode, 'range'> => {
   if (!profile) return 'exact';
@@ -81,6 +81,15 @@ const OnboardingProgress = ({ current, count, labelled = true }: { current: numb
   </div>
 );
 
+
+const ENTRY_SIGN_RANGES: Record<string, string> = {
+  aries: '21 марта - 19 апреля', taurus: '20 апреля - 20 мая', gemini: '21 мая - 20 июня', cancer: '21 июня - 22 июля',
+  leo: '23 июля - 22 августа', virgo: '23 августа - 22 сентября', libra: '23 сентября - 22 октября', scorpio: '23 октября - 21 ноября',
+  sagittarius: '22 ноября - 21 декабря', capricorn: '22 декабря - 19 января', aquarius: '20 января - 18 февраля', pisces: '19 февраля - 20 марта',
+};
+const CALC_STEPS = ['Солнце и Луна', 'Планеты по знакам', 'Дома и Асцендент', 'Твой день на сегодня'];
+const ENTRY_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
 export const Onboarding: React.FC<OnboardingProps> = ({
   onComplete,
   onOpenPrepared,
@@ -91,7 +100,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   onSignIn,
 }) => {
 
-  const [screen, setScreen] = useState<OnboardingScreen>(initialStep === 'birth' ? 'birth' : 'hello');
+  const [screen, setScreen] = useState<OnboardingScreen>('birth');
   const [name, setName] = useState(initialProfile?.name || '');
   const [gender, setGender] = useState<'male' | 'female' | 'unspecified'>(initialProfile?.gender || 'unspecified');
   const [date, setDate] = useState(initialProfile?.birthDate || '');
@@ -118,6 +127,15 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   const timeRef = useRef<HTMLInputElement | null>(null);
   const placeRef = useRef<HTMLInputElement | null>(null);
   const telemetry = useOnboardingTelemetry(screen, accountProfile.id);
+  const entrySign = date ? normalizeZodiacKey(sunSignFromDate(date) || '') : null;
+  // The canvas entry has no name field: ask only when neither the account nor Telegram gave a name.
+  const [needsName] = useState(() => (initialProfile?.name || '').trim().length < 2
+    && !(typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name));
+  const calcSubtitle = (() => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+    const datePart = match ? `${Number(match[3])} ${ENTRY_MONTHS[Number(match[2]) - 1]} ${match[1]}` : '';
+    return [datePart, timeMode !== 'unknown' ? time : '', place.split(',')[0]].filter(Boolean).join(', ');
+  })();
   const openPrepared = () => { telemetry.action('open_result'); telemetry.finish('created'); onOpenPrepared(); };
   const skipSetup = () => { telemetry.action('look'); telemetry.finish('without_chart'); onSkip(); };
   const signIn = () => { telemetry.action('sign_in'); telemetry.finish('sign_in'); onSignIn(); };
@@ -454,10 +472,14 @@ export const Onboarding: React.FC<OnboardingProps> = ({
             ? (event) => handleWelcomeTap(event, false)
             : undefined}
       >
+        {screen === 'birth' ? (
+          <header className="nebo-entry-bar"><img src="/assets/auth/logo.webp" alt="" width={30} height={30} /><strong>NEBO</strong></header>
+        ) : screen === 'calculating' ? null : (
         <header className="meou-onboarding-header">
           <MeouLogo className="meou-onboarding-logo" fullCloud />
           {isWelcome ? <OnboardingProgress current={welcomeIndex} count={welcomeScreenCount} labelled={false} /> : null}
         </header>
+        )}
         {isIntro ? (
           <section
             className={`meou-story meou-story--showcase meou-story--${screen}`}
@@ -499,92 +521,74 @@ export const Onboarding: React.FC<OnboardingProps> = ({
         ) : null}
 
         {screen === 'birth' ? (
-          <section className="meou-birth">
-            <div className="meou-birth-heading">
-              {<><h1>Немного данных,<br />и карта готова<span>.</span></h1><p>Нам нужны ваши дата, время<br />и место рождения. Без точного времени<br />тоже можно, мы всё учтём.</p><BirthOrbitArtwork /></>}
+          <section className="nebo-entry">
+            <div className="nebo-entry-head">
+              <h1>Когда у тебя день рождения?</h1>
+              <p>Покажем твой день сразу. Без регистрации.</p>
             </div>
+            {entrySign ? (
+              <div className="nebo-entry-sign">
+                <ZodiacIllustration sign={entrySign} className="nebo-entry-sign-art" priority />
+                <span><strong>{getZodiacSign('ru', entrySign)}</strong><small>{ENTRY_SIGN_RANGES[entrySign.toLowerCase()] || ''}</small></span>
+              </div>
+            ) : null}
 
-            <form className="meou-birth-form" noValidate onFocusCapture={event => {
-              const input = event.target;
-              if (!(input instanceof HTMLInputElement)) return;
-              const field = input.id === 'onboarding-name' ? 'name' : input.id === 'onboarding-birth-date' ? 'date' : input.id === 'onboarding-birth-time' ? 'time' : input.id === 'onboarding-birth-place' ? 'place' : null;
-              if (field) telemetry.field(field, Boolean(input.value.trim()));
-            }} onInputCapture={event => {
-              const input = event.target;
-              if (!(input instanceof HTMLInputElement)) return;
-              const field = input.id === 'onboarding-name' ? 'name' : input.id === 'onboarding-birth-date' ? 'date' : input.id === 'onboarding-birth-time' ? 'time' : input.id === 'onboarding-birth-place' ? 'place' : null;
-              if (field) telemetry.field(field, Boolean(input.value.trim()));
-            }} onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
-              <label className="meou-field" htmlFor="onboarding-name">
-                <span>Имя</span>
-                <input id="onboarding-name" ref={nameRef} name="name" type="text" autoComplete="given-name" minLength={2} maxLength={100} value={name} placeholder={'Ваше имя'} onChange={(event) => { setName(event.target.value); clearError(); }} aria-invalid={errorField === 'name' || undefined} aria-describedby={errorField === 'name' ? 'onboarding-error' : undefined} />
-              </label>
-              <fieldset className="meou-gender-mode">
-                <legend>Пол <span>(необязательно)</span></legend>
-                <div>
-                  {([['male', 'Мужчина'], ['female', 'Женщина']] as const).map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={gender === value ? 'is-active' : ''}
-                      aria-pressed={gender === value}
-                      onClick={() => setGender((current) => current === value ? 'unspecified' : value)}
-                    >
-                      <span aria-hidden="true">{gender === value ? '✓' : ''}</span>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-              <label className="meou-field" htmlFor="onboarding-birth-date">
-                <span>Дата рождения</span>
-                <input id="onboarding-birth-date" ref={dateRef} name="birth-date" type="date" min="1900-01-01" max={localDateInputValue(new Date())} value={date} onChange={(event) => { setDate(event.target.value); clearError(); }} aria-invalid={errorField === 'date' || undefined} aria-describedby={errorField === 'date' ? 'onboarding-error' : undefined} />
-              </label>
-              <label className={`meou-field meou-time-field${time ? '' : ' is-empty'}`} htmlFor="onboarding-birth-time">
-                <span>Время рождения</span>
-                <input id="onboarding-birth-time" ref={timeRef} name="birth-time" type="time" step={60} value={time} disabled={timeMode === 'unknown'} onChange={(event) => { setTime(event.target.value); clearError(); }} aria-invalid={errorField === 'time' || undefined} aria-describedby={errorField === 'time' ? 'onboarding-error' : undefined} />
-                <span className="meou-time-placeholder" aria-hidden="true">{'чч:мм'}</span>
-              </label>
-              <fieldset className="meou-time-mode">
-                <legend>{'Насколько точно вы знаете время?'}</legend>
-                <div>
-                  {([
-                    ['exact', 'Знаю'],
-                    ['approximate', 'Примерно'],
-                    ['unknown', 'Не знаю'],
-                  ] as const).map(([value, label]) => (
-                    <button key={value} type="button" className={timeMode === value ? 'is-active' : ''} aria-pressed={timeMode === value} onClick={() => chooseTimeMode(value)}><span>{label}</span></button>
-                  ))}
-                </div>
-              </fieldset>
-              <div className="meou-field meou-city-field">
-                <label htmlFor="onboarding-birth-place">Место рождения</label>
-                <CityAutocomplete id="onboarding-birth-place" value={place} inputRef={placeRef} placeholder="Город, страна" ariaInvalid={errorField === 'place'} ariaDescribedBy={errorField === 'place' ? 'onboarding-error' : undefined} onChange={(value, coords) => { setPlace(value); setPlaceCoords(coords ?? null); clearError(); }} />
+            <form className="nebo-entry-card" noValidate onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
+              <DateWheel value={date} onChange={(value) => { setDate(value); clearError(); telemetry.field('date', true); }} />
+              <div className="nebo-entry-more">
+                <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 14l12-5 12 5 12-5v26l-12 5-12-5-12 5z" fill="#BFE6C8" /><path d="M18 9v26M30 14v26" stroke="#8CCB9C" strokeWidth="1.5" /><path d="M6 14l12-5 12 5 12-5v26l-12 5-12-5-12 5z" fill="none" stroke="#5FAE72" strokeWidth="1.5" strokeLinejoin="round" /><path d="M30 6c-4.4 0-8 3.4-8 7.8 0 5.6 8 13.2 8 13.2s8-7.6 8-13.2C38 9.4 34.4 6 30 6z" fill="#F0543C" /><circle cx="30" cy="13.6" r="3" fill="#ffffff" /></svg>
+                <span><strong>Время и город твоего рождения</strong><small>Они нужны, чтобы точно посчитать твою натальную карту.</small></span>
               </div>
-              {error ? <p id="onboarding-error" className="meou-form-error" role="alert">{error}</p> : null}
-              <div className="meou-birth-submit">
-                <button type="submit" className="meou-button meou-button--primary meou-calculate-button" disabled={isSubmitting} aria-busy={isSubmitting}>{'Рассчитать вашу карту'}{null}</button>
-                <p className="meou-privacy">
-                  <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="8.5" width="11" height="8" rx="1.5" /><path d="M7 8.5V6.5a3 3 0 0 1 6 0v2" /></svg>
-                  {'Ваши данные защищены'}
-                </p>
+              {needsName ? (
+                <label className="nebo-entry-field" htmlFor="onboarding-name">
+                  Как тебя зовут
+                  <input id="onboarding-name" ref={nameRef} name="name" type="text" autoComplete="given-name" minLength={2} maxLength={100} value={name} placeholder="Имя" onChange={(event) => { setName(event.target.value); clearError(); }} aria-invalid={errorField === 'name' || undefined} aria-describedby={errorField === 'name' ? 'onboarding-error' : undefined} />
+                </label>
+              ) : null}
+              <div className="nebo-entry-row">
+                <label className="nebo-entry-field" htmlFor="onboarding-birth-time">
+                  Время
+                  <input id="onboarding-birth-time" ref={timeRef} name="birth-time" type="time" step={60} value={timeMode === 'unknown' ? '' : time} disabled={timeMode === 'unknown'} placeholder={timeMode === 'unknown' ? 'не знаю' : '23:15'} onChange={(event) => { setTime(event.target.value); clearError(); }} aria-invalid={errorField === 'time' || undefined} aria-describedby={errorField === 'time' ? 'onboarding-error' : undefined} />
+                </label>
+                <div className="nebo-entry-field">
+                  <label htmlFor="onboarding-birth-place">Город</label>
+                  <CityAutocomplete id="onboarding-birth-place" value={place} inputRef={placeRef} placeholder="Например, Тула" ariaInvalid={errorField === 'place'} ariaDescribedBy={errorField === 'place' ? 'onboarding-error' : undefined} onChange={(value, coords) => { setPlace(value); setPlaceCoords(coords ?? null); clearError(); }} />
+                </div>
               </div>
+              <label className="nebo-entry-check">
+                <input type="checkbox" checked={timeMode === 'unknown'} onChange={(event) => chooseTimeMode(event.target.checked ? 'unknown' : 'exact')} />
+                <span>Не знаю время рождения</span>
+              </label>
+              {timeMode === 'unknown' ? <p className="nebo-entry-note">Посчитаем без Асцендента и домов. Время можно добавить потом.</p> : null}
+              <p className="nebo-entry-proof">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
+                Профессиональный расчёт. Можно сверить с другими сервисами.
+              </p>
+              {error ? <p id="onboarding-error" className="nebo-entry-error" role="alert">{error}</p> : null}
+              <button type="submit" className="nebo-entry-cta" disabled={isSubmitting} aria-busy={isSubmitting}>{isSubmitting ? 'Считаем…' : 'Показать мой день'}</button>
+              {accountProfile.isGuest ? <p className="nebo-entry-foot">Данные останутся на этом телефоне, пока ты не войдёшь</p> : null}
             </form>
           </section>
         ) : null}
 
         {screen === 'calculating' ? (
-          <section className="meou-calculating" aria-live="polite">
-            <div className="meou-calculating-stage" aria-hidden="true" />
-            <div className="meou-calculating-copy">
-              <div>
-                <h1>{preparationTitle}<span>.</span></h1>
-                <p>{preparationPhase === 'chart' ? calculationNote : 'Карта рассчитана. Готовим рассказ по твоей карте — он появится, как только будет готов.'}</p>
-              </div>
-              <div className="meou-calculating-footer">
-                <p>{preparationPhase === 'chart' ? onboardingCalculationStatus(calculationElapsedSeconds, timeMode) : 'Подготовка продолжается.'}</p>
-              </div>
+          <section className="nebo-calc" aria-live="polite">
+            <div className="nebo-calc-orbit" aria-hidden="true">
+              <span className="nebo-calc-ring is-1" /><span className="nebo-calc-ring is-2" /><span className="nebo-calc-ring is-3" />
+              <span className="nebo-calc-planet is-1" /><span className="nebo-calc-planet is-2" /><span className="nebo-calc-planet is-3" /><span className="nebo-calc-planet is-4" />
+              {entrySign ? <ZodiacIllustration sign={entrySign} className="nebo-calc-sign" priority /> : null}
             </div>
+            <h1>Считаем твоё небо</h1>
+            <p className="nebo-calc-sub">{calcSubtitle}</p>
+            <ul className="nebo-calc-steps">
+              {CALC_STEPS.filter((step) => timeMode !== 'unknown' || step !== 'Дома и Асцендент').map((step, index, list) => {
+                const doneCount = preparationPhase === 'reading' ? list.length - 1 : Math.min(list.length - 1, Math.floor(calculationElapsedSeconds / 2));
+                const state = index < doneCount ? 'is-done' : index === doneCount ? 'is-active' : 'is-wait';
+                return <li key={step} className={state}><i aria-hidden="true" />{step}</li>;
+              })}
+            </ul>
+            <div className="nebo-calc-bar"><span style={{ width: `${preparationPhase === 'reading' ? 90 : Math.min(85, 15 + calculationElapsedSeconds * 9)}%` }} /></div>
+            <p className="nebo-calc-note">{preparationPhase === 'chart' ? onboardingCalculationStatus(calculationElapsedSeconds, timeMode) : 'Карта готова. Готовим рассказ о твоём дне.'}</p>
           </section>
         ) : null}
         {screen === 'waiting' ? (
