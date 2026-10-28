@@ -2794,6 +2794,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             profile={profile}
                             onBack={() => { void handleBack(); }}
                             onOpenProfile={openProfileSheet}
+                            onOpenNatal={() => navigateTo('chart')}
                             onRequestPremium={() => { void requestPremium('matrix', { placement: 'matrix', featureKey: 'matrix_full', triggerType: 'locked_feature' }); }}
                         />
                     </div>
@@ -2878,6 +2879,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onQuestionRequestHandled={() => setNatalQuestionRequest(0)}
                             onOpenCharts={openProfileCharts}
                             onOpenEncyclopedia={() => navigateTo('encyclopedia')}
+                            onOpenMatrix={() => navigateTo('matrix')}
                         />
                         <PromoBanner
                             category="zodiac"

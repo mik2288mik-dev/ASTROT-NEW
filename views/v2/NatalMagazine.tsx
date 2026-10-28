@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTelemetrySection } from '../../services/useAppTelemetry';
-import { MonoAvatar } from '../../components/mono-ui/MonoAvatar';
+import { MyChartHeader } from '../../components/nebo/MyChartHeader';
+import { sunSignFromDate } from '../../lib/synastry/compatScore';
+import { getZodiacSign } from '../../constants';
 import styles from '../../components/NatalReading/NatalSection.module.css';
 import type { NatalChartData, UserProfile } from '../../types';
 import { formatDisplayDate } from '../../lib/date-utils';
@@ -38,6 +40,8 @@ type NatalMagazineProps = {
   onQuestionRequestHandled?: () => void;
   onOpenCharts?: () => void;
   onOpenEncyclopedia?: () => void;
+  /** «Матрица» in the «Моя карта» switch. */
+  onOpenMatrix?: () => void;
 };
 
 export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix' | 'profile';
@@ -71,6 +75,8 @@ export function NatalMagazine({
   openQuestionRequest,
   onQuestionRequestHandled,
   onOpenCharts,
+  onOpenEncyclopedia,
+  onOpenMatrix,
 }: NatalMagazineProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const subjectName = chartSubject ? chartSubject.name : profile.name;
@@ -149,20 +155,18 @@ export function NatalMagazine({
   };
 
 
+  const sunSign = sunSignFromDate(subjectBirthDate);
   const header = (
     <>
-      <AppTopBar title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} rightAction={onOpenCharts ? <button type="button" className="app-top-bar-action" aria-label={`Выбрать сохранённую карту: ${subjectName || 'Моя карта'}`} onClick={onOpenCharts}><MonoAvatar initial={(subjectName || '?').slice(0,1)} size={36}/></button> : undefined}/>
-      {data ? <nav className={`${styles.navigation} editorial-tabs`} aria-label="Вкладки натальной карты" style={{ '--editorial-tab-count': 4 } as React.CSSProperties}>
-        {([
-          { id: 'foundation', label: 'Обзор' },
-          { id: 'map', label: 'Карта' },
-          { id: 'profile', label: 'Профиль' },
-          { id: 'ask', label: 'Спросить' },
-        ] as const).map(tab => {
-          const active = tab.id === normalizedActiveTab || (tab.id === 'foundation' && normalizedActiveTab === 'explore');
-          return <button key={tab.id} type="button" className={`editorial-tab${active ? ' is-active' : ''}`} aria-current={active ? 'page' : undefined} onClick={() => selectTab(tab.id)}>{tab.label}</button>;
-        })}
-      </nav> : null}
+      <AppTopBar title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} />
+      <MyChartHeader
+        title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
+        subtitle={[subjectName, sunSign ? getZodiacSign(language, sunSign) : ''].filter(Boolean).join(' · ')}
+        active="natal"
+        onOpen={(segment) => { if (segment === 'matrix') onOpenMatrix?.(); }}
+        whoseLabel={isSavedPerson ? subjectName : (language === 'ru' ? 'Моя' : 'Mine')}
+        onChooseWhose={onOpenCharts}
+      />
     </>
   );
 
@@ -228,59 +232,40 @@ export function NatalMagazine({
     <div ref={sectionRef} className="fresh-page natal-editorial-page natal-mvp-page natal-v3-page">
       {header}
 
-      {normalizedActiveTab === 'map' ? (
-        <InteractiveNatalMap
-          key={reportSubjectKey}
-          chart={data}
-          view="map"
-          name={subjectName || 'Моя карта'}
-          birthLine={birthLine}
+      <InteractiveNatalMap
+        key={reportSubjectKey}
+        chart={data}
+        view="map"
+        name={subjectName || 'Моя карта'}
+        birthLine={birthLine}
+        isPremium={isPremium}
+        premiumContinuation={premiumContinuation}
+        onPremiumContinuationHandled={onPremiumContinuationHandled}
+        onRequestPremium={(selection, view) => { void requestPremium('deep_natal', {placement:'deep_natal',featureKey:'natal_deep',triggerType:'locked_feature',returnView:'chart',returnAction:'open_natal_map_element',returnEntityId:`${view}:${selection.kind}:${selection.id}`}); }}
+      />
+
+      <section className={styles.content}>
+        {person}
+        {canonicalChart ? <NatalCalculationProof key={`proof:${reportSubjectKey}`} chart={canonicalChart} name={subjectName || 'Моя карта'} /> : null}
+        {canonicalChart ? <NatalHighlights key={`big-three:${reportSubjectKey}`} chart={canonicalChart} part="big-three" /> : null}
+        {canonicalChart ? <NatalHighlights key={`moments:${reportSubjectKey}`} chart={canonicalChart} part="moments" /> : null}
+        <h2 className={styles.readingHeading}>Рассказ о тебе</h2>
+        <div className={styles.mode} role="group" aria-label="Как читать рассказ">{(['story','topics'] as const).map(mode => <button type="button" key={mode} aria-pressed={overviewMode === mode} onClick={() => setOverviewMode(mode)}>{mode === 'story' ? 'Рассказ' : 'По темам'}</button>)}</div>
+        <NatalUnifiedReport
+          key={`unified:${reportSubjectKey}`}
+          profile={profile}
+          chartData={data}
+          chartId={chartId}
+          mode={overviewMode}
           isPremium={isPremium}
-          premiumContinuation={premiumContinuation}
-          onPremiumContinuationHandled={onPremiumContinuationHandled}
-          onRequestPremium={(selection, view) => { void requestPremium('deep_natal', {placement:'deep_natal',featureKey:'natal_deep',triggerType:'locked_feature',returnView:'chart',returnAction:'open_natal_map_element',returnEntityId:`${view}:${selection.kind}:${selection.id}`}); }}
+          savedPerson={isSavedPerson}
+          canPromotePremium={canPromotePremium}
+          requestPremium={requestPremium}
         />
-      ) : null}
+      </section>
 
-      {normalizedActiveTab === 'map' && canonicalChart ? (
-        <section className={styles.content}>
-          <NatalCalculationProof key={`proof:${reportSubjectKey}`} chart={canonicalChart} name={subjectName || 'Моя карта'} />
-        </section>
-      ) : null}
-
-      {normalizedActiveTab === 'profile' ? (
-        <section className={styles.content}>
-          {person}
-          {canonicalChart ? <NatalProfileTab key={`profile:${reportSubjectKey}`} chart={canonicalChart} /> : null}
-        </section>
-      ) : null}
-
-      {normalizedActiveTab === 'foundation' || normalizedActiveTab === 'explore' ? (
-        <section className={styles.content}>
-          {person}
-          {canonicalChart ? <NatalHighlights key={`big-three:${reportSubjectKey}`} chart={canonicalChart} part="big-three" /> : null}
-          {canonicalChart ? <h2 className={styles.readingHeading}>Рассказ о тебе</h2> : null}
-          <div className={styles.mode} role="group" aria-label="Как читать обзор">{(['story','topics'] as const).map(mode => <button type="button" key={mode} aria-pressed={overviewMode === mode} onClick={() => {setOverviewMode(mode); if (mode === 'story') selectTab('foundation');}}>{mode === 'story' ? 'Рассказ' : 'По темам'}</button>)}</div>
-          <NatalUnifiedReport
-            key={`unified:${reportSubjectKey}`}
-            profile={profile}
-            chartData={data}
-            chartId={chartId}
-            mode={overviewMode}
-            isPremium={isPremium}
-            savedPerson={isSavedPerson}
-            canPromotePremium={canPromotePremium}
-            requestPremium={requestPremium}
-          />
-          {/* The big three open the overview, the story follows, the chart's highlights close it. */}
-          {canonicalChart ? <NatalHighlights key={`moments:${reportSubjectKey}`} chart={canonicalChart} part="moments" /> : null}
-        </section>
-      ) : null}
-
-      {normalizedActiveTab === 'ask' ? (
-        <section className={styles.content}>
-          {person}
-          {isSavedPerson ? <section className={styles.state}><h2>Вопросы по своей карте</h2><p>Сейчас «Спросить о себе» работает только с твоей основной картой. Для вопросов выбери её через аватар в шапке.</p></section> :
+      {isSavedPerson ? null : (
+        <section id="natal-ask" className={styles.content}>
           <div className={styles.premiumQuestions}><NatalQuestionExperience
             key={reportSubjectKey}
             profile={profile}
@@ -289,8 +274,22 @@ export function NatalMagazine({
             requestPremium={requestPremium}
             premiumContinuation={premiumContinuation}
             onPremiumContinuationHandled={onPremiumContinuationHandled}
-          /></div>}
+          /></div>
         </section>
+      )}
+
+      {canonicalChart ? (
+        <section className={styles.content}>
+          <h2 className={styles.readingHeading}>Карта в цифрах</h2>
+          <NatalProfileTab key={`profile:${reportSubjectKey}`} chart={canonicalChart} />
+        </section>
+      ) : null}
+
+      {onOpenEncyclopedia ? (
+        <button type="button" className="nebo-row-link" onClick={onOpenEncyclopedia}>
+          <span>Справочник: планеты, знаки, дома, аспекты и точки</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
       ) : null}
 
     </div>

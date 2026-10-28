@@ -7,6 +7,7 @@ import { toDateInputValue } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { useScreenBack } from '../../lib/useScreenBack';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { MyChartHeader } from '../../components/nebo/MyChartHeader';
 import { EditorialProfileButton } from '../../components/editorial/EditorialScreenChrome';
 import { ACTION_FEEDBACK, showActionFeedback } from '../../components/lumia-ui/ActionFeedback';
 import styles from './MatrixRoom.module.css';
@@ -14,7 +15,7 @@ import scrollStyles from './MatrixRoomScrollFix.module.css';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import { PremiumHook } from '../../components/premium/PremiumHook';
 
-type Props = { profile: UserProfile; onBack: () => void; onOpenProfile?: () => void; onOpenCharts?: () => void; embedded?: boolean; onRequestPremium?: () => void };
+type Props = { profile: UserProfile; onBack: () => void; onOpenProfile?: () => void; onOpenCharts?: () => void; embedded?: boolean; onRequestPremium?: () => void; onOpenNatal?: () => void };
 
 /** Free: the diagram, every number, the character theme. NEBO Premium: money, love, life stages and the full reading. */
 const PREMIUM_THEMES = new Set<Theme>(['money', 'love', 'age']);
@@ -48,7 +49,7 @@ function Diagram({ points, selected, onSelect }: { points: Point[]; selected: st
   </div>;
 }
 
-export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false, onRequestPremium }: Props) {
+export function MatrixRoom({ profile, onBack, embedded = false, onRequestPremium, onOpenNatal }: Props) {
   const locked = Boolean(onRequestPremium) && !hasActivePremium(profile);
   const requestPremium = () => { lumiaSelectionHaptic(); onRequestPremium?.(); };
   const ru = profile.language !== 'en';
@@ -94,7 +95,7 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false, o
   useScreenBack(internal, goHome);
 
   if (!result || !selected || !themes) return <div className={`${embedded ? '' : 'fresh-page '} ${styles.page}`}>
-    {!embedded && <AppTopBar title={MATRIX_TITLE[lang]} onBack={onBack} rightAction={<EditorialProfileButton label={ru ? 'Открыть мои карты' : 'Open my charts'} onClick={onOpenProfile} />} />}
+    {!embedded && <><AppTopBar title={MATRIX_TITLE[lang]} /><MyChartHeader title={MATRIX_TITLE[lang]} active="matrix" onOpen={(segment) => { if (segment === 'natal') onOpenNatal?.(); }} /></>}
     <main className={`${styles.content} ${scrollStyles.content}`}><h1>{MATRIX_TITLE[lang]}</h1><p className={styles.subhead}>{MATRIX_SUBTITLE[lang]}</p><label className={styles.dateField}>{ru ? 'Дата рождения' : 'Birth date'}<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label><button type="button" className={styles.primary} disabled={!date} onClick={calculate}>{ru ? 'Рассчитать матрицу' : 'Calculate matrix'}</button></main>
   </div>;
 
@@ -118,7 +119,9 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false, o
   ];
 
   return <div className={`${embedded ? '' : 'fresh-page '} ${styles.page}`}>
-    {!embedded && <AppTopBar title={title} onBack={internal ? goHome : onBack} rightAction={<EditorialProfileButton label={ru ? 'Открыть мои карты' : 'Open my charts'} onClick={onOpenProfile} />} />}
+    {!embedded && (internal
+      ? <AppTopBar title={title} onBack={goHome} />
+      : <><AppTopBar title={title} /><MyChartHeader title={MATRIX_TITLE[lang]} active="matrix" onOpen={(segment) => { if (segment === 'natal') onOpenNatal?.(); }} /></>)}
     <main className={`${styles.content} ${scrollStyles.content}`}>
       {screen.kind === 'home' && <>
         <p className={styles.dateLine}>{ru ? 'Дата рождения' : 'Birth date'} <strong>{date.split('-').reverse().join('.')}</strong></p>
