@@ -315,3 +315,54 @@
 .nebo-retro-more p + p {
   margin-top: 8px;
 }
+
+/* Home sections in the canvas style: one heading size, solid light-gray cards, small uppercase labels. */
+.lumia-app-shell .home-screen .today-explore-heading {
+  margin: 28px 20px 10px;
+  color: #0b0d12;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  text-transform: none;
+}
+
+.lumia-app-shell .home-screen .about-you-card,
+.lumia-app-shell .home-screen .for-you-card,
+.lumia-app-shell .home-screen .people-block-card,
+.lumia-app-shell .home-screen .daily-question {
+  border: 0;
+  border-radius: 24px;
+  background-color: #f4f5f8;
+  box-shadow: none;
+}
+
+.lumia-app-shell .home-screen .future-invite,
+.lumia-app-shell .home-screen .season-card {
+  border-radius: 24px;
+}
+
+.lumia-app-shell .home-screen .about-you-kicker,
+.lumia-app-shell .home-screen .daily-question-kicker,
+.lumia-app-shell .home-screen .future-invite-kicker,
+.lumia-app-shell .home-screen .season-kicker,
+.lumia-app-shell .home-screen .for-you-feature-kicker {
+  color: #9aa0ae;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.lumia-app-shell .home-screen .about-you-title,
+.lumia-app-shell .home-screen .for-you-title {
+  color: #0b0d12;
+  font-weight: 700;
+}
+
+/* Explanations are plain dark text, not gray (canvas rule). */
+.lumia-app-shell .home-screen .about-you-text,
+.lumia-app-shell .home-screen .about-you-why,
+.lumia-app-shell .home-screen .people-fact {
+  color: #0b0d12;
+}
