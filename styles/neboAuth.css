@@ -44,3 +44,81 @@
 .nebo-auth-mark.is-vk { border-radius: 8px; background: #ffffff; color: #0077ff; font-size: 11px; letter-spacing: -0.02em; }
 .nebo-auth-guest { height: 44px; border: 0; background: none; color: #4f46e5; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
 .nebo-auth-terms { margin: 0 10px; color: #8a8f9c; font-size: 12px; line-height: 1.45; text-align: center; }
+
+/* Entry (canvas Entry / EntryFull / EntryNoTime) */
+.meou-onboarding[data-onboarding-screen="birth"], .meou-onboarding[data-onboarding-screen="calculating"] { background: #ffffff; font-family: Onest, "Segoe UI", system-ui, sans-serif; color: #0b0d12; }
+.meou-onboarding[data-onboarding-screen="birth"] .meou-onboarding-shell { width: min(100%, 30rem); padding: max(var(--meou-safe-top), 8px) 10px max(var(--meou-safe-bottom), 10px); }
+.nebo-entry-bar { display: flex; align-items: center; gap: 9px; height: 52px; padding: 0 8px; }
+.nebo-entry-bar img { border-radius: 9px; box-shadow: 0 4px 12px rgba(10, 30, 90, 0.25); }
+.nebo-entry-bar strong { font-size: 16px; font-weight: 600; letter-spacing: 0.04em; }
+.nebo-entry { display: flex; flex: 1; flex-direction: column; }
+.nebo-entry-head { display: flex; flex-direction: column; gap: 8px; padding: 0 14px; }
+.nebo-entry-head h1 { margin: 0; font-size: 30px; line-height: 1.08; font-weight: 600; letter-spacing: -0.03em; }
+.nebo-entry-head p { margin: 0; font-size: 15px; line-height: 1.45; opacity: 0.88; }
+.nebo-entry-sign { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 16px 0 6px; }
+.nebo-entry-sign-art { width: 92px; height: 92px; object-fit: contain; animation: nbEntryBob 6s ease-in-out infinite; }
+.nebo-entry-sign span { display: flex; flex-direction: column; gap: 2px; }
+.nebo-entry-sign strong { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
+.nebo-entry-sign small { font-size: 13px; opacity: 0.85; }
+@keyframes nbEntryBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.nebo-entry-card { display: flex; flex-direction: column; gap: 12px; margin-top: auto; padding: 14px 16px 16px; border-radius: 34px; background: rgba(255, 255, 255, 0.86); border: 1px solid rgba(255, 255, 255, 0.9); box-shadow: 0 -8px 40px rgba(10, 30, 90, 0.18); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%); }
+.nebo-wheel { position: relative; display: grid; grid-template-columns: 0.75fr 1.5fr 1fr; gap: 4px; height: 190px; }
+.nebo-wheel-band { position: absolute; left: 0; right: 0; top: 50%; height: 38px; margin-top: -19px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); pointer-events: none; }
+.nebo-wheel-col { position: relative; height: 190px; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; overscroll-behavior: contain; -webkit-mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent); mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent); }
+.nebo-wheel-col::-webkit-scrollbar { display: none; }
+.nebo-wheel-pad { height: 76px; }
+.nebo-wheel-item { display: block; width: 100%; height: 38px; border: 0; padding: 0; background: none; color: #0b0d12; font: inherit; font-size: 17px; scroll-snap-align: center; cursor: pointer; }
+.nebo-wheel-item.is-d0 { font-size: 20px; font-weight: 700; }
+.nebo-wheel-item.is-d1 { opacity: 0.55; }
+.nebo-wheel-item.is-d2, .nebo-wheel-item.is-d3 { opacity: 0.3; }
+.nebo-entry-more { display: flex; align-items: center; gap: 12px; padding: 10px 2px 0; border-top: 1px solid rgba(118, 118, 128, 0.2); }
+.nebo-entry-more svg { flex: none; }
+.nebo-entry-more span { display: flex; flex: 1; flex-direction: column; gap: 1px; }
+.nebo-entry-more strong { font-size: 15px; font-weight: 600; }
+.nebo-entry-more small { color: #5c6170; font-size: 13px; line-height: 1.35; }
+.nebo-entry-row { display: grid; grid-template-columns: 0.7fr 1.8fr; gap: 8px; }
+.nebo-entry-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; color: #5c6170; font-size: 12px; font-weight: 600; }
+.nebo-entry-field input { box-sizing: border-box; width: 100%; min-width: 0; height: 44px; padding: 0 12px; border-radius: 12px; border: 0; background: rgba(118, 118, 128, 0.12); color: #0b0d12; font: inherit; font-size: 16px; font-weight: 400; }
+.nebo-entry-field input:disabled { opacity: 0.45; }
+.nebo-entry-check { display: flex; align-items: center; gap: 10px; color: #0b0d12; font-size: 14px; }
+.nebo-entry-check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: #5b5bf7; }
+.nebo-entry-note { margin: -4px 0 0 30px; color: #5c6170; font-size: 12.5px; line-height: 1.4; }
+.nebo-entry-proof { display: flex; align-items: center; gap: 8px; margin: 0; color: #5c6170; font-size: 12.5px; line-height: 1.4; }
+.nebo-entry-error { margin: 0; padding: 10px 12px; border-radius: 12px; background: #fff3f2; color: #b42318; font-size: 13.5px; line-height: 1.4; }
+.nebo-entry-cta { position: relative; height: 56px; border: 0; border-radius: 28px; background: linear-gradient(180deg, #1c2160 0%, #10133d 100%); box-shadow: 0 12px 28px -12px rgba(16, 19, 61, 0.7); color: #ffffff; font: inherit; font-size: 17px; font-weight: 600; cursor: pointer; }
+.nebo-entry-cta:disabled { opacity: 0.7; }
+.nebo-entry-foot { margin: 0; color: #8a8f9c; font-size: 12px; text-align: center; }
+
+/* Calc (canvas Calc): orbits with planets, the sign in the middle, steps and a bar */
+.nebo-calc { display: flex; flex-direction: column; align-items: center; padding: 40px 24px; text-align: center; }
+.nebo-calc-orbit { position: relative; width: 330px; max-width: 86vw; aspect-ratio: 1; margin-bottom: 28px; }
+.nebo-calc-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(118, 118, 128, 0.25); }
+.nebo-calc-ring.is-1 { inset: 0; }
+.nebo-calc-ring.is-2 { inset: 13%; }
+.nebo-calc-ring.is-3 { inset: 25%; background: radial-gradient(circle, rgba(91, 91, 247, 0.07), rgba(91, 91, 247, 0) 70%); }
+.nebo-calc-sign { position: absolute; left: 30%; top: 30%; width: 40%; height: 40%; object-fit: contain; }
+.nebo-calc-planet { position: absolute; left: 50%; top: 50%; border-radius: 50%; }
+.nebo-calc-planet.is-1 { width: 24px; height: 24px; margin: -12px; background: radial-gradient(circle at 35% 30%, #e6e6e6, #6e6e6e); animation: nbCalcOrbit1 9s linear infinite; }
+.nebo-calc-planet.is-2 { width: 26px; height: 26px; margin: -13px; background: radial-gradient(circle at 35% 30%, #f6e7c8, #c9a66b); animation: nbCalcOrbit2 13s linear infinite; }
+.nebo-calc-planet.is-3 { width: 22px; height: 22px; margin: -11px; background: radial-gradient(circle at 35% 30%, #f0a385, #a2462b); animation: nbCalcOrbit3 11s linear infinite; }
+.nebo-calc-planet.is-4 { width: 22px; height: 22px; margin: -11px; background: radial-gradient(circle at 35% 30%, #f3e2b8, #b89a5f); box-shadow: 0 0 0 3px rgba(212, 190, 140, 0.45); animation: nbCalcOrbit4 17s linear infinite; }
+@keyframes nbCalcOrbit1 { from { transform: rotate(0deg) translateX(165px) rotate(0deg); } to { transform: rotate(360deg) translateX(165px) rotate(-360deg); } }
+@keyframes nbCalcOrbit2 { from { transform: rotate(60deg) translateX(122px) rotate(-60deg); } to { transform: rotate(420deg) translateX(122px) rotate(-420deg); } }
+@keyframes nbCalcOrbit3 { from { transform: rotate(140deg) translateX(122px) rotate(-140deg); } to { transform: rotate(500deg) translateX(122px) rotate(-500deg); } }
+@keyframes nbCalcOrbit4 { from { transform: rotate(250deg) translateX(165px) rotate(-250deg); } to { transform: rotate(610deg) translateX(165px) rotate(-610deg); } }
+@media (max-width: 380px) { .nebo-calc-planet { display: none; } }
+.nebo-calc h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-calc-sub { margin: 6px 0 18px; color: #6b7080; font-size: 14px; }
+.nebo-calc-steps { display: flex; flex-direction: column; gap: 14px; align-self: stretch; max-width: 280px; margin: 0 auto 18px; padding: 0; list-style: none; text-align: left; }
+.nebo-calc-steps li { display: flex; align-items: center; gap: 12px; font-size: 15.5px; }
+.nebo-calc-steps li i { position: relative; display: inline-flex; width: 26px; height: 26px; flex: none; align-items: center; justify-content: center; border-radius: 50%; box-sizing: border-box; }
+.nebo-calc-steps li.is-done i { background: #34c759; }
+.nebo-calc-steps li.is-done i::after { content: ""; width: 9px; height: 5px; margin-top: -3px; border-left: 2.2px solid #fff; border-bottom: 2.2px solid #fff; transform: rotate(-45deg); }
+.nebo-calc-steps li.is-active { font-weight: 600; }
+.nebo-calc-steps li.is-active i { border: 2px solid rgba(91, 91, 247, 0.25); border-left-color: #5b5bf7; animation: nbCalcSpin 0.9s linear infinite; }
+.nebo-calc-steps li.is-wait { color: #9a9eab; }
+.nebo-calc-steps li.is-wait i::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #c4c7d0; }
+@keyframes nbCalcSpin { to { transform: rotate(360deg); } }
+.nebo-calc-bar { width: 100%; max-width: 280px; height: 6px; overflow: hidden; border-radius: 3px; background: rgba(118, 118, 128, 0.14); }
+.nebo-calc-bar span { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #1c2160, #5b5bf7); transition: width 0.6s ease; }
+.nebo-calc-note { margin: 14px 0 0; max-width: 300px; color: #8a8f9c; font-size: 12.5px; line-height: 1.45; }

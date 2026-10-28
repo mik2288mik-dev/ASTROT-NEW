@@ -46,7 +46,6 @@ describe('onboarding viewport contract', () => {
 
   it('associates the shared validation alert with only the invalid field', () => {
     expect(onboarding).toContain("aria-describedby={errorField === 'name' ? 'onboarding-error' : undefined}");
-    expect(onboarding).toContain("aria-describedby={errorField === 'date' ? 'onboarding-error' : undefined}");
     expect(onboarding).toContain("aria-describedby={errorField === 'time' ? 'onboarding-error' : undefined}");
     expect(onboarding).toContain("ariaDescribedBy={errorField === 'place' ? 'onboarding-error' : undefined}");
     expect(onboarding).toContain('id="onboarding-error"');
