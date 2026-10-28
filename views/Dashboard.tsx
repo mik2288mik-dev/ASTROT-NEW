@@ -495,7 +495,7 @@ export const Dashboard = memo<DashboardProps>(({
     if (requestedPeriod === 'week') onPeriodChange?.('month');
   }, [onPeriodChange, requestedPeriod]);
 
-  // «Будущее» opens with both NEBO Premium readings: the week one loads next to the month.
+  // «Будущее» opens with both NEBO Plus readings: the week one loads next to the month.
   const weekGifted = !premium && giftStatus?.weekGift?.periodKey === periodKeys.week;
   useEffect(() => {
     if (activePeriod === 'month' && (premium || weekGifted)) loadPeriod('week');

@@ -43,7 +43,7 @@ type TestsRoomProps = {
   onOpenNatal?: () => void;
   /** «Неделя настроения» lives next to the tests. */
   onOpenMood?: () => void;
-  /** Opens NEBO Premium for the locked tests. */
+  /** Opens NEBO Plus for the locked tests. */
   onRequestPremium?: () => void;
 };
 
@@ -263,7 +263,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
                 <small>{test.subtitle[language]}</small>
                 <span className="tests-card-meta">
                   {isLocked(test)
-                    ? (ru ? 'С NEBO Premium · все тесты и разбор' : 'With NEBO Premium · every test')
+                    ? (ru ? 'С NEBO Plus · все тесты и разбор' : 'With NEBO Plus · every test')
                     : progress
                     ? (ru ? `Продолжить · вопрос ${progress.answers.length + 1} из ${test.questions.length}` : `Continue · question ${progress.answers.length + 1} of ${test.questions.length}`)
                     : last

@@ -9,7 +9,7 @@ interface PremiumPreviewProps {
 
 const COPY = {
   ru: {
-    title: 'NEBO Premium',
+    title: 'NEBO Plus',
     tagline: 'Полный доступ к личным разделам.',
     subtitle: 'Подписка открывает то, что уже есть в NEBO: личные прогнозы, карту и совместимость по данным рождения.',
     close: 'Закрыть',
@@ -33,7 +33,7 @@ const COPY = {
     ],
   },
   en: {
-    title: 'NEBO Premium',
+    title: 'NEBO Plus',
     tagline: 'Full access to personal sections.',
     subtitle: 'A subscription opens what already exists in NEBO: personal forecasts, chart readings, and birth-data compatibility.',
     close: 'Close',

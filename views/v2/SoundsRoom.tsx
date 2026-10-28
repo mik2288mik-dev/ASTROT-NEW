@@ -246,7 +246,7 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
                   <span className="sounds-row-copy">
                     <strong>{story.title[language]}</strong>
                     <small>{story.teaser[language]}</small>
-                    <em>{`${duration} · ${story.voiceLabel[language]}${'kind' in story && story.kind === 'calm' ? (ru ? ' · днём' : ' · daytime') : ''}${locked ? ' · NEBO Premium' : ''}`}</em>
+                    <em>{`${duration} · ${story.voiceLabel[language]}${'kind' in story && story.kind === 'calm' ? (ru ? ' · днём' : ' · daytime') : ''}${locked ? ' · NEBO Plus' : ''}`}</em>
                   </span>
                 </button>
                 {phase === 'error' ? <p className="listen-forecast-error" role="alert">{ru ? 'Голос пока не готов. Попробуй ещё раз через минуту.' : 'The voice is not ready yet. Try again in a minute.'}</p> : null}

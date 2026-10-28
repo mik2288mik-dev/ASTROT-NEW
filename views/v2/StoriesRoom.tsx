@@ -110,21 +110,21 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
           <div className="stories-gate">
             <Gift size={22} aria-hidden="true" />
             <h2>{ru ? 'Серия дня, бесплатно' : 'Today’s free episode'}</h2>
-            <p>{ru ? 'Одну серию этого сериала в день можно открыть бесплатно. С NEBO Premium, все серии сразу.' : 'One episode of this series a day opens for free. With NEBO Premium, every episode at once.'}</p>
+            <p>{ru ? 'Одну серию этого сериала в день можно открыть бесплатно. С NEBO Plus, все серии сразу.' : 'One episode of this series a day opens for free. With NEBO Plus, every episode at once.'}</p>
             <button type="button" className="stories-primary" onClick={() => { void open(screen.seriesId, screen.number, true); }}>{ru ? 'Открыть бесплатно' : 'Open for free'}</button>
-            {onRequestPremium ? <button type="button" className="stories-secondary" onClick={onRequestPremium}>{ru ? 'Все серии в NEBO Premium' : 'All episodes in NEBO Premium'}</button> : null}
+            {onRequestPremium ? <button type="button" className="stories-secondary" onClick={onRequestPremium}>{ru ? 'Все серии в NEBO Plus' : 'All episodes in NEBO Plus'}</button> : null}
           </div>
         ) : null}
         {episodeState === 'locked' ? (
           <div className="stories-gate">
             <Lock size={22} aria-hidden="true" />
             <h2>{!isFreeStorySeries(screen.seriesId)
-              ? (ru ? 'Этот сериал в NEBO Premium' : 'This series is in NEBO Premium')
+              ? (ru ? 'Этот сериал в NEBO Plus' : 'This series is in NEBO Plus')
               : (ru ? 'Сегодняшняя бесплатная серия уже открыта' : 'Today’s free episode is already open')}</h2>
             <p>{!isFreeStorySeries(screen.seriesId)
-              ? (ru ? 'Бесплатно открыт «Тихий переулок». С NEBO Premium все сериалы, все серии сразу, новый рассказ каждый месяц.' : 'The Quiet Lane is free. With NEBO Premium: every series, every episode at once, a new story each month.')
-              : (ru ? 'Завтра откроется следующая. Или читай все серии сразу с NEBO Premium.' : 'The next one opens tomorrow. Or read them all with NEBO Premium.')}</p>
-            {onRequestPremium ? <button type="button" className="stories-primary" onClick={onRequestPremium}>{ru ? 'Открыть все в NEBO Premium' : 'Open all in NEBO Premium'}</button> : null}
+              ? (ru ? 'Бесплатно открыт «Тихий переулок». С NEBO Plus все сериалы, все серии сразу, новый рассказ каждый месяц.' : 'The Quiet Lane is free. With NEBO Plus: every series, every episode at once, a new story each month.')
+              : (ru ? 'Завтра откроется следующая. Или читай все серии сразу с NEBO Plus.' : 'The next one opens tomorrow. Or read them all with NEBO Plus.')}</p>
+            {onRequestPremium ? <button type="button" className="stories-primary" onClick={onRequestPremium}>{ru ? 'Открыть все в NEBO Plus' : 'Open all in NEBO Plus'}</button> : null}
           </div>
         ) : null}
         {episode ? (
@@ -209,8 +209,8 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
         <VideoBackground id="stories-catalog" />
         <h1>{ru ? 'Сериалы на каждый день' : 'A series for every day'}</h1>
         <p>{ru
-          ? `Тихий переулок открыт всем: ${FREE_STORY_EPISODES} серии сразу, дальше по серии в день. Остальные сериалы и все серии сразу с NEBO Premium. Каждый месяц добавляем новый рассказ.`
-          : `The Quiet Lane is free for everyone: ${FREE_STORY_EPISODES} episodes at once, then one a day. The other series, every episode at once come with NEBO Premium. A new story is added every month.`}</p>
+          ? `Тихий переулок открыт всем: ${FREE_STORY_EPISODES} серии сразу, дальше по серии в день. Остальные сериалы и все серии сразу с NEBO Plus. Каждый месяц добавляем новый рассказ.`
+          : `The Quiet Lane is free for everyone: ${FREE_STORY_EPISODES} episodes at once, then one a day. The other series, every episode at once come with NEBO Plus. A new story is added every month.`}</p>
       </section>
       {error ? (
         <div className="stories-status">
@@ -234,7 +234,7 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
                   <span>{series.tagline}</span>
                   <em>
                     {!overview.premium && !isFreeStorySeries(series.id)
-                      ? (ru ? 'Сериал в NEBO Premium' : 'A NEBO Premium series')
+                      ? (ru ? 'Сериал в NEBO Plus' : 'A NEBO Plus series')
                       : latest
                       ? (latest.releaseDate === overview.today ? (ru ? `Новая серия ${latest.number} вышла сегодня` : `New episode ${latest.number} today`) : (ru ? `${series.episodes.length} серий` : `${series.episodes.length} episodes`))
                       : (ru ? 'Скоро первая серия' : 'First episode soon')}
