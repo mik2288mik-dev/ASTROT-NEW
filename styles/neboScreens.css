@@ -1360,3 +1360,25 @@
 .nebo-oracle-night-slots i img { width: 100%; height: 100%; border-radius: 10px; object-fit: cover; }
 .nebo-oracle-night-slots b { font-size: 13.5px; font-weight: 600; }
 .nebo-oracle-night-left { min-height: 20px; margin: 20px 0 0; color: rgba(255, 255, 255, 0.75); font-size: 14px; }
+
+/* Ornament lines around every section title (canvas) */
+.nebo-page-title h1 { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.nebo-page-title h1::before, .nebo-page-title h1::after { content: ""; width: 36px; height: 1px; flex: none; background: linear-gradient(90deg, transparent, #8a8f9c); }
+.nebo-page-title h1::after { background: linear-gradient(90deg, #8a8f9c, transparent); }
+
+/* Signs showcase (canvas Signs): the sign in the middle, neighbours at the sides, dots */
+.nebo-sign-stage { position: relative; display: grid; grid-template-columns: 1fr 2.2fr 1fr; align-items: center; margin: 6px 0 0; padding: 0; text-align: center; }
+.nebo-sign-center { grid-column: 2; display: flex; justify-content: center; touch-action: pan-y; }
+.nebo-sign-center::before { content: ""; position: absolute; left: 50%; top: 10px; width: 220px; height: 220px; margin-left: -110px; border-radius: 50%; background: radial-gradient(circle, rgba(91, 91, 247, 0.1), rgba(91, 91, 247, 0) 70%); z-index: -1; }
+.nebo-sign-center-art { width: 200px; height: 200px; object-fit: contain; animation: nbSignIn 0.45s cubic-bezier(.34, 1.56, .64, 1) both; }
+@keyframes nbSignIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
+.nebo-sign-side { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: #9aa0ae; font: inherit; font-size: 12px; opacity: 0.6; cursor: pointer; }
+.nebo-sign-side.is-prev { grid-column: 1; grid-row: 1; transform: translateX(-30%); }
+.nebo-sign-side.is-next { grid-column: 3; grid-row: 1; transform: translateX(30%); }
+.nebo-sign-side-art { width: 90px; height: 90px; object-fit: contain; filter: grayscale(0.2); }
+.nebo-sign-name { grid-column: 1 / -1; justify-self: center; margin-top: 6px; }
+.nebo-sign-name span { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-sign-stage .horo-reader-sign-range { grid-column: 1 / -1; margin: 2px 0 0; }
+.nebo-sign-dots { grid-column: 1 / -1; display: flex; justify-content: center; gap: 5px; margin-top: 10px; }
+.nebo-sign-dots i { width: 6px; height: 6px; border-radius: 3px; background: rgba(118, 118, 128, 0.25); }
+.nebo-sign-dots i.is-on { width: 16px; background: #5b5bf7; }
