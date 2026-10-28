@@ -27,6 +27,7 @@ import {
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
 import { FreshTabs } from '../../components/fresh-ui';
+import { ChineseHoroscope } from './ChineseHoroscope';
 import { ZodiacIllustration, zodiacIllustrationUrl } from '../../components/icons/ZodiacArt';
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
@@ -98,6 +99,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   const language = profile.language === 'en' ? 'en' : 'ru';
   const [today, setToday] = useState(() => getMoscowTodayKey());
   const [period, setPeriod] = useState<Period>('today');
+  const [horoMode, setHoroMode] = useState<'zodiac' | 'chinese'>('zodiac');
   const reduceMotion = useReducedMotion();
   const readingAnchorRef = useRef<HTMLDivElement | null>(null);
   const pendingReadingScrollRef = useRef<ZodiacKey | null>(null);
@@ -294,6 +296,15 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
 
       {preparationNotice}
 
+      {!onboarding ? (
+        <div className="nebo-cn-modes" role="tablist" aria-label={language === 'ru' ? 'Вид гороскопа' : 'Horoscope kind'}>
+          {([['zodiac', language === 'ru' ? 'Зодиак' : 'Zodiac'], ['chinese', language === 'ru' ? 'Китайский' : 'Chinese']] as const).map(([key, label]) => (
+            <button key={key} type="button" role="tab" aria-selected={horoMode === key} className={horoMode === key ? 'is-active' : ''} onClick={() => setHoroMode(key)}>{label}</button>
+          ))}
+        </div>
+      ) : null}
+
+      {horoMode === 'chinese' && !onboarding ? <ChineseHoroscope birthDate={profile.birthDate} /> : <>
       <header className="horo-reader-heading">
         <button
           type="button"
@@ -411,6 +422,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
           </div>
         </section>
       ) : null}
+      </>}
 
       {!onboarding ? <LzSignPickerSheet
         open={signPickerOpen}
