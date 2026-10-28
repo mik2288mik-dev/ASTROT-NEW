@@ -1383,6 +1383,7 @@ export type ViewState =
   | 'numbers'
   | 'tarot'
   | 'runes'
+  | 'moon'
   | 'settings'
   | 'charts'
   | 'tests'

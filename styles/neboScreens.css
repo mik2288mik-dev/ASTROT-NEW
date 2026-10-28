@@ -1184,3 +1184,59 @@
 .nebo-cn-pair-and { color: #8a94a6; font-size: 18px !important; }
 .nebo-cn-pair strong { display: inline-block; margin: 10px 0 6px; padding: 4px 12px; border-radius: 999px; background: #e6ecff; font-size: 13px; }
 .nebo-cn-note { margin: 4px 6px 0; color: #5c6170; font-size: 12.5px; line-height: 1.5; }
+
+/* Лунные календари */
+.nebo-rest-card--moon { grid-column: 1 / -1; min-height: 150px; background: linear-gradient(160deg, #fff3d0 0%, #ffe4a6 100%); }
+.nebo-rest-card--moon::before { content: ''; position: absolute; top: 18px; right: 22px; width: 84px; height: 84px; border-radius: 50%; background: #ffffff; box-shadow: inset -26px 0 0 0 #f5b94a; }
+.nebo-moon { padding-bottom: 28px; }
+.nebo-moon-note { margin: 8px 16px; color: #5c6170; font-size: 14px; }
+.nebo-moon-hero { display: flex; flex-direction: column; gap: 3px; margin: 0 16px 12px; padding: 16px; border-radius: 22px; background: linear-gradient(160deg, #fff3d0 0%, #ffe4a6 100%); color: #0b0d12; }
+.nebo-moon-hero strong { font-size: 22px; font-weight: 700; }
+.nebo-moon-hero span { font-size: 14.5px; line-height: 1.4; }
+.nebo-moon-retro { color: #a2331b; font-weight: 600; }
+.nebo-moon-cats { display: flex; gap: 8px; margin: 0 16px; padding: 2px 0 8px; overflow-x: auto; scrollbar-width: none; }
+.nebo-moon-cats::-webkit-scrollbar { display: none; }
+.nebo-moon-cats button { display: inline-flex; flex: none; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: rgba(118, 118, 128, 0.12); color: #0b0d12; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-moon-cats button.is-active { background: #0b0d12; color: #fff; }
+.nebo-moon-cats small { padding: 2px 6px; border-radius: 999px; background: linear-gradient(90deg, #ffe29a, #f5b94a); color: #4a2c00; font-size: 11px; font-weight: 700; }
+.nebo-moon-sub { margin: 0 16px 10px; color: #5c6170; font-size: 14px; }
+.nebo-moon-card { margin: 0 16px 12px; padding: 16px; border-radius: 22px; background: #fff; }
+.nebo-moon-card h2 { margin: 0 0 8px; color: #0b0d12; font-size: 19px; font-weight: 700; }
+.nebo-moon-card h3 { margin: 14px 0 8px; color: #0b0d12; font-size: 16px; font-weight: 700; }
+.nebo-moon-row { display: flex; width: 100%; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 12px 0; border: 0; border-top: 1px solid rgba(118, 118, 128, 0.18); background: none; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; }
+.nebo-moon-row:first-of-type { border-top: 0; }
+.nebo-moon-row-copy { display: flex; flex-direction: column; gap: 2px; }
+.nebo-moon-row-copy strong { font-size: 15.5px; font-weight: 600; }
+.nebo-moon-row-copy small { color: #5c6170; font-size: 13px; }
+.nebo-moon-row-copy em { margin-top: 2px; color: #0b0d12; font-size: 14px; font-style: normal; line-height: 1.4; }
+.nebo-moon-pill { flex: none; padding: 5px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+.is-good.nebo-moon-pill, .nebo-moon-legend .is-good { background: rgba(34, 197, 94, 0.18); color: #11793a; }
+.is-ok.nebo-moon-pill, .nebo-moon-legend .is-ok { background: rgba(245, 158, 11, 0.2); color: #8a5300; }
+.is-bad.nebo-moon-pill, .nebo-moon-legend .is-bad { background: rgba(249, 115, 22, 0.16); color: #a3410a; }
+.nebo-moon-more { margin-top: 4px; padding: 8px 0; border: 0; background: none; color: #5b5bf7; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-moon-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.nebo-moon-chips button { padding: 6px 11px; border: 0; border-radius: 999px; background: rgba(118, 118, 128, 0.12); color: #0b0d12; font: inherit; font-size: 13px; cursor: pointer; }
+.nebo-moon-chips button.is-active { background: #0b0d12; color: #fff; }
+.nebo-moon-months { display: flex; padding: 3px; margin-bottom: 10px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); }
+.nebo-moon-months button { flex: 1; min-height: 32px; border: 0; border-radius: 10px; background: none; color: #5c6170; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-moon-months button.is-active { background: #fff; color: #0b0d12; box-shadow: 0 1px 4px rgba(11, 13, 18, 0.12); }
+.nebo-moon-grid-wrap { position: relative; }
+.nebo-moon-grid-wrap.is-locked .nebo-moon-grid { filter: blur(5px); }
+.nebo-moon-weekdays, .nebo-moon-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.nebo-moon-weekdays { margin-bottom: 5px; color: #8a8f9c; font-size: 11.5px; text-align: center; }
+.nebo-moon-cell { aspect-ratio: 1; border: 2px solid transparent; border-radius: 12px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-moon-cell.is-good { background: rgba(34, 197, 94, 0.22); color: #11793a; }
+.nebo-moon-cell.is-ok { background: rgba(245, 158, 11, 0.22); color: #8a5300; }
+.nebo-moon-cell.is-bad { background: rgba(249, 115, 22, 0.16); color: #a3410a; }
+.nebo-moon-cell.is-today { border-color: #0b0d12; }
+.nebo-moon-cell.is-picked { box-shadow: 0 0 0 2px #5b5bf7; }
+.nebo-moon-unlock { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 12px 18px; border: 0; border-radius: 999px; background: linear-gradient(90deg, #ffe29a, #f5b94a); color: #4a2c00; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.nebo-moon-legend { display: flex; gap: 6px; margin-top: 10px; }
+.nebo-moon-legend span { padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.nebo-moon-pick { margin-top: 12px; padding: 12px; border-radius: 16px; background: #f4f5f8; }
+.nebo-moon-pick strong { display: block; font-size: 15.5px; }
+.nebo-moon-pick p { margin: 4px 0; font-size: 14.5px; line-height: 1.45; }
+.nebo-moon-pick small { color: #5c6170; font-size: 13px; }
+.nebo-moon-best-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.nebo-moon-best-list button { padding: 7px 12px; border: 0; border-radius: 999px; background: rgba(34, 197, 94, 0.18); color: #11793a; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-moon-foot { margin: 6px 22px 0; color: #5c6170; font-size: 12.5px; line-height: 1.5; }

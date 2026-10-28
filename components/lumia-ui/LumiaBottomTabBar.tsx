@@ -43,6 +43,7 @@ export const LUMIA_BOTTOM_NAV_VIEWS: readonly ViewState[] = [
   'numbers',
   'tarot',
   'runes',
+  'moon',
   'personality',
   'settings',
   'charts',
@@ -140,7 +141,7 @@ const NEBO_TABS: readonly NeboTab[] = [
   { id: 'zodiac', label: 'Гороскоп', labelEn: 'Signs', fr: 0.84, views: ['horoscope'], icon: 'M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.5l-5.1 2.7 1-5.7-4.1-4 5.7-.8z' },
   { id: 'natal', label: 'Моя карта', labelEn: 'My chart', fr: 1.08, views: ['chart', 'matrix', 'numbers', 'tarot', 'runes', 'personality', 'encyclopedia'], icon: 'M12 3.5a8.5 8.5 0 1 1 0 17a8.5 8.5 0 1 1 0-17zM12 7.8a4.2 4.2 0 1 1 0 8.4a4.2 4.2 0 1 1 0-8.4zM12 3.5v4.3M12 16.2v4.3M3.5 12h4.3M16.2 12h4.3' },
   { id: 'compatibility', label: 'Совместимость', labelEn: 'Compatibility', fr: 1.42, views: ['synastry'], icon: 'M9 6.5a5.5 5.5 0 1 1 0 11a5.5 5.5 0 1 1 0-11zM15 6.5a5.5 5.5 0 1 1 0 11a5.5 5.5 0 1 1 0-11z' },
-  { id: 'rest', label: 'Отдых', labelEn: 'Unwind', fr: 0.86, views: ['services', 'tests', 'mood', 'sounds', 'antistress', 'stories'], icon: 'M4 14.5v-2.5a8 8 0 0 1 16 0v2.5M3.5 14.5h4v5.5h-4zM16.5 14.5h4v5.5h-4z' },
+  { id: 'rest', label: 'Отдых', labelEn: 'Unwind', fr: 0.86, views: ['services', 'moon', 'tests', 'mood', 'sounds', 'antistress', 'stories'], icon: 'M4 14.5v-2.5a8 8 0 0 1 16 0v2.5M3.5 14.5h4v5.5h-4zM16.5 14.5h4v5.5h-4z' },
 ];
 const NEBO_TAB_FR_SUM = NEBO_TABS.reduce((sum, tab) => sum + tab.fr, 0);
 const BAR_HEIGHT = 64;

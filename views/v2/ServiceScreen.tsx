@@ -18,6 +18,7 @@ export type ServiceScreenProps = {
   onOpenTests: () => void;
   onOpenSounds: () => void;
   onOpenStories: () => void;
+  onOpenMoon?: () => void;
   premiumStoreContent: React.ReactNode;
   initialTab?: ServiceTab;
   activeTab?: ServiceTab;
@@ -54,6 +55,7 @@ export function ServiceScreen({
   onOpenTests,
   onOpenSounds,
   onOpenStories,
+  onOpenMoon,
   premiumStoreContent,
   profile,
 }: ServiceScreenProps) {
@@ -118,6 +120,14 @@ export function ServiceScreen({
                 </span>
               </button>
             ))}
+            {onOpenMoon ? (
+              <button type="button" className="nebo-rest-card nebo-rest-card--moon" onClick={onOpenMoon}>
+                <span className="nebo-rest-card-copy">
+                  <strong>{ru ? 'Лунные календари' : 'Moon calendars'}</strong>
+                  <span>{ru ? 'Сад, стрижка, здоровье, дела и дом по фазам Луны' : 'Garden, haircut, health, plans and home by moon phase'}</span>
+                </span>
+              </button>
+            ) : null}
           </div>
         </>
       ) : (

@@ -160,6 +160,7 @@ const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
 const NumerologyRoom = dynamic(() => import('./views/v2/NumerologyRoom').then((module) => module.NumerologyRoom), { ssr: false });
+const MoonRoom = dynamic(() => import('./views/v2/MoonRoom').then((module) => module.MoonRoom), { ssr: false });
 const TarotRoom = dynamic(() => import('./views/v2/OracleRoom').then((module) => module.TarotRoom), { ssr: false });
 const RunesRoom = dynamic(() => import('./views/v2/OracleRoom').then((module) => module.RunesRoom), { ssr: false });
 const AstrologyEncyclopedia = dynamic(
@@ -2792,6 +2793,14 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onRequestPremium={premiumPromotionAllowed ? () => { void requestPremium('stories', { placement: 'stories', featureKey: 'story_series', triggerType: 'locked_feature', returnView: 'stories' }); } : undefined}
                         />
                     </div>
+                ) : view === 'moon' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        <MoonRoom
+                            profile={profile}
+                            onBack={() => { void handleBack(); }}
+                            onRequestPremium={() => { void requestPremium('esoterica', { placement: 'today', featureKey: 'personal_daily_full', triggerType: 'locked_feature', returnView: 'moon' }); }}
+                        />
+                    </div>
                 ) : view === 'mood' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <MoodWeekRoom profile={profile} onBack={() => { void handleBack(); }} />
@@ -2920,6 +2929,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onOpenSounds={() => navigateTo('sounds')}
                             onOpenAntistress={() => navigateTo('antistress')}
                             onOpenStories={() => navigateTo('stories')}
+                            onOpenMoon={() => navigateTo('moon')}
                             premiumStoreContent={(
                                 <Paywall
                                     embedded

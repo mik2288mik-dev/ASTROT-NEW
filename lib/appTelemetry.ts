@@ -8,11 +8,11 @@ export type TraceType = typeof TRACE_TYPES[number];
 export type AppTraceEvent = { id: string; sequence: number; at: number; type: TraceType; screen: string;
   payload: Record<string, string | number | boolean> };
 export const TRACE_SCREENS = ['startup', 'auth', 'legal', 'onboarding', 'dashboard', 'chart', 'personality',
-  'horoscope', 'synastry', 'services', 'encyclopedia', 'matrix', 'numbers', 'tarot', 'runes', 'settings', 'charts', 'tests', 'mood',
+  'horoscope', 'synastry', 'services', 'encyclopedia', 'matrix', 'numbers', 'tarot', 'runes', 'moon', 'settings', 'charts', 'tests', 'mood',
   'sounds', 'antistress', 'stories', 'paywall'];
 export const TRACE_SCREEN_LABELS: Record<string, string> = { startup: 'Запуск', auth: 'Вход', legal: 'Согласие', onboarding: 'Первое знакомство',
   dashboard: 'Сегодня', chart: 'Натальная карта', personality: 'Профиль карты', horoscope: 'Гороскоп', synastry: 'Совместимость',
-  services: 'Сервисы', encyclopedia: 'Энциклопедия', matrix: 'Матрица судьбы', numbers: 'Числа', tarot: 'Таро', runes: 'Руны', settings: 'Настройки', charts: 'Сохранённые карты',
+  services: 'Сервисы', encyclopedia: 'Энциклопедия', matrix: 'Матрица судьбы', numbers: 'Числа', tarot: 'Таро', runes: 'Руны', moon: 'Лунные календари', settings: 'Настройки', charts: 'Сохранённые карты',
   tests: 'Тесты', mood: 'Настроение', sounds: 'Звуки', antistress: 'Антистресс', stories: 'Рассказы', paywall: 'Предложение Premium' };
 export const TRACE_LABELS: Record<TraceType, string> = { visit_started: 'Открыл приложение', screen_view: 'Открыл экран', screen_progress: 'Время на экране',
   identity_ready: 'Гостевой или обычный вход готов',
