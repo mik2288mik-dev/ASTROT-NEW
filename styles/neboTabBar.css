@@ -1,0 +1,158 @@
+/* NEBO tab bar: a floating Liquid Glass capsule with a white drop under the current tab (as on the canvas). */
+
+.lumia-app-shell.has-today-bottom-navigation {
+  --today-bottom-nav-height: 82px;
+  /* Content ends 30px above the bar, never hidden behind it. */
+  --lumia-bottom-tab-clearance: calc(82px + var(--lumia-bottom-tab-safe-bottom) + 30px);
+}
+
+.nebo-tabbar-shell.lumia-bottom-tab-shell {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 80;
+  display: block;
+  padding: 0 16px calc(18px + var(--lumia-bottom-tab-safe-bottom));
+  background: transparent;
+}
+
+.nebo-tabbar-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.nebo-tabbar {
+  --nebo-tab-fg: #5c6170;
+  --nebo-tab-fg-on: #0b0d12;
+  --nebo-tab-tint: rgba(255, 255, 255, 0.55);
+  --nebo-tab-drop: rgba(255, 255, 255, 0.55);
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 40rem;
+  height: 64px;
+  margin: 0 auto;
+  border-radius: 32px;
+  isolation: isolate;
+  touch-action: pan-y;
+  box-shadow: 0 12px 30px rgba(11, 13, 18, 0.14), 0 1px 3px rgba(11, 13, 18, 0.06);
+}
+
+.nebo-tabbar-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 32px;
+  background: var(--nebo-tab-tint);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.5),
+    inset 1px 0 1px rgba(255, 255, 255, 0.35),
+    inset -1px 0 1px rgba(255, 255, 255, 0.35),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.6);
+  -webkit-backdrop-filter: blur(14px) saturate(185%);
+  backdrop-filter: url(#nebo-lq-bar) blur(3px) saturate(185%) brightness(1.04);
+}
+
+.nebo-tabbar-drop {
+  position: absolute;
+  top: 4px;
+  height: 56px;
+  pointer-events: none;
+  transition:
+    left 0.55s cubic-bezier(0.3, 1.3, 0.5, 1),
+    width 0.55s cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+
+.nebo-tabbar-drop-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  background: var(--nebo-tab-drop);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 -1px 2px rgba(255, 255, 255, 0.35),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.55),
+    0 4px 14px rgba(11, 13, 18, 0.1);
+  -webkit-backdrop-filter: saturate(160%);
+  backdrop-filter: url(#nebo-lq-drop) saturate(160%) brightness(1.06);
+  transition: transform 0.55s cubic-bezier(0.3, 1.3, 0.5, 1), background 0.3s ease, box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.nebo-tabbar-drop-glass.is-dragging {
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 2px rgba(255, 255, 255, 0.5),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.7),
+    0 8px 22px rgba(11, 13, 18, 0.18);
+  transition: transform 0.28s cubic-bezier(0.3, 1.4, 0.5, 1), background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.nebo-tabbar-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 0.84fr 1.08fr 1.42fr 0.86fr;
+  align-items: center;
+  height: 100%;
+  padding: 0 5px;
+}
+
+.nebo-tabbar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  height: 54px;
+  margin: 0 1px;
+  padding: 0;
+  border: 0;
+  border-radius: 27px;
+  background: transparent;
+  color: var(--nebo-tab-fg);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.35s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nebo-tabbar-item[aria-current='page'] {
+  color: var(--nebo-tab-fg-on);
+}
+
+.nebo-tabbar-item:focus-visible {
+  outline: 2px solid #1f6bff;
+  outline-offset: -2px;
+}
+
+/* Over dark content (the bar samples what is under it) the ink turns white. */
+html[data-nav-ink='light'] .nebo-tabbar {
+  --nebo-tab-fg: rgba(255, 255, 255, 0.72);
+  --nebo-tab-fg-on: #ffffff;
+  --nebo-tab-tint: rgba(255, 255, 255, 0.12);
+  --nebo-tab-drop: rgba(255, 255, 255, 0.22);
+}
+
+html.dark .nebo-tabbar,
+[data-theme='dark'] .nebo-tabbar {
+  --nebo-tab-fg: rgba(235, 235, 245, 0.64);
+  --nebo-tab-fg-on: #ffffff;
+  --nebo-tab-tint: rgba(28, 30, 38, 0.45);
+  --nebo-tab-drop: rgba(255, 255, 255, 0.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nebo-tabbar-drop,
+  .nebo-tabbar-drop-glass {
+    transition: none;
+  }
+}

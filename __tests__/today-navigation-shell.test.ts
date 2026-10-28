@@ -5,7 +5,7 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('Today minimal navigation shell', () => {
-  it('mounts one five-button bottom navigation with a Menu hamburger', () => {
+  it('mounts one five-tab Liquid Glass navigation: Сегодня, Гороскоп, Моя карта, Совместимость, Отдых', () => {
     const app = read('App.tsx');
     const navigation = read('components/lumia-ui/LumiaBottomTabBar.tsx');
 
@@ -13,20 +13,14 @@ describe('Today minimal navigation shell', () => {
     expect(app.match(/<LumiaBottomTabBar/g)).toHaveLength(1);
     expect(app).not.toContain('useNeboDesign');
     expect(app).toContain('shouldShowLumiaBottomNavigation(view)');
-    expect(navigation).toContain('data-nav-id="personal"');
-    expect(navigation).toContain('data-nav-id="zodiac"');
-    expect(navigation).toContain('data-nav-id="compatibility"');
-    expect(navigation).toContain('today-bottom-nav-hub');
-    expect(navigation).toContain('today-bottom-nav-services');
-    expect(navigation).toContain('<Menu aria-hidden="true" strokeWidth={1.25} />');
-    expect(navigation).not.toContain('MoreHorizontal');
-    expect(navigation).toContain("'matrix'");
+    expect(navigation).toContain('className="nebo-tabbar pointer-events-auto"');
+    expect(navigation).toContain('data-nav-id={tab.id}');
+    ["id: 'today'", "id: 'zodiac'", "id: 'natal'", "id: 'compatibility'", "id: 'rest'"]
+      .forEach((id) => expect(navigation).toContain(id));
+    ["'Сегодня'", "'Гороскоп'", "'Моя карта'", "'Совместимость'", "'Отдых'"]
+      .forEach((label) => expect(navigation).toContain(`label: ${label}`));
+    expect(navigation).toContain("aria-current={current ? 'page' : undefined}");
     expect(navigation).toContain("'encyclopedia'");
-    expect(navigation).toContain("'charts'");
-    expect(navigation).toContain("aria-current={natalIsCurrent ? 'page' : undefined}");
-    expect(navigation).toContain("aria-current={servicesAreCurrent ? 'page' : undefined}");
-    ['Сегодня', 'Гороскоп', 'Натальная карта', 'Совместимость', 'Меню']
-      .forEach((label) => expect(navigation).toContain(`>${label}</span>`));
   });
 
   it('opens Matrix from Menu and moves settings into the header', () => {
@@ -68,8 +62,8 @@ describe('Today minimal navigation shell', () => {
     const styles = read('styles/todayHome.css');
 
     expect(navigation).not.toContain("from 'framer-motion'");
-    expect(navigation).toContain('onClick={() => runNavigationAction(onOpenServices)}');
-    expect(navigation).toContain('data-nav-id="services"');
+    expect(navigation).toContain('rest: onOpenServices,');
+    expect(navigation).toContain('onClick={() => runNavigationAction(actions[tab.id])}');
     expect(navigation).not.toContain('aria-haspopup="menu"');
     expect(navigation).not.toContain('role="menu"');
     expect(navigation).not.toContain('today-services-dismiss-layer');

@@ -2349,8 +2349,10 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     const openProfileSheet = useCallback(() => {
         setNavigationSheet('profile');
     }, []);
+    // «Отдых» opens the calm part of the services: sounds first, then stories, tests and anti-stress.
     const openNavigationServices = useCallback(() => {
         setNavigationSheet(null);
+        setServiceTab('sounds');
         navigateTo('services');
     }, [navigateTo]);
     const openNavigationCompatibility = useCallback(() => {

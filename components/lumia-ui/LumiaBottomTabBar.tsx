@@ -1,18 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronRight,
-  Menu,
-  MoonStar,
   Orbit,
   Star,
   UserRound,
-  Users,
   type LucideIcon,
 } from 'lucide-react';
 import type { UserProfile, ViewState } from '../../types';
 import { formatDisplayDate } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { CosmicSheet } from './CosmicSheet';
+import { LIQUID_GLASS_SCALES, liquidGlassMap } from './neboLiquidGlass';
 
 export type LumiaNavigationSheetId = 'profile';
 
@@ -61,54 +59,6 @@ export function shouldShowLumiaBottomNavigation(view: ViewState): boolean {
 function runNavigationAction(action: () => void) {
   lumiaSelectionHaptic();
   action();
-}
-
-function NatalChartMark() {
-  return (
-    <svg
-      className="today-bottom-nav-hub-chart"
-      viewBox="0 0 48 48"
-      fill="none"
-      aria-hidden="true"
-    >
-      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="24" cy="24" r="18.5" strokeWidth="0.78" opacity="0.88" />
-        <circle cx="24" cy="24" r="13.35" strokeWidth="0.62" opacity="0.72" />
-        <circle cx="24" cy="24" r="6.8" strokeWidth="0.55" opacity="0.46" />
-        <g strokeWidth="0.62" opacity="0.7">
-          <line x1="24" y1="5.5" x2="24" y2="10.65" />
-          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(30 24 24)" />
-          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(60 24 24)" />
-          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(90 24 24)" />
-          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(120 24 24)" />
-          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(150 24 24)" />
-          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(180 24 24)" />
-          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(210 24 24)" />
-          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(240 24 24)" />
-          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(270 24 24)" />
-          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(300 24 24)" />
-          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(330 24 24)" />
-        </g>
-        <g strokeWidth="0.66" opacity="0.72">
-          <path d="M12.1 24 35.4 20.1" strokeDasharray="1.3 1.25" />
-          <path d="M14.2 24.7 30.4 33.2" />
-          <path d="M17.1 14.5 28.4 34.2" />
-        </g>
-        <g strokeWidth="0.64" opacity="0.82">
-          <circle cx="32" cy="14.8" r="2.05" />
-          <circle cx="34.2" cy="23.4" r="1.55" />
-          <circle cx="21.8" cy="33.7" r="1.75" />
-          <circle cx="15.4" cy="29.5" r="1.3" />
-        </g>
-        <g fill="currentColor" stroke="none" opacity="0.72">
-          <circle cx="32" cy="14.8" r="0.45" />
-          <circle cx="34.2" cy="23.4" r="0.38" />
-          <circle cx="21.8" cy="33.7" r="0.4" />
-          <circle cx="15.4" cy="29.5" r="0.35" />
-        </g>
-      </g>
-    </svg>
-  );
 }
 
 const parseRgb = (value: string): [number, number, number, number] | null => {
@@ -171,6 +121,28 @@ function useAdaptiveNavigationInk(active: boolean) {
   }, [active]);
 }
 
+type NeboTab = {
+  id: 'today' | 'zodiac' | 'natal' | 'compatibility' | 'rest';
+  label: string;
+  labelEn: string;
+  icon: string;
+  /** Relative width, as in the canvas: long labels get a wider cell. */
+  fr: number;
+  views: readonly ViewState[];
+};
+
+// Icon paths and cell widths come straight from the NEBO canvas tab bar.
+const NEBO_TABS: readonly NeboTab[] = [
+  { id: 'today', label: 'Сегодня', labelEn: 'Today', fr: 1, views: ['dashboard'], icon: 'M12 8.2a3.8 3.8 0 1 1 0 7.6a3.8 3.8 0 1 1 0-7.6zM12 2.8v2M12 19.2v2M2.8 12h2M19.2 12h2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M5.5 18.5l1.4-1.4M17.1 6.9l1.4-1.4' },
+  { id: 'zodiac', label: 'Гороскоп', labelEn: 'Signs', fr: 0.84, views: ['horoscope'], icon: 'M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.5l-5.1 2.7 1-5.7-4.1-4 5.7-.8z' },
+  { id: 'natal', label: 'Моя карта', labelEn: 'My chart', fr: 1.08, views: ['chart', 'matrix', 'personality', 'encyclopedia'], icon: 'M12 3.5a8.5 8.5 0 1 1 0 17a8.5 8.5 0 1 1 0-17zM12 7.8a4.2 4.2 0 1 1 0 8.4a4.2 4.2 0 1 1 0-8.4zM12 3.5v4.3M12 16.2v4.3M3.5 12h4.3M16.2 12h4.3' },
+  { id: 'compatibility', label: 'Совместимость', labelEn: 'Compatibility', fr: 1.42, views: ['synastry'], icon: 'M9 6.5a5.5 5.5 0 1 1 0 11a5.5 5.5 0 1 1 0-11zM15 6.5a5.5 5.5 0 1 1 0 11a5.5 5.5 0 1 1 0-11z' },
+  { id: 'rest', label: 'Отдых', labelEn: 'Unwind', fr: 0.86, views: ['services', 'tests', 'mood', 'sounds', 'antistress', 'stories'], icon: 'M4 14.5v-2.5a8 8 0 0 1 16 0v2.5M3.5 14.5h4v5.5h-4zM16.5 14.5h4v5.5h-4z' },
+];
+const NEBO_TAB_FR_SUM = NEBO_TABS.reduce((sum, tab) => sum + tab.fr, 0);
+const BAR_HEIGHT = 64;
+const DROP_SIZE = { w: 76, h: 56, r: 28, e: 12 };
+
 export function LumiaBottomTabBar({
   profile,
   view,
@@ -182,77 +154,141 @@ export function LumiaBottomTabBar({
 }: LumiaBottomTabBarProps) {
   const visible = shouldShowLumiaBottomNavigation(view);
   useAdaptiveNavigationInk(visible);
+  const navRef = useRef<HTMLElement | null>(null);
+  const dragRef = useRef<{ x: number; drag: boolean; base: number; w: number; tx: number } | null>(null);
+  const [barWidth, setBarWidth] = useState(358);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!visible || !nav || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => setBarWidth(Math.round(nav.offsetWidth) || 358));
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [visible]);
+
+  const maps = useMemo(() => ({
+    bar: liquidGlassMap({ w: barWidth, h: BAR_HEIGHT, r: 32, e: 9 }),
+    drop: liquidGlassMap(DROP_SIZE),
+  }), [barWidth]);
+
   if (!visible) return null;
   const isEnglish = profile.language === 'en';
-  const natalIsCurrent = NATAL_VIEWS.includes(view);
-  const servicesAreCurrent = SERVICE_VIEWS.includes(view);
+  const actions: Record<NeboTab['id'], () => void> = {
+    today: onOpenToday,
+    zodiac: onOpenZodiac,
+    natal: onOpenNatal,
+    compatibility: onOpenCompatibility,
+    rest: onOpenServices,
+  };
+  const activeIndex = NEBO_TABS.findIndex((tab) => tab.views.includes(view));
+  const before = NEBO_TABS.slice(0, Math.max(0, activeIndex)).reduce((sum, tab) => sum + tab.fr, 0);
+  const dropStyle = activeIndex < 0 ? { display: 'none' } : {
+    left: `calc(6px + (100% - 10px) * ${(before / NEBO_TAB_FR_SUM).toFixed(4)})`,
+    width: `calc((100% - 10px) * ${(NEBO_TABS[activeIndex].fr / NEBO_TAB_FR_SUM).toFixed(4)} - 2px)`,
+  };
+
+  // Drag the drop along the bar like on iOS; letting go picks the nearest tab.
+  const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    dragRef.current = { x: event.clientX, drag: false, base: 0, w: 0, tx: 0 };
+  };
+  const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    const nav = navRef.current;
+    const state = dragRef.current;
+    const drop = nav?.querySelector<HTMLElement>('.nebo-tabbar-drop');
+    const glass = nav?.querySelector<HTMLElement>('.nebo-tabbar-drop-glass');
+    if (!nav || !state || !drop || !glass || activeIndex < 0) return;
+    if (!state.drag) {
+      if (Math.abs(event.clientX - state.x) < 6) return;
+      state.drag = true;
+      state.base = drop.offsetLeft;
+      state.w = drop.offsetWidth;
+      try { nav.setPointerCapture(event.pointerId); } catch { /* not capturable */ }
+      glass.classList.add('is-dragging');
+    }
+    const box = nav.getBoundingClientRect();
+    const left = Math.max(2, Math.min(nav.offsetWidth - state.w - 2, event.clientX - box.left - state.w / 2));
+    state.tx = left - state.base;
+    glass.style.transform = `translateX(${state.tx}px) scale(1.16, 1.12)`;
+  };
+  const onPointerUp = () => {
+    const nav = navRef.current;
+    const state = dragRef.current;
+    dragRef.current = null;
+    if (!nav || !state?.drag) return;
+    const glass = nav.querySelector<HTMLElement>('.nebo-tabbar-drop-glass');
+    const buttons = Array.from(nav.querySelectorAll<HTMLButtonElement>('.nebo-tabbar-item'));
+    if (!glass || !buttons.length) return;
+    const middle = state.base + state.tx + state.w / 2;
+    let pick = 0;
+    let best = Number.POSITIVE_INFINITY;
+    buttons.forEach((button, index) => {
+      const distance = Math.abs(button.offsetLeft + button.offsetWidth / 2 - middle);
+      if (distance < best) { best = distance; pick = index; }
+    });
+    glass.classList.remove('is-dragging');
+    glass.style.transform = `translateX(${buttons[pick].offsetLeft - state.base}px) scale(1.04, 1.02)`;
+    window.setTimeout(() => {
+      runNavigationAction(actions[NEBO_TABS[pick].id]);
+      glass.style.transform = '';
+    }, 330);
+  };
 
   return (
-    <div className="lumia-bottom-tab-shell today-bottom-navigation pointer-events-none">
+    <div className="lumia-bottom-tab-shell nebo-tabbar-shell pointer-events-none">
+      <svg className="nebo-tabbar-filters" width="0" height="0" aria-hidden="true">
+        <defs>
+          {(['bar', 'drop'] as const).map((kind) => {
+            const size = kind === 'bar' ? { w: barWidth, h: BAR_HEIGHT } : DROP_SIZE;
+            const [red, green, blue] = LIQUID_GLASS_SCALES[kind];
+            return (
+              <filter key={kind} id={`nebo-lq-${kind}`} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+                <feImage href={maps[kind]} x="0" y="0" width={size.w} height={size.h} preserveAspectRatio="none" result="map" />
+                <feDisplacementMap in="SourceGraphic" in2="map" scale={red} xChannelSelector="R" yChannelSelector="B" result="d0" />
+                <feColorMatrix in="d0" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="c0" />
+                <feDisplacementMap in="SourceGraphic" in2="map" scale={green} xChannelSelector="R" yChannelSelector="B" result="d1" />
+                <feColorMatrix in="d1" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="c1" />
+                <feDisplacementMap in="SourceGraphic" in2="map" scale={blue} xChannelSelector="R" yChannelSelector="B" result="d2" />
+                <feColorMatrix in="d2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="c2" />
+                <feBlend in="c0" in2="c1" mode="screen" result="c01" />
+                <feBlend in="c01" in2="c2" mode="screen" />
+              </filter>
+            );
+          })}
+        </defs>
+      </svg>
       <nav
-        className="lumia-bottom-tab-bar today-bottom-nav-bar pointer-events-auto"
+        ref={navRef}
+        className="nebo-tabbar pointer-events-auto"
         aria-label={isEnglish ? 'Primary navigation' : 'Основная навигация'}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
-        <button
-          type="button"
-          className="today-bottom-nav-action"
-          data-nav-id="personal"
-          aria-label={isEnglish ? 'Personal horoscope' : 'Личный гороскоп'}
-          aria-current={view === 'dashboard' ? 'page' : undefined}
-          onClick={() => runNavigationAction(onOpenToday)}
-        >
-          <Star aria-hidden="true" strokeWidth={1.25} />
-          <span className="today-bottom-nav-label" aria-hidden="true">Сегодня</span>
-        </button>
-        <button
-          type="button"
-          className="today-bottom-nav-action"
-          data-nav-id="zodiac"
-          aria-label={isEnglish ? 'Horoscope by sign' : 'Гороскоп по знакам'}
-          aria-current={view === 'horoscope' ? 'page' : undefined}
-          onClick={() => runNavigationAction(onOpenZodiac)}
-        >
-          <MoonStar aria-hidden="true" strokeWidth={1.25} />
-          <span className="today-bottom-nav-label" aria-hidden="true">Гороскоп</span>
-        </button>
-
-        <div className="today-bottom-nav-hub-wrap">
-          <button
-            type="button"
-            className="today-bottom-nav-hub"
-            aria-label={isEnglish ? 'Natal chart' : 'Натальная карта'}
-            aria-current={natalIsCurrent ? 'page' : undefined}
-            onClick={() => runNavigationAction(onOpenNatal)}
-          >
-            <NatalChartMark />
-          </button>
-          <span className="today-bottom-nav-label" aria-hidden="true">Натальная карта</span>
+        <span className="nebo-tabbar-glass" aria-hidden="true" />
+        <span className="nebo-tabbar-drop" style={dropStyle} aria-hidden="true">
+          <span className="nebo-tabbar-drop-glass" />
+        </span>
+        <div className="nebo-tabbar-row">
+          {NEBO_TABS.map((tab) => {
+            const current = activeIndex >= 0 && NEBO_TABS[activeIndex].id === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className="nebo-tabbar-item"
+                data-nav-id={tab.id}
+                aria-current={current ? 'page' : undefined}
+                onClick={() => runNavigationAction(actions[tab.id])}
+              >
+                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d={tab.icon} />
+                </svg>
+                <span>{isEnglish ? tab.labelEn : tab.label}</span>
+              </button>
+            );
+          })}
         </div>
-
-        <button
-          type="button"
-          className="today-bottom-nav-action"
-          data-nav-id="compatibility"
-          aria-label={isEnglish ? 'Compatibility' : 'Совместимость'}
-          aria-current={view === 'synastry' ? 'page' : undefined}
-          onClick={() => runNavigationAction(onOpenCompatibility)}
-        >
-          <Users aria-hidden="true" strokeWidth={1.25} />
-          <span className="today-bottom-nav-label" aria-hidden="true">Совместимость</span>
-        </button>
-
-        <button
-          id="today-services-trigger"
-          type="button"
-          className="today-bottom-nav-services"
-          data-nav-id="services"
-          aria-label={isEnglish ? 'Services' : 'Сервисы'}
-          aria-current={servicesAreCurrent ? 'page' : undefined}
-          onClick={() => runNavigationAction(onOpenServices)}
-        >
-          <Menu aria-hidden="true" strokeWidth={1.25} />
-          <span className="today-bottom-nav-label" aria-hidden="true">Меню</span>
-        </button>
       </nav>
     </div>
   );
