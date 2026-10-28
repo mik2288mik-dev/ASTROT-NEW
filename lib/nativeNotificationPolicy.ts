@@ -30,7 +30,7 @@ export const NATIVE_NOTIFICATION_ROUTES: readonly NativeNotificationRoute[] = ['
 /** «Неделя настроения»: seven days from startDayKey, two reminders at the chosen times. */
 export type NativeMoodWeek = { startDayKey: string; reminderTimes: [string, string] };
 export const DEFAULT_NATIVE_NOTIFICATION_SETTINGS: NativeNotificationSettings = {
-  enabled: false, mode: 'daily', quietStart: '22:00', quietEnd: '09:00',
+  enabled: true, mode: 'daily', quietStart: '22:00', quietEnd: '09:00',
 };
 /** Сколько дней вперёд планируем. Нативная сторона принимает до 16 суток. */
 export const NATIVE_PLAN_DAYS = 14;
@@ -51,7 +51,8 @@ export function notificationTimeMinutes(value: unknown): number | null {
 export function normalizeNativeNotificationSettings(value: unknown): NativeNotificationSettings {
   const input = value && typeof value === 'object' ? value as Partial<NativeNotificationSettings> : {};
   return {
-    enabled: input.enabled === true,
+    // On by default: only an explicit switch-off in settings stops them. Android still asks for its permission.
+    enabled: input.enabled !== false,
     mode: input.mode === 'important' ? 'important' : 'daily',
     quietStart: notificationTimeMinutes(input.quietStart) !== null ? input.quietStart! : '22:00',
     quietEnd: notificationTimeMinutes(input.quietEnd) !== null ? input.quietEnd! : '09:00',
