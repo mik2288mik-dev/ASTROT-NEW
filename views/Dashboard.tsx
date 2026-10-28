@@ -34,7 +34,6 @@ import { TodaySkyMonitor } from '../components/PersonalForecastFeed/TodaySkyMoni
 import { FutureView } from '../components/PersonalForecastFeed/FutureView';
 import { FuturePeriodCards, type FuturePeriodCardData } from '../components/PersonalForecastFeed/FuturePeriodCards';
 import { readingOpeningLines } from '../lib/futurePeriodTeaser';
-import { HomeEntryTiles } from '../components/home/HomeEntryTiles';
 import { ForYouBlock } from '../components/home/ForYouBlock';
 import { TodayAboutYou } from '../components/home/TodayAboutYou';
 import { PeopleBlock } from '../components/home/PeopleBlock';
@@ -780,9 +779,8 @@ export const Dashboard = memo<DashboardProps>(({
     );
   };
 
-  const skyCover = Boolean(
-    forecast && activePeriod === 'day' && profile.name.trim() && profile.birthDate.trim(),
-  );
+  // The canvas «Сегодня» is a white page under a regular bar; the sky cover is retired.
+  const skyCover = false;
 
   const periodSwitch = (
   <nav
@@ -833,21 +831,6 @@ export const Dashboard = memo<DashboardProps>(({
       )}
       center={periodSwitch}
       reserveSpace={reserveSpace}
-    />
-  );
-
-  const entryTiles = (
-    <HomeEntryTiles
-      language={language}
-      tiles={[
-        { id: 'future', onOpen: () => openFuture() },
-        { id: 'compatibility', onOpen: onOpenSynastry },
-        { id: 'matrix', onOpen: onOpenMatrix },
-        { id: 'tests', onOpen: onOpenTests ? () => onOpenTests() : undefined },
-        { id: 'sounds', onOpen: onOpenSounds },
-        { id: 'stories', onOpen: onOpenStories },
-        { id: 'antistress', onOpen: onOpenAntistress },
-      ]}
     />
   );
 
@@ -948,7 +931,6 @@ export const Dashboard = memo<DashboardProps>(({
         </p>
       ) : null}
 
-      {activePeriod === 'day' && !skyCover ? entryTiles : null}
 
       <div
         id="today-period-panel"
@@ -1007,12 +989,7 @@ export const Dashboard = memo<DashboardProps>(({
           tone={forecast.meta.astrologerBrief.tone}
           personalAttribution={personalForecastAttribution}
           onRequestPremium={requestPremium}
-          afterHero={(
-            <>
-              {entryTiles}
-              <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />
-            </>
-          )}
+          afterHero={<TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />}
           footer={todayHomeSections}
         />
       ) : forecast ? (
