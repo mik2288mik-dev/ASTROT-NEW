@@ -159,6 +159,9 @@ const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then(
 const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.Paywall), { ssr: false });
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
+const NumerologyRoom = dynamic(() => import('./views/v2/NumerologyRoom').then((module) => module.NumerologyRoom), { ssr: false });
+const TarotRoom = dynamic(() => import('./views/v2/OracleRoom').then((module) => module.TarotRoom), { ssr: false });
+const RunesRoom = dynamic(() => import('./views/v2/OracleRoom').then((module) => module.RunesRoom), { ssr: false });
 const AstrologyEncyclopedia = dynamic(
     () => import('./views/v2/AstrologyEncyclopedia').then((module) => module.AstrologyEncyclopedia),
     { ssr: false },
@@ -2350,6 +2353,10 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         setNavigationSheet('profile');
     }, []);
     // «Отдых» opens the calm part of the services: sounds first, then stories, tests and anti-stress.
+    // «Моя карта» parts: Карта, Матрица, Числа, Таро, Руны.
+    const openMyChartSegment = useCallback((segment: 'natal' | 'matrix' | 'numbers' | 'tarot' | 'runes') => {
+        navigateTo(segment === 'natal' ? 'chart' : segment, { replace: true });
+    }, [navigateTo]);
     const openNavigationServices = useCallback(() => {
         setNavigationSheet(null);
         setServiceTab('sounds');
@@ -2788,13 +2795,23 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <MoodWeekRoom profile={profile} onBack={() => { void handleBack(); }} />
                     </div>
+                ) : view === 'numbers' || view === 'tarot' || view === 'runes' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        {view === 'numbers' ? (
+                            <NumerologyRoom profile={profile} onOpenSegment={openMyChartSegment} onRequestPremium={() => { void requestPremium('esoterica', { placement: 'today', featureKey: 'personal_daily_full', triggerType: 'locked_feature', returnView: 'numbers' }); }} />
+                        ) : view === 'tarot' ? (
+                            <TarotRoom profile={profile} onOpenSegment={openMyChartSegment} onRequestPremium={() => { void requestPremium('esoterica', { placement: 'today', featureKey: 'personal_daily_full', triggerType: 'locked_feature', returnView: 'tarot' }); }} />
+                        ) : (
+                            <RunesRoom profile={profile} onOpenSegment={openMyChartSegment} onRequestPremium={() => { void requestPremium('esoterica', { placement: 'today', featureKey: 'personal_daily_full', triggerType: 'locked_feature', returnView: 'runes' }); }} />
+                        )}
+                    </div>
                 ) : view === 'matrix' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <MatrixRoom
                             profile={profile}
                             onBack={() => { void handleBack(); }}
                             onOpenProfile={openProfileSheet}
-                            onOpenNatal={() => navigateTo('chart')}
+                            onOpenSegment={openMyChartSegment}
                             onRequestPremium={() => { void requestPremium('matrix', { placement: 'matrix', featureKey: 'matrix_full', triggerType: 'locked_feature' }); }}
                         />
                     </div>
@@ -2879,7 +2896,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onQuestionRequestHandled={() => setNatalQuestionRequest(0)}
                             onOpenCharts={openProfileCharts}
                             onOpenEncyclopedia={() => navigateTo('encyclopedia')}
-                            onOpenMatrix={() => navigateTo('matrix')}
+                            onOpenSegment={openMyChartSegment}
                         />
                         <PromoBanner
                             category="zodiac"

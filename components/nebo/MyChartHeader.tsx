@@ -1,7 +1,7 @@
 import React from 'react';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 
-export type MyChartSegment = 'natal' | 'matrix';
+export type MyChartSegment = 'natal' | 'matrix' | 'numbers' | 'tarot' | 'runes';
 
 type MyChartHeaderProps = {
   /** Serif title of the current part, e.g. «Натальная карта». */
@@ -18,6 +18,9 @@ type MyChartHeaderProps = {
 const SEGMENTS: ReadonlyArray<{ id: MyChartSegment; label: string }> = [
   { id: 'natal', label: 'Карта' },
   { id: 'matrix', label: 'Матрица' },
+  { id: 'numbers', label: 'Числа' },
+  { id: 'tarot', label: 'Таро' },
+  { id: 'runes', label: 'Руны' },
 ];
 
 /** «Моя карта» as on the canvas: whose chart, the serif title and the switch between its parts. */

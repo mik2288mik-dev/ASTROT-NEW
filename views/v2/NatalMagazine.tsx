@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTelemetrySection } from '../../services/useAppTelemetry';
-import { MyChartHeader } from '../../components/nebo/MyChartHeader';
+import { MyChartHeader, type MyChartSegment } from '../../components/nebo/MyChartHeader';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
 import { getZodiacSign } from '../../constants';
 import styles from '../../components/NatalReading/NatalSection.module.css';
@@ -40,8 +40,8 @@ type NatalMagazineProps = {
   onQuestionRequestHandled?: () => void;
   onOpenCharts?: () => void;
   onOpenEncyclopedia?: () => void;
-  /** «Матрица» in the «Моя карта» switch. */
-  onOpenMatrix?: () => void;
+  /** Another part of «Моя карта»: Матрица, Числа, Таро, Руны. */
+  onOpenSegment?: (segment: MyChartSegment) => void;
 };
 
 export type NatalScreenTab = 'foundation' | 'explore' | 'ask' | 'map' | 'matrix' | 'profile';
@@ -76,7 +76,7 @@ export function NatalMagazine({
   onQuestionRequestHandled,
   onOpenCharts,
   onOpenEncyclopedia,
-  onOpenMatrix,
+  onOpenSegment,
 }: NatalMagazineProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const subjectName = chartSubject ? chartSubject.name : profile.name;
@@ -163,7 +163,7 @@ export function NatalMagazine({
         title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
         subtitle={[subjectName, sunSign ? getZodiacSign(language, sunSign) : ''].filter(Boolean).join(' · ')}
         active="natal"
-        onOpen={(segment) => { if (segment === 'matrix') onOpenMatrix?.(); }}
+        onOpen={(segment) => onOpenSegment?.(segment)}
         whoseLabel={isSavedPerson ? subjectName : (language === 'ru' ? 'Моя' : 'Mine')}
         onChooseWhose={onOpenCharts}
       />
