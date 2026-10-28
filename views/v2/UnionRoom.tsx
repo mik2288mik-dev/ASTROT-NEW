@@ -1426,7 +1426,7 @@ Check our compatibility from your side in NEBO.`
       {withBack ? null : (
         <div className="nebo-page-title">
           <h1>{ru ? 'Совместимость' : 'Compatibility'}</h1>
-          <p>{ru ? 'Любые двое: пара, друзья, коллеги' : 'Any two people: couples, friends, colleagues'}</p>
+          <p>{ru ? 'Любые два человека' : 'Any two people'}</p>
         </div>
       )}
       <EditorialTabs

@@ -2,7 +2,6 @@ import { hasActivePremium } from '../../lib/accessMatrix';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTelemetrySection } from '../../services/useAppTelemetry';
 import { useReducedMotion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
 import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
@@ -99,6 +98,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   const language = profile.language === 'en' ? 'en' : 'ru';
   const [today, setToday] = useState(() => getMoscowTodayKey());
   const [period, setPeriod] = useState<Period>('today');
+  const swipeStartRef = useRef<number | null>(null);
   const [horoMode, setHoroMode] = useState<'zodiac' | 'chinese'>(() => {
     // The «Китайский гороскоп» card on Today opens this screen on the Chinese side.
     try {
@@ -314,10 +314,35 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
       ) : null}
 
       {horoMode === 'chinese' && !onboarding ? <ChineseHoroscope birthDate={profile.birthDate} /> : <>
-      <header className="horo-reader-heading">
+      <header className="horo-reader-heading nebo-sign-stage">
+        {!onboarding ? (
+          <button type="button" className="nebo-sign-side is-prev" onClick={() => chooseSign(ZODIAC_KEYS[(signIndex + 11) % 12])} aria-label={`Предыдущий знак: ${getZodiacSign(language, ZODIAC_KEYS[(signIndex + 11) % 12])}`}>
+            <ZodiacIllustration sign={ZODIAC_KEYS[(signIndex + 11) % 12] as ZodiacKey} className="nebo-sign-side-art" />
+            <span>{getZodiacSign(language, ZODIAC_KEYS[(signIndex + 11) % 12])}</span>
+          </button>
+        ) : null}
+        <div
+          className="nebo-sign-center"
+          onTouchStart={(event) => { swipeStartRef.current = event.touches[0]?.clientX ?? null; }}
+          onTouchEnd={(event) => {
+            const start = swipeStartRef.current;
+            const end = event.changedTouches[0]?.clientX;
+            swipeStartRef.current = null;
+            if (onboarding || start == null || end == null || Math.abs(start - end) < 40) return;
+            chooseSign(ZODIAC_KEYS[(signIndex + (start > end ? 1 : 11)) % 12]);
+          }}
+        >
+          <ZodiacIllustration key={sign} sign={sign} className="nebo-sign-center-art" priority />
+        </div>
+        {!onboarding ? (
+          <button type="button" className="nebo-sign-side is-next" onClick={() => chooseSign(ZODIAC_KEYS[(signIndex + 1) % 12])} aria-label={`Следующий знак: ${getZodiacSign(language, ZODIAC_KEYS[(signIndex + 1) % 12])}`}>
+            <ZodiacIllustration sign={ZODIAC_KEYS[(signIndex + 1) % 12] as ZodiacKey} className="nebo-sign-side-art" />
+            <span>{getZodiacSign(language, ZODIAC_KEYS[(signIndex + 1) % 12])}</span>
+          </button>
+        ) : null}
         <button
           type="button"
-          className="horo-reader-sign-trigger"
+          className="horo-reader-sign-trigger nebo-sign-name"
           disabled={onboarding}
           aria-haspopup={onboarding ? undefined : 'dialog'}
           aria-expanded={signPickerOpen}
@@ -327,9 +352,13 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
           }}
         >
           <span>{selectedSignLabel}</span>
-          {!onboarding ? <ChevronDown aria-hidden="true" strokeWidth={1.45} /> : null}
         </button>
-        <p className="horo-reader-sign-range">{selectedSignDateRange}</p>
+        <p className="horo-reader-sign-range">{selectedSignDateRange}{ownSign === sign.toLowerCase() ? (language === 'ru' ? ' · твой' : ' · yours') : ''}</p>
+        {!onboarding ? (
+          <span className="nebo-sign-dots" aria-hidden="true">
+            {ZODIAC_KEYS.map((key, index) => <i key={key} className={index === signIndex ? 'is-on' : ''} />)}
+          </span>
+        ) : null}
       </header>
 
       {!onboarding ? <div className="horo-reader-controls">
@@ -347,23 +376,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
           className="horo-uni horo-reader-article"
           aria-busy={!lockedPremiumPeriod && !hasReadingFailure && !displayedReading}
         >
-          <button
-            type="button"
-            className="horo-reader-symbol-stage"
-            disabled={onboarding}
-            aria-label={onboarding ? selectedSignLabel : language === 'ru' ? 'Выбрать другой знак зодиака' : 'Choose another zodiac sign'}
-            onClick={() => {
-              lumiaSelectionHaptic();
-              setSignPickerOpen(true);
-            }}
-          >
-            <ZodiacIllustration
-              sign={displayedSign}
-              className="horo-reader-selected-illustration"
-              priority
-            />
-          </button>
-
           {displayedReading && !lockedPremiumPeriod ? (
             <header className="horo-uni-hero">
               <p className="horo-reader-period-date">{displayedPeriodDate}</p>
