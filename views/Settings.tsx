@@ -1820,6 +1820,14 @@ export const Settings: React.FC<SettingsProps> = ({
                                     target="subscription"
                                     onClick={() => openSettingsScreen('subscription')}
                                 />
+                                {onRequestPremium ? (
+                                    <SettingsRow
+                                        icon={<img src="/assets/nebo-icons/plus.svg" alt="" width={34} height={34} />}
+                                        label={profile.language === 'en' ? 'Store and codes' : 'Магазин'}
+                                        value={profile.language === 'en' ? 'Gifts, codes' : 'Подарки и коды'}
+                                        onClick={() => onRequestPremium()}
+                                    />
+                                ) : null}
                             </div>
                         </section>
 

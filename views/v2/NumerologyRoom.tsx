@@ -5,6 +5,8 @@ import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { MyChartHeader, type MyChartSegment } from '../../components/nebo/MyChartHeader';
 import { useTelemetrySection } from '../../services/useAppTelemetry';
 import { hasActivePremium } from '../../lib/accessMatrix';
+import { hasEsoAccess } from '../../lib/oneTimeProducts';
+import { usePurchases } from '../../services/oneTimePurchaseService';
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
@@ -48,7 +50,8 @@ export function NumerologyRoom({ profile, onOpenSegment, onRequestPremium }: Num
   useTelemetrySection('numbers', 'overview');
   const [openCell, setOpenCell] = useState<number | null>(null);
   const birth = useMemo(() => parseBirthDate(profile.birthDate), [profile.birthDate]);
-  const plus = hasActivePremium(profile);
+  const [purchases] = usePurchases(profile.id ? String(profile.id) : undefined);
+  const plus = hasActivePremium(profile) || hasEsoAccess(purchases);
   const sign = sunSignFromDate(profile.birthDate);
   const subtitle = [profile.name?.trim(), sign ? getZodiacSign('ru', sign) : ''].filter(Boolean).join(' · ');
   const now = new Date();
@@ -196,7 +199,7 @@ export function NumerologyRoom({ profile, onOpenSegment, onRequestPremium }: Num
           <div className="nebo-numbers-lock">
             <Lock aria-hidden="true" size={18} />
             <p>
-              По буквам имени считаются число души, образа и таланта. Это открывается с NEBO Plus.
+              По буквам имени считаются число души, образа и таланта. Это открывается с NEBO Plus или с «Эзотерикой на год».
             </p>
             <button type="button" onClick={() => onRequestPremium?.()}>Открыть с Plus</button>
           </div>

@@ -5,6 +5,8 @@ import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { MyChartHeader, type MyChartSegment } from '../../components/nebo/MyChartHeader';
 import { useTelemetrySection } from '../../services/useAppTelemetry';
 import { hasActivePremium } from '../../lib/accessMatrix';
+import { hasEsoAccess } from '../../lib/oneTimeProducts';
+import { buyOneTimeProduct, canBuyOneTimeProducts, spendSpreadCredit, usePurchases } from '../../services/oneTimePurchaseService';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import {
   SPREAD_POSITIONS,
@@ -125,7 +127,10 @@ export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: O
   const [spread, setSpread] = useState<Omen[]>([]);
   const [askedQuestion, setAskedQuestion] = useState('');
   const [locked, setLocked] = useState(false);
-  const plus = hasActivePremium(profile);
+  const [buying, setBuying] = useState(false);
+  const [buyNote, setBuyNote] = useState('');
+  const [purchases] = usePurchases(profile.id ? String(profile.id) : undefined);
+  const plus = hasActivePremium(profile) || hasEsoAccess(purchases);
   const now = useMemo(() => new Date(), []);
   const week = weekKeyOf(now);
   const userId = String(profile.id || 'guest');
@@ -134,16 +139,46 @@ export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: O
     [kind, userId, now],
   );
 
-  const goHome = useCallback(() => { setStage('home'); setPicked([]); setLocked(false); }, []);
+  const goHome = useCallback(() => { setStage('home'); setPicked([]); setLocked(false); setBuyNote(''); }, []);
+
+  const openPick = () => {
+    setLocked(false);
+    setBuyNote('');
+    setPicked([]);
+    setStage('pick');
+  };
+
+  // A bought spread: spend it on the server first, so it is never used twice.
+  const openBoughtSpread = async () => {
+    if (buying) return;
+    setBuying(true);
+    const ok = await spendSpreadCredit(userId).catch(() => false);
+    setBuying(false);
+    if (ok) openPick();
+    else setBuyNote('Не получилось открыть купленный расклад. Проверь интернет и попробуй ещё раз.');
+  };
+
+  const buySpread = async () => {
+    if (buying) return;
+    setBuying(true);
+    setBuyNote('');
+    const result = await buyOneTimeProduct(userId, 'spread_one');
+    setBuying(false);
+    if (result.status === 'completed') { await openBoughtSpread(); return; }
+    if (result.status === 'pending') setBuyNote('Оплата ещё проверяется. Расклад появится здесь, как только RuStore её подтвердит.');
+    else if (result.status === 'failed' || result.status === 'unavailable') {
+      setBuyNote(result.reason === 'RECOVERY_IDENTITY_REQUIRED'
+        ? 'Чтобы покупка не потерялась, сначала привяжи вход через Яндекс, VK или почту в профиле.'
+        : 'Покупка сейчас недоступна. Попробуй позже.');
+    }
+  };
 
   const startPick = () => {
     lumiaSelectionHaptic();
     const use = readWeekUse(copy.storage, week);
     // One spread a week is free; more come with NEBO Plus.
     if (use.used >= 1 && !plus) { setLocked(true); return; }
-    setLocked(false);
-    setPicked([]);
-    setStage('pick');
+    openPick();
   };
 
   const pickSlot = (index: number) => {
@@ -299,15 +334,23 @@ export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: O
       {locked ? (
         <div className="nebo-oracle-lock" role="status">
           <Lock aria-hidden="true" size={18} />
-          <p>Один расклад в неделю бесплатный, и на этой неделе он уже твой. Новые расклады открываются с NEBO Plus.</p>
-          <button type="button" onClick={() => onRequestPremium?.()}>Открыть с Plus</button>
+          <p>Один расклад в неделю бесплатный, и на этой неделе он уже твой. Можно открыть ещё один расклад или все сразу с NEBO Plus.</p>
+          {purchases.spreadCredits > 0 ? (
+            <button type="button" onClick={() => { void openBoughtSpread(); }} disabled={buying}>
+              Открыть купленный расклад (осталось {purchases.spreadCredits})
+            </button>
+          ) : canBuyOneTimeProducts() ? (
+            <button type="button" onClick={() => { void buySpread(); }} disabled={buying}>{buying ? 'Открываем оплату…' : 'Один расклад за 99 ₽'}</button>
+          ) : null}
+          <button type="button" onClick={() => onRequestPremium?.()}>Открыть всё с Plus</button>
+          {buyNote ? <p role="alert">{buyNote}</p> : null}
         </div>
       ) : null}
 
       <button type="button" className="nebo-oracle-primary" onClick={startPick}>
         Расклад «{copy.spreadName}»
       </button>
-      <p className="nebo-oracle-note">Один расклад в неделю бесплатно. В Plus расклады без ограничений.</p>
+      <p className="nebo-oracle-note">{plus ? 'У тебя расклады без ограничений.' : 'Один расклад в неделю бесплатно. В Plus расклады без ограничений.'}</p>
     </div>
   );
 }
