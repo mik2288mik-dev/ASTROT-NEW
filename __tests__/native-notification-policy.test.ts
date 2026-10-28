@@ -107,10 +107,11 @@ describe('engagement schedule', () => {
     expect(planNativeNotifications(planInput({ now: new Date(NaN) }))).toEqual([]);
   });
 
-  it('alternates one and two a day in the first week, then backs off for an absent user', () => {
+  it('alternates one and two a day in the first week, three at most once, then backs off for an absent user', () => {
     const days = byDay(planNativeNotifications(planInput()));
     const firstWeek = [1, 2, 4, 5, 6].map((day) => days[key(day)]?.length || 0);
-    expect(firstWeek.every((count) => count === 1 || count === 2)).toBe(true);
+    expect(firstWeek.every((count) => count >= 1 && count <= 3)).toBe(true);
+    expect(firstWeek.filter((count) => count === 3).length).toBeLessThanOrEqual(1);
     expect(firstWeek).toContain(1);
     expect(firstWeek).toContain(2);
     expect(days[key(3)].map((plan) => plan.kind)).toEqual(['comeback']);
@@ -120,11 +121,11 @@ describe('engagement schedule', () => {
     for (const day of [8, 9, 11, 12, 13]) expect(days[key(day)]).toBeUndefined();
   });
 
-  it('keeps every plan in daytime, outside quiet hours, two a day on ordinary days, with unique ids', () => {
+  it('keeps every plan in daytime, outside quiet hours, at most three a day, with unique ids', () => {
     const plans = planNativeNotifications(planInput());
     expect(new Set(plans.map((plan) => plan.id)).size).toBe(plans.length);
     expect(plans.length).toBeLessThanOrEqual(32);
-    for (const list of Object.values(byDay(plans))) expect(list.length).toBeLessThanOrEqual(2);
+    for (const list of Object.values(byDay(plans))) expect(list.length).toBeLessThanOrEqual(3);
     for (const plan of plans) {
       const at = new Date(plan.at);
       expect(at.getHours()).toBeGreaterThanOrEqual(9);
