@@ -118,8 +118,8 @@ function slotTime(day: Date, preferredMinute: number, settings: NativeNotificati
 /** Три окна дня: утро, обед, вечер. Между ними больше трёх часов (нативный минимум). */
 type Window = 0 | 1 | 2;
 type Candidate = { kind: NativeNotificationKind; copy: PushCopy; window: Window; event: boolean; minute?: number };
-/** Ритм первой недели: где-то два, где-то один — чтобы не было ощущения конвейера. */
-const RHYTHM = [2, 1, 2, 2, 1, 2, 1];
+/** Ритм первой недели: где-то два, где-то один, раз в неделю три — чтобы не было ощущения конвейера. */
+const RHYTHM = [2, 1, 2, 3, 1, 2, 1];
 
 /**
  * Расписание локальных уведомлений, пересобирается при каждом заходе в приложение.
@@ -185,21 +185,23 @@ export function planNativeNotifications(input: {
     } else if (comebackDays) routine.push({ kind: 'comeback', copy: comebackCopy(lang, comebackDays, seed), window: 1, event: false });
     else if (everyday && active && offset > 0) {
       const count = RHYTHM[(offset + userSeed) % RHYTHM.length];
-      const morning = count === 2 || seed % 2 === 0;
-      const invite = count === 2 || !morning;
+      const morning = count >= 2 || seed % 2 === 0;
+      const invite = count >= 2 || !morning;
       if (morning) routine.push({ kind: 'daily', copy: morningCopy(lang, sign, weekday, seed), window: 0, event: false });
       // Кто читает сериал, вместо общего «загляни» получает «вышла новая серия» — не чаще одного в день.
       const following = typeof input.storyReadAt === 'number' && day.getTime() - input.storyReadAt < 4 * 24 * HOUR;
       if (invite) routine.push(following
         ? { kind: 'story', copy: storyCopy(lang, seed), window: 2, event: false }
-        : { kind: 'invite', copy: inviteCopy(lang, seed), window: seed % 2 === 0 ? 1 : 2, event: false });
+        : { kind: 'invite', copy: inviteCopy(lang, seed), window: count === 3 || seed % 2 === 0 ? 1 : 2, event: false });
+      // Третий в день зовёт в другой раздел: днём, если вечер занят серией, иначе вечером.
+      if (count === 3) routine.push({ kind: 'invite', copy: inviteCopy(lang, seed + 7), window: following ? 1 : 2, event: false });
     } else if (everyday && offset === 0) {
       routine.push({ kind: 'invite', copy: inviteCopy(lang, seed), window: 2, event: false });
     } else if (everyday && offset === 10) {
       routine.push({ kind: 'daily', copy: morningCopy(lang, sign, weekday, seed), window: 0, event: false });
     }
 
-    const cap = moodTimes ? (events.length ? NATIVE_MAX_PER_DAY : 2) : !active ? 1 : events.length ? NATIVE_MAX_PER_DAY : 2;
+    const cap = moodTimes ? (events.length ? NATIVE_MAX_PER_DAY : 2) : !active ? 1 : events.length ? NATIVE_MAX_PER_DAY : Math.min(NATIVE_MAX_PER_DAY, Math.max(2, routine.length));
     const taken = new Map<Window, Candidate>();
     for (const candidate of [...events, ...routine]) {
       if (taken.size >= cap) break;

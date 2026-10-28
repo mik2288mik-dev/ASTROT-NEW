@@ -111,10 +111,11 @@ describe('engagement schedule', () => {
     expect(planNativeNotifications(planInput({ now: new Date(NaN) }))).toEqual([]);
   });
 
-  it('alternates one and two a day in the first week, then backs off for an absent user', () => {
+  it('alternates one and two a day in the first week, three at most once, then backs off for an absent user', () => {
     const days = byDay(planNativeNotifications(planInput()));
     const firstWeek = [1, 2, 4, 5, 6].map((day) => days[key(day)]?.length || 0);
-    expect(firstWeek.every((count) => count === 1 || count === 2)).toBe(true);
+    expect(firstWeek.every((count) => count >= 1 && count <= 3)).toBe(true);
+    expect(firstWeek.filter((count) => count === 3).length).toBeLessThanOrEqual(1);
     expect(firstWeek).toContain(1);
     expect(firstWeek).toContain(2);
     expect(days[key(3)].map((plan) => plan.kind)).toEqual(['comeback']);
@@ -124,11 +125,11 @@ describe('engagement schedule', () => {
     for (const day of [8, 9, 11, 12, 13]) expect(days[key(day)]).toBeUndefined();
   });
 
-  it('keeps every plan in daytime, outside quiet hours, two a day on ordinary days, with unique ids', () => {
+  it('keeps every plan in daytime, outside quiet hours, at most three a day, with unique ids', () => {
     const plans = planNativeNotifications(planInput());
     expect(new Set(plans.map((plan) => plan.id)).size).toBe(plans.length);
     expect(plans.length).toBeLessThanOrEqual(32);
-    for (const list of Object.values(byDay(plans))) expect(list.length).toBeLessThanOrEqual(2);
+    for (const list of Object.values(byDay(plans))) expect(list.length).toBeLessThanOrEqual(3);
     for (const plan of plans) {
       const at = new Date(plan.at);
       expect(at.getHours()).toBeGreaterThanOrEqual(9);
@@ -208,7 +209,7 @@ describe('engagement schedule', () => {
 
   it('opens matching screens', () => {
     const plans = planNativeNotifications(planInput());
-    expect(plans.filter((plan) => plan.kind === 'daily').every((plan) => plan.route === 'horoscope')).toBe(true);
+    expect(plans.filter((plan) => plan.kind === 'daily').every((plan) => plan.route === 'today')).toBe(true);
     expect(new Set(plans.filter((plan) => plan.kind === 'invite').map((plan) => plan.route)).size).toBeGreaterThan(1);
   });
 
@@ -219,10 +220,10 @@ describe('engagement schedule', () => {
     expect(new Date(birthday[0].at).getHours()).toBe(9);
   });
 
-  it('congratulates on holidays and Valentine’s leads to compatibility', () => {
+  it('congratulates on holidays and Valentine’s leads to the own natal chart', () => {
     const plans = planNativeNotifications(planInput({ now: new Date(2026, 1, 12, 8) }));
     const valentine = plans.find((plan) => plan.dayKey === '2026-02-14');
-    expect(valentine).toMatchObject({ kind: 'holiday', route: 'compatibility' });
+    expect(valentine).toMatchObject({ kind: 'holiday', route: 'natal' });
     expect(plans.find((plan) => plan.dayKey === '2026-02-23')).toMatchObject({ kind: 'holiday' });
     expect(holidayCopy('ru', 11, 13, 5)?.title).toBe('Пятница, 13-е');
   });
