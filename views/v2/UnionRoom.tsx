@@ -56,7 +56,6 @@ import {
 } from '../../lib/synastry/compatibilityInput';
 import type { PaywallContext } from '../../lib/paywallContext';
 import {
-  EditorialChartsButton,
   EditorialTabs,
 } from '../../components/editorial/EditorialScreenChrome';
 import { getCompatibilityRingGeometry } from '../../lib/synastry/compatibilityPresentation';
@@ -1423,13 +1422,13 @@ Check our compatibility from your side in NEBO.`
       <AppTopBar
         title={ru ? 'Совместимость' : 'Compatibility'}
         onBack={withBack ? backToEntry : undefined}
-        rightAction={(
-          <EditorialChartsButton
-            label={ru ? 'Открыть мои карты' : 'Open my charts'}
-            onClick={onOpenCharts}
-          />
-        )}
       />
+      {withBack ? null : (
+        <div className="nebo-page-title">
+          <h1>{ru ? 'Совместимость' : 'Compatibility'}</h1>
+          <p>{ru ? 'Любые двое: пара, друзья, коллеги' : 'Any two people: couples, friends, colleagues'}</p>
+        </div>
+      )}
       <EditorialTabs
         label={ru ? 'Режим совместимости' : 'Compatibility mode'}
         tabs={compatibilityTabs}
