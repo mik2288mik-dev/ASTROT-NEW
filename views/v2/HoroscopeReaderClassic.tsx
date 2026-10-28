@@ -28,15 +28,12 @@ import {
 } from '../../services/astrologyService';
 import { FreshTabs } from '../../components/fresh-ui';
 import { ZodiacIllustration, zodiacIllustrationUrl } from '../../components/icons/ZodiacArt';
+import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
 import { canAccessFeature } from '../../lib/accessMatrix';
 import { LzSignPickerSheet } from '../../components/lumia-ui/v2/LzSignPickerSheet';
 import { reportClientError } from '../../services/clientErrorReport';
 import { PersonalForecastPremiumGate } from '../../components/PersonalForecastFeed/PersonalForecastPremiumGate';
-import {
-  EditorialCurve,
-  EditorialChartsButton,
-} from '../../components/editorial/EditorialScreenChrome';
 
 type Period = 'today' | 'week' | 'month';
 
@@ -284,28 +281,18 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   }, [readingSettledForScroll, scrollForecastToTop, sign]);
 
   return (
-    <div className="fresh-page horo-reader-page">
+    <div className="fresh-page horo-reader-page nebo-horo">
       <AppTopBar
         title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}
         onBack={onBack}
-        rightAction={onboarding ? undefined : (
-          <EditorialChartsButton
-            label={language === 'ru' ? 'Открыть мои карты' : 'Open my charts'}
-            onClick={onOpenCharts}
-          />
-        )}
       />
 
-      {preparationNotice}
+      <div className="nebo-page-title">
+        <h1>{language === 'ru' ? 'Знаки зодиака' : 'Zodiac signs'}</h1>
+        <p>{language === 'ru' ? 'Гороскоп на сегодня' : 'Horoscope for today'}</p>
+      </div>
 
-      {!onboarding ? <div className="horo-reader-controls">
-        <FreshTabs
-          className="horo-period-tabs"
-          tabs={periodTabs}
-          activeTab={period}
-          onTabChange={choosePeriod}
-        />
-      </div> : null}
+      {preparationNotice}
 
       <header className="horo-reader-heading">
         <button
@@ -325,7 +312,14 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
         <p className="horo-reader-sign-range">{selectedSignDateRange}</p>
       </header>
 
-      <EditorialCurve className="horo-reader-curve" />
+      {!onboarding ? <div className="horo-reader-controls">
+        <FreshTabs
+          className="horo-period-tabs"
+          tabs={periodTabs}
+          activeTab={period}
+          onTabChange={choosePeriod}
+        />
+      </div> : null}
 
       <div ref={readingAnchorRef} className="horo-uni-wrap">
         <article
@@ -397,6 +391,26 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
           </div>
         </article>
       </div>
+
+      {!onboarding ? (
+        <section className="nebo-horo-all" aria-labelledby="nebo-horo-all-title">
+          <h2 id="nebo-horo-all-title">{language === 'ru' ? 'Все знаки' : 'All signs'}</h2>
+          <div className="nebo-horo-grid">
+            {ZODIAC_KEYS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                className="nebo-horo-grid-item"
+                aria-pressed={key === sign}
+                onClick={() => chooseSign(key)}
+              >
+                <ZodiacIcon sign={key} size={30} strokeWidth={1.3} />
+                <span>{getZodiacSign(language, key)}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {!onboarding ? <LzSignPickerSheet
         open={signPickerOpen}

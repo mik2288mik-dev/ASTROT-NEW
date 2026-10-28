@@ -1,0 +1,147 @@
+/* NEBO canvas screens: shared page title and per-screen layout. */
+
+.nebo-page-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 20px 4px;
+  text-align: center;
+}
+
+.nebo-page-title h1 {
+  margin: 0;
+  color: #0b0d12;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.nebo-page-title p {
+  margin: 0;
+  color: #9aa0ae;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Гороскоп */
+.nebo-horo {
+  background: #ffffff;
+}
+
+.nebo-horo .horo-reader-heading {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.nebo-horo .horo-reader-sign-trigger {
+  color: #0b0d12;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.nebo-horo .horo-reader-sign-range {
+  color: #5c6170;
+  font-size: 14px;
+}
+
+.nebo-horo .horo-reader-controls {
+  margin: 14px 16px 0;
+}
+
+.nebo-horo .horo-period-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(118, 118, 128, 0.12);
+}
+
+.nebo-horo .horo-period-tabs button {
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #5c6170;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.nebo-horo .horo-period-tabs button[aria-selected='true'],
+.nebo-horo .horo-period-tabs button[aria-pressed='true'],
+.nebo-horo .horo-period-tabs button.is-active {
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(11, 13, 18, 0.08), 0 4px 10px rgba(11, 13, 18, 0.06);
+  color: #0b0d12;
+}
+
+.nebo-horo .horo-reader-period-date {
+  color: #9aa0ae;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.nebo-horo .horo-reader-headline {
+  color: #0b0d12;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.nebo-horo .horo-sign-story p {
+  color: #0b0d12;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.nebo-horo-all {
+  margin: 28px 16px 0;
+}
+
+.nebo-horo-all h2 {
+  margin: 0 4px 10px;
+  color: #9aa0ae;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.nebo-horo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.nebo-horo-grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 2px 10px;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  color: #0b0d12;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nebo-horo-grid-item[aria-pressed='true'] {
+  background: rgba(91, 91, 247, 0.1);
+  color: #4527d6;
+}
