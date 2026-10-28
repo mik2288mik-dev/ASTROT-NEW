@@ -551,3 +551,19 @@
 .nebo-cod-actions button { height: 50px; border: 0; border-radius: 25px; background: #ffffff; color: #1c2160; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
 .nebo-cod-actions button.is-light { background: rgba(255, 255, 255, 0.16); color: #ffffff; }
 .nebo-cod-more { margin-top: 14px; padding: 10px; border: 0; background: none; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: 15px; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+/* «?» Почему так (canvas PopWhy) */
+.nebo-today-cta-row { display: flex; align-items: center; gap: 10px; }
+.nebo-why-btn { display: inline-flex; width: 44px; height: 44px; flex: none; align-items: center; justify-content: center; border: 1.5px solid rgba(79, 70, 229, 0.35); border-radius: 50%; background: #ffffff; color: #4f46e5; font: inherit; font-size: 19px; font-weight: 700; cursor: pointer; }
+.nebo-why { position: relative; width: 100%; max-width: 360px; max-height: 86vh; overflow: auto; padding: 24px 20px 18px; border-radius: 30px; background: #ffffff; color: #0b0d12; }
+.nebo-why-kicker { margin: 0; color: #4f46e5; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.nebo-why h2 { margin: 6px 0 14px; padding-right: 30px; font-size: 26px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-why-steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.nebo-why-steps li { position: relative; padding-left: 26px; }
+.nebo-why-steps li::before { content: ""; position: absolute; left: 4px; top: 5px; width: 10px; height: 10px; border-radius: 50%; }
+.nebo-why-steps li.is-sky::before { background: #4f46e5; }
+.nebo-why-steps li.is-you::before { background: #16a34a; }
+.nebo-why-steps li.is-todo::before { background: #ea580c; }
+.nebo-why-steps b { color: #8a8f9c; font-size: 12.5px; letter-spacing: 0.05em; text-transform: uppercase; }
+.nebo-why-steps p { margin: 4px 0 0; font-size: 15.5px; line-height: 1.5; }
+.nebo-why .nebo-period-cta { width: 100%; margin: 18px 0 0; }
