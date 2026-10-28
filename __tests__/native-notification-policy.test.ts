@@ -205,7 +205,7 @@ describe('engagement schedule', () => {
 
   it('opens matching screens', () => {
     const plans = planNativeNotifications(planInput());
-    expect(plans.filter((plan) => plan.kind === 'daily').every((plan) => plan.route === 'horoscope')).toBe(true);
+    expect(plans.filter((plan) => plan.kind === 'daily').every((plan) => plan.route === 'today')).toBe(true);
     expect(new Set(plans.filter((plan) => plan.kind === 'invite').map((plan) => plan.route)).size).toBeGreaterThan(1);
   });
 
@@ -216,10 +216,10 @@ describe('engagement schedule', () => {
     expect(new Date(birthday[0].at).getHours()).toBe(9);
   });
 
-  it('congratulates on holidays and Valentine’s leads to compatibility', () => {
+  it('congratulates on holidays and Valentine’s leads to the own natal chart', () => {
     const plans = planNativeNotifications(planInput({ now: new Date(2026, 1, 12, 8) }));
     const valentine = plans.find((plan) => plan.dayKey === '2026-02-14');
-    expect(valentine).toMatchObject({ kind: 'holiday', route: 'compatibility' });
+    expect(valentine).toMatchObject({ kind: 'holiday', route: 'natal' });
     expect(plans.find((plan) => plan.dayKey === '2026-02-23')).toMatchObject({ kind: 'holiday' });
     expect(holidayCopy('ru', 11, 13, 5)?.title).toBe('Пятница, 13-е');
   });
