@@ -2694,6 +2694,11 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 if (viewRef.current !== 'settings') navigateTo('settings');
             }}
             onStepBack={view !== 'dashboard' ? () => { void handleBack(); } : null}
+            account={profile ? {
+                name: profile.name || '',
+                plus: hasActivePremium(profile),
+                guest: profile.isGuest === true,
+            } : null}
         >
         <div
             className={`lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
