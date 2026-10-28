@@ -2,6 +2,7 @@ import React, { createContext, useContext } from 'react';
 import { ChevronLeft, Settings } from 'lucide-react';
 import { NeboLogo } from '../brand/NeboLogo';
 import { AvatarCircle } from '../nebo/AvatarPicker';
+import { InboxButton } from '../nebo/InboxButton';
 
 type AppTopBarProps = {
   title: string;
@@ -17,7 +18,7 @@ type AppTopBarProps = {
 };
 
 /** Who is signed in, for the account chip on the right of the bar (as on the canvas). */
-export type AppTopBarAccount = { id: string; name: string; plus: boolean; guest: boolean };
+export type AppTopBarAccount = { id: string; name: string; plus: boolean; guest: boolean; sign?: string | null };
 
 type AppTopBarSettingsContextValue = { onOpenSettings: () => void; onStepBack?: (() => void) | null; account?: AppTopBarAccount | null } | null;
 
@@ -129,6 +130,7 @@ export function AppTopBar({
           {endAction || showSettings ? (
             <div className="app-top-bar-actions">
               {endAction}
+              {showChip && account ? <InboxButton userId={account.id} sign={account.sign ?? null} /> : null}
               {showChip ? chip : showSettings ? (
                 <button
                   className="app-top-bar-action app-top-bar-settings-button"

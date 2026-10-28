@@ -511,3 +511,43 @@
 .nebo-dates-item span { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
 .nebo-dates-item strong { font-size: 15px; line-height: 1.2; font-weight: 600; }
 .nebo-dates-item small { color: #8a8f9c; font-size: 12.5px; line-height: 1.3; }
+
+/* Bell and «Входящие» (canvas PopInbox) */
+.nebo-bell { position: relative; display: inline-flex; width: 40px; height: 40px; flex: none; align-items: center; justify-content: center; margin-right: 6px; border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 50%; background: rgba(255, 255, 255, 0.55); box-shadow: 0 6px 18px rgba(11, 13, 18, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.95); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); color: #0b0d12; cursor: pointer; pointer-events: auto; }
+.nebo-bell-dot { position: absolute; right: 9px; top: 8px; width: 8px; height: 8px; border: 2px solid #ffffff; border-radius: 50%; background: #ef4444; }
+.nebo-inbox { position: relative; width: 100%; max-width: 360px; max-height: 84vh; overflow: auto; padding: 24px 20px 14px; border-radius: 30px; background: #ffffff; color: #0b0d12; }
+.nebo-inbox-art { display: block; margin: 0 auto 6px; }
+.nebo-inbox h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-inbox-sub { margin: 6px 0 14px; color: #5c6170; font-size: 14.5px; line-height: 1.45; }
+.nebo-inbox-list { border-radius: 18px; background: #f4f5f8; }
+.nebo-inbox-row { display: grid; grid-template-columns: 70px 1fr; gap: 10px; padding: 12px 14px; }
+.nebo-inbox-row + .nebo-inbox-row { border-top: 1px solid rgba(118, 118, 128, 0.16); }
+.nebo-inbox-row span { color: #8a8f9c; font-size: 13px; }
+.nebo-inbox-row p { margin: 0; font-size: 14.5px; line-height: 1.4; }
+.nebo-inbox-empty { margin: 4px 0 10px; color: #5c6170; font-size: 14.5px; line-height: 1.45; }
+.nebo-inbox .nebo-period-cta { width: 100%; margin: 14px 0 0; }
+.nebo-inbox-close { display: block; width: 100%; margin-top: 6px; padding: 12px; border: 0; background: none; color: #4f46e5; font: inherit; font-size: 15.5px; font-weight: 600; cursor: pointer; }
+
+/* Card of the day (canvas Card0 / Card2) */
+.nebo-cod { position: fixed; inset: 0; z-index: 8500; display: flex; flex-direction: column; align-items: center; overflow-y: auto; padding: calc(56px + env(safe-area-inset-top)) 22px 32px; background: radial-gradient(120% 70% at 50% 30%, rgba(60, 50, 140, 0.92), rgba(12, 14, 40, 0.97)); color: #ffffff; text-align: center; animation: nbCodIn 0.35s ease both; }
+@keyframes nbCodIn { from { opacity: 0; } to { opacity: 1; } }
+.nebo-cod-close { position: absolute; right: 16px; top: calc(14px + env(safe-area-inset-top)); display: inline-flex; width: 38px; height: 38px; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.16); color: #ffffff; cursor: pointer; }
+.nebo-cod-kicker { margin: 0; color: rgba(255, 255, 255, 0.7); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.nebo-cod h2 { margin: 6px 0 0; font-size: 30px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-cod-fan { position: relative; width: 100%; max-width: 340px; height: 330px; margin-top: 40px; }
+.nebo-cod-card { position: absolute; left: 50%; top: 10px; width: 150px; height: 228px; margin-left: -75px; padding: 0; border: 2px solid rgba(255, 255, 255, 0.85); border-radius: 16px; background: #1e1458; box-shadow: 0 24px 40px -18px rgba(0, 0, 0, 0.7); cursor: pointer; transition: transform 0.45s cubic-bezier(.22, 1, .36, 1), opacity 0.35s ease; }
+.nebo-cod-card img { width: 100%; height: 100%; border-radius: 14px; object-fit: cover; }
+.nebo-cod-card.is-0 { transform: translateX(-92px) rotate(-12deg); }
+.nebo-cod-card.is-1 { transform: translateY(-8px); z-index: 2; }
+.nebo-cod-card.is-2 { transform: translateX(92px) rotate(12deg); }
+.nebo-cod-card.is-picked { z-index: 3; transform: translateY(20px) scale(1.12) rotateY(90deg); }
+.nebo-cod-card.is-away { opacity: 0; }
+.nebo-cod-open { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 360px; margin-top: 22px; animation: nbCodFlip 0.5s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes nbCodFlip { from { opacity: 0; transform: rotateY(-90deg); } to { opacity: 1; transform: none; } }
+.nebo-cod-face { width: 190px; height: 285px; border: 2px solid rgba(255, 255, 255, 0.85); border-radius: 18px; object-fit: cover; box-shadow: 0 30px 50px -20px rgba(0, 0, 0, 0.75); }
+.nebo-cod-text { margin: 20px 0 0; font-size: 17px; line-height: 1.5; }
+.nebo-cod-advice { margin: 10px 0 0; color: rgba(255, 255, 255, 0.82); font-size: 15px; line-height: 1.5; }
+.nebo-cod-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 22px; }
+.nebo-cod-actions button { height: 50px; border: 0; border-radius: 25px; background: #ffffff; color: #1c2160; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.nebo-cod-actions button.is-light { background: rgba(255, 255, 255, 0.16); color: #ffffff; }
+.nebo-cod-more { margin-top: 14px; padding: 10px; border: 0; background: none; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: 15px; font-weight: 600; text-decoration: underline; cursor: pointer; }
