@@ -9,15 +9,11 @@ describe('application chrome', () => {
     const tabs = read('components/lumia-ui/LumiaBottomTabBar.tsx');
     const icons = read('components/icons/UiIcons.tsx');
 
-    expect(tabs).toContain('data-nav-id="personal"');
-    expect(tabs).toContain('data-nav-id="zodiac"');
+    ["id: 'today'", "id: 'zodiac'", "id: 'natal'", "id: 'compatibility'", "id: 'rest'"]
+      .forEach((id) => expect(tabs).toContain(id));
     expect(tabs).not.toContain('today-bottom-nav-quick-links');
-    expect(tabs).toContain('data-nav-id="compatibility"');
-    expect(tabs).toContain('today-bottom-nav-hub');
-    expect(tabs).toContain('today-bottom-nav-services');
     expect(tabs).toContain("export type LumiaNavigationSheetId = 'profile'");
-    expect(tabs).toContain('<MoonStar aria-hidden="true"');
-    expect(tabs).toContain('<Users aria-hidden="true"');
+    expect(tabs).toContain('<path d={tab.icon} />');
     expect(icons).toContain('export function ZodiacWheelIcon');
   });
 
@@ -142,18 +138,16 @@ describe('application chrome', () => {
     expect(application).toContain('onOpenCharts={openProfileCharts}');
   });
 
-  it('replaces the draggable liquid lens with a thin static navigation line', () => {
+  it('floats a Liquid Glass bar whose drop can be dragged to a tab', () => {
     const tabs = read('components/lumia-ui/LumiaBottomTabBar.tsx');
-    const styles = read('styles/todayHome.css');
+    const styles = read('styles/neboTabBar.css');
 
     expect(tabs).not.toContain('lumia-bottom-tab-liquid-lens');
     expect(tabs).not.toContain('useMotionValue');
-    expect(tabs).not.toContain('onPointerMove');
-    expect(styles).toContain('.today-bottom-navigation::before');
-    expect(styles).toContain('height: 1px;');
-    expect(styles).toContain('border-radius: 0;');
-    expect(styles).toContain('box-shadow: none;');
-    expect(styles).toContain('touch-action: manipulation;');
+    expect(tabs).toContain('onPointerMove={onPointerMove}');
+    expect(styles).toContain('backdrop-filter: url(#nebo-lq-bar)');
+    expect(styles).toContain('.nebo-tabbar-drop-glass.is-dragging');
+    expect(styles).toContain('touch-action: pan-y;');
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
   });
 
