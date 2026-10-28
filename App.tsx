@@ -160,6 +160,11 @@ const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then(
 const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.Paywall), { ssr: false });
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
+/** Lets a home tile open a room on a given place (the card of the day, the Chinese horoscope). */
+function openOnNextEntry(key: string, value: string) {
+    try { window.sessionStorage.setItem(key, value); } catch { /* storage may be unavailable */ }
+}
+
 const NumerologyRoom = dynamic(() => import('./views/v2/NumerologyRoom').then((module) => module.NumerologyRoom), { ssr: false });
 const MoonRoom = dynamic(() => import('./views/v2/MoonRoom').then((module) => module.MoonRoom), { ssr: false });
 const TarotRoom = dynamic(() => import('./views/v2/OracleRoom').then((module) => module.TarotRoom), { ssr: false });
@@ -2610,6 +2615,13 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         onOpenSynastry: openSynastryFromHome,
         onOpenMatrix: () => navigateTo('matrix'),
         onEditBirthTime: openBirthTimeEdit,
+        onOpenMoon: () => navigateTo('moon'),
+        onOpenTarot: () => { openOnNextEntry('nebo.open.tarot', 'day'); navigateTo('tarot'); },
+        onOpenRunes: () => navigateTo('runes'),
+        onOpenNumbers: () => navigateTo('numbers'),
+        onOpenChinese: () => { openOnNextEntry('nebo.open.horoscope', 'chinese'); navigateTo('horoscope'); },
+        onOpenGift: openServiceStore,
+        onOpenEncyclopedia: () => navigateTo('encyclopedia'),
         onOpenTests: (testId?: string) => {
             setTestsInitialId(testId ?? null);
             navigateTo('tests');

@@ -62,6 +62,13 @@ type DashboardProps = {
   onOpenMatrix?: () => void;
   /** Opens the birth details form to add the birth time. */
   onEditBirthTime?: () => void;
+  onOpenMoon?: () => void;
+  onOpenTarot?: () => void;
+  onOpenRunes?: () => void;
+  onOpenNumbers?: () => void;
+  onOpenChinese?: () => void;
+  onOpenGift?: () => void;
+  onOpenEncyclopedia?: () => void;
   /** Opens compatibility with a saved person. */
   onOpenPair?: (chartId: string, name: string) => void;
   /** Opens «Тесты о себе», optionally continuing one test. */
@@ -161,6 +168,10 @@ function loadingLabel(
   }[period];
 }
 
+import {
+  TodayMood, TodayNatalInvite, TodayPromoCarousel, TodayTiles, TodayTomorrowNote, TodayYesNo, type TodayPromo,
+} from '../components/nebo/TodayCanvasBlocks';
+
 export const Dashboard = memo<DashboardProps>(({
   profile,
   currentDateKey,
@@ -171,6 +182,13 @@ export const Dashboard = memo<DashboardProps>(({
   onOpenSynastry,
   onOpenMatrix,
   onEditBirthTime,
+  onOpenMoon,
+  onOpenTarot,
+  onOpenRunes,
+  onOpenNumbers,
+  onOpenChinese,
+  onOpenGift,
+  onOpenEncyclopedia,
   onOpenPair,
   onOpenTests,
   onOpenMood,
@@ -835,80 +853,47 @@ export const Dashboard = memo<DashboardProps>(({
     />
   );
 
+  const birthTimeKnown = Boolean(profile.birthTime?.trim()) && profile.birthTimeMode !== 'unknown';
+  const todayPromos: TodayPromo[] = [
+    onOpenRunes ? { id: 'runes', kicker: 'Новое в NEBO', title: 'Руны', text: 'Руна дня и расклад из трёх рун на твой вопрос', glyph: 'ᚨ', onOpen: onOpenRunes } : null,
+    onOpenChinese ? { id: 'chinese', kicker: 'Новое в NEBO', title: 'Китайский гороскоп', text: 'Твоё животное по году рождения и чего ждать от 2026', glyph: '馬', onOpen: onOpenChinese } : null,
+    onOpenTests ? { id: 'tests', kicker: 'Новое в NEBO', title: 'Тест недели', text: 'Несколько вопросов и понятный разбор о тебе', glyph: '?', onOpen: () => onOpenTests() } : null,
+    onOpenNumbers ? { id: 'numbers', kicker: 'Новое в NEBO', title: 'Число твоего имени', text: 'Посчитали по буквам: что имя говорит о тебе', glyph: '9', onOpen: onOpenNumbers } : null,
+    onOpenMatrix ? { id: 'matrix', kicker: 'Твоя карта', title: 'Матрица судьбы', text: 'Таланты, деньги и любовь по дате рождения', glyph: '22', onOpen: onOpenMatrix } : null,
+    onOpenEncyclopedia ? { id: 'guide', kicker: 'Справочник', title: 'Справочник неба', text: 'Что значат планеты, дома и аспекты, простыми словами', glyph: '☉', onOpen: onOpenEncyclopedia } : null,
+    onOpenMoon ? { id: 'moon', kicker: 'Луна', title: 'Лунные календари', text: 'Когда сажать, стричься и начинать дела', glyph: '☾', onOpen: onOpenMoon } : null,
+    onOpenGift ? { id: 'gift', kicker: 'Подарок', title: 'Подари Plus другу', text: 'Код подарка откроет другу всё в NEBO', glyph: '+', onOpen: onOpenGift } : null,
+    onOpenAntistress ? { id: 'breath', kicker: 'Отдых', title: 'Дыхание на 2 минуты', text: 'Спокойно выдохнуть перед сном или важным разговором', glyph: '~', onOpen: onOpenAntistress } : null,
+  ].filter((item): item is TodayPromo => item !== null);
+
   const todayHomeSections = (
     <>
-      {/* Today: what is true about you right now, with the question of the day as its last row. */}
-      <TodayAboutYou
+      <TodayPromoCarousel birthDate={profile.birthDate} items={todayPromos} />
+      {!birthTimeKnown && onEditBirthTime ? <TodayNatalInvite onAdd={onEditBirthTime} /> : null}
+      {/* «По твоей карте»: the dates of the season. */}
+      <SeasonCard
         userId={String(profile.id || 'guest')}
         todayKey={periodKeys.day}
-        birthDate={profile.birthDate}
-        birthTime={profile.birthTime}
-        birthTimeKnown={Boolean(profile.birthTime?.trim()) && profile.birthTimeMode !== 'unknown'}
-        task={storySections.find((section) => !lockedSectionIds.has(section.id) && section.actionText?.trim())?.actionText?.trim() ?? null}
-      >
-        <DailyQuestionCard language={language} embedded />
-      </TodayAboutYou>
-      {/* Personal suggestions; today's invitation into a section closes the row. */}
-      <ForYouBlock
-        userId={String(profile.id || 'guest')}
-        language={language}
-        todayKey={periodKeys.day}
-        weekKey={periodKeys.week}
-        timezone={timezone}
-        birthDate={profile.birthDate}
-        birthTimeKnown={Boolean(profile.birthTime?.trim()) && profile.birthTimeMode !== 'unknown'}
-        premium={premium}
-        premiumEndsAt={profile.premiumEntitlement?.endsAt ?? null}
-        premiumAutoRenew={profile.premiumEntitlement?.autoRenew ?? null}
-        gift={giftStatus ? { streak: giftStatus.streak, daysToGift: giftStatus.daysToGift, claimable: giftStatus.claimable, hasWeekGift: Boolean(giftStatus.weekGift) } : null}
-        onAction={handleForYouAction}
-        extra={(
-          <HomeFeatureStrip
-            variant="card"
-            todayKey={periodKeys.day}
-            onOpenStories={onOpenStories}
-            onOpenSounds={onOpenSounds}
-            onOpenAntistress={onOpenAntistress}
-            onOpenTests={onOpenTests}
-            onOpenMatrix={onOpenMatrix}
-          />
-        )}
+        onOpenFuture={() => openFuture()}
       />
-      {/* Ahead: the coming month and the season, one part of the screen. */}
-      <section className="home-ahead" aria-labelledby="home-ahead-title">
-        <h2 id="home-ahead-title" className="today-explore-heading">{language === 'ru' ? 'Впереди' : 'Ahead'}</h2>
-        <FutureInviteCard
-          userId={String(profile.id || 'guest')}
-          todayKey={periodKeys.day}
-          timezone={timezone}
-          premium={premium}
-          onOpen={() => { onPeriodChange?.('month'); }}
-        />
-        <SeasonCard
-          userId={String(profile.id || 'guest')}
-          todayKey={periodKeys.day}
-          onOpenFuture={() => openFuture()}
-        />
-      </section>
-      {/* Your people. */}
-      <PeopleBlock
-        userId={String(profile.id || 'guest')}
-        todayKey={periodKeys.day}
-        premium={premium}
-        onOpenPair={onOpenPair}
-        onAddPerson={onOpenSynastry}
-        onGift={setGiftPerson}
-      />
-      {/* Deeper: what else to learn about yourself. */}
-      <TodayExploreCards
-        language={language}
+      <DailyQuestionCard language={language} />
+      <TodayTomorrowNote />
+    </>
+  );
+
+  const todayAfterHero = (
+    <>
+      <TodayYesNo sections={storySections} lockedIds={lockedSectionIds} />
+      <TodayMood sections={storySections} lockedIds={lockedSectionIds} />
+      <TodayTiles
         userId={String(profile.id || 'guest')}
         birthDate={profile.birthDate}
-        premium={premium}
-        onOpenNatal={onCreateNatalChart}
-        onOpenCompatibility={onOpenSynastry}
-        onOpenMatrix={onOpenMatrix}
+        onOpenMoon={onOpenMoon}
+        onOpenTarot={onOpenTarot}
+        onOpenNumbers={onOpenNumbers}
+        onOpenRunes={onOpenRunes}
       />
+      <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={periodKeys.day} retroOnly />
     </>
   );
 
@@ -991,7 +976,7 @@ export const Dashboard = memo<DashboardProps>(({
           tone={forecast.meta.astrologerBrief.tone}
           personalAttribution={personalForecastAttribution}
           onRequestPremium={requestPremium}
-          afterHero={<TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={forecast.periodKey} />}
+          afterHero={todayAfterHero}
           footer={todayHomeSections}
         />
       ) : forecast ? (
@@ -1044,7 +1029,7 @@ export const Dashboard = memo<DashboardProps>(({
               </>
             )}
           </section>
-          <TodaySkyMonitor userId={String(profile.id || 'guest')} periodKey={periodKeys.day} />
+          {todayAfterHero}
           {todayHomeSections}
         </>
       ) : state.phase === 'error' ? (

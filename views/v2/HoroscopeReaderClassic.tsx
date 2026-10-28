@@ -99,7 +99,16 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   const language = profile.language === 'en' ? 'en' : 'ru';
   const [today, setToday] = useState(() => getMoscowTodayKey());
   const [period, setPeriod] = useState<Period>('today');
-  const [horoMode, setHoroMode] = useState<'zodiac' | 'chinese'>('zodiac');
+  const [horoMode, setHoroMode] = useState<'zodiac' | 'chinese'>(() => {
+    // The «Китайский гороскоп» card on Today opens this screen on the Chinese side.
+    try {
+      if (window.sessionStorage.getItem('nebo.open.horoscope') === 'chinese') {
+        window.sessionStorage.removeItem('nebo.open.horoscope');
+        return 'chinese';
+      }
+    } catch { /* storage may be unavailable */ }
+    return 'zodiac';
+  });
   const reduceMotion = useReducedMotion();
   const readingAnchorRef = useRef<HTMLDivElement | null>(null);
   const pendingReadingScrollRef = useRef<ZodiacKey | null>(null);
