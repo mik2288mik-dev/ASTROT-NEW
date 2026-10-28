@@ -45,6 +45,7 @@ import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppEntryAnnouncement } from './components/AppEntryAnnouncement';
+import { CoachMarks } from './components/nebo/CoachMarks';
 import { AndroidUpdatePrompt } from './components/AndroidUpdatePrompt';
 import { useAndroidUpdateGate } from './services/useAndroidUpdateGate';
 import { AndroidVpnWarning } from './components/AndroidVpnWarning';
@@ -3046,6 +3047,8 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                     onClose={closeAppEntryAnnouncement}
                 />
             ) : null}
+
+            <CoachMarks view={view} enabled={Boolean(profile) && !paywallContext && !navigationSheet && !androidUpdate.promptOpen && !appEntryAnnouncement} />
 
             {showsBottomNavigation ? (
                 <>
