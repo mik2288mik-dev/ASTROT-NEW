@@ -1121,3 +1121,32 @@
 @media (prefers-reduced-motion: reduce) {
   .nebo-oracle-slot { transition: none; }
 }
+
+/* Аватарки */
+.nebo-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.nebo-avatar-picker { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-bottom: 8px; }
+.nebo-avatar-upload { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; color: #0b0d12; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.nebo-avatar-upload-circle { position: relative; display: inline-flex; width: 120px; height: 120px; align-items: center; justify-content: center; border-radius: 50%; background: linear-gradient(140deg, #5b5bf7, #4527d6); color: #fff; }
+.nebo-avatar-letter { font-size: 44px; font-weight: 600; }
+.nebo-avatar-upload-badge { position: absolute; right: 2px; bottom: 2px; display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center; border: 3px solid #fff; border-radius: 50%; background: #0b0d12; color: #fff; }
+.nebo-avatar-upload-text { font-size: 15px; font-weight: 600; }
+.nebo-avatar-match { width: 100%; min-height: 48px; border: 0; border-radius: 16px; background: #0b0d12; color: #fff; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.nebo-avatar-match:disabled { background: rgba(118, 118, 128, 0.16); color: #5c6170; }
+.nebo-avatar-why { margin: 0; color: #0b0d12; font-size: 15px; line-height: 1.4; text-align: center; }
+.nebo-avatar-hint, .nebo-avatar-error { margin: 0; color: #5c6170; font-size: 13px; line-height: 1.35; text-align: center; }
+.nebo-avatar-error { color: #c0392b; }
+.nebo-avatar-tabs { display: flex; width: 100%; padding: 3px; border-radius: 12px; background: rgba(118, 118, 128, 0.12); }
+.nebo-avatar-tabs button { flex: 1; min-height: 34px; border: 0; border-radius: 10px; background: none; color: #5c6170; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-avatar-tabs button.is-active { background: #fff; color: #0b0d12; box-shadow: 0 1px 4px rgba(11, 13, 18, 0.12); }
+.nebo-avatar-grid { display: grid; width: 100%; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.nebo-avatar-grid button { aspect-ratio: 1; padding: 0; overflow: hidden; border: 3px solid transparent; border-radius: 50%; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.nebo-avatar-grid button.is-picked { border-color: #0b0d12; }
+.nebo-avatar-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nebo-avatar-colors { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.nebo-avatar-colors button { width: 30px; height: 30px; border: 3px solid transparent; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(11, 13, 18, 0.12); cursor: pointer; }
+.nebo-avatar-colors button.is-picked { border-color: #0b0d12; }
+.nebo-avatar-reset { border: 0; background: none; color: #5c6170; font: inherit; font-size: 14px; cursor: pointer; }
+.nebo-account-chip-avatar { overflow: hidden; }
+.nebo-profile-avatar { position: relative; overflow: hidden; border: 0; padding: 0; cursor: pointer; font-family: inherit; }
+.nebo-profile-avatar-edit { color: #5b5bf7; font-size: 14px; font-weight: 600; border: 0; background: none; font-family: inherit; cursor: pointer; }
+.nebo-profile-avatar-button { border: 0; padding: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }

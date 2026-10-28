@@ -22,6 +22,7 @@ import {
 import { hasActivePremium } from '../lib/accessMatrix';
 import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
+import { AvatarCircle, AvatarPicker } from '../components/nebo/AvatarPicker';
 import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { apiFetch } from '../services/apiClient';
@@ -267,6 +268,7 @@ export const Settings: React.FC<SettingsProps> = ({
     initialScreen = 'root',
 }) => {
 
+    const [avatarOpen, setAvatarOpen] = useState(false);
     const nativeNotifications = isNativeAndroidRuntime();
     const rustorePurchaseControlsAvailable = canUseRuStorePay(resolveDistributionChannel());
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
@@ -1731,10 +1733,22 @@ export const Settings: React.FC<SettingsProps> = ({
                 return (
                     <div className="settings-root">
                         <div className="nebo-profile-head">
-                            <span className="nebo-profile-avatar" aria-hidden>{(profileDisplayName || 'N').trim().charAt(0).toUpperCase()}</span>
+                            <button type="button" className="nebo-profile-avatar-button" onClick={() => setAvatarOpen(true)} aria-label="Сменить аватарку">
+                                <AvatarCircle userId={profile.id || ''} name={profileDisplayName || ''} className="nebo-profile-avatar" />
+                            </button>
+                            <button type="button" className="nebo-profile-avatar-edit" onClick={() => setAvatarOpen(true)}>Сменить аватарку</button>
                             <strong>{profileDisplayName}</strong>
                             <span className={activePremium ? 'nebo-profile-plan is-plus' : 'nebo-profile-plan'}>{activePremium ? 'Plus' : 'Free'}</span>
                         </div>
+                        <AvatarPicker
+                            open={avatarOpen}
+                            onClose={() => setAvatarOpen(false)}
+                            userId={profile.id || ''}
+                            name={profileDisplayName || ''}
+                            birthDate={profile.birthDate}
+                            plus={activePremium}
+                            onRequestPlus={() => { setAvatarOpen(false); onRequestPremium?.(); }}
+                        />
                         <section className="settings-group" aria-labelledby="settings-account-heading">
                             <h2 id="settings-account-heading">{profile.language === 'en' ? 'Account' : 'Аккаунт'}</h2>
                             <div className="settings-list">

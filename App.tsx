@@ -2702,6 +2702,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             }}
             onStepBack={view !== 'dashboard' ? () => { void handleBack(); } : null}
             account={profile ? {
+                id: profile.id || '',
                 name: profile.name || '',
                 plus: hasActivePremium(profile),
                 guest: profile.isGuest === true,
