@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTelemetrySection } from '../services/useAppTelemetry';
 import { ChevronLeft, Eye, EyeOff, Mail } from 'lucide-react';
+import { AuthLanding } from '../components/nebo/AuthLanding';
 import { NeboLogo } from '../components/brand/NeboLogo';
 import type { UserProfile } from '../types';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
@@ -412,6 +413,22 @@ export const AuthGate: React.FC<AuthGateProps> = ({
           : 'Новый пароль';
   const registerTitle = 'Твой гороскоп, и намного больше';
   const visibleTitle = isLanding ? registerTitle : isEmailRegistration ? 'Создать аккаунт' : title;
+
+  if (isLanding) {
+    return (
+      <AuthLanding
+        providers={availableProviders.map((provider) => ({ id: provider.id, label: provider.label }))}
+        telegramReady={telegramReady}
+        emailVisible={emailLoginVisible}
+        busy={busy}
+        message={(message || deleted) && !authPreview ? (message || 'Аккаунт удалён. Можно создать новый или войти в существующий.') : error || null}
+        onProvider={(id) => { void runProvider(id as Parameters<typeof runProvider>[0]); }}
+        onTelegram={() => { void runTelegram(); }}
+        onEmail={() => changeScreen('login')}
+        onGuest={() => { void runGuest(); }}
+      />
+    );
+  }
 
   return (
     <main className="auth-editorial-page fixed inset-0 h-[100dvh] overflow-y-auto bg-white text-[#111827]" data-auth-layout={isLanding ? 'landing' : 'form'}>

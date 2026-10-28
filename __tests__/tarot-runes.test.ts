@@ -25,11 +25,11 @@ describe('tarot', () => {
     }
   });
 
-  it('keys the week by its Monday and knows which cards have a painted face', () => {
+  it('keys the week by its Monday and gives every card its painted face', () => {
     expect(weekKeyOf(new Date(2026, 9, 28))).toBe('2026-10-26');
     expect(weekKeyOf(new Date(2026, 9, 25))).toBe('2026-10-19');
     expect(cardImage(TAROT_CARDS.find((card) => card.slug === 'sun')!)).toBe('/assets/tarot/sun.webp');
-    expect(cardImage(TAROT_CARDS[0])).toBeNull();
+    expect(cardImage(TAROT_CARDS[0])).toBe('/assets/tarot/fool.webp');
   });
 });
 
