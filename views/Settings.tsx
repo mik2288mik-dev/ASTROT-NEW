@@ -1,24 +1,13 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    BadgeCheck,
-    Bell,
-    Cake,
     Check,
     ChevronLeft,
     ChevronRight,
     Code2,
-    Database,
     Eye,
     EyeOff,
-    Files,
-    Languages,
-    LifeBuoy,
-    LogIn,
-    Scale,
     Trash2,
-    UserRound,
-    VenusAndMars,
 } from 'lucide-react';
 import { UserProfile, Language, NotificationFrequency } from '../types';
 import { getText } from '../constants';
@@ -1741,32 +1730,37 @@ export const Settings: React.FC<SettingsProps> = ({
             default:
                 return (
                     <div className="settings-root">
+                        <div className="nebo-profile-head">
+                            <span className="nebo-profile-avatar" aria-hidden>{(profileDisplayName || 'N').trim().charAt(0).toUpperCase()}</span>
+                            <strong>{profileDisplayName}</strong>
+                            <span className={activePremium ? 'nebo-profile-plan is-plus' : 'nebo-profile-plan'}>{activePremium ? 'Plus' : 'Free'}</span>
+                        </div>
                         <section className="settings-group" aria-labelledby="settings-account-heading">
                             <h2 id="settings-account-heading">{profile.language === 'en' ? 'Account' : 'Аккаунт'}</h2>
                             <div className="settings-list">
                                 <SettingsRow
-                                    icon={<UserRound size={16} strokeWidth={1.8} />}
+                                    icon={<img src="/assets/nebo-icons/person.svg" alt="" width={34} height={34} />}
                                     label={profile.language === 'en' ? 'Profile' : 'Профиль'}
                                     value={profileDisplayName}
                                     target="profile"
                                     onClick={() => openSettingsScreen('profile')}
                                 />
                                 <SettingsRow
-                                    icon={<Cake size={16} strokeWidth={1.8} />}
+                                    icon={<img src="/assets/nebo-icons/shield.svg" alt="" width={34} height={34} />}
                                     label={profile.language === 'en' ? 'Birth details' : 'Данные рождения'}
                                     value={formatSettingsBirthDate(profile.birthDate, profile.language)}
                                     target="birth"
                                     onClick={() => openSettingsScreen('birth')}
                                 />
                                 <SettingsRow
-                                    icon={<VenusAndMars size={16} strokeWidth={1.8} />}
+                                    icon={<img src="/assets/nebo-icons/person.svg" alt="" width={34} height={34} />}
                                     label={profile.language === 'en' ? 'Gender' : 'Пол'}
                                     value={genderValue}
                                     target="gender"
                                     onClick={() => openSettingsScreen('gender')}
                                 />
                                 <SettingsRow
-                                    icon={<LogIn size={16} strokeWidth={1.8} />}
+                                    icon={<img src="/assets/nebo-icons/envelope.svg" alt="" width={34} height={34} />}
                                     label={profile.language === 'en' ? 'Sign-in methods' : 'Способы входа'}
                                     value={identityLoadFailed ? (profile.language === 'en' ? 'Unavailable' : 'Не загружены') : identityCountLabel(identities.length, profile.language)}
                                     target="auth"
@@ -1779,14 +1773,14 @@ export const Settings: React.FC<SettingsProps> = ({
                             <h2 id="settings-app-heading">{profile.language === 'en' ? 'Application' : 'Приложение'}</h2>
                             <div className="settings-list">
                                 <SettingsRow
-                                    icon={<Bell size={16} strokeWidth={1.8} />}
+                                    icon={<img src="/assets/nebo-icons/bell.svg" alt="" width={34} height={34} />}
                                     label={profile.language === 'en' ? 'Notifications' : 'Уведомления'}
                                     value={notifEnabled ? (profile.language === 'en' ? 'On' : 'Включены') : (profile.language === 'en' ? 'Off' : 'Выключены')}
                                     target="notifications"
                                     onClick={() => openSettingsScreen('notifications')}
                                 />
                                 <SettingsRow
-                                    icon={<Languages size={16} strokeWidth={1.8} />}
+                                    icon={<img src="/assets/nebo-icons/globe.svg" alt="" width={34} height={34} />}
                                     label={profile.language === 'en' ? 'Language' : 'Язык'}
                                     value={languageLabel}
                                     target="language"
@@ -1794,7 +1788,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                 />
                                 {onOpenCharts ? (
                                     <SettingsRow
-                                        icon={<Files size={16} strokeWidth={1.8} />}
+                                        icon={<img src="/assets/nebo-icons/star.svg" alt="" width={34} height={34} />}
                                         label={profile.language === 'en' ? 'Saved charts' : 'Сохранённые карты'}
                                         onClick={onOpenCharts}
                                     />
@@ -1803,12 +1797,12 @@ export const Settings: React.FC<SettingsProps> = ({
                         </section>
 
                         <section className="settings-group" aria-labelledby="settings-premium-heading">
-                            <h2 id="settings-premium-heading">Premium</h2>
+                            <h2 id="settings-premium-heading">{profile.language === 'en' ? 'Subscription' : 'Подписка'}</h2>
                             <div className="settings-list">
                                 <SettingsRow
-                                    icon={<BadgeCheck size={16} strokeWidth={1.8} />}
+                                    icon={<img src="/assets/nebo-icons/plus.svg" alt="" width={34} height={34} />}
                                     label={profile.language === 'en' ? 'Subscription' : 'Подписка'}
-                                    value={activePremium ? 'Premium' : 'Free'}
+                                    value={activePremium ? 'Plus' : 'Free'}
                                     target="subscription"
                                     onClick={() => openSettingsScreen('subscription')}
                                 />
@@ -1819,13 +1813,13 @@ export const Settings: React.FC<SettingsProps> = ({
                             <h2 id="settings-help-heading">{profile.language === 'en' ? 'Help' : 'Помощь'}</h2>
                             <div className="settings-list">
                                 <SettingsRow
-                                    icon={<LifeBuoy size={16} strokeWidth={1.8} />}
+                                    icon={<img src="/assets/nebo-icons/help.svg" alt="" width={34} height={34} />}
                                     label={profile.language === 'en' ? 'Support' : 'Обратная связь'}
                                     target="feedback"
                                     onClick={() => openSettingsScreen('feedback')}
                                 />
                                 <SettingsRow
-                                    icon={<Scale size={16} strokeWidth={1.8} />}
+                                    icon={<img src="/assets/nebo-icons/shield.svg" alt="" width={34} height={34} />}
                                     label={profile.language === 'en' ? 'Legal information' : 'Правовая информация'}
                                     target="legal"
                                     onClick={() => openSettingsScreen('legal')}
@@ -1838,14 +1832,14 @@ export const Settings: React.FC<SettingsProps> = ({
                             <div className="settings-list">
                                 {profile.isAdmin ? (
                                     <SettingsRow
-                                        icon={<Code2 size={16} strokeWidth={1.8} />}
+                                        icon={<img src="/assets/nebo-icons/roller.svg" alt="" width={34} height={34} />}
                                         label={profile.language === 'en' ? 'For developers' : 'Для разработчика'}
                                         target="developer"
                                         onClick={() => openSettingsScreen('developer')}
                                     />
                                 ) : null}
                                 <SettingsRow
-                                    icon={<Database size={16} strokeWidth={1.8} />}
+                                    icon={<img src="/assets/nebo-icons/door.svg" alt="" width={34} height={34} />}
                                     label={profile.language === 'en' ? 'Account and data' : 'Аккаунт и данные'}
                                     target="account"
                                     onClick={() => openSettingsScreen('account')}

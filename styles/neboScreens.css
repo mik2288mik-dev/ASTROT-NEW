@@ -341,3 +341,98 @@
   line-height: 1.35;
   opacity: 0.8;
 }
+
+/* Профиль (canvas): gray page, big avatar, white groups with colorful 3D icons. */
+.lumia-app-shell .settings-editorial-page {
+  background: #f4f5f8;
+}
+
+.nebo-profile-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 20px 6px;
+  text-align: center;
+}
+
+.nebo-profile-avatar {
+  display: inline-flex;
+  width: 84px;
+  height: 84px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #5b5bf7, #4527d6);
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.nebo-profile-head strong {
+  margin-top: 4px;
+  color: #0b0d12;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.nebo-profile-plan {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(118, 118, 128, 0.12);
+  color: #5c6170;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.nebo-profile-plan.is-plus {
+  background: linear-gradient(90deg, #ffe29a, #f5b94a);
+  color: #4a2c00;
+}
+
+.lumia-app-shell .settings-root .settings-group h2 {
+  margin: 22px 20px 8px;
+  color: #9aa0ae;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.lumia-app-shell .settings-root .settings-list {
+  margin: 0 16px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(11, 13, 18, 0.04);
+}
+
+.lumia-app-shell .settings-root .settings-list-row {
+  min-height: 50px;
+  padding: 8px 16px;
+}
+
+.lumia-app-shell .settings-root .settings-list-row-icon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  background: none;
+}
+
+.lumia-app-shell .settings-root .settings-list-row-icon img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.lumia-app-shell .settings-root .settings-list-row-label {
+  color: #0b0d12;
+  font-size: 16px;
+}
+
+.lumia-app-shell .settings-root .settings-list-row-value {
+  color: #9aa0ae;
+  font-size: 15px;
+}
