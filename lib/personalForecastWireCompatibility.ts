@@ -23,6 +23,7 @@ const DIRECT_PROSE_READING_PROMPTS: Readonly<Record<string, readonly string[]>> 
   'personal-forecast-feed-v34-direct-prose': [
     'personal-forecast-feed.v57-grounded-today+week-month+forecast-voice.16',
     'personal-forecast-feed.v58-spoken-today+week-month+forecast-voice.16',
+    'personal-forecast-feed.v59-pleasant-today+week-month+forecast-voice.16',
   ],
 };
 

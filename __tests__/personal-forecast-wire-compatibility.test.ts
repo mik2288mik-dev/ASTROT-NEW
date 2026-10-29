@@ -79,6 +79,8 @@ describe('released APK personal forecast wire compatibility', () => {
       .toBe('personal-forecast-feed.v57-grounded-today+week-month+forecast-voice.16');
     expect(resolvePersonalForecastWirePromptVersion(PERSONAL_FORECAST_CONTRACT_VERSION, PERSONAL_FORECAST_PROMPT_VERSION))
       .toBe(PERSONAL_FORECAST_PROMPT_VERSION);
+    expect(resolvePersonalForecastWirePromptVersion(PERSONAL_FORECAST_CONTRACT_VERSION, 'personal-forecast-feed.v59-pleasant-today+week-month+forecast-voice.16'))
+      .toBe('personal-forecast-feed.v59-pleasant-today+week-month+forecast-voice.16');
     for (const prompt of ['', 'unknown', [PERSONAL_FORECAST_PROMPT_VERSION]]) {
       expect(resolvePersonalForecastWirePromptVersion(PERSONAL_FORECAST_CONTRACT_VERSION, prompt)).toBeNull();
     }

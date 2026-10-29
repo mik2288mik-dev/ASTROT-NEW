@@ -247,7 +247,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v59-pleasant-today+week-month',
+  'personal-forecast-feed.v60-conversational-today+week-month',
 );
 export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v32-grounded-today';
 /** Input/cache identity, not an astrological calculation version. */

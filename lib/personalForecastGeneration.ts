@@ -197,8 +197,8 @@ function dayRetryFeedback(reason: string | undefined, language: 'ru' | 'en'): st
   }
   if (reason.endsWith(':TONE:STYLE')) {
     return language === 'ru'
-      ? 'Предыдущий текст звучал искусственно или слишком книжно. Напиши новый прогноз обычными словами, как сообщение другу, без красивых пустых фраз.'
-      : 'The previous reading sounded stiff or artificial. Rewrite it in ordinary conversational language without empty decorative phrases.';
+      ? 'Предыдущий текст или заголовок звучал искусственно, приторно или слишком книжно. Напиши новый прогноз и заголовок обычными словами, без наигранного сленга и финала как с открытки.'
+      : 'The previous reading or title sounded stiff, overly sweet or artificial. Rewrite it in ordinary language without forced slang or a greeting-card ending.';
   }
   if (reason.includes(':TONE:ASTROLOGY_JARGON')) {
     return language === 'ru'

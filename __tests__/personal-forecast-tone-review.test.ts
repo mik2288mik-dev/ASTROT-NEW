@@ -40,3 +40,37 @@ it('fails closed on a provider error without exposing its text', async () => {
   request.mockRejectedValue(new Error('private provider detail'));
   await expect(reviewPersonalForecastTone(input)).rejects.toThrow('PERSONAL_FORECAST_TONE_REVIEW_UNAVAILABLE');
 });
+
+it('asks the reviewer to assess title, excessive sweetness, forced familiarity and the closing without banning warm words', async () => {
+  request.mockResolvedValue({ content: JSON.stringify({ accepted: false, reason: 'style' }) });
+  const awkward = {
+    language: 'ru' as const,
+    reading: {
+      title: 'Разговоров хороших день',
+      body: 'Лови вайб, бро: милота этого дня просто зашкаливает!',
+      closing: 'Пусть каждый миг сияет волшебством.',
+    },
+    history: [],
+  };
+  await expect(reviewPersonalForecastTone(awkward)).resolves.toEqual({ accepted: false, reason: 'style' });
+  const { instructions, input: requestInput } = request.mock.calls[0][0];
+  expect(instructions).toContain('Review the title on its own too');
+  expect(instructions).toContain('unnatural word order');
+  expect(instructions).toContain('saccharine');
+  expect(instructions).toContain('forced slang');
+  expect(instructions).toContain('greeting-card-style closing');
+  expect(instructions).toContain('judge the phrase in context, not individual words');
+  expect(instructions).toContain('normal pleasant, calm or brief reading');
+  expect(JSON.parse(requestInput)).toEqual({ language: 'ru', reading: awkward.reading, recent_readings: [] });
+});
+
+it('passes an ordinary warm reading through to the reviewer without filtering its words', async () => {
+  request.mockResolvedValue({ content: JSON.stringify({ accepted: true, reason: 'ok' }) });
+  const ordinary = {
+    language: 'ru' as const,
+    reading: { title: 'Хороший разговор', body: 'Сегодня приятно поболтать и вместе посмеяться.', closing: 'Пусть день будет хорошим.' },
+    history: [],
+  };
+  await expect(reviewPersonalForecastTone(ordinary)).resolves.toEqual({ accepted: true, reason: 'ok' });
+  expect(JSON.parse(request.mock.calls[0][0].input).reading).toEqual(ordinary.reading);
+});

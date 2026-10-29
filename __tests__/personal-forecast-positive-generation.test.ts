@@ -54,6 +54,13 @@ it('gives the writer feedback when a negative draft is retried', async () => {
   expect(data.retry_feedback).toContain('приятный и спокойный прогноз');
 });
 
+it('asks for a natural title and ending after a style rejection', async () => {
+  writer.mockResolvedValue({ content: JSON.stringify({ title: 'Есть о чём поговорить', body: 'Сегодня легко разговориться и посмеяться.', closing: 'Хороший день для разговоров.' }) });
+  await generatePersonalForecastPackage({ ...base, period: 'day', window: resolvePersonalForecastWindow('day', '2026-07-26', 'Europe/Moscow'), retryReason: 'PERSONAL_FORECAST_GENERATION_INVALID:TONE:STYLE' });
+  expect(JSON.parse(writer.mock.calls[0][0].input).retry_feedback).toContain('заголовок');
+  expect(JSON.parse(writer.mock.calls[0][0].input).retry_feedback).toContain('финала как с открытки');
+});
+
 it.each(['week', 'month'] as const)('reviews %s and does not add a mandatory advice block', async (period) => {
   writer.mockResolvedValue({ content: JSON.stringify({ title: 'Приятное время', body: 'Захочется поделиться тем, что тебя радует. Хорошие разговоры найдутся сами.', action_type: 'stop', action_text: 'Не торопись.' }) });
   const result = await generatePersonalForecastPackage({ ...base, period, window: resolvePersonalForecastWindow(period, period === 'week' ? '2026-W30' : '2026-07', 'Europe/Moscow') });
