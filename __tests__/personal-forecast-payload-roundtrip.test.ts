@@ -1,7 +1,8 @@
 const getPrimary=jest.fn(),getByUser=jest.fn(),upsertByUser=jest.fn(),request=jest.fn();
 jest.mock('../lib/natalChartV2Repository',()=>({natalChartV2Repository:{getPrimary}}));
-jest.mock('../lib/db',()=>({db:{content_interpretations:{getByUser,upsertByUser}},getPool:()=>({query:jest.fn()})}));
+jest.mock('../lib/db',()=>({db:{content_interpretations:{getByUser,upsertByUser}},getPool:()=>({query:jest.fn(async()=>({rows:[]}))})}));
 jest.mock('../lib/openaiResponses',()=>({createLunaStructuredResponse:(...args:unknown[])=>request(...args)}));
+jest.mock('../lib/personalForecastToneReview',()=>({reviewPersonalForecastTone:jest.fn(async()=>({accepted:true,reason:'ok'}))}));
 jest.mock('../lib/personalForecastDateContext',()=>({buildPersonalForecastDateContext:()=>({source:'Swiss Ephemeris',samples:[]})}));
 jest.mock('../lib/appSettings',()=>({getUnifiedContentModel:async()=> 'gpt-5.6-luna'}));
 jest.mock('../lib/forecastDeliveryMetrics',()=>({logForecastDeliveryMetric:jest.fn()}));
@@ -15,7 +16,7 @@ const person=samples.people[0], profile=person.profile as UserProfile;
 const context={userId:profile.id!,profile,accessTier:'premium' as const,period:'day' as const,periodKey:'2026-09-08'};
 const inputHash=buildCanonicalNatalInputHash({...profile,latitude:person.chart.birth.latitude,longitude:person.chart.birth.longitude,timezone:person.chart.birth.timezone});
 let stored:any;
-beforeEach(()=>{jest.clearAllMocks();stored=null;getByUser.mockImplementation(async()=>stored);upsertByUser.mockImplementation(async(_:string,value:any)=>{stored=structuredClone(value);});getPrimary.mockResolvedValue({user_id:profile.id,input_hash:inputHash,chart_data:person.chart});request.mockResolvedValue({content:JSON.stringify({title:'A new offer',forecast:'An offer may arrive today. The conversation could reveal a useful detail.'})});});
+beforeEach(()=>{jest.clearAllMocks();stored=null;getByUser.mockImplementation(async()=>stored);upsertByUser.mockImplementation(async(_:string,value:any)=>{stored=structuredClone(value);});getPrimary.mockResolvedValue({user_id:profile.id,input_hash:inputHash,chart_data:person.chart});request.mockResolvedValue({content:JSON.stringify({title:'A good conversation',body:'Today is a good day to share a laugh with someone.',closing:'A little chat can be lovely.'})});});
 it('reads the owner saved chart, writes one complete result and reuses durable cache',async()=>{
  const first=await ensurePersonalForecast(context);expect(first.status).toBe('ready');if(first.status!=='ready')throw Error('Not ready');expect(isPersonalForecastPackage(first.value)).toBe(true);expect(first.value.sections).toEqual([]);expect(request).toHaveBeenCalledTimes(1);expect(upsertByUser).toHaveBeenCalledTimes(1);
  const again=await ensurePersonalForecast(context);expect(again.status).toBe('ready');expect(request).toHaveBeenCalledTimes(1);expect(upsertByUser).toHaveBeenCalledTimes(1);

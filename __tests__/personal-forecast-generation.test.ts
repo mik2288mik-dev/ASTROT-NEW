@@ -1,4 +1,5 @@
 jest.mock('../lib/openaiResponses', () => ({ createLunaStructuredResponse: jest.fn() }));
+jest.mock('../lib/personalForecastToneReview', () => ({ reviewPersonalForecastTone: jest.fn(async () => ({ accepted: true, reason: 'ok' })) }));
 jest.mock('../lib/personalForecastDateContext', () => ({ buildPersonalForecastDateContext: jest.fn(() => ({ source: 'Swiss Ephemeris', samples: [{ date: '2026-07-26' }] })) }));
 import { createLunaStructuredResponse } from '../lib/openaiResponses';
 import { generatePersonalForecastPackage } from '../lib/personalForecastGeneration';
@@ -13,7 +14,7 @@ it('uses the NEBO Today voice, saved chart, date calculation and complete readin
   writer.mockResolvedValue({content:JSON.stringify({title:'A new offer',body:'An unexpected offer may arrive. Its details may change after a conversation.',closing:'Good luck'})});
   const result=await generatePersonalForecastPackage(input);
   expect(writer).toHaveBeenCalledTimes(1);
-  expect(writer.mock.calls[0][0].instructions).toContain('NEBO VOICE');
+  expect(writer.mock.calls[0][0].instructions).toContain('ЕДИНЫЙ ГОЛОС NEBO');
   expect(writer.mock.calls[0][0].instructions).toContain('title, body и closing');
   const data=JSON.parse(writer.mock.calls[0][0].input);
   expect(data.birth.name).toBe('Test');
@@ -73,14 +74,16 @@ it('does not show an unfinished body or malformed JSON suffix', async()=>{
 });
 it('uses an earlier reading for the same date and the retry reason to avoid repeating it', async()=>{
   writer.mockResolvedValue({content:JSON.stringify({title:'Приятная встреча',body:'Сегодня разговор может закончиться приятнее, чем начался.',closing:'Скажи прямо.'})});
-  await expect(generatePersonalForecastPackage({
+  const result = await generatePersonalForecastPackage({
     ...input,
     history: [{ period: 'day', periodKey: '2026-07-26', fragments: [
       {kind:'title',text:'Приятная встреча',semanticFingerprint:null},
       {kind:'forecast',text:'Вчера разговор оказался приятным.',semanticFingerprint:null},
     ] }],
     retryReason: 'PERSONAL_FORECAST_GENERATION_INVALID:REPEATED_READING',
-  })).rejects.toThrow('PERSONAL_FORECAST_GENERATION_INVALID:REPEATED_READING');
+  });
+  expect(result.overview.title).toBe('Сегодня');
+  expect(result.meta.diagnosticCode).toBe('PERSONAL_FORECAST_PARTIAL_RECOVERY');
   const data=JSON.parse(writer.mock.calls[0][0].input);
   expect(data.recent_history[0].title).toBe('Приятная встреча');
   expect(data.retry_feedback).toContain('повторил недавний прогноз');

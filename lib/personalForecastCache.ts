@@ -350,6 +350,8 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
         } catch (error) {
           lastError = error;
           retryReason = error instanceof Error ? error.message : String(error);
+          // Rewriting cannot repair an unavailable reviewer; avoid repeated paid writer calls.
+          if (retryReason.startsWith('PERSONAL_FORECAST_TONE_REVIEW_UNAVAILABLE')) break;
         }
       }
 

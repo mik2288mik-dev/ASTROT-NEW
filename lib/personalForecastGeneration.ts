@@ -1,16 +1,19 @@
 import type { UserProfile } from '../types';
 import { createLunaStructuredResponse } from './openaiResponses';
 import { getPersonalForecastVoiceViolationCodes } from './appVoice';
+import { getPersonalForecastToneViolationCodes } from './personalForecastTone';
+import { reviewPersonalForecastTone } from './personalForecastToneReview';
 import type { NatalChartDataV2 } from './natalChartV2Types';
 import { buildPersonalForecastDateContext } from './personalForecastDateContext';
 import {
   buildForecastLockedPreview, createUnavailablePersonalForecast,
   getPersonalForecastRawProfile, getPersonalForecastPackageValidationError, stableHash,
+  resolvePersonalForecastWindow,
   type PersonalForecastPackage, type PersonalForecastPeriod, type PersonalForecastWindow,
   type PersonalForecastSemanticSignature,
 } from './personalForecastContract';
 
-// Only the current reader's recent Today texts are passed to the Today writer.
+// Only the current reader's own recent texts are passed to the writer and reviewer.
 export const PERSONAL_FORECAST_CROSS_USER_REPEAT_FRAGMENT_LIMIT = 256;
 export type PersonalForecastRepeatFragment = {
   kind?: 'title' | 'forecast' | 'closing' | 'headline' | 'fragment';
@@ -44,12 +47,16 @@ export interface PersonalForecastGenerationInput {
   retryReason?: string;
 }
 
-function recentDayReadings(input: PersonalForecastGenerationInput) {
-  const targetDate = Date.parse(input.window.periodKey);
+function recentPeriodReadings(input: PersonalForecastGenerationInput) {
+  const targetDate = Date.parse(input.window.periodStart);
+  const readingDate = (periodKey: string) => {
+    try { return Date.parse(resolvePersonalForecastWindow(input.period, periodKey, input.window.timezone).periodStart); }
+    catch { return Number.NaN; }
+  };
   return (input.history || [])
-    .filter((item) => item.period === 'day')
-    .sort((left, right) => Math.abs(Date.parse(left.periodKey) - targetDate)
-      - Math.abs(Date.parse(right.periodKey) - targetDate))
+    .filter((item) => item.period === input.period)
+    .sort((left, right) => Math.abs(readingDate(left.periodKey) - targetDate)
+      - Math.abs(readingDate(right.periodKey) - targetDate))
     .slice(0, 8)
     .map((item) => ({
       date: item.periodKey,
@@ -60,7 +67,7 @@ function recentDayReadings(input: PersonalForecastGenerationInput) {
     }));
 }
 
-function repeatsRecentReading(title: string, body: string, history: ReturnType<typeof recentDayReadings>): boolean {
+function repeatsRecentReading(title: string, body: string, history: ReturnType<typeof recentPeriodReadings>): boolean {
   const normalize = (value: string) => value.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
   const words = (value: string) => new Set(normalize(value).split(' ').filter((word) => word.length >= 5));
   const currentTitle = normalize(title);
@@ -188,6 +195,21 @@ function dayRetryFeedback(reason: string | undefined, language: 'ru' | 'en'): st
       ? 'Предыдущий текст повторил недавний прогноз. Найди другое подтверждённое наблюдение в расчёте и напиши новый сюжет и заголовок.'
       : 'The previous draft repeated a recent reading. Find another supported observation in the calculation and write a new story and title.';
   }
+  if (reason.endsWith(':TONE:STYLE')) {
+    return language === 'ru'
+      ? 'Предыдущий текст звучал искусственно или слишком книжно. Напиши новый прогноз обычными словами, как сообщение другу, без красивых пустых фраз.'
+      : 'The previous reading sounded stiff or artificial. Rewrite it in ordinary conversational language without empty decorative phrases.';
+  }
+  if (reason.includes(':TONE:ASTROLOGY_JARGON')) {
+    return language === 'ru'
+      ? 'Предыдущий текст показал астрологические термины. Напиши приятный прогноз обычными словами, не называя планеты, аспекты, транзиты или натальную карту.'
+      : 'The previous reading exposed astrology terminology. Rewrite it in ordinary language without planets, aspects, transits or birth charts.';
+  }
+  if (reason.includes(':TONE:')) {
+    return language === 'ru'
+      ? 'Предыдущий текст получился тревожным, проблемным или повторил недавний сюжет. Напиши новый приятный и спокойный прогноз на другую подходящую тему, без предупреждений и обязательных советов.'
+      : 'The previous reading was negative or repeated a recent story. Write a pleasant, calm reading on a different supported theme, without warnings or obligatory advice.';
+  }
   return language === 'ru'
     ? 'Предыдущий текст не прошёл проверку. Напиши новый цельный прогноз и короткий финал по переданному расчёту.'
     : 'The previous draft failed validation. Write a new coherent reading and short closing grounded in the calculation.';
@@ -201,7 +223,7 @@ export async function generatePersonalForecastPackage(
   let systemPrompt: string;
   let writerInput: any;
   let schema: any;
-  const recentReadings = input.period === 'day' ? recentDayReadings(input) : [];
+  const recentReadings = recentPeriodReadings(input);
 
   if (input.period === 'day') {
     const formattedDate = input.window.periodStart.substring(0, 10);
@@ -244,6 +266,7 @@ export async function generatePersonalForecastPackage(
       saved_natal_calculation: { positions: input.natal.positions, houses: input.natal.houses, aspects: input.natal.aspects, quality: input.natal.chartQuality },
       selected_date_calculation: dateCalculation,
       selected_date: { period: input.period, start: input.window.periodStart, end: input.window.periodEnd, timezone: input.window.timezone },
+      recent_history: recentReadings,
       ...(retryFeedback ? { retry_feedback: retryFeedback } : {}),
     };
 
@@ -329,15 +352,35 @@ export async function generatePersonalForecastPackage(
       ...getPersonalForecastVoiceViolationCodes(`${title} ${text}`),
       ...periodSpokenViolations(raw.body as string, input.profile.name),
     ];
-    if (periodVoiceViolations.length && !input.retryReason) {
+    if (periodVoiceViolations.length && !input.retryReason?.includes(':VOICE:')) {
       throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:VOICE:${periodVoiceViolations.join(',')}`);
     }
-    actionType = (raw.action_type === 'buy' || raw.action_type === 'talk' || raw.action_type === 'move' || raw.action_type === 'stop') ? raw.action_type as string : null;
-    actionText = typeof raw.action_text === 'string' ? raw.action_text.trim() : null;
+    // Period forecasts are a single reading; do not add a mandatory advice block.
+    actionType = null;
+    actionText = null;
   }
 
   if (hasUnsafeClaim(`${title} ${text} ${closingText}`)) {
     throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:UNSAFE_CLAIM');
+  }
+
+  const visibleClosing = closingText === 'none' ? '' : closingText;
+  const toneViolations = getPersonalForecastToneViolationCodes(`${title}\n${text}\n${visibleClosing}`);
+  if (toneViolations.length) {
+    throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:TONE:${toneViolations.join(',')}`);
+  }
+  let toneReview: Awaited<ReturnType<typeof reviewPersonalForecastTone>>;
+  try {
+    toneReview = await reviewPersonalForecastTone({
+      reading: { title, body: text, closing: visibleClosing },
+      history: recentReadings,
+      language,
+    });
+  } catch {
+    throw new Error('PERSONAL_FORECAST_TONE_REVIEW_UNAVAILABLE');
+  }
+  if (!toneReview.accepted) {
+    throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:TONE:${toneReview.reason.toUpperCase()}`);
   }
 
   const result = createUnavailablePersonalForecast(input.period, input.window.periodKey,
@@ -386,6 +429,9 @@ export function getPersonalForecastGenerationDiagnosticCode(
   }
   if (message.startsWith('PERSONAL_FORECAST_EVIDENCE_EMPTY')) {
     return 'PERSONAL_FORECAST_EVIDENCE_EMPTY';
+  }
+  if (message.startsWith('PERSONAL_FORECAST_TONE_REVIEW_UNAVAILABLE')) {
+    return 'PERSONAL_FORECAST_WRITER_UNAVAILABLE';
   }
   if (message.startsWith('PERSONAL_FORECAST_GENERATION_INVALID')) {
     return 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED';
