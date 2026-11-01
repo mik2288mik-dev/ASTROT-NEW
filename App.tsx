@@ -105,7 +105,7 @@ import {
     type FeatureKey,
 } from './lib/accessMatrix';
 import { captureAppHomeLayout, installAppDebugGlobal, appDebugLog } from './lib/appDebug';
-import { clearNatalUnifiedReadingCache, waitForPreparedNatalReading } from './services/natalUnifiedReadingService';
+import { clearNatalUnifiedReadingCache } from './services/natalUnifiedReadingService';
 import {
     clearPersonalForecastSessionCache,
 } from './services/personalForecastService';
@@ -1269,17 +1269,12 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             console.log('[App] Chart calculated');
             onPhaseChange('reading');
             clearNatalUnifiedReadingCache(safeUserId);
-            const preparedChartId = await getPrimaryChartId(safeUserId);
-            await waitForPreparedNatalReading({
-                userId: safeUserId, chartData: generatedChart,
-                chartId: preparedChartId ?? undefined,
-                language: canonicalFullProfile.language, tier: 'free',
-            }, { isCurrent: () => primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken) });
-            if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return false;
+            // A saved, readable natal chart completes onboarding. The AI reading is
+            // prepared separately by the server and must never block the first entry.
+            // A failed or slow writer cannot make the already saved chart unusable.
 
-            // Завершение фиксируется только после готовой карты. Повтор после сбоя
-            // безопасен: профиль обновляется по тому же ID, а chartService читает
-            // уже созданную primary chart вместо параллельного расчёта.
+            // Повтор после сбоя безопасен: профиль обновляется по тому же ID,
+            // а chartService читает уже созданную primary chart без нового расчёта.
             if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return false;
             await saveProfile(canonicalFullProfile);
             if (!primaryChartRequestGuardRef.current.isCurrent(onboardingChartToken)) return false;
