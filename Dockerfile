@@ -13,7 +13,10 @@ RUN apk add --no-cache python3 make g++ libc6-compat && \
     ln -sf python3 /usr/bin/python
 
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# node:22-alpine includes the matching Node.js headers. Use them for native
+# dependencies instead of downloading headers from nodejs.org during the build.
+RUN test -f /usr/local/include/node/node.h && \
+    npm_config_nodedir=/usr/local npm ci --no-audit --no-fund
 
 ENV NEXT_TELEMETRY_DISABLED=1
 # The server deployment is the Telegram WebApp. Native store artifacts always
