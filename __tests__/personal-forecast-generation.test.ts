@@ -1,6 +1,5 @@
 jest.mock('../lib/openaiResponses', () => ({ createLunaStructuredResponse: jest.fn() }));
-jest.mock('../lib/personalForecastToneReview', () => ({ reviewPersonalForecastTone: jest.fn(async () => ({ accepted: true, reason: 'ok' })) }));
-jest.mock('../lib/personalForecastDateContext', () => ({ buildPersonalForecastDateContext: jest.fn(() => ({ source: 'Swiss Ephemeris', samples: [{ date: '2026-07-26' }] })) }));
+jest.mock('../lib/personalForecastDateContext', () => ({ buildPersonalForecastDateContext: jest.fn(() => ({ source: 'Swiss Ephemeris', timezone: 'Europe/Moscow', samples: [{ date: '2026-07-26', positions: {}, aspectsToSavedChart: [{ transitPlanet: 'venus', natalPlanet: 'sun', type: 'trine', orb: 1, tone: 'support' }, { transitPlanet: 'mars', natalPlanet: 'sun', type: 'square', orb: 2, tone: 'pressure' }] }] })) }));
 import { createLunaStructuredResponse } from '../lib/openaiResponses';
 import { generatePersonalForecastPackage } from '../lib/personalForecastGeneration';
 import { resolvePersonalForecastWindow, getPersonalForecastPackageValidationError } from '../lib/personalForecastContract';
@@ -26,27 +25,26 @@ it('uses the NEBO Today voice, saved chart, date calculation and complete readin
   expect(result.overview.text).toBe('An unexpected offer may arrive. Its details may change after a conversation.\n\nGood luck');
   expect(getPersonalForecastPackageValidationError(result)).toBeNull();
 });
-it('rejects banned wording in the body before it reaches the cache', async()=>{
+it('keeps a generated body even if it contains astrology wording', async()=>{
   writer.mockResolvedValue({content:JSON.stringify({
     title:'Приятный разговор',
-    body:'Не распыляйся.',
+    body:'Твоя карта показывает перемены.',
     closing:'Приятное впечатление останется.',
   })});
-  await expect(generatePersonalForecastPackage(input)).rejects.toThrow('PERSONAL_FORECAST_GENERATION_INVALID:VOICE');
+  expect((await generatePersonalForecastPackage(input)).overview.text).toContain('Твоя карта показывает перемены.');
 });
-it.each(['title','closing'] as const)('keeps a checked body when %s is rejected', async field=>{
+it.each(['title','closing'] as const)('preserves generated wording in %s', async field=>{
   const body = 'Сегодня разговор может пройти легко. Ты услышишь деталь, которую раньше пропускал.';
   writer.mockResolvedValue({content:JSON.stringify({
     title:'Приятный разговор', body, closing:'Приятное впечатление останется.',
-    [field]:'Не распыляйся.',
+    [field]:'Твоя карта показывает перемены.',
   })});
   const result = await generatePersonalForecastPackage(input);
-  expect(result.meta.diagnosticCode).toBe('PERSONAL_FORECAST_PARTIAL_RECOVERY');
+  expect(result.meta.diagnosticCode).toBeNull();
   expect(result.meta.status).toBe('ready');
   expect(result.meta.validationStatus).toBe('valid');
-  expect(result.overview.title).toBe(field === 'title' ? 'Сегодня' : 'Приятный разговор');
-  expect(result.overview.text).toBe(field === 'closing' ? body : `${body}\n\nПриятное впечатление останется.`);
-  expect(result.overview.text).not.toContain('Не распыляйся');
+  expect(result.overview.title).toBe(field === 'title' ? 'Твоя карта показывает перемены.' : 'Приятный разговор');
+  expect(result.overview.text).toBe(field === 'closing' ? `${body}\n\nТвоя карта показывает перемены.` : `${body}\n\nПриятное впечатление останется.`);
   expect(getPersonalForecastPackageValidationError(result)).toBeNull();
 });
 it('keeps only finished fields from a max-token response with a cut-off closing', async()=>{
@@ -61,7 +59,7 @@ it('keeps only finished fields from a max-token response with a cut-off closing'
   expect(result.meta.diagnosticCode).toBe('PERSONAL_FORECAST_PARTIAL_RECOVERY');
   expect(getPersonalForecastPackageValidationError(result)).toBeNull();
 });
-it('does not show an unfinished body or malformed JSON suffix', async()=>{
+it('recovers a readable truncated body or completed body before malformed suffix', async()=>{
   writer.mockResolvedValueOnce({
     content: '{"title":"A new offer","body":"An unfinished',
     incompleteReason: 'max_output_tokens',
@@ -69,8 +67,8 @@ it('does not show an unfinished body or malformed JSON suffix', async()=>{
     content: '{"title":"A new offer","body":"A complete sentence.",oops',
     incompleteReason: 'max_output_tokens',
   });
-  await expect(generatePersonalForecastPackage(input)).rejects.toThrow('PERSONAL_FORECAST_GENERATION_INVALID');
-  await expect(generatePersonalForecastPackage(input)).rejects.toThrow('PERSONAL_FORECAST_GENERATION_INVALID');
+  expect((await generatePersonalForecastPackage(input)).overview.text).toBe('An unfinished');
+  expect((await generatePersonalForecastPackage(input)).overview.text).toBe('A complete sentence.');
 });
 it('uses an earlier reading for the same date and the retry reason to avoid repeating it', async()=>{
   writer.mockResolvedValue({content:JSON.stringify({title:'Приятная встреча',body:'Сегодня разговор может закончиться приятнее, чем начался.',closing:'Скажи прямо.'})});
@@ -82,15 +80,34 @@ it('uses an earlier reading for the same date and the retry reason to avoid repe
     ] }],
     retryReason: 'PERSONAL_FORECAST_GENERATION_INVALID:REPEATED_READING',
   });
-  expect(result.overview.title).toBe('Сегодня');
-  expect(result.meta.diagnosticCode).toBe('PERSONAL_FORECAST_PARTIAL_RECOVERY');
+  expect(result.overview.title).toBe('Приятная встреча');
+  expect(result.meta.diagnosticCode).toBeNull();
   const data=JSON.parse(writer.mock.calls[0][0].input);
   expect(data.recent_history[0].title).toBe('Приятная встреча');
   expect(data.retry_feedback).toContain('повторил недавний прогноз');
 });
-it.each([{title:'',body:'text'},{title:'Title',body:''},{title:'Guaranteed',body:'guaranteed'}])('rejects empty or unsafe writer output', async output=>{
+it.each([{title:'Title',body:''},{}])('rejects output with no reading', async output=>{
   writer.mockResolvedValue({content:JSON.stringify(output)});
   await expect(generatePersonalForecastPackage(input)).rejects.toThrow('PERSONAL_FORECAST_GENERATION_INVALID');
+});
+it('uses a generic title when the writer returned only a body', async()=>{
+  writer.mockResolvedValue({content:JSON.stringify({title:'',body:'Любой полученный прогноз',closing:''})});
+  const result = await generatePersonalForecastPackage(input);
+  expect(result.overview.title).toBe('Личный прогноз');
+  expect(result.overview.text).toBe('Любой полученный прогноз');
+  expect(result.meta.diagnosticCode).toBeNull();
+});
+it('shows a readable closing if the body is missing', async()=>{
+  writer.mockResolvedValue({content:JSON.stringify({title:'День',body:'',closing:'Сегодня можно сделать паузу.'})});
+  expect((await generatePersonalForecastPackage(input)).overview.text).toBe('Сегодня можно сделать паузу.');
+});
+it('shows a plain-text response without exposing raw JSON', async()=>{
+  writer.mockResolvedValue({content:'Сегодня интерес к музыке вырастет.'});
+  expect((await generatePersonalForecastPackage(input)).overview.text).toBe('Сегодня интерес к музыке вырастет.');
+});
+it('does not mistake broken structured data for a forecast', async()=>{
+  writer.mockResolvedValue({content:'[{"body":'});
+  await expect(generatePersonalForecastPackage(input)).rejects.toThrow('PERSONAL_FORECAST_GENERATION_INVALID:INVALID_JSON');
 });
 it('does not substitute a canned reading on provider failure',async()=>{
   writer.mockRejectedValue(new Error('provider down'));
