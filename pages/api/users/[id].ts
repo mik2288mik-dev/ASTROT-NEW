@@ -100,9 +100,18 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     if(data.gender!==undefined){const gender=String(data.gender??'');dbUser.gender=['male','female','unspecified'].includes(gender)?gender:null;}
     const saved=await db.users.updateExisting(userId,dbUser);
     if(!saved)return res.status(401).json({error:'APP_SESSION_REVOKED',message:'This account no longer exists'});
-    if(natalChartForPreparation) await enqueueNatalReadingPreparation(
-      natalChartForPreparation, dbUser.language === 'en' ? 'en' : 'ru',
-    );
+    // The canonical chart and profile were already saved. AI preparation
+    // is best-effort and must not turn a successful profile write into HTTP 500.
+    if(natalChartForPreparation) {
+      try {
+        await enqueueNatalReadingPreparation(
+          natalChartForPreparation, dbUser.language === 'en' ? 'en' : 'ru',
+        );
+      } catch(error) {
+        log.warn('Natal reading preparation queue failed after chart save',
+          error instanceof Error ? error.message : String(error));
+      }
+    }
     await saveNotificationFrequency(userId,data.notificationFrequency);
     const refreshed=await db.users.get(userId);
     const birthSettings=await birthProfileRepository.get(userId);
