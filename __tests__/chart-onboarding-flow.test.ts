@@ -24,7 +24,9 @@ describe('chart onboarding and lazy sections', () => {
     expect(app).toContain('isSetup: true');
     expect(app).toContain('await saveProfile(canonicalFullProfile)');
     expect(app).toContain('buildNatalChartCacheKey(canonicalFullProfile)');
-    expect(app.indexOf('await waitForPreparedNatalReading({'))
+    expect(app).not.toContain('await waitForPreparedNatalReading({');
+    expect(app).toContain('A saved, readable natal chart completes onboarding.');
+    expect(app.indexOf('const generatedChart = await getOrCalculateChart('))
       .toBeLessThan(app.indexOf('await saveProfile(canonicalFullProfile)'));
   });
 
