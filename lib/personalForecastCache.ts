@@ -312,13 +312,10 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
       const history = allHistory.filter(h => h.period === input.period);
       
       let forecast: PersonalForecastPackage | null = null;
-      let partialBackup: PersonalForecastPackage | null = null;
-      let partialBackupSaved = false;
       let lastError: unknown = null;
       let retryReason: string | undefined = undefined;
 
-      // The day writer is held to the strict NEBO voice validator, so it gets one
-      // more chance before the reader sees an error; weeks and months keep two.
+      // Retry only when no usable forecast was produced.
       const maxAttempts = input.period === 'day' ? 3 : 2;
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
@@ -330,40 +327,20 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
           if (!isPersonalForecastPackage(generated)) {
             throw new Error(`PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(generated) || 'UNKNOWN'}`);
           }
-          if (generated.meta.diagnosticCode === 'PERSONAL_FORECAST_PARTIAL_RECOVERY') {
-            if (!partialBackup) {
-              partialBackup = generated;
-              try {
-                // Make safe generated text visible to concurrent GET polling while
-                // the same lock is still attempting a complete replacement.
-                await save(input, generated, resolved);
-                partialBackupSaved = true;
-              } catch (error) {
-                lastError = error;
-              }
-            }
-            retryReason = 'PERSONAL_FORECAST_GENERATION_INVALID:PARTIAL_OUTPUT';
-            continue;
-          }
           forecast = generated;
           break;
         } catch (error) {
           lastError = error;
           retryReason = error instanceof Error ? error.message : String(error);
-          // Rewriting cannot repair an unavailable reviewer; avoid repeated paid writer calls.
-          if (retryReason.startsWith('PERSONAL_FORECAST_TONE_REVIEW_UNAVAILABLE')) break;
         }
       }
 
-      if (!forecast) forecast = partialBackup;
       if (!forecast) throw lastError;
 
       // A generated package is not ready until it is durably stored. Swallowing
       // this error reports a false success and leaves every later GET at 204.
       try {
-        if (forecast !== partialBackup || !partialBackupSaved) {
-          await save(input, forecast, resolved);
-        }
+        await save(input, forecast, resolved);
       } catch (cause) {
         const error = new Error('PERSONAL_FORECAST_CACHE_WRITE_FAILED') as Error & {
           code?: string;

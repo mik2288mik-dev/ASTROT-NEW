@@ -17,14 +17,15 @@ import { buildCanonicalNatalInputHash } from '../lib/natalChartCanonical';
 import samples from './fixtures/readingSamples.json';
 import type { UserProfile } from '../types';
 
-it('does not regenerate or save a reading when tone review is unavailable', async () => {
+it('retries when the provider produced no readable forecast and never saves an empty result', async () => {
   const person = samples.people[0];
   const profile = person.profile as UserProfile;
   const inputHash = buildCanonicalNatalInputHash({ ...profile, latitude: person.chart.birth.latitude, longitude: person.chart.birth.longitude, timezone: person.chart.birth.timezone });
   getPrimary.mockResolvedValue({ user_id: profile.id, input_hash: inputHash, chart_data: person.chart });
-  generate.mockRejectedValue(new Error('PERSONAL_FORECAST_TONE_REVIEW_UNAVAILABLE'));
+  generate.mockRejectedValue(new Error('PERSONAL_FORECAST_GENERATION_INVALID:EMPTY_READING'));
   await expect(ensurePersonalForecast({ userId: profile.id!, profile, accessTier: 'premium', period: 'day', periodKey: '2026-09-08' }))
-    .rejects.toThrow('PERSONAL_FORECAST_TONE_REVIEW_UNAVAILABLE');
-  expect(generate).toHaveBeenCalledTimes(1);
+    .rejects.toThrow('PERSONAL_FORECAST_GENERATION_INVALID:EMPTY_READING');
+  expect(generate).toHaveBeenCalledTimes(3);
+  expect(generate.mock.calls[1][0].retryReason).toBe('PERSONAL_FORECAST_GENERATION_INVALID:EMPTY_READING');
   expect(upsertByUser).not.toHaveBeenCalled();
 });

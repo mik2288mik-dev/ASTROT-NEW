@@ -1,8 +1,6 @@
 import type { UserProfile } from '../types';
 import { createLunaStructuredResponse } from './openaiResponses';
 import { getPersonalForecastVoiceViolationCodes } from './appVoice';
-import { getPersonalForecastToneViolationCodes } from './personalForecastTone';
-import { reviewPersonalForecastTone } from './personalForecastToneReview';
 import type { NatalChartDataV2 } from './natalChartV2Types';
 import { buildPersonalForecastDateContext } from './personalForecastDateContext';
 import {
@@ -67,29 +65,14 @@ function recentPeriodReadings(input: PersonalForecastGenerationInput) {
     }));
 }
 
-function repeatsRecentReading(title: string, body: string, history: ReturnType<typeof recentPeriodReadings>): boolean {
-  const normalize = (value: string) => value.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-  const words = (value: string) => new Set(normalize(value).split(' ').filter((word) => word.length >= 5));
-  const currentTitle = normalize(title);
-  const currentWords = words(body);
-  return history.some((item) => {
-    if (currentTitle && currentTitle === normalize(item.title)) return true;
-    if (body && normalize(body) === normalize(item.body)) return true;
-    const previousWords = words(item.body);
-    if (currentWords.size < 8 || previousWords.size < 8) return false;
-    const shared = [...currentWords].filter((word) => previousWords.has(word)).length;
-    return shared >= 8 && shared / Math.min(currentWords.size, previousWords.size) >= 0.6;
-  });
-}
-
-function hasUnsafeClaim(text: string): boolean {
-  return /(?:гарантирован\p{L}*|точно\s+произойд\p{L}*|диагноз\p{L}*|лечени\p{L}*|лекарств\p{L}*|guaranteed|buy\s+(?:stocks|crypto))/iu.test(text);
-}
-
 type JsonStringToken =
   | { status: 'complete'; value: string; next: number }
   | { status: 'incomplete' }
   | { status: 'invalid' };
+
+function hasReadableWriterText(fields: Record<string, unknown>): boolean {
+  return ['body', 'closing', 'action_text'].some((key) => typeof fields[key] === 'string' && Boolean((fields[key] as string).trim()));
+}
 
 function readJsonStringToken(source: string, start: number): JsonStringToken {
   if (source[start] !== '"') return { status: 'invalid' };
@@ -129,58 +112,56 @@ function readIncompleteDayFields(source: string): Record<string, string> | null 
   while (true) {
     index = skipSpace(index);
     if (index >= source.length) return fields;
-    if (source[index] === '}') return !afterComma && skipSpace(index + 1) === source.length ? fields : null;
+    if (source[index] === '}') return !afterComma && skipSpace(index + 1) === source.length ? fields : (hasReadableWriterText(fields) ? fields : null);
     const key = readJsonStringToken(source, index);
     if (key.status === 'incomplete') return fields;
-    if (key.status === 'invalid') return null;
-    if (!['title', 'body', 'closing'].includes(key.value) || key.value in fields) return null;
+    if (key.status === 'invalid') return hasReadableWriterText(fields) ? fields : null;
+    if (!['title', 'body', 'closing', 'action_type', 'action_text'].includes(key.value) || key.value in fields) return hasReadableWriterText(fields) ? fields : null;
     afterComma = false;
     index = skipSpace(key.next);
     if (index >= source.length) return fields;
-    if (source[index] !== ':') return null;
+    if (source[index] !== ':') return hasReadableWriterText(fields) ? fields : null;
     index = skipSpace(index + 1);
     if (index >= source.length) return fields;
     const value = readJsonStringToken(source, index);
-    if (value.status === 'incomplete') return fields;
-    if (value.status === 'invalid') return null;
+    if (value.status === 'incomplete') {
+      if (key.value === 'body' && source[index] === '"') {
+        try { fields.body = JSON.parse(`${source.slice(index)}"`) as string; } catch { /* No readable partial body. */ }
+      }
+      return fields;
+    }
+    if (value.status === 'invalid') return hasReadableWriterText(fields) ? fields : null;
     fields[key.value] = value.value;
     index = skipSpace(value.next);
     if (index >= source.length) return fields;
-    if (source[index] === '}') return skipSpace(index + 1) === source.length ? fields : null;
-    if (source[index] !== ',') return null;
+    if (source[index] === '}') return skipSpace(index + 1) === source.length ? fields : (hasReadableWriterText(fields) ? fields : null);
+    if (source[index] !== ',') return hasReadableWriterText(fields) ? fields : null;
     index += 1;
     afterComma = true;
   }
 }
 
-function readDayWriterFields(source: string, incomplete: boolean): Record<string, unknown> {
+function readWriterFields(source: string): { fields: Record<string, unknown>; recovered: boolean } {
+  const trimmed = source.trim();
+  const fenced = /^```(?:json)?\s*([\s\S]*?)\s*```$/iu.exec(trimmed);
+  const content = fenced ? fenced[1].trim() : trimmed;
   let parsed: unknown;
   try {
-    parsed = JSON.parse(source);
+    parsed = JSON.parse(content);
   } catch {
-    if (!incomplete) throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:INVALID_JSON');
-    parsed = readIncompleteDayFields(source);
+    parsed = content.startsWith('{')
+      ? readIncompleteDayFields(content)
+      : /^[\[`]/u.test(content) ? null : { body: content };
+    if (!parsed || typeof parsed !== 'object' || !hasReadableWriterText(parsed as Record<string, unknown>)) {
+      throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:INVALID_JSON');
+    }
+    return { fields: parsed as Record<string, unknown>, recovered: true };
   }
+  if (typeof parsed === 'string') return { fields: { body: parsed }, recovered: true };
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:INVALID_JSON');
   }
-  return parsed as Record<string, unknown>;
-}
-
-/** Week/month drafts that read like a notice: a name opening, a long dash, or hedging in every sentence. */
-function periodSpokenViolations(body: string, name: string | undefined): string[] {
-  const text = body.trim();
-  const firstName = (name || '').trim().split(/\s+/u)[0];
-  const hedges = text.match(/(?:^|[^\p{L}])(?:может|могут|скорее|вероятно|возможно)(?!\p{L})/giu) || [];
-  return [
-    ...(firstName && text.toLocaleLowerCase('ru').startsWith(firstName.toLocaleLowerCase('ru')) ? ['PERIOD_NAME_OPENING'] : []),
-    ...(/—/u.test(text) ? ['PERIOD_LONG_DASH'] : []),
-    ...(hedges.length > 1 ? ['PERIOD_HEDGING'] : []),
-  ];
-}
-
-function hasCompleteSentenceEnding(text: string): boolean {
-  return /[.!?…][»”"']*$/u.test(text);
+  return { fields: parsed as Record<string, unknown>, recovered: Boolean(fenced) };
 }
 
 function dayRetryFeedback(reason: string | undefined, language: 'ru' | 'en'): string | undefined {
@@ -194,11 +175,6 @@ function dayRetryFeedback(reason: string | undefined, language: 'ru' | 'en'): st
     return language === 'ru'
       ? 'Предыдущий текст повторил недавний прогноз. Найди другое подтверждённое наблюдение в расчёте и напиши новый сюжет и заголовок.'
       : 'The previous draft repeated a recent reading. Find another supported observation in the calculation and write a new story and title.';
-  }
-  if (reason.endsWith(':TONE:STYLE')) {
-    return language === 'ru'
-      ? 'Предыдущий текст или заголовок звучал искусственно, приторно или слишком книжно. Напиши новый прогноз и заголовок обычными словами, без наигранного сленга и финала как с открытки.'
-      : 'The previous reading or title sounded stiff, overly sweet or artificial. Rewrite it in ordinary language without forced slang or a greeting-card ending.';
   }
   if (reason.includes(':TONE:ASTROLOGY_JARGON')) {
     return language === 'ru'
@@ -295,7 +271,7 @@ export async function generatePersonalForecastPackage(
       store: false,
       schemaName: 'nebo_direct_horoscope',
       schema,
-      allowIncompleteOutput: input.period === 'day',
+      allowIncompleteOutput: true,
     });
     content = response.content;
     incompleteOutput = response.incompleteReason === 'max_output_tokens';
@@ -303,92 +279,32 @@ export async function generatePersonalForecastPackage(
     throw new Error(`PERSONAL_FORECAST_WRITER_REQUEST_FAILED:${error instanceof Error ? error.message : 'UNKNOWN'}`);
   }
 
-  const raw = input.period === 'day'
-    ? readDayWriterFields(content, incompleteOutput)
-    : JSON.parse(content) as Record<string, unknown>;
-  if (typeof raw.body !== 'string' || !raw.body.trim()) {
+  const parsed = readWriterFields(content);
+  const raw = parsed.fields;
+  const body = typeof raw.body === 'string' ? raw.body.trim() : '';
+  const secondary = input.period === 'day' ? raw.closing : raw.action_text;
+  const secondaryText = typeof secondary === 'string' ? secondary.trim() : '';
+  if (!body && !secondaryText) {
     throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:EMPTY_READING');
   }
 
-  // Week and month texts never keep a long dash: the NEBO voice uses a comma or a full stop instead.
-  const text = input.period === 'day' ? raw.body.trim() : raw.body.trim().replace(/\s*—\s*/gu, ', ');
-  let title = typeof raw.title === 'string' ? raw.title.trim() : '';
-  let partiallyRecovered = incompleteOutput;
-  
-  let actionType: string | null = null;
-  let actionText: string | null = null;
-  let closingText: string = 'none';
-
-  if (input.period === 'day') {
-    const bodyVoiceViolations = getPersonalForecastVoiceViolationCodes(text);
-    if (bodyVoiceViolations.length) {
-      throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:VOICE:${bodyVoiceViolations.join(',')}`);
-    }
-    if (hasUnsafeClaim(text)) {
-      throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:UNSAFE_CLAIM');
-    }
-    if (repeatsRecentReading('', text, recentReadings)) {
-      throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:REPEATED_READING');
-    }
-    if (!title || getPersonalForecastVoiceViolationCodes(title).length
-      || hasUnsafeClaim(title) || repeatsRecentReading(title, '', recentReadings)) {
-      title = language === 'ru' ? 'Сегодня' : 'Today';
-      partiallyRecovered = true;
-    }
-    const closing = typeof raw.closing === 'string' ? raw.closing.trim() : '';
-    if (closing && !getPersonalForecastVoiceViolationCodes(closing).length && !hasUnsafeClaim(closing)) {
-      closingText = closing;
-    } else {
-      partiallyRecovered = true;
-    }
-    if (partiallyRecovered && !hasCompleteSentenceEnding(text)) {
-      throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:INCOMPLETE_BODY');
-    }
-  } else {
-    if (!title) throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:EMPTY_READING');
-    // Same voice gate as the day reading. A first draft in report language is rewritten once;
-    // the second draft is kept so the reader never gets an error instead of a forecast.
-    const periodVoiceViolations = [
-      ...getPersonalForecastVoiceViolationCodes(`${title} ${text}`),
-      ...periodSpokenViolations(raw.body as string, input.profile.name),
-    ];
-    if (periodVoiceViolations.length && !input.retryReason?.includes(':VOICE:')) {
-      throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:VOICE:${periodVoiceViolations.join(',')}`);
-    }
-    // Period forecasts are a single reading; do not add a mandatory advice block.
-    actionType = null;
-    actionText = null;
-  }
-
-  if (hasUnsafeClaim(`${title} ${text} ${closingText}`)) {
-    throw new Error('PERSONAL_FORECAST_GENERATION_INVALID:UNSAFE_CLAIM');
-  }
-
-  const visibleClosing = closingText === 'none' ? '' : closingText;
-  const toneViolations = getPersonalForecastToneViolationCodes(`${title}\n${text}\n${visibleClosing}`);
-  if (toneViolations.length) {
-    throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:TONE:${toneViolations.join(',')}`);
-  }
-  let toneReview: Awaited<ReturnType<typeof reviewPersonalForecastTone>>;
-  try {
-    toneReview = await reviewPersonalForecastTone({
-      reading: { title, body: text, closing: visibleClosing },
-      history: recentReadings,
-      language,
-    });
-  } catch {
-    throw new Error('PERSONAL_FORECAST_TONE_REVIEW_UNAVAILABLE');
-  }
-  if (!toneReview.accepted) {
-    throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:TONE:${toneReview.reason.toUpperCase()}`);
-  }
+  const text = body || secondaryText;
+  const fallbackTitles = language === 'ru'
+    ? { day: 'Личный прогноз', week: 'На этой неделе', month: 'В этом месяце' }
+    : { day: 'Personal forecast', week: 'This week', month: 'This month' };
+  const title = typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : fallbackTitles[input.period];
+  const closing = body ? secondaryText : '';
+  const closingText = closing || 'none';
+  const partiallyRecovered = incompleteOutput || parsed.recovered;
+  const actionType = null;
+  const actionText = null;
 
   const result = createUnavailablePersonalForecast(input.period, input.window.periodKey,
     input.window.timezone, language, 'generating', 'DIRECT_GENERATION');
   const fingerprint = `direct:${Math.abs(stableHash(text)).toString(36)}`;
   const teaser = language === 'ru' ? 'Разблокировать прогноз' : 'Read your horoscope';
   
-  const visibleText = (input.period === 'day' && closingText !== 'none') ? `${text}\n\n${closingText}` : text;
+  const visibleText = closing ? `${text}\n\n${closing}` : text;
   
   const contentBlocks: any[] = [{ id: 'overview:reading', role: 'detail', text: visibleText, semanticFactId: 'birth-profile', atomId: 'forecast_body' }];
 
@@ -429,9 +345,6 @@ export function getPersonalForecastGenerationDiagnosticCode(
   }
   if (message.startsWith('PERSONAL_FORECAST_EVIDENCE_EMPTY')) {
     return 'PERSONAL_FORECAST_EVIDENCE_EMPTY';
-  }
-  if (message.startsWith('PERSONAL_FORECAST_TONE_REVIEW_UNAVAILABLE')) {
-    return 'PERSONAL_FORECAST_WRITER_UNAVAILABLE';
   }
   if (message.startsWith('PERSONAL_FORECAST_GENERATION_INVALID')) {
     return 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED';

@@ -7,6 +7,7 @@ import * as dateFnsTz from 'date-fns-tz';
 import {
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
+  buildForecastLockedPreview,
   isPersonalForecastPackage,
   slicePersonalForecastForAccess,
   type PersonalForecastAccessPayload,
@@ -257,6 +258,36 @@ describe('released APK personal forecast wire compatibility', () => {
     const body = [projected.forecast.overview, ...projected.forecast.sections];
     // removed exact strings check
     expect(body.map((section) => section.text).join(' ')).toBe(original.forecast.overview.text);
+  });
+
+  it.each(['Свет', 'День подходит для спокойного отдыха', 'Сегодня будет приятный день.'])
+  ('delivers short or unpunctuated text once through released wire formats: %s', (text) => {
+    for (const period of ['day', 'week', 'month'] as const) {
+      for (const premium of period === 'day' ? [false, true] : [true]) {
+        const original = payload(period, premium);
+        original.forecast.overview.text = text;
+        original.forecast.overview.contentBlocks[0].text = text;
+        original.forecast.overview.lockedPreview = buildForecastLockedPreview(text, original.forecast.overview.premiumTeaser);
+        for (const version of [LEGACY_PERSONAL_FORECAST_CONTRACT_VERSION, RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION, 'personal-forecast-feed-v30-nebo-human-voice', 'personal-forecast-feed-v34-direct-prose', PERSONAL_FORECAST_CONTRACT_VERSION]) {
+          const projected = projectPersonalForecastForWire(original, version);
+          const visibleText = [projected.forecast.overview, ...projected.forecast.sections]
+            .filter((section) => !projected.lockedSectionIds.includes(section.id))
+            .map((section) => section.text.replace(/\u2060/gu, ''))
+            .filter(Boolean).join(' ');
+          expect(visibleText).toBe(text);
+          if (version === RELEASED_PERSONAL_FORECAST_CONTRACT_VERSION) {
+            expect(releasedValidator.getPersonalForecastPackageValidationError(projected.forecast, {
+              redactedSectionIds: projected.lockedSectionIds,
+            })).toBeNull();
+          }
+          if (version === 'personal-forecast-feed-v34-direct-prose') {
+            expect(testApkValidator.getPersonalForecastPackageValidationError(projected.forecast, {
+              redactedSectionIds: projected.lockedSectionIds,
+            })).toBeNull();
+          }
+        }
+      }
+    }
   });
 
   it.each<PersonalForecastPeriod>(['week', 'month'])('never serializes a Free %s package or its private brief', (period) => {

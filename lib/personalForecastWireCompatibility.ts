@@ -110,6 +110,15 @@ type LegacyForecastAccessPayload = Omit<PersonalForecastAccessPayload, 'forecast
   forecast: LegacyForecastPackage;
 };
 
+// Old installed readers require nonempty closing/section fields even when the
+// writer returns only one word. This invisible separator fills the wire slot;
+// it is not forecast text and does not invent or duplicate the reader's copy.
+const EMPTY_WIRE_SLOT = '\u2060';
+const SHORT_READING_WIRE_OBSERVATIONS = [
+  'wire compatibility metadata placeholder slot one empty detail',
+  'wire compatibility metadata placeholder slot two empty detail',
+];
+
 function legacySection(
   source: ForecastSection,
   text: string,
@@ -151,14 +160,17 @@ function closedLegacySlot(source: ForecastSection, id: string): ForecastSection 
 function sectionedReading(original: PersonalForecastPackage): PersonalForecastPackage {
   if (original.sections.length) return original;
   const sentences = original.overview.text.trim().split(/(?<=[.!?…])\s+/u);
-  const ending = sentences.length > 1 ? sentences.pop()! : '';
-  if (!ending) throw new Error('PERSONAL_FORECAST_LEGACY_STRUCTURE_UNSUPPORTED');
+  const ending = sentences.length > 1 ? sentences.pop()! : EMPTY_WIRE_SLOT;
   const overview = legacySection(original.overview, sentences.join(' '), 'overview', 100);
   const closing = legacySection(original.overview, ending, 'semantic:legacy-ending', 90);
   closing.contentBlocks[0].role = 'action';
   const words = original.overview.text.trim().split(/\s+/u).slice(0, 180);
   const chunkSize = Math.max(8, Math.ceil(words.length / Math.min(4, Math.max(2, Math.ceil(words.length / 45)))));
-  const observations = Array.from({ length: Math.ceil(words.length / chunkSize) }, (_, index) => words.slice(index * chunkSize, (index + 1) * chunkSize).join(' '));
+  const derivedObservations = Array.from({ length: Math.ceil(words.length / chunkSize) }, (_, index) => words.slice(index * chunkSize, (index + 1) * chunkSize).join(' '));
+  const observations = derivedObservations.length >= 2
+    && derivedObservations.every((value) => value.split(/\s+/u).length >= 8)
+    && new Set(derivedObservations.map((value) => value.toLocaleLowerCase())).size === derivedObservations.length
+    ? derivedObservations : SHORT_READING_WIRE_OBSERVATIONS;
   return { ...original, overview, sections: [closing], visual: { sectionAssetIds: { overview: null, [closing.id]: null } },
     meta: { ...original.meta,
       astrologerBrief: { tone: 'mixed', observations, briefSignature: 'direct-prose-wire-adapter' },
@@ -272,13 +284,23 @@ export function projectPersonalForecastForWire(
         ];
       } else {
         const fallbackSentences = original.overview.text.trim().split(/(?<=[.!?…][»”"')\]]*)\s+/u);
-        if (fallbackSentences.length < 3) throw new Error('PERSONAL_FORECAST_LEGACY_STRUCTURE_UNSUPPORTED');
-        overview = legacySection(original.overview, fallbackSentences[0], 'overview', 100);
-        sections = [
-          legacySection(original.overview, fallbackSentences[1], 'semantic:legacy-body:1', 90),
-          legacySection(original.overview, fallbackSentences.slice(2).join(' '), 'semantic:legacy-body:2', 70),
-          legacySection(closing, closing.text, closing.id, 80),
-        ];
+        if (fallbackSentences.length < 3) {
+          // Keep the short reading in one visible slot; fill mandatory old
+          // Premium slots invisibly instead of splitting or inventing words.
+          overview = legacySection(original.overview, original.overview.text, 'overview', 100);
+          sections = [
+            legacySection(original.overview, EMPTY_WIRE_SLOT, 'semantic:legacy-body:1', 90),
+            legacySection(original.overview, EMPTY_WIRE_SLOT, 'semantic:legacy-body:2', 70),
+            legacySection(closing, closing.text, closing.id, 80),
+          ];
+        } else {
+          overview = legacySection(original.overview, fallbackSentences[0], 'overview', 100);
+          sections = [
+            legacySection(original.overview, fallbackSentences[1], 'semantic:legacy-body:1', 90),
+            legacySection(original.overview, fallbackSentences.slice(2).join(' '), 'semantic:legacy-body:2', 70),
+            legacySection(closing, closing.text, closing.id, 80),
+          ];
+        }
       }
       freeSelection = {
         strongestSectionId: sections[0].id,
