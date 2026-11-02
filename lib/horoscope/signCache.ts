@@ -8,12 +8,11 @@ import { getPool } from '../db';
 import { isoWeekToValidRangeUtc, monthKeyToValidRangeUtc } from '../date-utils';
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../zodiacKeys';
 import {
-  MAX_SIGN_HOROSCOPE_WORDS,
   SIGN_HOROSCOPE_CACHE_VERSION,
   SIGN_HOROSCOPE_MODEL,
+  SIGN_HOROSCOPE_READING_SCHEMA_VERSION,
   cleanSignHoroscopeText,
-  countSignHoroscopeWords,
-  validateSignHoroscopeReading,
+  isReadableSignForecastText,
 } from './signContract';
 
 export type SignHoroscopeCacheSnapshot = {
@@ -41,28 +40,18 @@ function parseJson(value: unknown): unknown {
   }
 }
 
-function legacyBlockText(value: unknown): string {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
-  return cleanSignHoroscopeText((value as Record<string, unknown>).text);
+function readableText(value: unknown): string {
+  return isReadableSignForecastText(value) ? value : '';
 }
 
-function fitLegacyText(headline: string, paragraphs: string[]): string {
-  const remaining = Math.max(0, MAX_SIGN_HOROSCOPE_WORDS - countSignHoroscopeWords(headline));
-  const fitted: string[] = [];
-  let used = 0;
-  for (const paragraph of paragraphs) {
-    const words = paragraph.split(/\s+/u).filter(Boolean);
-    if (used + words.length > remaining) break;
-    fitted.push(paragraph);
-    used += words.length;
-  }
-  if (fitted.length) return fitted.join(' ');
-  return paragraphs[0]?.split(/\s+/u).filter(Boolean).slice(0, remaining).join(' ') || '';
+function legacyBlockText(value: unknown): string {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+  return readableText((value as Record<string, unknown>).text);
 }
 
 function coerceCachedSignReading(
   payload: unknown,
-  expected: { sign: ZodiacKey; period: SignHoroscopePeriod },
+  expected: { sign: ZodiacKey; period: SignHoroscopePeriod; language?: Language },
   fallbackPeriodKey?: string,
 ): SignHoroscopeReadingV2 | null {
   const value = parseJson(payload);
@@ -70,36 +59,31 @@ function coerceCachedSignReading(
   const input = value as Record<string, unknown>;
   if (normalizeZodiacKey(String(input.sign || '')) !== expected.sign || input.period !== expected.period) return null;
 
-  const periodKey = cleanSignHoroscopeText(input.periodKey) || cleanSignHoroscopeText(fallbackPeriodKey);
+  const declaredPeriodKey = cleanSignHoroscopeText(input.periodKey);
+  const sourcePeriodKey = cleanSignHoroscopeText(fallbackPeriodKey);
+  if (declaredPeriodKey && sourcePeriodKey && declaredPeriodKey !== sourcePeriodKey) return null;
+  const periodKey = declaredPeriodKey || sourcePeriodKey;
   if (!periodKey) return null;
 
-  if (typeof input.text === 'string') {
-    const validated = validateSignHoroscopeReading(
-      { headline: input.headline, text: input.text },
-      { ...expected, periodKey, enforceVoice: false },
-    );
-    return validated.ok ? validated.reading : null;
-  }
-
-  const headline = cleanSignHoroscopeText(input.headline);
-  const text = fitLegacyText(headline, [
+  const headline = readableText(input.headline)
+    || (expected.language === 'en' ? 'Forecast' : 'Прогноз');
+  const legacyText = [
     legacyBlockText(input.mood),
     legacyBlockText(input.relationships),
     legacyBlockText(input.work),
     legacyBlockText(input.innerState),
     legacyBlockText(input.advice),
     legacyBlockText(input.warning),
-  ].filter(Boolean));
-  const migrated = validateSignHoroscopeReading(
-    { headline, text },
-    { ...expected, periodKey, enforceVoice: false },
-  );
-  return migrated.ok ? migrated.reading : null;
+  ].filter(Boolean).join('\n\n');
+  const text = readableText(input.text) || legacyText;
+  if (!text) return null;
+  return { schemaVersion: SIGN_HOROSCOPE_READING_SCHEMA_VERSION,
+    sign: expected.sign, period: expected.period, periodKey, headline, text };
 }
 
 export function parseCachedSignReading(
   payload: unknown,
-  expected: { sign: ZodiacKey; period: SignHoroscopePeriod; periodKey: string },
+  expected: { sign: ZodiacKey; period: SignHoroscopePeriod; periodKey: string; language?: Language },
 ): SignHoroscopeReadingV2 | null {
   const reading = coerceCachedSignReading(payload, expected, expected.periodKey);
   return reading?.periodKey === expected.periodKey ? reading : null;
@@ -119,7 +103,7 @@ async function readCurrentSignHoroscope(
     [policyType(period), periodKey, sign, language],
   );
   for (const row of result.rows) {
-    const reading = parseCachedSignReading(row.payload, { sign, period, periodKey });
+    const reading = parseCachedSignReading(row.payload, { sign, period, periodKey, language });
     if (reading) return reading;
   }
   return null;
@@ -135,12 +119,12 @@ async function readLatestContentCacheForecast(
     `SELECT payload, period_key
      FROM content_cache
      WHERE content_type = $1 AND zodiac_sign = $2 AND content_key = $3 AND period_key <= $4
-     ORDER BY (period_key = $4) DESC, updated_at DESC, created_at DESC
+     ORDER BY (period_key = $4) DESC, period_key DESC, updated_at DESC, created_at DESC
      LIMIT 24`,
     [policyType(period), sign, language, currentPeriodKey],
   );
   for (const row of result.rows) {
-    const reading = coerceCachedSignReading(row.payload, { sign, period }, String(row.period_key || ''));
+    const reading = coerceCachedSignReading(row.payload, { sign, period, language }, String(row.period_key || ''));
     if (reading) return reading;
   }
   return null;
@@ -160,7 +144,7 @@ async function readLatestLegacyDailyForecast(
     [`${sign.toLowerCase()}:${language}:%`, currentPeriodKey],
   );
   for (const row of result.rows) {
-    const reading = coerceCachedSignReading(row.content, { sign, period: 'day' }, String(row.period_key || ''));
+    const reading = coerceCachedSignReading(row.content, { sign, period: 'day', language }, String(row.period_key || ''));
     if (reading) return reading;
   }
   return null;
@@ -194,7 +178,7 @@ export async function getCachedSignHoroscopes(
   result.rows.forEach((row) => {
     const sign = normalizeZodiacKey(String(row.zodiac_sign || ''));
     if (!sign || !requested.has(sign) || readings[sign]) return;
-    const reading = parseCachedSignReading(row.payload, { sign, period, periodKey });
+    const reading = parseCachedSignReading(row.payload, { sign, period, periodKey, language });
     if (reading) readings[sign] = reading;
   });
   return readings;

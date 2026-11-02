@@ -1,14 +1,13 @@
 import type { Language, SignHoroscopePeriod, SignHoroscopeReadingV2 } from '../../types';
-import { getSignForecastVoice } from './signContract';
 import { getDeepSeekClient } from '../deepseekClient';
 import { buildDeepSeekChatParams } from '../deepseekChat';
 import { normalizeZodiacKey, type ZodiacKey } from '../zodiacKeys';
 import type { SignSkyBatchDigest } from './signSkyDigest';
 import {
-  MAX_SIGN_HOROSCOPE_WORDS,
+  SIGN_HOROSCOPE_READING_SCHEMA_VERSION,
   SIGN_HOROSCOPE_MODEL,
+  isReadableSignForecastText,
   parseSignHoroscopeJson,
-  validateSignHoroscopeReading,
 } from './signContract';
 
 export { SIGN_HOROSCOPE_MODEL } from './signContract';
@@ -41,6 +40,7 @@ export type SignHoroscopeModelRunner = (request: {
 export type SignHoroscopeBatchFailure = {
   sign: ZodiacKey;
   issues: string[];
+  kind?: 'invalid_response' | 'missing_sign' | 'duplicate_sign' | 'invalid_reading' | 'provider_error' | 'storage_error';
 };
 
 export type SignHoroscopeBatchGenerationResult = {
@@ -50,34 +50,25 @@ export type SignHoroscopeBatchGenerationResult = {
 
 const PERIOD_INSTRUCTIONS: Record<SignHoroscopePeriod, { ru: string; en: string }> = {
   day: {
-    ru: 'Опиши одно понятное наблюдение об этом дне. Не делай выводов обо всей жизни.',
-    en: 'Describe one clear vector for this day. Do not draw global conclusions from a short period.',
+    ru: 'Напиши прогноз на этот день.',
+    en: 'Write a forecast for this day.',
   },
   week: {
-    ru: 'Расскажи о неделе целиком, без семи отдельных дневных заметок.',
-    en: 'Turn the main vector of the week into one story, not seven separate daily notes.',
+    ru: 'Напиши прогноз на эту неделю.',
+    en: 'Write a forecast for this week.',
   },
   month: {
-    ru: 'Дай цельный взгляд на месяц без календарного перечисления каждого дня.',
-    en: 'Give one coherent view of the month without listing every calendar day.',
+    ru: 'Напиши прогноз на этот месяц.',
+    en: 'Write a forecast for this month.',
   },
 };
 
 function promptSystem(language: Language): string {
-  const task = language === 'en'
-    ? `Write one shared Sun-sign forecast for every requested sign from a completed deterministic server calculation.
-The calculation is context, not user-facing copy. Never mention astrology, planets, signs, houses, aspects, transits, retrogrades, or technical calculation details in headline or text.
-Return JSON only with exactly one top-level field named readings. readings must contain every requested sign exactly once. Each item has exactly sign, headline, and text.
-For every item, headline and text together must contain no more than ${MAX_SIGN_HOROSCOPE_WORDS} words.
-Each text is one coherent human story without section labels, lists, mandatory life areas, Markdown, fatalism, guarantees, or invented concrete events.
-Be direct, confident, specific, calm, and useful. Stop when the thought is complete.`
-    : `Напиши по одному общему прогнозу для каждого запрошенного солнечного знака на основе готового детерминированного серверного расчёта.
-Расчёт, только скрытый контекст. Не упоминай в headline и text астрологию, планеты, знаки, дома, аспекты, транзиты, ретроградность и технические детали расчёта.
-Верни только JSON ровно с одним верхнеуровневым полем readings. В readings должен быть каждый запрошенный знак ровно один раз. У каждого элемента ровно три поля: sign, headline и text.
-Для каждого элемента headline и text вместе, не больше ${MAX_SIGN_HOROSCOPE_WORDS} слов.
-Каждый text, один цельный человеческий рассказ без рубрик, списков, обязательных жизненных сфер, Markdown, фатализма, гарантий и выдуманных конкретных событий.
-Пиши прямо, уверенно, конкретно, спокойно и полезно. Остановись, когда мысль закончена.`;
-  return `${getSignForecastVoice(language === 'en' ? 'en' : 'ru')}\n\n${task}`;
+  return language === 'en'
+    ? `Write a friendly, meaningful forecast for each requested sign and period using the supplied calculation. Use natural, everyday language, without displaying astrology terms or inventing facts about the reader.
+Return JSON with a readings array; each entry must identify the sign and include headline and text.`
+    : `Напиши для каждого запрошенного знака содержательный и доброжелательный прогноз на указанный период по переданному расчёту. Пиши обычными понятными словами, без астрологических терминов и выдуманных фактов о жизни человека.
+Верни JSON с массивом readings; для каждого прогноза укажи sign, headline и text.`;
 }
 
 function uniqueSigns(signs: readonly ZodiacKey[]): ZodiacKey[] {
@@ -125,68 +116,42 @@ function promptUser(
           },
         },
       },
-      maxWordsTogetherPerSign: MAX_SIGN_HOROSCOPE_WORDS,
     },
     calculatedContext: digestForSigns(digest, signs),
   });
 }
 
-function validateBatchAttempt(
-  content: unknown,
-  digest: SignSkyBatchDigest,
-  requestedSigns: readonly ZodiacKey[],
-): SignHoroscopeBatchGenerationResult {
-  const parsed = parseSignHoroscopeJson(content);
-  const rawReadings = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-    ? (parsed as Record<string, unknown>).readings
-    : null;
-  if (!Array.isArray(rawReadings)) {
-    return {
-      readings: [],
-      failures: requestedSigns.map((sign) => ({ sign, issues: ['readings must be an array'] })),
-    };
+/** Recover only complete JSON entries if the provider truncated the outer array. */
+function readCompleteTruncatedEntries(content: unknown): unknown[] | null {
+  if (typeof content !== 'string') return null;
+  const start = /^\s*(?:```(?:json)?\s*)?\{\s*"readings"\s*:\s*\[/iu.exec(content);
+  if (!start) return null;
+  const entries: unknown[] = [];
+  let position = start[0].length;
+  while (position < content.length) {
+    while (/[\s,]/u.test(content[position] || '') && position < content.length) position += 1;
+    if (content[position] !== '{') break;
+    const begin = position;
+    let depth = 0;
+    let insideString = false;
+    let escaped = false;
+    for (; position < content.length; position += 1) {
+      const char = content[position];
+      if (insideString) {
+        if (escaped) escaped = false;
+        else if (char === '\\') escaped = true;
+        else if (char === '"') insideString = false;
+      } else if (char === '"') insideString = true;
+      else if (char === '{') depth += 1;
+      else if (char === '}' && --depth === 0) {
+        try { entries.push(JSON.parse(content.slice(begin, position + 1))); } catch { /* Not a complete JSON entry. */ }
+        position += 1;
+        break;
+      }
+    }
+    if (depth !== 0) break;
   }
-
-  const entries = new Map<ZodiacKey, Array<Record<string, unknown>>>();
-  rawReadings.forEach((raw) => {
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
-    const input = raw as Record<string, unknown>;
-    const sign = normalizeZodiacKey(String(input.sign || ''));
-    if (!sign) return;
-    const list = entries.get(sign) || [];
-    list.push(input);
-    entries.set(sign, list);
-  });
-
-  const readings: SignHoroscopeReadingV2[] = [];
-  const failures: SignHoroscopeBatchFailure[] = [];
-  requestedSigns.forEach((sign) => {
-    const matches = entries.get(sign) || [];
-    if (matches.length !== 1) {
-      failures.push({
-        sign,
-        issues: [matches.length === 0 ? 'reading is missing' : 'reading is duplicated'],
-      });
-      return;
-    }
-
-    const input = matches[0];
-    const unexpected = Object.keys(input).filter((key) => !['sign', 'headline', 'text'].includes(key));
-    const validated = validateSignHoroscopeReading(
-      { headline: input.headline, text: input.text },
-      { sign, period: digest.period, periodKey: digest.periodKey },
-    );
-    const issues = [
-      ...(unexpected.length ? [`unexpected fields: ${unexpected.join(', ')}`] : []),
-      ...(validated.ok ? [] : validated.issues),
-    ];
-    if (issues.length || !validated.ok) {
-      failures.push({ sign, issues });
-      return;
-    }
-    readings.push(validated.reading);
-  });
-  return { readings, failures };
+  return entries.length ? entries : null;
 }
 
 async function runAttempt(
@@ -201,7 +166,41 @@ async function runAttempt(
     user: promptUser(digest, signs, language, repairIssues),
     maxTokens: Math.min(5_200, Math.max(900, signs.length * 430)),
   });
-  return validateBatchAttempt(content, digest, signs);
+  const parsed = parseSignHoroscopeJson(content);
+  const items = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+    ? (parsed as Record<string, unknown>).readings
+    : readCompleteTruncatedEntries(content);
+  if (!Array.isArray(items)) return {
+    readings: [],
+    failures: signs.map((sign) => ({ sign, kind: 'invalid_response', issues: ['readings must be an array'] })),
+  };
+  const requested = new Set(signs);
+  const readings: SignHoroscopeReadingV2[] = [];
+  const identified = new Set<ZodiacKey>();
+  for (const item of items) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const raw = item as Record<string, unknown>;
+    const sign = normalizeZodiacKey(typeof raw.sign === 'string' ? raw.sign : '');
+    if (!sign || !requested.has(sign)) continue;
+    identified.add(sign);
+    const text = raw.text;
+    if (readings.some((reading) => reading.sign === sign) || !isReadableSignForecastText(text)
+      || (raw.period !== undefined && raw.period !== digest.period)
+      || (raw.periodKey !== undefined && raw.periodKey !== digest.periodKey)) continue;
+    readings.push({
+      schemaVersion: SIGN_HOROSCOPE_READING_SCHEMA_VERSION,
+      sign,
+      period: digest.period,
+      periodKey: digest.periodKey,
+      headline: isReadableSignForecastText(raw.headline) ? raw.headline : (language === 'en' ? 'Forecast' : 'Прогноз'),
+      text,
+    });
+  }
+  const failures: SignHoroscopeBatchFailure[] = signs.filter((sign) => !readings.some((item) => item.sign === sign))
+    .map((sign) => identified.has(sign)
+      ? { sign, kind: 'invalid_reading', issues: ['reading has no readable text for this period'] }
+      : { sign, kind: 'missing_sign', issues: ['reading is missing'] });
+  return { readings, failures };
 }
 
 export async function generateSignHoroscopeBatchWithRunner(
@@ -232,6 +231,7 @@ export async function generateSignHoroscopeBatchWithRunner(
     } catch (error) {
       failures.push({
         sign: failed.sign,
+        kind: 'provider_error',
         issues: [error instanceof Error ? error.message : 'repair request failed'],
       });
     }

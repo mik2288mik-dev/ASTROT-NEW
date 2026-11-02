@@ -96,7 +96,7 @@ export async function fillMissingSignHoroscopes(
 
   missingSigns.forEach((sign) => {
     if (!generatedBySign.has(sign) && !failedSigns.has(sign)) {
-      failures.push({ sign, issues: ['model response omitted the requested sign'] });
+      failures.push({ sign, issues: ['model response omitted the requested sign'], kind: 'missing_sign' });
       failedSigns.add(sign);
     }
   });
@@ -117,6 +117,7 @@ export async function fillMissingSignHoroscopes(
     failures.push({
       sign,
       issues: [result.reason instanceof Error ? result.reason.message : String(result.reason)],
+      kind: 'storage_error',
     });
   });
 

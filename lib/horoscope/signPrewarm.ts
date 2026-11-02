@@ -5,6 +5,7 @@ import { ZODIAC_KEYS } from '../zodiacKeys';
 import { logForecastDeliveryMetric } from '../forecastDeliveryMetrics';
 import { getCachedSignHoroscopes } from './signCache';
 import { fillMissingSignHoroscopes } from './signOrchestrator';
+import { SignHoroscopeGenerationError, type SignHoroscopeBatchFailure } from './signGeneration';
 import { buildSignHoroscopeLockKey } from './signGenerationLock';
 import { recordTechnicalError } from '../errorLogger';
 
@@ -16,6 +17,33 @@ export interface SignPrewarmTarget {
 const MONTH_TARGET_ATTEMPTS = 3;
 const MONTH_TARGET_RETRY_DELAY_MS = 10_000;
 const MAX_CONSECUTIVE_INCOMPLETE_TARGETS = 3;
+
+const SAFE_FAILURE_KINDS = new Set<string>([
+  'invalid_response', 'missing_sign', 'duplicate_sign', 'invalid_reading', 'provider_error', 'storage_error',
+]);
+
+class SignHoroscopePartialFailure extends Error {
+  readonly safeDetail: string;
+
+  constructor(failures: readonly SignHoroscopeBatchFailure[]) {
+    const details = failures.map(({ sign, kind }) => {
+      const safeSign = ZODIAC_KEYS.find((candidate) => candidate === sign) || 'unknown';
+      const safeKind = typeof kind === 'string' && SAFE_FAILURE_KINDS.has(kind) ? kind : 'unknown';
+      return `${safeSign}=${safeKind}`;
+    }).join(',');
+    const safeDetail = `SIGN_HOROSCOPE_PREWARM_PARTIAL_FAILURE:${details}`;
+    super(safeDetail);
+    this.safeDetail = safeDetail;
+  }
+}
+
+function safePrewarmFailure(error: unknown): string {
+  if (error instanceof SignHoroscopePartialFailure) return error.safeDetail;
+  if (error instanceof SignHoroscopeGenerationError && [
+    'SIGN_HOROSCOPE_GENERATION_UNAVAILABLE', 'SIGN_HOROSCOPE_GENERATION_FAILED', 'SIGN_HOROSCOPE_VALIDATION_FAILED',
+  ].includes(error.code)) return error.code;
+  return 'SIGN_HOROSCOPE_PREWARM_ERROR';
+}
 
 function parseDateKey(key: string): Date {
   const [year, month, day] = key.split('-').map(Number);
@@ -80,9 +108,7 @@ export async function prewarmSignHoroscopeTarget(
       generate: async () => {
         const filled = await fillMissingSignHoroscopes(target.period, target.periodKey, language);
         if (filled.failures.length > 0) {
-          throw new Error(`SIGN_HOROSCOPE_PREWARM_PARTIAL_FAILURE:${filled.failures
-            .map((failure) => failure.sign)
-            .join(',')}`);
+          throw new SignHoroscopePartialFailure(filled.failures);
         }
         return filled.generatedSigns.length > 0 ? 'generated' : 'cached';
       },
@@ -101,8 +127,8 @@ export async function prewarmSignHoroscopeTarget(
     });
     return result.value;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logForecastDeliveryMetric({ domain: 'sign', outcome: 'failed', period: target.period, periodKey: target.periodKey, language, errorCode: message.split(':', 1)[0] });
+    const errorCode = safePrewarmFailure(error).split(':', 1)[0];
+    logForecastDeliveryMetric({ domain: 'sign', outcome: 'failed', period: target.period, periodKey: target.periodKey, language, errorCode });
     throw error;
   }
 }
@@ -125,10 +151,20 @@ export async function prewarmSignMonth(input: {
   const now = input.now || new Date();
   const targetMonthKey = input.targetMonthKey || nextMonthKey(getMoscowMonthKey(now));
   const targets = buildSignMonthPrewarmTargets(targetMonthKey);
-  // A catch-up run for the current month must prepare today's reading first.
+  // During catch-up, serve the current day, week and month before later dates.
   const todayKey = getMoscowTodayKey(now);
   const todayIndex = targets.findIndex((target) => target.period === 'day' && target.periodKey === todayKey);
-  if (todayIndex > 0) targets.unshift(...targets.splice(todayIndex, 1));
+  if (todayIndex >= 0) {
+    const priorities: SignPrewarmTarget[] = [
+      { period: 'day', periodKey: todayKey },
+      { period: 'week', periodKey: getMoscowIsoWeekKey(now) },
+      { period: 'month', periodKey: targetMonthKey },
+    ];
+    for (const priority of priorities.reverse()) {
+      const index = targets.findIndex((target) => target.period === priority.period && target.periodKey === priority.periodKey);
+      if (index >= 0) targets.unshift(...targets.splice(index, 1));
+    }
+  }
   const prewarmTarget = input.prewarmTarget || prewarmSignHoroscopeTarget;
   const wait = input.wait || ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const result = {
@@ -175,13 +211,14 @@ export async function prewarmSignMonth(input: {
       consecutiveIncomplete += 1;
     } else if (didFail) {
       result.failed += 1;
+      const safeFailure = safePrewarmFailure(lastError);
       console.warn('[sign-month-prewarm] target failed:', target.period, target.periodKey,
-        lastError instanceof Error ? lastError.message : String(lastError));
+        safeFailure);
       // Visible in admin «Ошибки», even when later dates are generated successfully.
       void recordTechnicalError({
         endpoint: 'job:sign-month',
         errorCode: 'SIGN_MONTH_TARGET_FAILED',
-        message: `${target.period} ${target.periodKey} failed for month ${targetMonthKey}: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+        message: `${target.period} ${target.periodKey} failed for month ${targetMonthKey}: ${safeFailure}`,
       });
       consecutiveIncomplete += 1;
     }
