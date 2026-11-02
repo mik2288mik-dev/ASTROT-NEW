@@ -24,6 +24,12 @@ export function cleanSignHoroscopeText(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\s+/gu, ' ').trim() : '';
 }
 
+/** Reject an absent value or a raw serialized response, not its wording. */
+export function isReadableSignForecastText(value: unknown): value is string {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  return !/^(?:```(?:json)?\s*)?[\[{]\s*(?:\{\s*)?"(?:readings|sign|headline|text|period|periodKey|schemaVersion)"\s*:/iu.test(value.trimStart());
+}
+
 export function countSignHoroscopeWords(text: string): number {
   return cleanSignHoroscopeText(text).split(/\s+/u).filter(Boolean).length;
 }

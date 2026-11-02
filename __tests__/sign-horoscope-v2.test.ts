@@ -13,6 +13,8 @@ import {
   type SignHoroscopeBatchGenerationResult,
 } from '../lib/horoscope/signGeneration';
 import { validateSignHoroscopeReading } from '../lib/horoscope/signContract';
+import { parseCachedSignReading } from '../lib/horoscope/signCache';
+import { projectSignHoroscopeForWire } from '../lib/horoscope/signWireCompatibility';
 import {
   fillMissingSignHoroscopes,
   type SignHoroscopeRuntime,
@@ -169,6 +171,8 @@ describe('shared sign horoscope contract', () => {
     expect(calls[0].user.match(/"source":"Swiss Ephemeris"/g)).toHaveLength(1);
     expect(calls[0].user).not.toContain('evidenceId');
     expect(calls[0].user).not.toContain('"astrology"');
+    expect(request.outputContract).not.toHaveProperty('maxWordsTogetherPerSign');
+    expect(calls[0].system).not.toContain('130');
   });
 
   it('repairs only the invalid sign after the twelve-sign batch', async () => {
@@ -208,6 +212,101 @@ describe('shared sign horoscope contract', () => {
     expect(result.failures).toEqual([
       expect.objectContaining({ sign: 'Pisces' }),
     ]);
+  });
+
+  it('keeps an ordinary readable forecast without a style rewrite', async () => {
+    const digest = buildSignSkyBatchDigest('week', '2026-W45', transitAt);
+    const text = 'Появится возможность встретиться с друзьями.';
+    const runner = jest.fn().mockResolvedValueOnce(
+      JSON.stringify({ readings: [{ sign: 'Aries', headline: 'Хорошая неделя', text }] }),
+    );
+
+    const result = await generateSignHoroscopeBatchWithRunner(digest, ['Aries'], 'ru', runner);
+    expect(runner).toHaveBeenCalledTimes(1);
+    expect(result.failures).toEqual([]);
+    expect(result.readings).toEqual([expect.objectContaining({
+      sign: 'Aries', period: 'week', periodKey: '2026-W45', headline: 'Хорошая неделя', text,
+    })]);
+  });
+
+  it('keeps a readable repaired forecast despite style and length warnings', async () => {
+    const digest = buildSignSkyBatchDigest('month', '2026-11', transitAt);
+    const text = `Интерес к музыке вырастет. ${Array.from({ length: 135 }, () => 'музыка').join(' ')}`;
+    const runner = jest.fn()
+      .mockResolvedValueOnce(JSON.stringify({ readings: [{ sign: 'Pisces', headline: '', text: '' }] }))
+      .mockResolvedValueOnce(JSON.stringify({ readings: [{ sign: 'Pisces', text, extra: true }] }));
+
+    const result = await generateSignHoroscopeBatchWithRunner(digest, ['Pisces'], 'ru', runner);
+    expect(result.failures).toEqual([]);
+    expect(result.readings).toEqual([expect.objectContaining({
+      sign: 'Pisces', period: 'month', periodKey: '2026-11', headline: 'Прогноз', text,
+    })]);
+  });
+
+  it('keeps the first readable duplicate without rejecting ordinary words or long texts', async () => {
+    const digest = buildSignSkyBatchDigest('week', '2026-W45', transitAt);
+    const text = `Солнце выглянет из-за облаков. ${Array.from({ length: 140 }, () => 'слово').join(' ')}\n\nКонец.`;
+    const runner = jest.fn().mockResolvedValue(JSON.stringify({ readings: [
+      { sign: 'Aries', headline: '', text, extra: 'ignored' },
+      { sign: 'Aries', headline: 'Другая версия', text: 'Второй ответ.' },
+    ] }));
+    const result = await generateSignHoroscopeBatchWithRunner(digest, ['Aries'], 'ru', runner);
+    expect(runner).toHaveBeenCalledTimes(1);
+    expect(result.failures).toEqual([]);
+    expect(result.readings).toEqual([expect.objectContaining({ sign: 'Aries', headline: 'Прогноз', text })]);
+  });
+
+  it('keeps complete forecasts when the provider truncates the outer JSON response', async () => {
+    const digest = buildSignSkyBatchDigest('week', '2026-W45', transitAt);
+    const truncated = '{"readings":[{"sign":"Aries","headline":"Первый","text":"Сохранённый {текст}."},'
+      + '{"sign":"Pisces","headline":"Второй","text":"Знак \\" в строке."},{"sign":"Taurus","text":"unfinished';
+    const runner = jest.fn().mockResolvedValueOnce(truncated).mockRejectedValueOnce(new Error('provider unavailable'));
+    const result = await generateSignHoroscopeBatchWithRunner(digest, ['Aries', 'Pisces', 'Taurus'], 'ru', runner);
+    expect(result.readings.map((item) => item.sign)).toEqual(['Aries', 'Pisces']);
+    expect(result.readings[0].text).toBe('Сохранённый {текст}.');
+    expect(result.failures).toEqual([expect.objectContaining({ sign: 'Taurus' })]);
+    expect(JSON.parse(runner.mock.calls[1][0].user).signs).toEqual(['Taurus']);
+  });
+
+  it('preserves a readable forecast from the writer through storage, cache and the released wire format', async () => {
+    const digest = buildSignSkyBatchDigest('week', '2026-W45', transitAt);
+    const text = `Появится возможность встретиться с друзьями. ${Array.from({ length: 140 }, () => 'текст').join(' ')}\n\nСолнце выглянет из-за облаков.`;
+    const stored = new Map<ZodiacKey, SignHoroscopeReadingV2>();
+    const runner = jest.fn().mockImplementation(async ({ user }: { user: string }) => {
+      const signs = JSON.parse(user).signs as ZodiacKey[];
+      return JSON.stringify({ readings: signs.map((sign) => ({ sign, headline: '', text, extra: true })) });
+    });
+    const runtime: SignHoroscopeRuntime = {
+      readCachedBatch: async (period, key, language, signs) => Object.fromEntries(signs.flatMap((sign) => {
+        const cached = parseCachedSignReading(stored.get(sign), { sign, period, periodKey: key, language });
+        return cached ? [[sign, cached]] : [];
+      })),
+      buildDigest: () => digest,
+      generate: (input, signs, language) => generateSignHoroscopeBatchWithRunner(input, signs, language, runner),
+      store: async (_period, _key, _language, item) => { stored.set(item.sign as ZodiacKey, item); },
+    };
+    const first = await fillMissingSignHoroscopes('week', '2026-W45', 'ru', runtime);
+    const second = await fillMissingSignHoroscopes('week', '2026-W45', 'ru', runtime);
+    expect(first.failures).toEqual([]);
+    expect(second.cachedSigns).toHaveLength(12);
+    expect(runner).toHaveBeenCalledTimes(1);
+    expect(projectSignHoroscopeForWire(second.readings.Aries!, 'Dalvik/2.1.0 (Linux; Android 13)'))
+      .toMatchObject({ schemaVersion: 'sign-horoscope-reading-v4', periodKey: '2026-W45', headline: 'Прогноз', text });
+  });
+
+  it('does not invent text, attribute an unknown sign, or relabel a conflicting period', async () => {
+    const digest = buildSignSkyBatchDigest('week', '2026-W45', transitAt);
+    for (const candidate of [
+      { sign: 'Pisces', headline: 'Прогноз', text: '' },
+      { sign: 'Pisces', headline: 'Прогноз', text: '{"readings":[' },
+      { sign: 'Aries', headline: 'Прогноз', text: 'Читаемый текст другого знака.' },
+      { sign: 'Pisces', headline: 'Прогноз', text: 'Прогноз другого периода.', periodKey: '2026-W40' },
+    ]) {
+      const runner = jest.fn().mockResolvedValue(JSON.stringify({ readings: [candidate] }));
+      const result = await generateSignHoroscopeBatchWithRunner(digest, ['Pisces'], 'ru', runner);
+      expect(result.readings).toEqual([]);
+      expect(result.failures).toEqual([expect.objectContaining({ sign: 'Pisces' })]);
+    }
   });
 
   it('fills an empty period with one twelve-sign generation call', async () => {
@@ -365,13 +464,15 @@ describe('shared sign horoscope contract', () => {
     expect(prewarmTarget).toHaveBeenCalledWith({ period: 'day', periodKey: '2026-09-02' }, 'ru');
   });
 
-  it('prepares today first in a current-month catch-up, then the remaining targets', async () => {
+  it('prepares the current day, week and month before the remaining targets in a catch-up', async () => {
     const prewarmTarget = jest.fn().mockResolvedValue('generated');
     const result = await prewarmSignMonth({
       targetMonthKey: '2026-09', now: new Date('2026-09-10T09:00:00Z'), prewarmTarget,
     });
     expect(prewarmTarget.mock.calls[0][0]).toEqual({ period: 'day', periodKey: '2026-09-10' });
-    expect(prewarmTarget.mock.calls[1][0]).toEqual({ period: 'day', periodKey: '2026-09-01' });
+    expect(prewarmTarget.mock.calls[1][0]).toEqual({ period: 'week', periodKey: '2026-W37' });
+    expect(prewarmTarget.mock.calls[2][0]).toEqual({ period: 'month', periodKey: '2026-09' });
+    expect(prewarmTarget.mock.calls[3][0]).toEqual({ period: 'day', periodKey: '2026-09-01' });
     expect(result).toMatchObject({ generated: 36, scannedTargets: 36 });
   });
 });

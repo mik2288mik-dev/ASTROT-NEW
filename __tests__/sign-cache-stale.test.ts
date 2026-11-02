@@ -40,6 +40,82 @@ describe('shared sign horoscope stale cache', () => {
     expect((await getCachedSignHoroscopes('day', reading.periodKey, 'ru')).Aries).toEqual(reading);
   });
 
+  it.each([['ru', 'Прогноз'], ['en', 'Forecast']] as const)(
+    'keeps a readable long %s reading with astrology and supplies a missing title',
+    async (language, fallbackTitle) => {
+      const text = `Марс в твоём расчёте.\n\n${Array.from({ length: 145 }, () => 'слово').join(' ')}  Конец.`;
+      const payload = { sign: 'Aries', period: 'week', periodKey: '2026-W45', headline: '', text };
+      const query = jest.fn().mockResolvedValue({ rows: [{ payload, zodiac_sign: 'Aries' }] });
+      jest.doMock('../lib/db', () => ({ getPool: () => ({ query }) }));
+      const { getSignHoroscopeCacheSnapshot, getCachedSignHoroscopes } = await import('../lib/horoscope/signCache');
+      const snapshot = await getSignHoroscopeCacheSnapshot('week', 'Aries', '2026-W45', language);
+      const batch = await getCachedSignHoroscopes('week', '2026-W45', language, ['Aries']);
+      expect(snapshot).toMatchObject({ stale: false, reading: { headline: fallbackTitle, text, periodKey: '2026-W45' } });
+      expect(batch.Aries).toEqual(snapshot?.reading);
+    },
+  );
+
+  it('never reads malformed JSON or another sign, period or date as the requested reading', async () => {
+    const base = { sign: 'Aries', period: 'week', periodKey: '2026-W45', headline: 'Title', text: 'Actual text.' };
+    const { parseCachedSignReading } = await import('../lib/horoscope/signCache');
+    const expected = { sign: 'Aries' as const, period: 'week' as const, periodKey: '2026-W45' };
+    expect(parseCachedSignReading('{"sign":"Aries",', expected)).toBeNull();
+    expect(parseCachedSignReading({ ...base, sign: 'Taurus' }, expected)).toBeNull();
+    expect(parseCachedSignReading({ ...base, period: 'day' }, expected)).toBeNull();
+    expect(parseCachedSignReading({ ...base, periodKey: '2026-W39' }, expected)).toBeNull();
+    expect(parseCachedSignReading({ ...base, text: '  ' }, expected)).toBeNull();
+    expect(parseCachedSignReading({ ...base, text: '{"readings":[' }, expected)).toBeNull();
+  });
+
+  it('does not mislabel a stale payload whose period disagrees with its stored row', async () => {
+    const payload = { sign: 'Aries', period: 'week', periodKey: '2026-W39', headline: 'Title', text: 'Text.' };
+    const query = jest.fn()
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ payload, period_key: '2026-W44' }] });
+    jest.doMock('../lib/db', () => ({ getPool: () => ({ query }) }));
+    const { getSignHoroscopeCacheSnapshot } = await import('../lib/horoscope/signCache');
+    expect(await getSignHoroscopeCacheSnapshot('week', 'Aries', '2026-W45', 'ru')).toBeNull();
+  });
+
+  it('selects the latest calendar period even if an older period was updated later', async () => {
+    const rows = [
+      { period_key: '2026-09', updated_at: '2026-11-02', payload: { sign: 'Aries', period: 'month',
+        periodKey: '2026-09', headline: 'September', text: 'September text.' } },
+      { period_key: '2026-10', updated_at: '2026-10-31', payload: { sign: 'Aries', period: 'month',
+        periodKey: '2026-10', headline: 'October', text: 'October text.' } },
+    ];
+    const query = jest.fn().mockResolvedValueOnce({ rows: [] }).mockImplementationOnce(async (sql: string) => {
+      expect(sql).toMatch(/ORDER BY \(period_key = \$4\) DESC, period_key DESC, updated_at DESC/);
+      return { rows: [...rows].sort((a, b) => b.period_key.localeCompare(a.period_key)) };
+    });
+    jest.doMock('../lib/db', () => ({ getPool: () => ({ query }) }));
+    const { getSignHoroscopeCacheSnapshot } = await import('../lib/horoscope/signCache');
+    const snapshot = await getSignHoroscopeCacheSnapshot('month', 'Aries', '2026-11', 'en');
+    expect(snapshot).toMatchObject({ stale: true, reading: { periodKey: '2026-10', text: 'October text.' } });
+  });
+
+  it('keeps the complete readable legacy text even when it exceeds the old length limit', async () => {
+    const first = Array.from({ length: 145 }, () => 'слово').join(' ');
+    const legacy = { sign: 'Aries', period: 'month', periodKey: '2026-11', headline: '',
+      mood: { text: first }, work: { text: 'Последний абзац остался на месте.' } };
+    const query = jest.fn().mockResolvedValue({ rows: [{ payload: legacy }] });
+    jest.doMock('../lib/db', () => ({ getPool: () => ({ query }) }));
+    const { getCachedSignHoroscope } = await import('../lib/horoscope/signCache');
+    const reading = await getCachedSignHoroscope('month', 'Aries', '2026-11', 'ru');
+    expect(reading?.headline).toBe('Прогноз');
+    expect(reading?.text).toBe(`${first}\n\nПоследний абзац остался на месте.`);
+  });
+
+  it('uses readable legacy blocks when an empty text field is present', async () => {
+    const payload = { sign: 'Aries', period: 'month', periodKey: '2026-11', text: ' ',
+      mood: { text: 'Первый абзац.' }, work: { text: 'Второй абзац.' } };
+    const query = jest.fn().mockResolvedValue({ rows: [{ payload }] });
+    jest.doMock('../lib/db', () => ({ getPool: () => ({ query }) }));
+    const { getCachedSignHoroscope } = await import('../lib/horoscope/signCache');
+    const reading = await getCachedSignHoroscope('month', 'Aries', '2026-11', 'ru');
+    expect(reading?.text).toBe('Первый абзац.\n\nВторой абзац.');
+  });
+
   it('returns the last real forecast without exposing legacy technical fields', async () => {
     const legacy = {
       schemaVersion: 'sign-horoscope-reading-v3',
