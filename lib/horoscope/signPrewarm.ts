@@ -1,6 +1,6 @@
 import type { Language, SignHoroscopePeriod } from '../../types';
 import { withContentGenerationLock } from '../contentGenerationLock';
-import { getMoscowIsoWeekKey, getMoscowMonthKey } from '../date-utils';
+import { getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey } from '../date-utils';
 import { ZODIAC_KEYS } from '../zodiacKeys';
 import { logForecastDeliveryMetric } from '../forecastDeliveryMetrics';
 import { getCachedSignHoroscopes } from './signCache';
@@ -12,6 +12,10 @@ export interface SignPrewarmTarget {
   period: SignHoroscopePeriod;
   periodKey: string;
 }
+
+const MONTH_TARGET_ATTEMPTS = 3;
+const MONTH_TARGET_RETRY_DELAY_MS = 10_000;
+const MAX_CONSECUTIVE_INCOMPLETE_TARGETS = 3;
 
 function parseDateKey(key: string): Date {
   const [year, month, day] = key.split('-').map(Number);
@@ -108,6 +112,7 @@ export async function prewarmSignMonth(input: {
   targetMonthKey?: string;
   now?: Date;
   prewarmTarget?: typeof prewarmSignHoroscopeTarget;
+  wait?: (ms: number) => Promise<void>;
 } = {}): Promise<{
   targetMonthKey: string;
   totalTargets: number;
@@ -117,9 +122,15 @@ export async function prewarmSignMonth(input: {
   inProgress: number;
   failed: number;
 }> {
-  const targetMonthKey = input.targetMonthKey || nextMonthKey(getMoscowMonthKey(input.now || new Date()));
+  const now = input.now || new Date();
+  const targetMonthKey = input.targetMonthKey || nextMonthKey(getMoscowMonthKey(now));
   const targets = buildSignMonthPrewarmTargets(targetMonthKey);
+  // A catch-up run for the current month must prepare today's reading first.
+  const todayKey = getMoscowTodayKey(now);
+  const todayIndex = targets.findIndex((target) => target.period === 'day' && target.periodKey === todayKey);
+  if (todayIndex > 0) targets.unshift(...targets.splice(todayIndex, 1));
   const prewarmTarget = input.prewarmTarget || prewarmSignHoroscopeTarget;
+  const wait = input.wait || ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const result = {
     targetMonthKey,
     totalTargets: targets.length,
@@ -129,28 +140,53 @@ export async function prewarmSignMonth(input: {
     inProgress: 0,
     failed: 0,
   };
+  let consecutiveIncomplete = 0;
   for (const target of targets) {
     result.scannedTargets += 1;
-    try {
-      const status = await prewarmTarget(target, 'ru');
-      if (status === 'cached') result.cached += 1;
-      else if (status === 'generated') result.generated += 1;
-      else {
-        result.inProgress += 1;
-        break;
+    let status: 'cached' | 'generated' | 'in_progress' | undefined;
+    let lastError: unknown;
+    let didFail = false;
+    for (let attempt = 1; attempt <= MONTH_TARGET_ATTEMPTS; attempt += 1) {
+      try {
+        status = await prewarmTarget(target, 'ru');
+        didFail = false;
+      } catch (error) {
+        status = undefined;
+        lastError = error;
+        didFail = true;
       }
-    } catch (error) {
+      if (status === 'cached' || status === 'generated') break;
+      if (attempt < MONTH_TARGET_ATTEMPTS) await wait(MONTH_TARGET_RETRY_DELAY_MS);
+    }
+    if (status === 'cached') {
+      result.cached += 1;
+      consecutiveIncomplete = 0;
+    } else if (status === 'generated') {
+      result.generated += 1;
+      consecutiveIncomplete = 0;
+    }
+    else if (status === 'in_progress') {
+      result.inProgress += 1;
+      void recordTechnicalError({
+        endpoint: 'job:sign-month',
+        errorCode: 'SIGN_MONTH_TARGET_BUSY',
+        message: `${target.period} ${target.periodKey} remained in progress; month ${targetMonthKey} is incomplete`,
+      });
+      consecutiveIncomplete += 1;
+    } else if (didFail) {
       result.failed += 1;
       console.warn('[sign-month-prewarm] target failed:', target.period, target.periodKey,
-        error instanceof Error ? error.message : String(error));
-      // Visible in admin «Ошибки»: the job stops here, so later targets stay empty.
+        lastError instanceof Error ? lastError.message : String(lastError));
+      // Visible in admin «Ошибки», even when later dates are generated successfully.
       void recordTechnicalError({
         endpoint: 'job:sign-month',
         errorCode: 'SIGN_MONTH_TARGET_FAILED',
-        message: `${target.period} ${target.periodKey} stopped month ${targetMonthKey}: ${error instanceof Error ? error.message : String(error)}`,
+        message: `${target.period} ${target.periodKey} failed for month ${targetMonthKey}: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
       });
-      break;
+      consecutiveIncomplete += 1;
     }
+    // Do not hammer the provider for the entire month during a sustained outage.
+    if (consecutiveIncomplete >= MAX_CONSECUTIVE_INCOMPLETE_TARGETS) break;
   }
   return result;
 }

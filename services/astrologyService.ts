@@ -183,6 +183,17 @@ function isSignHoroscopeReading(value: unknown): value is SignHoroscopeReadingV2
     && typeof candidate.text === 'string';
 }
 
+function matchesSignHoroscopeRequest(
+  reading: SignHoroscopeReadingV2,
+  period: SignHoroscopeClientPeriod,
+  sign: string,
+  periodKey: string,
+): boolean {
+  return reading.sign.toLowerCase() === sign.toLowerCase()
+    && reading.period === (period === 'today' ? 'day' : period)
+    && reading.periodKey === periodKey;
+}
+
 export function readLocalSignHoroscope(
   period: SignHoroscopeClientPeriod,
   sign: string,
@@ -191,7 +202,8 @@ export function readLocalSignHoroscope(
 ): SignHoroscopeReadingV2 | null {
   const key = signClientCacheKey(period, sign, periodKey, language);
   const memory = signClientCache(period).get(key);
-  if (memory) return memory;
+  if (memory && matchesSignHoroscopeRequest(memory, period, sign, periodKey)) return memory;
+  if (memory) signClientCache(period).delete(key);
 
   if (typeof window === 'undefined') return null;
   const storageKey = signLocalStorageKey(period, sign, periodKey, language);
@@ -203,6 +215,7 @@ export function readLocalSignHoroscope(
       window.localStorage.removeItem(storageKey);
       return null;
     }
+    if (!matchesSignHoroscopeRequest(parsed, period, sign, periodKey)) return null;
     signClientCache(period).set(key, parsed);
     return parsed;
   } catch {
@@ -297,6 +310,7 @@ export const getCachedDailySignHoroscope = async (
   if (!isSignHoroscopeReading(payload.reading)) {
     throw buildApiError('Sign horoscope content is invalid');
   }
+  if (!matchesSignHoroscopeRequest(payload.reading, 'today', sign, date)) return null;
   const reading = storeLocalSignHoroscope('today', sign, date, language, payload.reading);
   return currentOnly && reading.periodKey !== date ? null : reading;
 };
@@ -333,6 +347,7 @@ export const getCachedWeeklySignHoroscope = async (
   const payload = await response.json();
   if (!payload?.reading) throw buildApiError('Weekly sign horoscope content is missing');
   if (!isSignHoroscopeReading(payload.reading)) throw buildApiError('Weekly sign horoscope content is invalid');
+  if (!matchesSignHoroscopeRequest(payload.reading, 'week', sign, periodKey)) return null;
   const reading = storeLocalSignHoroscope('week', sign, periodKey, language, payload.reading);
   return currentOnly && reading.periodKey !== periodKey ? null : reading;
 };
@@ -369,6 +384,7 @@ export const getCachedMonthlySignHoroscope = async (
   const payload = await response.json();
   if (!payload?.reading) throw buildApiError('Monthly sign horoscope content is missing');
   if (!isSignHoroscopeReading(payload.reading)) throw buildApiError('Monthly sign horoscope content is invalid');
+  if (!matchesSignHoroscopeRequest(payload.reading, 'month', sign, periodKey)) return null;
   const reading = storeLocalSignHoroscope('month', sign, periodKey, language, payload.reading);
   return currentOnly && reading.periodKey !== periodKey ? null : reading;
 };
