@@ -1,20 +1,16 @@
 import { getPersonalForecastSystemPrompt } from '../lib/voice/contracts/personalForecast';
-import { hasCoreVoiceViolation } from '../lib/voice/validators';
 
 describe('personal day forecast voice', () => {
   const prompt = getPersonalForecastSystemPrompt('ru', 'today');
-  const examples = prompt.slice(prompt.indexOf('Примеры ниже'));
-
   it('asks for plain spoken Russian instead of hedged paper language', () => {
-    expect(prompt).toContain('КАК ЗВУЧАТЬ');
-    expect(prompt).toContain('«Сегодня легко договориться», а не «сегодня может быть проще договариваться»');
-    expect(prompt).toContain('Не начинай с «Сегодня проще»');
+    expect(prompt).toContain('обычным разговорным языком');
+    expect(prompt).toContain('без негатива, мистики, поучений и воды');
+    expect(prompt).toContain('не используй слово «сегодня»');
   });
 
-  it('keeps the examples free of banned clichés and of the hedges it forbids', () => {
-    expect(hasCoreVoiceViolation(examples)).toBe(false);
-    for (const paperWord of ['обстоятельства', 'необходимость', 'ограничения', 'может быть проще', 'будет проще']) {
-      expect(examples).not.toContain(paperWord);
-    }
+  it('does not teach the model generic situations or force a joke', () => {
+    expect(prompt).not.toContain('Примеры ниже');
+    expect(prompt).not.toMatch(/перестановк|переписк/iu);
+    expect(prompt).toContain('Шутка уместна только тогда');
   });
 });
