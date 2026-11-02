@@ -306,9 +306,10 @@ describe('shared sign horoscope contract', () => {
     expect(prewarmTarget).toHaveBeenCalledTimes(72);
   });
 
-  it('stops on failure and an explicit retry skips ready periods and resumes the gap', async () => {
+  it('retries a transient failure within the same monthly job', async () => {
     const completed = new Set<string>();
     let failed = false;
+    const wait = jest.fn(async () => undefined);
     const prewarmTarget = jest.fn(async (target: { period: SignHoroscopePeriod; periodKey: string }) => {
       const key = `${target.period}:${target.periodKey}`;
       if (completed.has(key)) return 'cached' as const;
@@ -319,16 +320,58 @@ describe('shared sign horoscope contract', () => {
       completed.add(key);
       return 'generated' as const;
     });
-    const first = await prewarmSignMonth({ targetMonthKey: '2026-09', prewarmTarget });
-    const retry = await prewarmSignMonth({ targetMonthKey: '2026-09', prewarmTarget });
-    expect(first).toMatchObject({ generated: 1, failed: 1, scannedTargets: 2 });
-    expect(retry).toMatchObject({ generated: 35, cached: 1, failed: 0 });
+    const result = await prewarmSignMonth({ targetMonthKey: '2026-09', prewarmTarget, wait });
+    expect(result).toMatchObject({ generated: 36, failed: 0, scannedTargets: 36 });
+    expect(wait).toHaveBeenCalledTimes(1);
+    expect(prewarmTarget).toHaveBeenCalledTimes(37);
   });
 
-  it('stops when another instance holds the target lock', async () => {
+  it('continues with later days after bounded failure and a later run fills the gap', async () => {
+    const completed = new Set<string>();
+    let available = false;
+    const wait = jest.fn(async () => undefined);
+    const prewarmTarget = jest.fn(async (target: { period: SignHoroscopePeriod; periodKey: string }) => {
+      const key = `${target.period}:${target.periodKey}`;
+      if (completed.has(key)) return 'cached' as const;
+      if (target.periodKey === '2026-09-02' && !available) throw new Error('provider unavailable');
+      completed.add(key);
+      return 'generated' as const;
+    });
+    const first = await prewarmSignMonth({ targetMonthKey: '2026-09', prewarmTarget, wait });
+    expect(first).toMatchObject({ generated: 35, failed: 1, scannedTargets: 36 });
+    expect(completed.has('day:2026-09-03')).toBe(true);
+    expect(wait).toHaveBeenCalledTimes(2);
+    available = true;
+    const retry = await prewarmSignMonth({ targetMonthKey: '2026-09', prewarmTarget, wait });
+    expect(retry).toMatchObject({ generated: 1, cached: 35, failed: 0 });
+  });
+
+  it('limits repeated busy targets to avoid loading the provider for an entire month', async () => {
     const prewarmTarget = jest.fn().mockResolvedValue('in_progress');
-    const result = await prewarmSignMonth({ targetMonthKey: '2026-09', prewarmTarget });
-    expect(result).toMatchObject({ inProgress: 1, generated: 0, scannedTargets: 1 });
-    expect(prewarmTarget).toHaveBeenCalledTimes(1);
+    const wait = jest.fn(async () => undefined);
+    const result = await prewarmSignMonth({ targetMonthKey: '2026-09', prewarmTarget, wait });
+    expect(result).toMatchObject({ inProgress: 3, generated: 0, scannedTargets: 3 });
+    expect(prewarmTarget).toHaveBeenCalledTimes(9);
+    expect(wait).toHaveBeenCalledTimes(6);
+  });
+
+  it('continues with the next date when one target stays locked', async () => {
+    const wait = jest.fn(async () => undefined);
+    const prewarmTarget = jest.fn(async (target: { period: SignHoroscopePeriod; periodKey: string }) => (
+      target.periodKey === '2026-09-01' ? 'in_progress' as const : 'generated' as const
+    ));
+    const result = await prewarmSignMonth({ targetMonthKey: '2026-09', prewarmTarget, wait });
+    expect(result).toMatchObject({ inProgress: 1, generated: 35, scannedTargets: 36 });
+    expect(prewarmTarget).toHaveBeenCalledWith({ period: 'day', periodKey: '2026-09-02' }, 'ru');
+  });
+
+  it('prepares today first in a current-month catch-up, then the remaining targets', async () => {
+    const prewarmTarget = jest.fn().mockResolvedValue('generated');
+    const result = await prewarmSignMonth({
+      targetMonthKey: '2026-09', now: new Date('2026-09-10T09:00:00Z'), prewarmTarget,
+    });
+    expect(prewarmTarget.mock.calls[0][0]).toEqual({ period: 'day', periodKey: '2026-09-10' });
+    expect(prewarmTarget.mock.calls[1][0]).toEqual({ period: 'day', periodKey: '2026-09-01' });
+    expect(result).toMatchObject({ generated: 36, scannedTargets: 36 });
   });
 });
