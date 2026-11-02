@@ -1,12 +1,14 @@
 import { getPersonalForecastSystemPrompt, getPersonalPeriodForecastSystemPrompt } from '../lib/voice/contracts/personalForecast';
 
-it('uses the approved everyday example without asking the model to copy it', () => {
+it('asks for a personal reading without priming it with conversations', () => {
   const prompt = getPersonalForecastSystemPrompt('ru', 'today');
-  expect(prompt).toContain('Разговор пойдёт сам');
-  expect(prompt).toContain('Начнёшь переписку с обычного «как ты?», а через полчаса уже обсуждаете какую-нибудь ерунду и смеётесь.');
-  expect(prompt).toContain('Хороший день для разговоров без повода');
-  expect(prompt).toContain('Их ситуации и фразы нельзя копировать');
-  expect(prompt).toContain('не своди каждый день к переписке или делам');
+  expect(prompt).not.toMatch(/переписк|Разговор пойдёт сам/iu);
+  expect(prompt).not.toContain('Каждый астрологический факт объясняй тремя слоями');
+  expect(prompt).not.toContain('Астрологические термины (трин');
+  expect(prompt).toContain('переданной натальной карте и расчёту дня');
+  expect(prompt).toContain('Не навязывай одну тему');
+  expect(prompt).toContain('Не показывай астрологические термины');
+  expect(prompt).toContain('отдельную короткую заключительную фразу');
 });
 
 it.each(['week', 'month'] as const)('keeps %s positive without obligatory advice or saccharine copy', (period) => {
