@@ -79,3 +79,198 @@
 .focusParts p{margin:0;color:#292724;font-size:14.5px;line-height:1.5}
 .focusParts b{display:block;margin-bottom:2px;color:#6f6a64;font-size:12.5px;font-weight:650}
 .focusParts .focusMore{margin-top:0}
+
+/* ── dark theme (generated) ── */
+:global(html[data-theme='dark']) .map {
+  color: #F4F5F8;
+  background: #1C1D21;
+}
+:global(html[data-theme='dark']) .map h1, :global(html[data-theme='dark']) .map h2, :global(html[data-theme='dark']) .map h3, :global(html[data-theme='dark']) .sheet h2, :global(html[data-theme='dark']) .sheet h3 {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .person p {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .sign:hover path, :global(html[data-theme='dark']) .sign[aria-pressed=true] path, :global(html[data-theme='dark']) .sign:focus-visible path {
+  stroke: #AEC3F6;
+}
+:global(html[data-theme='dark']) .house line {
+  stroke: rgba(235, 235, 245, 0.42);
+}
+:global(html[data-theme='dark']) .house text {
+  fill: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .house g:hover circle, :global(html[data-theme='dark']) .house g[aria-pressed=true] circle, :global(html[data-theme='dark']) .house g:focus-visible circle {
+  stroke: #AEC3F6;
+}
+:global(html[data-theme='dark']) .body:hover .bodyHalo, :global(html[data-theme='dark']) .body[aria-pressed=true] .bodyHalo, :global(html[data-theme='dark']) .body:focus-visible .bodyHalo {
+  stroke: #AEC3F6;
+}
+:global(html[data-theme='dark']) .angle text {
+  fill: #99A7C2;
+}
+:global(html[data-theme='dark']) .angle:hover rect, :global(html[data-theme='dark']) .angle[aria-pressed=true] rect, :global(html[data-theme='dark']) .angle:focus-visible rect {
+  stroke: #AEC3F6;
+}
+:global(html[data-theme='dark']) .help {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .helpItem>svg {
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .helpItem p {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .hint {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .precision {
+  background: #27282E;
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .elements>summary {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .elementGroup {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .elementCount {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .groupArrow {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .elementList button {
+  background: #1C1D21;
+}
+:global(html[data-theme='dark']) .aspectGroups>.elementGroup {
+  background: #1C1D21;
+}
+:global(html[data-theme='dark']) .aspectGroups .elementList button {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .sheet {
+  background: #27282E;
+  color: #F4F5F8;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.225);
+}
+:global(html[data-theme='dark']) .handle span {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .sheetHeading p {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .symbol {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .sheetHeader button, :global(html[data-theme='dark']) .detailHeader button {
+  background: #27282E;
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .sheetContent .selectionIntro {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .yours {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .sheetContent .basis {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .basis>p {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .sheetContent .basisFacts {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .detailHeader {
+  background: #1C1D21;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .detailObject {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .detailIntro {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .sheetContent .reason {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .reasonHeading small {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .reasonMarker {
+  background: #1C1D21;
+  color: #AEC3F6;
+}
+:global(html[data-theme='dark']) .objectIntro {
+  background: #1C1D21 !important;
+}
+:global(html[data-theme='dark']) .reason .facts {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .aspectReasons>section {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .aspectReasons small {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .sheetContent .total {
+  background: #27282E;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .modeChip {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #1C1D21;
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .modeChip[aria-pressed=true] {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+:global(html[data-theme='dark']) .house.isFocus circle {
+  stroke: #F4F5F8;
+}
+:global(html[data-theme='dark']) .sign.isFocus path {
+  stroke: #F4F5F8;
+}
+:global(html[data-theme='dark']) .nowBody circle {
+  stroke: #F4F5F8;
+}
+:global(html[data-theme='dark']) .focusCard {
+  background: #1C1D21;
+}
+:global(html[data-theme='dark']) .focusMeta {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .focusText {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .focusMore {
+  color: #AEC3F6;
+}
+:global(html[data-theme='dark']) .nowList small {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .focusLinksLabel {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .focusBasis {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+:global(html[data-theme='dark']) .focusBasis summary {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .focusBasis p {
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .focusRole {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .focusParts {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+:global(html[data-theme='dark']) .focusParts p {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .focusParts b {
+  color: rgba(235, 235, 245, 0.5);
+}

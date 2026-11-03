@@ -4,3 +4,13 @@
 .neutral{border-color:#dce0e5;color:#444950}
 @keyframes feedback-in{from{opacity:0;transform:translateY(-9px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.tag{animation:feedback-fade 120ms linear both}@keyframes feedback-fade{from{opacity:0}to{opacity:1}}}
+
+/* ── dark theme (generated) ── */
+:global(html[data-theme='dark']) .tag {
+  background: rgba(39, 40, 46, 0.94);
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .neutral {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(235, 235, 245, 0.72);
+}

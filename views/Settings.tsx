@@ -23,6 +23,7 @@ import { hasActivePremium } from '../lib/accessMatrix';
 import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { AvatarCircle, AvatarPicker } from '../components/nebo/AvatarPicker';
+import { useThemePref } from '../lib/theme';
 import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { apiFetch } from '../services/apiClient';
@@ -271,6 +272,7 @@ export const Settings: React.FC<SettingsProps> = ({
 }) => {
 
     const [avatarOpen, setAvatarOpen] = useState(false);
+    const [themePref, setThemePref] = useThemePref();
     const nativeNotifications = isNativeAndroidRuntime();
     const rustorePurchaseControlsAvailable = canUseRuStorePay(resolveDistributionChannel());
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
@@ -1842,6 +1844,17 @@ export const Settings: React.FC<SettingsProps> = ({
                         <section className="settings-group" aria-labelledby="settings-look-heading">
                             <h2 id="settings-look-heading">{en ? 'Appearance' : 'Внешний вид'}</h2>
                             <div className="settings-list">
+                                <div className="settings-list-row settings-theme-row">
+                                    <span className="settings-list-row-main">
+                                        <span className="settings-list-row-icon" aria-hidden>{icon('star')}</span>
+                                        <span className="settings-list-row-label">{en ? 'Theme' : 'Тема'}</span>
+                                    </span>
+                                    <span className="nebo-theme-seg" role="radiogroup" aria-label={en ? 'Theme' : 'Тема'}>
+                                        {([['light', en ? 'Light' : 'Светлая'], ['dark', en ? 'Dark' : 'Тёмная'], ['system', en ? 'Auto' : 'Авто']] as const).map(([key, label]) => (
+                                            <button key={key} type="button" role="radio" aria-checked={themePref === key} className={themePref === key ? 'is-on' : ''} onClick={() => setThemePref(key)}>{label}</button>
+                                        ))}
+                                    </span>
+                                </div>
                                 <SettingsRow icon={icon('person')} label={en ? 'Avatar' : 'Аватарка'} value={en ? 'choose' : 'выбрать'} onClick={() => setAvatarOpen(true)} />
                                 <SettingsRow icon={icon('globe')} label={en ? 'Language' : 'Язык'} value={languageLabel} target="language" onClick={() => openSettingsScreen('language')} />
                             </div>

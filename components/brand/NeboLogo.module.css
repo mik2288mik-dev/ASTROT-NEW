@@ -63,3 +63,8 @@
     width: min(16.5rem, 76vw);
   }
 }
+
+/* Dark theme: the same cloud without the white field around it. */
+:global(html[data-theme='dark']) .image {
+  content: url('/assets/brand/nebo-cloud-logo-dark.webp');
+}

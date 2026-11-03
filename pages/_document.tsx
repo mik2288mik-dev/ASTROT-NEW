@@ -1,4 +1,5 @@
 import Document, { Head, Html, Main, NextScript } from 'next/document';
+import { THEME_BOOT_SCRIPT } from '../lib/theme';
 
 export default class NeboDocument extends Document {
   render() {
@@ -14,6 +15,7 @@ export default class NeboDocument extends Document {
         <body>
           {/* Early Telegram WebApp initialization and desktop platform detection */}
           <script dangerouslySetInnerHTML={{ __html: `try{var tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready&&tg.ready();var p=String(tg.platform||'').toLowerCase();if(p==='android'||p==='android_x'||p==='ios'){tg.expand&&tg.expand();}}}catch(e){}` }} />
+          <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
           <Main /><NextScript />
         </body>
       </Html>

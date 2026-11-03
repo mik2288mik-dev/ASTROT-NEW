@@ -522,3 +522,143 @@
   mask-image: none;
   background: linear-gradient(100deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.92) 55%, rgba(255, 255, 255, 0.62) 100%);
 }
+
+/* ── dark theme (generated) ── */
+:global(html[data-theme='dark']) .heading {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .headingNote {
+  background: #27282E;
+  color: #ADC7EF;
+}
+:global(html[data-theme='dark']) .tileIcon {
+  background: rgba(255, 255, 255, 0.12);
+}
+:global(html[data-theme='dark']) .moment {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .kicker {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .momentHeadline {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .momentText {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .badge.neutral {
+  background: #1C2D4A;
+  color: #ADC7EF;
+}
+:global(html[data-theme='dark']) .elementIntro {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .elementWho {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .elementBar {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .elementTrack {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .source {
+  background: rgba(255, 255, 255, 0.11);
+}
+:global(html[data-theme='dark']) .dignity {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .domicile {
+  background: #27282E;
+  color: #73E8BC;
+}
+:global(html[data-theme='dark']) .exaltation {
+  background: #4A3A1C;
+  color: #F8BE63;
+}
+:global(html[data-theme='dark']) .weak {
+  background: #27282E;
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .card {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .setRow {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .setRow dt {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .setRow dd {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .disclaimer {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .proof {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .proofMeta {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .proofTable td {
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .proofTable caption {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .ok {
+  color: #77E4B9;
+}
+:global(html[data-theme='dark']) .bad {
+  color: #EAAA9D;
+}
+:global(html[data-theme='dark']) .muted {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .actions button, :global(html[data-theme='dark']) .verifyButton {
+  background: #27282E;
+  color: #ADC7EF;
+}
+:global(html[data-theme='dark']) .status {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .tile.day, :global(html[data-theme='dark']) .tile.evening, :global(html[data-theme='dark']) .tile.sunset {
+  background-color: #1C1D21;
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .tile.withArt::before {
+  background: linear-gradient(180deg, rgba(39, 40, 46, 0.5) 0%, rgba(39, 40, 46, 0.9) 42%, rgba(39, 40, 46, 0.94) 100%);
+}
+:global(html[data-theme='dark']) .tile .tileIcon {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .tile .tileLabel {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .tile .tileTrait {
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .moment {
+  background: #1C1D21;
+}
+:global(html[data-theme='dark']) .hero.withArt, :global(html[data-theme='dark']) .dayTile.withArt, :global(html[data-theme='dark']) .hero, :global(html[data-theme='dark']) .dayTile {
+  background-color: #1C1D21;
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .withArt::before {
+  background: linear-gradient(180deg, rgba(39, 40, 46, 0.5) 0%, rgba(39, 40, 46, 0.9) 42%, rgba(39, 40, 46, 0.94) 100%);
+}
+:global(html[data-theme='dark']) .hero .heroLabel, :global(html[data-theme='dark']) .dayTile .dayCaption {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .hero .heroText, :global(html[data-theme='dark']) .dayTile .dayOrigin {
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .hero .source {
+  background: #27282E;
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .hero.withArt::before, :global(html[data-theme='dark']) .dayTile.withArt::before {
+  background: linear-gradient(100deg, rgba(39, 40, 46, 0.94) 0%, rgba(39, 40, 46, 0.92) 55%, rgba(39, 40, 46, 0.62) 100%);
+}

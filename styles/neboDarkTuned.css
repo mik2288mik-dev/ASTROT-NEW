@@ -1,0 +1,77 @@
+/* Dark theme, hand-tuned parts (canvas: graphite page, paper cards, rare stars). neboDark.css holds the generated colour overrides. */
+
+/* «Тема» switch in the profile */
+.settings-theme-row { cursor: default; }
+.nebo-theme-seg {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: rgba(118, 118, 128, 0.12);
+}
+.nebo-theme-seg button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #5c6170;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+.nebo-theme-seg button.is-on {
+  background: #ffffff;
+  color: #0b0d12;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+html[data-theme='dark'] .nebo-theme-seg { background: rgba(118, 118, 128, 0.24); }
+html[data-theme='dark'] .nebo-theme-seg button { color: rgba(235, 235, 245, 0.64); }
+html[data-theme='dark'] .nebo-theme-seg button.is-on { background: rgba(255, 255, 255, 0.18); color: #f4f5f8; box-shadow: none; }
+
+/* Rare stars over the graphite page, as on the canvas */
+html[data-theme='dark'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.2px 1.2px at 8% 12%, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 27% 31%, rgba(255, 255, 255, 0.4), transparent 60%),
+    radial-gradient(1.4px 1.4px at 71% 9%, rgba(255, 255, 255, 0.5), transparent 60%),
+    radial-gradient(1px 1px at 88% 24%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(1.2px 1.2px at 15% 58%, rgba(255, 255, 255, 0.4), transparent 60%),
+    radial-gradient(1px 1px at 53% 47%, rgba(255, 255, 255, 0.3), transparent 60%),
+    radial-gradient(1.4px 1.4px at 92% 63%, rgba(255, 255, 255, 0.45), transparent 60%),
+    radial-gradient(1px 1px at 36% 79%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(1.2px 1.2px at 66% 88%, rgba(255, 255, 255, 0.4), transparent 60%),
+    radial-gradient(1px 1px at 4% 93%, rgba(255, 255, 255, 0.3), transparent 60%);
+  background-size: 100% 100%;
+  opacity: 0.8;
+}
+
+/* Error screen */
+html[data-theme='dark'] .nebo-crash { background: #1c1d21; color: #f4f5f8; }
+html[data-theme='dark'] .nebo-crash p,
+html[data-theme='dark'] .nebo-crash-link { color: rgba(235, 235, 245, 0.64); }
+html[data-theme='dark'] .nebo-crash-cta { background: #f2f3f5; color: #111216; }
+
+/* Startup error screen (inline-styled in App.tsx) */
+html[data-theme='dark'] .nebo-startup-error-text { color: rgba(235, 235, 245, 0.64) !important; }
+html[data-theme='dark'] .nebo-startup-error-note { background: #27282e !important; color: rgba(235, 235, 245, 0.72) !important; }
+html[data-theme='dark'] .nebo-startup-error-cta { background: #f2f3f5 !important; color: #111216 !important; }
+
+/* Dark solid buttons with white text become the light canvas CTA */
+html[data-theme='dark'] .bg-\[\#171717\] { background-color: #f2f3f5; color: #111216; }
+
+/* Entry screen: the night sky from the canvas (navy, dimmed clouds, fade into the graphite page) */
+html[data-theme='dark'] .nebo-auth-sky { background: linear-gradient(180deg, #0b1636 0%, #16285e 40%, #2b3b7e 72%, #1c1d21 100%); }
+html[data-theme='dark'] .nebo-auth-sky-layer { filter: brightness(0.66) saturate(0.6); opacity: 0.78; }
+html[data-theme='dark'] .nebo-auth-guest { color: #a5a8ff; }
+
+/* Startup loading (inline colours in components/ui/Loading.tsx) */
+html[data-theme='dark'] [data-nebo-startup-loading] > div:first-child { color: #f4f5f8 !important; }
+html[data-theme='dark'] [data-nebo-startup-loading] .bg-\[\#241f36\]\/55 { background-color: rgba(255, 255, 255, 0.6); }
