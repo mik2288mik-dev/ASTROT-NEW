@@ -582,7 +582,8 @@
 .nebo-tile.is-center .nebo-tile-number { position: static; margin: 2px auto 0; font-size: 58px; background: linear-gradient(160deg, #16a3a0 0%, #1f7a8c 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .nebo-tile.is-center .nebo-tile-stone { position: static; margin: 4px auto 0; }
 .nebo-tile.is-center .nebo-tile-foot.is-strong { max-width: none; margin-top: auto; }
-.nebo-tile-moon img { width: 38px; height: 38px; }
+.nebo-tile-moon { gap: 8px !important; }
+.nebo-tile-moon img { width: 32px; height: 32px; }
 .nebo-tile-moon strong { min-width: 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nebo-tile-tarot-word { font-weight: 600; font-size: 22px; letter-spacing: 0.14em; }
 .nebo-tile-tarot-word i { display: block; width: 64px; height: 7px; margin-top: 4px; background: linear-gradient(90deg, transparent, #3b2a8a 30%, #3b2a8a 70%, transparent) center / 100% 1px no-repeat; position: relative; }

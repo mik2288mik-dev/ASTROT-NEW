@@ -667,3 +667,9 @@
 :global(html[data-theme='dark']) .hero.withArt::before, :global(html[data-theme='dark']) .dayTile.withArt::before {
   background: linear-gradient(100deg, rgba(39, 40, 46, 0.94) 0%, rgba(39, 40, 46, 0.92) 55%, rgba(39, 40, 46, 0.62) 100%);
 }
+:global(html[data-theme='dark']) .proofPill {
+  color: #73E89F;
+}
+:global(html[data-theme='dark']) .proofClose {
+  color: rgba(235, 235, 245, 0.5);
+}

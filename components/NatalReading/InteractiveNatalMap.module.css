@@ -277,3 +277,6 @@
 :global(html[data-theme='dark']) .focusParts b {
   color: rgba(235, 235, 245, 0.5);
 }
+:global(html[data-theme='dark']) .tapHint {
+  color: rgba(235, 235, 245, 0.42);
+}

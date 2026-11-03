@@ -5174,6 +5174,43 @@ html[data-theme='dark'] .fresh-page.horo-reader-page .horo-period-tabs .fresh-ta
   color: #F4F5F8 !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.292) !important;
 }
+html[data-theme='dark'] .natal-v3-page header[class*='personInline'] h1 {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .natal-v3-page header[class*='personInline'] p {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .compat-editorial-tabs button {
+  color: rgba(235, 235, 245, 0.5) !important;
+}
+html[data-theme='dark'] .compat-editorial-tabs button[aria-selected='true'], html[data-theme='dark'] .compat-editorial-tabs button.is-active, html[data-theme='dark'] .compat-editorial-tabs button[data-active='true'] {
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #F4F5F8 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.292) !important;
+}
+html[data-theme='dark'] .nebo-compat-note {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-compat-relation {
+  background: #27282E;
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-compat-relation small {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .compat-context-tiles .compat-context-tile {
+  background: #27282E !important;
+  color: #F4F5F8 !important;
+}
+html[data-theme='dark'] .compat-entry-form--date .compat-pair-picker {
+  background: #27282E !important;
+}
+html[data-theme='dark'] .compat-entry-form--date .nebo-compat-note {
+  background: #27282E;
+}
+html[data-theme='dark'] .compat-entry-form--date .compat-date-section-label {
+  color: rgba(235, 235, 245, 0.42);
+}
 
 /* ── neboAuth.css ── */
 html[data-theme='dark'] .nebo-auth {
