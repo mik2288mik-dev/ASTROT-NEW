@@ -152,7 +152,7 @@ function harness(options: {
     },
     cta() { return find((element) => element.type === 'button' && hasClass(element, 'pw2-cta'))[0]; },
     checkout() { return find((element) => element.type === 'footer' && hasClass(element, 'pw2-checkout'))[0]; },
-    restoreButton() { return find((element) => element.type === 'button' && /Восстановить покупку|Проверяем покупки|Restore purchase|Checking purchases/u.test(visibleText(element)))[0]; },
+    restoreButton() { return find((element) => element.type === 'button' && /Восстановить покупк[уи]|Проверяем покупки|Restore purchases?|Checking purchases/u.test(visibleText(element)))[0]; },
     dispose() { slots.forEach((slot) => slot.cleanup?.()); },
   };
   mounted.push(api);

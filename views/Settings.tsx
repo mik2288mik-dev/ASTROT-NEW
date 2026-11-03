@@ -287,6 +287,7 @@ export const Settings: React.FC<SettingsProps> = ({
     );
     const [notifEnabled, setNotifEnabled] = useState(!nativeNotifications);
     const [notificationMode, setNotificationMode] = useState<'important' | 'daily'>('important');
+    const [nativeExtras, setNativeExtras] = useState<Pick<NativeNotificationSettings, 'morningTime' | 'special' | 'answers' | 'quietEnabled'>>({ morningTime: null, special: true, answers: true, quietEnabled: true });
     const [notificationBusy, setNotificationBusy] = useState(false);
     const [notificationError, setNotificationError] = useState('');
     const [notificationPermission, setNotificationPermission] = useState('prompt');
@@ -406,6 +407,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 if (!alive) return;
                 setNotifEnabled(settings.enabled && settings.permission === 'granted');
                 setNotificationMode(settings.mode);
+                setNativeExtras({ morningTime: settings.morningTime, special: settings.special, answers: settings.answers, quietEnabled: settings.quietEnabled });
                 setQuietStart(settings.quietStart);
                 setQuietEnd(settings.quietEnd);
                 setNotificationPermission(settings.permission);
@@ -544,6 +546,7 @@ export const Settings: React.FC<SettingsProps> = ({
             const settings = await getNativeNotificationSettings(String(profile.id));
             setNotifEnabled(settings.enabled && settings.permission === 'granted');
             setNotificationMode(settings.mode);
+            setNativeExtras({ morningTime: settings.morningTime, special: settings.special, answers: settings.answers, quietEnabled: settings.quietEnabled });
             setQuietStart(settings.quietStart);
             setQuietEnd(settings.quietEnd);
             setNotificationPermission(settings.permission);
@@ -1146,31 +1149,81 @@ export const Settings: React.FC<SettingsProps> = ({
                                 ? 'Open Android settings → Apps → NEBO → Notifications.' : 'Открой настройки Android → Приложения → NEBO → Уведомления.'))}>
                             {profile.language === 'en' ? 'Open Android settings' : 'Открыть настройки Android'}
                         </button> : null}
-                        {nativeNotifications && notifEnabled ? <div className="settings-detail-section settings-detail-section--separated">
-                            <h2>{profile.language === 'en' ? 'What to send' : 'Что присылать'}</h2>
-                            <div className="settings-selection-list">
-                                {(['important', 'daily'] as const).map((mode) => <button key={mode} type="button"
-                                    className="settings-selection-row" aria-pressed={notificationMode === mode} disabled={notificationBusy}
-                                    onClick={() => void saveNativeNotif({ mode })}>
-                                    <span>{profile.language === 'en'
-                                        ? mode === 'important' ? 'Only the important ones' : 'Everything, incl. morning horoscope'
-                                        : mode === 'important' ? 'Только важное' : 'Всё, включая гороскоп по утрам'}</span>
-                                    {notificationMode === mode ? <Check aria-hidden size={16} /> : null}
-                                </button>)}
+                        {nativeNotifications && notifEnabled ? (
+                            <div className="nebo-notif">
+                                <div className="nebo-notif-preview" aria-hidden="true">
+                                    <img src="/assets/brand/nebo-app-icon-192.png" alt="" width={40} height={40} />
+                                    <span>
+                                        <small>NEBO <i>{nativeExtras.morningTime || '9:00'}</i></small>
+                                        <strong>{profile.language === 'en' ? 'An easy day for talking' : 'Сегодня легко договориться'}</strong>
+                                        <em>{profile.language === 'en' ? 'If you need to write someone something important, better do it before lunch.' : 'Если нужно написать кому-то важное сообщение, лучше сделай это до обеда.'}</em>
+                                    </span>
+                                </div>
+                                <p className="settings-helper-text">{profile.language === 'en' ? 'This is how the morning notification looks' : 'Так выглядит утреннее уведомление'}</p>
+                                <div className="nebo-notif-list">
+                                    {([
+                                        ['daily', profile.language === 'en' ? 'Name of the day in the morning' : 'Утром название дня', profile.language === 'en' ? 'a short line and what it means for you' : 'короткая фраза и что это значит для тебя', notificationMode === 'daily'],
+                                        ['special', profile.language === 'en' ? 'Special days' : 'Особые дни', profile.language === 'en' ? 'retrograde planets, full moon, birthdays' : 'ретроградные планеты, полнолуние, твой день рождения', nativeExtras.special],
+                                        ['answers', profile.language === 'en' ? 'Answers' : 'Ответы на вопросы', profile.language === 'en' ? 'when a reading is ready' : 'когда ответ по карте готов', nativeExtras.answers],
+                                    ] as const).map(([id, label, hint, on]) => (
+                                        <div key={id} className="nebo-notif-row">
+                                            <span><strong>{label}</strong><small>{hint}</small></span>
+                                            <button
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={on}
+                                                aria-label={label}
+                                                className={'settings-switch' + (on ? ' settings-switch--on' : '')}
+                                                disabled={notificationBusy}
+                                                onClick={() => void saveNativeNotif(id === 'daily' ? { mode: on ? 'important' : 'daily' } : { [id]: !on })}
+                                            >
+                                                <span aria-hidden />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                {notificationMode === 'daily' ? (
+                                    <>
+                                        <h2 className="nebo-notif-head">{profile.language === 'en' ? 'Morning notification time' : 'Время утреннего уведомления'}</h2>
+                                        <div className="nebo-notif-times" role="radiogroup">
+                                            {['06:30', '07:00', '08:00', '09:00'].map((time) => (
+                                                <button
+                                                    key={time}
+                                                    type="button"
+                                                    role="radio"
+                                                    aria-checked={nativeExtras.morningTime === time}
+                                                    className={nativeExtras.morningTime === time ? 'is-active' : ''}
+                                                    disabled={notificationBusy}
+                                                    onClick={() => void saveNativeNotif({ morningTime: time })}
+                                                >
+                                                    {time.replace(/^0/, '')}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                ) : null}
+                                <div className="nebo-notif-list">
+                                    <div className="nebo-notif-row">
+                                        <span><strong>{profile.language === 'en' ? 'Quiet hours' : 'Тихие часы'}</strong><small>{profile.language === 'en' ? `from ${quietStart} to ${quietEnd}, no disturbing` : `с ${quietStart} до ${quietEnd} не беспокоим`}</small></span>
+                                        <button
+                                            type="button"
+                                            role="switch"
+                                            aria-checked={nativeExtras.quietEnabled}
+                                            aria-label={profile.language === 'en' ? 'Quiet hours' : 'Тихие часы'}
+                                            className={'settings-switch' + (nativeExtras.quietEnabled ? ' settings-switch--on' : '')}
+                                            disabled={notificationBusy}
+                                            onClick={() => void saveNativeNotif({ quietEnabled: !nativeExtras.quietEnabled })}
+                                        >
+                                            <span aria-hidden />
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="settings-helper-text">{profile.language === 'en'
+                                    ? 'No more than two notifications a day. On special days, like a full moon or your birthday, a third may come.'
+                                    : 'Не больше двух уведомлений в день. В особые дни, например в полнолуние или в твой день рождения, может прийти третье.'}</p>
                             </div>
-                            <p className="settings-helper-text">{profile.language === 'en'
-                                ? 'Important: a finished result, your birthday, holidays and news. Tap to open the right screen.'
-                                : 'Важное, готовый результат, день рождения, праздники и новости. Нажмёшь, откроется нужный экран.'}</p>
-                            {notificationMode === 'daily' ? <p className="settings-helper-text">{profile.language === 'en'
-                                ? 'Plus a morning horoscope for your sign and a daytime nudge, outside quiet hours, in your phone’s time zone.'
-                                : 'Плюс утром гороскоп по знаку и днём что-нибудь интересное, вне тихих часов, по времени телефона.'}</p> : null}
-                            <div className="settings-detail-section settings-detail-section--separated">
-                                <p className="settings-helper-text">{profile.language === 'en' ? 'For example' : 'Например'}</p>
-                                <strong>{profile.language === 'en' ? 'Good morning!' : 'Доброе утро!'}</strong>
-                                <p>{profile.language === 'en' ? 'Today’s horoscope is ready. Take a look over coffee' : 'Гороскоп на сегодня уже готов. Глянь, пока пьёшь кофе'}</p>
-                            </div>
-                        </div> : null}
-                        {notifEnabled ? (
+                        ) : null}
+                        {notifEnabled && (!nativeNotifications || nativeExtras.quietEnabled) ? (
                             <div className="settings-detail-section settings-detail-section--separated">
                                 <h2>{profile.language === 'en' ? 'Quiet hours' : 'Тихие часы'}</h2>
                                 <div className="settings-time-grid">
@@ -1729,16 +1782,18 @@ export const Settings: React.FC<SettingsProps> = ({
                 );
 
             case 'root':
-            default:
+            default: {
+                const en = profile.language === 'en';
+                const icon = (name: string) => <img src={`/assets/nebo-icons/${name}.svg`} alt="" width={34} height={34} />;
+                const planBadge = profile.isGuest ? (en ? 'Guest · not signed in' : 'Гость · без входа') : activePremium ? 'Plus' : 'Free';
                 return (
                     <div className="settings-root">
                         <div className="nebo-profile-head">
-                            <button type="button" className="nebo-profile-avatar-button" onClick={() => setAvatarOpen(true)} aria-label="Сменить аватарку">
+                            <button type="button" className="nebo-profile-avatar-button" onClick={() => setAvatarOpen(true)} aria-label={en ? 'Change avatar' : 'Сменить аватарку'}>
                                 <AvatarCircle userId={profile.id || ''} name={profileDisplayName || ''} className="nebo-profile-avatar" />
                             </button>
-                            <button type="button" className="nebo-profile-avatar-edit" onClick={() => setAvatarOpen(true)}>Сменить аватарку</button>
-                            <strong>{profileDisplayName}</strong>
-                            <span className={activePremium ? 'nebo-profile-plan is-plus' : 'nebo-profile-plan'}>{activePremium ? 'Plus' : 'Free'}</span>
+                            <strong>{profile.isGuest ? (en ? 'Guest' : 'Гость') : profileDisplayName}</strong>
+                            <span className={activePremium ? 'nebo-profile-plan is-plus' : profile.isGuest ? 'nebo-profile-plan is-guest' : 'nebo-profile-plan'}>{planBadge}</span>
                         </div>
                         <AvatarPicker
                             open={avatarOpen}
@@ -1749,127 +1804,98 @@ export const Settings: React.FC<SettingsProps> = ({
                             plus={activePremium}
                             onRequestPlus={() => { setAvatarOpen(false); onRequestPremium?.(); }}
                         />
-                        <section className="settings-group" aria-labelledby="settings-account-heading">
-                            <h2 id="settings-account-heading">{profile.language === 'en' ? 'Account' : 'Аккаунт'}</h2>
+
+                        {profile.isGuest ? (
+                            <section className="nebo-profile-signin">
+                                <strong>{en ? 'Sign in so nothing gets lost' : 'Войди, чтобы ничего не потерять'}</strong>
+                                <p>{en ? 'Your chart and settings live only on this phone for now.' : 'Сейчас карта и настройки хранятся только на этом телефоне.'}</p>
+                                <div className="nebo-profile-signin-buttons">
+                                    <button type="button" className="is-yandex" onClick={() => openSettingsScreen('auth')}><span aria-hidden>Я</span>{en ? 'Yandex' : 'Яндекс'}</button>
+                                    <button type="button" className="is-vk" onClick={() => openSettingsScreen('auth')}>VK ID</button>
+                                    <button type="button" className="is-mail" onClick={() => openSettingsScreen('auth')}>{en ? 'Email' : 'Почта'}</button>
+                                </div>
+                            </section>
+                        ) : null}
+
+                        <section className="settings-group" aria-labelledby="settings-premium-heading">
+                            <h2 id="settings-premium-heading">{en ? 'Subscription and purchases' : 'Подписка и покупки'}</h2>
                             <div className="settings-list">
                                 <SettingsRow
-                                    icon={<img src="/assets/nebo-icons/person.svg" alt="" width={34} height={34} />}
-                                    label={profile.language === 'en' ? 'Profile' : 'Профиль'}
-                                    value={profileDisplayName}
-                                    target="profile"
-                                    onClick={() => openSettingsScreen('profile')}
+                                    icon={icon('plus')}
+                                    label={activePremium ? 'NEBO Plus' : (en ? 'Get Plus' : 'Оформить Plus')}
+                                    value={activePremium ? (en ? 'active' : 'активна') : (en ? 'from 399 ₽' : 'от 399 ₽')}
+                                    target="subscription"
+                                    onClick={() => (activePremium || !onRequestPremium ? openSettingsScreen('subscription') : onRequestPremium())}
                                 />
-                                <SettingsRow
-                                    icon={<img src="/assets/nebo-icons/shield.svg" alt="" width={34} height={34} />}
-                                    label={profile.language === 'en' ? 'Birth details' : 'Данные рождения'}
-                                    value={formatSettingsBirthDate(profile.birthDate, profile.language)}
-                                    target="birth"
-                                    onClick={() => openSettingsScreen('birth')}
-                                />
-                                <SettingsRow
-                                    icon={<img src="/assets/nebo-icons/person.svg" alt="" width={34} height={34} />}
-                                    label={profile.language === 'en' ? 'Gender' : 'Пол'}
-                                    value={genderValue}
-                                    target="gender"
-                                    onClick={() => openSettingsScreen('gender')}
-                                />
-                                <SettingsRow
-                                    icon={<img src="/assets/nebo-icons/envelope.svg" alt="" width={34} height={34} />}
-                                    label={profile.language === 'en' ? 'Sign-in methods' : 'Способы входа'}
-                                    value={identityLoadFailed ? (profile.language === 'en' ? 'Unavailable' : 'Не загружены') : identityCountLabel(identities.length, profile.language)}
-                                    target="auth"
-                                    onClick={() => openSettingsScreen('auth')}
-                                />
+                                {onRequestPremium ? (
+                                    <SettingsRow icon={icon('gift')} label={en ? 'Store and gifts' : 'Магазин и подарки'} onClick={() => onRequestPremium()} />
+                                ) : null}
+                                <SettingsRow icon={icon('bag')} label={en ? 'Purchases' : 'Покупки'} onClick={() => openSettingsScreen('subscription')} />
+                                {onRequestPremium ? (
+                                    <SettingsRow icon={icon('star')} label={en ? 'Enter a code' : 'Ввести код'} value={en ? 'gift or promo code' : 'подарок или промокод'} onClick={() => onRequestPremium()} />
+                                ) : null}
                             </div>
                         </section>
 
-                        <section className="settings-group" aria-labelledby="settings-app-heading">
-                            <h2 id="settings-app-heading">{profile.language === 'en' ? 'Application' : 'Приложение'}</h2>
+                        <section className="settings-group" aria-labelledby="settings-look-heading">
+                            <h2 id="settings-look-heading">{en ? 'Appearance' : 'Внешний вид'}</h2>
+                            <div className="settings-list">
+                                <SettingsRow icon={icon('person')} label={en ? 'Avatar' : 'Аватарка'} value={en ? 'choose' : 'выбрать'} onClick={() => setAvatarOpen(true)} />
+                                <SettingsRow icon={icon('globe')} label={en ? 'Language' : 'Язык'} value={languageLabel} target="language" onClick={() => openSettingsScreen('language')} />
+                            </div>
+                        </section>
+
+                        <section className="settings-group" aria-labelledby="settings-data-heading">
+                            <h2 id="settings-data-heading">{en ? 'My data' : 'Мои данные'}</h2>
                             <div className="settings-list">
                                 <SettingsRow
-                                    icon={<img src="/assets/nebo-icons/bell.svg" alt="" width={34} height={34} />}
-                                    label={profile.language === 'en' ? 'Notifications' : 'Уведомления'}
-                                    value={notifEnabled ? (profile.language === 'en' ? 'On' : 'Включены') : (profile.language === 'en' ? 'Off' : 'Выключены')}
+                                    icon={icon('bell')}
+                                    label={en ? 'Notifications' : 'Уведомления'}
+                                    value={notifEnabled ? (en ? 'On' : 'Включены') : (en ? 'Off' : 'Выключены')}
                                     target="notifications"
                                     onClick={() => openSettingsScreen('notifications')}
                                 />
                                 <SettingsRow
-                                    icon={<img src="/assets/nebo-icons/globe.svg" alt="" width={34} height={34} />}
-                                    label={profile.language === 'en' ? 'Language' : 'Язык'}
-                                    value={languageLabel}
-                                    target="language"
-                                    onClick={() => openSettingsScreen('language')}
+                                    icon={icon('shield')}
+                                    label={en ? 'Date, time, city' : 'Дата, время, город'}
+                                    value={formatSettingsBirthDate(profile.birthDate, profile.language)}
+                                    target="birth"
+                                    onClick={() => openSettingsScreen('birth')}
                                 />
-                                {onOpenCharts ? (
+                                <SettingsRow icon={icon('person')} label={en ? 'Gender' : 'Пол'} value={genderValue} target="gender" onClick={() => openSettingsScreen('gender')} />
+                                {onOpenCharts ? <SettingsRow icon={icon('star')} label={en ? 'My charts' : 'Мои карты'} onClick={onOpenCharts} /> : null}
+                                {!profile.isGuest ? (
                                     <SettingsRow
-                                        icon={<img src="/assets/nebo-icons/star.svg" alt="" width={34} height={34} />}
-                                        label={profile.language === 'en' ? 'Saved charts' : 'Сохранённые карты'}
-                                        onClick={onOpenCharts}
+                                        icon={icon('envelope')}
+                                        label={en ? 'Sign-in methods' : 'Способы входа'}
+                                        value={identityLoadFailed ? (en ? 'Unavailable' : 'Не загружены') : identityCountLabel(identities.length, profile.language)}
+                                        target="auth"
+                                        onClick={() => openSettingsScreen('auth')}
                                     />
                                 ) : null}
+                                <SettingsRow icon={icon('person')} label={en ? 'Name' : 'Имя'} value={profileDisplayName} target="profile" onClick={() => openSettingsScreen('profile')} />
                             </div>
                         </section>
 
-                        <section className="settings-group" aria-labelledby="settings-premium-heading">
-                            <h2 id="settings-premium-heading">{profile.language === 'en' ? 'Subscription' : 'Подписка'}</h2>
+                        <section className="settings-group settings-group--last" aria-labelledby="settings-nebo-heading">
+                            <h2 id="settings-nebo-heading">NEBO</h2>
                             <div className="settings-list">
                                 <SettingsRow
-                                    icon={<img src="/assets/nebo-icons/plus.svg" alt="" width={34} height={34} />}
-                                    label={profile.language === 'en' ? 'Subscription' : 'Подписка'}
-                                    value={activePremium ? 'Plus' : 'Free'}
-                                    target="subscription"
-                                    onClick={() => openSettingsScreen('subscription')}
+                                    icon={icon('star')}
+                                    label={en ? 'Rate the app' : 'Оценить приложение'}
+                                    onClick={() => { window.open('https://www.rustore.ru/catalog/app/ru.tvoygoroskop.app', '_blank', 'noopener'); }}
                                 />
-                                {onRequestPremium ? (
-                                    <SettingsRow
-                                        icon={<img src="/assets/nebo-icons/plus.svg" alt="" width={34} height={34} />}
-                                        label={profile.language === 'en' ? 'Store and codes' : 'Магазин'}
-                                        value={profile.language === 'en' ? 'Gifts, codes' : 'Подарки и коды'}
-                                        onClick={() => onRequestPremium()}
-                                    />
-                                ) : null}
-                            </div>
-                        </section>
-
-                        <section className="settings-group" aria-labelledby="settings-help-heading">
-                            <h2 id="settings-help-heading">{profile.language === 'en' ? 'Help' : 'Помощь'}</h2>
-                            <div className="settings-list">
-                                <SettingsRow
-                                    icon={<img src="/assets/nebo-icons/help.svg" alt="" width={34} height={34} />}
-                                    label={profile.language === 'en' ? 'Support' : 'Обратная связь'}
-                                    target="feedback"
-                                    onClick={() => openSettingsScreen('feedback')}
-                                />
-                                <SettingsRow
-                                    icon={<img src="/assets/nebo-icons/shield.svg" alt="" width={34} height={34} />}
-                                    label={profile.language === 'en' ? 'Legal information' : 'Правовая информация'}
-                                    target="legal"
-                                    onClick={() => openSettingsScreen('legal')}
-                                />
-                            </div>
-                        </section>
-
-                        <section className="settings-group settings-group--last" aria-labelledby="settings-data-heading">
-                            <h2 id="settings-data-heading">{profile.language === 'en' ? 'Account actions' : 'Действия с аккаунтом'}</h2>
-                            <div className="settings-list">
+                                <SettingsRow icon={icon('help')} label={en ? 'Support' : 'Обратная связь'} target="feedback" onClick={() => openSettingsScreen('feedback')} />
+                                <SettingsRow icon={icon('shield')} label={en ? 'Legal information' : 'Правовая информация'} target="legal" onClick={() => openSettingsScreen('legal')} />
                                 {profile.isAdmin ? (
-                                    <SettingsRow
-                                        icon={<img src="/assets/nebo-icons/roller.svg" alt="" width={34} height={34} />}
-                                        label={profile.language === 'en' ? 'For developers' : 'Для разработчика'}
-                                        target="developer"
-                                        onClick={() => openSettingsScreen('developer')}
-                                    />
+                                    <SettingsRow icon={icon('roller')} label={en ? 'For developers' : 'Для разработчика'} target="developer" onClick={() => openSettingsScreen('developer')} />
                                 ) : null}
-                                <SettingsRow
-                                    icon={<img src="/assets/nebo-icons/door.svg" alt="" width={34} height={34} />}
-                                    label={profile.language === 'en' ? 'Account and data' : 'Аккаунт и данные'}
-                                    target="account"
-                                    onClick={() => openSettingsScreen('account')}
-                                />
+                                <SettingsRow icon={icon('door')} label={en ? 'Account and data' : 'Аккаунт и данные'} target="account" onClick={() => openSettingsScreen('account')} />
                             </div>
                         </section>
                     </div>
                 );
+            }
         }
     };
 

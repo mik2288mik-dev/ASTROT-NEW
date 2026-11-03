@@ -50,7 +50,7 @@ const BANNED = /космос|вселенн|энерги|звёзды (гово�
 describe('native notification preferences and local clock', () => {
   it('defaults to enabled, everything mode', () => {
     expect(normalizeNativeNotificationSettings(undefined)).toEqual({
-      enabled: true, mode: 'daily', quietStart: '22:00', quietEnd: '09:00',
+      enabled: true, mode: 'daily', quietStart: '22:00', quietEnd: '09:00', morningTime: null, special: true, answers: true, quietEnabled: true,
     });
     expect(DEFAULT_NATIVE_NOTIFICATION_SETTINGS).toEqual(normalizeNativeNotificationSettings(null));
   });
@@ -66,10 +66,10 @@ describe('native notification preferences and local clock', () => {
   it('preserves explicit choices and falls back safely for malformed settings', () => {
     expect(normalizeNativeNotificationSettings({
       enabled: true, mode: 'important', quietStart: '23:30', quietEnd: '08:15',
-    })).toEqual({ enabled: true, mode: 'important', quietStart: '23:30', quietEnd: '08:15' });
+    })).toEqual({ enabled: true, mode: 'important', quietStart: '23:30', quietEnd: '08:15', morningTime: null, special: true, answers: true, quietEnabled: true });
     expect(normalizeNativeNotificationSettings({
       enabled: true, mode: 'unknown', quietStart: '24:00', quietEnd: '9:00',
-    })).toEqual({ enabled: true, mode: 'daily', quietStart: '22:00', quietEnd: '09:00' });
+    })).toEqual({ enabled: true, mode: 'daily', quietStart: '22:00', quietEnd: '09:00', morningTime: null, special: true, answers: true, quietEnabled: true });
   });
 
   it.each(['24:00', '23:60', '9:00', '-1:00', '09:00:00', ' 09:00', '', null, 900])(
@@ -273,5 +273,30 @@ describe('ready native notification policy', () => {
     expect(natal?.title).toMatch(/карта готова|chart is ready/i);
     expect(today?.id).not.toBe(natal?.id);
     expect(today!.expiresAt).toBeGreaterThan(today!.at);
+  });
+});
+
+describe('notification choices from the canvas settings screen', () => {
+  it('sends the morning push at the chosen time, even inside quiet hours', () => {
+    const plans = planNativeNotifications(planInput({ settings: settings({ enabled: true, mode: 'daily', morningTime: '07:00' }) }));
+    const mornings = plans.filter((plan) => plan.kind === 'daily');
+    expect(mornings.length).toBeGreaterThan(0);
+    for (const plan of mornings) {
+      const at = new Date(plan.at);
+      expect(at.getHours() * 60 + at.getMinutes()).toBe(7 * 60);
+    }
+  });
+
+  it('drops special days when they are switched off and answers when those are off', () => {
+    const withSky = planInput({ skyEvents: [{ dayKey: '2026-09-07', kind: 'full_moon' }] });
+    expect(planNativeNotifications(withSky).some((plan) => plan.kind === 'sky')).toBe(true);
+    expect(planNativeNotifications({ ...withSky, settings: settings({ enabled: true, mode: 'daily', special: false }) }).some((plan) => plan.kind === 'sky')).toBe(false);
+    expect(makeNativeReadyNotification(readyInput({ settings: settings({ enabled: true, answers: false }) }))).toBeNull();
+  });
+
+  it('lets quiet hours be switched off', () => {
+    const late = new Date(2026, 8, 5, 23, 30);
+    expect(isNativeNotificationQuiet(late, settings())).toBe(true);
+    expect(isNativeNotificationQuiet(late, settings({ quietEnabled: false }))).toBe(false);
   });
 });
