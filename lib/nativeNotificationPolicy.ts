@@ -10,6 +10,14 @@ export type NativeNotificationSettings = {
   mode: 'important' | 'daily';
   quietStart: string;
   quietEnd: string;
+  /** Time of the morning push chosen in settings (HH:MM); null keeps the usual 9:00-9:30. */
+  morningTime: string | null;
+  /** Birthdays, holidays, full and new moons, retrograde Mercury. */
+  special: boolean;
+  /** «Ответ готов»: a finished reading or answer. */
+  answers: boolean;
+  /** Quiet hours can be switched off; the hours themselves are kept. */
+  quietEnabled: boolean;
 };
 export type NativeNotificationKind = 'daily' | 'invite' | 'comeback' | 'holiday' | 'birthday' | 'season' | 'sky' | 'ready' | 'mood' | 'story';
 export type NativeNotificationRoute = PushRoute;
@@ -30,7 +38,7 @@ export const NATIVE_NOTIFICATION_ROUTES: readonly NativeNotificationRoute[] = ['
 /** «Неделя настроения»: seven days from startDayKey, two reminders at the chosen times. */
 export type NativeMoodWeek = { startDayKey: string; reminderTimes: [string, string] };
 export const DEFAULT_NATIVE_NOTIFICATION_SETTINGS: NativeNotificationSettings = {
-  enabled: true, mode: 'daily', quietStart: '22:00', quietEnd: '09:00',
+  enabled: true, mode: 'daily', quietStart: '22:00', quietEnd: '09:00', morningTime: null, special: true, answers: true, quietEnabled: true,
 };
 /** Сколько дней вперёд планируем. Нативная сторона принимает до 16 суток. */
 export const NATIVE_PLAN_DAYS = 14;
@@ -56,12 +64,18 @@ export function normalizeNativeNotificationSettings(value: unknown): NativeNotif
     mode: input.mode === 'important' ? 'important' : 'daily',
     quietStart: notificationTimeMinutes(input.quietStart) !== null ? input.quietStart! : '22:00',
     quietEnd: notificationTimeMinutes(input.quietEnd) !== null ? input.quietEnd! : '09:00',
+    morningTime: notificationTimeMinutes(input.morningTime) !== null ? input.morningTime! : null,
+    special: input.special !== false,
+    answers: input.answers !== false,
+    quietEnabled: input.quietEnabled !== false,
   };
 }
 export function isNativeNotificationQuiet(date: Date, settings: NativeNotificationSettings): boolean {
   const start = notificationTimeMinutes(settings.quietStart);
   const end = notificationTimeMinutes(settings.quietEnd);
-  if (!Number.isFinite(date.getTime()) || start === null || end === null || start === end) return true;
+  if (!Number.isFinite(date.getTime())) return true;
+  if (settings.quietEnabled === false) return false;
+  if (start === null || end === null || start === end) return true;
   const minute = date.getHours() * 60 + date.getMinutes();
   return start < end ? minute >= start && minute < end : minute >= start || minute < end;
 }
@@ -144,8 +158,9 @@ export function planNativeNotifications(input: {
   const userSeed = hash(input.accountId);
   const everyday = input.settings.mode === 'daily';
   const sky = normalizeSkyEvents(input.skyEvents);
+  const chosenMorning = notificationTimeMinutes(input.settings.morningTime);
   const windowMinute = (window: Window, kind: NativeNotificationKind) => window === 0
-    ? 9 * 60 + (kind === 'daily' ? userSeed % 30 : 30)
+    ? (kind === 'daily' && chosenMorning !== null ? chosenMorning : 9 * 60 + (kind === 'daily' ? userSeed % 30 : 30))
     : window === 1 ? 13 * 60 + userSeed % 40 : (kind === 'sky' ? 20 * 60 : 19 * 60) + userSeed % 30;
   const result: NativeNotificationPlan[] = [];
 
@@ -161,15 +176,16 @@ export function planNativeNotifications(input: {
 
     // События дня — в порядке важности.
     const events: Candidate[] = [];
-    if (birth && birth.month === month && birth.day === date) {
+    const special = input.settings.special !== false;
+    if (special && birth && birth.month === month && birth.day === date) {
       events.push({ kind: 'birthday', copy: birthdayCopy(lang, input.profile?.name || ''), window: 0, event: true });
     }
-    const holiday = holidayCopy(lang, month, date, weekday);
+    const holiday = special ? holidayCopy(lang, month, date, weekday) : null;
     if (holiday) events.push({ kind: 'holiday', copy: holiday, window: 0, event: true });
-    if (sign && APPROXIMATE_SUN_SIGN_DATES[sign].startMonth === month && APPROXIMATE_SUN_SIGN_DATES[sign].startDay === date) {
+    if (special && sign && APPROXIMATE_SUN_SIGN_DATES[sign].startMonth === month && APPROXIMATE_SUN_SIGN_DATES[sign].startDay === date) {
       events.push({ kind: 'season', copy: seasonCopy(lang, sign), window: 1, event: true });
     }
-    for (const event of sky.filter((item) => item.dayKey === dayKey)) {
+    for (const event of special ? sky.filter((item) => item.dayKey === dayKey) : []) {
       const evening = event.kind === 'full_moon';
       events.push({ kind: 'sky', copy: skyEventCopy(lang, event.kind, seed), window: evening ? 2 : 1, event: true });
     }
@@ -212,7 +228,10 @@ export function planNativeNotifications(input: {
     }
 
     for (const [window, slot] of [...taken.entries()].sort((a, b) => a[0] - b[0])) {
-      const at = slotTime(day, slot.minute ?? windowMinute(window, slot.kind), input.settings);
+      // The morning push at the time the person chose comes even inside quiet hours: they asked for it.
+      const at = slot.kind === 'daily' && window === 0 && chosenMorning !== null
+        ? new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, chosenMorning)
+        : slotTime(day, slot.minute ?? windowMinute(window, slot.kind), input.settings);
       // Сегодня зовём только на то, что будет не раньше чем через 3 часа: человек только что был в приложении.
       if (!at || at.getTime() <= now.getTime() + (offset === 0 ? 3 * HOUR : 0)) continue;
       const atKey = localNotificationDayKey(at);
@@ -249,7 +268,7 @@ export function makeNativeReadyNotification(input: {
   settings: NativeNotificationSettings; now?: Date;
 }): NativeNotificationPlan | null {
   const now = input.now || new Date();
-  if (!input.accountId || !input.settings.enabled || isNativeNotificationQuiet(now, input.settings)
+  if (!input.accountId || !input.settings.enabled || input.settings.answers === false || isNativeNotificationQuiet(now, input.settings)
     || isNativeNotificationQuiet(new Date(now.getTime() + 2000), input.settings)) return null;
   const copy = readyCopy(input.language, input.route);
   return {

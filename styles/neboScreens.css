@@ -1394,3 +1394,23 @@
 .nebo-profile-signin-buttons .is-yandex span { display: inline-flex; width: 20px; height: 20px; align-items: center; justify-content: center; border-radius: 50%; background: #fc3f1d; color: #ffffff; font-size: 12px; font-weight: 800; }
 .nebo-profile-signin-buttons .is-vk { background: #0077ff; color: #ffffff; }
 .nebo-profile-signin-buttons .is-mail { background: rgba(118, 118, 128, 0.12); color: #0b0d12; }
+
+/* Notifications (canvas NotifSettings) */
+.nebo-notif { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.nebo-notif-preview { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 22px; background: #ffffff; box-shadow: 0 6px 20px rgba(11, 13, 18, 0.06); }
+.nebo-notif-preview img { border-radius: 10px; flex: none; }
+.nebo-notif-preview span { display: flex; flex: 1; flex-direction: column; gap: 2px; }
+.nebo-notif-preview small { display: flex; justify-content: space-between; color: #8a8f9c; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+.nebo-notif-preview small i { font-style: normal; }
+.nebo-notif-preview strong { font-size: 15px; font-weight: 700; }
+.nebo-notif-preview em { color: #5c6170; font-size: 14px; font-style: normal; line-height: 1.4; }
+.nebo-notif-list { border-radius: 20px; background: #ffffff; }
+.nebo-notif-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; }
+.nebo-notif-row + .nebo-notif-row { border-top: 1px solid rgba(118, 118, 128, 0.14); }
+.nebo-notif-row span { display: flex; flex-direction: column; gap: 2px; }
+.nebo-notif-row strong { font-size: 15.5px; font-weight: 600; }
+.nebo-notif-row small { color: #8a8f9c; font-size: 13px; line-height: 1.35; }
+.nebo-notif-head { margin: 8px 4px 0; color: #8a8f9c; font-size: 12.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.nebo-notif-times { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.nebo-notif-times button { height: 46px; border: 0; border-radius: 14px; background: #ffffff; color: #0b0d12; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.nebo-notif-times button.is-active { background: #e6e3ff; color: #4527d6; }
