@@ -5,7 +5,7 @@
   --ink: #F4F5F8;
   --muted: rgba(235, 235, 245, 0.5);
   --line: rgba(255, 255, 255, 0.1);
-  background: #1C1D21;
+  background: linear-gradient(180deg,#27282E 0%,#1C1D21 420px);
 }
 :global(html[data-theme='dark']) .dateField input, :global(html[data-theme='dark']) .recalculate input {
   background: #1C1D21;

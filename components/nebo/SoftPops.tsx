@@ -11,7 +11,7 @@ export function NotifyOffer({ onAnswer }: { onAnswer: (accept: boolean) => void 
         <h2>Каждое утро в 7:00 присылать, какой у тебя будет день?</h2>
         <p>Одно уведомление утром. В особые дни, например в твой день рождения или в полнолуние, может прийти ещё одно.</p>
         <div className="nebo-notif-preview" aria-hidden="true">
-          <img src="/assets/brand/nebo-app-icon-192.png" alt="" width={40} height={40} />
+          <img src="/assets/brand/nebo-mark.webp" alt="" width={40} height={40} />
           <span><small>NEBO <i>7:00</i></small><strong>Сегодня легко договориться</strong><em>Что это значит для тебя, внутри.</em></span>
         </div>
         <button type="button" className="nebo-period-cta" onClick={() => onAnswer(true)}>Да, присылать</button>

@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { NeboLogo } from '../brand/NeboLogo';
 
 interface LoadingProps {
   message?: string;
@@ -43,34 +41,18 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
       aria-live="polite"
       aria-label={LOADING_LABEL}
     >
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '5px',
-          fontFamily: 'var(--fresh-font, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif)',
-          color: '#241f36',
-          textAlign: 'center',
-        }}
-      >
-        <NeboLogo decorative size="loading" priority />
-        <span style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.25 }}>
-          гороскоп натальная карта
+      {/* Canvas splash: a soft lavender glow, the NEBO mark in a ring with a dot on its orbit, three progress dots. */}
+      <div className="nebo-splash" aria-hidden="true">
+        <span className="nebo-splash-glow" />
+        <span className="nebo-splash-ring">
+          <img src="/assets/brand/nebo-mark.webp" alt="" width={72} height={72} />
+          <i className="nebo-splash-orbit"><b /></i>
         </span>
       </div>
-
-      <div className="mt-5 h-0.5 w-full max-w-[190px] overflow-hidden rounded-full bg-[#241f36]/12">
-        <motion.div
-          className="h-full rounded-full bg-[#241f36]/55"
-          initial={{ width: 0 }}
-          animate={{ width: `${progressPercent}%` }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-        />
+      <div className="nebo-splash-dots" aria-hidden="true">
+        {[0, 1, 2].map((step) => <i key={step} className={progressPercent > step * 33 ? 'is-on' : ''} />)}
       </div>
-      <div className="mt-2 text-center text-[11px] font-semibold tabular-nums text-[#241f36]/45">
-        {progressPercent}%
-      </div>
+      <span className="sr-only tabular-nums">{progressPercent}%</span>
     </div>
   );
 };

@@ -1760,3 +1760,21 @@ html[data-theme='dark'] .nebo-moon-retro-note { background: rgba(253, 186, 116, 
 .nebo-numbers .nebo-numbers-formula span { display: block; }
 html[data-theme='dark'] .fresh-page.nebo-numbers { background: linear-gradient(180deg, #2a2219 0%, #1c1d21 420px) !important; }
 html[data-theme='dark'] .nebo-numbers .nebo-numbers-bignum { color: rgba(165, 168, 255, 0.18) !important; }
+
+/* Profile groups span the screen like the canvas (16 px from the edges, not 32) */
+.settings-editorial-page .settings-root .settings-list { margin-left: 0 !important; margin-right: 0 !important; }
+.settings-editorial-page .settings-root .settings-group > h2 { margin-left: 4px !important; margin-right: 4px !important; }
+
+/* Startup splash (canvas Splash): lavender glow, the NEBO mark in a ring, a dot on its orbit, three dots */
+.nebo-splash { position: relative; display: grid; width: 300px; height: 300px; place-items: center; }
+.nebo-splash-glow { position: absolute; inset: -60px; border-radius: 50%; background: radial-gradient(circle, rgba(124, 131, 255, 0.22) 0%, rgba(124, 131, 255, 0.08) 45%, rgba(124, 131, 255, 0) 70%); }
+.nebo-splash-ring { position: relative; display: grid; width: 132px; height: 132px; place-items: center; border-radius: 50%; border: 1px solid rgba(91, 91, 247, 0.22); background: rgba(255, 255, 255, 0.55); }
+.nebo-splash-ring img { width: 72px; height: 72px; border-radius: 18px; box-shadow: 0 10px 24px -10px rgba(31, 60, 200, 0.55); }
+.nebo-splash-orbit { position: absolute; inset: -1px; border-radius: 50%; animation: nbSplashOrbit 3.2s linear infinite; }
+.nebo-splash-orbit b { position: absolute; left: 50%; top: -6px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #5b6cff; box-shadow: 0 0 0 4px rgba(91, 108, 255, 0.18), 0 0 14px rgba(91, 108, 255, 0.8); }
+@keyframes nbSplashOrbit { to { transform: rotate(360deg); } }
+.nebo-splash-dots { position: absolute; bottom: calc(64px + env(safe-area-inset-bottom)); display: flex; gap: 8px; }
+.nebo-splash-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(91, 91, 247, 0.25); transition: background 0.3s ease; }
+.nebo-splash-dots i.is-on { background: #4f46e5; }
+@media (prefers-reduced-motion: reduce) { .nebo-splash-orbit { animation: none; } }
+html[data-theme='dark'] .nebo-splash-ring { background: rgba(255, 255, 255, 0.04); border-color: rgba(165, 168, 255, 0.25); }

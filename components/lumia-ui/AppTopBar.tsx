@@ -72,7 +72,7 @@ export function AppTopBar({
   const account = settings?.account ?? null;
   const brand = (
     <span className="nebo-bar-brand">
-      <img src="/assets/brand/nebo-app-icon-192.png" alt="" width={26} height={26} />
+      <img src="/assets/brand/nebo-mark.webp" alt="" width={26} height={26} />
       <strong>NEBO</strong>
     </span>
   );

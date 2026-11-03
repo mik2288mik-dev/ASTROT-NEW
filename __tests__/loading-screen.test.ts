@@ -4,28 +4,26 @@ import path from 'path';
 const ROOT = path.join(__dirname, '..');
 
 describe('loading screen', () => {
-  it('renders a pure-white splash with the app name, no image', () => {
+  it('renders the canvas splash with the app name and the NEBO mark', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
     expect(source).toContain('NEBO гороскоп натальная карта');
     expect(source).toContain("var(--app-canvas, #FFFFFF)");
     expect(source).toContain('data-nebo-startup-loading="true"');
     expect(source).not.toContain('#FBFAF6');
-    expect(source).toContain('min-h-[100dvh]');
     expect(source).not.toContain('/lumiastart.webp');
     expect(source).not.toContain('/lumia-logo.png');
     expect(source).not.toContain('object-cover');
-    expect(source).not.toContain('<img');
+    expect(source).toContain('/assets/brand/nebo-mark.webp');
     expect(source).not.toContain('LumiaLogo');
     expect(source).not.toContain('loading-main.webp');
   });
 
   it('contains only one progress indicator', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
-    const barTracks = source.match(/h-0\.5/g) ?? [];
-    expect(barTracks.length).toBe(1);
+    expect(source.match(/nebo-splash-dots/g) ?? []).toHaveLength(1);
   });
 
-  it('shows a numeric progress percent under the bar', () => {
+  it('keeps the numeric progress for screen readers', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
     expect(source).toContain('progressPercent');
     expect(source).toContain('{progressPercent}%');
