@@ -39,6 +39,23 @@ type NumerologyRoomProps = {
 
 const MONTHS_RU = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
 
+/**
+ * The canvas way to show the sum: every digit of the birth date, then the digits of the total
+ * («6 + 3 + 1 + 9 + 8 + 9 = 36», «3 + 6 = 9»). Falls back to the day + month + year form when a master number keeps it apart.
+ */
+function lifePathSteps(day: number, month: number, year: number, life: number): string[] {
+  const digits = `${day}${month}${year}`.split('').map(Number).filter((digit) => digit > 0);
+  const lines: string[] = [];
+  let total = digits.reduce((sum, value) => sum + value, 0);
+  lines.push(`${digits.join(' + ')} = ${total}`);
+  while (total > 9 && total !== life) {
+    const parts = String(total).split('').map(Number);
+    total = parts.reduce((sum, value) => sum + value, 0);
+    lines.push(`${parts.join(' + ')} = ${total}`);
+  }
+  return total === life ? lines : [lifePathFormula(day, month, year)];
+}
+
 /** «6 + 3 + 9 = 18 → 9»: how the life path number came out, so it is not a black box. */
 function lifePathFormula(day: number, month: number, year: number): string {
   const parts = [reduceNumber(day, true), reduceNumber(month, true), reduceNumber(year, true)];
@@ -127,7 +144,7 @@ export function NumerologyRoom({ profile, onOpenSegment, onRequestPremium }: Num
         <div className="nebo-numbers-life-copy">
           <p className="nebo-kicker">Число судьбы</p>
           <h2 id="nebo-life-title">{life.title}</h2>
-          <p className="nebo-numbers-formula">{lifePathFormula(birth.day, birth.month, birth.year)}</p>
+          <p className="nebo-numbers-formula">{lifePathSteps(birth.day, birth.month, birth.year, numbers.life).map((line) => <span key={line}>{line}</span>)}</p>
         </div>
         <p className="nebo-numbers-life-text">{life.text}</p>
       </section>

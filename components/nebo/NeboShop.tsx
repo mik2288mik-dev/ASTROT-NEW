@@ -54,6 +54,7 @@ export function NeboShop({ profile, plusContent }: NeboShopProps) {
   const userId = profile.id ? String(profile.id) : '';
   const [purchases, reload] = usePurchases(userId || undefined);
   const [sheet, setSheet] = useState<null | 'redeem' | 'gift' | 'done'>(null);
+  const [plusOpen, setPlusOpen] = useState(false);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
@@ -134,13 +135,16 @@ export function NeboShop({ profile, plusContent }: NeboShopProps) {
 
   return (
     <div className="nebo-shop">
-      <button type="button" className="nebo-shop-code" onClick={() => { setNote(''); setSheet('redeem'); }}>
-        <span className="nebo-shop-row-copy"><strong>Есть код?</strong><small>Введи код подарка или промокод</small></span>
-        <span className="nebo-shop-price">Ввести</span>
-      </button>
+      <p className="nebo-shop-intro">Всё, что есть в NEBO: подписка и покупки по отдельности.</p>
+      <div className="nebo-shop-list">
+        {row('/assets/nebo-icons/gift.svg', 'Есть код?', 'введи код подарка или промокод', 'Ввести', () => { setNote(''); setSheet('redeem'); })}
+      </div>
 
       <h2 className="nebo-shop-head">Подписка</h2>
-      <div className="nebo-shop-plus">{plusContent}</div>
+      <div className="nebo-shop-list">
+        {row('/assets/shop/plus.webp', 'NEBO Plus', 'всё в NEBO открыто: месяц, 3 месяца или год', plusOpen ? 'Свернуть' : 'от 399 ₽', () => setPlusOpen((open) => !open))}
+      </div>
+      {plusOpen ? <div className="nebo-shop-plus">{plusContent}</div> : null}
 
       {!canBuy ? (
         <p className="nebo-shop-note">Разовые покупки работают в приложении NEBO из RuStore. Код подарка можно ввести здесь.</p>

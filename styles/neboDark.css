@@ -2152,9 +2152,6 @@ html[data-theme='dark'] {
 html[data-theme='dark'] .app-top-bar {
   background: rgba(39, 40, 46, 0.62) !important;
 }
-html[data-theme='dark'] .app-top-bar-settings-button {
-  color: #F4F5F8;
-}
 html[data-theme='dark'] .app-top-bar-title {
   color: #F4F5F8;
 }
@@ -4614,9 +4611,6 @@ html[data-theme='dark'] .nebo-moon-note {
 html[data-theme='dark'] .nebo-moon-hero {
   color: #F4F5F8;
 }
-html[data-theme='dark'] .nebo-moon-retro {
-  color: #E88873;
-}
 html[data-theme='dark'] .nebo-moon-cats button {
   color: #F4F5F8;
 }
@@ -5210,6 +5204,80 @@ html[data-theme='dark'] .compat-entry-form--date .nebo-compat-note {
 }
 html[data-theme='dark'] .compat-entry-form--date .compat-date-section-label {
   color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .settings-editorial-page .settings-list {
+  background: #27282E !important;
+}
+html[data-theme='dark'] .nebo-shop-intro {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-shop-row {
+  background: #27282E !important;
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-hero {
+  color: #F4F5F8 !important;
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-hero-copy .nebo-kicker {
+  color: rgba(235, 235, 245, 0.5) !important;
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-hero-copy h2 {
+  color: #F4F5F8 !important;
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-hero-copy p:last-child {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-ask {
+  background: #27282E;
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-chips button {
+  background: #1C1D21 !important;
+}
+html[data-theme='dark'] .nebo-moon-top-copy small {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-moon-top-copy strong {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-moon-top-copy b {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-moon-top-copy span {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-moon-top-copy em {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-moon-retro-note {
+  background: #4A321C;
+  color: #F39768;
+}
+html[data-theme='dark'] .nebo-moon-week button {
+  background: #27282E;
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-moon-week button small {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-moon-dot {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+html[data-theme='dark'] .nebo-moon-sum {
+  background: #27282E;
+}
+html[data-theme='dark'] .nebo-moon-sum h2 {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-moon-sum-cols .is-can b {
+  color: #73E89F;
+}
+html[data-theme='dark'] .nebo-moon-sum-cols .is-wait b {
+  color: #EA989B;
+}
+html[data-theme='dark'] .nebo-moon-sum-cols p {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .fresh-page.nebo-numbers {
+  background: linear-gradient(180deg, #4A331C 0%, #1C1D21 420px) !important;
 }
 
 /* ── neboAuth.css ── */

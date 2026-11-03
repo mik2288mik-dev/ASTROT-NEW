@@ -26,9 +26,9 @@ import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { AvatarCircle, AvatarPicker } from '../components/nebo/AvatarPicker';
 import { useCtaStyle, useThemePref, type CtaStyle } from '../lib/theme';
+import { useAvatar } from '../lib/avatar';
 import { PurchasesList } from '../components/nebo/PurchasesList';
 import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
-import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
 import type { PurchaseRestoreStatus } from '../services/paymentProvider';
@@ -320,6 +320,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
     const [avatarOpen, setAvatarOpen] = useState(false);
     const [themePref, setThemePref] = useThemePref();
+    const [avatar] = useAvatar(String(profile.id || ''));
     const [ctaStyle, setCtaStyle] = useCtaStyle();
     const [ctaPickOpen, setCtaPickOpen] = useState(false);
     const [supportFormOpen, setSupportFormOpen] = useState(false);
@@ -987,7 +988,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
     const settingsTitle: Record<SettingsScreen, string> = profile.language === 'en'
         ? {
-            root: 'Settings',
+            root: 'Profile',
             profile: 'Profile',
             birth: 'Birth details',
             gender: 'Gender',
@@ -1001,7 +1002,7 @@ export const Settings: React.FC<SettingsProps> = ({
             developer: 'For developers',
         }
         : {
-            root: 'Настройки',
+            root: 'Профиль',
             profile: 'Профиль',
             birth: 'Данные рождения',
             gender: 'Пол',
@@ -1879,7 +1880,9 @@ export const Settings: React.FC<SettingsProps> = ({
             default: {
                 const en = profile.language === 'en';
                 const icon = (name: string) => <img src={`/assets/nebo-icons/${name}.svg`} alt="" width={34} height={34} />;
-                const planBadge = profile.isGuest ? (en ? 'Guest · not signed in' : 'Гость · без входа') : activePremium ? 'Plus' : 'Free';
+                const plusUntil = activePremium && profile.premiumUntil ? new Date(profile.premiumUntil) : null;
+                const plusUntilLabel = plusUntil && !Number.isNaN(plusUntil.getTime()) ? plusUntil.toLocaleDateString(en ? 'en-GB' : 'ru-RU', { day: 'numeric', month: 'long' }) : '';
+                const planBadge = profile.isGuest ? (en ? 'Guest · not signed in' : 'Гость · без входа') : activePremium ? (plusUntilLabel ? (en ? `Plus until ${plusUntilLabel}` : `Plus до ${plusUntilLabel}`) : 'Plus') : 'Free';
                 return (
                     <div className="settings-root">
                         <div className="nebo-profile-head">
@@ -1937,7 +1940,7 @@ export const Settings: React.FC<SettingsProps> = ({
                             <div className="settings-list">
                                 <div className="settings-list-row settings-theme-row">
                                     <span className="settings-list-row-main">
-                                        <span className="settings-list-row-icon" aria-hidden>{icon('star')}</span>
+                                        <span className="settings-list-row-icon" aria-hidden>{icon('theme')}</span>
                                         <span className="settings-list-row-label">{en ? 'Theme' : 'Тема'}</span>
                                     </span>
                                     <span className="nebo-theme-seg" role="radiogroup" aria-label={en ? 'Theme' : 'Тема'}>
@@ -1947,8 +1950,18 @@ export const Settings: React.FC<SettingsProps> = ({
                                     </span>
                                 </div>
                                 <SettingsRow icon={icon('roller')} label={en ? 'Buttons' : 'Кнопки'} value={ctaStyleLabel(ctaStyle, en)} onClick={() => setCtaPickOpen(true)} />
-                                <SettingsRow icon={icon('person')} label={en ? 'Avatar' : 'Аватарка'} value={en ? 'choose' : 'выбрать'} onClick={() => setAvatarOpen(true)} />
-                                <SettingsRow icon={icon('globe')} label={en ? 'Language' : 'Язык'} value={languageLabel} target="language" onClick={() => openSettingsScreen('language')} />
+                                <SettingsRow icon={icon('person')} label={en ? 'Avatar' : 'Аватарка'} value={avatar.kind === 'photo' ? (en ? 'own photo' : 'своё фото') : avatar.kind === 'set' ? (avatar.set === 'cats' ? (en ? 'cat' : 'котик') : (en ? 'animal' : 'зверёк')) : (en ? 'letter' : 'буква')} onClick={() => setAvatarOpen(true)} />
+                                <div className="settings-list-row settings-theme-row" data-settings-target="language">
+                                    <span className="settings-list-row-main">
+                                        <span className="settings-list-row-icon" aria-hidden>{icon('globe')}</span>
+                                        <span className="settings-list-row-label">{en ? 'Language' : 'Язык'}</span>
+                                    </span>
+                                    <span className="nebo-theme-seg" role="radiogroup" aria-label={en ? 'Language' : 'Язык'}>
+                                        {(['ru', 'en'] as const).map((value) => (
+                                            <button key={value} type="button" role="radio" aria-checked={profile.language === value} className={profile.language === value ? 'is-on' : ''} onClick={() => { if (profile.language !== value) handleLanguageToggle(); }}>{value.toUpperCase()}</button>
+                                        ))}
+                                    </span>
+                                </div>
                             </div>
                         </section>
 
@@ -1958,7 +1971,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                 <SettingsRow
                                     icon={icon('bell')}
                                     label={en ? 'Notifications' : 'Уведомления'}
-                                    value={notifEnabled ? (en ? 'On' : 'Включены') : (en ? 'Off' : 'Выключены')}
+                                    value={notifEnabled ? (nativeExtras.morningTime || (en ? 'On' : 'Включены')) : (en ? 'Off' : 'Выключены')}
                                     target="notifications"
                                     onClick={() => openSettingsScreen('notifications')}
                                 />
@@ -1993,12 +2006,13 @@ export const Settings: React.FC<SettingsProps> = ({
                                     label={en ? 'Rate the app' : 'Оценить приложение'}
                                     onClick={() => { window.open('https://www.rustore.ru/catalog/app/ru.tvoygoroskop.app', '_blank', 'noopener'); }}
                                 />
-                                <SettingsRow icon={icon('help')} label={en ? 'Support' : 'Обратная связь'} target="feedback" onClick={() => openSettingsScreen('feedback')} />
+                                <SettingsRow icon={icon('help')} label={en ? 'Support and questions' : 'Поддержка и вопросы'} target="feedback" onClick={() => openSettingsScreen('feedback')} />
                                 <SettingsRow icon={icon('shield')} label={en ? 'Legal information' : 'Правовая информация'} target="legal" onClick={() => openSettingsScreen('legal')} />
                                 {profile.isAdmin ? (
                                     <SettingsRow icon={icon('roller')} label={en ? 'For developers' : 'Для разработчика'} target="developer" onClick={() => openSettingsScreen('developer')} />
                                 ) : null}
-                                <SettingsRow icon={icon('door')} label={en ? 'Account and data' : 'Аккаунт и данные'} target="account" onClick={() => openSettingsScreen('account')} />
+                                {!profile.isGuest ? <SettingsRow icon={icon('door')} label={en ? 'Sign out' : 'Выйти'} danger onClick={handleLogout} /> : null}
+                                <SettingsRow icon={icon('trash')} label={en ? 'Delete account' : 'Удалить аккаунт'} target="account" danger onClick={() => { openSettingsScreen('account'); handleDeleteAccount(); }} />
                             </div>
                         </section>
                     </div>
@@ -2017,12 +2031,6 @@ export const Settings: React.FC<SettingsProps> = ({
                         : settingsDetailBusy
                             ? undefined
                             : returnToSettingsRoot}
-                    rightAction={settingsScreen === 'root' && onOpenCharts ? (
-                        <EditorialChartsButton
-                            label={profile.language === 'en' ? 'Open my charts' : 'Открыть мои карты'}
-                            onClick={onOpenCharts}
-                        />
-                    ) : undefined}
                 />
             ) : null}
             <div
