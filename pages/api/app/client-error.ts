@@ -17,6 +17,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!FEATURE.test(feature) || !CODE.test(code)) return res.status(400).json({ error: 'BAD_REQUEST' });
   const status = Number(body.status);
   const detail = String(body.detail || '').replace(/[^\p{L}\p{N} ._:=/-]/gu, ' ').slice(0, 200).trim();
+  if (feature === 'app-crash') console.warn(`[client-crash] ${code} ${detail}`);
   recordRequestFailure(req, {
     endpoint: `client:${feature}`,
     httpStatus: Number.isInteger(status) && status >= 0 && status < 600 ? status : 0,
