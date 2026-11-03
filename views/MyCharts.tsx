@@ -67,6 +67,9 @@ function MyChartsInlineLoading({
   );
 }
 
+/** Avatar circle colours for people in «Мои карты» (canvas MyCharts). */
+const CHART_TINTS = ['linear-gradient(135deg,#ff8a3d,#e8590c)', 'linear-gradient(135deg,#22b8cf,#1971c2)', 'linear-gradient(135deg,#40c057,#2b8a3e)', 'linear-gradient(135deg,#fcc419,#f08c00)', 'linear-gradient(135deg,#9775fa,#6741d9)', 'linear-gradient(135deg,#ff6b6b,#c92a2a)'];
+
 export const MyCharts: React.FC<MyChartsProps> = ({
   profile,
   onChartSelect,
@@ -83,6 +86,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [openChartId, setOpenChartId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [giftPerson, setGiftPerson] = useState<GiftPerson | null>(null);
   const [addName, setAddName] = useState('');
@@ -330,77 +334,37 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     const isBusy = actionLoading === `delete-${chart.id}`;
     const formattedBirthDate = formatDisplayDate(chart.birth_date, lang) || chart.birth_date;
     const canOpenChart = Boolean(onChartSelect) && (!isLocked || hasPremiumAccess || canOpenPremiumFlow);
-    const cardText = isPrimary ? 'text-white' : 'text-mono-ink';
-    const mutedText = isPrimary ? 'text-white/70' : 'text-mono-muted';
+    const isOpen = openChartId === String(chart.id);
+    const meta = [signLabel, formattedBirthDate, chart.birth_place].filter(Boolean).join(' · ');
+    const tint = CHART_TINTS[Math.abs(Array.from(String(chart.id || chart.name)).reduce((sum, ch) => sum + ch.charCodeAt(0), 0)) % CHART_TINTS.length];
 
     return (
-      <article
-        key={chart.id}
-        className={`rounded-mono-card border p-4 sm:p-5 ${
-          isPrimary ? 'border-mono-ink bg-mono-black' : 'border-mono-line bg-mono-white'
-        }`}
-      >
-        <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h3 className={`break-words text-[18px] font-bold leading-snug ${cardText}`} title={chart.name}>
-              {chart.name}
-            </h3>
-            <p className={`mt-1 text-[13px] leading-relaxed ${mutedText}`}>
-              {isPrimary
-                ? getText(lang, 'charts.primary_role')
-                : chart.relation_label || getText(lang, 'charts.saved_role')}
-            </p>
-          </div>
-          {isPrimary ? (
-            <MonoTag dark className="!bg-white/15">{lang === 'ru' ? 'Моя карта' : 'My chart'}</MonoTag>
-          ) : isLocked ? (
-            <MonoTag>Premium</MonoTag>
-          ) : null}
-        </div>
-
-        <dl className={`mt-4 grid gap-3 text-[13px] leading-relaxed sm:grid-cols-3 ${mutedText}`}>
-          <div className="min-w-0">
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] opacity-70">
-              {lang === 'ru' ? 'Дата рождения' : 'Birth date'}
-            </dt>
-            <dd className={`mt-0.5 break-words font-medium ${cardText}`}>
-              <time dateTime={chart.birth_date}>{formattedBirthDate}</time>
-            </dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] opacity-70">
-              {lang === 'ru' ? 'Место' : 'Place'}
-            </dt>
-            <dd className={`mt-0.5 break-words font-medium ${cardText}`} title={chart.birth_place}>
-              {chart.birth_place || (lang === 'ru' ? 'Не указано' : 'Not specified')}
-            </dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] opacity-70">
-              {lang === 'ru' ? 'Время рождения' : 'Birth time'}
-            </dt>
-            <dd className={`mt-0.5 break-words font-medium ${cardText}`}>
-              {chart.birth_time || (lang === 'ru' ? 'Не указано' : 'Not specified')}
-            </dd>
-          </div>
-        </dl>
-
-        {signLabel ? (
-          <p className={`mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] ${mutedText}`}>
-            <PlanetIcon planet="sun" size={11} stroke="currentColor" />
-            <span>{signLabel}</span>
-          </p>
-        ) : null}
+      <article key={chart.id} className={`nebo-charts-row${isOpen ? ' is-open' : ''}`}>
+        <button type="button" className="nebo-charts-row-head" aria-expanded={isOpen} onClick={() => setOpenChartId(isOpen ? null : String(chart.id))}>
+          <span className="nebo-charts-avatar" style={{ background: tint }} aria-hidden>{(chart.name.trim().charAt(0) || '?').toUpperCase()}</span>
+          <span className="nebo-charts-text">
+            <strong title={chart.name}>{chart.name}</strong>
+            <small>{meta || (isPrimary ? getText(lang, 'charts.primary_role') : chart.relation_label || getText(lang, 'charts.saved_role'))}</small>
+          </span>
+          {isPrimary ? <em className="nebo-charts-badge">{lang === 'ru' ? 'Моя' : 'Mine'}</em> : isLocked ? <em className="nebo-charts-badge is-plus">Plus</em> : null}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+        {isOpen ? (
+        <div className="nebo-charts-more">
+        <p className="nebo-charts-details">
+          {chart.relation_label && !isPrimary ? <>{chart.relation_label} · </> : null}
+          {lang === 'ru' ? 'Время рождения: ' : 'Birth time: '}{chart.birth_time || (lang === 'ru' ? 'не указано' : 'not specified')}
+        </p>
 
         {isLocked ? (
-          <p className="mt-4 rounded-mono-card bg-mono-plate px-3 py-2 text-[13px] leading-relaxed text-mono-muted" role="status">
+          <p className="nebo-charts-locked" role="status">
             {lang === 'ru'
-              ? 'Карта сохранена. Открытие и совместимость вернутся после подключения Premium.'
-              : 'This chart is saved. Reading and compatibility return with Premium.'}
+              ? 'Карта сохранена. Открытие и совместимость вернутся после подключения Plus.'
+              : 'This chart is saved. Reading and compatibility return with Plus.'}
           </p>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="nebo-charts-actions">
           {canOpenChart ? (
             <MonoButton
               variant={isPrimary ? 'ghost' : 'outline'}
@@ -410,7 +374,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
               {isLocked
                 ? hasPremiumAccess
                   ? (lang === 'ru' ? 'Обновить доступ' : 'Refresh access')
-                  : (lang === 'ru' ? 'Открыть с Premium' : 'Unlock with Premium')
+                  : (lang === 'ru' ? 'Открыть с Plus' : 'Unlock with Plus')
                 : getText(lang, 'charts.open_chart')}
             </MonoButton>
           ) : null}
@@ -445,6 +409,8 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             </button>
           ) : null}
         </div>
+        </div>
+        ) : null}
       </article>
     );
   };
@@ -483,18 +449,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                     ? 'Твоя карта доступна всегда. Карты других людей сохраняются и открываются с Premium.'
                     : 'Your chart is always available. Other people’s charts are saved and unlocked with Premium.'}
                 </p>
-                {canAddMore ? (
-                  <MonoButton className="mt-5" fullWidth onClick={() => { setAddError(null); setShowAddForm(true); }}>
-                    + {getText(lang, 'charts.add_chart')}
-                  </MonoButton>
-                ) : null}
               </header>
             </MonoStaggerItem>
           </MonoStagger>
-        ) : canAddMore ? (
-          <MonoButton fullWidth onClick={() => { setAddError(null); setShowAddForm(true); }}>
-            + {getText(lang, 'charts.add_chart')}
-          </MonoButton>
         ) : null}
 
         {loadError ? (
@@ -596,7 +553,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
               {lang === 'ru' ? 'Это основная личная карта. Её нельзя заменить картой другого человека.' : 'This is your main personal chart. A saved person cannot replace it.'}
             </p>
           </div>
-          {selfChart ? renderChartCard(selfChart) : (
+          {selfChart ? <div className="nebo-charts-list">{renderChartCard(selfChart)}</div> : (
             <div className="fresh-card p-5">
               <p className="text-[15px] font-semibold text-mono-ink">
                 {lang === 'ru' ? 'Личная карта пока не загрузилась' : 'Your personal chart has not loaded yet'}
@@ -629,9 +586,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           </div>
 
           {savedCharts.length > 0 ? (
-            <MonoStagger className="space-y-3">
-              {savedCharts.map((chart) => <MonoStaggerItem key={chart.id}>{renderChartCard(chart)}</MonoStaggerItem>)}
-            </MonoStagger>
+            <div className="nebo-charts-list">
+              {savedCharts.map((chart) => renderChartCard(chart))}
+            </div>
           ) : (
             <div className="fresh-card p-5">
               <p className="text-[15px] font-semibold text-mono-ink">
@@ -642,6 +599,13 @@ export const MyCharts: React.FC<MyChartsProps> = ({
               </p>
             </div>
           )}
+
+          {canAddMore && !showAddForm ? (
+            <button type="button" className="nebo-charts-add" onClick={() => { setAddError(null); setShowAddForm(true); window.scrollTo?.({ top: 0, behavior: 'smooth' }); }}>
+              <span aria-hidden>+</span> {lang === 'ru' ? 'Добавить человека' : 'Add a person'}
+            </button>
+          ) : null}
+          <p className="nebo-charts-foot">{lang === 'ru' ? 'Карты видишь только ты. Человек не узнает, что ты сохранил его карту.' : 'Only you see these charts. The person will not know you saved their chart.'}</p>
 
           {!hasPremiumAccess ? (
             <aside className="fresh-card fresh-card--flat space-y-3 p-4" aria-label={lang === 'ru' ? 'Доступ к сохранённым картам' : 'Saved charts access'}>

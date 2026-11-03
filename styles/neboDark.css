@@ -49,9 +49,6 @@ html[data-theme='dark'] .border-white\/15 {
 html[data-theme='dark'] .border-white\/70 {
   border-color: rgba(255, 255, 255, 0.08);
 }
-html[data-theme='dark'] .\!bg-white\/15 {
-  background-color: rgba(255, 255, 255, 0.075) !important;
-}
 html[data-theme='dark'] .bg-\[\#eef5f1\] {
   background-color: #27282E;
 }
@@ -1884,9 +1881,6 @@ html[data-theme='dark'] .settings-identity-list {
 }
 html[data-theme='dark'] .settings-inline-error {
   color: #E68C91;
-}
-html[data-theme='dark'] .settings-subscription-status {
-  border: 1px solid rgba(255, 255, 255, 0.075);
 }
 html[data-theme='dark'] .settings-account-actions, html[data-theme='dark'] .settings-developer-actions {
   border: 1px solid rgba(255, 255, 255, 0.075);
@@ -5045,6 +5039,91 @@ html[data-theme='dark'] .nebo-numbers-months {
 html[data-theme='dark'] .nebo-numbers-months span {
   color: rgba(235, 235, 245, 0.5);
 }
+html[data-theme='dark'] .nebo-purchases-list {
+  background: #27282E;
+}
+html[data-theme='dark'] .nebo-purchases-row + .nebo-purchases-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+html[data-theme='dark'] .nebo-purchases-text strong {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-purchases-text small {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-purchases-badge.is-ok {
+  color: #73E89F;
+}
+html[data-theme='dark'] .nebo-purchases-empty, html[data-theme='dark'] .nebo-purchases-note {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-purchases-restore {
+  background: #27282E;
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-purchases-foot {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-support-head strong {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-support-head small {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-support-faq {
+  background: #27282E;
+}
+html[data-theme='dark'] .nebo-support-faq details + details {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+html[data-theme='dark'] .nebo-support-faq summary {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-support-faq summary svg {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-support-faq p {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-support-note {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-delete-ack {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-delete-confirm:disabled {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-charts-list {
+  background: #27282E;
+}
+html[data-theme='dark'] .nebo-charts-row + .nebo-charts-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+html[data-theme='dark'] .nebo-charts-row-head > svg {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-charts-text strong {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-charts-text small {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-charts-badge.is-plus {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-charts-details {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-charts-locked {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-charts-add {
+  border: 1.5px dashed rgba(255, 255, 255, 0.16);
+}
+html[data-theme='dark'] .nebo-charts-foot {
+  color: rgba(235, 235, 245, 0.5);
+}
 
 /* ── neboAuth.css ── */
 html[data-theme='dark'] .nebo-auth {
@@ -5213,4 +5292,38 @@ html[data-theme='dark'] .nebo-theme-seg button.is-on {
   background: rgba(255, 255, 255, 0.18);
   color: #F4F5F8;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.292);
+}
+
+/* ── neboButtons.css ── */
+html[data-theme='dark'][data-cta='ink'] {
+  --nebo-cta-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.6);
+}
+html[data-theme='dark'][data-cta='gold'] {
+  --nebo-cta-fg: #F4F5F8;
+}
+html[data-theme='dark'][data-cta='light'] {
+  --nebo-cta-bg: #1C1D21;
+  --nebo-cta-shadow: 0 10px 24px -14px rgba(10, 20, 60, 0.35), inset 0 0 0 1px rgba(0, 0, 0, 0.228);
+  --nebo-cta-fg: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-cta-pick-radio {
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+html[data-theme='dark'] .nebo-cta-pick-row strong {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-cta-pick-row small {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-cta-pick-sample[data-cta-sample='ink'] {
+  background: #F2F3F5;
+  color: #111216;
+}
+html[data-theme='dark'] .nebo-cta-pick-sample[data-cta-sample='gold'] {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-cta-pick-sample[data-cta-sample='light'] {
+  background: #1C1D21;
+  color: #F4F5F8;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.228);
 }

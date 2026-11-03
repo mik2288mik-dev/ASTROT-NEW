@@ -3,11 +3,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Check,
     ChevronLeft,
+    ChevronDown,
     ChevronRight,
     Code2,
     Eye,
     EyeOff,
     Trash2,
+    X,
 } from 'lucide-react';
 import { UserProfile, Language, NotificationFrequency } from '../types';
 import { getText } from '../constants';
@@ -24,6 +26,7 @@ import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { AvatarCircle, AvatarPicker } from '../components/nebo/AvatarPicker';
 import { useCtaStyle, useThemePref, type CtaStyle } from '../lib/theme';
+import { PurchasesList } from '../components/nebo/PurchasesList';
 import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { apiFetch } from '../services/apiClient';
@@ -201,6 +204,14 @@ function CtaStylePicker({ value, onPick, onClose, en }: { value: CtaStyle; onPic
     );
 }
 
+const SUPPORT_FAQ: ReadonlyArray<[string, string, string, string]> = [
+    ['Откуда вы знаете мой день?', 'Считаем, где планеты сегодня, и сравниваем с твоей картой рождения. Чем точнее время рождения, тем точнее день.', 'How do you know my day?', 'We calculate where the planets are today and compare it with your birth chart. The more exact the birth time, the more exact the day.'],
+    ['Зачем время и город рождения?', 'По ним считаются Асцендент и дома. Без времени карта тоже будет, но без этих деталей.', 'Why the birth time and city?', 'They give the Ascendant and the houses. Without the time you still get a chart, just without these details.'],
+    ['Как отменить Plus?', 'Профиль, затем «Покупки» и «Управлять подпиской в RuStore». Доступ останется до конца оплаченного срока.', 'How do I cancel Plus?', 'Profile, then «Purchases» and «Manage subscription in RuStore». Access stays until the end of the paid period.'],
+    ['Где хранятся мои данные?', 'На серверах в России, третьим лицам не передаём. Удалить аккаунт и данные можно в профиле.', 'Where is my data kept?', 'On servers in Russia, never shared with third parties. You can delete the account and data in the profile.'],
+    ['Не приходят уведомления', 'Проверь, что уведомления NEBO включены в настройках телефона и в профиле. Иногда их режет экономия батареи.', 'Notifications do not arrive', 'Check that NEBO notifications are on in the phone settings and in the profile. Battery saving sometimes blocks them.'],
+];
+
 function formatSettingsBirthDate(value: string, language: Language): string {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
     if (!match) return value || '—';
@@ -311,6 +322,9 @@ export const Settings: React.FC<SettingsProps> = ({
     const [themePref, setThemePref] = useThemePref();
     const [ctaStyle, setCtaStyle] = useCtaStyle();
     const [ctaPickOpen, setCtaPickOpen] = useState(false);
+    const [supportFormOpen, setSupportFormOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deleteAck, setDeleteAck] = useState(false);
     const nativeNotifications = isNativeAndroidRuntime();
     const rustorePurchaseControlsAvailable = canUseRuStorePay(resolveDistributionChannel());
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
@@ -925,10 +939,9 @@ export const Settings: React.FC<SettingsProps> = ({
                 return;
             }
         }
-        if (!window.confirm(profile.language === 'en'
-            ? 'Delete your account and related data permanently?'
-            : 'Удалить аккаунт и связанные данные без возможности восстановления?')) return;
-        deleteAccount();
+        // The final «Удалить аккаунт навсегда?» question is the canvas dialog with the «Понимаю» checkbox.
+        setDeleteAck(false);
+        setDeleteDialogOpen(true);
     };
 
     const handleLogout = () => {
@@ -981,7 +994,7 @@ export const Settings: React.FC<SettingsProps> = ({
             notifications: 'Notifications',
             language: 'Language',
             auth: 'Sign-in methods',
-            subscription: 'Subscription',
+            subscription: 'Purchases',
             feedback: 'Support',
             legal: 'Legal information',
             account: 'Account and data',
@@ -995,7 +1008,7 @@ export const Settings: React.FC<SettingsProps> = ({
             notifications: 'Уведомления',
             language: 'Язык',
             auth: 'Способы входа',
-            subscription: 'Подписка',
+            subscription: 'Покупки',
             feedback: 'Обратная связь',
             legal: 'Правовая информация',
             account: 'Аккаунт и данные',
@@ -1524,16 +1537,26 @@ export const Settings: React.FC<SettingsProps> = ({
 
             case 'subscription':
                 return (
-                    <section className="settings-detail-panel" aria-label={settingsTitle.subscription}>
-                        <div className="settings-subscription-status">
-                            <span>{activePremium ? 'Premium' : 'Free'}</span>
-                            <h2>{subscriptionPresentation.title}</h2>
-                            <p>{subscriptionPresentation.body}</p>
-                        </div>
-                        <div className="settings-detail-actions">
+                    <section className="settings-detail-panel nebo-purchases" aria-label={settingsTitle.subscription}>
+                        <PurchasesList userId={String(profile.id || '')} plus={activePremium} premiumUntil={profile.premiumUntil} en={profile.language === 'en'} />
+                        {!activePremium ? <p className="nebo-purchases-note">{subscriptionPresentation.body}</p> : null}
+                        <div className="nebo-purchases-actions">
                             {subscriptionPresentation.shouldPromote && canPromotePremium ? (
-                                <button type="button" className="fresh-btn-primary" onClick={() => onRequestPremium?.()}>
-                                    {profile.language === 'ru' ? 'Посмотреть Premium' : 'View Premium'}
+                                <button type="button" className="nebo-period-cta" onClick={() => onRequestPremium?.()}>
+                                    {profile.language === 'ru' ? 'Оформить Plus' : 'Get Plus'}
+                                </button>
+                            ) : null}
+                            {rustorePurchaseControlsAvailable ? (
+                                <button
+                                    type="button"
+                                    className="nebo-purchases-restore"
+                                    disabled={!onRestorePurchase || restoreState === 'running' || managingSubscription}
+                                    aria-busy={restoreState === 'running'}
+                                    onClick={restorePurchase}
+                                >
+                                    {restoreState === 'running'
+                                        ? (profile.language === 'ru' ? 'Проверяем…' : 'Checking…')
+                                        : (profile.language === 'ru' ? 'Восстановить покупки' : 'Restore purchases')}
                                 </button>
                             ) : null}
                             {rustorePurchaseControlsAvailable
@@ -1541,30 +1564,20 @@ export const Settings: React.FC<SettingsProps> = ({
                             && onManageSubscription ? (
                                 <button
                                     type="button"
-                                    className="fresh-btn-ghost"
+                                    className="nebo-purchases-link"
                                     onClick={() => void manageSubscription()}
                                     disabled={managingSubscription || restoreState === 'running'}
                                     aria-busy={managingSubscription}
                                 >
                                     {managingSubscription
                                         ? (profile.language === 'ru' ? 'Открываем RuStore…' : 'Opening RuStore…')
-                                        : (profile.language === 'ru' ? 'Управлять в RuStore' : 'Manage in RuStore')}
-                                </button>
-                            ) : null}
-                            {rustorePurchaseControlsAvailable ? (
-                                <button
-                                    type="button"
-                                    className="fresh-btn-ghost"
-                                    disabled={!onRestorePurchase || restoreState === 'running' || managingSubscription}
-                                    aria-busy={restoreState === 'running'}
-                                    onClick={restorePurchase}
-                                >
-                                    {restoreState === 'running'
-                                        ? (profile.language === 'ru' ? 'Проверяем…' : 'Checking…')
-                                        : (profile.language === 'ru' ? 'Восстановить покупку' : 'Restore purchase')}
+                                        : (profile.language === 'ru' ? 'Управлять подпиской в RuStore' : 'Manage subscription in RuStore')}
                                 </button>
                             ) : null}
                         </div>
+                        {rustorePurchaseControlsAvailable ? (
+                            <p className="nebo-purchases-foot">{profile.language === 'ru' ? 'Чеки RuStore присылает на почту твоего аккаунта RuStore.' : 'RuStore sends receipts to the email of your RuStore account.'}</p>
+                        ) : null}
                         {rustorePurchaseControlsAvailable && restoreState === 'success' ? (
                             <p role="status" className="settings-helper-text">
                                 {profile.language === 'ru' ? 'Покупки проверены сервером.' : 'Purchases were checked by the server.'}
@@ -1594,7 +1607,26 @@ export const Settings: React.FC<SettingsProps> = ({
             case 'feedback':
                 return (
                     <section className="settings-detail-panel" aria-label={settingsTitle.feedback}>
-                        {feedbackStatus === 'success' && feedbackTicketId ? (
+                        {!supportFormOpen && feedbackStatus !== 'success' ? (
+                            <div className="nebo-support">
+                                <div className="nebo-support-head">
+                                    <img src="/assets/nebo-icons/help.svg" alt="" width={64} height={64} />
+                                    <span><strong>{profile.language === 'en' ? 'Common questions' : 'Частые вопросы'}</strong><small>{profile.language === 'en' ? 'If the answer is not here, write to us' : 'Если ответа нет, напиши нам'}</small></span>
+                                </div>
+                                <div className="nebo-support-faq">
+                                    {SUPPORT_FAQ.map(([qRu, aRu, qEn, aEn], index) => (
+                                        <details key={qRu} open={index === 0}>
+                                            <summary>{profile.language === 'en' ? qEn : qRu}<ChevronDown aria-hidden size={18} strokeWidth={2} /></summary>
+                                            <p>{profile.language === 'en' ? aEn : aRu}</p>
+                                        </details>
+                                    ))}
+                                </div>
+                                <button type="button" className="nebo-period-cta" onClick={() => setSupportFormOpen(true)}>
+                                    {profile.language === 'en' ? 'Write to support' : 'Написать в поддержку'}
+                                </button>
+                                <p className="nebo-support-note">{profile.language === 'en' ? 'Describe what happened and attach a screenshot if you can.' : 'Опиши, что случилось. Если можешь, приложи скриншот.'}</p>
+                            </div>
+                        ) : feedbackStatus === 'success' && feedbackTicketId ? (
                             <div className="settings-feedback-success">
                                 <div role="status" aria-live="polite">
                                     <p>{profile.language === 'en' ? `Request #${feedbackTicketId}` : `Обращение №${feedbackTicketId}`}</p>
@@ -1779,6 +1811,26 @@ export const Settings: React.FC<SettingsProps> = ({
                         </p>
                         {logoutError ? <p role="alert" className="settings-error-text">{logoutError}</p> : null}
                         {deletionError ? <p role="alert" className="settings-error-text">{deletionError}</p> : null}
+                        {deleteDialogOpen ? (
+                            <div className="nebo-sheet-scrim" role="presentation" onClick={() => setDeleteDialogOpen(false)}>
+                                <div className="nebo-soft-pop nebo-delete-pop" role="alertdialog" aria-modal="true" aria-label={profile.language === 'en' ? 'Delete the account forever?' : 'Удалить аккаунт навсегда?'} onClick={(event) => event.stopPropagation()}>
+                                    <button type="button" className="nebo-day-pop-close" onClick={() => setDeleteDialogOpen(false)} aria-label={profile.language === 'en' ? 'Close' : 'Закрыть'}><X size={18} aria-hidden /></button>
+                                    <img src="/assets/nebo-icons/trash.svg" alt="" width={80} height={80} />
+                                    <h2>{profile.language === 'en' ? 'Delete the account forever?' : 'Удалить аккаунт навсегда?'}</h2>
+                                    <p>{profile.language === 'en'
+                                        ? 'We will delete your chart, questions, purchases and saved people. Cancel the subscription in RuStore separately, or it will keep renewing.'
+                                        : 'Удалим карту, вопросы, покупки и близких. Подписку отмени в RuStore отдельно, иначе она продолжит списываться.'}</p>
+                                    <label className="nebo-delete-ack">
+                                        <input type="checkbox" checked={deleteAck} onChange={(event) => setDeleteAck(event.target.checked)} />
+                                        <span>{profile.language === 'en' ? 'I understand the data cannot be restored' : 'Понимаю, что вернуть данные будет нельзя'}</span>
+                                    </label>
+                                    <button type="button" className="nebo-delete-confirm" disabled={!deleteAck || deletingAccount} onClick={() => { setDeleteDialogOpen(false); deleteAccount(); }}>
+                                        {profile.language === 'en' ? 'Delete account' : 'Удалить аккаунт'}
+                                    </button>
+                                    <button type="button" className="nebo-inbox-close" onClick={() => setDeleteDialogOpen(false)}>{profile.language === 'en' ? 'Cancel' : 'Отмена'}</button>
+                                </div>
+                            </div>
+                        ) : null}
                     </section>
                 );
 
