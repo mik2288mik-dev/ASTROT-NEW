@@ -567,3 +567,11 @@
 .nebo-why-steps b { color: #8a8f9c; font-size: 12.5px; letter-spacing: 0.05em; text-transform: uppercase; }
 .nebo-why-steps p { margin: 4px 0 0; font-size: 15.5px; line-height: 1.5; }
 .nebo-why .nebo-period-cta { width: 100%; margin: 18px 0 0; }
+
+/* Soft pop-ups (canvas PopNotify, PopOffline) */
+.nebo-soft-pop { position: relative; width: 100%; max-width: 360px; max-height: 86vh; overflow: auto; padding: 22px 20px 14px; border-radius: 30px; background: #ffffff; color: #0b0d12; text-align: center; animation: nbSignIn 0.4s cubic-bezier(.34, 1.56, .64, 1) both; }
+.nebo-soft-pop > img { display: block; margin: 0 auto 6px; }
+.nebo-soft-pop h2 { margin: 6px 0 8px; font-size: 22px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-soft-pop > p { margin: 0; color: #5c6170; font-size: 15px; line-height: 1.5; }
+.nebo-soft-pop .nebo-notif-preview { margin-top: 14px; background: #f4f5f8; box-shadow: none; text-align: left; }
+.nebo-soft-pop .nebo-period-cta { width: 100%; margin: 18px 0 0; }

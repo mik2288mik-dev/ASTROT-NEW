@@ -185,6 +185,22 @@ export async function saveNativeNotificationSettings(
   await enqueue(() => sync(version));
 }
 
+/** Is the soft «каждое утро присылать?» question still to be asked (never offered, nothing chosen yet)? */
+export function shouldOfferNativeNotifications(accountId: string): boolean {
+  return nativeNotificationsAvailable() && context?.accountId === accountId && Boolean(context?.isSetup)
+    && read(accountId, 'settings') === null && read(accountId, 'offered') !== true;
+}
+
+/** The person answered the soft question: «Да» turns daily notifications on at the chosen morning time. */
+export async function answerNativeNotificationsOffer(accountId: string, accept: boolean, morningTime = '07:00'): Promise<void> {
+  if (!nativeNotificationsAvailable() || context?.accountId !== accountId) return;
+  write(accountId, 'offered', true);
+  if (!accept) return;
+  try {
+    await saveNativeNotificationSettings(accountId, { enabled: true, mode: 'daily', morningTime }, true);
+  } catch { /* Android refused or the account changed: stay off. */ }
+}
+
 /**
  * Один раз после онбординга предлагаем включить уведомления (системный диалог Android).
  * Если человек уже что-то выбирал в настройках или отказал — больше не спрашиваем.
