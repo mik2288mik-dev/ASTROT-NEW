@@ -1752,3 +1752,11 @@ html[data-theme='dark'] .nebo-moon-week button, html[data-theme='dark'] .nebo-mo
 html[data-theme='dark'] .nebo-moon-retro-note { background: rgba(253, 186, 116, 0.14); color: #fdba74; }
 .nebo-moon-week { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
 .nebo-moon-week button { min-width: 0; padding: 9px 0; }
+
+/* Numbers as on the canvas: peach page, the destiny number as a huge faint figure without a card, formula line by line */
+.fresh-page.nebo-numbers { background: linear-gradient(180deg, #ffeedd 0%, #ffffff 420px) !important; }
+.nebo-numbers .nebo-numbers-life { background: transparent !important; box-shadow: none !important; padding-top: 6px !important; }
+.nebo-numbers .nebo-numbers-bignum { font-size: 150px !important; font-weight: 200 !important; line-height: 0.9 !important; color: rgba(124, 92, 255, 0.14) !important; background: none !important; -webkit-text-fill-color: currentColor !important; }
+.nebo-numbers .nebo-numbers-formula span { display: block; }
+html[data-theme='dark'] .fresh-page.nebo-numbers { background: linear-gradient(180deg, #2a2219 0%, #1c1d21 420px) !important; }
+html[data-theme='dark'] .nebo-numbers .nebo-numbers-bignum { color: rgba(165, 168, 255, 0.18) !important; }
