@@ -1448,13 +1448,16 @@ Check our compatibility from your side in NEBO.`
           <p>{ru ? 'Любые два человека' : 'Any two people'}</p>
         </div>
       )}
-      <EditorialTabs
-        label={ru ? 'Режим совместимости' : 'Compatibility mode'}
-        tabs={compatibilityTabs}
-        activeTab={activeCompatibilityTab}
-        onTabChange={selectCompatibilityTab}
-        className="compat-editorial-tabs"
-      />
+      {/* Canvas: the date / sign switch belongs to the entry screen, not to a result. */}
+      {withBack ? null : (
+        <EditorialTabs
+          label={ru ? 'Режим совместимости' : 'Compatibility mode'}
+          tabs={compatibilityTabs}
+          activeTab={activeCompatibilityTab}
+          onTabChange={selectCompatibilityTab}
+          className="compat-editorial-tabs"
+        />
+      )}
     </>
   );
 
@@ -2124,7 +2127,12 @@ Check our compatibility from your side in NEBO.`
               ? (ru ? 'полный разбор' : 'full reading')
               : (ru ? 'основные ответы' : 'main answers')}
           </p>
-          <h1><span>{leftName}</span><span className="compat-story-plus" aria-hidden="true">&</span><span>{rightName}</span></h1>
+          <span className="nebo-pair-avatars" aria-hidden="true">
+            <i>{leftName.trim().charAt(0).toUpperCase()}</i>
+            <b>&</b>
+            <i>{rightName.trim().charAt(0).toUpperCase()}</i>
+          </span>
+          <h1><span>{leftName}</span> {ru ? 'и' : 'and'} <span>{rightName}</span></h1>
           <div><span>{getZodiacSign(lang, leftSun)}</span><span aria-hidden="true">·</span><span>{getZodiacSign(lang, theirSun)}</span></div>
           <button type="button" className="compat-result-change" onClick={() => { setError(null); setEntryMode('birth'); setScreen('add'); scrollCompatibilityToTop(); }}>{ru ? 'Изменить людей или тип отношений' : 'Change people or relationship type'}</button>
         </header>

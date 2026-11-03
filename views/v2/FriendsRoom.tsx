@@ -3,6 +3,7 @@ import { ChevronLeft, Copy, MessageSquare, Plus, Send, Share2 } from 'lucide-rea
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { QrCode } from '../../components/nebo/QrCode';
+import { SHARE_BRAND_PATHS } from '../../components/nebo/shareBrandPaths';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate, getCompatScore } from '../../lib/synastry/compatScore';
@@ -194,11 +195,14 @@ function AddFriend({ code, onBack, onAdded }: { code: string | null; onBack: () 
         </div>
         <div className="nebo-friend-apps">
           {([
-            ['Telegram', 'is-tg', `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(INVITE_TEXT)}`],
-            ['VK', 'is-vk', `https://vk.com/share.php?url=${encodeURIComponent(link)}`],
-            ['WhatsApp', 'is-wa', `https://wa.me/?text=${encodeURIComponent(`${INVITE_TEXT} ${link}`)}`],
-          ] as const).map(([name, tone, href]) => (
-            <a key={name} className={`nebo-friend-app ${tone}`} href={link ? href : undefined} target="_blank" rel="noreferrer" aria-disabled={!link}>{name}</a>
+            ['Telegram', 'telegram', '#26A5E4', `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(INVITE_TEXT)}`],
+            ['VK', 'vk', '#0077FF', `https://vk.com/share.php?url=${encodeURIComponent(link)}`],
+            ['WhatsApp', 'whatsapp', '#25D366', `https://wa.me/?text=${encodeURIComponent(`${INVITE_TEXT} ${link}`)}`],
+          ] as const).map(([name, brand, color, href]) => (
+            <a key={name} className="nebo-friend-app" href={link ? href : undefined} target="_blank" rel="noreferrer" aria-disabled={!link} aria-label={`Отправить в ${name}`}>
+              <span className="nebo-friend-app-icon"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d={SHARE_BRAND_PATHS[brand]} fill={color} /></svg></span>
+              <small>{name}</small>
+            </a>
           ))}
         </div>
         <button type="button" className="nebo-period-cta" disabled={!code} onClick={() => void share(`${INVITE_TEXT} ${link}`)}>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Copy, Share2 } from 'lucide-react';
 import { CosmicSheet } from '../lumia-ui/CosmicSheet';
 import type { UserProfile } from '../../types';
+import { hasActivePremium } from '../../lib/accessMatrix';
 import { ONE_TIME_PRODUCTS, hasEsoAccess, type OneTimeProductId } from '../../lib/oneTimeProducts';
 import {
   buyOneTimeProduct,
@@ -142,9 +143,11 @@ export function NeboShop({ profile, plusContent }: NeboShopProps) {
 
       <h2 className="nebo-shop-head">Подписка</h2>
       <div className="nebo-shop-list">
-        {row('/assets/shop/plus.webp', 'NEBO Plus', 'всё в NEBO открыто: месяц, 3 месяца или год', plusOpen ? 'Свернуть' : 'от 399 ₽', () => setPlusOpen((open) => !open))}
+        {hasActivePremium(profile)
+          ? row('/assets/shop/plus.webp', 'NEBO Plus', 'всё в NEBO уже открыто', 'активна', () => undefined, true)
+          : row('/assets/shop/plus.webp', 'NEBO Plus', 'всё в NEBO открыто: месяц, 3 месяца или год', plusOpen ? 'Свернуть' : 'от 399 ₽', () => setPlusOpen((open) => !open))}
       </div>
-      {plusOpen ? <div className="nebo-shop-plus">{plusContent}</div> : null}
+      {plusOpen && !hasActivePremium(profile) ? <div className="nebo-shop-plus">{plusContent}</div> : null}
 
       {!canBuy ? (
         <p className="nebo-shop-note">Разовые покупки работают в приложении NEBO из RuStore. Код подарка можно ввести здесь.</p>

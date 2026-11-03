@@ -5148,14 +5148,8 @@ html[data-theme='dark'] .nebo-oracle-share-fan img {
 html[data-theme='dark'] .nebo-qr {
   background: #1C1D21;
 }
-html[data-theme='dark'] .nebo-friend-app.is-tg {
-  color: #94CFF1;
-}
 html[data-theme='dark'] .nebo-friend-app.is-vk {
   color: #77B6FF;
-}
-html[data-theme='dark'] .nebo-friend-app.is-wa {
-  color: #6EECA9;
 }
 html[data-theme='dark'] .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab {
   color: rgba(235, 235, 245, 0.5) !important;
@@ -5278,6 +5272,49 @@ html[data-theme='dark'] .fresh-page.nebo-numbers {
 }
 html[data-theme='dark'] .nebo-splash-ring {
   background: rgba(39, 40, 46, 0.55);
+}
+html[data-theme='dark'] .nebo-friend-app {
+  color: #F4F5F8 !important;
+}
+html[data-theme='dark'] .nebo-friend-app-icon {
+  background: #1C1D21;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.196), 0 6px 16px -8px rgba(0, 0, 0, 0.5);
+}
+html[data-theme='dark'] .nebo-friend-app small {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .compat-gauge {
+  background: #27282E !important;
+}
+html[data-theme='dark'] .compat-gauge .compat-gauge-zone.is-hard {
+  stroke: #FDCDAB !important;
+}
+html[data-theme='dark'] .compat-gauge .compat-gauge-zone.is-easy {
+  stroke: #94ECB4 !important;
+}
+html[data-theme='dark'] .compat-gauge .compat-gauge-needle {
+  stroke: #F4F5F8 !important;
+}
+html[data-theme='dark'] .compat-gauge .compat-gauge-hub {
+  fill: #F4F5F8 !important;
+}
+html[data-theme='dark'] .compat-answers .compat-answer {
+  background: #27282E !important;
+}
+html[data-theme='dark'] .compat-story-cover > p {
+  color: #C4BAEE !important;
+}
+html[data-theme='dark'] .nebo-pair-avatars b {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .compat-story-cover h1 {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .compat-story-cover > div {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .compat-story-cover .compat-result-change {
+  color: #C4BAEE !important;
 }
 
 /* ── neboAuth.css ── */

@@ -1778,3 +1778,43 @@ html[data-theme='dark'] .nebo-numbers .nebo-numbers-bignum { color: rgba(165, 16
 .nebo-splash-dots i.is-on { background: #4f46e5; }
 @media (prefers-reduced-motion: reduce) { .nebo-splash-orbit { animation: none; } }
 html[data-theme='dark'] .nebo-splash-ring { background: rgba(255, 255, 255, 0.04); border-color: rgba(165, 168, 255, 0.25); }
+.nebo-friend-code-text strong { font-size: 26px !important; letter-spacing: 0.04em !important; white-space: nowrap; }
+
+/* Share apps as a share sheet: brand mark on a white tile, the name under it */
+.nebo-friend-apps { display: flex !important; justify-content: space-around; gap: 8px; margin-top: 14px !important; }
+.nebo-friend-app { display: flex !important; flex-direction: column; align-items: center; gap: 6px; height: auto !important; padding: 0 !important; background: none !important; color: #0b0d12 !important; font-size: 12.5px !important; font-weight: 500 !important; text-decoration: none; }
+.nebo-friend-app-icon { display: grid; width: 56px; height: 56px; place-items: center; border-radius: 16px; background: #ffffff; box-shadow: 0 1px 2px rgba(11, 13, 18, 0.06), 0 6px 16px -8px rgba(11, 13, 18, 0.25); transition: transform 0.15s ease; }
+.nebo-friend-app:active .nebo-friend-app-icon { transform: scale(0.94); }
+.nebo-friend-app small { color: #5c6170; font-size: 12.5px; }
+html[data-theme='dark'] .nebo-friend-app-icon { background: #2a2c34; box-shadow: none; }
+html[data-theme='dark'] .nebo-friend-app small { color: rgba(235, 235, 245, 0.64); }
+
+/* Compatibility result as on the canvas: the gauge in a grey card with bright zones, every answer in its own card */
+.compat-gauge { margin: 14px 16px 0 !important; padding: 18px 16px 18px !important; border-radius: 26px !important; background: #f4f4f6 !important; box-shadow: none !important; text-align: center; }
+.compat-gauge .compat-gauge-zone.is-hard { stroke: #f97316 !important; }
+.compat-gauge .compat-gauge-zone.is-mixed { stroke: #fbbf24 !important; }
+.compat-gauge .compat-gauge-zone.is-easy { stroke: #22c55e !important; }
+.compat-gauge .compat-gauge-needle { stroke: #0b0d12 !important; }
+.compat-gauge .compat-gauge-hub { fill: #0b0d12 !important; }
+.compat-answers { display: flex; flex-direction: column; gap: 10px; margin: 12px 16px 0 !important; }
+.compat-answers .compat-answer { margin: 0 !important; padding: 16px !important; border: 0 !important; border-radius: 22px !important; background: #f4f4f6 !important; box-shadow: none !important; }
+.compat-answer-tag { border-radius: 999px !important; }
+html[data-theme='dark'] .compat-gauge, html[data-theme='dark'] .compat-answers .compat-answer { background: #27282e !important; }
+html[data-theme='dark'] .compat-gauge .compat-gauge-needle { stroke: #f4f5f8 !important; }
+html[data-theme='dark'] .compat-gauge .compat-gauge-hub { fill: #f4f5f8 !important; }
+
+/* Result head as on the canvas: lavender context pill, two initials with «&», names on one line, a link to change */
+.compat-story-cover { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 6px 16px 0 !important; text-align: center; }
+.compat-story-cover > p { display: inline-block; margin: 0 !important; padding: 6px 12px; border-radius: 999px; background: rgba(124, 92, 255, 0.12); color: #5b3fd0 !important; font-size: 13px !important; font-weight: 600 !important; letter-spacing: 0 !important; text-transform: none !important; }
+.compat-story-cover > p::first-letter { text-transform: uppercase; }
+.nebo-pair-avatars { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.nebo-pair-avatars i { display: grid; width: 56px; height: 56px; place-items: center; border-radius: 50%; color: #ffffff; font-size: 22px; font-style: normal; font-weight: 700; }
+.nebo-pair-avatars i:first-child { background: linear-gradient(135deg, #22b8cf, #1971c2); }
+.nebo-pair-avatars i:last-child { background: linear-gradient(135deg, #40c057, #2b8a3e); }
+.nebo-pair-avatars b { color: #9aa0ae; font-size: 26px; font-weight: 400; }
+.compat-story-cover h1 { display: block !important; margin: 0 !important; color: #0b0d12; font-family: var(--font-app) !important; font-size: 28px !important; font-weight: 700 !important; line-height: 1.15 !important; letter-spacing: -0.01em !important; }
+.compat-story-cover h1 span { display: inline !important; font: inherit !important; }
+.compat-story-cover > div { color: #5c6170; font-size: 15px; }
+.compat-story-cover .compat-result-change { border: 0 !important; background: none !important; box-shadow: none !important; color: #5b3fd0 !important; font-size: 15px !important; font-weight: 600 !important; }
+html[data-theme='dark'] .compat-story-cover h1 { color: #f4f5f8; }
+html[data-theme='dark'] .compat-story-cover > p, html[data-theme='dark'] .compat-story-cover .compat-result-change { color: #c7c9ff !important; }

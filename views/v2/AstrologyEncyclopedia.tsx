@@ -354,7 +354,7 @@ export function AstrologyEncyclopedia({
   if (!topics.length) {
     return (
       <div className={`fresh-page encyclopedia-editorial-page ${styles.page}`}>
-        {!embedded ? <AppTopBar title={ru ? 'Энциклопедия' : 'Encyclopedia'} /> : null}
+        {!embedded ? <AppTopBar title={ru ? 'Справочник' : 'Guide'} /> : null}
         <div className={`${styles.content} ${styles.empty}`}>
           <h1>{ru ? 'Материалов пока нет' : 'No articles yet'}</h1>
           <p>{ru ? 'Здесь появятся понятные объяснения терминов.' : 'Clear explanations will appear here.'}</p>
@@ -372,7 +372,7 @@ export function AstrologyEncyclopedia({
     <div className={`fresh-page encyclopedia-editorial-page ${styles.page}${embedded ? ' !min-h-0 !pt-0 !pb-0 before:!hidden' : ''}`}>
       {!embedded ? (
         <AppTopBar
-          title={ru ? 'Энциклопедия' : 'Encyclopedia'}
+          title={ru ? 'Справочник' : 'Guide'}
           onBack={headerBack}
         />
       ) : null}
@@ -398,7 +398,7 @@ export function AstrologyEncyclopedia({
           <>
             <header className={styles.catalogHeader}>
               <h1 className={styles.visuallyHidden} ref={catalogHeadingRef} tabIndex={-1}>
-                {ru ? 'Энциклопедия' : 'Encyclopedia'}
+                {ru ? 'Справочник' : 'Guide'}
               </h1>
               <p>
                 {ru
