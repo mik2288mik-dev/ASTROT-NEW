@@ -1700,3 +1700,22 @@ html[data-theme='dark'] .settings-editorial-page .settings-list { background: #2
 .nebo-shop-price { background: rgba(124, 92, 255, 0.14) !important; color: #6d4ce0 !important; }
 html[data-theme='dark'] .nebo-shop-row { background: #27282e !important; }
 html[data-theme='dark'] .nebo-shop-price { background: rgba(165, 168, 255, 0.18) !important; color: #c7c9ff !important; }
+
+/* Tarot / runes home as on the canvas: tinted page, light hero with dark text, question in a grey card with sideways chips */
+.fresh-page.nebo-oracle.is-tarot { background: linear-gradient(180deg, #fff1da 0%, #ffffff 380px) !important; }
+.fresh-page.nebo-oracle.is-runes { background: linear-gradient(180deg, #ddeeef 0%, #ffffff 380px) !important; }
+.nebo-oracle .nebo-oracle-hero { background: transparent !important; box-shadow: none !important; color: #0b0d12 !important; min-height: 190px; padding-left: 4px !important; }
+.nebo-oracle .nebo-oracle-hero::before, .nebo-oracle .nebo-oracle-hero::after { display: none !important; }
+.nebo-oracle .nebo-oracle-hero-copy .nebo-kicker { color: #5c6170 !important; }
+.nebo-oracle .nebo-oracle-hero-copy h2 { color: #0b0d12 !important; font-size: 26px; }
+.nebo-oracle .nebo-oracle-hero-copy p:last-child { color: #5c6170; opacity: 1; }
+.nebo-oracle .nebo-oracle-ask { padding: 16px; border-radius: 22px; background: #f4f4f6; }
+.nebo-oracle .nebo-oracle-ask textarea { background: transparent !important; border: 0 !important; padding: 6px 0 !important; font-size: 18px; min-height: 0; box-shadow: none !important; }
+.nebo-oracle .nebo-oracle-chips { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; margin: 8px -16px -4px; padding: 0 16px 4px; }
+.nebo-oracle .nebo-oracle-chips::-webkit-scrollbar { display: none; }
+.nebo-oracle .nebo-oracle-chips button { flex: none; background: #ffffff !important; white-space: nowrap; }
+html[data-theme='dark'] .fresh-page.nebo-oracle.is-tarot { background: linear-gradient(180deg, #2a2418 0%, #1c1d21 380px) !important; }
+html[data-theme='dark'] .fresh-page.nebo-oracle.is-runes { background: linear-gradient(180deg, #1c2a2b 0%, #1c1d21 380px) !important; }
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-hero, html[data-theme='dark'] .nebo-oracle .nebo-oracle-hero-copy h2 { color: #f4f5f8 !important; }
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-ask { background: #27282e; }
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-chips button { background: rgba(255, 255, 255, 0.08) !important; }
