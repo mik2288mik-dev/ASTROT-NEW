@@ -841,6 +841,12 @@ export async function clearNativeSession(): Promise<void> {
 export async function clearAppSessionAndLocalData(): Promise<void> {
   await Promise.allSettled([clearNativeSession()]);
   if (typeof window !== 'undefined') {
-    try { window.localStorage.clear(); window.sessionStorage.clear(); } catch { /* unavailable storage */ }
+    try {
+      // The light/dark choice belongs to the device, not the account.
+      const theme = window.localStorage.getItem('nebo.theme');
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+      if (theme) window.localStorage.setItem('nebo.theme', theme);
+    } catch { /* unavailable storage */ }
   }
 }

@@ -72,3 +72,18 @@
     transform: none;
   }
 }
+
+/* ── dark theme (generated) ── */
+:global(html[data-theme='dark']) .notice {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #1C1D21;
+  color: #F4F5F8;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.228), 0 12px 32px rgba(0, 0, 0, 0.292);
+}
+:global(html[data-theme='dark']) .text {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .dismiss {
+  background: #F2F3F5;
+  color: #111216;
+}

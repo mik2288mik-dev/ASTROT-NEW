@@ -47,6 +47,7 @@ import { PromoBanner } from './components/PromoBanner';
 import { AppEntryAnnouncement } from './components/AppEntryAnnouncement';
 import { CoachMarks } from './components/nebo/CoachMarks';
 import { AppErrorBoundary } from './components/nebo/AppErrorBoundary';
+import { applyTheme, watchSystemTheme } from './lib/theme';
 import { PlusWelcome } from './components/nebo/PlusWelcome';
 import { NotifyOffer, OfflineNotice } from './components/nebo/SoftPops';
 import { addFriend, rememberInviteFromUrl, takePendingInvite } from './services/friendsService';
@@ -452,6 +453,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     }, []);
     // An invite link (?friend=NEBO-XXXX) adds the friend as soon as the person is in the app.
     useEffect(() => { rememberInviteFromUrl(); }, []);
+    useEffect(() => watchSystemTheme(), []);
     useEffect(() => {
         if (!profile?.id) return;
         const code = takePendingInvite();
@@ -828,12 +830,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         if (theme === 'light') body.classList.add('theme-light');
         else body.classList.remove('theme-light');
 
-        const tg = (window as any).Telegram?.WebApp;
-        if (tg) {
-            tg.setHeaderColor?.('#FFFFFF');
-            tg.setBackgroundColor?.('#FFFFFF');
-            tg.setBottomBarColor?.('#FFFFFF');
-        }
+        applyTheme();
 
         return () => {
             body.classList.remove('theme-lumia-air');
@@ -2540,7 +2537,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
 
     if (startupError) {
         return (
-            <div className="fixed inset-0 flex h-[100dvh] items-center justify-center bg-white px-6 text-[#1f1f1f]">
+            <div className="nebo-startup-error fixed inset-0 flex h-[100dvh] items-center justify-center bg-white px-6 text-[#1f1f1f]">
                 {/* App.tsx sits outside Tailwind's content globs, so this screen styles itself inline. */}
                 <div style={{ display: 'flex', width: '100%', maxWidth: 360, flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                     {/* The logo art is taller than its box; clip it so it never covers the heading. */}
@@ -2550,12 +2547,13 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                     <h1 style={{ position: 'relative', zIndex: 1, margin: '0 0 12px', fontSize: 26, fontWeight: 650, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
                         Не удалось открыть профиль
                     </h1>
-                    <p style={{ margin: '0 0 20px', fontSize: 15, lineHeight: 1.55, color: '#4f4b45' }}>{startupError}</p>
-                    <p style={{ width: '100%', margin: '0 0 24px', padding: '12px 16px', borderRadius: 16, background: '#f4f6fa', fontSize: 14, lineHeight: 1.45, color: '#45413d' }}>
+                    <p className="nebo-startup-error-text" style={{ margin: '0 0 20px', fontSize: 15, lineHeight: 1.55, color: '#4f4b45' }}>{startupError}</p>
+                    <p className="nebo-startup-error-note" style={{ width: '100%', margin: '0 0 24px', padding: '12px 16px', borderRadius: 16, background: '#f4f6fa', fontSize: 14, lineHeight: 1.45, color: '#45413d' }}>
                         Если включён VPN, выключи его и попробуй ещё раз. Иногда VPN мешает приложению подключиться.
                     </p>
                     <button
                         type="button"
+                        className="nebo-startup-error-cta"
                         style={{ width: '100%', maxWidth: 280, minHeight: 48, padding: '12px 24px', border: 0, borderRadius: 999, background: '#1f1f1f', color: '#fff', fontSize: 15, fontWeight: 650, cursor: 'pointer' }}
                         onClick={retryStartup}
                     >

@@ -1424,3 +1424,167 @@
     column-gap: 24px;
   }
 }
+
+/* ── dark theme (generated) ── */
+:global(html[data-theme='dark']) .page {
+  --knowledge-ink: #F4F5F8;
+  --knowledge-muted: rgba(235, 235, 245, 0.5);
+  background: #1C1D21 !important;
+}
+:global(html[data-theme='dark']) .catalogHeader p, :global(html[data-theme='dark']) .categoryHeader p, :global(html[data-theme='dark']) .hubHeader p, :global(html[data-theme='dark']) .empty p {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .searchControl {
+  background: #1C1D21;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.196);
+}
+:global(html[data-theme='dark']) .searchControl input::placeholder {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .hubBranchExamples {
+  color: rgba(235, 235, 245, 0.5);
+}
+@media (hover: hover) and (pointer: fine) {
+  :global(html[data-theme='dark']) .popularButton:hover {
+    background: #27282E;
+  }
+  :global(html[data-theme='dark']) .hubBranchButton:hover {
+    background: #27282E;
+  }
+}
+:global(html[data-theme='dark']) .noResults p {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .lead {
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .shortAnswer p {
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .articleContents {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .articleContents a {
+  color: rgba(235, 235, 245, 0.5);
+  text-decoration-color: rgba(235, 235, 245, 0.42);
+}
+:global(html[data-theme='dark']) .diagram {
+  background: #1C1D21;
+}
+:global(html[data-theme='dark']) .diagramIntro span {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .diagram svg {
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .diagram text {
+  fill: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .diagram figcaption {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .diagram figcaption strong {
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .diagram figcaption span {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .diagramRay {
+  stroke: #FAE3B6;
+}
+:global(html[data-theme='dark']) .diagramHorizon {
+  stroke: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .diagramSun {
+  stroke: #F8E0B5;
+}
+:global(html[data-theme='dark']) .diagramEarth {
+  stroke: #89C4E5;
+}
+:global(html[data-theme='dark']) .diagramObserver {
+  fill: #9AABC0;
+  stroke: #9AABC0;
+}
+:global(html[data-theme='dark']) .diagramOutline {
+  stroke: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .diagramPlanet {
+  stroke: #B9AAD7;
+}
+:global(html[data-theme='dark']) .diagramForward {
+  stroke: #97DDC4;
+}
+:global(html[data-theme='dark']) .diagramSight {
+  stroke: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .diagramNorthNode {
+  fill: #9CDEC6;
+}
+:global(html[data-theme='dark']) .diagramNodeArrowNorth {
+  stroke: #7EDDBC;
+}
+:global(html[data-theme='dark']) .diagramShadow {
+  fill: #9EA9BC;
+}
+:global(html[data-theme='dark']) .diagramEclipsedMoon {
+  stroke: #DB9489;
+}
+:global(html[data-theme='dark']) .articleVisual {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .articleVisual figcaption {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(39, 40, 46, 0.82);
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .articleVisual_fire {
+  background: #4A2B1C;
+}
+:global(html[data-theme='dark']) .articleVisual_earth {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .articleVisual_air {
+  background: #1C2C4A;
+}
+:global(html[data-theme='dark']) .articleVisual_water {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .signVisualCopy span, :global(html[data-theme='dark']) .objectPhotoLabel span {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .signVisualCopy strong, :global(html[data-theme='dark']) .objectPhotoLabel strong {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .signVisualCopy small, :global(html[data-theme='dark']) .objectPhotoLabel small {
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .objectPhotoLabel {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: #1C1D21;
+}
+:global(html[data-theme='dark']) .overviewVisual {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .overviewVisualLabel {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1C1D21;
+}
+:global(html[data-theme='dark']) .overviewVisualLabel strong {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .overviewVisualLabel span {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .articleSection p {
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .sectionConfusion {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .inlineLink {
+  text-decoration-color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .inlinePreview > p {
+  color: rgba(235, 235, 245, 0.72);
+}

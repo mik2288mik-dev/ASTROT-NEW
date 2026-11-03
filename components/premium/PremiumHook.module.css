@@ -77,3 +77,12 @@
   text-align: center;
   opacity: 0.82;
 }
+
+/* ── dark theme (generated) ── */
+:global(html[data-theme='dark']) .label {
+  background: rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .button {
+  background: #1C1D21;
+  color: #8392D8;
+}

@@ -57,3 +57,170 @@
 .story section p,.unifiedTopic>div p{margin:0;text-align:justify;text-align-last:left;text-indent:1.25em;-webkit-hyphens: manual;hyphens: manual;}
 .readingHeading{margin:4px 0 0;color:#292724;font-size:17px;font-weight:650;letter-spacing:-.02em;line-height:1.25}
 .topicNav{position:sticky;top:calc(var(--app-top-bar-content-safe-top,18px) + 52px);z-index:5;margin:0 -16px 14px;background:rgba(255,255,255,.92);backdrop-filter:blur(6px)}.topicRail{display:flex;gap:8px;padding:8px 16px;overflow-x:auto;scrollbar-width:none}.topicRail::-webkit-scrollbar{display:none}.topicRail button{flex:none;min-height:36px;padding:0 14px;border:0;border-radius:999px;background:#f1f2f6;color:#2b2e38;font:inherit;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer}.topicRail button:active{background:#e3e6ee}.topicArrow{position:absolute;top:0;bottom:0;z-index:2;display:grid;width:38px;place-items:center;border:0;color:#2b2e38;font-size:26px;line-height:1;cursor:pointer;padding:0 0 3px}.topicArrowLeft{left:0;background:linear-gradient(90deg,#fff 55%,rgba(255,255,255,0))}.topicArrowRight{right:0;background:linear-gradient(270deg,#fff 55%,rgba(255,255,255,0))}.unifiedTopic{scroll-margin-top:calc(var(--app-top-bar-content-safe-top,18px) + 110px)}
+
+/* ── dark theme (generated) ── */
+:global(html[data-theme='dark']) .content {
+  background: #1C1D21;
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .person p {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) header.personInline>h1 {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) header.personInline>p {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .mode button {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .mode button[aria-pressed=true] {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .storyIntro {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .storyIntro small {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .story .readingCard {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .cardWhy {
+  background: #27282E;
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .why {
+  color: #AEC3F6;
+}
+:global(html[data-theme='dark']) .observation {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .observation summary small {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .topics button, :global(html[data-theme='dark']) .followUps button, :global(html[data-theme='dark']) .askLink {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .topics small {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .topics svg, :global(html[data-theme='dark']) .followUps svg, :global(html[data-theme='dark']) .askLink svg {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .topicsTextOnly button>span[aria-hidden=true] {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .chapterHeading>button {
+  color: #AEC3F6;
+}
+:global(html[data-theme='dark']) .state {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .state button {
+  background: #F2F3F5;
+  color: #111216;
+}
+:global(html[data-theme='dark']) .detailsGroup {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .detailsHeading {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .detailsHeading small {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .detailsRows button {
+  background: #1C1D21;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .detailsRows small {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .detailsRows button>svg:last-child {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .detailsMore {
+  color: #99C1FF;
+}
+:global(html[data-theme='dark']) .detailsEmpty {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .readingLinks button, :global(html[data-theme='dark']) .readingLink {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #AEC3F6;
+}
+:global(html[data-theme='dark']) .plusEntry, :global(html[data-theme='dark']) .questionHero {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .plusLabel {
+  color: #AEC3F6;
+}
+:global(html[data-theme='dark']) .questionDemo header>p {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .demoExamples button {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .exampleIcon {
+  color: #AEC3F6;
+}
+:global(html[data-theme='dark']) .demoAnswer {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .demoAnswer>small {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .demoAnswer>small:last-child {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .demoComposer {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .demoAccess {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .topics button:hover, :global(html[data-theme='dark']) .detailsRows button:hover {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .astroToggle {
+  background: #27282E;
+  color: #AEC3F6;
+}
+:global(html[data-theme='dark']) .astroToggle[aria-pressed=true] {
+  background: #27282E;
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .astroDetails {
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  background: #1C1D21;
+}
+:global(html[data-theme='dark']) .astroDetails p {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .unifiedTopic {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+:global(html[data-theme='dark']) .readingHeading {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .topicNav {
+  background: rgba(39, 40, 46, 0.92);
+}
+:global(html[data-theme='dark']) .topicRail button {
+  background: #27282E;
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .topicRail button:active {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .topicArrow {
+  color: rgba(235, 235, 245, 0.72);
+}
+:global(html[data-theme='dark']) .topicArrowLeft {
+  background: linear-gradient(90deg,#1C1D21 55%,rgba(255, 255, 255, 0.06));
+}
+:global(html[data-theme='dark']) .topicArrowRight {
+  background: linear-gradient(270deg,#1C1D21 55%,rgba(255, 255, 255, 0.06));
+}
