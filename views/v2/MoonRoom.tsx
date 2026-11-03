@@ -19,6 +19,17 @@ let engineModule: Promise<typeof import('astronomy-engine')> | null = null;
 const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const MONTHS_GENITIVE = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+const WEEKDAYS_FULL = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+/** Lit part of the Moon, %: 0 at new moon, 100 at full. */
+const illumination = (phase: number) => Math.round(((1 - Math.cos((phase * Math.PI) / 180)) / 2) * 100);
+/** Lunar day 1…30, counted from the new moon. */
+const lunarDayOf = (phase: number) => Math.min(30, Math.floor((phase / 360) * 29.53) + 1);
+/** A small drawn Moon for the week strip: the lit side follows the phase. */
+function MoonDot({ phase }: { phase: number }) {
+  const lit = illumination(phase);
+  const side = phase < 180 ? 'right' : 'left';
+  return <span className="nebo-moon-dot" style={{ background: lit > 96 ? '#e8e9ef' : lit < 4 ? '#3b3f52' : `linear-gradient(to ${side}, #3b3f52 ${100 - lit}%, #e8e9ef ${100 - lit}%)` }} aria-hidden />;
+}
 const VERDICT_CLASS = ['is-bad', 'is-ok', 'is-good'] as const;
 
 const todayKey = () => {
@@ -35,6 +46,7 @@ export function MoonRoom({ profile, onBack, onRequestPremium }: { profile: UserP
   const [monthOffset, setMonthOffset] = useState(0);
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [focusKey, setFocusKey] = useState<string | null>(null);
   const plus = hasActivePremium(profile);
   const today = todayKey();
 
@@ -65,7 +77,13 @@ export function MoonRoom({ profile, onBack, onRequestPremium }: { profile: UserP
   );
   const picked = monthDays.find((day) => day.dayKey === pickedKey) ?? null;
 
-  const todayRows = todayDay ? operations.map((op) => ({ op, verdict: op.evaluate(todayDay) })) : [];
+  // The week strip picks a day; everything under it follows that day (today by default).
+  const focusDay = (focusKey ? days?.find((day) => day.dayKey === focusKey) : null) ?? todayDay;
+  const weekStart = todayDay && days ? Math.max(0, days.indexOf(todayDay) - todayDay.weekday) : 0;
+  const weekDays = days ? days.slice(weekStart, weekStart + 7) : [];
+  const todayRows = focusDay ? operations.map((op) => ({ op, verdict: op.evaluate(focusDay) })) : [];
+  const canNow = todayRows.filter((row) => row.verdict[0] > 0).sort((a, b) => b.verdict[0] - a.verdict[0]).slice(0, 3);
+  const better = todayRows.filter((row) => row.verdict[0] === 0).slice(0, 3);
   const visibleRows = showAll ? todayRows : todayRows.slice(0, 4);
 
   const chooseCategory = (key: LunarCategoryKey) => {
@@ -79,20 +97,34 @@ export function MoonRoom({ profile, onBack, onRequestPremium }: { profile: UserP
 
   return (
     <div className="fresh-page nebo-moon">
-      <AppTopBar title="Лунные календари" onBack={onBack} />
-      <div className="nebo-page-title">
-        <h1>Лунные календари</h1>
-        <p>Сад, стрижка, здоровье, дела и дом по фазам Луны</p>
-      </div>
+      <AppTopBar title="Лунный календарь" onBack={onBack} />
 
       {failed ? <p className="nebo-moon-note" role="alert">Не получилось посчитать Луну. Открой экран ещё раз.</p> : null}
       {!days && !failed ? <p className="nebo-moon-note" role="status">Считаем Луну…</p> : null}
 
-      {todayDay ? (
-        <div className="nebo-moon-hero">
-          <strong>{phaseName(todayDay.phase)}</strong>
-          <span>Луна {SIGNS_IN[todayDay.sign]}, {todayDay.waxing ? 'растёт' : 'убывает'}</span>
-          {todayDay.mercuryRetrograde ? <span className="nebo-moon-retro">Меркурий ретроградный: договоры лучше перечитывать дважды</span> : null}
+      {focusDay ? (
+        <div className="nebo-moon-top">
+          <img src="/assets/auth/moon.webp" alt="" width={150} height={150} className="nebo-moon-big" style={{ filter: `brightness(${0.55 + illumination(focusDay.phase) / 220})` }} />
+          <div className="nebo-moon-top-copy">
+            <small>{WEEKDAYS_FULL[focusDay.weekday]}, {dayLabel(focusDay)}</small>
+            <strong>{phaseName(focusDay.phase)}</strong>
+            <b>{illumination(focusDay.phase)}%</b>
+            <span>Луна {SIGNS_IN[focusDay.sign]}</span>
+            <em>{lunarDayOf(focusDay.phase)} лунный день</em>
+          </div>
+        </div>
+      ) : null}
+      {focusDay?.mercuryRetrograde ? <p className="nebo-moon-retro-note">Меркурий идёт назад: договоры и важные письма лучше перечитывать дважды.</p> : null}
+
+      {weekDays.length ? (
+        <div className="nebo-moon-week" role="tablist" aria-label="Неделя">
+          {weekDays.map((day) => (
+            <button key={day.dayKey} type="button" role="tab" aria-selected={day.dayKey === focusDay?.dayKey} className={day.dayKey === focusDay?.dayKey ? 'is-active' : ''} onClick={() => setFocusKey(day.dayKey)}>
+              <small>{day.dayKey === today ? 'сег' : WEEKDAYS[day.weekday]}</small>
+              <MoonDot phase={day.phase} />
+              <strong>{day.day}</strong>
+            </button>
+          ))}
         </div>
       ) : null}
 
@@ -106,9 +138,19 @@ export function MoonRoom({ profile, onBack, onRequestPremium }: { profile: UserP
       </div>
       <p className="nebo-moon-sub">{current.text}</p>
 
-      {todayDay ? (
+      {focusDay && todayRows.length ? (
+        <section className="nebo-moon-sum">
+          <h2>{focusDay.dayKey === today ? 'Сегодня' : WEEKDAYS_FULL[focusDay.weekday]}, {dayLabel(focusDay)} · {current.name}</h2>
+          <div className="nebo-moon-sum-cols">
+            <div className="is-can"><b>{focusDay.dayKey === today ? 'Сегодня можно' : 'Можно'}</b>{canNow.length ? canNow.map((row) => <p key={row.op.id}>{row.op.name}</p>) : <p>Лучше отдохнуть от этих дел</p>}</div>
+            <div className="is-wait"><b>Лучше подождать</b>{better.length ? better.map((row) => <p key={row.op.id}>{row.op.name}</p>) : <p>Ничего не мешает</p>}</div>
+          </div>
+        </section>
+      ) : null}
+
+      {focusDay ? (
         <section className="nebo-moon-card">
-          <h2>Сегодня, {dayLabel(todayDay)}</h2>
+          <h2>Все дела на {dayLabel(focusDay)}</h2>
           {visibleRows.length ? visibleRows.map(({ op, verdict }) => (
             <button key={op.id} type="button" className="nebo-moon-row" onClick={() => { setOperationId(op.id); setPickedKey(null); }}>
               <span className="nebo-moon-row-copy">
