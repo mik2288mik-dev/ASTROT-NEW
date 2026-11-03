@@ -23,7 +23,7 @@ import { hasActivePremium } from '../lib/accessMatrix';
 import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { AvatarCircle, AvatarPicker } from '../components/nebo/AvatarPicker';
-import { useThemePref } from '../lib/theme';
+import { useCtaStyle, useThemePref, type CtaStyle } from '../lib/theme';
 import { ACTION_FEEDBACK, showActionFeedback } from '../components/lumia-ui/ActionFeedback';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { apiFetch } from '../services/apiClient';
@@ -165,6 +165,42 @@ function SettingsRow({ label, value, onClick, target, danger = false, icon }: Se
     );
 }
 
+const CTA_CHOICES: ReadonlyArray<[CtaStyle, string, string, string, string]> = [
+    ['night', 'Ночное небо', 'Тёмно-синие со звёздами, по умолчанию', 'Night sky', 'Deep blue with stars, the default'],
+    ['ink', 'Чёрные', 'Строго и спокойно. В тёмной теме светлые', 'Black', 'Strict and calm. Light in the dark theme'],
+    ['gold', 'Золото', 'Тёплые, с тёмным текстом', 'Gold', 'Warm, with dark text'],
+    ['light', 'Светлые', 'Белые с тёмным текстом, легко и воздушно', 'Light', 'White with dark text, light and airy'],
+];
+
+function ctaStyleLabel(style: CtaStyle, en: boolean): string {
+    const choice = CTA_CHOICES.find(([key]) => key === style) || CTA_CHOICES[0];
+    return en ? choice[3] : choice[1];
+}
+
+/** «Цвет кнопок» from the canvas: four samples, the choice applies to the main buttons everywhere. */
+function CtaStylePicker({ value, onPick, onClose, en }: { value: CtaStyle; onPick: (style: CtaStyle) => void; onClose: () => void; en: boolean }) {
+    return (
+        <div className="nebo-sheet-scrim" role="presentation" onClick={onClose}>
+            <div className="nebo-why" role="dialog" aria-modal="true" aria-label={en ? 'Button colour' : 'Цвет кнопок'} onClick={(event) => event.stopPropagation()}>
+                <h2>{en ? 'Button colour' : 'Цвет кнопок'}</h2>
+                <p className="nebo-numbers-pop-text">{en ? 'This is how the main buttons look across the app. You can change it any time.' : 'Так будут выглядеть главные кнопки во всём приложении. Поменять можно в любой момент.'}</p>
+                <div className="nebo-cta-pick">
+                    {CTA_CHOICES.map(([key, ru, ruSub, enLabel, enSub]) => (
+                        <button key={key} type="button" aria-pressed={value === key} onClick={() => onPick(key)}>
+                            <span className="nebo-cta-pick-sample" data-cta-sample={key}>{en ? 'Continue' : 'Продолжить'}</span>
+                            <span className="nebo-cta-pick-row">
+                                <span className="nebo-cta-pick-radio" aria-hidden />
+                                <span><strong>{en ? enLabel : ru}</strong><small>{en ? enSub : ruSub}</small></span>
+                            </span>
+                        </button>
+                    ))}
+                </div>
+                <button type="button" className="nebo-period-cta" onClick={onClose}>{en ? 'Done' : 'Готово'}</button>
+            </div>
+        </div>
+    );
+}
+
 function formatSettingsBirthDate(value: string, language: Language): string {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
     if (!match) return value || '—';
@@ -273,6 +309,8 @@ export const Settings: React.FC<SettingsProps> = ({
 
     const [avatarOpen, setAvatarOpen] = useState(false);
     const [themePref, setThemePref] = useThemePref();
+    const [ctaStyle, setCtaStyle] = useCtaStyle();
+    const [ctaPickOpen, setCtaPickOpen] = useState(false);
     const nativeNotifications = isNativeAndroidRuntime();
     const rustorePurchaseControlsAvailable = canUseRuStorePay(resolveDistributionChannel());
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
@@ -1799,6 +1837,7 @@ export const Settings: React.FC<SettingsProps> = ({
                             <strong>{profile.isGuest ? (en ? 'Guest' : 'Гость') : profileDisplayName}</strong>
                             <span className={activePremium ? 'nebo-profile-plan is-plus' : profile.isGuest ? 'nebo-profile-plan is-guest' : 'nebo-profile-plan'}>{planBadge}</span>
                         </div>
+                        {ctaPickOpen ? <CtaStylePicker value={ctaStyle} onPick={setCtaStyle} onClose={() => setCtaPickOpen(false)} en={en} /> : null}
                         <AvatarPicker
                             open={avatarOpen}
                             onClose={() => setAvatarOpen(false)}
@@ -1855,6 +1894,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                         ))}
                                     </span>
                                 </div>
+                                <SettingsRow icon={icon('roller')} label={en ? 'Buttons' : 'Кнопки'} value={ctaStyleLabel(ctaStyle, en)} onClick={() => setCtaPickOpen(true)} />
                                 <SettingsRow icon={icon('person')} label={en ? 'Avatar' : 'Аватарка'} value={en ? 'choose' : 'выбрать'} onClick={() => setAvatarOpen(true)} />
                                 <SettingsRow icon={icon('globe')} label={en ? 'Language' : 'Язык'} value={languageLabel} target="language" onClick={() => openSettingsScreen('language')} />
                             </div>

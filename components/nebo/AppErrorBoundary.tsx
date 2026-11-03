@@ -1,5 +1,6 @@
 import React from 'react';
 import { reportClientError } from '../../services/clientErrorReport';
+import { DEVICE_PREFERENCE_KEYS } from '../../lib/theme';
 
 type State = { error: Error | null };
 
@@ -7,7 +8,7 @@ type State = { error: Error | null };
 function clearScreenCache() {
   try {
     Object.keys(window.localStorage)
-      .filter((key) => (key.startsWith('nebo.') && key !== 'nebo.theme') || key.startsWith('lumia.today'))
+      .filter((key) => (key.startsWith('nebo.') && !(DEVICE_PREFERENCE_KEYS as readonly string[]).includes(key)) || key.startsWith('lumia.today'))
       .forEach((key) => window.localStorage.removeItem(key));
     window.sessionStorage.clear();
   } catch { /* storage may be unavailable */ }
