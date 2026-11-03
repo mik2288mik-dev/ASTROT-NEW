@@ -62,10 +62,13 @@ describe('release-critical core flow regressions', () => {
     expect(settings).toContain("profile.premiumEntitlement?.source === 'rustore'");
     expect(settings).toContain('profile.premiumEntitlement.autoRenew === true');
     expect(settings).not.toContain("const hasActiveRuStoreAutoRenewal = activePremium");
-    expect(deletionFlow.match(/window\.confirm/g)).toHaveLength(2);
+    // The RuStore warning is a confirm; the final question is the canvas dialog with the «Понимаю» checkbox.
+    expect(deletionFlow.match(/window\.confirm/g)).toHaveLength(1);
     expect(deletionFlow).toContain('manageSubscription();');
-    expect(deletionFlow).toContain('void onDeleteAccount()');
-    expect(deletionFlow.indexOf('hasActiveRuStoreAutoRenewal')).toBeLessThan(deletionFlow.indexOf('void onDeleteAccount()'));
+    expect(deletionFlow).toContain('setDeleteDialogOpen(true)');
+    expect(settings).toContain('void onDeleteAccount()');
+    expect(deletionFlow.indexOf('hasActiveRuStoreAutoRenewal')).toBeLessThan(deletionFlow.indexOf('setDeleteDialogOpen(true)'));
+    expect(settings).toContain('disabled={!deleteAck || deletingAccount}');
   });
 
   it('renders existing Natal loading and error states with an in-place retry', () => {
