@@ -344,12 +344,13 @@ export const Paywall: React.FC<PaywallProps> = ({
 
   const benefits = ru
     ? [
-        { title: 'Личные прогнозы', description: 'Неделя и месяц вперёд, удачные дни', image: '/assets/home-tiles/future.webp' },
-        { title: 'Натальный разбор', description: 'Характер, отношения, работа, деньги и свои вопросы', image: '/assets/premium/natal-chart.webp' },
+        { title: 'Натальный разбор целиком', description: 'Все главы о тебе и вопросы о своей карте', image: '/assets/premium/natal-chart.webp' },
+        { title: 'Матрица судьбы и числа имени', description: 'Матрица полностью и что говорит твоё имя', image: '/assets/home-tiles/future.webp' },
+        { title: 'Расклады таро и рун', description: 'Без ограничений, на любой вопрос', image: '/assets/tarot/star.webp' },
         { title: 'Совместимость', description: 'Разбор вашей пары по двум картам', image: '/assets/home-tiles/compatibility.webp' },
         { title: 'Мои карты', description: `Своя + до ${PREMIUM_SAVED_PERSON_LIMIT} карт других людей`, image: '/assets/premium/saved-cards.webp' },
-        { title: 'Рассказы и истории для сна', description: 'Все сериалы, новый рассказ каждый месяц и весь архив историй', image: '/assets/home-tiles/stories.webp' },
-        { title: 'Антистресс и тесты', description: 'Все техники дыхания, дневник, привычки и все тесты', image: '/assets/home-tiles/antistress.webp' },
+        { title: 'Личные прогнозы', description: 'Неделя, месяц, хорошие даты и все лунные календари', image: '/assets/home-tiles/future.webp' },
+        { title: 'Рассказы, антистресс и тесты', description: 'Все серии, техники дыхания и тесты', image: '/assets/home-tiles/stories.webp' },
       ]
     : [
         { title: 'Personal forecasts', description: 'Week and month ahead, lucky days', image: '/assets/home-tiles/future.webp' },
@@ -380,28 +381,28 @@ export const Paywall: React.FC<PaywallProps> = ({
               ? (ru ? 'Всё уже открыто' : 'You have full access')
               : natalAnswerTitle
                 ? (ru ? 'Больше о тебе' : 'More about you')
-                : (ru ? 'Открой NEBO на полную' : 'Unlock NEBO in full')}
+                : (ru ? 'Всё в NEBO открыто' : 'All of NEBO, open')}
           </h1>
           <p className="pw2-sub">
             {alreadyPremium
-              ? (ru ? 'Пользуйся всеми возможностями Premium.' : 'Enjoy every Premium feature.')
+              ? (ru ? 'Пользуйся всеми возможностями Plus.' : 'Enjoy every Plus feature.')
               : natalAnswerTitle
                 ? (ru ? `Продолжим с «${natalAnswerTitle}».` : `Continue with “${natalAnswerTitle}”.`)
                 : CONTEXT_COPY[context.placement][language]}
           </p>
-          {!alreadyPremium ? (
-            <ul className="pw2-promises">
-              <li>{ru ? 'Все функции в любом тарифе' : 'Every feature in every plan'}</li>
-              <li>{ru ? 'Отмена в RuStore в любой момент' : 'Cancel in RuStore any time'}</li>
-            </ul>
-          ) : null}
         </div>
+
+        <section className="pw2-included" aria-label={ru ? 'Что откроется' : 'What’s included'}>
+          <dl className="pw2-benefits">
+            {benefits.map((benefit) => <div key={benefit.title} style={{ '--benefit-img': `url(${benefit.image})` } as React.CSSProperties}><dt>{benefit.title}</dt><dd>{benefit.description}</dd></div>)}
+          </dl>
+        </section>
 
         {resumeNotice ? <p className="pw2-state" role="status">{resumeNotice}</p> : null}
 
         {alreadyPremium ? (
           <section className="pw2-active" aria-labelledby="pw2-active-title">
-            <h2 id="pw2-active-title">{ru ? 'Premium уже активен' : 'Premium is already active'}</h2>
+            <h2 id="pw2-active-title">{ru ? 'Plus уже активен' : 'Plus is already active'}</h2>
             {canManageInRuStore ? (
               <p>{ru ? 'Управление и отмена, в RuStore: Профиль → Подписки.' : 'Manage or cancel in RuStore: Profile → Subscriptions.'}</p>
             ) : null}
@@ -431,6 +432,7 @@ export const Paywall: React.FC<PaywallProps> = ({
                 const price = hasCatalogPrice ? plan.priceLabel : missingPriceLabel;
                 return (
                   <label key={plan.id} data-plan-id={plan.id} className={`pw2-plan ${isSelected ? 'is-sel' : ''}`}>
+                    {plan.id === 'premium_year' ? <span className="pw2-plan-badge">{ru ? 'дешевле в месяц' : 'cheaper per month'}</span> : null}
                     <input
                       className="pw2-plan-control"
                       type="radio"
@@ -461,12 +463,6 @@ export const Paywall: React.FC<PaywallProps> = ({
           </section>
         )}
 
-        <section className="pw2-included" aria-labelledby="pw2-benefits-title">
-          <h2 id="pw2-benefits-title" className="pw2-section-title">{ru ? 'Что откроется' : 'What’s included'}</h2>
-          <dl className="pw2-benefits">
-            {benefits.map((benefit) => <div key={benefit.title} style={{ '--benefit-img': `url(${benefit.image})` } as React.CSSProperties}><dt>{benefit.title}</dt><dd>{benefit.description}</dd></div>)}
-          </dl>
-        </section>
         <div className="pw2-foot">
           <p>{ru ? 'Базовый разбор своей карты остаётся бесплатным.' : 'Your basic birth chart reading stays free.'}</p>
           <a href={STORE_RELEASE_CONFIG.termsUrl} target="_blank" rel="noreferrer">{ru ? 'Условия использования' : 'Terms of use'}</a>
@@ -476,10 +472,10 @@ export const Paywall: React.FC<PaywallProps> = ({
       </div>
 
       {!alreadyPremium ? (
-        <footer ref={checkoutRef} className="pw2-checkout" aria-label={ru ? 'Оформление Premium' : 'Premium checkout'}>
+        <footer ref={checkoutRef} className="pw2-checkout" aria-label={ru ? 'Оформление Plus' : 'Plus checkout'}>
           <div className="pw2-checkout-inner">
             <div className="pw2-selection-summary" aria-live="polite" aria-atomic="true">
-              <p>{selectedPlan ? `${selectedPlan.periodLabel} Premium` : (ru ? 'Premium' : 'Premium')}</p>
+              <p>{selectedPlan ? `NEBO Plus · ${selectedPlan.periodLabel}` : 'NEBO Plus'}</p>
               <p className="pw2-selection-price">{selectedPlan?.priceLabel || missingPriceLabel}</p>
             </div>
             <p id={renewalId} className="pw2-legal">
@@ -506,7 +502,7 @@ export const Paywall: React.FC<PaywallProps> = ({
                       ? (ru ? 'Проверить оплату' : 'Check payment')
                       : (ru ? 'Оплата обрабатывается' : 'Payment is processing'))
                   : selectedPlan
-                    ? (telegramPaymentsEnabled ? (ru ? 'Оплатить Stars' : 'Pay with Stars') : (ru ? 'Оформить подписку' : 'Subscribe'))
+                    ? (telegramPaymentsEnabled ? (ru ? 'Оплатить Stars' : 'Pay with Stars') : (ru ? 'Оформить Plus' : 'Get Plus'))
                     : (ru ? 'Покупка сейчас недоступна' : 'Purchase is unavailable')}
             </button>
             {purchaseState === 'pending' ? (
@@ -520,7 +516,7 @@ export const Paywall: React.FC<PaywallProps> = ({
                 {!embedded ? <button type="button" className="pw2-free" onClick={onContinueFree}>{ru ? 'Остаться на Free' : 'Stay on Free'}</button> : null}
                 {rustorePaymentsEnabled ? (
                   <button type="button" className="pw2-free" onClick={() => void restore()} disabled={restoring || paying || managingSubscription} aria-busy={restoring}>
-                    {restoring ? (ru ? 'Проверяем покупки…' : 'Checking purchases…') : (ru ? 'Восстановить покупку' : 'Restore purchase')}
+                    {restoring ? (ru ? 'Проверяем покупки…' : 'Checking purchases…') : (ru ? 'Восстановить покупки' : 'Restore purchases')}
                   </button>
                 ) : null}
               </div>

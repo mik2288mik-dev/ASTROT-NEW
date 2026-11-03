@@ -445,7 +445,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
               <ChevronLeft size={26} strokeWidth={1.75} aria-hidden="true" />
             </button>
           ) : null}
-          <img className="nebo-auth-mail-art" src="/assets/auth/mail.svg" alt="" width={92} height={92} />
+          <img className="nebo-auth-mail-art" src="/assets/auth/mail.svg" alt="NEBO" width={92} height={92} />
           <h1 className={isLanding
             ? 'auth-landing-title mx-auto text-center text-[27px] font-semibold leading-[1.06] tracking-[-0.03em]'
             : 'nebo-auth-form-title'}
