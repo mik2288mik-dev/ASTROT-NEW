@@ -3,6 +3,8 @@ import { createHash } from 'crypto';
 import type OpenAI from 'openai';
 
 export const DEFAULT_ANTHROPIC_CONTENT_MODEL = 'claude-haiku-5-5';
+/** Claude Haiku 5.5 tokenizer: about 1.3 tokens for every DeepSeek token of the same Russian text. */
+const HAIKU_TOKENIZER_HEADROOM = 1.3;
 
 export function anthropicContentModel(env: NodeJS.ProcessEnv = process.env): string {
   return String(env.ANTHROPIC_CONTENT_MODEL || '').trim() || DEFAULT_ANTHROPIC_CONTENT_MODEL;
@@ -62,7 +64,9 @@ export function buildAnthropicContentParams(
     : format?.type === 'json_object' ? '\n\nOutput format: json. Return only one JSON object, without code fences.' : '';
   return {
     model: anthropicContentModel(),
-    max_tokens: params.max_output_tokens ?? 1800,
+    // Budgets were sized on DeepSeek; Haiku 5.5's newer tokenizer counts the same text as about 30% more tokens,
+    // so the same answer needs a bigger cap or it gets cut and retried. Only generated tokens are billed.
+    max_tokens: Math.ceil((params.max_output_tokens ?? 1800) * HAIKU_TOKENIZER_HEADROOM),
     system: [{
       type: 'text',
       text: `${String(params.instructions || '')}${jsonRule}`,

@@ -62,7 +62,7 @@ describe('Claude content provider', () => {
     const params = buildAnthropicContentParams(buildLunaStructuredResponseParams(structured));
     expect(params).toMatchObject({
       model: 'claude-haiku-5-5',
-      max_tokens: 2000,
+      max_tokens: 2600,
       thinking: { type: 'disabled' },
       output_config: { format: { type: 'json_schema', schema: structured.schema } },
       messages: [{ role: 'user', content: structured.input }],
