@@ -1693,3 +1693,10 @@ html[data-theme='dark'] .compat-entry-form--date .compat-pair-picker, html[data-
 .settings-editorial-page .settings-list-row-label { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; flex-shrink: 0; max-width: 60%; }
 .settings-editorial-page .settings-list-row-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html[data-theme='dark'] .settings-editorial-page .settings-list { background: #27282e !important; }
+
+/* Shop as on the canvas: intro line, grey rows, lavender price pills */
+.nebo-shop-intro { margin: 2px 4px 4px; color: #8a8f9c; font-size: 15px; line-height: 1.45; }
+.nebo-shop-row { background: #f4f4f6 !important; box-shadow: none !important; border-radius: 22px !important; }
+.nebo-shop-price { background: rgba(124, 92, 255, 0.14) !important; color: #6d4ce0 !important; }
+html[data-theme='dark'] .nebo-shop-row { background: #27282e !important; }
+html[data-theme='dark'] .nebo-shop-price { background: rgba(165, 168, 255, 0.18) !important; color: #c7c9ff !important; }

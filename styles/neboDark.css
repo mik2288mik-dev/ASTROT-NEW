@@ -2152,9 +2152,6 @@ html[data-theme='dark'] {
 html[data-theme='dark'] .app-top-bar {
   background: rgba(39, 40, 46, 0.62) !important;
 }
-html[data-theme='dark'] .app-top-bar-settings-button {
-  color: #F4F5F8;
-}
 html[data-theme='dark'] .app-top-bar-title {
   color: #F4F5F8;
 }
@@ -5210,6 +5207,15 @@ html[data-theme='dark'] .compat-entry-form--date .nebo-compat-note {
 }
 html[data-theme='dark'] .compat-entry-form--date .compat-date-section-label {
   color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .settings-editorial-page .settings-list {
+  background: #27282E !important;
+}
+html[data-theme='dark'] .nebo-shop-intro {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-shop-row {
+  background: #27282E !important;
 }
 
 /* ── neboAuth.css ── */
