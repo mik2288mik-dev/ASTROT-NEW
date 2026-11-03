@@ -1515,3 +1515,18 @@
 .nebo-pair-more-badge.is-good { background: rgba(34, 197, 94, 0.16); color: #11793a; }
 .nebo-pair-more-badge.is-ok { background: rgba(79, 70, 229, 0.1); color: #4f46e5; }
 .nebo-pair-more-badge.is-hard { background: rgba(249, 115, 22, 0.14); color: #a3410a; }
+
+/* Numbers: year by months and pairs (canvas NumbersYear, NumbersPairs) */
+.nebo-numbers-more { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.nebo-numbers-more button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border: 0; border-radius: 18px; background: #ffffff; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; }
+.nebo-numbers-more span { display: flex; flex-direction: column; gap: 2px; }
+.nebo-numbers-more strong { font-size: 15.5px; font-weight: 600; }
+.nebo-numbers-more small { color: #8a8f9c; font-size: 13px; }
+.nebo-numbers-more em { padding: 3px 9px; border-radius: 999px; background: linear-gradient(90deg, #ffe29a, #f5b94a); color: #4a2c00; font-size: 12px; font-style: normal; font-weight: 700; }
+.nebo-numbers-pop-text { margin: 0 0 12px; color: #5c6170; font-size: 15px; line-height: 1.5; }
+.nebo-numbers-months { overflow: hidden; border-radius: 16px; background: #f4f5f8; }
+.nebo-numbers-months div { display: flex; justify-content: space-between; gap: 10px; padding: 10px 14px; font-size: 14.5px; }
+.nebo-numbers-months div + div { border-top: 1px solid rgba(118, 118, 128, 0.14); }
+.nebo-numbers-months span { color: #5c6170; }
+.nebo-numbers-months b { font-weight: 600; }
+.nebo-numbers-months .is-now b { color: #4f46e5; }
