@@ -1,3 +1,4 @@
+import { GuideHome } from '../../components/nebo/GuideHome';
 import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import type { UserProfile } from '../../types';
@@ -384,7 +385,16 @@ export function AstrologyEncyclopedia({
           </button>
         ) : null}
 
-        {current.screen === 'catalog' ? (
+        {current.screen === 'catalog' && ru ? (
+          <>
+            <h1 className={styles.visuallyHidden} ref={catalogHeadingRef} tabIndex={-1}>Справочник</h1>
+            <GuideHome
+              topics={topics}
+              userId={String(profile.id || 'guest')}
+              onOpenArticle={(topic) => dispatch({ type: 'open-article', categoryId: topic.category, topicId: topic.id })}
+            />
+          </>
+        ) : current.screen === 'catalog' ? (
           <>
             <header className={styles.catalogHeader}>
               <h1 className={styles.visuallyHidden} ref={catalogHeadingRef} tabIndex={-1}>

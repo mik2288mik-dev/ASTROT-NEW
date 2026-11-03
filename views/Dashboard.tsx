@@ -1034,7 +1034,8 @@ export const Dashboard = memo<DashboardProps>(({
           >
             {hasForecastLoadError ? (
               <>
-                <h1>{language === 'ru' ? 'Не удалось загрузить прогноз' : 'Could not load your forecast'}</h1>
+                <h1>{language === 'ru' ? 'Не получилось загрузить день' : 'Could not load your day'}</h1>
+                <p>{language === 'ru' ? 'Сервер не ответил, мы уже разбираемся. Нажми «Повторить» через минуту.' : 'The server did not answer, we are on it. Tap «Try again» in a minute.'}</p>
                 <button type="button" onClick={() => loadPeriod(activePeriod, { retry: true })}>
                   <RefreshCw size={17} aria-hidden />
                   {language === 'ru' ? 'Повторить' : 'Try again'}

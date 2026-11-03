@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import {
     clearNativeNotifications, consumeNativeNotificationTap, listenNativeNotificationTap,
-    markNativeTodayRead, nativeNotificationsAvailable, notifyNativeResultReady, offerNativeNotificationsOnce,
+    markNativeTodayRead, nativeNotificationsAvailable, notifyNativeResultReady, answerNativeNotificationsOffer, shouldOfferNativeNotifications,
     setNativeNotificationContext, setNativeNotificationForeground,
 } from './services/nativeNotifications';
 import { UserProfile, NatalChartData, ViewState } from './types';
@@ -47,6 +47,7 @@ import { PromoBanner } from './components/PromoBanner';
 import { AppEntryAnnouncement } from './components/AppEntryAnnouncement';
 import { CoachMarks } from './components/nebo/CoachMarks';
 import { PlusWelcome } from './components/nebo/PlusWelcome';
+import { NotifyOffer, OfflineNotice } from './components/nebo/SoftPops';
 import { addFriend, rememberInviteFromUrl, takePendingInvite } from './services/friendsService';
 import { AndroidUpdatePrompt } from './components/AndroidUpdatePrompt';
 import { useAndroidUpdateGate } from './services/useAndroidUpdateGate';
@@ -441,6 +442,13 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     const [firstValueReached, setFirstValueReached] = useState(false);
     const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
     const [plusWelcomeOpen, setPlusWelcomeOpen] = useState(false);
+    const [notifyOfferOpen, setNotifyOfferOpen] = useState(false);
+    const [offline, setOffline] = useState(false);
+    useEffect(() => {
+        const goOffline = () => setOffline(true);
+        window.addEventListener('offline', goOffline);
+        return () => window.removeEventListener('offline', goOffline);
+    }, []);
     // An invite link (?friend=NEBO-XXXX) adds the friend as soon as the person is in the app.
     useEffect(() => { rememberInviteFromUrl(); }, []);
     useEffect(() => {
@@ -2498,7 +2506,13 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             || requiresExplicitAuthentication(authSessionMode)
             || !legalAcknowledgementGateContract.hasAcceptedEveryDocument(profile.legalAcknowledgements || null)) return;
         const accountId = String(profile.id);
-        const timer = window.setTimeout(() => { void offerNativeNotificationsOnce(accountId); }, 4000);
+        // The soft question from the canvas comes first; Android asks for its permission only after «Да».
+        // It waits until the first-visit hints on Today are done.
+        const timer = window.setTimeout(() => {
+            let hintsDone = false;
+            try { hintsDone = window.localStorage.getItem('nebo.coach.v1:dashboard') === '1'; } catch { hintsDone = true; }
+            if (hintsDone && shouldOfferNativeNotifications(accountId)) setNotifyOfferOpen(true);
+        }, 4000);
         return () => window.clearTimeout(timer);
     }, [loading, profile?.id, profile?.isSetup, profile?.legalAcknowledgements, nativeActive, view, paywallContext, navigationSheet, authSessionMode]);
 
@@ -3081,6 +3095,12 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 />
             ) : null}
 
+            {notifyOfferOpen && profile ? (
+                <NotifyOffer
+                    onAnswer={(accept) => { setNotifyOfferOpen(false); void answerNativeNotificationsOffer(String(profile.id), accept); }}
+                />
+            ) : null}
+            {offline ? <OfflineNotice onClose={() => setOffline(false)} /> : null}
             {plusWelcomeOpen && profile ? <PlusWelcome name={profile.name?.trim() || 'Ты'} onClose={() => setPlusWelcomeOpen(false)} /> : null}
             <CoachMarks view={view} enabled={Boolean(profile) && !paywallContext && !navigationSheet && !androidUpdate.promptOpen && !appEntryAnnouncement} />
 
