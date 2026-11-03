@@ -46,6 +46,7 @@ import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppEntryAnnouncement } from './components/AppEntryAnnouncement';
 import { CoachMarks } from './components/nebo/CoachMarks';
+import { AppErrorBoundary } from './components/nebo/AppErrorBoundary';
 import { PlusWelcome } from './components/nebo/PlusWelcome';
 import { NotifyOffer, OfflineNotice } from './components/nebo/SoftPops';
 import { addFriend, rememberInviteFromUrl, takePendingInvite } from './services/friendsService';
@@ -3135,7 +3136,9 @@ const App: React.FC = () => {
     const androidVpnWarning = useAndroidVpnWarning();
     return (
         <>
-            <AppContent androidUpdate={androidUpdate} />
+            <AppErrorBoundary>
+                <AppContent androidUpdate={androidUpdate} />
+            </AppErrorBoundary>
             <AndroidUpdatePrompt
                 open={androidUpdate.promptOpen}
                 required={androidUpdate.required}
