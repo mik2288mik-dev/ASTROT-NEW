@@ -1778,3 +1778,13 @@ html[data-theme='dark'] .nebo-numbers .nebo-numbers-bignum { color: rgba(165, 16
 .nebo-splash-dots i.is-on { background: #4f46e5; }
 @media (prefers-reduced-motion: reduce) { .nebo-splash-orbit { animation: none; } }
 html[data-theme='dark'] .nebo-splash-ring { background: rgba(255, 255, 255, 0.04); border-color: rgba(165, 168, 255, 0.25); }
+.nebo-friend-code-text strong { font-size: 26px !important; letter-spacing: 0.04em !important; white-space: nowrap; }
+
+/* Share apps as a share sheet: brand mark on a white tile, the name under it */
+.nebo-friend-apps { display: flex !important; justify-content: space-around; gap: 8px; margin-top: 14px !important; }
+.nebo-friend-app { display: flex !important; flex-direction: column; align-items: center; gap: 6px; height: auto !important; padding: 0 !important; background: none !important; color: #0b0d12 !important; font-size: 12.5px !important; font-weight: 500 !important; text-decoration: none; }
+.nebo-friend-app-icon { display: grid; width: 56px; height: 56px; place-items: center; border-radius: 16px; background: #ffffff; box-shadow: 0 1px 2px rgba(11, 13, 18, 0.06), 0 6px 16px -8px rgba(11, 13, 18, 0.25); transition: transform 0.15s ease; }
+.nebo-friend-app:active .nebo-friend-app-icon { transform: scale(0.94); }
+.nebo-friend-app small { color: #5c6170; font-size: 12.5px; }
+html[data-theme='dark'] .nebo-friend-app-icon { background: #2a2c34; box-shadow: none; }
+html[data-theme='dark'] .nebo-friend-app small { color: rgba(235, 235, 245, 0.64); }

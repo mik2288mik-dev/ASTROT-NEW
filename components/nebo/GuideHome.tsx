@@ -95,7 +95,7 @@ export function GuideHome({ topics, userId, onOpenArticle }: { topics: readonly 
     <div className="nebo-guide">
       <label className="nebo-dates-search">
         <Search size={18} aria-hidden />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Планета, знак, дом, аспект или точка" aria-label="Поиск по справочнику" />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Планета, знак, дом или аспект" aria-label="Поиск по справочнику" />
       </label>
       {!query.trim() ? (
         <div className="nebo-guide-chips" role="tablist">
