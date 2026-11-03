@@ -1,5 +1,6 @@
 import { CapacitorHttp, type HttpResponse } from '@capacitor/core';
 import { diagnosticLog } from '../lib/runtimeDiagnostics';
+import { DEVICE_PREFERENCE_KEYS } from '../lib/theme';
 import { captureAppTrace, currentTraceScreen, traceGeneration, hasTraceIdentity } from './appTelemetryClient';
 import { traceOperation } from '../lib/appTelemetry';
 import {
@@ -842,11 +843,11 @@ export async function clearAppSessionAndLocalData(): Promise<void> {
   await Promise.allSettled([clearNativeSession()]);
   if (typeof window !== 'undefined') {
     try {
-      // The light/dark choice belongs to the device, not the account.
-      const theme = window.localStorage.getItem('nebo.theme');
+      // The theme and button colour belong to the device, not the account.
+      const kept = DEVICE_PREFERENCE_KEYS.map((key) => [key, window.localStorage.getItem(key)] as const);
       window.localStorage.clear();
       window.sessionStorage.clear();
-      if (theme) window.localStorage.setItem('nebo.theme', theme);
+      kept.forEach(([key, value]) => { if (value) window.localStorage.setItem(key, value); });
     } catch { /* unavailable storage */ }
   }
 }

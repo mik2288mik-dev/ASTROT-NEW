@@ -5,8 +5,14 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
 export type ThemePref = 'light' | 'dark' | 'system';
+/** Main button colour from the canvas popup «Цвет кнопок». */
+export type CtaStyle = 'night' | 'ink' | 'gold' | 'light';
+export const CTA_STYLES: readonly CtaStyle[] = ['night', 'ink', 'gold', 'light'];
 
 export const THEME_STORAGE_KEY = 'nebo.theme';
+export const CTA_STORAGE_KEY = 'nebo.cta';
+/** Device choices that stay when the account signs out. */
+export const DEVICE_PREFERENCE_KEYS = [THEME_STORAGE_KEY, CTA_STORAGE_KEY] as const;
 const EVENT = 'nebo-theme-change';
 const PAGE = { light: '#FFFFFF', dark: '#1C1D21' } as const;
 
@@ -51,6 +57,30 @@ export function saveThemePref(pref: ThemePref) {
   window.dispatchEvent(new Event(EVENT));
 }
 
+export function readCtaStyle(): CtaStyle {
+  try {
+    const value = window.localStorage.getItem(CTA_STORAGE_KEY) as CtaStyle | null;
+    return value && CTA_STYLES.includes(value) ? value : 'night';
+  } catch {
+    return 'night';
+  }
+}
+
+export function saveCtaStyle(style: CtaStyle) {
+  try { window.localStorage.setItem(CTA_STORAGE_KEY, style); } catch { /* storage may be unavailable */ }
+  document.documentElement.dataset.cta = style;
+  window.dispatchEvent(new Event(EVENT));
+}
+
+export function useCtaStyle(): [CtaStyle, (style: CtaStyle) => void] {
+  const subscribe = useCallback((notify: () => void) => {
+    window.addEventListener(EVENT, notify);
+    return () => window.removeEventListener(EVENT, notify);
+  }, []);
+  const style = useSyncExternalStore(subscribe, readCtaStyle, () => 'night' as CtaStyle);
+  return [style, saveCtaStyle];
+}
+
 /** Keeps «Авто» in step with Telegram and the phone while the app is open. */
 export function watchSystemTheme(): () => void {
   const update = () => { if (readThemePref() === 'system') applyTheme('system'); };
@@ -75,4 +105,4 @@ export function useThemePref(): [ThemePref, (pref: ThemePref) => void] {
 }
 
 /** Inline script for _document: sets the theme before the first paint, so there is no white flash. */
-export const THEME_BOOT_SCRIPT = `try{var p=localStorage.getItem('${THEME_STORAGE_KEY}');var d=p==='dark';if(p==='system'){var t=window.Telegram&&window.Telegram.WebApp;d=t&&t.initData&&t.colorScheme?t.colorScheme==='dark':!!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);}document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}`;
+export const THEME_BOOT_SCRIPT = `try{var p=localStorage.getItem('${THEME_STORAGE_KEY}');var d=p==='dark';if(p==='system'){var t=window.Telegram&&window.Telegram.WebApp;d=t&&t.initData&&t.colorScheme?t.colorScheme==='dark':!!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);}document.documentElement.setAttribute('data-theme',d?'dark':'light');var c=localStorage.getItem('${CTA_STORAGE_KEY}');document.documentElement.setAttribute('data-cta',/^(night|ink|gold|light)$/.test(c||'')?c:'night');}catch(e){}`;

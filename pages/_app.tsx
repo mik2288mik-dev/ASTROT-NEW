@@ -46,6 +46,7 @@ import '../styles/neboAuth.css';
 import '../styles/neboPlus.css';
 import '../styles/neboDark.css';
 import '../styles/neboDarkTuned.css';
+import '../styles/neboButtons.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 import { installRuntimeDiagnostics } from '../lib/runtimeDiagnostics';
 import { expandTelegramAppOnPhones } from '../lib/telegramExpand';
