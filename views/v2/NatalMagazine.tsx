@@ -226,7 +226,8 @@ export function NatalMagazine({
   ].join(':');
   const birthLine = [formatDisplayDate(data.birth?.localDate || subjectBirthDate, language), (data.birth ? data.birth.localTime : subjectBirthTime)?.slice(0, 5) || 'Время не указано', data.birth?.place || subjectBirthPlace].filter(Boolean).join(' · ');
   const canonicalChart = isCanonicalNatalChart(data) ? data : null;
-  const person = <header className={styles.personInline}><h1>{subjectName || 'Моя карта'}</h1><p title={birthLine}>{birthLine}</p></header>;
+  const personLine = birthLine.replace(/^\s*·\s*/, '').replace(/(\d{4}) г\./, '$1');
+  const person = <header className={styles.personInline}><h1>{subjectName || 'Моя карта'}</h1><p title={personLine}>{personLine}</p></header>;
 
   return (
     <div ref={sectionRef} className="fresh-page natal-editorial-page natal-mvp-page natal-v3-page">
