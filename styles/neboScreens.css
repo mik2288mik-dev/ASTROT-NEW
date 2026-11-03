@@ -1593,3 +1593,32 @@
 .nebo-charts-add span { font-size: 22px; font-weight: 500; }
 .nebo-charts-foot { margin: 0; padding: 0 4px; color: #5c6170; font-size: 13px; line-height: 1.45; }
 html[data-theme='dark'] .nebo-charts-add { border-color: rgba(255, 255, 255, 0.18); color: #a5a8ff; }
+
+/* Таро и Руны: пример, все руны, поделиться (canvas TarotExample, RuneExample, Runes, RuneInfo, TarotShare) */
+.nebo-oracle-example-link { display: block; margin: 4px auto 0; padding: 10px 16px; border: 0; border-radius: 999px; background: rgba(79, 70, 229, 0.08); color: #4f46e5; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.nebo-oracle-example-note { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding: 14px 16px; border-radius: 18px; background: #f4f4f6; text-align: left; }
+.nebo-oracle-example-note span { flex: 1; min-width: 0; }
+.nebo-oracle-example-note strong { display: block; color: #0b0d12; font-size: 15px; font-weight: 600; }
+.nebo-oracle-example-note small { display: block; margin-top: 2px; color: #5c6170; font-size: 13px; line-height: 1.35; }
+.nebo-oracle-example-note button { flex-shrink: 0; padding: 9px 14px; border: 0; border-radius: 999px; background: rgba(79, 70, 229, 0.12); color: #4f46e5; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nebo-rune-list { margin-top: 28px; }
+.nebo-rune-list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.nebo-rune-list-head h2 { margin: 0; color: #0b0d12; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+.nebo-rune-list-head small { color: #9aa0ae; font-size: 13px; }
+.nebo-rune-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px 4px; padding: 16px 10px; border-radius: 22px; background: #f4f4f6; }
+.nebo-rune-grid button { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: none; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.nebo-rune-grid small { color: #5c6170; font-size: 11px; }
+.nebo-rune-info { text-align: center; }
+.nebo-rune-info-stone { margin: 0 auto 6px; }
+.nebo-rune-info-advice { margin: 12px 0 4px; padding: 14px 16px; border-radius: 16px; background: rgba(124, 92, 255, 0.1); text-align: left; }
+.nebo-rune-info-advice b { display: block; margin-bottom: 4px; color: #6d4ce0; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.nebo-rune-info-advice p { margin: 0; color: #0b0d12; font-size: 16px; line-height: 1.45; }
+.nebo-oracle-share { text-align: center; }
+.nebo-oracle-share-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 190px; margin: 0 auto 14px; padding: 16px; border-radius: 22px; background: linear-gradient(180deg, #2a1d72, #160f4a); color: #ffffff; text-align: left; }
+.nebo-oracle-share-fan { display: flex; justify-content: center; width: 100%; height: 120px; margin-bottom: 10px; }
+.nebo-oracle-share-fan img { width: 62px; height: 104px; margin: 0 -8px; border-radius: 8px; object-fit: cover; box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35); }
+.nebo-oracle-share-fan img:nth-child(1) { transform: rotate(-8deg); }
+.nebo-oracle-share-fan img:nth-child(3) { transform: rotate(8deg); }
+.nebo-oracle-share-card small { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.8; }
+.nebo-oracle-share-card strong { font-size: 16px; }
+.nebo-oracle-share-card em { font-size: 12px; font-style: normal; opacity: 0.85; }

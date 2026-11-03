@@ -18,10 +18,12 @@ import {
   weekKeyOf,
   type TarotCard,
 } from '../../lib/tarot';
-import { RUNE_QUESTIONS, drawRunes, runeOfTheDay, type Rune } from '../../lib/runes';
+import { RUNES, RUNE_QUESTIONS, drawRunes, runeOfTheDay, type Rune } from '../../lib/runes';
+import { TAROT_CARDS } from '../../lib/tarot';
+import { ORACLE_EXAMPLES, OracleShare, RuneList } from '../../components/nebo/OracleExtras';
 
 type Kind = 'tarot' | 'runes';
-type Stage = 'home' | 'pick' | 'read' | 'day';
+type Stage = 'home' | 'pick' | 'read' | 'day' | 'example';
 
 /** The common shape of a card and a rune: both name a theme and read it in three positions. */
 type Omen = {
@@ -278,6 +280,46 @@ export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: O
     );
   }
 
+  if (stage === 'example') {
+    const example = ORACLE_EXAMPLES[kind];
+    const omens = example.keys.map((key) => toOmen(kind, kind === 'tarot'
+      ? TAROT_CARDS.find((card) => card.slug === key) as TarotCard
+      : RUNES.find((rune) => rune.slug === key) as Rune));
+    return (
+      <div className={`fresh-page nebo-oracle is-${kind}`}>
+        {header}
+        <section className="nebo-oracle-read" aria-labelledby="nebo-oracle-example-title">
+          <div className="nebo-oracle-example-note">
+            <span><strong>Это пример расклада</strong><small>Так выглядит ответ на вопрос {example.who}. Твой будет про твой вопрос.</small></span>
+            <button type="button" onClick={() => { goHome(); startPick(); }}>{plus ? 'Свой расклад' : 'Сделать свой'}</button>
+          </div>
+          <p className="nebo-kicker">{copy.spreadName}</p>
+          <h2 id="nebo-oracle-example-title">«{example.question}»</h2>
+          <div className="nebo-oracle-row">
+            {omens.map((omen, index) => (
+              <div key={omen.key} className="nebo-oracle-pos">
+                <span className="nebo-kicker">{SPREAD_POSITIONS[index].label}</span>
+                <Face kind={kind} omen={omen} size="m" />
+                <strong>{omen.name}</strong>
+              </div>
+            ))}
+          </div>
+          <div className="nebo-oracle-texts">
+            {omens.map((omen, index) => (
+              <article key={omen.key}>
+                <p className="nebo-kicker">{SPREAD_POSITIONS[index].label} · {omen.mark} · {omen.name}</p>
+                <p>{example.texts[index]}</p>
+              </article>
+            ))}
+            <article><p className="nebo-kicker">Что это значит для тебя</p><p>{example.meaning}</p></article>
+            <article className="is-advice"><p className="nebo-kicker">Совет</p><p>{example.advice}</p></article>
+          </div>
+          <button type="button" className="nebo-oracle-primary" onClick={goHome}>Назад</button>
+        </section>
+      </div>
+    );
+  }
+
   if (stage === 'read') {
     const last = spread[2];
     return (
@@ -308,6 +350,7 @@ export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: O
             {last ? <article className="is-advice"><p className="nebo-kicker">Что с этим делать</p><p>{last.advice}</p></article> : null}
           </div>
           <p className="nebo-oracle-note">Расклад показывает общий ход событий. Он не даёт ответа «да» или «нет» и не заменяет твоё решение.</p>
+          {last ? <OracleShare kind={kind} items={spread.map((omen) => ({ name: omen.name, image: omen.image, mark: omen.mark }))} caption={`${last.name}: ${last.keyword.toLowerCase()}`} /> : null}
           <button type="button" className="nebo-oracle-primary" onClick={goHome}>Новый расклад</button>
         </section>
       </div>
@@ -375,6 +418,8 @@ export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: O
         Расклад «{copy.spreadName}»
       </button>
       <p className="nebo-oracle-note">{plus ? 'У тебя расклады без ограничений.' : 'Один расклад в неделю бесплатно. В Plus расклады без ограничений.'}</p>
+      <button type="button" className="nebo-oracle-example-link" onClick={() => { lumiaSelectionHaptic(); setStage('example'); }}>Посмотреть пример</button>
+      {kind === 'runes' ? <RuneList /> : null}
     </div>
   );
 }
