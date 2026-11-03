@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { ChevronLeft, Settings } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { NeboLogo } from '../brand/NeboLogo';
 import { AvatarCircle } from '../nebo/AvatarPicker';
 import { InboxButton } from '../nebo/InboxButton';
@@ -66,7 +66,7 @@ export function AppTopBar({
   const settings = useContext(AppTopBarSettingsContext);
   // Every screen except the home one can step back, even when it did not ask for a «Back» itself.
   const onBack = main ? undefined : onBackProp ?? (title !== 'NEBO' ? settings?.onStepBack ?? undefined : undefined);
-  const showSettings = Boolean(settings) && title !== 'Настройки' && title !== 'Settings' && title !== 'Premium';
+  const showSettings = Boolean(settings) && title !== 'Настройки' && title !== 'Settings' && title !== 'Профиль' && title !== 'Profile' && title !== 'Premium';
   // Main screens (no «Back») follow the canvas: the NEBO brand on the left, the account chip on the right.
   const mainScreen = !onBack;
   const account = settings?.account ?? null;
@@ -129,21 +129,13 @@ export function AppTopBar({
         </span>
         ))}
 
-        <div className={`app-top-bar-side app-top-bar-side--end${endAction || showSettings ? ' has-actions' : ''}`}>
-          {endAction || showSettings ? (
+        {/* Canvas: the account chip on the five main screens; inner screens have only «Back» and the title. */}
+        <div className={`app-top-bar-side app-top-bar-side--end${endAction || showChip ? ' has-actions' : ''}`}>
+          {endAction || showChip ? (
             <div className="app-top-bar-actions">
               {endAction}
               {showChip && account ? <InboxButton userId={account.id} sign={account.sign ?? null} /> : null}
-              {showChip ? chip : showSettings ? (
-                <button
-                  className="app-top-bar-action app-top-bar-settings-button"
-                  onClick={settings?.onOpenSettings}
-                  type="button"
-                  aria-label="Открыть настройки"
-                >
-                  <Settings aria-hidden strokeWidth={1.8} />
-                </button>
-              ) : null}
+              {showChip ? chip : null}
             </div>
           ) : null}
         </div>
