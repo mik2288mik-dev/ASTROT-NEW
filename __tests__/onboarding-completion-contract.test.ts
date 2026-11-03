@@ -37,7 +37,7 @@ describe('first-run onboarding completion flow', () => {
     expect(onboarding).not.toContain('nextStory');
     expect(onboarding).not.toContain("setStep('birth')");
     expect(onboarding).not.toContain('className="onb-notify"');
-    expect(logo).toContain("/assets/brand/nebo-cloud-logo.png");
+    expect(logo).toContain("/assets/brand/nebo-mark.webp");
     expect(logo).toContain("alt={decorative ? '' : 'NEBO'}");
     expect(logoBridge).toContain('<NeboLogo');
     expect(logo).not.toContain('/assets/brand/personal-horoscope-mark.svg');
