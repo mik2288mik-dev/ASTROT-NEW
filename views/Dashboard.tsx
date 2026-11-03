@@ -244,17 +244,6 @@ export const Dashboard = memo<DashboardProps>(({
     // The month tab is «Будущее»: week and month readings, then the calendar.
     month: language === 'ru' ? 'Будущее' : 'Future',
   };
-  const personalForecastNote: Record<PersonalForecastPeriod, string> = language === 'ru'
-    ? {
-        day: 'Личный прогноз на сегодня, по твоим данным рождения.',
-        week: 'Личный прогноз на неделю, по твоим данным рождения.',
-        month: 'Твоя неделя, твой месяц и календарь вперёд, по твоим данным рождения.',
-      }
-    : {
-        day: 'Your personal forecast for today, based on your birth details.',
-        week: 'Your personal forecast for the week, based on your birth details.',
-        month: 'Your week, your month and the calendar ahead, based on your birth details.',
-      };
   const weekWindow = useMemo(
     () => resolvePersonalForecastWindow('week', periodKeys.week, timezone),
     [periodKeys.week, timezone],
@@ -840,7 +829,6 @@ export const Dashboard = memo<DashboardProps>(({
   const topBar = (reserveSpace: boolean) => (
     <AppTopBar
       title="NEBO"
-      onBack={activePeriod === 'month' ? () => selectPeriod('day') : undefined}
       leftAction={(
         <EditorialChartsButton
           label={language === 'ru' ? 'Открыть мои карты' : 'Open my charts'}
@@ -910,11 +898,6 @@ export const Dashboard = memo<DashboardProps>(({
         {periodSwitch}
       </section>
 
-      {!skyCover && activePeriod !== 'day' ? (
-        <p className="today-period-personal-note">
-          {personalForecastNote[activePeriod]}
-        </p>
-      ) : null}
 
 
       <div

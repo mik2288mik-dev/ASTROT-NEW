@@ -8,7 +8,7 @@
   .season-step, .today-sky-personal, .listen-forecast-button, .for-you-card-cta,
   .tests-card, .stories-card, .sounds-tile, .sounds-row, .sounds-story-main,
   .compat-context-tile, .compat-sign-card, .mood-ready, .mood-report, .service-card, .services-card
-):not(.video-bg):not(.asset-slot):not(.home-entry-tile):not([class*='-card-']):not([class*='-tile-']) {
+):not(.video-bg):not(.asset-slot):not(.home-entry-tile):not([class*='-card-']):not([class*='-tile-']):not([class*='nebo-']) {
   box-shadow: var(--nebo-card-shadow) !important;
 }
 

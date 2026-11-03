@@ -27,6 +27,8 @@ function hasBorder(style: CSSStyleDeclaration): boolean {
 
 function looksLikeCard(element: HTMLElement, viewportWidth: number): boolean {
   if (SKIP_TAGS.has(element.tagName.toUpperCase()) || element.closest(SKIP_INSIDE)) return false;
+  // Canvas screens (nebo-*) are flat grey cards on white, as on the iPhone-style canvas.
+  if (typeof element.className === 'string' && /(^|\s)nebo-/.test(element.className)) return false;
   const box = element.getBoundingClientRect();
   if (box.width < MIN_WIDTH || box.height < MIN_HEIGHT || box.width >= viewportWidth - 6) return false;
   const style = getComputedStyle(element);

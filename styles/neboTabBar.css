@@ -237,3 +237,13 @@ html.dark .nebo-tabbar,
   background: linear-gradient(90deg, #ffe29a, #f5b94a);
   color: #4a2c00;
 }
+
+/* Canvas barFade: the fixed top bar fades the content scrolling under it instead of showing it through */
+.home-logo-bar.app-top-bar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.86) 65%, rgba(255, 255, 255, 0) 100%) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html[data-theme='dark'] .home-logo-bar.app-top-bar {
+  background: linear-gradient(180deg, rgba(28, 29, 33, 0.97) 0%, rgba(28, 29, 33, 0.85) 65%, rgba(28, 29, 33, 0) 100%) !important;
+}

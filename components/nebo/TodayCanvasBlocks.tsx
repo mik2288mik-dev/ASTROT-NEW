@@ -76,6 +76,9 @@ export function TodayMood({ sections, lockedIds }: { sections: ForecastSection[]
 const dayKeyOf = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 /** Moon calendars, card of the day, number of the day and rune of the day, as on the canvas. */
+/** The tile has room for one short word, as on the canvas («Растущая»). */
+const shortPhase = (phase: number) => phaseName(phase).replace(/ (серп|Луна)$/, '').replace(/^Растущий$/, 'Растущая').replace(/^Убывающий$/, 'Убывающая');
+
 export function TodayTiles({ userId, birthDate, onOpenMoon, onOpenTarot, onOpenNumbers, onOpenRunes }: {
   userId: string;
   birthDate: string;
@@ -122,7 +125,7 @@ export function TodayTiles({ userId, birthDate, onOpenMoon, onOpenTarot, onOpenN
     <div className="nebo-tiles">
       <button type="button" className="nebo-tile is-tall" onClick={onOpenMoon} disabled={!onOpenMoon}>
         <span className="nebo-tile-kicker"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" /></svg>Лунные календари</span>
-        <span className="nebo-tile-moon"><img src="/assets/auth/moon.webp" alt="" width={44} height={44} /><strong>{moon ? phaseName(moon.phase) : 'Луна'}</strong></span>
+        <span className="nebo-tile-moon"><img src="/assets/auth/moon.webp" alt="" width={44} height={44} /><strong>{moon ? shortPhase(moon.phase) : 'Луна'}</strong></span>
         <span className="nebo-tile-note">{moon ? `Луна ${SIGNS_IN[moon.sign]}` : 'Считаем Луну…'}</span>
         <span className="nebo-tile-foot">{illumination !== null ? `Освещена на ${illumination}%` : ''}</span>
         <TileChevron />
@@ -138,19 +141,19 @@ export function TodayTiles({ userId, birthDate, onOpenMoon, onOpenTarot, onOpenN
           </>
         ) : (
           <>
-            <span className="nebo-tile-tarot-word" aria-hidden="true">ТАРО</span>
+            <span className="nebo-tile-tarot-word" aria-hidden="true">ТАРО<i /></span>
             <span className="nebo-tile-card-back is-a" aria-hidden="true" />
             <span className="nebo-tile-card-back is-b" aria-hidden="true" />
             <span className="nebo-tile-foot is-accent">Открой карту дня сейчас!</span>
           </>
         )}
       </button>
-      <button type="button" className="nebo-tile" onClick={onOpenNumbers} disabled={!onOpenNumbers || dayNumber === null}>
+      <button type="button" className="nebo-tile is-center" onClick={onOpenNumbers} disabled={!onOpenNumbers || dayNumber === null}>
         <span className="nebo-tile-kicker"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M9.5 4L7.5 20M16.5 4l-2 16M4.5 9h15M3.5 15h15" /></svg>Число дня</span>
         <span className="nebo-tile-number" aria-hidden="true">{dayNumber ?? '·'}</span>
         <span className="nebo-tile-foot is-strong">{dayNumber !== null ? DAY_TITLES[dayNumber] ?? '' : 'Нужна дата рождения'}</span>
       </button>
-      <button type="button" className="nebo-tile" onClick={onOpenRunes} disabled={!onOpenRunes}>
+      <button type="button" className="nebo-tile is-center" onClick={onOpenRunes} disabled={!onOpenRunes}>
         <span className="nebo-tile-kicker"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 3.5v17M8 5l7 4.5L8 14" /></svg>Руна дня</span>
         <span className="nebo-tile-stone" aria-hidden="true"><b>{rune.glyph}</b></span>
         <span className="nebo-tile-foot is-strong">{rune.name} · {rune.keyword.toLowerCase()}</span>

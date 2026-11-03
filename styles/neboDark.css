@@ -3985,6 +3985,9 @@ html[data-theme='dark'] .nebo-account-chip-badge {
 html[data-theme='dark'] .nebo-account-chip-badge.is-plus {
   color: #F4F5F8;
 }
+html[data-theme='dark'] .home-logo-bar.app-top-bar {
+  background: linear-gradient(180deg, rgba(39, 40, 46, 0.94) 0%, rgba(39, 40, 46, 0.86) 65%, rgba(255, 255, 255, 0.06) 100%) !important;
+}
 
 /* ── neboToday.css ── */
 html[data-theme='dark'] .home-screen.forecast-feed-page {

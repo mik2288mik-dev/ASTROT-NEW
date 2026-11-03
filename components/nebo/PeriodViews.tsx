@@ -124,7 +124,7 @@ function dayFace(day: CalendarDay | undefined, lunar: LunarDay | undefined): { i
     const icon = personal.planet === 'Venus' ? 'love' : personal.planet === 'Jupiter' ? (personal.tone === 'good' ? 'gift' : 'careful') : personal.planet === 'Mars' ? (personal.tone === 'good' ? 'energy' : 'careful') : personal.planet === 'Saturn' ? 'work' : 'start';
     return { icon, title: personal.headline };
   }
-  if (day?.mercuryRetrograde) return { icon: 'talk', title: 'Переписки и звонки' };
+  // Retrograde Mercury lasts weeks: it is named in the week text, not stamped on every day.
   const sign = lunar?.sign ?? 0;
   const SIGN_TITLES = ['Хочется действовать', 'Спокойный, надёжный день', 'Много разговоров', 'День дома и близких', 'Хочется внимания', 'День порядка и мелочей', 'Легко договориться', 'Эмоции острее обычного', 'Тянет к новому', 'День серьёзных дел', 'День идей и друзей', 'Мягкий день, больше чувств'];
   return { icon: ELEMENT_ICON[sign % 4], title: SIGN_TITLES[sign] };
