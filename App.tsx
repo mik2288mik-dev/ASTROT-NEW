@@ -46,6 +46,7 @@ import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppEntryAnnouncement } from './components/AppEntryAnnouncement';
 import { CoachMarks } from './components/nebo/CoachMarks';
+import { PlusWelcome } from './components/nebo/PlusWelcome';
 import { AndroidUpdatePrompt } from './components/AndroidUpdatePrompt';
 import { useAndroidUpdateGate } from './services/useAndroidUpdateGate';
 import { AndroidVpnWarning } from './components/AndroidVpnWarning';
@@ -437,6 +438,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     const [paywallResumeNotice, setPaywallResumeNotice] = useState<string | null>(null);
     const [firstValueReached, setFirstValueReached] = useState(false);
     const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
+    const [plusWelcomeOpen, setPlusWelcomeOpen] = useState(false);
     const [appEntryAnnouncement, setAppEntryAnnouncement] = useState<AppEntryAnnouncementData | null>(null);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
@@ -1725,8 +1727,9 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                     entitlementEndsAt: validatedPatch.premiumEntitlement?.endsAt || undefined,
                 }),
             });
-            finishPurchase('purchase_succeeded', 'Premium открыт. Возвращаем туда, где ты остановился.');
+            finishPurchase('purchase_succeeded', 'Plus открыт. Возвращаем туда, где ты остановился.');
             showActionFeedback(ACTION_FEEDBACK.premiumActive);
+            setPlusWelcomeOpen(true);
             return 'completed' as const;
         };
         void recordUserAppEvent({
@@ -3057,6 +3060,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 />
             ) : null}
 
+            {plusWelcomeOpen && profile ? <PlusWelcome name={profile.name?.trim() || 'Ты'} onClose={() => setPlusWelcomeOpen(false)} /> : null}
             <CoachMarks view={view} enabled={Boolean(profile) && !paywallContext && !navigationSheet && !androidUpdate.promptOpen && !appEntryAnnouncement} />
 
             {showsBottomNavigation ? (

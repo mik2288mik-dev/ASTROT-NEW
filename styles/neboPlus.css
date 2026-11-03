@@ -37,3 +37,13 @@
 .pw2.pw2--overlay .pw2-legal { color: rgba(255, 255, 255, 0.6) !important; font-size: 12px; text-align: center; }
 .pw2.pw2--overlay .pw2-free { color: rgba(255, 255, 255, 0.85) !important; }
 .pw2.pw2--overlay .pw2-active h2, .pw2.pw2--overlay .pw2-active p { color: #ffffff !important; }
+
+/* «Добро пожаловать в Plus» (canvas PaidPlus) */
+.nebo-plus-welcome { position: relative; width: 100%; max-width: 360px; padding: 22px 20px 20px; border-radius: 30px; background: #ffffff; color: #0b0d12; text-align: center; animation: nbSignIn 0.45s cubic-bezier(.34, 1.56, .64, 1) both; }
+.nebo-plus-welcome-card { width: 240px; margin: 0 auto 6px; }
+.nebo-plus-welcome h2 { margin: 10px 0 6px; font-size: 25px; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-plus-welcome p { margin: 0; color: #5c6170; font-size: 15px; line-height: 1.45; }
+.nebo-plus-welcome ul { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; text-align: left; }
+.nebo-plus-welcome li { position: relative; padding-left: 26px; font-size: 15px; }
+.nebo-plus-welcome li::before { content: ""; position: absolute; left: 4px; top: 4px; width: 10px; height: 6px; border-left: 2.4px solid #16a34a; border-bottom: 2.4px solid #16a34a; transform: rotate(-45deg); }
+.nebo-plus-welcome .nebo-period-cta { width: 100%; margin: 18px 0 0; }

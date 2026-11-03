@@ -11,7 +11,7 @@ export const ACTION_FEEDBACK = {
   saved: 'Готово. Не потеряется.',
   settingsSaved: 'Готово. Сохранили.',
   settingsUpdated: 'Есть. Настройки обновлены.',
-  premiumActive: 'Готово. Premium активен.',
+  premiumActive: 'Готово. Plus активен.',
   premiumRestored: 'Отлично. Доступ восстановлен.',
   accountSaved: 'Готово. Аккаунт на месте.',
   onboardingReady: 'Всё. Можно смотреть, что получилось.',
