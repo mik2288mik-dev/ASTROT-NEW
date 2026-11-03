@@ -1414,3 +1414,72 @@
 .nebo-notif-times { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .nebo-notif-times button { height: 46px; border: 0; border-radius: 14px; background: #ffffff; color: #0b0d12; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
 .nebo-notif-times button.is-active { background: #e6e3ff; color: #4527d6; }
+
+/* «Мои люди» (canvas Fr_list / Fr_profile / Fr_chat / Fr_add) */
+.nebo-friends { padding-bottom: 28px; color: #0b0d12; }
+.nebo-friends-link { margin-top: 10px; }
+.nebo-friends-top { display: flex; gap: 10px; margin: 8px 16px 14px; }
+.nebo-friends-invite { display: inline-flex; flex: 1; height: 48px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 24px; background: linear-gradient(180deg, #1c2160 0%, #10133d 100%); color: #ffffff; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.nebo-friends-unread { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 24px; background: #f4f5f8; color: #5c6170; font-size: 14.5px; font-weight: 600; }
+.nebo-friends-unread b { display: inline-flex; min-width: 20px; height: 20px; align-items: center; justify-content: center; border-radius: 10px; background: #ef4444; color: #ffffff; font-size: 12px; }
+.nebo-friends-list { margin: 0 16px; border-radius: 22px; background: #f4f5f8; }
+.nebo-friends-row { display: flex; width: 100%; align-items: center; gap: 12px; padding: 12px 14px; border: 0; background: none; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; }
+.nebo-friends-row + .nebo-friends-row { border-top: 1px solid rgba(118, 118, 128, 0.14); }
+.nebo-friend-avatar { display: inline-flex; width: 46px; height: 46px; flex: none; align-items: center; justify-content: center; border-radius: 50%; color: #0b0d12; font-size: 18px; font-weight: 700; }
+.nebo-friend-avatar.is-big { width: 64px; height: 64px; font-size: 26px; }
+.nebo-friend-avatar.is-small { width: 30px; height: 30px; font-size: 14px; }
+.nebo-friends-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
+.nebo-friends-copy strong { font-size: 16px; font-weight: 600; }
+.nebo-friends-copy strong small { margin-left: 4px; color: #8a8f9c; font-size: 13px; font-weight: 500; }
+.nebo-friends-copy em { overflow: hidden; color: #5c6170; font-size: 13.5px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+.nebo-friends-badge { display: inline-flex; min-width: 22px; height: 22px; align-items: center; justify-content: center; border-radius: 11px; background: #ef4444; color: #ffffff; font-size: 12px; }
+.nebo-friends-plus { display: flex; width: calc(100% - 32px); align-items: center; gap: 10px; margin: 14px 16px 0; padding: 14px; border: 0; border-radius: 20px; background: rgba(79, 70, 229, 0.08); color: #4f46e5; font: inherit; font-size: 14.5px; text-align: left; cursor: pointer; }
+.nebo-friends-plus span { padding: 3px 8px; border-radius: 999px; background: linear-gradient(90deg, #ffe29a, #f5b94a); color: #4a2c00; font-size: 12px; font-weight: 700; }
+.nebo-friends-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 24px 24px 0; text-align: center; }
+.nebo-friends-empty strong { font-size: 20px; font-weight: 700; }
+.nebo-friends-empty p { margin: 0; color: #5c6170; font-size: 15px; line-height: 1.5; }
+.nebo-friend-head { display: flex; align-items: center; gap: 14px; margin: 8px 16px 0; }
+.nebo-friend-head span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.nebo-friend-head strong { font-size: 24px; font-weight: 700; }
+.nebo-friend-head small { color: #8a8f9c; font-size: 14px; }
+.nebo-friend-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 16px 0; }
+.nebo-friend-chips .is-day { padding: 7px 12px; border: 0; border-radius: 999px; background: #fff1dc; color: #a35200; font: inherit; font-size: 14px; font-weight: 600; }
+.nebo-friend-chips .is-day.is-locked { background: rgba(79, 70, 229, 0.08); color: #4f46e5; cursor: pointer; }
+.nebo-friend-chips .is-compat { padding: 7px 12px; border-radius: 999px; background: #dcf5e6; color: #11793a; font-size: 14px; font-weight: 700; }
+.nebo-friend-note { margin: 12px 20px 0; color: #5c6170; font-size: 15px; line-height: 1.5; }
+.nebo-friend-write { display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 32px); }
+.nebo-friend-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 16px 0; }
+.nebo-friend-actions button { height: 48px; border: 0; border-radius: 24px; background: #f4f5f8; color: #0b0d12; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.nebo-friend-prefs { margin: 16px 16px 0; padding-top: 6px; background: #f4f5f8; }
+.nebo-friend-prefs .nebo-notif-head { margin: 8px 16px 0; }
+.nebo-friend-code { margin: 8px 16px 0; padding: 18px; border-radius: 26px; background: linear-gradient(160deg, #fff3d0 0%, #e8e4ff 100%); }
+.nebo-friend-code small { color: #8a8f9c; font-size: 12.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.nebo-friend-code strong { display: block; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 30px; font-weight: 700; letter-spacing: 0.08em; }
+.nebo-friend-code p { margin: 6px 0 12px; color: #5c6170; font-size: 14px; line-height: 1.45; }
+.nebo-friend-code button { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; border: 0; border-radius: 20px; background: #ffffff; color: #0b0d12; font: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer; }
+.nebo-friend-box { margin: 14px 16px 0; padding: 14px 16px 16px; border-radius: 22px; background: #f4f5f8; }
+.nebo-friend-box .nebo-notif-head { margin: 0 0 10px; }
+.nebo-friend-box .nebo-period-cta { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 10px 0 0; }
+.nebo-friend-link { padding: 12px 14px; border-radius: 14px; background: #ffffff; color: #5c6170; font-size: 14px; word-break: break-all; }
+.nebo-friend-add { display: flex; gap: 8px; }
+.nebo-friend-add input { flex: 1; min-width: 0; height: 48px; padding: 0 14px; border: 0; border-radius: 14px; background: #ffffff; color: #0b0d12; font: inherit; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 16px; }
+.nebo-friend-add button { height: 48px; padding: 0 18px; border: 0; border-radius: 14px; background: #4f46e5; color: #ffffff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.nebo-friend-add button:disabled { opacity: 0.5; }
+.nebo-chat { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; background: #ffffff; color: #0b0d12; }
+.nebo-chat-bar { display: flex; align-items: center; gap: 10px; padding: calc(10px + env(safe-area-inset-top)) 14px 10px; border-bottom: 1px solid rgba(118, 118, 128, 0.14); }
+.nebo-chat-bar button { display: inline-flex; width: 40px; height: 40px; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: #f4f5f8; cursor: pointer; }
+.nebo-chat-bar strong { font-size: 17px; font-weight: 700; }
+.nebo-chat-list { display: flex; flex: 1; flex-direction: column; gap: 8px; overflow-y: auto; padding: 14px 16px; }
+.nebo-chat-empty { margin: 20px; color: #8a8f9c; font-size: 14.5px; text-align: center; }
+.nebo-chat-msg { align-self: flex-start; max-width: 80%; padding: 10px 14px 6px; border-radius: 20px 20px 20px 6px; background: #f4f5f8; }
+.nebo-chat-msg.is-mine { align-self: flex-end; border-radius: 20px 20px 6px 20px; background: #8b7cf0; color: #ffffff; }
+.nebo-chat-msg p { margin: 0; font-size: 15.5px; line-height: 1.4; white-space: pre-wrap; }
+.nebo-chat-msg time { display: block; margin-top: 2px; font-size: 11px; opacity: 0.6; text-align: right; }
+.nebo-chat-card { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 14px; background: linear-gradient(135deg, #3b2f86, #7c6ce6); color: #ffffff; }
+.nebo-chat-card small { font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.8; }
+.nebo-chat-card b { font-size: 15.5px; }
+.nebo-chat-share { align-self: center; margin: 4px 0; padding: 8px 14px; border: 0; border-radius: 999px; background: rgba(79, 70, 229, 0.08); color: #4f46e5; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.nebo-chat-input { display: flex; gap: 8px; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); }
+.nebo-chat-input input { flex: 1; min-width: 0; height: 48px; padding: 0 16px; border: 1px solid rgba(118, 118, 128, 0.2); border-radius: 24px; background: #f9fafb; color: #0b0d12; font: inherit; font-size: 16px; }
+.nebo-chat-input button { display: inline-flex; width: 48px; height: 48px; flex: none; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: linear-gradient(180deg, #1c2160 0%, #10133d 100%); color: #ffffff; cursor: pointer; }
+.nebo-chat-input button:disabled { opacity: 0.4; }
