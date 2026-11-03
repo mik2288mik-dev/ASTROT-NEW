@@ -72,6 +72,8 @@ export function TodaySkyMonitor({ userId, periodKey, retroOnly = false }: TodayS
   if (failed && !sky) return null;
   // The block sits right under the forecast, so it holds its place while the sky is calculated:
   // the entry tiles below must not jump down when the card appears.
+  // On Today only the Mercury card is left, so there is no big placeholder to hold while the sky is counted.
+  if (!sky && retroOnly) return null;
   if (!sky) {
     return (
       <section id="today-sky" className="today-sky" aria-labelledby="today-sky-title" aria-busy="true">
