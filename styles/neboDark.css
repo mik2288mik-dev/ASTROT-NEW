@@ -5124,6 +5124,33 @@ html[data-theme='dark'] .nebo-charts-add {
 html[data-theme='dark'] .nebo-charts-foot {
   color: rgba(235, 235, 245, 0.5);
 }
+html[data-theme='dark'] .nebo-oracle-example-note {
+  background: #27282E;
+}
+html[data-theme='dark'] .nebo-oracle-example-note strong {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-oracle-example-note small {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-rune-list-head h2 {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-rune-list-head small {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-rune-grid {
+  background: #27282E;
+}
+html[data-theme='dark'] .nebo-rune-grid small {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-rune-info-advice p {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-oracle-share-fan img {
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+}
 
 /* ── neboAuth.css ── */
 html[data-theme='dark'] .nebo-auth {
