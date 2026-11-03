@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { Lock } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Lock, X } from 'lucide-react';
+import { loadExploreCharts } from '../../components/PersonalForecastFeed/exploreCharts';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { MyChartHeader, type MyChartSegment } from '../../components/nebo/MyChartHeader';
@@ -46,9 +47,21 @@ function lifePathFormula(day: number, month: number, year: number): string {
   return `${parts.join(' + ')} = ${total}${total === result ? '' : ` → ${result}`}`;
 }
 
+const MONTH_SHORT: Record<number, string> = { 1: 'начала', 2: 'терпение', 3: 'общение', 4: 'работа', 5: 'перемены', 6: 'семья', 7: 'тишина', 8: 'результаты', 9: 'итоги' };
+const numberFamily = (n: number) => ([1, 5, 7].includes(n) ? 0 : [2, 4, 8].includes(n) ? 1 : 2);
+
 export function NumerologyRoom({ profile, onOpenSegment, onRequestPremium }: NumerologyRoomProps) {
   useTelemetrySection('numbers', 'overview');
   const [openCell, setOpenCell] = useState<number | null>(null);
+  const [popup, setPopup] = useState<null | 'year' | 'pairs'>(null);
+  const [people, setPeople] = useState<Array<{ name: string; n: number }>>([]);
+  useEffect(() => {
+    void loadExploreCharts(String(profile.id || 'guest')).then((charts) => setPeople(charts
+      .filter((chart) => !chart.is_primary && !chart.archived_at && chart.birth_date)
+      .map((chart) => { const parts = parseBirthDate(String(chart.birth_date)); return parts ? { name: String(chart.name || 'Без имени'), n: reduceNumber(lifePathNumber(parts), false) } : null; })
+      .filter((item): item is { name: string; n: number } => item !== null)
+      .slice(0, 8))).catch(() => undefined);
+  }, [profile.id]);
   const birth = useMemo(() => parseBirthDate(profile.birthDate), [profile.birthDate]);
   const [purchases] = usePurchases(profile.id ? String(profile.id) : undefined);
   const plus = hasActivePremium(profile) || hasEsoAccess(purchases);
@@ -140,7 +153,59 @@ export function NumerologyRoom({ profile, onOpenSegment, onRequestPremium }: Num
             </div>
           ))}
         </div>
+        <div className="nebo-numbers-more">
+          <button type="button" onClick={() => (plus ? setPopup('year') : onRequestPremium?.())}>
+            <span><strong>Твой {numbers.yearLabel} по месяцам</strong><small>Какое число у каждого месяца года</small></span>
+            {plus ? null : <em>Plus</em>}
+          </button>
+          <button type="button" onClick={() => setPopup('pairs')}>
+            <span><strong>Пары по числам</strong><small>Как твоё число сочетается с близкими</small></span>
+          </button>
+        </div>
       </section>
+
+      {popup ? (
+        <div className="nebo-sheet-scrim" role="presentation" onClick={() => setPopup(null)}>
+          <div className="nebo-why" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="nebo-day-pop-close" onClick={() => setPopup(null)} aria-label="Закрыть"><X size={18} aria-hidden /></button>
+            {popup === 'year' ? (
+              <>
+                <p className="nebo-why-kicker">Твой {numbers.yearLabel} по месяцам</p>
+                <h2>{PERSONAL_YEAR[numbers.year].split('. ')[0]}</h2>
+                <p className="nebo-numbers-pop-text">{PERSONAL_YEAR[numbers.year].split('. ').slice(1).join('. ')} Внутри года у каждого месяца своё число:</p>
+                <div className="nebo-numbers-months">
+                  {MONTHS_RU.map((name, index) => {
+                    const n = personalMonthNumber(birth, numbers.yearLabel, index + 1);
+                    return (
+                      <div key={name} className={index === now.getMonth() ? 'is-now' : ''}>
+                        <span>{name.charAt(0).toUpperCase() + name.slice(1)}</span>
+                        <b>{n} · {MONTH_SHORT[n] ?? ''}</b>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="nebo-why-kicker">Пары по числам</p>
+                <h2>Твоё число судьбы {numbers.life}</h2>
+                <p className="nebo-numbers-pop-text">Числа делятся на три семьи: 1, 5, 7 про свободу и ум, 2, 4, 8 про дело и порядок, 3, 6, 9 про чувства и заботу. Внутри семьи легко, а между семьями люди дополняют друг друга.</p>
+                {people.length ? (
+                  <div className="nebo-numbers-months">
+                    {people.map((person) => (
+                      <div key={person.name + person.n}>
+                        <span>{person.name.split(/\s+/)[0]} · {person.n}</span>
+                        <b>{numberFamily(reduceNumber(numbers.life, false)) === numberFamily(person.n) ? 'Легко вместе' : 'Дополняют друг друга'}</b>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="nebo-numbers-pop-text">Добавь карты близких в «Мои карты», и здесь появятся ваши пары.</p>}
+              </>
+            )}
+            <button type="button" className="nebo-period-cta" onClick={() => setPopup(null)}>Понятно</button>
+          </div>
+        </div>
+      ) : null}
 
       <section className="nebo-numbers-square" aria-labelledby="nebo-square-title">
         <h2 id="nebo-square-title">Квадрат Пифагора</h2>

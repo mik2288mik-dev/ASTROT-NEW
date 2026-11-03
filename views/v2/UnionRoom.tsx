@@ -61,6 +61,7 @@ import {
 import { getCompatibilityRingGeometry } from '../../lib/synastry/compatibilityPresentation';
 import { buildSignCompatibilityReactionKey } from '../../lib/synastry/compatibilityReaction';
 import { CompatibilityStoryReader } from '../../components/CompatibilityStoryReader';
+import { PairMore } from '../../components/nebo/PairMore';
 import { CompatibilityAnswers, CompatibilityCalculation, CompatibilityGauge, gaugeHeadline } from '../../components/CompatibilityAnswers';
 import { CompatibilityTalkCalendar, CompatibilityTopicSwitch } from '../../components/CompatibilityExtras';
 import { COMPATIBILITY_CHART_SAMPLE } from '../../lib/synastry/compatibilityChartSample';
@@ -2162,6 +2163,10 @@ Check our compatibility from your side in NEBO.`
           <p><strong>{ru ? 'Сильнее всего:' : 'Strongest:'}</strong> {strongestLabel}</p>
           <p className="compat-result-reason">{strongestAreaReason(leftSun, theirSun, leftName, rightName, lang, sameGenderPair)}</p>
         </section>
+      ) : null}
+
+      {ru && selected?.kind !== 'sign' ? (
+        <PairMore leftName={leftName} rightName={rightName} leftDate={leftBirthDate} rightDate={selected?.date} />
       ) : null}
 
       {!isPerson ? <div className="compat-result-meta compat-result-meta--sign">
