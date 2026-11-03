@@ -115,6 +115,21 @@ const COMPATIBILITY_FOCUS_OPTIONS: readonly {
   { value: 'work', context: 'work', label: { ru: 'Работа / бизнес', en: 'Work / business' } },
 ] as const;
 
+/** «Кто вы друг другу» folded into one row (canvas PairStart): the chosen kind and what the reading will be about. */
+const RELATION_HINTS: Record<CompatibilityFocus, { ru: string; en: string }> = {
+  love: { ru: 'симпатия: есть ли взаимное притяжение', en: 'attraction and how it may grow' },
+  relationships: { ru: 'пара: быт, ссоры и будущее', en: 'a couple: everyday life, arguments, future' },
+  ex: { ru: 'что было и почему', en: 'what happened and why' },
+  friendship: { ru: 'дружба: на чём держится', en: 'what the friendship stands on' },
+  family: { ru: 'семья: как слышать друг друга', en: 'family: hearing each other' },
+  work: { ru: 'работа: как вместе делать дело', en: 'work: getting things done together' },
+};
+const relationTitle = (focus: CompatibilityFocus, ru: boolean) => {
+  const option = COMPATIBILITY_FOCUS_OPTIONS.find((item) => item.value === focus);
+  return option ? (ru ? option.label.ru : option.label.en) : '';
+};
+const relationHint = (focus: CompatibilityFocus, ru: boolean) => (ru ? RELATION_HINTS[focus].ru : RELATION_HINTS[focus].en);
+
 const COMPATIBILITY_FOCUS_ICONS: Record<CompatibilityFocus, LucideIcon> = {
   love: Heart,
   relationships: HeartHandshake,
@@ -755,6 +770,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const [signThemGender, setSignThemGender] = useState<CompatGender>('unspecified');
   const [relationshipContext, setRelationshipContext] = useState<RelationshipContext>('romance');
   const [relationshipFocus, setRelationshipFocus] = useState<CompatibilityFocus>('love');
+  const [relationOpen, setRelationOpen] = useState(false);
   const [selected, setSelected] = useState<Selected | null>(
     initialPrefill
       ? {
@@ -1389,7 +1405,7 @@ Check our compatibility from your side in NEBO.`
 
   const compatibilityTabs = useMemo(() => [
     { id: 'birth' as const, label: ru ? 'По дате рождения' : 'By birth date' },
-    { id: 'sign' as const, label: ru ? 'По знаку зодиака' : 'By zodiac sign' },
+    { id: 'sign' as const, label: ru ? 'По знаку' : 'By sign' },
   ], [ru]);
   const activeCompatibilityTab: CompatibilityTab = screen === 'result'
     ? selected?.kind === 'sign' ? 'sign' : 'birth'
@@ -1424,6 +1440,7 @@ Check our compatibility from your side in NEBO.`
       <AppTopBar
         title={ru ? 'Совместимость' : 'Compatibility'}
         onBack={withBack ? backToEntry : undefined}
+        main={!withBack}
       />
       {withBack ? null : (
         <div className="nebo-page-title">
@@ -1431,12 +1448,6 @@ Check our compatibility from your side in NEBO.`
           <p>{ru ? 'Любые два человека' : 'Any two people'}</p>
         </div>
       )}
-      {!withBack && props.onOpenFriends ? (
-        <button type="button" className="nebo-row-link nebo-friends-link" onClick={props.onOpenFriends}>
-          <span>{ru ? 'Мои люди: друзья и переписка' : 'My people: friends and chat'}</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-        </button>
-      ) : null}
       <EditorialTabs
         label={ru ? 'Режим совместимости' : 'Compatibility mode'}
         tabs={compatibilityTabs}
@@ -1526,7 +1537,7 @@ Check our compatibility from your side in NEBO.`
     const chart = isSubject ? firstChart : secondChart;
     if (source === 'saved') {
       return chart
-        ? { name: chart.subject_type === 'self' ? (ru ? 'Я' : 'Me') : chart.name, sign: chartSunSign(chart), meta: '', empty: false }
+        ? { name: chart.subject_type === 'self' ? (profile.name?.trim().split(/\s+/)[0] || (ru ? 'Я' : 'Me')) : chart.name, sign: chartSunSign(chart), meta: '', empty: false }
         : { name: '', sign: null, meta: '', empty: true };
     }
     const name = isSubject ? sName : fName;
@@ -1558,49 +1569,8 @@ Check our compatibility from your side in NEBO.`
                 submitAdd();
               }}
             >
-              <section className="compat-date-hero">
-                <h2>{ru ? 'Какая у вас совместимость?' : 'How compatible are you?'}</h2>
-                <p>{ru ? 'Смотрим, где вам легко вместе и где обычно начинаются сложности.' : 'This is not a relationship grade. It shows where you feel at ease and where friction may begin.'}</p>
-              </section>
 
-              {recentPairs.length ? (
-                <section className="compat-pairs" aria-label={ru ? 'Мои пары' : 'My pairs'}>
-                  <h3>{ru ? 'Мои пары' : 'My pairs'}</h3>
-                  {recentPairs.map((entry) => {
-                    const first = entry.subjectName || profile.name || (ru ? 'Я' : 'Me');
-                    const second = entry.name || (ru ? 'Второй человек' : 'Second person');
-                    return (
-                      <button key={entry.id} type="button" className="compat-pair-row" onClick={() => openFromHistory(entry)}>
-                        <span className="compat-pair-avatars" aria-hidden="true">
-                          <span>{first.trim().charAt(0).toUpperCase()}</span>
-                          <span>{second.trim().charAt(0).toUpperCase()}</span>
-                        </span>
-                        <span className="compat-pair-copy">
-                          <strong>{first} {ru ? 'и' : 'and'} {second}</strong>
-                          <small>{getRelationshipContextLabel(normalizeRelationshipContext(entry.relationshipContext), lang)} · {gaugeHeadline(entry.overall, ru).toLowerCase()}</small>
-                        </span>
-                        <ChevronRightIcon size={17} aria-hidden="true" />
-                      </button>
-                    );
-                  })}
-                </section>
-              ) : null}
 
-              <section className="compat-entry-context compat-entry-context--date" aria-label={ru ? 'Кто вы друг другу' : 'Relationship type'}>
-                <span className="compat-date-section-label">{ru ? 'Кто вы друг другу' : 'Who are you to each other'}</span>
-                <RelationshipContextPicker
-                  focus={relationshipFocus}
-                  onChange={(focus, context) => {
-                    setRelationshipFocus(focus);
-                    setRelationshipContext(context);
-                    if (focus === 'love' || focus === 'relationships' || focus === 'ex') noteLoveInterest(String(profile.id || 'guest'));
-                  }}
-                  ru={ru}
-                  compact
-                  hideEx
-                  tiles
-                />
-              </section>
 
               <CompatibilityPairAvatars
                 ru={ru}
@@ -1609,6 +1579,7 @@ Check our compatibility from your side in NEBO.`
                 onPickFirst={() => { lumiaSelectionHaptic(); setPersonSheet('subject'); }}
                 onPickSecond={() => { lumiaSelectionHaptic(); setPersonSheet('partner'); }}
               />
+              <p className="nebo-compat-note">{ru ? 'Можно сравнить любых двоих: себя, друзей, пару, коллег. Добавлять их к себе не нужно.' : 'Compare any two people: yourself, friends, a partner, colleagues. You do not need to add them to your account.'}</p>
               {availableCharts.length ? (
                 <CompatibilitySavedPeople
                   ru={ru}
@@ -1640,6 +1611,53 @@ Check our compatibility from your side in NEBO.`
                 />
               ) : null}
 
+              <section className="compat-entry-context compat-entry-context--date" aria-label={ru ? 'Кто вы друг другу' : 'Relationship type'}>
+                <span className="compat-date-section-label">{ru ? 'Кто вы друг другу' : 'Who are you to each other'}</span>
+                <button type="button" className="nebo-compat-relation" aria-expanded={relationOpen} onClick={() => setRelationOpen((open) => !open)}>
+                  <span><strong>{relationTitle(relationshipFocus, ru)}</strong><small>{relationHint(relationshipFocus, ru)}</small></span>
+                  <em>{relationOpen ? (ru ? 'Готово' : 'Done') : (ru ? 'Сменить' : 'Change')}</em>
+                </button>
+                {relationOpen ? <RelationshipContextPicker
+                  focus={relationshipFocus}
+                  onChange={(focus, context) => {
+                    setRelationshipFocus(focus);
+                    setRelationshipContext(context);
+                    if (focus === 'love' || focus === 'relationships' || focus === 'ex') noteLoveInterest(String(profile.id || 'guest'));
+                  }}
+                  ru={ru}
+                  compact
+                  hideEx
+                  tiles
+                /> : null}
+              </section>
+              {recentPairs.length ? (
+                <section className="compat-pairs" aria-label={ru ? 'Мои пары' : 'My pairs'}>
+                  <h3>{ru ? 'Мои пары' : 'My pairs'}</h3>
+                  {recentPairs.map((entry) => {
+                    const first = entry.subjectName || profile.name || (ru ? 'Я' : 'Me');
+                    const second = entry.name || (ru ? 'Второй человек' : 'Second person');
+                    return (
+                      <button key={entry.id} type="button" className="compat-pair-row" onClick={() => openFromHistory(entry)}>
+                        <span className="compat-pair-avatars" aria-hidden="true">
+                          <span>{first.trim().charAt(0).toUpperCase()}</span>
+                          <span>{second.trim().charAt(0).toUpperCase()}</span>
+                        </span>
+                        <span className="compat-pair-copy">
+                          <strong>{first} {ru ? 'и' : 'and'} {second}</strong>
+                          <small>{getRelationshipContextLabel(normalizeRelationshipContext(entry.relationshipContext), lang)} · {gaugeHeadline(entry.overall, ru).toLowerCase()}</small>
+                        </span>
+                        <ChevronRightIcon size={17} aria-hidden="true" />
+                      </button>
+                    );
+                  })}
+                </section>
+              ) : null}
+              {props.onOpenFriends ? (
+                <button type="button" className="nebo-row-link nebo-friends-link" onClick={props.onOpenFriends}>
+                  <span>{ru ? 'Мои люди: друзья и переписка' : 'My people: friends and chat'}</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+                </button>
+              ) : null}
               <div className="compat-legacy-person-editor" aria-hidden="true">
               <details className="compat-entry-disclosure">
                 <summary>

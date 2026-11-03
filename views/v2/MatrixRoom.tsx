@@ -95,7 +95,7 @@ export function MatrixRoom({ profile, onBack, embedded = false, onRequestPremium
   useScreenBack(internal, goHome);
 
   if (!result || !selected || !themes) return <div className={`${embedded ? '' : 'fresh-page '} ${styles.page}`}>
-    {!embedded && <><AppTopBar title={MATRIX_TITLE[lang]} /><MyChartHeader title={MATRIX_TITLE[lang]} active="matrix" onOpen={(segment) => onOpenSegment?.(segment)} /></>}
+    {!embedded && <><AppTopBar title={MATRIX_TITLE[lang]} main /><MyChartHeader title={MATRIX_TITLE[lang]} active="matrix" onOpen={(segment) => onOpenSegment?.(segment)} /></>}
     <main className={`${styles.content} ${scrollStyles.content}`}><h1>{MATRIX_TITLE[lang]}</h1><p className={styles.subhead}>{MATRIX_SUBTITLE[lang]}</p><label className={styles.dateField}>{ru ? 'Дата рождения' : 'Birth date'}<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label><button type="button" className={styles.primary} disabled={!date} onClick={calculate}>{ru ? 'Рассчитать матрицу' : 'Calculate matrix'}</button></main>
   </div>;
 
@@ -121,7 +121,7 @@ export function MatrixRoom({ profile, onBack, embedded = false, onRequestPremium
   return <div className={`${embedded ? '' : 'fresh-page '} ${styles.page}`}>
     {!embedded && (internal
       ? <AppTopBar title={title} onBack={goHome} />
-      : <><AppTopBar title={title} /><MyChartHeader title={MATRIX_TITLE[lang]} active="matrix" onOpen={(segment) => onOpenSegment?.(segment)} /></>)}
+      : <><AppTopBar title={title} main /><MyChartHeader title={MATRIX_TITLE[lang]} active="matrix" onOpen={(segment) => onOpenSegment?.(segment)} /></>)}
     <main className={`${styles.content} ${scrollStyles.content}`}>
       {screen.kind === 'home' && <>
         <p className={styles.dateLine}>{ru ? 'Дата рождения' : 'Birth date'} <strong>{date.split('-').reverse().join('.')}</strong></p>

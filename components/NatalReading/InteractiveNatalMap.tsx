@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, LockKeyhole, X, House, Triangle, Circle, BookOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight, LockKeyhole, X, House, Triangle, Circle, BookOpen, Hand } from 'lucide-react';
 import type { NatalChartWheelSource } from '../../lib/natalChartWheelModel';
 import { natalChartWheelHouseLabelLongitude } from '../../lib/natalChartWheelModel';
 import { buildMapData, explainMapSelection, MAP_HOUSES, MAP_SIGNS, MAP_SIGN_NAMES, mapObject, MAP_ASPECTS, type MapSelection } from './mapExplanation';
@@ -80,7 +80,8 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
     || (selection.kind === 'house' && selection.id === '1')
   ));
   // The element the wheel is centred on: it stays highlighted and is described under the wheel.
-  const [focus, setFocus] = useState<MapSelection | null>(() => (data.bodies.some((p) => p.key === 'sun') ? { kind: 'point', id: 'sun' } : null));
+  // As on the canvas, nothing is open until the person taps a planet, house or sign.
+  const [focus, setFocus] = useState<MapSelection | null>(null);
   const [mode, setMode] = useState<WheelMode>('all');
   const [nowBodies, setNowBodies] = useState<NowBody[]>([]);
   useEffect(() => {
@@ -262,7 +263,7 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
     onKeyDown: (e: React.KeyboardEvent<SVGElement>) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); opener.current = e.currentTarget; setFocus({ kind, id }); } },
   });
   return <section className={view === 'details' ? sectionStyles.content : styles.map} aria-labelledby="interactive-map-name">
-    <header className={sectionStyles.personInline}><h1 id="interactive-map-name">{name}</h1><p title={birthLine}>{birthLine}</p></header>
+    {view === 'details' ? <header className={sectionStyles.personInline}><h1 id="interactive-map-name">{name}</h1><p title={birthLine}>{birthLine}</p></header> : <h1 id="interactive-map-name" className="sr-only">{name}</h1>}
     {view === 'details' ? <NatalDetails key={name + birthLine} chart={chart} isPremium={isPremium} onSelect={(item, target) => choose(item.kind, item.id, target)}/> : <>
     <div className={styles.modes} role="group" aria-label="Что показать на карте">
       {WHEEL_MODES.map((item) => (
@@ -349,21 +350,25 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
         ) : null}
         {isPremium || focusIsFree ? null : (
           <button type="button" className={styles.focusMore} onClick={() => onRequestPremium?.(focus, 'map')}>
-            <LockKeyhole size={15} aria-hidden="true"/>Открыть полностью с Premium<ChevronRight size={16} aria-hidden="true"/>
+            <LockKeyhole size={15} aria-hidden="true"/>Открыть полностью с Plus<ChevronRight size={16} aria-hidden="true"/>
           </button>
         )}
       </section>
-    ) : null}
+    ) : <p className={styles.tapHint}><Hand size={15} aria-hidden="true"/>Нажми на планету, дом или знак</p>}
     {quality !== 'exact' ? <p className={styles.precision}>{quality === 'unknown' ? 'Время рождения не указано.' : 'Время рождения указано примерно.'} Показаны только надёжные положения. Меняющиеся точки и дома не используются в объяснениях.</p> : null}
     <details className={styles.help}><summary><BookOpen size={20} aria-hidden="true"/>Как читать карту<ChevronDown size={18} aria-hidden="true"/></summary><div className={styles.helpGrid}>{HELP.map(({Icon,title,text}) => <div key={title} className={styles.helpItem}><Icon aria-hidden="true"/><div><h3>{title}</h3><p>{text}</p></div></div>)}</div><p className={styles.hint}>Нажми на планету, номер дома или линию внутри круга, чтобы узнать больше.</p></details>
-    <div className={sectionStyles.embeddedDetails}>
-      <NatalDetails
-        key={name + birthLine}
-        chart={chart}
-        isPremium={isPremium}
-        onSelect={(item, target) => choose(item.kind, item.id, target)}
-      />
-    </div>
+    {/* The full list stays one tap away, so the canvas blocks under the wheel come first. */}
+    <details className={styles.help}>
+      <summary><House size={20} aria-hidden="true"/>Все планеты, дома и связи<ChevronDown size={18} aria-hidden="true"/></summary>
+      <div className={sectionStyles.embeddedDetails}>
+        <NatalDetails
+          key={name + birthLine}
+          chart={chart}
+          isPremium={isPremium}
+          onSelect={(item, target) => choose(item.kind, item.id, target)}
+        />
+      </div>
+    </details>
     </>}
     <dialog ref={dialog} className={styles.sheet} data-entered={entered} data-closing={closing} data-dragging={dragOffset !== null && !closing} style={{transform: dragOffset !== null && !closing ? `translateY(${dragOffset}px)` : undefined}} aria-labelledby="map-explanation-title" onCancel={e => { e.preventDefault(); close(); }} onClick={e => {
       if (e.target !== e.currentTarget) return;

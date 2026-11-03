@@ -18,6 +18,7 @@ export function NatalCalculationProof({ chart, name }: { chart: NatalChartDataV2
   const proof = useMemo(() => buildCalculationProof(chart, name, 'ru'), [chart, name]);
   const [verification, setVerification] = useState<ProofVerification | null>(null);
   const [status, setStatus] = useState<Status>('idle');
+  const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const checks = new Map((verification?.checks ?? []).map((check) => [check.key, check]));
 
@@ -73,8 +74,18 @@ export function NatalCalculationProof({ chart, name }: { chart: NatalChartDataV2
       : <span className={styles.bad}>{formatDifference(check.difference)}</span>;
   };
 
+  // Canvas: a small green pill under the name; the full calculation opens on tap.
+  if (!open) {
+    return (
+      <button type="button" className={styles.proofPill} onClick={() => setOpen(true)}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z" /><path d="M9 12l2 2 4-4" /></svg>
+        Профессиональный расчёт · как посчитано
+      </button>
+    );
+  }
   return (
     <section className={styles.proof} aria-labelledby="natal-proof-title">
+      <button type="button" className={styles.proofClose} onClick={() => setOpen(false)}>Свернуть</button>
       <h2 id="natal-proof-title" className={styles.heading}>Как посчитана карта</h2>
       <p className={styles.proofMeta}>
         {proof.localTime

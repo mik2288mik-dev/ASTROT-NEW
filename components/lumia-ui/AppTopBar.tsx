@@ -15,6 +15,8 @@ type AppTopBarProps = {
   center?: React.ReactNode;
   reserveSpace?: boolean;
   className?: string;
+  /** One of the five bottom-tab screens: the canvas brand bar with the account chip, never «Back». */
+  main?: boolean;
 };
 
 /** Who is signed in, for the account chip on the right of the bar (as on the canvas). */
@@ -57,12 +59,13 @@ export function AppTopBar({
   center,
   reserveSpace = true,
   className,
+  main = false,
 }: AppTopBarProps) {
   const isPersonalForecastHeader = title === 'NEBO';
   const isSignHoroscopeHeader = title === 'Гороскоп по знакам' || title === 'Гороскоп по знакам зодиака';
   const settings = useContext(AppTopBarSettingsContext);
   // Every screen except the home one can step back, even when it did not ask for a «Back» itself.
-  const onBack = onBackProp ?? (title !== 'NEBO' ? settings?.onStepBack ?? undefined : undefined);
+  const onBack = main ? undefined : onBackProp ?? (title !== 'NEBO' ? settings?.onStepBack ?? undefined : undefined);
   const showSettings = Boolean(settings) && title !== 'Настройки' && title !== 'Settings' && title !== 'Premium';
   // Main screens (no «Back») follow the canvas: the NEBO brand on the left, the account chip on the right.
   const mainScreen = !onBack;

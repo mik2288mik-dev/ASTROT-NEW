@@ -523,6 +523,11 @@
   background: linear-gradient(100deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.92) 55%, rgba(255, 255, 255, 0.62) 100%);
 }
 
+/* «Профессиональный расчёт · как посчитано» pill (canvas Natal) */
+.proofPill { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 6px 0 12px; padding: 11px 16px; border: 0; border-radius: 999px; background: rgba(22, 163, 74, 0.12); color: #15803d; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.proofClose { float: right; margin: -4px 0 0 8px; padding: 6px 12px; border: 0; border-radius: 999px; background: rgba(118, 118, 128, 0.12); color: #5c6170; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+:global(html[data-theme='dark']) .proofPill { background: rgba(52, 211, 153, 0.14); color: #34d399; }
+
 /* ── dark theme (generated) ── */
 :global(html[data-theme='dark']) .heading {
   color: #F4F5F8;
@@ -661,4 +666,10 @@
 }
 :global(html[data-theme='dark']) .hero.withArt::before, :global(html[data-theme='dark']) .dayTile.withArt::before {
   background: linear-gradient(100deg, rgba(39, 40, 46, 0.94) 0%, rgba(39, 40, 46, 0.92) 55%, rgba(39, 40, 46, 0.62) 100%);
+}
+:global(html[data-theme='dark']) .proofPill {
+  color: #73E89F;
+}
+:global(html[data-theme='dark']) .proofClose {
+  color: rgba(235, 235, 245, 0.5);
 }

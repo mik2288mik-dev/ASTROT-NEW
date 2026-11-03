@@ -575,3 +575,16 @@
 .nebo-soft-pop > p { margin: 0; color: #5c6170; font-size: 15px; line-height: 1.5; }
 .nebo-soft-pop .nebo-notif-preview { margin-top: 14px; background: #f4f5f8; box-shadow: none; text-align: left; }
 .nebo-soft-pop .nebo-period-cta { width: 100%; margin: 18px 0 0; }
+
+/* Tiles as on the canvas: number and rune centred, moon phase never cut off, ornament under ТАРО */
+.nebo-tile.is-center { align-items: center; text-align: center; }
+.nebo-tile.is-center .nebo-tile-kicker { justify-content: center; }
+.nebo-tile.is-center .nebo-tile-number { position: static; margin: 2px auto 0; font-size: 58px; background: linear-gradient(160deg, #16a3a0 0%, #1f7a8c 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.nebo-tile.is-center .nebo-tile-stone { position: static; margin: 4px auto 0; }
+.nebo-tile.is-center .nebo-tile-foot.is-strong { max-width: none; margin-top: auto; }
+.nebo-tile-moon { gap: 8px !important; }
+.nebo-tile-moon img { width: 32px; height: 32px; }
+.nebo-tile-moon strong { min-width: 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nebo-tile-tarot-word { font-weight: 600; font-size: 22px; letter-spacing: 0.14em; }
+.nebo-tile-tarot-word i { display: block; width: 64px; height: 7px; margin-top: 4px; background: linear-gradient(90deg, transparent, #3b2a8a 30%, #3b2a8a 70%, transparent) center / 100% 1px no-repeat; position: relative; }
+.nebo-tile-tarot-word i::after { content: ''; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; background: #3b2a8a; transform: translate(-50%, -50%) rotate(45deg); }

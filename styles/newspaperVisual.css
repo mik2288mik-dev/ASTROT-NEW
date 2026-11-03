@@ -107,16 +107,17 @@
   box-shadow: 0 0.55rem 1.25rem rgba(20, 120, 255, 0.16) !important;
 }
 
-.forecast-feed-page button,
-.horo-reader-page button,
-.natal-editorial-page button,
-.compat-editorial-page button,
-.matrix-editorial-page button,
-.settings-editorial-page button,
-.charts-editorial-page button,
-.onboarding-editorial-page button,
-.auth-editorial-page button,
-.pw2 button {
+/* Old flat buttons only: the canvas (nebo-*) buttons keep their own shadows and rings. */
+.forecast-feed-page button:not([class*="nebo-"]),
+.horo-reader-page button:not([class*="nebo-"]),
+.natal-editorial-page button:not([class*="nebo-"]),
+.compat-editorial-page button:not([class*="nebo-"]),
+.matrix-editorial-page button:not([class*="nebo-"]),
+.settings-editorial-page button:not([class*="nebo-"]),
+.charts-editorial-page button:not([class*="nebo-"]),
+.onboarding-editorial-page button:not([class*="nebo-"]),
+.auth-editorial-page button:not([class*="nebo-"]),
+.pw2 button:not([class*="nebo-"]) {
   box-shadow: none !important;
 }
 

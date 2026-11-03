@@ -211,7 +211,7 @@ export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: O
 
   const header = (
     <>
-      <AppTopBar title={copy.title} />
+      <AppTopBar title={copy.title} main={stage === 'home'} />
       <MyChartHeader title={copy.title} subtitle={copy.subtitle} active={copy.segment} onOpen={(segment) => onOpenSegment?.(segment)} />
     </>
   );

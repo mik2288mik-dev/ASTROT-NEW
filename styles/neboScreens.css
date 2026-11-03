@@ -1636,3 +1636,54 @@ html[data-theme='dark'] .nebo-charts-add { border-color: rgba(255, 255, 255, 0.1
 .nebo-friend-app.is-vk { background: rgba(0, 119, 255, 0.12); color: #0067dd; }
 .nebo-friend-app.is-wa { background: rgba(37, 211, 102, 0.14); color: #128c4b; }
 .nebo-friend-app[aria-disabled='true'] { opacity: 0.5; pointer-events: none; }
+
+/* Review pass: page title on one line like the canvas, horoscope periods as a grey segmented pill */
+.nebo-page-title h1 { white-space: nowrap; font-size: 26px; letter-spacing: 0.12em; }
+.nebo-page-title h1::before, .nebo-page-title h1::after { width: 28px; }
+.fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 2px !important; margin: 8px 16px 0 !important; padding: 4px !important; border: 0 !important; border-radius: 16px !important; background: rgba(118, 118, 128, 0.12) !important; }
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab { min-height: 40px !important; padding: 0 8px !important; border: 0 !important; border-radius: 12px !important; background: transparent !important; color: #5c6170 !important; font-size: 15px !important; font-weight: 600 !important; }
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab::after { display: none !important; }
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active,
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] { background: #ffffff !important; color: #0b0d12 !important; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important; }
+html[data-theme='dark'] .fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs { background: rgba(118, 118, 128, 0.24) !important; }
+html[data-theme='dark'] .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active,
+html[data-theme='dark'] .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] { background: rgba(255, 255, 255, 0.18) !important; color: #f4f5f8 !important; box-shadow: none !important; }
+
+/* Natal: name large and centred with the birth line under it, as on the canvas */
+.natal-v3-page header[class*='personInline'] { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 10px 0 6px; text-align: center; }
+.natal-v3-page header[class*='personInline'] h1 { margin: 0; color: #0b0d12; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+.natal-v3-page header[class*='personInline'] p { margin: 0; color: #8a8f9c; font-size: 15px; white-space: normal; }
+html[data-theme='dark'] .natal-v3-page header[class*='personInline'] h1 { color: #f4f5f8; }
+.natal-v3-page button[class*='proofPill'] { width: auto; margin: 6px auto 14px; padding: 10px 16px; font-size: 14px; white-space: nowrap; }
+
+/* Rest: ornamental serif title wins over the app font; shelves start with the page inset like the canvas */
+#__next .nebo-rest-head h1 { font-family: var(--font-ornament); font-weight: 600; letter-spacing: 0.14em; }
+.nebo-rest-home .nebo-shelf-row { padding-left: 16px !important; padding-right: 16px !important; scroll-padding-left: 16px; }
+
+/* Compatibility entry as on the canvas (PairStart): grey pill tabs, relation folded into one row, neutral tiles */
+.compat-editorial-tabs { display: grid !important; grid-template-columns: 1fr 1fr; gap: 2px; margin: 10px 16px 0 !important; padding: 4px !important; border: 0 !important; border-radius: 16px !important; background: rgba(118, 118, 128, 0.12) !important; }
+.compat-editorial-tabs button { min-height: 40px; border: 0 !important; border-radius: 12px !important; background: transparent !important; color: #5c6170 !important; font-size: 15px !important; font-weight: 600 !important; box-shadow: none !important; }
+.compat-editorial-tabs button::after { display: none !important; }
+.compat-editorial-tabs button[aria-selected='true'], .compat-editorial-tabs button.is-active, .compat-editorial-tabs button[data-active='true'] { background: #ffffff !important; color: #0b0d12 !important; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important; }
+html[data-theme='dark'] .compat-editorial-tabs { background: rgba(118, 118, 128, 0.24) !important; }
+html[data-theme='dark'] .compat-editorial-tabs button[aria-selected='true'], html[data-theme='dark'] .compat-editorial-tabs button.is-active { background: rgba(255, 255, 255, 0.18) !important; color: #f4f5f8 !important; box-shadow: none !important; }
+.nebo-compat-note { margin: 8px 20px 0; color: #5c6170; font-size: 14px; line-height: 1.45; text-align: center; }
+.nebo-compat-relation { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; border: 0; border-radius: 20px; background: #f4f4f6; color: #0b0d12; font: inherit; text-align: left; cursor: pointer; }
+.nebo-compat-relation span { flex: 1; min-width: 0; }
+.nebo-compat-relation strong { display: block; font-size: 16px; font-weight: 600; }
+.nebo-compat-relation small { display: block; margin-top: 2px; color: #5c6170; font-size: 13px; }
+.nebo-compat-relation em { flex-shrink: 0; color: #4f46e5; font-size: 15px; font-style: normal; font-weight: 600; }
+.compat-context-tiles .compat-context-tile { background: #f4f4f6 !important; color: #0b0d12 !important; border: 0 !important; box-shadow: none !important; }
+.compat-context-tiles .compat-context-tile.is-active { background: rgba(79, 70, 229, 0.12) !important; color: #4f46e5 !important; box-shadow: inset 0 0 0 2px #4f46e5 !important; }
+html[data-theme='dark'] .nebo-compat-relation { background: #27282e; color: #f4f5f8; }
+html[data-theme='dark'] .compat-context-tiles .compat-context-tile { background: #27282e !important; color: #f4f5f8 !important; }
+.compat-entry-form--date .compat-pair-picker { margin: 14px 16px 0 !important; padding: 22px 16px 8px !important; border-radius: 26px 26px 0 0 !important; background: #f4f4f6 !important; }
+.compat-entry-form--date .nebo-compat-note { margin: 0 16px !important; padding: 0 18px 18px; border-radius: 0 0 26px 26px; background: #f4f4f6; }
+html[data-theme='dark'] .compat-entry-form--date .compat-pair-picker, html[data-theme='dark'] .compat-entry-form--date .nebo-compat-note { background: #27282e !important; }
+.compat-entry-form--date .compat-date-section-label, .compat-entry-form--date .compat-new-chart-note { display: block; margin-left: 20px !important; margin-right: 20px !important; }
+.compat-entry-form--date .compat-entry-context, .compat-entry-form--date .nebo-friends-link, .compat-entry-form--date .compat-pairs { margin-left: 16px !important; margin-right: 16px !important; }
+.compat-entry-form--date .compat-date-section-label { margin-top: 22px !important; margin-bottom: 8px; color: #8a8f9c; font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.compat-entry-context--date .compat-date-section-label { margin-left: 4px !important; }
+.compat-editorial-tabs button { white-space: nowrap; font-size: 14.5px !important; padding: 0 6px !important; }
+.compat-entry-form--date .compat-saved-people { margin: 12px 16px 0 !important; }
+.compat-entry-form--date .compat-pair-picker, .compat-entry-form--date .nebo-compat-note { box-shadow: none !important; }

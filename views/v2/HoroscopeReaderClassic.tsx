@@ -293,10 +293,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
 
   return (
     <div className="fresh-page horo-reader-page nebo-horo">
-      <AppTopBar
-        title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}
-        onBack={onBack}
-      />
+      {/* A main tab: the brand bar with the account chip, as on the canvas. */}
+      <AppTopBar title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'} main />
 
       <div className="nebo-page-title">
         <h1>{language === 'ru' ? 'Знаки зодиака' : 'Zodiac signs'}</h1>
