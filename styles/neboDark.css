@@ -5151,6 +5151,18 @@ html[data-theme='dark'] .nebo-rune-info-advice p {
 html[data-theme='dark'] .nebo-oracle-share-fan img {
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
 }
+html[data-theme='dark'] .nebo-qr {
+  background: #1C1D21;
+}
+html[data-theme='dark'] .nebo-friend-app.is-tg {
+  color: #94CFF1;
+}
+html[data-theme='dark'] .nebo-friend-app.is-vk {
+  color: #77B6FF;
+}
+html[data-theme='dark'] .nebo-friend-app.is-wa {
+  color: #6EECA9;
+}
 
 /* ── neboAuth.css ── */
 html[data-theme='dark'] .nebo-auth {

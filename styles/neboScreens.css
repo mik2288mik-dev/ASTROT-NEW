@@ -1622,3 +1622,17 @@ html[data-theme='dark'] .nebo-charts-add { border-color: rgba(255, 255, 255, 0.1
 .nebo-oracle-share-card small { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.8; }
 .nebo-oracle-share-card strong { font-size: 16px; }
 .nebo-oracle-share-card em { font-size: 12px; font-style: normal; opacity: 0.85; }
+
+/* Добавить друга: QR and share apps (canvas Fr_add_a) */
+.nebo-friend-code { display: flex; align-items: center; gap: 14px; }
+.nebo-friend-code-text { flex: 1; min-width: 0; }
+.nebo-qr { flex-shrink: 0; border-radius: 14px; background: #ffffff; padding: 6px; box-sizing: content-box; }
+.nebo-friend-link { display: flex; align-items: center; gap: 10px; }
+.nebo-friend-link span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nebo-friend-link button { flex-shrink: 0; padding: 7px 12px; border: 0; border-radius: 999px; background: rgba(79, 70, 229, 0.1); color: #4f46e5; font: inherit; font-size: 13px; font-weight: 600; }
+.nebo-friend-apps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.nebo-friend-app { display: flex; align-items: center; justify-content: center; height: 46px; border-radius: 14px; font-size: 15px; font-weight: 600; text-decoration: none; }
+.nebo-friend-app.is-tg { background: rgba(42, 171, 238, 0.14); color: #1c8fd0; }
+.nebo-friend-app.is-vk { background: rgba(0, 119, 255, 0.12); color: #0067dd; }
+.nebo-friend-app.is-wa { background: rgba(37, 211, 102, 0.14); color: #128c4b; }
+.nebo-friend-app[aria-disabled='true'] { opacity: 0.5; pointer-events: none; }

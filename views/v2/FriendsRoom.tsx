@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, Copy, MessageSquare, Plus, Send, Share2 } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { QrCode } from '../../components/nebo/QrCode';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate, getCompatScore } from '../../lib/synastry/compatScore';
@@ -154,6 +155,8 @@ export function FriendsRoom({ profile, onBack, onRequestPremium, onOpenCompatibi
   );
 }
 
+const INVITE_TEXT = 'Добавляйся ко мне в NEBO, будем смотреть, какой у нас день и насколько мы совпадаем:';
+
 function AddFriend({ code, onBack, onAdded }: { code: string | null; onBack: () => void; onAdded: (state: FriendsState) => void }) {
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
@@ -175,15 +178,30 @@ function AddFriend({ code, onBack, onAdded }: { code: string | null; onBack: () 
     <div className="fresh-page nebo-friends">
       <AppTopBar title="Добавить друга" onBack={onBack} />
       <section className="nebo-friend-code">
-        <small>Твой код</small>
-        <strong>{code || '…'}</strong>
-        <p>Назови код другу. Он введёт его у себя в NEBO и сразу появится в твоих людях.</p>
-        <button type="button" onClick={() => { if (code) void share(code); }} disabled={!code}><Copy size={15} aria-hidden /> Скопировать код</button>
+        <div className="nebo-friend-code-text">
+          <small>Твой код</small>
+          <strong>{code || '…'}</strong>
+          <p>Назови код другу или покажи QR, и он добавит тебя за секунду.</p>
+          <button type="button" onClick={() => { if (code) void share(code); }} disabled={!code}><Copy size={15} aria-hidden /> Скопировать код</button>
+        </div>
+        {link ? <QrCode value={link} size={112} label="QR-код ссылки-приглашения" /> : null}
       </section>
       <section className="nebo-friend-box">
         <h2 className="nebo-notif-head">Позвать по ссылке</h2>
-        <div className="nebo-friend-link"><span>{link || '…'}</span></div>
-        <button type="button" className="nebo-period-cta" disabled={!code} onClick={() => void share(`Добавляйся ко мне в NEBO, будем смотреть, какой у нас день и насколько мы совпадаем: ${link}`)}>
+        <div className="nebo-friend-link">
+          <span>{link || '…'}</span>
+          <button type="button" disabled={!link} onClick={() => { void navigator.clipboard?.writeText(link).then(() => setNote('Ссылка скопирована')).catch(() => undefined); }}>Копировать</button>
+        </div>
+        <div className="nebo-friend-apps">
+          {([
+            ['Telegram', 'is-tg', `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(INVITE_TEXT)}`],
+            ['VK', 'is-vk', `https://vk.com/share.php?url=${encodeURIComponent(link)}`],
+            ['WhatsApp', 'is-wa', `https://wa.me/?text=${encodeURIComponent(`${INVITE_TEXT} ${link}`)}`],
+          ] as const).map(([name, tone, href]) => (
+            <a key={name} className={`nebo-friend-app ${tone}`} href={link ? href : undefined} target="_blank" rel="noreferrer" aria-disabled={!link}>{name}</a>
+          ))}
+        </div>
+        <button type="button" className="nebo-period-cta" disabled={!code} onClick={() => void share(`${INVITE_TEXT} ${link}`)}>
           <Share2 size={17} aria-hidden /> Отправить ссылку
         </button>
       </section>
