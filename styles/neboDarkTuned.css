@@ -75,3 +75,7 @@ html[data-theme='dark'] .nebo-auth-guest { color: #a5a8ff; }
 /* Startup loading (inline colours in components/ui/Loading.tsx) */
 html[data-theme='dark'] [data-nebo-startup-loading] > div:first-child { color: #f4f5f8 !important; }
 html[data-theme='dark'] [data-nebo-startup-loading] .bg-\[\#241f36\]\/55 { background-color: rgba(255, 255, 255, 0.6); }
+
+/* Inner screen bars: the same graphite fade as the main bar, no frame around «Back» */
+html[data-theme='dark'] .app-top-bar, html[data-theme='dark'] .home-logo-bar.app-top-bar { background: linear-gradient(180deg, rgba(28, 29, 33, 0.97) 0%, rgba(28, 29, 33, 0.85) 65%, rgba(28, 29, 33, 0) 100%) !important; }
+html[data-theme='dark'] .app-top-bar .app-top-bar-action { border-color: transparent !important; background: transparent !important; }

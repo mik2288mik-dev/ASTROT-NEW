@@ -1208,7 +1208,7 @@ export const Settings: React.FC<SettingsProps> = ({
                         {nativeNotifications && notifEnabled ? (
                             <div className="nebo-notif">
                                 <div className="nebo-notif-preview" aria-hidden="true">
-                                    <img src="/assets/brand/nebo-app-icon-192.png" alt="" width={40} height={40} />
+                                    <img src="/assets/brand/nebo-mark.webp" alt="" width={40} height={40} />
                                     <span>
                                         <small>NEBO <i>{nativeExtras.morningTime || '9:00'}</i></small>
                                         <strong>{profile.language === 'en' ? 'An easy day for talking' : 'Сегодня легко договориться'}</strong>

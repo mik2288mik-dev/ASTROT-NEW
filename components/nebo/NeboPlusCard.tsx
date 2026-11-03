@@ -36,7 +36,7 @@ export function NeboPlusCard({ name, label = 'Участник' }: { name: strin
     <div className="nebo-plus-card">
       <span className="nebo-plus-card-sheen" aria-hidden="true" />
       <span className="nebo-plus-card-brand">
-        <img src="/assets/brand/nebo-app-icon-192.png" alt="" width={28} height={28} />
+        <img src="/assets/brand/nebo-mark.webp" alt="" width={28} height={28} />
         <strong>NEBO Plus</strong>
       </span>
       <span className="nebo-plus-card-owner">

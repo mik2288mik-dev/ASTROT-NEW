@@ -148,9 +148,6 @@ html[data-theme='dark'] .text-\[\#171717\] {
 html[data-theme='dark'] .text-\[\#1f1f1f\] {
   color: #F4F5F8;
 }
-html[data-theme='dark'] .text-\[\#241f36\]\/45 {
-  color: rgba(235, 235, 245, 0.523);
-}
 html[data-theme='dark'] .text-\[\#28493f\] {
   color: #F4F5F8;
 }
@@ -5278,6 +5275,9 @@ html[data-theme='dark'] .nebo-moon-sum-cols p {
 }
 html[data-theme='dark'] .fresh-page.nebo-numbers {
   background: linear-gradient(180deg, #4A331C 0%, #1C1D21 420px) !important;
+}
+html[data-theme='dark'] .nebo-splash-ring {
+  background: rgba(39, 40, 46, 0.55);
 }
 
 /* ── neboAuth.css ── */
