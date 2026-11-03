@@ -323,20 +323,25 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
         ) : <p className={styles.focusText}>Считаю небо…</p>}
       </section>
     ) : focus && focusExplanation ? (
-      <section className={styles.focusCard} aria-live="polite">
-        <h2 className={styles.focusTitle}>{focusExplanation.title}</h2>
-        {focusExplanation.yours ? <p className={styles.focusMeta}>{focusExplanation.yours}</p> : null}
-        {/* The whole explanation in plain words right here: what the element is about, the main point,
-            then each part of the chart that says it, named the way an astrologer would. */}
-        {focusExplanation.what ? <p className={styles.focusRole}>{focusExplanation.what}</p> : null}
-        {focusExplanation.meaning ? <p className={styles.focusText}>{isPremium || focusIsFree ? focusExplanation.meaning : firstSentence(focusExplanation.meaning)}</p> : null}
+      <>
+      <p className={styles.tapHint}><Hand size={15} aria-hidden="true"/>Нажми на планету, дом или знак</p>
+      {/* Canvas: a tapped planet, house or sign opens a centred card: what it is, what it means for you, more parts. */}
+      <div className="nebo-sheet-scrim" role="presentation" onClick={() => { setFocus(null); setShowAllParts(false); }}>
+      <section className={`nebo-why ${styles.focusPop}`} role="dialog" aria-modal="true" aria-label={focusExplanation.title} onClick={(event) => event.stopPropagation()}>
+        <button type="button" className="nebo-day-pop-close" onClick={() => { setFocus(null); setShowAllParts(false); }} aria-label="Закрыть"><X size={18} aria-hidden="true"/></button>
+        {focusExplanation.yours ? <p className="nebo-why-kicker">{focusExplanation.yours}</p> : null}
+        <h2>{focusExplanation.title}</h2>
+        <ol className="nebo-why-steps">
+          {focusExplanation.what ? <li className="is-sky"><b>Что это</b><p>{focusExplanation.what}</p></li> : null}
+          {focusExplanation.meaning ? <li className="is-you"><b>У тебя</b><p>{isPremium || focusIsFree ? focusExplanation.meaning : firstSentence(focusExplanation.meaning)}</p></li> : null}
+        </ol>
         {(isPremium || focusIsFree) && focusParts.length ? (
           <div className={styles.focusParts}>
-            {(showAllParts ? focusParts : focusParts.slice(0, 3)).map((part, index) => (
+            {(showAllParts ? focusParts : focusParts.slice(0, 2)).map((part, index) => (
               <p key={index}><b>{part.title}</b>{part.text}</p>
             ))}
-            {focusParts.length > 3 && !showAllParts ? (
-              <button type="button" className={styles.focusMore} onClick={() => setShowAllParts(true)}>Показать ещё {focusParts.length - 3}<ChevronDown size={16} aria-hidden="true"/></button>
+            {focusParts.length > 2 && !showAllParts ? (
+              <button type="button" className={styles.focusMore} onClick={() => setShowAllParts(true)}>Показать ещё {focusParts.length - 2}<ChevronDown size={16} aria-hidden="true"/></button>
             ) : null}
           </div>
         ) : null}
@@ -353,7 +358,10 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
             <LockKeyhole size={15} aria-hidden="true"/>Открыть полностью с Plus<ChevronRight size={16} aria-hidden="true"/>
           </button>
         )}
+        <button type="button" className="nebo-period-cta" onClick={() => { setFocus(null); setShowAllParts(false); }}>Понятно</button>
       </section>
+      </div>
+      </>
     ) : <p className={styles.tapHint}><Hand size={15} aria-hidden="true"/>Нажми на планету, дом или знак</p>}
     {quality !== 'exact' ? <p className={styles.precision}>{quality === 'unknown' ? 'Время рождения не указано.' : 'Время рождения указано примерно.'} Показаны только надёжные положения. Меняющиеся точки и дома не используются в объяснениях.</p> : null}
     <details className={styles.help}><summary><BookOpen size={20} aria-hidden="true"/>Как читать карту<ChevronDown size={18} aria-hidden="true"/></summary><div className={styles.helpGrid}>{HELP.map(({Icon,title,text}) => <div key={title} className={styles.helpItem}><Icon aria-hidden="true"/><div><h3>{title}</h3><p>{text}</p></div></div>)}</div><p className={styles.hint}>Нажми на планету, номер дома или линию внутри круга, чтобы узнать больше.</p></details>

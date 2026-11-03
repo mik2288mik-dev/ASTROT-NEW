@@ -1,7 +1,8 @@
 import React from 'react';
 import styles from './NeboLogo.module.css';
 
-export const NEBO_LOGO_SRC = '/assets/brand/nebo-cloud-logo.png';
+/** The canvas NEBO mark (blue square with an arc and a star); it replaced the old cloud logo. */
+export const NEBO_LOGO_SRC = '/assets/brand/nebo-mark.webp';
 
 type NeboLogoSize = 'compact' | 'header' | 'standard' | 'large' | 'loading';
 
@@ -36,8 +37,8 @@ export function NeboLogo({
       <img
         className={styles.image}
         src={NEBO_LOGO_SRC}
-        width={1448}
-        height={1086}
+        width={128}
+        height={128}
         alt={decorative ? '' : 'NEBO'}
         draggable={false}
         decoding="async"

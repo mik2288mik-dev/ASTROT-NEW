@@ -1818,3 +1818,4 @@ html[data-theme='dark'] .compat-gauge .compat-gauge-hub { fill: #f4f5f8 !importa
 .compat-story-cover .compat-result-change { border: 0 !important; background: none !important; box-shadow: none !important; color: #5b3fd0 !important; font-size: 15px !important; font-weight: 600 !important; }
 html[data-theme='dark'] .compat-story-cover h1 { color: #f4f5f8; }
 html[data-theme='dark'] .compat-story-cover > p, html[data-theme='dark'] .compat-story-cover .compat-result-change { color: #c7c9ff !important; }
+.nebo-legal-mark { display: block; width: 56px !important; height: 56px !important; max-width: none !important; object-fit: cover; margin: 6px auto 0; border-radius: 16px; box-shadow: 0 10px 22px -12px rgba(31, 60, 200, 0.55); }

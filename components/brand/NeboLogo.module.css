@@ -1,8 +1,8 @@
 .logo {
   position: relative;
   display: inline-block;
-  width: 9rem;
-  aspect-ratio: 1.55 / 1;
+  width: 5rem;
+  aspect-ratio: 1 / 1;
   flex: none;
   overflow: visible;
   background: transparent;
@@ -19,31 +19,33 @@
   width: 100%;
   max-width: none;
   height: auto;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
+  border-radius: 22%;
+  box-shadow: 0 10px 24px -12px rgba(31, 60, 200, 0.55);
   pointer-events: none;
   transform: translate(-50%, -50%);
   user-select: none;
 }
 
 .compact {
-  width: 5rem;
+  width: 2.5rem;
 }
 
 .header {
-  width: 6rem;
+  width: 3.25rem;
 }
 
 .standard {
-  width: 9rem;
+  width: 5rem;
 }
 
 .large {
-  width: clamp(15rem, 70vw, 19rem);
+  width: 6.5rem;
 }
 
 .loading {
-  width: min(12rem, 58vw);
+  width: 5rem;
 }
 
 .fullCloud {
@@ -52,19 +54,15 @@
 
 @media (max-width: 360px) {
   .header {
-    width: 5.55rem;
+    width: 3rem;
   }
 
   .standard {
-    width: 8.4rem;
+    width: 4.5rem;
   }
 
   .large {
-    width: min(16.5rem, 76vw);
+    width: 6rem;
   }
 }
 
-/* Dark theme: the same cloud without the white field around it. */
-:global(html[data-theme='dark']) .image {
-  content: url('/assets/brand/nebo-cloud-logo-dark.webp');
-}

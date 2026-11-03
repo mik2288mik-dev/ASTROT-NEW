@@ -83,6 +83,10 @@
 /* «Нажми на планету, дом или знак» under the wheel (canvas Natal) */
 .tapHint { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 6px 0 4px; color: #8a8f9c; font-size: 14px; }
 
+/* The tapped element as a centred card (canvas NatalVenus): long texts scroll inside it */
+.focusPop { max-height: min(78vh, 640px); overflow-y: auto; text-align: left; }
+.focusPop .focusParts { margin-top: 10px; }
+
 /* ── dark theme (generated) ── */
 :global(html[data-theme='dark']) .map {
   color: #F4F5F8;

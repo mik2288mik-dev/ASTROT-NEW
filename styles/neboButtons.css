@@ -17,7 +17,8 @@ html .nebo-friends-invite,
 html .nebo-period-cta,
 html .nebo-cod-actions button,
 html .nebo-crash-cta,
-html .nebo-startup-error-cta {
+html .nebo-startup-error-cta,
+html .nebo-legal-cta {
   background: var(--nebo-cta-bg) !important;
   box-shadow: var(--nebo-cta-shadow) !important;
   color: var(--nebo-cta-fg) !important;
@@ -44,3 +45,4 @@ html[data-theme='dark'] .nebo-cta-pick-row small { color: rgba(235, 235, 245, 0.
 .nebo-cta-pick-sample[data-cta-sample='light'] { background: #ffffff; color: #16171c; box-shadow: inset 0 0 0 1px rgba(11, 13, 18, 0.08); }
 html[data-theme='dark'] .nebo-cta-pick-sample[data-cta-sample='ink'] { background: #f2f3f5; color: #111216; }
 html[data-theme='dark'] .nebo-cta-pick-sample[data-cta-sample='light'] { background: #2a2c34; color: #ffffff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
+html .legal-acknowledgement-screen button.nebo-legal-cta { background: var(--nebo-cta-bg) !important; box-shadow: var(--nebo-cta-shadow) !important; color: var(--nebo-cta-fg) !important; }

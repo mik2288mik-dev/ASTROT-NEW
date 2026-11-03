@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { NeboLogo } from '../components/brand/NeboLogo';
 import { Loading } from '../components/ui/Loading';
 import { STORE_RELEASE_CONFIG } from '../lib/storeReleaseConfig';
 import { apiFetch } from '../services/apiClient';
@@ -210,7 +209,7 @@ export function LegalAcknowledgementGate({
         }}
       >
         <div className="flex justify-center">
-          <NeboLogo className="legal-acknowledgement-logo" size="header" priority />
+          <img className="legal-acknowledgement-logo nebo-legal-mark" src="/assets/brand/nebo-mark.webp" alt="NEBO" width={56} height={56} />
         </div>
         <h1 className="mt-1 font-serif text-[1.7rem] font-normal leading-[1.05]">Согласия и условия</h1>
         <p className="mt-1.5 max-w-[27rem] text-[0.84rem] leading-[1.38] text-[#625f5a]">
@@ -304,7 +303,7 @@ export function LegalAcknowledgementGate({
           aria-busy={submitting}
           disabled={loading || submitting}
           onClick={() => void submit()}
-          className="mt-auto min-h-12 w-full rounded-full bg-[#171717] px-5 py-3 text-[0.94rem] font-medium text-white disabled:cursor-wait disabled:opacity-55"
+          className="nebo-legal-cta mt-auto min-h-12 w-full rounded-full bg-[#171717] px-5 py-3 text-[0.94rem] font-medium text-white disabled:cursor-wait disabled:opacity-55"
         >
           Продолжить
         </button>
