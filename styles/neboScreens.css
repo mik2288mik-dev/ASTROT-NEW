@@ -1636,3 +1636,15 @@ html[data-theme='dark'] .nebo-charts-add { border-color: rgba(255, 255, 255, 0.1
 .nebo-friend-app.is-vk { background: rgba(0, 119, 255, 0.12); color: #0067dd; }
 .nebo-friend-app.is-wa { background: rgba(37, 211, 102, 0.14); color: #128c4b; }
 .nebo-friend-app[aria-disabled='true'] { opacity: 0.5; pointer-events: none; }
+
+/* Review pass: page title on one line like the canvas, horoscope periods as a grey segmented pill */
+.nebo-page-title h1 { white-space: nowrap; font-size: 26px; letter-spacing: 0.12em; }
+.nebo-page-title h1::before, .nebo-page-title h1::after { width: 28px; }
+.fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 2px !important; margin: 8px 16px 0 !important; padding: 4px !important; border: 0 !important; border-radius: 16px !important; background: rgba(118, 118, 128, 0.12) !important; }
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab { min-height: 40px !important; padding: 0 8px !important; border: 0 !important; border-radius: 12px !important; background: transparent !important; color: #5c6170 !important; font-size: 15px !important; font-weight: 600 !important; }
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab::after { display: none !important; }
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active,
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] { background: #ffffff !important; color: #0b0d12 !important; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important; }
+html[data-theme='dark'] .fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs { background: rgba(118, 118, 128, 0.24) !important; }
+html[data-theme='dark'] .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active,
+html[data-theme='dark'] .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] { background: rgba(255, 255, 255, 0.18) !important; color: #f4f5f8 !important; box-shadow: none !important; }

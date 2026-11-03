@@ -5166,6 +5166,14 @@ html[data-theme='dark'] .nebo-friend-app.is-vk {
 html[data-theme='dark'] .nebo-friend-app.is-wa {
   color: #6EECA9;
 }
+html[data-theme='dark'] .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab {
+  color: rgba(235, 235, 245, 0.5) !important;
+}
+html[data-theme='dark'] .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active, html[data-theme='dark'] .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] {
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #F4F5F8 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.292) !important;
+}
 
 /* ── neboAuth.css ── */
 html[data-theme='dark'] .nebo-auth {

@@ -89,7 +89,7 @@ export function NumerologyRoom({ profile, onOpenSegment, onRequestPremium }: Num
 
   const header = (
     <>
-      <AppTopBar title="Числа" />
+      <AppTopBar title="Числа" main />
       <MyChartHeader
         title="Квадрат Пифагора"
         subtitle={subtitle}

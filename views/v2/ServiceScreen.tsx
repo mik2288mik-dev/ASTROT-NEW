@@ -101,7 +101,7 @@ export function ServiceScreen({
 
   return (
     <div ref={rootRef} className={restHome ? 'fresh-page services-screen-page nebo-rest' : 'fresh-page services-screen-page'}>
-      <AppTopBar title={restHome ? (ru ? 'Отдых' : 'Unwind') : (ru ? 'Меню' : 'Menu')} />
+      <AppTopBar title={restHome ? (ru ? 'Отдых' : 'Unwind') : (ru ? 'Меню' : 'Menu')} main={restHome} />
       {restHome && ru ? (
         <RestHome
           onOpenSounds={onOpenSounds}

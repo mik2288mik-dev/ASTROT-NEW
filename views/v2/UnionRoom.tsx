@@ -1424,6 +1424,7 @@ Check our compatibility from your side in NEBO.`
       <AppTopBar
         title={ru ? 'Совместимость' : 'Compatibility'}
         onBack={withBack ? backToEntry : undefined}
+        main={!withBack}
       />
       {withBack ? null : (
         <div className="nebo-page-title">

@@ -158,7 +158,7 @@ export function NatalMagazine({
   const sunSign = sunSignFromDate(subjectBirthDate);
   const header = (
     <>
-      <AppTopBar title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} />
+      <AppTopBar title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} main />
       <MyChartHeader
         title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
         subtitle={[subjectName, sunSign ? getZodiacSign(language, sunSign) : ''].filter(Boolean).join(' · ')}
