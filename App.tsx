@@ -47,6 +47,7 @@ import { PromoBanner } from './components/PromoBanner';
 import { AppEntryAnnouncement } from './components/AppEntryAnnouncement';
 import { CoachMarks } from './components/nebo/CoachMarks';
 import { PlusWelcome } from './components/nebo/PlusWelcome';
+import { addFriend, rememberInviteFromUrl, takePendingInvite } from './services/friendsService';
 import { AndroidUpdatePrompt } from './components/AndroidUpdatePrompt';
 import { useAndroidUpdateGate } from './services/useAndroidUpdateGate';
 import { AndroidVpnWarning } from './components/AndroidVpnWarning';
@@ -168,6 +169,7 @@ function openOnNextEntry(key: string, value: string) {
 }
 
 const NumerologyRoom = dynamic(() => import('./views/v2/NumerologyRoom').then((module) => module.NumerologyRoom), { ssr: false });
+const FriendsRoom = dynamic(() => import('./views/v2/FriendsRoom').then((module) => module.FriendsRoom), { ssr: false });
 const MoonRoom = dynamic(() => import('./views/v2/MoonRoom').then((module) => module.MoonRoom), { ssr: false });
 const TarotRoom = dynamic(() => import('./views/v2/OracleRoom').then((module) => module.TarotRoom), { ssr: false });
 const RunesRoom = dynamic(() => import('./views/v2/OracleRoom').then((module) => module.RunesRoom), { ssr: false });
@@ -439,6 +441,14 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
     const [firstValueReached, setFirstValueReached] = useState(false);
     const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
     const [plusWelcomeOpen, setPlusWelcomeOpen] = useState(false);
+    // An invite link (?friend=NEBO-XXXX) adds the friend as soon as the person is in the app.
+    useEffect(() => { rememberInviteFromUrl(); }, []);
+    useEffect(() => {
+        if (!profile?.id) return;
+        const code = takePendingInvite();
+        if (!code) return;
+        void addFriend(code).then(() => { navigateTo('friends'); }).catch(() => undefined);
+    }, [profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
     const [appEntryAnnouncement, setAppEntryAnnouncement] = useState<AppEntryAnnouncementData | null>(null);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
@@ -2760,6 +2770,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onPremiumContinuationHandled={completePremiumContinuation}
                             canPromotePremium={premiumPromotionAllowed}
                             onOpenEncyclopedia={() => navigateTo('encyclopedia')}
+                            onOpenFriends={() => navigateTo('friends')}
                         />
                         <PromoBanner
                             category="natal"
@@ -2804,6 +2815,15 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             profile={profile}
                             onBack={() => { void handleBack(); }}
                             onRequestPremium={premiumPromotionAllowed ? () => { void requestPremium('stories', { placement: 'stories', featureKey: 'story_series', triggerType: 'locked_feature', returnView: 'stories' }); } : undefined}
+                        />
+                    </div>
+                ) : view === 'friends' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        <FriendsRoom
+                            profile={profile}
+                            onBack={() => { void handleBack(); }}
+                            onRequestPremium={openServiceStore}
+                            onOpenCompatibility={() => navigateTo('synastry')}
                         />
                     </div>
                 ) : view === 'moon' ? (
@@ -2985,6 +3005,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                             onManageSubscription={managePremiumSubscription}
                             onOpenAdmin={openAdmin}
                             onOpenCharts={openProfileCharts}
+                            onOpenFriends={() => navigateTo('friends')}
                             onLogout={handleLogout}
                             onDeleteAccount={handleDeleteAccount}
                             recoveryIdentityRequired={pendingPremiumRecovery !== null}

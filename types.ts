@@ -1384,6 +1384,7 @@ export type ViewState =
   | 'tarot'
   | 'runes'
   | 'moon'
+  | 'friends'
   | 'settings'
   | 'charts'
   | 'tests'

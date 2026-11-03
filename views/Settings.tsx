@@ -193,6 +193,7 @@ export interface SettingsProps {
     onManageSubscription?: () => Promise<boolean> | boolean;
     onOpenAdmin?: () => void;
     onOpenCharts?: () => void;
+    onOpenFriends?: () => void;
     onBack?: () => void;
     onLogout?: () => Promise<void>;
     onDeleteAccount?: () => Promise<void>;
@@ -259,6 +260,7 @@ export const Settings: React.FC<SettingsProps> = ({
     onManageSubscription,
     onOpenAdmin,
     onOpenCharts,
+    onOpenFriends,
     onBack,
     onLogout,
     onDeleteAccount,
@@ -1864,6 +1866,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                 />
                                 <SettingsRow icon={icon('person')} label={en ? 'Gender' : 'Пол'} value={genderValue} target="gender" onClick={() => openSettingsScreen('gender')} />
                                 {onOpenCharts ? <SettingsRow icon={icon('star')} label={en ? 'My charts' : 'Мои карты'} onClick={onOpenCharts} /> : null}
+                                {onOpenFriends ? <SettingsRow icon={icon('person')} label={en ? 'My people' : 'Мои люди'} value={en ? 'friends and chat' : 'друзья и переписка'} onClick={onOpenFriends} /> : null}
                                 {!profile.isGuest ? (
                                     <SettingsRow
                                         icon={icon('envelope')}
