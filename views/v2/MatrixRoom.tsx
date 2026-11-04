@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, LockKeyhole } from 'lucide-react';
 import type { UserProfile } from '../../types';
-import { computeMatrix, type MatrixLifeArea, type MatrixPosition } from '../../lib/matrixOfDestiny';
+import { computeMatrix, reduceToArcana, type MatrixLifeArea, type MatrixPosition } from '../../lib/matrixOfDestiny';
 import { getArcana, MATRIX_SUBTITLE, MATRIX_TITLE } from '../../lib/matrixArcana';
 import { toDateInputValue } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
@@ -13,7 +13,6 @@ import { ACTION_FEEDBACK, showActionFeedback } from '../../components/lumia-ui/A
 import styles from './MatrixRoom.module.css';
 import scrollStyles from './MatrixRoomScrollFix.module.css';
 import { hasActivePremium } from '../../lib/accessMatrix';
-import { PremiumHook } from '../../components/premium/PremiumHook';
 import { tr } from '../../lib/i18n';
 
 type Props = { profile: UserProfile; onBack: () => void; onOpenProfile?: () => void; onOpenCharts?: () => void; embedded?: boolean; onRequestPremium?: () => void; onOpenSegment?: (segment: MyChartSegment) => void };
@@ -27,25 +26,27 @@ type Screen = { kind: 'home' } | { kind: 'point'; point: Point } | { kind: 'them
 
 const cap = (value: string) => value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 const formula = (values: number[], result: number) => `${values.join(' + ')} → ${result}`;
-const NODE_COLORS: Record<string, { background: string; border: string; ink: string }> = {
-  month: { background: '#fff8ec', border: '#f1c982', ink: '#7a4a0b' },
-  day: { background: '#fff8ec', border: '#f1c982', ink: '#7a4a0b' },
-  personal: { background: '#eff6ff', border: '#aacbed', ink: '#225b8f' },
-  social: { background: '#eff6ff', border: '#aacbed', ink: '#225b8f' },
-  year: { background: '#f6f0ff', border: '#cdb9ee', ink: '#68419c' },
-  money: { background: '#edf9f0', border: '#a7d7b2', ink: '#237346' },
-  love: { background: '#fff0f4', border: '#efb6c6', ink: '#9a3653' },
-  base: { background: '#f5f6f8', border: '#d3d7dc', ink: '#4f5862' },
-  center: { background: '#f4f0ff', border: '#bca9e8', ink: '#513b8c' },
+type NodeKind = 'axis' | 'center' | 'gold' | 'small' | 'pink';
+/** Points on the 350px canvas diagram: x, y, the step it appears on, its look. */
+const NODE_LAYOUT: Record<string, [number, number, number, NodeKind]> = {
+  day: [28, 175, 1, 'axis'], month: [175, 28, 2, 'axis'], year: [322, 175, 3, 'axis'], base: [175, 322, 4, 'axis'], center: [175, 175, 5, 'center'],
+  personal: [71, 71, 6, 'gold'], talents: [279, 71, 6, 'gold'], social: [279, 279, 6, 'gold'], past: [71, 279, 6, 'gold'],
+  habit: [175, 268, 6, 'small'], purpose: [175, 228, 6, 'small'], money: [268, 228, 6, 'pink'], love: [228, 268, 6, 'pink'],
 };
 
-function Diagram({ points, selected, onSelect }: { points: Point[]; selected: string; onSelect: (point: Point) => void }) {
-  return <div className={styles.diagram} aria-label="Интерактивная матрица">
-    <svg viewBox="0 0 280 280" aria-hidden="true"><circle cx="140" cy="140" r="104" /><path d="M140 36 244 140 140 244 36 140Z" /><path d="M140 36V244M36 140H244M66 66l148 148M214 66 66 214" /></svg>
+function Diagram({ points, step, onSelect }: { points: Point[]; step: number; onSelect: (point: Point) => void }) {
+  const on = (needed: number) => (step >= needed ? 1 : 0);
+  return <div className={styles.diagram} aria-label={MATRIX_TITLE.ru}>
+    <svg width="350" height="350" viewBox="0 0 350 350" aria-hidden="true">
+      <g opacity={on(2)}><polygon className={styles.diamond} points="28,175 175,28 322,175 175,322" /></g>
+      <g opacity={on(6)}><rect className={styles.square} x="71" y="71" width="208" height="208" /></g>
+      <g opacity={on(3)}><line x1="28" y1="175" x2="322" y2="175" /><line x1="175" y1="28" x2="175" y2="322" /></g>
+      <g opacity={on(6)}><line x1="71" y1="71" x2="279" y2="279" /><line x1="279" y1="71" x2="71" y2="279" /></g>
+      <g opacity={on(6)}><line className={styles.dash} x1="175" y1="322" x2="322" y2="175" /></g>
+    </svg>
     {points.map((point) => {
-      const color = NODE_COLORS[point.id];
-      const isSelected = selected === point.id;
-      return <button key={point.id} type="button" aria-label={`${point.label}: ${point.value}`} aria-pressed={isSelected} onClick={() => onSelect(point)} className={`${styles.node} ${styles[`node${point.place}`]} ${isSelected ? styles.selected : ''}`} style={{ borderColor: color.border, background: isSelected ? color.ink : color.background, color: isSelected ? '#fff' : color.ink, boxShadow: isSelected ? `0 0 0 4px ${color.background}` : undefined }}>{point.value}</button>;
+      const [x, y, appears, kind] = NODE_LAYOUT[point.id];
+      return <button key={point.id} type="button" aria-label={`${point.label}: ${point.value}`} data-kind={kind} data-on={step >= appears} className={styles.node} style={{ left: x, top: y }} onClick={() => onSelect(point)}>{point.value}</button>;
     })}
   </div>;
 }
@@ -68,13 +69,34 @@ export function MatrixRoom({ profile, onBack, embedded = false, onRequestPremium
     const text = (value: number) => getArcana(value)[ru ? 'essence' : 'essenceEn'];
     const day = p('portrait'), month = p('talents'), year = p('karma'), base = p('comfort'), personal = p('personalPurpose'), social = p('socialPurpose'), center = p('self'), money = a('money'), love = a('love');
     const item = (id: string, source: MatrixPosition | MatrixLifeArea, f: string, place: string): Point => ({ id, value: source.arcana, label: source.label, hint: source.hint, formula: f, copy: text(source.arcana), place });
+    const extra = (id: string, value: number, label: string, hint: string, f: string): Point => ({ id, value, label, hint, formula: f, copy: cap(text(value)), place: '' });
+    const talents = reduceToArcana(month.arcana + year.arcana);
+    const past = reduceToArcana(base.arcana + day.arcana);
+    const habit = reduceToArcana(base.arcana + center.arcana);
+    const purpose = reduceToArcana(habit + reduceToArcana(year.arcana + center.arcana));
     return [
-      item('month', month, `${result.month} → ${month.arcana}`, 'Top'), item('personal', personal, formula([day.arcana, month.arcana], personal.arcana), 'TopRight'), item('year', year, `${String(result.year).split('').join(' + ')} → ${year.arcana}`, 'Right'),
-      item('social', social, formula([year.arcana, base.arcana], social.arcana), 'BottomRight'), item('base', base, formula([day.arcana, month.arcana, year.arcana], base.arcana), 'Bottom'), item('love', love, formula([day.arcana, personal.arcana], love.arcana), 'BottomLeft'),
-      item('day', day, `${result.day} → ${day.arcana}`, 'Left'), item('money', money, formula([month.arcana, base.arcana], money.arcana), 'TopLeft'), item('center', center, formula([day.arcana, month.arcana, year.arcana, base.arcana], center.arcana), 'Center'),
+      item('day', day, `${result.day} → ${day.arcana}`, 'Left'), item('month', month, `${result.month} → ${month.arcana}`, 'Top'),
+      item('year', year, formula(String(result.year).split('').map(Number), year.arcana), 'Right'), item('base', base, formula([day.arcana, month.arcana, year.arcana], base.arcana), 'Bottom'),
+      item('center', center, formula([day.arcana, month.arcana, year.arcana, base.arcana], center.arcana), 'Center'),
+      item('personal', personal, formula([day.arcana, month.arcana], personal.arcana), 'TopLeft'),
+      extra('talents', talents, ru ? 'Таланты' : tr('Talents'), ru ? 'Что даётся легче, чем другим' : tr('What comes easier to you'), formula([month.arcana, year.arcana], talents)),
+      item('social', social, formula([year.arcana, base.arcana], social.arcana), 'BottomRight'),
+      extra('past', past, ru ? 'Что тянется из прошлого' : tr('What comes from the past'), ru ? 'Привычки, которые повторяются' : tr('Habits that repeat'), formula([base.arcana, day.arcana], past)),
+      extra('habit', habit, ru ? 'Привычки' : tr('Habits'), ru ? 'Как ты поступаешь не задумываясь' : tr('What you do without thinking'), formula([base.arcana, center.arcana], habit)),
+      extra('purpose', purpose, ru ? 'Предназначение' : tr('Purpose'), ru ? 'К чему тебя тянет' : tr('What draws you'), `→ ${purpose}`),
+      item('money', money, formula([month.arcana, base.arcana], money.arcana), 'BottomRight'), item('love', love, formula([day.arcana, personal.arcana], love.arcana), 'BottomLeft'),
     ];
   }, [result, ru]);
   const selected = points.find((point) => point.id === selectedId) || points.find((point) => point.id === 'center');
+  // The points appear one by one, as on the canvas. Only the first time on this date, and not when motion is reduced.
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    if (!result) return undefined;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setStep(6); return undefined; }
+    setStep(0);
+    const timer = window.setInterval(() => setStep((value) => { if (value >= 6) { window.clearInterval(timer); return value; } return value + 1; }), 900);
+    return () => window.clearInterval(timer);
+  }, [result]);
 
   const themes = useMemo(() => {
     if (!result) return null;
@@ -124,18 +146,50 @@ export function MatrixRoom({ profile, onBack, embedded = false, onRequestPremium
       ? <AppTopBar title={title} onBack={goHome} />
       : <><AppTopBar title={title} main /><MyChartHeader title={MATRIX_TITLE[lang]} active="matrix" onOpen={(segment) => onOpenSegment?.(segment)} /></>)}
     <main className={`${styles.content} ${scrollStyles.content}`}>
-      {screen.kind === 'home' && <>
-        <p className={styles.dateLine}>{ru ? 'Дата рождения' : tr('Birth date')} <strong>{date.split('-').reverse().join('.')}</strong></p>
-        <details className={styles.recalculate}><summary>{ru ? 'Изменить дату' : tr('Change date')}</summary><div><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /><button type="button" onClick={calculate}>{ru ? 'Пересчитать' : tr('Recalculate')}</button></div></details>
-        <section className={styles.matrixBlock}><p className={styles.eyebrow}>{ru ? 'Твоя матрица' : tr('Your matrix')}</p><Diagram points={points} selected={selectedId} onSelect={(point) => { lumiaSelectionHaptic(); setSelectedId(point.id); }} /><div className={styles.selection}><b>{selected.value}</b><span><strong>{selected.label}</strong><small style={{ fontSize: 13, fontWeight: 600 }}>{selected.formula}</small></span><button type="button" onClick={() => { if (locked && PREMIUM_POINTS.has(selected.id)) { requestPremium(); return; } lumiaSelectionHaptic(); setScreen({ kind: 'point', point: selected }); }}>{locked && PREMIUM_POINTS.has(selected.id) ? 'NEBO Plus' : (ru ? 'Разобрать' : tr('Open'))}</button></div></section>
-        <section className={styles.themes}><h1>{ru ? 'Разбор' : tr('Reading')}</h1><p>{ru ? 'Нажми на тему или число, откроем отдельный разбор.' : tr('Choose a theme or a number for its own reading.')}</p>{(Object.keys(themes) as Theme[]).map((key) => { const closed = locked && PREMIUM_THEMES.has(key); return <button type="button" className={styles.themeRow} style={{ gridTemplateColumns: 'minmax(0, 1fr) 18px' }} key={key} onClick={() => { if (closed) { requestPremium(); return; } lumiaSelectionHaptic(); setScreen({ kind: 'theme', theme: key }); }}><span><strong>{themes[key].title}</strong><small>{closed ? lockedLead(key) : themes[key].lead}</small></span>{closed ? <LockKeyhole aria-hidden="true" size={16} /> : <ChevronRight aria-hidden="true" />}</button>; })}</section>
-        {locked ? <PremiumHook
-          title={`Деньги, ${moneyNumber}, отношения, ${loveNumber}: что это значит для тебя`}
-          items={['Деньги: как ты зарабатываешь и на что легче тратить', 'Отношения: что для тебя важно рядом с человеком', 'По возрастам: три этапа жизни', 'Полный разбор: восемь глав от главного до итога']}
-          cta="Открыть матрицу целиком"
-          onOpen={requestPremium}
-        /> : <section className={styles.fullCard}><p>{ru ? 'Полный разбор' : tr('Full reading')}</p><h2>{ru ? 'Собрать всё вместе' : tr('See the whole picture')}</h2><span>{ru ? 'Восемь глав: от главной точки до итога.' : tr('Eight chapters, from the main point to the takeaway.')}</span><button type="button" onClick={() => { lumiaSelectionHaptic(); setScreen({ kind: 'full' }); }}>{ru ? 'Открыть полный разбор' : tr('Open full reading')}</button></section>}
-      </>}
+      {screen.kind === 'home' && (() => {
+        const value = (id: string) => points.find((point) => point.id === id)?.value ?? 0;
+        const stepLines: Array<[string, string]> = [
+          [ru ? `Считаем по дате ${date.split('-').reverse().join('.')}` : `From the date ${date.split('-').reverse().join('.')}`, ru ? 'Начинаем с дня рождения' : tr('Starting with the birthday')],
+          [ru ? 'Шаг 1 · День' : tr('Step 1 · Day'), `${ru ? 'Точка слева' : tr('Left point')}: ${value('day')}`],
+          [ru ? 'Шаг 2 · Месяц' : tr('Step 2 · Month'), `${ru ? 'Точка сверху' : tr('Top point')}: ${value('month')}`],
+          [ru ? 'Шаг 3 · Год' : tr('Step 3 · Year'), points.find((point) => point.id === 'year')?.formula ?? ''],
+          [ru ? 'Шаг 4 · Сумма' : tr('Step 4 · Sum'), points.find((point) => point.id === 'base')?.formula ?? ''],
+          [ru ? 'Шаг 5 · Центр' : tr('Step 5 · Center'), points.find((point) => point.id === 'center')?.formula ?? ''],
+          [ru ? 'Готово · классическая методика' : tr('Done · the classic method'), ru ? 'Нажми на любой раздел, чтобы прочитать' : tr('Tap any section to read it')],
+        ];
+        const openPoint = (point: Point) => {
+          if (locked && PREMIUM_POINTS.has(point.id)) { requestPremium(); return; }
+          lumiaSelectionHaptic();
+          setSelectedId(point.id);
+          setScreen({ kind: 'point', point });
+        };
+        const centerArcana = getArcana(value('center'));
+        const chips: Record<Theme, string> = { character: String(value('center')), money: String(value('money')), love: String(value('love')), age: '0-80' };
+        return <>
+          <Diagram points={points} step={step} onSelect={openPoint} />
+          <div className={styles.stepLine}><span>{stepLines[Math.min(step, 6)][0]}</span><strong>{stepLines[Math.min(step, 6)][1]}</strong></div>
+          <section className={styles.centerBlock}>
+            <p>{ru ? `Центр · ${value('center')} · аркан ${centerArcana.name}` : `Center · ${value('center')} · ${centerArcana.nameEn}`}</p>
+            <h2>{cap(ru ? centerArcana.keyword : centerArcana.keywordEn)}</h2>
+            <span>{cap(ru ? centerArcana.essence : centerArcana.essenceEn)}</span>
+          </section>
+          <section className={styles.sectionList}>
+            {(Object.keys(themes) as Theme[]).map((key) => {
+              const closed = locked && PREMIUM_THEMES.has(key);
+              return <button type="button" key={key} onClick={() => { if (closed) { requestPremium(); return; } lumiaSelectionHaptic(); setScreen({ kind: 'theme', theme: key }); }}>
+                <i data-closed={closed}>{chips[key]}</i>
+                <span><strong>{themes[key].title}</strong><small>{closed ? lockedLead(key) : themes[key].lead}</small></span>
+                {closed ? <LockKeyhole aria-hidden="true" size={16} /> : <ChevronRight aria-hidden="true" size={16} />}
+              </button>;
+            })}
+            {locked ? <button type="button" className={styles.sectionCta} onClick={requestPremium}>{ru ? 'Вся матрица в Plus' : tr('The whole matrix in Plus')}</button> : <button type="button" key="full" onClick={() => { lumiaSelectionHaptic(); setScreen({ kind: 'full' }); }}>
+                <i>8</i>
+                <span><strong>{ru ? 'Полный разбор' : tr('Full reading')}</strong><small>{ru ? 'Восемь глав от главного до итога' : tr('Eight chapters, from the main point to the conclusion')}</small></span>
+                <ChevronRight aria-hidden="true" size={16} />
+              </button>}
+          </section>
+        </>;
+      })()}
       {screen.kind === 'point' && <article className={styles.detail}><p className={styles.eyebrow}>{ru ? 'Точка матрицы' : tr('Matrix point')}</p><h1>{screen.point.label}</h1><p className={styles.lead}>{screen.point.hint}</p><section className={styles.formula}><small>{ru ? 'Как посчитано' : tr('How it is calculated')}</small><strong>{screen.point.formula}</strong></section><section><h2>{ru ? 'Что здесь видно' : tr('What this shows')}</h2><p>{screen.point.copy}</p></section><section><h2>{ru ? 'Как читать эту точку' : tr('How to read this point')}</h2><p>{ru ? 'Смотри на неё вместе с соседними числами: тогда схема остаётся понятной и не превращается в набор ярлыков.' : tr('Read it with the nearby numbers, not as a label on its own.')}</p></section><button type="button" className={styles.secondary} onClick={goHome}>{ru ? 'Вернуться к матрице' : tr('Back to matrix')}</button></article>}
       {screen.kind === 'theme' && theme && <article className={styles.detail}><p className={styles.eyebrow}>{ru ? 'Разбор' : tr('Reading')}</p><h1>{theme.title}</h1><p className={styles.lead}>{theme.lead}</p>{theme.blocks.map(([heading, copy]) => <section key={heading}><h2>{heading}</h2><p>{copy}</p></section>)}<button type="button" className={styles.secondary} onClick={goHome}>{ru ? 'Вернуться к матрице' : tr('Back to matrix')}</button></article>}
       {screen.kind === 'full' && <article className={styles.fullReading}><nav className={styles.chapterNav} aria-label={ru ? 'Главы разбора' : tr('Reading chapters')}>{[['main', ru ? 'Главное' : tr('Main')], ['character', ru ? 'Характер' : tr('Character')], ['money', ru ? 'Деньги' : tr('Money')], ['love', ru ? 'Отношения' : tr('Relationships')], ['age', ru ? 'Возраст' : tr('Age')]].map(([id, label]) => <button type="button" key={id} onClick={() => document.getElementById(`matrix-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{label}</button>)}</nav><section className={styles.fullIntro}><p>{ru ? 'Твоя общая картина' : tr('Your overall picture')}</p><h1>{ru ? 'Восемь глав, чтобы спокойно собрать схему воедино.' : tr('Eight chapters to put the diagram together.')}</h1><span>{ru ? 'Это развлекательная интерпретация даты рождения, а не прогноз.' : tr('This is an entertaining interpretation, not a prediction.')}</span></section>{chapters.map(([id, cap, heading, lead, copy]) => <section className={styles.chapter} id={`matrix-${id}`} key={id}><p>{cap}</p><h2>{heading}</h2><strong>{lead}</strong><span>{copy}</span></section>)}<button type="button" className={styles.secondary} onClick={goHome}>{ru ? 'Вернуться к матрице' : tr('Back to matrix')}</button></article>}
