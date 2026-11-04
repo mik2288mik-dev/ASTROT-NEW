@@ -189,5 +189,5 @@ function dateFields(birthDate: string, now = new Date()): Record<string, unknown
   };
 }
 
-const SIGN_KEYS = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'];
-export const canvasSignKey = (index: number): string => SIGN_KEYS[index] ?? 'aries';
+const SIGN_KEYS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+export const canvasSignKey = (index: number): string => SIGN_KEYS[index] ?? 'Aries';
