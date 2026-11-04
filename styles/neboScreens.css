@@ -1970,3 +1970,69 @@ html[data-theme='dark'] .nebo-horo-grid-item[aria-pressed='true'] { background: 
 @keyframes neboFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 .nebo-tile-stone { animation: neboFloat 7s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .nebo-tile-stone { animation: none; } }
+
+/* Tarot and runes home, values from the canvas */
+.nebo-oracle .nebo-oracle-hero { position: relative; display: block; height: 196px; min-height: 0; margin: 0; padding: 0 !important; overflow: hidden; border-radius: 0; }
+.nebo-oracle .nebo-oracle-word { position: absolute; left: 30px; top: 34px; display: flex; flex-direction: column; align-items: center; gap: 5px; color: #3b2a8a; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 27px; line-height: 1; font-weight: 700; letter-spacing: 0.12em; padding-left: 0.12em; text-transform: uppercase; }
+.nebo-oracle.is-runes .nebo-oracle-word { color: #1c3348; }
+.nebo-oracle .nebo-oracle-hero-copy { position: absolute; left: 20px; bottom: 20px; display: flex; max-width: 200px; flex-direction: column; gap: 4px; padding: 0; }
+.nebo-oracle .nebo-oracle-hero-copy .nebo-kicker { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.nebo-oracle .nebo-oracle-hero-copy h2 { margin: 0; font-size: 24px; line-height: 1.12; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-oracle .nebo-oracle-hero-art { position: absolute; inset: 0; width: auto; height: auto; }
+.nebo-oracle.is-tarot .nebo-oracle-hero-art > * { position: absolute; border: 1.5px solid rgba(255, 255, 255, 0.85); border-radius: 12px; box-shadow: 0 14px 24px -12px rgba(0, 0, 30, 0.8); object-fit: cover; }
+.nebo-oracle.is-tarot .nebo-oracle-hero-art > :nth-child(1) { right: 92px; top: 22px; width: 84px; height: 132px; transform: rotate(-12deg); }
+.nebo-oracle.is-tarot .nebo-oracle-hero-art > :nth-child(2) { right: 26px; top: 14px; width: 92px; height: 144px; animation: neboOracleFloat 7s ease-in-out infinite; }
+@keyframes neboOracleFloat { 0%, 100% { transform: translateY(0) rotate(8deg); } 50% { transform: translateY(-10px) rotate(8deg); } }
+.nebo-oracle.is-runes .nebo-oracle-hero-art > * { position: absolute; animation: neboFloat 7s ease-in-out infinite; }
+.nebo-oracle.is-runes .nebo-oracle-hero-art > :nth-child(1) { right: 34px; top: 22px; }
+.nebo-oracle.is-runes .nebo-oracle-hero-art > :nth-child(2) { right: 98px; top: 46px; animation-delay: -2.3s; }
+.nebo-oracle.is-runes .nebo-oracle-hero-art > :nth-child(3) { right: 40px; top: 104px; animation-delay: -4.6s; }
+.nebo-oracle .nebo-oracle-day-row { width: calc(100% - 32px); margin: 12px 16px 0; padding: 12px 14px; border-radius: 22px; }
+.nebo-oracle .nebo-oracle-ask { margin: 12px 16px 0; padding: 14px 16px; }
+.nebo-oracle .nebo-oracle-ask h2 { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9aa0ae; }
+.nebo-oracle .nebo-oracle-ask textarea { margin-top: 6px; font-weight: 500; line-height: 1.4; }
+.nebo-oracle .nebo-oracle-chips { margin: 12px -16px 0; padding: 0 16px; }
+.nebo-oracle .nebo-oracle-chips button { flex: none; height: 32px; padding: 0 12px; border-radius: 999px; background: #ffffff; font-size: 13px; }
+.nebo-oracle-spread { padding: 20px 16px 0; }
+.nebo-oracle-spread h2 { margin: 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.015em; }
+.nebo-oracle-spread-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 10px 14px; border-radius: 20px; background: #f4f4f6; box-shadow: inset 0 0 0 2px #1f6bff; }
+.nebo-oracle-spread-n { display: inline-flex; width: 38px; height: 52px; flex: none; align-items: center; justify-content: center; border-radius: 8px; background: linear-gradient(160deg, #1e1458, #5134c8); border: 1.5px solid rgba(255, 255, 255, 0.85); box-shadow: 0 8px 14px -8px rgba(20, 40, 120, 0.6); color: #ffe29a; font-size: 16px; font-weight: 700; }
+.nebo-oracle.is-runes .nebo-oracle-spread-n { border: 0; border-radius: 12px; background: linear-gradient(160deg, #1c3348, #2d5068); box-shadow: none; color: #f2cf7a; }
+.nebo-oracle-spread-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 1px; }
+.nebo-oracle-spread-copy strong { font-size: 15.5px; font-weight: 600; }
+.nebo-oracle-spread-copy small { color: #5c6170; font-size: 12.5px; }
+.nebo-oracle-spread-row em { color: #1f6bff; font-size: 13.5px; font-style: normal; font-weight: 600; }
+.nebo-oracle-spread-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 4px 0; }
+.nebo-oracle-spread-foot span { color: #5c6170; font-size: 13.5px; line-height: 1.35; }
+.nebo-oracle-spread-foot button { flex: none; padding: 8px 14px; border: 0; border-radius: 999px; background: rgba(31, 107, 255, 0.1); color: #1f6bff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.nebo-oracle > .nebo-oracle-primary { width: calc(100% - 32px); height: 54px; margin: 18px 16px 0; border-radius: 27px; font-size: 17px; font-weight: 600; }
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-word { color: #d8cfff; }
+html[data-theme='dark'] .nebo-oracle.is-runes .nebo-oracle-word { color: #cfe3ea; }
+html[data-theme='dark'] .nebo-oracle-spread-row { background: #27282e; box-shadow: inset 0 0 0 2px #5b95ff; }
+html[data-theme='dark'] .nebo-oracle-spread-copy small, html[data-theme='dark'] .nebo-oracle-spread-foot span { color: rgba(235, 235, 245, 0.64); }
+html[data-theme='dark'] .nebo-oracle-spread-row em, html[data-theme='dark'] .nebo-oracle-spread-foot button { color: #5b95ff; }
+html[data-theme='dark'] .nebo-oracle-spread-foot button { background: rgba(91, 149, 255, 0.16); }
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-chips button { background: #1c1d21; }
+
+/* Numbers, values from the canvas: order, the big gradient number */
+.fresh-page.nebo-numbers { display: flex; flex-direction: column; }
+.nebo-numbers > .nebo-numbers-life { order: 1; }
+.nebo-numbers > .nebo-numbers-square { order: 2; }
+.nebo-numbers > .nebo-numbers-names { order: 3; }
+.nebo-numbers > .nebo-numbers-now { order: 4; }
+.nebo-numbers > * { order: 5; }
+.nebo-numbers > .app-top-bar, .nebo-numbers > .app-top-bar-spacer, .nebo-numbers > .nebo-mychart-header { order: 0; }
+.nebo-numbers-life { display: grid; grid-template-columns: 150px minmax(0, 1fr); align-items: center; gap: 8px; padding: 6px 20px 0; }
+.nebo-numbers-bignum { position: static !important; font-size: 170px !important; line-height: 0.9 !important; font-weight: 300 !important; letter-spacing: -0.06em !important; background: linear-gradient(160deg, #2c5bea, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent !important; opacity: 1 !important; animation: neboDrop 0.7s ease both; }
+@keyframes neboDrop { 0% { opacity: 0; transform: translateY(-24px); } 70% { opacity: 1; transform: translateY(3px); } 100% { opacity: 1; transform: none; } }
+.nebo-numbers-life-copy { position: static !important; display: flex; min-width: 0; flex-direction: column; gap: 6px; padding: 0 !important; }
+.nebo-numbers-life-copy h2 { margin: 0; font-size: 21px !important; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; }
+.nebo-numbers-formula { margin: 0; font-size: 12.5px !important; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.nebo-numbers-life-text { grid-column: 1 / -1; margin: 6px 0 0 !important; padding: 0 !important; color: #5c6170; font-size: 16px !important; line-height: 1.6 !important; }
+html[data-theme='dark'] .nebo-numbers-life-text { color: rgba(235, 235, 245, 0.64); }
+.nebo-oracle.is-runes .nebo-oracle-hero-art > * { width: 50px; height: 60px; font-size: 22px; }
+.nebo-oracle .nebo-oracle-day-row > :first-child { width: 36px !important; height: 44px !important; min-width: 0; flex: none; object-fit: cover; }
+.nebo-oracle.is-tarot .nebo-oracle-day-row > :first-child { width: 34px !important; height: 48px !important; border-radius: 6px; }
+.nebo-oracle .nebo-oracle-day-row > span strong { font-size: 16px; font-weight: 600; }
+.nebo-oracle .nebo-oracle-day-row > span small { font-size: 13px; }
+.fresh-page.nebo-numbers .nebo-numbers-bignum { background-image: linear-gradient(160deg, #2c5bea, #8b5cf6) !important; background-color: transparent !important; -webkit-text-fill-color: transparent; }

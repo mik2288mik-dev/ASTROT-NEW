@@ -108,7 +108,7 @@ export function NumerologyRoom({ profile, onOpenSegment, onRequestPremium }: Num
     <>
       <AppTopBar title="Числа" main />
       <MyChartHeader
-        title="Квадрат Пифагора"
+        title="Числа"
         subtitle={subtitle}
         active="numbers"
         onOpen={(segment) => onOpenSegment?.(segment)}

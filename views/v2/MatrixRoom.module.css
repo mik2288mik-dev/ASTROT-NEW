@@ -33,6 +33,8 @@
 .sectionList svg { flex: none; color: #9aa0ae; }
 .sectionCta { display: block; box-sizing: border-box; width: calc(100% - 24px); height: 50px; margin: 4px 12px 12px; padding: 0 16px; border: 0; border-radius: 25px; background: var(--nebo-cta-bg, #16171c); box-shadow: var(--nebo-cta-shadow, none); color: var(--nebo-cta-fg, #fff); font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
 
+.replay { display: block; height: 36px; margin: 14px auto 0; padding: 0 14px; border: 0; border-radius: 999px; background: none; color: #5b6ce0; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+
 /* ── dark theme (generated) ── */
 :global(html[data-theme='dark']) .page {
   --ink: #F4F5F8;
@@ -72,4 +74,44 @@
 }
 :global(html[data-theme='dark']) .chapter>span {
   color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .page {
+  background: linear-gradient(180deg, #27282E 0%, #1C1D21 464px);
+}
+:global(html[data-theme='dark']) .diagram line {
+  stroke: rgba(235, 235, 245, 0.155);
+}
+:global(html[data-theme='dark']) .diagram .node {
+  background: #27282E;
+  box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.388);
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .stepLine span {
+  color: rgba(235, 235, 245, 0.42);
+}
+:global(html[data-theme='dark']) .stepLine strong {
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .centerBlock span {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .sectionList {
+  background: #27282E;
+}
+:global(html[data-theme='dark']) .sectionList > button:not(.sectionCta) {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: #F4F5F8;
+}
+:global(html[data-theme='dark']) .sectionList i[data-closed='true'] {
+  color: rgba(235, 235, 245, 0.42);
+}
+:global(html[data-theme='dark']) .sectionList small {
+  color: rgba(235, 235, 245, 0.5);
+}
+:global(html[data-theme='dark']) .sectionList svg {
+  color: rgba(235, 235, 245, 0.42);
+}
+:global(html[data-theme='dark']) .sectionCta {
+  background: var(--nebo-cta-bg, #F2F3F5);
+  color: #111216;
 }

@@ -5331,6 +5331,39 @@ html[data-theme='dark'] .compat-entry-form--date .nebo-compat-note {
 html[data-theme='dark'] .compat-entry-form--date .compat-date-section-label {
   color: rgba(235, 235, 245, 0.42);
 }
+html[data-theme='dark'] .nebo-cn-modes button.is-active {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.228), 0 4px 10px rgba(0, 0, 0, 0.196);
+}
+html[data-theme='dark'] .nebo-horo-all h2 {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-horo-grid-item[aria-pressed='true'] {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-word {
+  color: #9182D9;
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-ask h2 {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-chips button {
+  background: #1C1D21;
+}
+html[data-theme='dark'] .nebo-oracle-spread-row {
+  background: #27282E;
+}
+html[data-theme='dark'] .nebo-oracle-spread-n {
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+}
+html[data-theme='dark'] .nebo-oracle-spread-copy small {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-oracle-spread-foot span {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-numbers-life-text {
+  color: rgba(235, 235, 245, 0.5);
+}
 
 /* ── neboAuth.css ── */
 html[data-theme='dark'] .nebo-auth {

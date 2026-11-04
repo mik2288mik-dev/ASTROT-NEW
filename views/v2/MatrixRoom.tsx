@@ -90,13 +90,14 @@ export function MatrixRoom({ profile, onBack, embedded = false, onRequestPremium
   const selected = points.find((point) => point.id === selectedId) || points.find((point) => point.id === 'center');
   // The points appear one by one, as on the canvas. Only the first time on this date, and not when motion is reduced.
   const [step, setStep] = useState(0);
+  const [replay, setReplay] = useState(0);
   useEffect(() => {
     if (!result) return undefined;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setStep(6); return undefined; }
     setStep(0);
     const timer = window.setInterval(() => setStep((value) => { if (value >= 6) { window.clearInterval(timer); return value; } return value + 1; }), 900);
     return () => window.clearInterval(timer);
-  }, [result]);
+  }, [result, replay]);
 
   const themes = useMemo(() => {
     if (!result) return null;
@@ -168,6 +169,7 @@ export function MatrixRoom({ profile, onBack, embedded = false, onRequestPremium
         return <>
           <Diagram points={points} step={step} onSelect={openPoint} />
           <div className={styles.stepLine}><span>{stepLines[Math.min(step, 6)][0]}</span><strong>{stepLines[Math.min(step, 6)][1]}</strong></div>
+          <button type="button" className={styles.replay} onClick={() => { lumiaSelectionHaptic(); setReplay((value) => value + 1); }}>{ru ? 'Показать расчёт ещё раз' : tr('Show the calculation again')}</button>
           <section className={styles.centerBlock}>
             <p>{ru ? `Центр · ${value('center')} · аркан ${centerArcana.name}` : `Center · ${value('center')} · ${centerArcana.nameEn}`}</p>
             <h2>{cap(ru ? centerArcana.keyword : centerArcana.keywordEn)}</h2>
