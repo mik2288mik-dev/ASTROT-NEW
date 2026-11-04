@@ -3,6 +3,8 @@ import { createLunaStructuredResponse } from './openaiResponses';
 import { getPersonalForecastVoiceViolationCodes } from './appVoice';
 import type { NatalChartDataV2 } from './natalChartV2Types';
 import { buildPersonalForecastDateContext } from './personalForecastDateContext';
+import { buildPersonalDayBrief } from './personalDayBrief';
+import { FORECAST_DAY_THEMES, type ForecastDayNotes } from './personalForecastContract';
 import {
   buildForecastLockedPreview, createUnavailablePersonalForecast,
   getPersonalForecastRawProfile, getPersonalForecastPackageValidationError, stableHash,
@@ -205,19 +207,11 @@ export async function generatePersonalForecastPackage(
     const formattedDate = input.window.periodStart.substring(0, 10);
     systemPrompt = getPersonalForecastSystemPrompt(language, 'today');
 
-    const dateCalculation = buildPersonalForecastDateContext(input.natal, input.window);
     const retryFeedback = dayRetryFeedback(input.retryReason, language);
     writerInput = {
-      birth: getPersonalForecastRawProfile(input.profile),
-      saved_natal_calculation: {
-        positions: input.natal.positions, houses: input.natal.houses,
-        aspects: input.natal.aspects, quality: input.natal.chartQuality,
-      },
-      selected_date_calculation: dateCalculation,
-      selected_date: {
-        period: input.period, start: formattedDate,
-        end: input.window.periodEnd, timezone: input.window.timezone,
-      },
+      gender: getPersonalForecastRawProfile(input.profile).gender,
+      day_brief: buildPersonalDayBrief(input.natal, input.window),
+      selected_date: { start: formattedDate, timezone: input.window.timezone },
       recent_history: recentReadings,
       ...(retryFeedback ? { retry_feedback: retryFeedback } : {}),
     };
@@ -225,11 +219,23 @@ export async function generatePersonalForecastPackage(
     schema = {
       type: 'object',
       additionalProperties: false,
-      required: ['title', 'body', 'closing'],
+      required: ['title', 'body', 'closing', 'do', 'dont', 'why', 'theme'],
       properties: {
         title: { type: 'string' },
         body: { type: 'string' },
-        closing: { type: 'string' }
+        closing: { type: 'string' },
+        do: { type: 'array', items: { type: 'string' } },
+        dont: { type: 'array', items: { type: 'string' } },
+        why: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['fact', 'meaning'],
+            properties: { fact: { type: 'string' }, meaning: { type: 'string' } },
+          },
+        },
+        theme: { type: 'string', enum: [...FORECAST_DAY_THEMES] },
       }
     };
   } else {
@@ -308,7 +314,21 @@ export async function generatePersonalForecastPackage(
   
   const contentBlocks: any[] = [{ id: 'overview:reading', role: 'detail', text: visibleText, semanticFactId: 'birth-profile', atomId: 'forecast_body' }];
 
-  result.overview = { ...result.overview, status: 'ready', diagnosticCode: null,
+  const stringList = (value: unknown, limit: number): string[] => (Array.isArray(value) ? value : [])
+    .filter((item): item is string => typeof item === 'string' && !!item.trim())
+    .map((item) => item.trim().replace(/[.!]+$/u, ''))
+    .slice(0, limit);
+  const dayNotes: ForecastDayNotes | undefined = input.period === 'day' ? {
+    theme: FORECAST_DAY_THEMES.find((theme) => theme === raw.theme) ?? null,
+    do: stringList(raw.do, 3),
+    dont: stringList(raw.dont, 2),
+    why: (Array.isArray(raw.why) ? raw.why : [])
+      .filter((item): item is { fact: string; meaning: string } => !!item && typeof item.fact === 'string' && typeof item.meaning === 'string' && !!item.fact.trim() && !!item.meaning.trim())
+      .slice(0, 3)
+      .map((item) => ({ fact: item.fact.trim(), meaning: item.meaning.trim() })),
+  } : undefined;
+
+  result.overview = { ...result.overview, status: 'ready', diagnosticCode: null, ...(dayNotes ? { dayNotes } : {}),
     title, text: visibleText, actionType: actionType as 'buy' | 'talk' | 'move' | 'stop' | null, actionText, importance: 100, visualTag: 'personal-story',
     semanticFactIds: ['birth-profile'], semanticFingerprint: fingerprint,
     contentBlocks: contentBlocks as any,

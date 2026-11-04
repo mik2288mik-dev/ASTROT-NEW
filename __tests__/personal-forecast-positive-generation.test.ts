@@ -1,5 +1,6 @@
 jest.mock('../lib/openaiResponses', () => ({ createLunaStructuredResponse: jest.fn() }));
 jest.mock('../lib/personalForecastDateContext', () => ({ buildPersonalForecastDateContext: () => ({ samples: [] }) }));
+jest.mock('../lib/personalDayBrief', () => ({ buildPersonalDayBrief: () => ({ moon: {}, main_events: [] }) }));
 
 import { createLunaStructuredResponse } from '../lib/openaiResponses';
 import { generatePersonalForecastPackage } from '../lib/personalForecastGeneration';
