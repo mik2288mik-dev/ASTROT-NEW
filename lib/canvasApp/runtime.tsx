@@ -133,6 +133,7 @@ const HANDOFF_SCREENS: Record<string, string> = {
   runeRead: 'runes', askAnswer: 'ask', year: 'services', notifSettings: 'settings', notifPlan: 'settings', purchases: 'settings', shop: 'services', gift: 'services',
 };
 const HANDOFF_SEGMENTS: Record<string, string> = { tarot: 'tarot', runes: 'runes' };
+const HANDOFF_POPUPS: Record<string, string> = { natalData: 'settings', redeem: 'services', addChart: 'charts', voc: 'moon', packs: 'pay', askMore: 'pay' };
 const HANDOFF_PERIODS: Record<string, string> = { week: 'week', month: 'month', dates: 'month' };
 
 export class DCLogic<P = Record<string, unknown>, S = Record<string, unknown>> extends React.Component<P, S> {
@@ -140,8 +141,15 @@ export class DCLogic<P = Record<string, unknown>, S = Record<string, unknown>> e
     const handoff = (this.props as { handoff?: (flow: string) => void }).handoff;
     const next = patch as Record<string, unknown> | null;
     if (handoff && next && typeof next === 'object') {
-      const flow = HANDOFF_SCREENS[String(next.screen)] ?? HANDOFF_SEGMENTS[String(next.seg)] ?? HANDOFF_PERIODS[String(next.period)];
+      const flow = HANDOFF_SCREENS[String(next.screen)] ?? HANDOFF_SEGMENTS[String(next.seg)] ?? HANDOFF_PERIODS[String(next.period)]
+        ?? HANDOFF_POPUPS[String(next.popup)] ?? (typeof next.card === 'number' && next.card >= 0 ? 'tarot' : undefined);
       if (flow) { handoff(flow); return; }
+    }
+    if (next && typeof next === 'object' && (typeof next.theme === 'string' || typeof next.lang === 'string')) {
+      (this.props as { onPrefs?: (prefs: { theme?: string; lang?: string }) => void }).onPrefs?.({
+        theme: typeof next.theme === 'string' ? next.theme : undefined,
+        lang: typeof next.lang === 'string' ? next.lang : undefined,
+      });
     }
     super.setState(patch, callback);
   }

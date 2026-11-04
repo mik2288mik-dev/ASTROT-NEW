@@ -6,6 +6,7 @@ import { isCanonicalNatalChart } from '../natalCalculationProof';
 import { getArcana } from '../matrixArcana';
 import { computeMatrix, reduceToArcana } from '../matrixOfDestiny';
 import { buildNatalInterpretation } from '../natalInterpretation';
+import { runeOfTheDay } from '../runes';
 import { LIFE_PATH, lifePathNumber, parseBirthDate, PERSONAL_YEAR, personalDayNumber, personalYearNumber, pythagorasSquare, SQUARE_CELLS, squareSummary } from '../numerology';
 import { buildBigThree, buildChartMoments, SIGN_NOMINATIVE_RU } from '../natalMoments';
 import type { NatalUnifiedReading } from '../natalReading/unifiedReading';
@@ -18,6 +19,9 @@ export type CanvasRealData = {
   today?: Record<string, unknown>;
   signIdx: number;
   personalDay?: number;
+  runeSlug?: string;
+  dayShort?: string;
+  retro?: { active: boolean; from?: string; to?: string };
   plusUntil?: string;
   birthShort?: string;
   people?: Array<{ key: string; signIdx: number; who: Record<string, unknown> }>;
@@ -83,11 +87,15 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
       const now = new Date();
       return parts ? personalDayNumber(parts, now.getFullYear(), now.getMonth() + 1, now.getDate()) : undefined;
     })(),
+    runeSlug: runeOfTheDay(String(profile.id ?? ''), new Date().toISOString().slice(0, 10)).slug,
+    dayShort: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }),
     plusUntil: profile.premiumUntil ? new Date(profile.premiumUntil).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : undefined,
     birthShort: profile.birthDate ? profile.birthDate.split('-').reverse().join('.') : undefined,
     me: {
       name,
       sex: profile.gender === 'female' ? 'f' : 'm',
+      buyLabel: 'Вся карта в NEBO Plus',
+      price: '',
       sub: birth,
       over: [name, sunSign].filter(Boolean).join(' · '),
       // Without a chart nothing from the examples may stay on screen.
@@ -131,6 +139,7 @@ export function buildCanvasToday(forecast: PersonalForecastPackage): Record<stri
     dayTitle: forecast.overview.title || firstSentence(forecast.overview.text),
     condition: '',
     horoText: forecast.overview.text,
+    why: (forecast.overview.explanationAnchors ?? []).slice(0, 3).map((anchor) => [anchor.conclusion, anchor.explanation]),
     yes: pick('action'),
     no: pick('risk'),
   };
