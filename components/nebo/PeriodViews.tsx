@@ -70,7 +70,7 @@ function usePeriodData(profile: UserProfile, todayKey: string): PeriodData | nul
 }
 
 /** A day's ease on a -1.5…1.5 scale: transits to the chart, the Moon against the Sun's element, Mercury. */
-function dayEase(day: CalendarDay | undefined, lunar: LunarDay | undefined, sunSign: number | null): number {
+export function dayEase(day: CalendarDay | undefined, lunar: LunarDay | undefined, sunSign: number | null): number {
   let score = 0;
   for (const event of day?.personal ?? []) score += event.tone === 'good' ? 0.8 : -0.8;
   if (lunar && sunSign !== null) {
@@ -113,7 +113,7 @@ function MoodCurve({ values, labels, openCount, lockLabel, nowIndex }: { values:
 const ELEMENT_ICON = ['energy', 'work', 'talk', 'calm'];
 
 /** Picture and short title of a day: the strongest event, otherwise the Moon's sign. */
-function dayFace(day: CalendarDay | undefined, lunar: LunarDay | undefined): { icon: string; title: string } {
+export function dayFace(day: CalendarDay | undefined, lunar: LunarDay | undefined): { icon: string; title: string } {
   const sky = day?.sky.find((event) => event.kind === 'mercury-start') ?? day?.sky[0];
   const personal = day?.personal[0];
   if (sky?.kind === 'mercury-start') return { icon: 'retro', title: 'Меркурий разворачивается назад' };

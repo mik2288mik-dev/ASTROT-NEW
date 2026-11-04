@@ -138,19 +138,18 @@ async function shareText(text: string): Promise<void> {
 /** Screens that still hold examples: for a real account they open the working old screens. */
 const HANDOFF_SCREENS: Record<string, string> = {
   person: 'synastry',
-  askAnswer: 'ask', year: 'services', notifSettings: 'settings', notifPlan: 'settings', purchases: 'settings', shop: 'services', gift: 'services',
+  year: 'services', player: 'sounds',
 };
 const HANDOFF_SEGMENTS: Record<string, string> = {};
-const HANDOFF_POPUPS: Record<string, string> = { natalData: 'settings', redeem: 'services', addChart: 'charts', packs: 'pay', askMore: 'pay' };
-const HANDOFF_PERIODS: Record<string, string> = { week: 'week', month: 'month', dates: 'month' };
+const HANDOFF_POPUPS: Record<string, string> = { natalData: 'settings', addChart: 'charts', packs: 'pay', askMore: 'pay' };
 
 export class DCLogic<P = Record<string, unknown>, S = Record<string, unknown>> extends React.Component<P, S> {
   setState(patch: never, callback?: () => void): void {
     const handoff = (this.props as { handoff?: (flow: string) => void }).handoff;
     const next = patch as Record<string, unknown> | null;
     if (handoff && next && typeof next === 'object') {
-      const flow = HANDOFF_SCREENS[String(next.screen)] ?? HANDOFF_SEGMENTS[String(next.seg)] ?? HANDOFF_PERIODS[String(next.period)]
-        ?? (next.fScr === 'add' ? 'friends' : next.fScr === 'gift' ? 'services' : undefined)
+      const flow = HANDOFF_SCREENS[String(next.screen)] ?? HANDOFF_SEGMENTS[String(next.seg)]
+        ?? (next.fScr === 'add' ? 'friends' : undefined)
         ?? HANDOFF_POPUPS[String(next.popup)];
       if (flow) { handoff(flow); return; }
       if (next.popup === 'share') {

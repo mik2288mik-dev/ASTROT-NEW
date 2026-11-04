@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import Component from '../../lib/canvasApp/canvasLogic';
 import { CANVAS_CSS, CANVAS_FONTS } from '../../lib/canvasApp/canvasStyles';
-import { buildCanvasChapters, buildCanvasOracle, buildCanvasPeople, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
+import { buildCanvasChapters, buildCanvasOracle, buildCanvasPeriod, buildCanvasPeople, buildCanvasPurchases, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
 import { getCachedDailySignHoroscope, getCachedWeeklySignHoroscope, getCompatibilityPreview, type CompatibilityPreviewPerson } from '../../services/astrologyService';
 import type { CompatibilityPreview } from '../../lib/synastry/compatibilityPreview';
 import type { RelationshipContext } from '../../lib/synastry/relationshipContext';
@@ -16,11 +16,19 @@ import { readLocalNatalChartCache } from '../../lib/localNatalChartCache';
 import { getChartData, getCharts, getProfile } from '../../services/storageService';
 import { friendErrorText, loadFriends, loadMessages, postMessage, type FriendMessage } from '../../services/friendsService';
 import { getCompatScore, sunSignFromDate } from '../../lib/synastry/compatScore';
-import { buyOneTimeProduct, canBuyOneTimeProducts, refreshPurchases, spendSpreadCredit } from '../../services/oneTimePurchaseService';
+import { buyOneTimeProduct, canBuyOneTimeProducts, redeemPlusCode, refreshPurchases, resumePendingPurchases, spendSpreadCredit } from '../../services/oneTimePurchaseService';
+import { openRuStoreSubscriptionManagement, restoreRuStorePurchases } from '../../services/rustorePayService';
+import { requestStoreReviewNow } from '../../services/rustoreReview';
+import { reportClientError } from '../../services/clientErrorReport';
+import { buildCalculationProof } from '../../lib/natalCalculationProof';
 import { hasEsoAccess } from '../../lib/oneTimeProducts';
+import { askNatalQuestion, loadNatalQuestionSnapshot } from '../../services/natalQuestionService';
+import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
 import { requestRuStorePayment } from '../../services/rustorePayService';
 import {
   answerNativeNotificationsOffer,
+  getNativeNotificationSettings,
+  saveNativeNotificationSettings,
   clearNativeNotifications,
   consumeNativeNotificationTap,
   listenNativeNotificationTap,
@@ -289,9 +297,105 @@ export default function CanvasApp() {
           .then(({ message }) => { chats.set(id, [...(chats.get(id) ?? []), message]); if (!cancelled) renderNow(); })
           .catch((error: Error) => instance.current?.toast(friendErrorText(error.message)));
       };
+      let notif: CanvasRealData['notif'] = null;
+      let purchases: string[][] = [];
+      const reloadPurchases = async () => {
+        if (!loaded?.profile.id) return;
+        const snapshot = await refreshPurchases(String(loaded.profile.id));
+        esoAccess = hasEsoAccess(snapshot);
+        purchases = buildCanvasPurchases(loaded.profile, snapshot);
+        if (!cancelled) renderNow();
+      };
+      const redeem = async (code: string, app: CanvasInstance) => {
+        const result = await redeemPlusCode(code);
+        if (result.ok) {
+          app.setState({ popup: null, account: 'plus' });
+          app.toast(result.days ? `Готово: NEBO Plus включён на ${result.days} дн.` : 'Готово: код применён');
+          void reloadPurchases();
+        } else app.toast(result.reason === 'NETWORK' ? 'Проверь интернет и попробуй ещё раз.' : 'Такой код не подошёл. Проверь буквы и цифры.');
+      };
+      const restorePurchases = async (app: CanvasInstance) => {
+        try {
+          if (loaded?.profile.id && canBuyOneTimeProducts()) {
+            await restoreRuStorePurchases(String(loaded.profile.id));
+            await resumePendingPurchases(String(loaded.profile.id));
+          }
+          await reloadPurchases();
+          app.toast('Покупки проверены');
+        } catch {
+          app.toast('Не получилось проверить покупки. Попробуй позже.');
+        }
+        app.setState({ restoring: false });
+      };
+      const saveNotif = async (key: string, value: boolean | string, app: CanvasInstance) => {
+        if (!loaded?.profile.id || !nativeNotificationsAvailable()) { app.toast('Уведомления настраиваются в приложении на телефоне.'); return; }
+        const patch: Record<string, unknown> = key === 'all' ? { enabled: value }
+          : key === 'morning' ? { mode: value ? 'daily' : 'important' }
+            : key === 'quiet' ? { quietEnabled: value }
+              : key === 'time' ? { morningTime: String(value).padStart(5, '0') }
+                : { [key]: value };
+        try {
+          await saveNativeNotificationSettings(String(loaded.profile.id), patch, true);
+          notif = await getNativeNotificationSettings(String(loaded.profile.id));
+          if (!cancelled) renderNow();
+        } catch (error) {
+          app.toast((error as Error).message === 'permission_required' ? 'Разреши уведомления для NEBO в настройках телефона.' : 'Не получилось сохранить. Попробуй ещё раз.');
+        }
+      };
+      // Questions about the chart: the same service and limits as the old screen.
+      const ask: { question: string; answer: string; error: string; sending: boolean; remaining: number | null } = { question: '', answer: '', error: '', sending: false, remaining: null };
+      const askState = () => ask;
+      const applySnapshot = (snapshot: NatalQuestionSnapshot) => {
+        const lastQuestion = snapshot.messages.filter((message) => message.role === 'user').at(-1);
+        const lastAnswer = snapshot.messages.filter((message) => message.role === 'assistant').at(-1);
+        ask.question = lastQuestion?.text ?? '';
+        ask.answer = lastAnswer?.text ?? '';
+        ask.remaining = snapshot.usage.remaining;
+      };
+      const askQuestion = (question: string) => {
+        if (!loaded?.profile.id) return;
+        if (!loaded.profile.isPremium) { handoff('pay'); return; }
+        if (ask.sending) return;
+        Object.assign(ask, { question, answer: '', error: '', sending: true });
+        renderNow();
+        void askNatalQuestion(String(loaded.profile.id), question)
+          .then(applySnapshot)
+          .catch(() => { ask.error = 'Сейчас не получилось ответить. Попробуй ещё раз чуть позже.'; })
+          .finally(() => { ask.sending = false; if (!cancelled) renderNow(); });
+      };
+      if (loaded?.profile.id && loaded.profile.isPremium) void loadNatalQuestionSnapshot(String(loaded.profile.id)).then((snapshot) => { applySnapshot(snapshot); if (!cancelled) renderNow(); }).catch(() => undefined);
+      // Canvas messages that stand for a real action.
+      const toastAction = (text: string, app: CanvasInstance): boolean => {
+        if (text === 'Откроем подписки в RuStore') { void openRuStoreSubscriptionManagement().catch(() => app.toast('Подписками можно управлять в приложении RuStore.')); return true; }
+        if (text === 'Откроем чат поддержки' || text === 'Спасибо, прочитаем') { handoff('settings'); return true; }
+        if (text.startsWith('Напомним')) return true;
+        if (text === 'Спасибо! Отчёт ушёл разработчикам') reportClientError('canvas_error_screen', new Error('reported by user'));
+        return false;
+      };
+      // «Как посчитана карта» for the chart that is open.
+      const proofFor = (whoKey: string) => {
+        const chart = whoKey === 'me' ? loaded?.chart : chartsByKey.get(whoKey);
+        if (!chart) return null;
+        try {
+          const proof = buildCalculationProof(chart as never, whoKey === 'me' ? (loaded?.profile.name ?? '') : '', 'ru');
+          const rows = [
+            ['Дата', proof.localDate], ['Время', [proof.localTime ?? 'без времени', proof.utcOffsetText ? `(${proof.utcOffsetText})` : ''].filter(Boolean).join(' ')],
+            ['Место', proof.place], ['Координаты', `${proof.latitude.toFixed(2)}°, ${proof.longitude.toFixed(2)}°`],
+            ['Зодиак и дома', [proof.zodiac, proof.houseSystem].filter(Boolean).join(', ')],
+          ];
+          return { rows, text: rows.map(([label, value]) => `${label}: ${value}`).join('\n') };
+        } catch {
+          return null;
+        }
+      };
+      const proofCopy = (text: string, app: CanvasInstance) => {
+        void navigator.clipboard?.writeText(text).then(() => app.toast('Данные скопированы')).catch(() => undefined);
+      };
+      const proofOpen = () => { window.open('https://www.astro.com/horoscope', '_blank', 'noopener'); };
       let esoAccess = false;
       const oracle = buildCanvasOracle(() => Boolean(loaded?.profile.isPremium) || esoAccess);
-      if (loaded?.profile.id) void refreshPurchases(String(loaded.profile.id)).then((snapshot) => { esoAccess = hasEsoAccess(snapshot); if (!cancelled) renderNow(); }).catch(() => undefined);
+      void reloadPurchases().catch(() => undefined);
+      if (loaded?.profile.id && nativeNotificationsAvailable()) void getNativeNotificationSettings(String(loaded.profile.id)).then((value) => { notif = value; if (!cancelled) renderNow(); }).catch(() => undefined);
       const render = (real: CanvasRealData | null) => root?.render(
         <CanvasRoot
           key="app"
@@ -303,6 +407,16 @@ export default function CanvasApp() {
           account={params.get('account') ?? real?.account}
           real={real}
           signText={signText}
+          toastAction={real ? toastAction : undefined}
+          requestReview={real ? requestStoreReviewNow : undefined}
+          proofFor={real ? proofFor : undefined}
+          proofCopy={real ? proofCopy : undefined}
+          proofOpen={real ? proofOpen : undefined}
+          askQuestion={real ? askQuestion : undefined}
+          askState={real ? askState : undefined}
+          redeem={real ? redeem : undefined}
+          restorePurchases={real ? restorePurchases : undefined}
+          saveNotif={real ? saveNotif : undefined}
           oracle={real ? oracle : undefined}
           friendMessages={real ? friendMessages : undefined}
           friendSend={real ? friendSend : undefined}
@@ -321,8 +435,9 @@ export default function CanvasApp() {
       let moon: Record<string, string> | undefined;
       let retro: CanvasRealData['retro'];
       let moonDays: unknown[][] | undefined;
+      let period: CanvasRealData['period'];
       const compose = (): CanvasRealData | null => (loaded
-        ? { ...loaded.real, retro, moonDays, friends, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
+        ? { ...loaded.real, retro, period, moonDays, friends, notif, purchases, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
         : null);
       renderNow = () => render(compose());
       render(compose());
@@ -332,7 +447,8 @@ export default function CanvasApp() {
           // The calendar from the 1st of this month to the end of the next one.
           const nowDate = new Date();
           const firstOfMonth = new Date(Date.UTC(nowDate.getFullYear(), nowDate.getMonth(), 1));
-          const span = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate() + new Date(nowDate.getFullYear(), nowDate.getMonth() + 2, 0).getDate();
+          const span = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate() + new Date(nowDate.getFullYear(), nowDate.getMonth() + 2, 0).getDate() + new Date(nowDate.getFullYear(), nowDate.getMonth() + 3, 0).getDate();
+          period = buildCanvasPeriod(engine, loaded.profile, loaded.chart) ?? undefined;
           moonDays = buildLunarDays(engine, firstOfMonth, span).map((item) => [
             item.day, item.month, item.sign, item.phase, Math.round(((1 - Math.cos((item.phase * Math.PI) / 180)) / 2) * 100),
             item.exact ? (item.exact.q === 0 ? 1 : 2) : 0, item.eclipse ? 1 : 0, 0, item.mercuryRetrograde ? 1 : 0, '', -1, item.sign,
