@@ -145,6 +145,12 @@ export class DCLogic<P = Record<string, unknown>, S = Record<string, unknown>> e
         ?? HANDOFF_POPUPS[String(next.popup)] ?? (typeof next.card === 'number' && next.card >= 0 ? 'tarot' : undefined);
       if (flow) { handoff(flow); return; }
     }
+    if (next && typeof next === 'object' && (typeof next.theme === 'string' || typeof next.lang === 'string')) {
+      (this.props as { onPrefs?: (prefs: { theme?: string; lang?: string }) => void }).onPrefs?.({
+        theme: typeof next.theme === 'string' ? next.theme : undefined,
+        lang: typeof next.lang === 'string' ? next.lang : undefined,
+      });
+    }
     super.setState(patch, callback);
   }
 

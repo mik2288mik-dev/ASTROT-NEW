@@ -26,6 +26,7 @@ import {
   shouldOfferNativeNotifications,
 } from '../../services/nativeNotifications';
 import { explainMapSelection } from '../NatalReading/mapExplanation';
+import { setUiLanguage } from '../../lib/i18n';
 import { buildLunarDays, phaseName, SIGNS_IN } from '../../lib/lunarCalendar';
 import type { OneTimeProductId } from '../../lib/oneTimeProducts';
 import type { PremiumPlanId } from '../../lib/premiumPricing';
@@ -52,6 +53,13 @@ function fitToScreen(mount: HTMLElement): void {
 const PLAN_BY_LABEL: ReadonlyArray<[RegExp, PremiumPlanId]> = [[/месяц/, 'premium_month'], [/3 месяца/, 'premium_quarter'], [/год/, 'premium_year']];
 const GIFT_BY_LABEL: ReadonlyArray<[RegExp, OneTimeProductId]> = [[/3 месяца/, 'gift_plus_3m'], [/год/, 'gift_plus_12m'], [/месяц/, 'gift_plus_1m']];
 const ONE_TIME_BY_KIND: Record<string, OneTimeProductId> = { spread: 'spread_one', runes: 'spread_one', numbers: 'eso_year', tips: 'tips_149' };
+
+const readPref = (key: string): string | undefined => {
+  try { return window.localStorage.getItem(`nebo.canvas.${key}`) ?? undefined; } catch { return undefined; }
+};
+const writePref = (key: string, value: string): void => {
+  try { window.localStorage.setItem(`nebo.canvas.${key}`, value); } catch { /* the choice lasts until the app closes */ }
+};
 
 type LoadedAccount = { profile: UserProfile; chart: NatalChartData | null; real: CanvasRealData };
 
@@ -221,6 +229,11 @@ export default function CanvasApp() {
           return null;
         }
       };
+      // Theme and language chosen on the profile stay after a restart.
+      const onPrefs = (prefs: { theme?: string; lang?: string }) => {
+        if (prefs.theme) writePref('theme', prefs.theme);
+        if (prefs.lang) { writePref('lang', prefs.lang); setUiLanguage(prefs.lang as Parameters<typeof setUiLanguage>[0]); }
+      };
       const render = (real: CanvasRealData | null) => root?.render(
         <CanvasRoot
           key="app"
@@ -232,6 +245,9 @@ export default function CanvasApp() {
           account={params.get('account') ?? real?.account}
           real={real}
           signText={signText}
+          theme={readPref('theme') ?? (loaded?.profile.theme === 'dark' ? 'dark' : undefined)}
+          lang={readPref('lang') ?? (loaded?.profile.language === 'en' ? 'en' : undefined)}
+          onPrefs={onPrefs}
           explainPoint={real ? explainPoint : undefined}
         />,
       );
