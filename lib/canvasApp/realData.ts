@@ -2,7 +2,10 @@ import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
 import { formatDisplayDate } from '../date-utils';
 import { isCanonicalNatalChart } from '../natalCalculationProof';
+import { getArcana } from '../matrixArcana';
+import { computeMatrix, reduceToArcana } from '../matrixOfDestiny';
 import { buildNatalInterpretation } from '../natalInterpretation';
+import { LIFE_PATH, lifePathNumber, parseBirthDate, PERSONAL_YEAR, personalYearNumber, pythagorasSquare, SQUARE_CELLS, squareSummary } from '../numerology';
 import { buildBigThree, buildChartMoments, SIGN_NOMINATIVE_RU } from '../natalMoments';
 import type { NatalUnifiedReading } from '../natalReading/unifiedReading';
 import type { PersonalForecastPackage } from '../personalForecastContract';
@@ -74,6 +77,7 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
       sub: birth,
       over: [name, sunSign].filter(Boolean).join(' · '),
       ...(canonical ? chartFields(canonical) : {}),
+      ...(profile.birthDate ? dateFields(profile.birthDate) : {}),
     },
   };
 }
@@ -116,3 +120,74 @@ export function buildCanvasToday(forecast: PersonalForecastPackage): Record<stri
     no: pick('risk'),
   };
 }
+
+const cap = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+const digitsOf = (value: number | string): number[] => String(value).split('').map(Number);
+const sumLine = (values: number[]): string => values.join(' + ');
+
+/** Matrix and numbers: both come from the birth date alone. */
+function dateFields(birthDate: string, now = new Date()): Record<string, unknown> {
+  const matrix = computeMatrix(birthDate, 'ru');
+  const birth = parseBirthDate(birthDate);
+  if (!matrix || !birth) return {};
+  const position = (key: string) => matrix.positions.find((item) => item.key === key)?.arcana ?? 0;
+  const area = (key: string) => matrix.lifeAreas.find((item) => item.key === key)?.arcana ?? 0;
+  const day = position('portrait'); const month = position('talents'); const year = position('karma');
+  const base = position('comfort'); const center = position('self'); const personal = position('personalPurpose'); const social = position('socialPurpose');
+  const talents = reduceToArcana(month + year);
+  const past = reduceToArcana(base + day);
+  const habit = reduceToArcana(base + center);
+  const purpose = reduceToArcana(habit + reduceToArcana(year + center));
+  const money = area('money'); const love = area('love');
+  const arcana = getArcana(center);
+  const dateText = formatDisplayDate(birthDate, 'ru').replace(/\s*\d{4}.*$/, '');
+  const age = now.getFullYear() - birth.year - (now.getMonth() + 1 < birth.month || (now.getMonth() + 1 === birth.month && now.getDate() < birth.day) ? 1 : 0);
+
+  const lifePath = lifePathNumber(birth);
+  const lifeMeaning = LIFE_PATH[lifePath] ?? LIFE_PATH[reduceToArcana(lifePath)];
+  const allDigits = [...digitsOf(birth.day), ...digitsOf(birth.month), ...digitsOf(birth.year)].filter((digit) => digit > 0);
+  const digitSum = allDigits.reduce((sum, digit) => sum + digit, 0);
+  const square = pythagorasSquare(birth);
+  const thisYear = now.getFullYear();
+  const personalYear = personalYearNumber(birth, thisYear);
+  return {
+    mxV: [day, month, year, base, center, personal, talents, social, past, habit, purpose, money, love],
+    steps: [
+      [`Считаем по дате ${dateText} ${birth.year}`, 'Начинаем с дня рождения'],
+      ['Шаг 1 · День', `Точка слева: ${day}`],
+      ['Шаг 2 · Месяц', `Точка сверху: ${month}`],
+      ['Шаг 3 · Год', `${sumLine(digitsOf(birth.year))} → ${year}`],
+      ['Шаг 4 · Сумма', `${sumLine([day, month, year])} → ${base}`],
+      ['Шаг 5 · Центр', `${sumLine([day, month, year, base])} → ${center}`],
+      ['Готово · классическая методика', 'Нажми на любой раздел, чтобы прочитать'],
+    ],
+    mxs: [
+      [String(center), 'Характер', 'Кто ты, когда никто не смотрит', false],
+      [`${personal}·${social}·${purpose}`, 'Предназначение', 'Цели: для себя, для людей и общая', false],
+      [`${month}·${talents}`, 'Таланты', 'Что даётся легче, чем другим', true],
+      [String(money), 'Деньги', 'Через что приходят и что мешает', true],
+      [String(love), 'Любовь', 'Каким должен быть твой человек', true],
+      [`${past}·${habit}`, 'Что тянется из прошлого', 'Привычки, которые повторяются', true],
+      [`${year}·${base}`, 'Род', 'Что передалось по роду', true],
+      ['0-80', 'Годы жизни', `Что для тебя главное сейчас, в ${age} лет`, true],
+    ],
+    mxCenter: { over: `Центр · ${center} · аркан ${arcana.name}`, title: cap(arcana.keyword), text: cap(arcana.essence) },
+    num: {
+      lp: String(lifePath),
+      lpTitle: lifeMeaning?.title ?? '',
+      calc1: `${sumLine(allDigits)} = ${digitSum}`,
+      calc2: digitSum > 9 ? `${sumLine(digitsOf(digitSum))} = ${lifePath}` : '',
+      lpText: lifeMeaning?.text ?? '',
+      pyNums: square.working.join(' · '),
+      pySummary: squareSummary(square),
+      year: String(personalYear),
+      yearOver: `Твой ${thisYear} · личный год`,
+      yearTitle: `Личный год ${personalYear}`,
+      yearText: PERSONAL_YEAR[personalYear] ?? '',
+    },
+    py: square.cells.map((cell) => [cell.count ? cell.digits : 'нет', SQUARE_CELLS[cell.n]?.title ?? '', cell.count]),
+  };
+}
+
+const SIGN_KEYS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+export const canvasSignKey = (index: number): string => SIGN_KEYS[index] ?? 'Aries';

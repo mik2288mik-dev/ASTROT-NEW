@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import Component from '../../lib/canvasApp/canvasLogic';
 import { CANVAS_CSS, CANVAS_FONTS } from '../../lib/canvasApp/canvasStyles';
-import { buildCanvasChapters, buildCanvasRealData, buildCanvasToday, canvasDateLine, type CanvasRealData } from '../../lib/canvasApp/realData';
+import { buildCanvasChapters, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
+import { getCachedDailySignHoroscope, getCachedWeeklySignHoroscope } from '../../services/astrologyService';
 import { loadPersonalForecast } from '../../services/personalForecastService';
 import type { NatalUnifiedReading } from '../../lib/natalReading/unifiedReading';
 import { ensureNatalUnifiedReading } from '../../services/natalUnifiedReadingService';
@@ -86,11 +87,27 @@ export default function CanvasApp() {
         return;
       }
       root = createRoot(mount);
+      // Saved sign horoscopes only: reading them never starts a generation.
+      const signTexts = new Map<string, string | null>();
+      let renderNow: () => void = () => undefined;
+      const isoDay = (offset: number) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+      const signText = (index: number, period: string): string | null => {
+        const key = `${index}:${period}`;
+        if (signTexts.has(key)) return signTexts.get(key) ?? null;
+        signTexts.set(key, null);
+        const sign = canvasSignKey(index);
+        const request = period === 'week'
+          ? getCachedWeeklySignHoroscope(sign, isoDay(0), 'ru')
+          : getCachedDailySignHoroscope(sign, isoDay(period === 'tomorrow' ? 1 : 0), 'ru');
+        void request.then((reading) => { if (!cancelled && reading?.text) { signTexts.set(key, reading.text); renderNow(); } }).catch(() => undefined);
+        return null;
+      };
       const render = (real: CanvasRealData | null) => root?.render(
         <CanvasRoot
           start={params.get('start') ?? (real ? 'today' : undefined)}
           account={params.get('account') ?? real?.account}
           real={real}
+          signText={signText}
         />,
       );
       let reading: NatalUnifiedReading | null = null;
@@ -98,6 +115,7 @@ export default function CanvasApp() {
       const compose = (): CanvasRealData | null => (loaded
         ? { ...loaded.real, today, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
         : null);
+      renderNow = () => render(compose());
       render(compose());
       if (loaded) {
         void loadReading(loaded).then((value) => { if (!cancelled && value) { reading = value; render(compose()); } });
