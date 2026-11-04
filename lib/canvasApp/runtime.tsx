@@ -127,12 +127,20 @@ function renderNode(node: TreeNode, scope: Scope, key: number): React.ReactNode 
 }
 
 /** The base class the canvas logic extends: a React class whose view is the template. */
+async function shareText(text: string): Promise<void> {
+  const message = `${text}\n\nNEBO`;
+  try {
+    if (navigator.share) { await navigator.share({ text: message }); return; }
+    await navigator.clipboard?.writeText(message);
+  } catch { /* the person closed the share sheet */ }
+}
+
 /** Screens that still hold examples: for a real account they open the working old screens. */
 const HANDOFF_SCREENS: Record<string, string> = {
-  person: 'synastry', tarot: 'tarot', tarotDeck: 'tarot', tarotRead: 'tarot',
-  runeRead: 'runes', askAnswer: 'ask', year: 'services', notifSettings: 'settings', notifPlan: 'settings', purchases: 'settings', shop: 'services', gift: 'services',
+  person: 'synastry',
+  askAnswer: 'ask', year: 'services', notifSettings: 'settings', notifPlan: 'settings', purchases: 'settings', shop: 'services', gift: 'services',
 };
-const HANDOFF_SEGMENTS: Record<string, string> = { tarot: 'tarot', runes: 'runes' };
+const HANDOFF_SEGMENTS: Record<string, string> = {};
 const HANDOFF_POPUPS: Record<string, string> = { natalData: 'settings', redeem: 'services', addChart: 'charts', packs: 'pay', askMore: 'pay' };
 const HANDOFF_PERIODS: Record<string, string> = { week: 'week', month: 'month', dates: 'month' };
 
@@ -143,8 +151,14 @@ export class DCLogic<P = Record<string, unknown>, S = Record<string, unknown>> e
     if (handoff && next && typeof next === 'object') {
       const flow = HANDOFF_SCREENS[String(next.screen)] ?? HANDOFF_SEGMENTS[String(next.seg)] ?? HANDOFF_PERIODS[String(next.period)]
         ?? (next.fScr === 'add' ? 'friends' : next.fScr === 'gift' ? 'services' : undefined)
-        ?? HANDOFF_POPUPS[String(next.popup)] ?? (typeof next.card === 'number' && next.card >= 0 ? 'tarot' : undefined);
+        ?? HANDOFF_POPUPS[String(next.popup)];
       if (flow) { handoff(flow); return; }
+      if (next.popup === 'share') {
+        const from = String(next.shareFrom ?? (this.state as { shareFrom?: string }).shareFrom ?? 'day');
+        const text = (this as unknown as { shareTexts?: Record<string, string> }).shareTexts?.[from];
+        if (text) void shareText(text);
+        return;
+      }
     }
     if (next && typeof next === 'object' && (typeof next.theme === 'string' || typeof next.lang === 'string')) {
       (this.props as { onPrefs?: (prefs: { theme?: string; lang?: string }) => void }).onPrefs?.({

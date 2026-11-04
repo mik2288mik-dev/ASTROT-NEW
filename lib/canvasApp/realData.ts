@@ -6,7 +6,8 @@ import { isCanonicalNatalChart } from '../natalCalculationProof';
 import { getArcana } from '../matrixArcana';
 import { computeMatrix, reduceToArcana } from '../matrixOfDestiny';
 import { buildNatalInterpretation } from '../natalInterpretation';
-import { runeOfTheDay } from '../runes';
+import { drawRunes, runeOfTheDay } from '../runes';
+import { cardImage, cardOfTheDay, drawSpread, weekKeyOf } from '../tarot';
 import { LIFE_PATH, lifePathNumber, parseBirthDate, PERSONAL_YEAR, personalDayNumber, personalYearNumber, pythagorasSquare, SQUARE_CELLS, squareSummary } from '../numerology';
 import { buildBigThree, buildChartMoments, SIGN_NOMINATIVE_RU } from '../natalMoments';
 import type { NatalUnifiedReading } from '../natalReading/unifiedReading';
@@ -20,6 +21,7 @@ export type CanvasRealData = {
   signIdx: number;
   personalDay?: number;
   runeSlug?: string;
+  dayCard?: { name: string; meaning: string; img: string | null };
   dayShort?: string;
   retro?: { active: boolean; from?: string; to?: string };
   moonDays?: unknown[][];
@@ -88,6 +90,10 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
       const parts = parseBirthDate(profile.birthDate);
       const now = new Date();
       return parts ? personalDayNumber(parts, now.getFullYear(), now.getMonth() + 1, now.getDate()) : undefined;
+    })(),
+    dayCard: (() => {
+      const card = cardOfTheDay(String(profile.id ?? ''), new Date().toISOString().slice(0, 10));
+      return { name: `${card.roman} · ${card.name}`, meaning: card.day, img: cardImage(card) };
     })(),
     runeSlug: runeOfTheDay(String(profile.id ?? ''), new Date().toISOString().slice(0, 10)).slug,
     dayShort: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }),
@@ -244,4 +250,45 @@ export function buildCanvasPeople(charts: readonly ChartListItem[]): NonNullable
         },
       };
     });
+}
+
+const WEEK_KEYS = { tarot: 'nebo.tarot.week.v1', runes: 'nebo.runes.week.v1' } as const;
+
+function weekUse(kind: keyof typeof WEEK_KEYS): number {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(WEEK_KEYS[kind]) || 'null') as { week?: string; used?: number } | null;
+    return stored?.week === weekKeyOf(new Date()) && Number.isFinite(stored?.used) ? Number(stored?.used) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function markWeekUse(kind: keyof typeof WEEK_KEYS): void {
+  try { window.localStorage.setItem(WEEK_KEYS[kind], JSON.stringify({ week: weekKeyOf(new Date()), used: weekUse(kind) + 1 })); } catch { /* counted until the app closes */ }
+}
+
+/** Tarot and runes: the same decks, texts and weekly free spread as the old screens. */
+export function buildCanvasOracle(openAccess: () => boolean) {
+  return {
+    needsPayment: (kind: keyof typeof WEEK_KEYS): boolean => !openAccess() && weekUse(kind) >= 1,
+    tarot: () => {
+      markWeekUse('tarot');
+      const [past, now, next] = drawSpread();
+      return {
+        reading: [['Прошлое', `${past.roman} · ${past.name}`, past.past], ['Сейчас', `${now.roman} · ${now.name}`, now.now], ['Дальше', `${next.roman} · ${next.name}`, next.next]],
+        meaning: now.day,
+        advice: next.advice,
+        cards: [past, now, next].map((card) => ({ name: card.name, img: cardImage(card) })),
+      };
+    },
+    runes: () => {
+      markWeekUse('runes');
+      const [past, now, next] = drawRunes();
+      return {
+        cast: [['Что было', past.slug, past.past], ['Что сейчас', now.slug, now.now], ['Что дальше', next.slug, next.next]],
+        meaning: now.day,
+        advice: next.advice,
+      };
+    },
+  };
 }

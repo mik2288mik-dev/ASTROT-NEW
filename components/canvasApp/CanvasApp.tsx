@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import Component from '../../lib/canvasApp/canvasLogic';
 import { CANVAS_CSS, CANVAS_FONTS } from '../../lib/canvasApp/canvasStyles';
-import { buildCanvasChapters, buildCanvasPeople, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
+import { buildCanvasChapters, buildCanvasOracle, buildCanvasPeople, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
 import { getCachedDailySignHoroscope, getCachedWeeklySignHoroscope, getCompatibilityPreview, type CompatibilityPreviewPerson } from '../../services/astrologyService';
 import type { CompatibilityPreview } from '../../lib/synastry/compatibilityPreview';
 import type { RelationshipContext } from '../../lib/synastry/relationshipContext';
@@ -16,7 +16,8 @@ import { readLocalNatalChartCache } from '../../lib/localNatalChartCache';
 import { getChartData, getCharts, getProfile } from '../../services/storageService';
 import { friendErrorText, loadFriends, loadMessages, postMessage, type FriendMessage } from '../../services/friendsService';
 import { getCompatScore, sunSignFromDate } from '../../lib/synastry/compatScore';
-import { buyOneTimeProduct, canBuyOneTimeProducts } from '../../services/oneTimePurchaseService';
+import { buyOneTimeProduct, canBuyOneTimeProducts, refreshPurchases, spendSpreadCredit } from '../../services/oneTimePurchaseService';
+import { hasEsoAccess } from '../../lib/oneTimeProducts';
 import { requestRuStorePayment } from '../../services/rustorePayService';
 import {
   answerNativeNotificationsOffer,
@@ -148,6 +149,10 @@ export default function CanvasApp() {
       }
       const result = await buyOneTimeProduct(String(profile.id), product as OneTimeProductId);
       if (result.status === 'completed') {
+        if (product === 'spread_one') {
+          const opened = await spendSpreadCredit(String(profile.id)).catch(() => false);
+          if (!opened) { app.toast('Не получилось открыть купленный расклад. Проверь интернет.'); return; }
+        }
         if (result.giftCode) app.toast(`Код подарка: ${result.giftCode}`);
         else app.paid();
       } else if (result.status === 'pending') app.toast('Оплата проверяется. Покупка появится, как только RuStore её подтвердит.');
@@ -284,6 +289,9 @@ export default function CanvasApp() {
           .then(({ message }) => { chats.set(id, [...(chats.get(id) ?? []), message]); if (!cancelled) renderNow(); })
           .catch((error: Error) => instance.current?.toast(friendErrorText(error.message)));
       };
+      let esoAccess = false;
+      const oracle = buildCanvasOracle(() => Boolean(loaded?.profile.isPremium) || esoAccess);
+      if (loaded?.profile.id) void refreshPurchases(String(loaded.profile.id)).then((snapshot) => { esoAccess = hasEsoAccess(snapshot); if (!cancelled) renderNow(); }).catch(() => undefined);
       const render = (real: CanvasRealData | null) => root?.render(
         <CanvasRoot
           key="app"
@@ -295,6 +303,7 @@ export default function CanvasApp() {
           account={params.get('account') ?? real?.account}
           real={real}
           signText={signText}
+          oracle={real ? oracle : undefined}
           friendMessages={real ? friendMessages : undefined}
           friendSend={real ? friendSend : undefined}
           pairPreview={real ? pairPreview : undefined}
