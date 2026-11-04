@@ -25,6 +25,7 @@ import {
   setNativeNotificationForeground,
   shouldOfferNativeNotifications,
 } from '../../services/nativeNotifications';
+import { explainMapSelection } from '../NatalReading/mapExplanation';
 import { buildLunarDays, phaseName, SIGNS_IN } from '../../lib/lunarCalendar';
 import type { OneTimeProductId } from '../../lib/oneTimeProducts';
 import type { PremiumPlanId } from '../../lib/premiumPricing';
@@ -207,6 +208,19 @@ export default function CanvasApp() {
         void request.then((reading) => { if (!cancelled && reading?.text) { signTexts.set(key, reading.text); renderNow(); } }).catch(() => undefined);
         return null;
       };
+      // A point of the chart explained from this person's own chart.
+      const pointKeys: Record<string, string> = { asc: 'ascendant', dsc: 'descendant', node: 'northNode', snode: 'southNode' };
+      const chartsByKey = new Map<string, NatalChartData>();
+      const explainPoint = (whoKey: string, point: string): string | null => {
+        const chart = whoKey === 'me' ? loaded?.chart : chartsByKey.get(whoKey);
+        if (!chart) return null;
+        try {
+          const explanation = explainMapSelection(chart as never, { kind: 'point', id: pointKeys[point] ?? point }) as { meaning?: string } | null;
+          return explanation?.meaning || null;
+        } catch {
+          return null;
+        }
+      };
       const render = (real: CanvasRealData | null) => root?.render(
         <CanvasRoot
           key="app"
@@ -218,6 +232,7 @@ export default function CanvasApp() {
           account={params.get('account') ?? real?.account}
           real={real}
           signText={signText}
+          explainPoint={real ? explainPoint : undefined}
         />,
       );
       currentProfile = loaded?.profile ?? null;
@@ -226,14 +241,24 @@ export default function CanvasApp() {
       let reading: NatalUnifiedReading | null = null;
       let today: Record<string, unknown> = { dateLine: canvasDateLine() };
       let moon: Record<string, string> | undefined;
+      let retro: CanvasRealData['retro'];
       const compose = (): CanvasRealData | null => (loaded
-        ? { ...loaded.real, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
+        ? { ...loaded.real, retro, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
         : null);
       renderNow = () => render(compose());
       render(compose());
       if (loaded) {
         void import('astronomy-engine').then((engine) => {
-          const day = buildLunarDays(engine, new Date(), 1)[0];
+          const dayMs = 86400000;
+          const days = buildLunarDays(engine, new Date(Date.now() - 40 * dayMs), 90);
+          const todayIndex = 40;
+          const day = days[todayIndex];
+          if (day?.mercuryRetrograde) {
+            let first = todayIndex; while (first > 0 && days[first - 1].mercuryRetrograde) first -= 1;
+            let last = todayIndex; while (last < days.length - 1 && days[last + 1].mercuryRetrograde) last += 1;
+            const label = (index: number) => new Date(Date.now() + (index - todayIndex) * dayMs).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+            retro = { active: true, from: label(first), to: label(last) };
+          } else retro = { active: false };
           if (cancelled || !day) return;
           const signLine = `Луна ${SIGNS_IN[day.sign]}`;
           moon = {
@@ -245,7 +270,7 @@ export default function CanvasApp() {
           render(compose());
         }).catch(() => undefined);
         void getCharts(String(loaded.profile.id), { repairPrimary: false })
-          .then((response) => { if (!cancelled) { people = buildCanvasPeople(response.charts ?? []); render(compose()); } })
+          .then((response) => { if (!cancelled) { people = buildCanvasPeople(response.charts ?? []); (response.charts ?? []).forEach((chart) => chartsByKey.set(`chart${chart.id}`, chart.chart_data)); render(compose()); } })
           .catch(() => undefined);
         void loadReading(loaded).then((value) => { if (!cancelled && value) { reading = value; render(compose()); } });
         if (loaded.profile.isSetup) {
