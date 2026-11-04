@@ -794,6 +794,24 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         }
     }, [profile?.id]);
 
+    // The canvas interface hands these flows to the working old screens: /?classic=auth|pay|logout|delete
+    const classicHandoffDone = useRef(false);
+    useEffect(() => {
+        const flow = new URLSearchParams(window.location.search).get('classic');
+        if (!flow) return;
+        if (flow === 'auth') {
+            if (profile?.isSetup) window.location.replace('/');
+            return;
+        }
+        if (!profile || classicHandoffDone.current) return;
+        classicHandoffDone.current = true;
+        if (flow === 'pay') void requestPremium('canvas');
+        if (flow === 'logout' || flow === 'delete') {
+            void (flow === 'logout' ? handleLogout() : handleDeleteAccount()).finally(() => window.location.replace('/?classic=auth'));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [profile?.id, profile?.isSetup]);
+
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
         tg?.ready?.();

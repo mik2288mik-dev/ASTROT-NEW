@@ -76,7 +76,8 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
       sex: profile.gender === 'female' ? 'f' : 'm',
       sub: birth,
       over: [name, sunSign].filter(Boolean).join(' · '),
-      ...(canonical ? chartFields(canonical) : {}),
+      // Without a chart nothing from the examples may stay on screen.
+      ...(canonical ? chartFields(canonical) : { nat: [], big3: [['', ''], ['', ''], ['', '']], highlights: [], chartMissing: true }),
       ...(profile.birthDate ? dateFields(profile.birthDate) : {}),
     },
   };
