@@ -1,10 +1,15 @@
 /**
  * One-time RuStore products (created in the RuStore console, app 2063750823).
  * Client-safe: the shop reads titles and prices from here, the server reads what each purchase grants.
- * Only products whose feature exists in the app are sold; the rest stay in the console unused.
+ * Every product here is delivered by the app; ids match the console exactly.
  */
 
 export type OneTimeProductId =
+  | 'natal_full'
+  | 'year_ahead'
+  | 'questions_10'
+  | 'person_reading'
+  | 'poster_sky'
   | 'eso_year'
   | 'spread_one'
   | 'tips_149'
@@ -14,7 +19,8 @@ export type OneTimeProductId =
 
 export type OneTimeGrant =
   | { kind: 'eso_days'; days: number }
-  | { kind: 'credit'; credit: 'spread'; amount: number }
+  | { kind: 'credit'; credit: 'spread' | 'questions' | 'person' | 'poster'; amount: number }
+  | { kind: 'unlock'; unlock: 'natal' | 'year' }
   | { kind: 'gift_code'; days: number; months: number }
   | { kind: 'thanks' };
 
@@ -29,6 +35,31 @@ export type OneTimeProduct = {
 };
 
 export const ONE_TIME_PRODUCTS: Record<OneTimeProductId, OneTimeProduct> = {
+  natal_full: {
+    id: 'natal_full', consumable: false, priceRub: 490,
+    title: 'Натальная карта целиком', text: 'Все главы о тебе, навсегда',
+    image: '/assets/shop/gift.webp', grant: { kind: 'unlock', unlock: 'natal' },
+  },
+  year_ahead: {
+    id: 'year_ahead', consumable: false, priceRub: 690,
+    title: 'Год вперёд', text: 'Прогноз по твоей карте на 12 месяцев, навсегда',
+    image: '/assets/shop/gift.webp', grant: { kind: 'unlock', unlock: 'year' },
+  },
+  questions_10: {
+    id: 'questions_10', consumable: true, priceRub: 390,
+    title: '10 вопросов о карте', text: 'Ответы по твоей карте, не сгорают',
+    image: '/assets/shop/gift.webp', grant: { kind: 'credit', credit: 'questions', amount: 10 },
+  },
+  person_reading: {
+    id: 'person_reading', consumable: true, priceRub: 290,
+    title: 'Полный разбор пары', text: 'Полная совместимость двух карт, остаётся навсегда',
+    image: '/assets/shop/gift.webp', grant: { kind: 'credit', credit: 'person', amount: 1 },
+  },
+  poster_sky: {
+    id: 'poster_sky', consumable: true, priceRub: 249,
+    title: 'Постер твоей карты', text: 'Файл для печати и обои на телефон',
+    image: '/assets/shop/gift.webp', grant: { kind: 'credit', credit: 'poster', amount: 1 },
+  },
   eso_year: {
     id: 'eso_year', consumable: false, priceRub: 999,
     title: 'Вся эзотерика на год', text: 'Таро, руны и числа имени без ограничений на 12 месяцев',
@@ -70,6 +101,11 @@ export type PurchasesSnapshot = {
   /** ISO date until which tarot, runes and name numbers are open without Plus. */
   esoUntil: string | null;
   spreadCredits: number;
+  natalFull?: boolean;
+  yearAhead?: boolean;
+  questionCredits?: number;
+  personCredits?: number;
+  posterCredits?: number;
   giftCodes: Array<{ code: string; months: number; redeemed: boolean; createdAt: string }>;
 };
 

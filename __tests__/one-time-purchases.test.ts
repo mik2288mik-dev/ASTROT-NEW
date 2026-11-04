@@ -73,10 +73,16 @@ function fakePool() {
 
 describe('one-time products', () => {
   it('sells only products whose feature exists, with what the console says', () => {
-    expect(Object.keys(ONE_TIME_PRODUCTS).sort()).toEqual(['eso_year', 'gift_plus_12m', 'gift_plus_1m', 'gift_plus_3m', 'spread_one', 'tips_149']);
+    expect(Object.keys(ONE_TIME_PRODUCTS).sort()).toEqual(['eso_year', 'gift_plus_12m', 'gift_plus_1m', 'gift_plus_3m', 'natal_full', 'person_reading', 'poster_sky', 'questions_10', 'spread_one', 'tips_149', 'year_ahead']);
+    expect(ONE_TIME_PRODUCTS.natal_full.priceRub).toBe(490);
+    expect(ONE_TIME_PRODUCTS.year_ahead.priceRub).toBe(690);
+    expect(ONE_TIME_PRODUCTS.questions_10.priceRub).toBe(390);
+    expect(ONE_TIME_PRODUCTS.person_reading.priceRub).toBe(290);
+    expect(ONE_TIME_PRODUCTS.poster_sky.priceRub).toBe(249);
     expect(ONE_TIME_PRODUCTS.eso_year.consumable).toBe(false);
     expect(ONE_TIME_PRODUCTS.gift_plus_12m.priceRub).toBe(2999);
-    expect(isOneTimeProductId('natal_full')).toBe(false);
+    expect(isOneTimeProductId('natal_full')).toBe(true);
+    expect(isOneTimeProductId('unknown_product')).toBe(false);
     expect(hasEsoAccess({ esoUntil: new Date(Date.now() + 1000).toISOString(), spreadCredits: 0, giftCodes: [] })).toBe(true);
     expect(hasEsoAccess({ esoUntil: new Date(Date.now() - 1000).toISOString(), spreadCredits: 0, giftCodes: [] })).toBe(false);
   });

@@ -43,6 +43,17 @@ export const ONE_TIME_PURCHASES_SCHEMA_SQL = `
     redeemed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
+  ALTER TABLE user_product_state ADD COLUMN IF NOT EXISTS natal_full_at TIMESTAMPTZ;
+  ALTER TABLE user_product_state ADD COLUMN IF NOT EXISTS year_ahead_at TIMESTAMPTZ;
+  ALTER TABLE user_product_state ADD COLUMN IF NOT EXISTS question_credits INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE user_product_state ADD COLUMN IF NOT EXISTS person_credits INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE user_product_state ADD COLUMN IF NOT EXISTS poster_credits INTEGER NOT NULL DEFAULT 0;
+  CREATE TABLE IF NOT EXISTS person_reading_unlocks (
+    user_id TEXT NOT NULL,
+    unlock_key TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, unlock_key)
+  );
   CREATE INDEX IF NOT EXISTS plus_gift_codes_buyer_idx ON plus_gift_codes (buyer_user_id, created_at DESC);
 `;
 
@@ -97,16 +108,52 @@ async function grantPremiumDays(client: PoolClient, userId: string, days: number
   return endsAt;
 }
 
+const CREDIT_COLUMNS = { spread: 'spread_credits', questions: 'question_credits', person: 'person_credits', poster: 'poster_credits' } as const;
+
+/** Spends one credit of a kind. Returns false when there is none left. */
+async function consumeCredit(userId: string, column: string, pool: Pool): Promise<boolean> {
+  await ensureOneTimePurchasesSchema(pool);
+  const result = await pool.query(
+    `UPDATE user_product_state SET ${column} = ${column} - 1, updated_at = NOW()
+     WHERE user_id = $1 AND ${column} > 0 RETURNING ${column}`,
+    [userId],
+  );
+  return Boolean(result.rows[0]);
+}
+
+export function consumeQuestionCredit(userId: string, pool: Pool = getPool()): Promise<boolean> {
+  return consumeCredit(userId, 'question_credits', pool);
+}
+
+export function consumePosterCredit(userId: string, pool: Pool = getPool()): Promise<boolean> {
+  return consumeCredit(userId, 'poster_credits', pool);
+}
+
+/** A pair opened with a bought reading stays open: only the first opening spends a credit. */
+export async function unlockPersonReading(userId: string, unlockKey: string, pool: Pool = getPool()): Promise<boolean> {
+  await ensureOneTimePurchasesSchema(pool);
+  const known = await pool.query('SELECT 1 FROM person_reading_unlocks WHERE user_id = $1 AND unlock_key = $2', [userId, unlockKey]);
+  if (known.rows[0]) return true;
+  if (!(await consumeCredit(userId, 'person_credits', pool))) return false;
+  await pool.query('INSERT INTO person_reading_unlocks (user_id, unlock_key) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, unlockKey]);
+  return true;
+}
+
 export async function readPurchasesSnapshot(userId: string, pool: Pool = getPool()): Promise<PurchasesSnapshot> {
   await ensureOneTimePurchasesSchema(pool);
   const [state, codes] = await Promise.all([
-    pool.query('SELECT eso_until, spread_credits FROM user_product_state WHERE user_id = $1', [userId]),
+    pool.query('SELECT eso_until, spread_credits, natal_full_at, year_ahead_at, question_credits, person_credits, poster_credits FROM user_product_state WHERE user_id = $1', [userId]),
     pool.query('SELECT code, months, redeemed_at, created_at FROM plus_gift_codes WHERE buyer_user_id = $1 ORDER BY created_at DESC LIMIT 50', [userId]),
   ]);
   const row = state.rows[0];
   return {
     esoUntil: row?.eso_until ? new Date(row.eso_until).toISOString() : null,
     spreadCredits: Number(row?.spread_credits || 0),
+    natalFull: Boolean(row?.natal_full_at),
+    yearAhead: Boolean(row?.year_ahead_at),
+    questionCredits: Number(row?.question_credits || 0),
+    personCredits: Number(row?.person_credits || 0),
+    posterCredits: Number(row?.poster_credits || 0),
     giftCodes: codes.rows.map((code: any) => ({
       code: String(code.code),
       months: Number(code.months),
@@ -164,11 +211,23 @@ export async function validateOneTimePurchase(input: {
           [input.userId, grant.days],
         );
       } else if (grant.kind === 'credit') {
+        const column = CREDIT_COLUMNS[grant.credit];
         await client.query(
-          `INSERT INTO user_product_state (user_id, spread_credits) VALUES ($1, $2)
-           ON CONFLICT (user_id) DO UPDATE SET spread_credits = user_product_state.spread_credits + $2, updated_at = NOW()`,
+          `INSERT INTO user_product_state (user_id, ${column}) VALUES ($1, $2)
+           ON CONFLICT (user_id) DO UPDATE SET ${column} = user_product_state.${column} + $2, updated_at = NOW()`,
           [input.userId, grant.amount],
         );
+      } else if (grant.kind === 'unlock') {
+        const column = grant.unlock === 'natal' ? 'natal_full_at' : 'year_ahead_at';
+        await client.query(
+          `INSERT INTO user_product_state (user_id, ${column}) VALUES ($1, NOW())
+           ON CONFLICT (user_id) DO UPDATE SET ${column} = COALESCE(user_product_state.${column}, NOW()), updated_at = NOW()`,
+          [input.userId],
+        );
+        // The full chart comes with three questions, as the purchase screen promises.
+        if (grant.unlock === 'natal') {
+          await client.query('UPDATE user_product_state SET question_credits = question_credits + 3 WHERE user_id = $1', [input.userId]);
+        }
       } else if (grant.kind === 'gift_code') {
         for (let attempt = 0; attempt < 5 && !giftCode; attempt += 1) {
           const candidate = generateGiftCode();

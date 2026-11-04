@@ -34,6 +34,13 @@ export type CanvasRealData = {
   retro?: { active: boolean; from?: string; to?: string };
   moonDays?: unknown[][];
   period?: CanvasPeriod;
+  year?: { rows: string[][]; best: string[][] };
+  yearAhead?: boolean;
+  natalFull?: boolean;
+  questionCredits?: number;
+  personCredits?: number;
+  posterCredits?: number;
+  posterPreview?: string;
   notif?: NativeNotificationSettings | null;
   purchases?: string[][];
   friends?: Array<{ id: string; name: string; sign: string; last: string; match: string; unread: number }>;
@@ -114,8 +121,8 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
     me: {
       name,
       sex: profile.gender === 'female' ? 'f' : 'm',
-      buyLabel: 'Вся карта в NEBO Plus',
-      price: '',
+      buyLabel: 'Открыть всю карту',
+      price: '490 ₽',
       sub: birth,
       over: [name, sunSign].filter(Boolean).join(' · '),
       // Without a chart nothing from the examples may stay on screen.
@@ -314,6 +321,11 @@ export function buildCanvasPurchases(profile: UserProfile, snapshot: PurchasesSn
   const rows: string[][] = [];
   if (profile.isPremium) rows.push(['plus', 'NEBO Plus', 'подписка', profile.premiumUntil ? `до ${dayText(profile.premiumUntil)}` : '']);
   if (snapshot.esoUntil && Date.parse(snapshot.esoUntil) > Date.now()) rows.push(['tarot', 'Таро, руны и числа на год', 'эзотерика', `до ${dayText(snapshot.esoUntil)}`]);
+  if (snapshot.natalFull) rows.push(['natal', 'Натальная карта целиком', 'навсегда', 'открыта']);
+  if (snapshot.yearAhead) rows.push(['calendar', 'Год вперёд', 'навсегда', 'открыт']);
+  if (snapshot.questionCredits) rows.push(['chats', 'Вопросы о карте', 'не сгорают', `осталось: ${snapshot.questionCredits}`]);
+  if (snapshot.personCredits) rows.push(['people', 'Разбор пары', 'не сгорает', `осталось: ${snapshot.personCredits}`]);
+  if (snapshot.posterCredits) rows.push(['poster', 'Постер', 'можно сделать', `осталось: ${snapshot.posterCredits}`]);
   if (snapshot.spreadCredits > 0) rows.push(['tarot', 'Расклады таро и рун', 'не сгорают', `осталось: ${snapshot.spreadCredits}`]);
   snapshot.giftCodes.forEach((gift) => rows.push(['gift', `Подарок Plus · ${gift.months} мес.`, gift.code, gift.redeemed ? 'использован' : 'не использован']));
   return rows;
@@ -400,4 +412,38 @@ export function buildCanvasPeriod(engine: typeof import('astronomy-engine'), pro
       monthMood: 'Видно, какие дни легче, а какие труднее.',
     },
   };
+}
+
+const MONTH_LABEL = (month: number, year: number): string => `${MONTH_NOM[month - 1]} ${year}`;
+
+/** «Год вперёд»: twelve months from the same calendar of transits to this person's chart. */
+export function buildCanvasYear(engine: typeof import('astronomy-engine'), profile: UserProfile, chart: NatalChartData | null): NonNullable<CanvasRealData['year']> {
+  const natal = natalPointsFromChart(chart);
+  const now = new Date();
+  const rows: string[][] = [];
+  const score: Record<string, Array<[string, number]>> = { love: [], work: [], money: [], hard: [] };
+  for (let index = 0; index < 12; index += 1) {
+    const at = new Date(now.getFullYear(), now.getMonth() + index, 1);
+    const month = at.getMonth() + 1;
+    const days = buildFutureMonth(engine, at.getFullYear(), month, natal, profile.birthTimezone || 'Europe/Moscow').days;
+    const personal = days.flatMap((day) => day.personal);
+    const sky = days.flatMap((day) => day.sky);
+    const good = days.filter((day) => day.tone === 'good').length;
+    const hard = days.filter((day) => day.tone === 'hard').length;
+    const lead = personal.find((event) => event.tone === (good >= hard ? 'good' : 'hard')) ?? personal[0];
+    const skyLead = sky.find((event) => event.kind !== 'moon') ?? sky[0];
+    const texts = [lead?.body, skyLead && skyLead !== (lead as unknown) ? skyLead.body : null].filter(Boolean);
+    const tone = good > hard + 2 ? 'good' : hard > good + 2 ? 'hard' : good + hard === 0 ? 'calm' : 'mix';
+    rows.push([MONTH_LABEL(month, at.getFullYear()), lead?.headline ?? skyLead?.headline ?? 'Спокойный месяц', texts.map((text) => (/[.!?]$/.test(String(text)) ? text : `${text}.`)).join(' ') || 'Больших событий по твоей карте в этом месяце нет.', tone]);
+    const label = MONTH_NOM[month - 1].toLowerCase();
+    score.love.push([label, personal.filter((event) => event.planet === 'Venus' && event.tone === 'good').length]);
+    score.work.push([label, personal.filter((event) => event.planet === 'Mars' && event.tone === 'good').length]);
+    score.money.push([label, personal.filter((event) => event.planet === 'Jupiter' && event.tone === 'good').length]);
+    score.hard.push([label, hard]);
+  }
+  const best = (list: Array<[string, number]>): string => {
+    const top = list.filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([label]) => label);
+    return top.join(', ') || 'нет ярких месяцев';
+  };
+  return { rows, best: [['Любовь', best(score.love)], ['Дела', best(score.work)], ['Деньги', best(score.money)], ['Осторожно', best(score.hard)]] };
 }

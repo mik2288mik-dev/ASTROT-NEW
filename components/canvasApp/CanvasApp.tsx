@@ -4,8 +4,13 @@ import React, { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import Component from '../../lib/canvasApp/canvasLogic';
 import { CANVAS_CSS, CANVAS_FONTS } from '../../lib/canvasApp/canvasStyles';
-import { buildCanvasChapters, buildCanvasOracle, buildCanvasPeriod, buildCanvasPeople, buildCanvasPurchases, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
-import { getCachedDailySignHoroscope, getCachedWeeklySignHoroscope, getCompatibilityPreview, type CompatibilityPreviewPerson } from '../../services/astrologyService';
+import { buildCanvasChapters, buildCanvasOracle, buildCanvasPeriod, buildCanvasPeople, buildCanvasYear, buildCanvasPurchases, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
+import { calculateExtendedSynastry, getCachedDailySignHoroscope, getCachedWeeklySignHoroscope, getCompatibilityPreview, type CompatibilityPreviewPerson } from '../../services/astrologyService';
+import { apiFetch } from '../../services/apiClient';
+import { drawPoster, savePoster } from '../../lib/canvasApp/poster';
+import { isCanonicalNatalChart } from '../../lib/natalCalculationProof';
+import type { NatalChartDataV2 } from '../../lib/natalChartV2Types';
+import { RELATIONSHIP_CONTEXT_OPTIONS } from '../../lib/synastry/relationshipContext';
 import type { CompatibilityPreview } from '../../lib/synastry/compatibilityPreview';
 import type { RelationshipContext } from '../../lib/synastry/relationshipContext';
 import { loadPersonalForecast } from '../../services/personalForecastService';
@@ -66,7 +71,10 @@ function fitToScreen(mount: HTMLElement): void {
 
 const PLAN_BY_LABEL: ReadonlyArray<[RegExp, PremiumPlanId]> = [[/месяц/, 'premium_month'], [/3 месяца/, 'premium_quarter'], [/год/, 'premium_year']];
 const GIFT_BY_LABEL: ReadonlyArray<[RegExp, OneTimeProductId]> = [[/3 месяца/, 'gift_plus_3m'], [/год/, 'gift_plus_12m'], [/месяц/, 'gift_plus_1m']];
-const ONE_TIME_BY_KIND: Record<string, OneTimeProductId> = { spread: 'spread_one', runes: 'spread_one', numbers: 'eso_year', tips: 'tips_149' };
+const ONE_TIME_BY_KIND: Record<string, OneTimeProductId> = {
+  spread: 'spread_one', runes: 'spread_one', numbers: 'eso_year', tips: 'tips_149',
+  buyNatal: 'natal_full', year: 'year_ahead', packs: 'questions_10', buyPair: 'person_reading', buyPerson: 'person_reading', poster: 'poster_sky',
+};
 
 const readPref = (key: string): string | undefined => {
   try { return window.localStorage.getItem(`nebo.canvas.${key}`) ?? undefined; } catch { return undefined; }
@@ -74,6 +82,8 @@ const readPref = (key: string): string | undefined => {
 const writePref = (key: string, value: string): void => {
   try { window.localStorage.setItem(`nebo.canvas.${key}`, value); } catch { /* the choice lasts until the app closes */ }
 };
+
+const BACKEND_CONTEXT = Object.fromEntries(RELATIONSHIP_CONTEXT_OPTIONS.map((option) => [option.value, option.backendValue])) as Record<RelationshipContext, string>;
 
 type LoadedAccount = { profile: UserProfile; chart: NatalChartData | null; real: CanvasRealData };
 
@@ -138,6 +148,7 @@ export default function CanvasApp() {
     const instance = React.createRef<CanvasInstance>();
     const handoff = (flow: string) => window.location.assign(`/?classic=${flow}`);
     let currentProfile: UserProfile | null = null;
+    let afterPurchase: ((product: OneTimeProductId) => Promise<void>) | null = null;
     // Real RuStore checkout. Anything RuStore does not sell yet opens the working Plus screen.
     const buy = async (kind: string, label: string) => {
       const app = instance.current;
@@ -161,6 +172,7 @@ export default function CanvasApp() {
           const opened = await spendSpreadCredit(String(profile.id)).catch(() => false);
           if (!opened) { app.toast('Не получилось открыть купленный расклад. Проверь интернет.'); return; }
         }
+        await afterPurchase?.(product as OneTimeProductId);
         if (result.giftCode) app.toast(`Код подарка: ${result.giftCode}`);
         else app.paid();
       } else if (result.status === 'pending') app.toast('Оплата проверяется. Покупка появится, как только RuStore её подтвердит.');
@@ -299,12 +311,58 @@ export default function CanvasApp() {
       };
       let notif: CanvasRealData['notif'] = null;
       let purchases: string[][] = [];
+      let year: CanvasRealData['year'];
+      let productState: Partial<CanvasRealData> = {};
+      let natalOwned = false;
       const reloadPurchases = async () => {
         if (!loaded?.profile.id) return;
         const snapshot = await refreshPurchases(String(loaded.profile.id));
         esoAccess = hasEsoAccess(snapshot);
+        natalOwned = Boolean(snapshot.natalFull);
+        productState = { natalFull: natalOwned, yearAhead: Boolean(snapshot.yearAhead), questionCredits: snapshot.questionCredits ?? 0, personCredits: snapshot.personCredits ?? 0, posterCredits: snapshot.posterCredits ?? 0, posterPreview: posterSample() };
         purchases = buildCanvasPurchases(loaded.profile, snapshot);
         if (!cancelled) renderNow();
+      };
+      const canonicalChart = () => (loaded?.chart && isCanonicalNatalChart(loaded.chart) ? (loaded.chart as unknown as NatalChartDataV2) : null);
+      const posterLines = () => ({ name: loaded?.profile.name || '', birth: String(loaded?.real.me.sub ?? '') });
+      let posterCache: string | undefined;
+      const posterSample = (): string | undefined => {
+        const chart = canonicalChart();
+        if (!chart) return undefined;
+        if (!posterCache) { try { posterCache = drawPoster(chart, posterLines(), 700, true).toDataURL('image/jpeg', 0.8); } catch { posterCache = undefined; } }
+        return posterCache;
+      };
+      afterPurchase = async (product) => {
+        await reloadPurchases().catch(() => undefined);
+        if (product === 'natal_full') {
+          const value = await ensureNatalUnifiedReading({ userId: String(loaded?.profile.id), chartData: loaded?.chart as NatalChartData, language: 'ru', tier: 'premium' }).catch(() => null);
+          if (value) reading = value;
+        }
+        if (product === 'poster_sky') {
+          const chart = canonicalChart();
+          if (!chart) throw new Error('POSTER_CHART_MISSING');
+          await savePoster(drawPoster(chart, posterLines(), 2480, false), 'nebo-poster.png');
+          await apiFetch('/api/me/purchases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'use_poster' }) }).catch(() => undefined);
+          await reloadPurchases().catch(() => undefined);
+        }
+        renderNow();
+      };
+      // The full reading of a pair: the same paid reading as the old screen.
+      const pairFull = (a: string, b: string, context: string, app: CanvasInstance) => {
+        const first = personOf(a);
+        const second = b ? personOf(b) : null;
+        if (!loaded || !first || !second) return;
+        app.toast('Готовим полный разбор, это займёт до минуты');
+        void calculateExtendedSynastry(
+          loaded.profile, second.name ?? '', second.date ?? '', undefined, second.place,
+          BACKEND_CONTEXT[contextOf[context] ?? 'relationship'], second.chartId, first.chartId,
+          { name: first.name ?? '', date: first.date ?? '', place: first.place, source: first.source },
+        ).then((result) => {
+          const typed = result as unknown as { storyParagraphs?: Array<{ text: string }>; summary?: string };
+          const paragraphs = typed.storyParagraphs?.map((paragraph) => paragraph.text).filter(Boolean) ?? String(typed.summary ?? '').split(/\n\s*\n/u).filter(Boolean);
+          app.setState({ screen: 'chapter', chOpen: { title: 'Полный разбор пары', sub: 'По вашим двум картам', paras: paragraphs, locked: false } });
+          void reloadPurchases().catch(() => undefined);
+        }).catch(() => app.toast('Сейчас не получилось подготовить разбор. Покупка сохранена, попробуй ещё раз позже.'));
       };
       const redeem = async (code: string, app: CanvasInstance) => {
         const result = await redeemPlusCode(code);
@@ -354,7 +412,7 @@ export default function CanvasApp() {
       };
       const askQuestion = (question: string) => {
         if (!loaded?.profile.id) return;
-        if (!loaded.profile.isPremium) { handoff('pay'); return; }
+        if (!loaded.profile.isPremium && !productState.questionCredits) { instance.current?.setState({ popup: 'packs' }); return; }
         if (ask.sending) return;
         Object.assign(ask, { question, answer: '', error: '', sending: true });
         renderNow();
@@ -407,6 +465,7 @@ export default function CanvasApp() {
           account={params.get('account') ?? real?.account}
           real={real}
           signText={signText}
+          pairFull={real ? pairFull : undefined}
           toastAction={real ? toastAction : undefined}
           requestReview={real ? requestStoreReviewNow : undefined}
           proofFor={real ? proofFor : undefined}
@@ -437,7 +496,7 @@ export default function CanvasApp() {
       let moonDays: unknown[][] | undefined;
       let period: CanvasRealData['period'];
       const compose = (): CanvasRealData | null => (loaded
-        ? { ...loaded.real, retro, period, moonDays, friends, notif, purchases, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
+        ? { ...loaded.real, ...productState, year, retro, period, moonDays, friends, notif, purchases, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium || natalOwned) ?? undefined } }
         : null);
       renderNow = () => render(compose());
       render(compose());
@@ -449,6 +508,7 @@ export default function CanvasApp() {
           const firstOfMonth = new Date(Date.UTC(nowDate.getFullYear(), nowDate.getMonth(), 1));
           const span = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate() + new Date(nowDate.getFullYear(), nowDate.getMonth() + 2, 0).getDate() + new Date(nowDate.getFullYear(), nowDate.getMonth() + 3, 0).getDate();
           period = buildCanvasPeriod(engine, loaded.profile, loaded.chart) ?? undefined;
+          window.setTimeout(() => { if (!cancelled) { try { year = buildCanvasYear(engine, loaded.profile, loaded.chart); renderNow(); } catch { /* the year screen stays on its loading text */ } } }, 300);
           moonDays = buildLunarDays(engine, firstOfMonth, span).map((item) => [
             item.day, item.month, item.sign, item.phase, Math.round(((1 - Math.cos((item.phase * Math.PI) / 180)) / 2) * 100),
             item.exact ? (item.exact.q === 0 ? 1 : 2) : 0, item.eclipse ? 1 : 0, 0, item.mercuryRetrograde ? 1 : 0, '', -1, item.sign,
