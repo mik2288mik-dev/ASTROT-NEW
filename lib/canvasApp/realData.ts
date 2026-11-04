@@ -27,6 +27,7 @@ export type CanvasRealData = {
   today?: Record<string, unknown>;
   signIdx: number;
   personalDay?: number;
+  birthParts?: [number, number, number];
   runeSlug?: string;
   dayCard?: { name: string; meaning: string; img: string | null };
   dayShort?: string;
@@ -38,7 +39,7 @@ export type CanvasRealData = {
   friends?: Array<{ id: string; name: string; sign: string; last: string; match: string; unread: number }>;
   plusUntil?: string;
   birthShort?: string;
-  people?: Array<{ key: string; signIdx: number; who: Record<string, unknown> }>;
+  people?: Array<{ key: string; signIdx: number; birth?: [number, number, number]; who: Record<string, unknown> }>;
 };
 
 const BODIES: ReadonlyArray<[string, string]> = [
@@ -108,6 +109,7 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
     runeSlug: runeOfTheDay(String(profile.id ?? ''), new Date().toISOString().slice(0, 10)).slug,
     dayShort: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }),
     plusUntil: profile.premiumUntil ? new Date(profile.premiumUntil).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : undefined,
+    birthParts: (() => { const parts = parseBirthDate(profile.birthDate); return parts ? [parts.day, parts.month, parts.year] as [number, number, number] : undefined; })(),
     birthShort: profile.birthDate ? profile.birthDate.split('-').reverse().join('.') : undefined,
     me: {
       name,
@@ -249,6 +251,7 @@ export function buildCanvasPeople(charts: readonly ChartListItem[]): NonNullable
       const birth = [chart.birth_date ? formatDisplayDate(chart.birth_date, 'ru').replace(/(\d{4}) г\./, '$1') : '', chart.birth_time, chart.birth_place].filter(Boolean).join(' · ');
       return {
         key: `chart${chart.id}`,
+        birth: (() => { const parts = parseBirthDate(chart.birth_date); return parts ? [parts.day, parts.month, parts.year] as [number, number, number] : undefined; })(),
         signIdx: sunSign ? signIndexOf(sunSign) : -1,
         who: {
           other: true, name, gen: name, acc: name, about: `про: ${name}`, sub: birth,
