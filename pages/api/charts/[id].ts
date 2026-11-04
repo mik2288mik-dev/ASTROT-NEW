@@ -54,7 +54,8 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
         });
       }
       res.setHeader('X-Chart-Source','database');
-      res.setHeader('X-Chart-Calculated-At',chart.updated_at||chart.created_at||'unknown');
+      const calculatedAt=chart.updated_at||chart.created_at;
+      res.setHeader('X-Chart-Calculated-At',calculatedAt?new Date(calculatedAt).toISOString():'unknown');
       return res.status(200).json(chart.chart_data);
     }
     if(req.method==='POST'||req.method==='PUT'){
