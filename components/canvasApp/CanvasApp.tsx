@@ -2,7 +2,11 @@ import React, { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import Component from '../../lib/canvasApp/canvasLogic';
 import { CANVAS_CSS, CANVAS_FONTS } from '../../lib/canvasApp/canvasStyles';
-import { buildCanvasRealData, type CanvasRealData } from '../../lib/canvasApp/realData';
+import { buildCanvasChapters, buildCanvasRealData, buildCanvasToday, canvasDateLine, type CanvasRealData } from '../../lib/canvasApp/realData';
+import { loadPersonalForecast } from '../../services/personalForecastService';
+import type { NatalUnifiedReading } from '../../lib/natalReading/unifiedReading';
+import { ensureNatalUnifiedReading } from '../../services/natalUnifiedReadingService';
+import type { NatalChartData, UserProfile } from '../../types';
 import { readLocalNatalChartCache } from '../../lib/localNatalChartCache';
 import { getChartData, getProfile } from '../../services/storageService';
 
@@ -18,14 +22,26 @@ function fitToScreen(mount: HTMLElement): void {
   mount.style.setProperty('--nb-h', `${window.innerHeight / scale}px`);
 }
 
-async function loadRealData(): Promise<CanvasRealData | null> {
+type LoadedAccount = { profile: UserProfile; chart: NatalChartData | null; real: CanvasRealData };
+
+async function loadAccount(): Promise<LoadedAccount | null> {
   try {
     const profile = await getProfile({ maxAttempts: 2 });
     if (!profile) return null;
     const chart = profile.isSetup
       ? readLocalNatalChartCache(profile)?.chartData ?? await getChartData().catch(() => null)
       : null;
-    return { ...buildCanvasRealData(profile, chart), isAdmin: Boolean(profile.isAdmin) } as CanvasRealData;
+    return { profile, chart, real: buildCanvasRealData(profile, chart) };
+  } catch {
+    return null;
+  }
+}
+
+/** The saved reading only: this never asks for a new generation. */
+async function loadReading({ profile, chart }: LoadedAccount): Promise<NatalUnifiedReading | null> {
+  if (!chart || !profile.id) return null;
+  try {
+    return await ensureNatalUnifiedReading({ userId: String(profile.id), chartData: chart, language: 'ru', tier: profile.isPremium ? 'premium' : 'free' });
   } catch {
     return null;
   }
@@ -62,21 +78,35 @@ export default function CanvasApp() {
     window.addEventListener('resize', onResize);
 
     const params = new URLSearchParams(window.location.search);
-    void loadRealData().then((real) => {
+    void loadAccount().then((loaded) => {
       if (cancelled) return;
       const isDev = process.env.NODE_ENV !== 'production';
-      if (!isDev && !(real as (CanvasRealData & { isAdmin?: boolean }) | null)?.isAdmin) {
+      if (!isDev && !loaded?.profile.isAdmin) {
         window.location.replace('/');
         return;
       }
       root = createRoot(mount);
-      root.render(
+      const render = (real: CanvasRealData | null) => root?.render(
         <CanvasRoot
           start={params.get('start') ?? (real ? 'today' : undefined)}
           account={params.get('account') ?? real?.account}
           real={real}
         />,
       );
+      let reading: NatalUnifiedReading | null = null;
+      let today: Record<string, unknown> = { dateLine: canvasDateLine() };
+      const compose = (): CanvasRealData | null => (loaded
+        ? { ...loaded.real, today, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
+        : null);
+      render(compose());
+      if (loaded) {
+        void loadReading(loaded).then((value) => { if (!cancelled && value) { reading = value; render(compose()); } });
+        if (loaded.profile.isSetup) {
+          void loadPersonalForecast({ profile: loaded.profile, period: 'day' })
+            .then((result) => { if (!cancelled) { today = buildCanvasToday(result.forecast); render(compose()); } })
+            .catch(() => undefined);
+        }
+      }
     });
     return () => {
       cancelled = true;
