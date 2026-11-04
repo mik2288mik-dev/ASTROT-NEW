@@ -21,6 +21,7 @@ import {
 } from './NatalEvidenceSheet';
 import { DictationButton } from '../lumia-ui/DictationButton';
 import { appendDictatedText } from '../../services/dictation';
+import { tr, trf } from '../../lib/i18n';
 
 type Props = {
   compact?: boolean;
@@ -68,33 +69,27 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
   const value = error as NatalQuestionServiceError;
   if (value?.code === 'PREMIUM_REQUIRED') {
     return language === 'ru'
-      ? 'Эта часть пока закрыта. Открой вопросы, чтобы продолжить.'
-      : 'This part is locked for now. Open questions to continue.';
+      ? 'Эта часть пока закрыта. Открой вопросы, чтобы продолжить.' : tr('This part is locked for now. Open questions to continue.');
   }
   if (value?.code === 'FREE_NATAL_QUESTION_USED') {
     return language === 'ru'
-      ? 'Первый вопрос уже использован. Открой вопросы, чтобы продолжить.'
-      : 'Your first question has been used. Open questions to continue.';
+      ? 'Первый вопрос уже использован. Открой вопросы, чтобы продолжить.' : tr('Your first question has been used. Open questions to continue.');
   }
   if (value?.code === 'NATAL_QUESTION_DAILY_LIMIT') {
     return language === 'ru'
-      ? 'На сегодня вопросы закончились. Можно вернуться завтра.'
-      : 'You have used today\'s questions. You can return tomorrow.';
+      ? 'На сегодня вопросы закончились. Можно вернуться завтра.' : tr('You have used today\'s questions. You can return tomorrow.');
   }
   if (value?.code === 'NATAL_QUESTION_CHART_REQUIRED') {
     return language === 'ru'
-      ? 'Сначала сохрани натальную карту, затем задай вопрос.'
-      : 'Save the natal chart before asking a question.';
+      ? 'Сначала сохрани натальную карту, затем задай вопрос.' : tr('Save the natal chart before asking a question.');
   }
   if (value?.code === 'NATAL_QUESTION_REJECTED') {
     return language === 'ru'
-      ? 'Здесь нужен конкретный вопрос о себе по сохранённой натальной карте.'
-      : 'Ask a specific question about yourself based on the saved birth chart.';
+      ? 'Здесь нужен конкретный вопрос о себе по сохранённой натальной карте.' : tr('Ask a specific question about yourself based on the saved birth chart.');
   }
   if (value?.code === 'NATAL_QUESTION_SELF_CHART_REQUIRED') {
     return language === 'ru'
-      ? 'Свой вопрос можно задать только по основной карте.'
-      : 'You can ask your own question only about your primary chart.';
+      ? 'Свой вопрос можно задать только по основной карте.' : tr('You can ask your own question only about your primary chart.');
   }
   if (
     value?.code === 'NATAL_QUESTION_GENERATION_FAILED'
@@ -103,12 +98,10 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
     || value?.code === 'CONTENT_GENERATION_TIMEOUT'
   ) {
     return language === 'ru'
-      ? 'Не удалось закончить ответ. Отправь этот же вопрос ещё раз, лимит не спишется.'
-      : 'The answer did not finish. Submit the same question again without using another question.';
+      ? 'Не удалось закончить ответ. Отправь этот же вопрос ещё раз, лимит не спишется.' : tr('The answer did not finish. Submit the same question again without using another question.');
   }
   return language === 'ru'
-    ? 'Не удалось загрузить ответы. Проверь соединение и попробуй ещё раз.'
-    : 'Unable to load the answers. Check your connection and try again.';
+    ? 'Не удалось загрузить ответы. Проверь соединение и попробуй ещё раз.' : tr('Unable to load the answers. Check your connection and try again.');
 }
 
 export const NatalQuestionExperience: React.FC<Props> = ({
@@ -270,36 +263,33 @@ export const NatalQuestionExperience: React.FC<Props> = ({
   const questionLimitReached = remainingQuestions === 0 && !unansweredQuestionText;
   const inputDisabled = !isPremium || loading || submitting || questionLimitReached || !userId;
   const statusText = submitting
-    ? (language === 'ru' ? 'Готовим ответ…' : 'Preparing your answer…')
+    ? (language === 'ru' ? 'Готовим ответ…' : tr('Preparing your answer…'))
     : unansweredQuestionText
       ? (canRetryUnanswered
           ? (language === 'ru'
-              ? 'Предыдущий вопрос остался без ответа. Отправь его ещё раз, лимит не спишется.'
-              : 'The previous question has no answer. Submit it again without using another question.')
+              ? 'Предыдущий вопрос остался без ответа. Отправь его ещё раз, лимит не спишется.' : tr('The previous question has no answer. Submit it again without using another question.'))
           : (language === 'ru'
-              ? 'Сейчас можно повторить только вопрос, который остался без ответа.'
-              : 'For now, you can only retry the unanswered question.'))
+              ? 'Сейчас можно повторить только вопрос, который остался без ответа.' : tr('For now, you can only retry the unanswered question.')))
       : questionLimitReached
         ? (isPremium
-            ? (language === 'ru' ? 'На сегодня вопросы закончились.' : 'You have used today\'s questions.')
-            : (language === 'ru' ? 'Вопросы о себе доступны с Premium.' : 'Questions about yourself require Premium.'))
+            ? (language === 'ru' ? 'На сегодня вопросы закончились.' : tr('You have used today\'s questions.'))
+            : (language === 'ru' ? 'Вопросы о себе доступны с Premium.' : tr('Questions about yourself require Premium.')))
         : remainingQuestions != null
           ? (isPremium
-              ? (language === 'ru' ? `Осталось сегодня: ${remainingQuestions}` : `Remaining today: ${remainingQuestions}`)
-              : (language === 'ru' ? 'Можно задать первый вопрос.' : 'You can ask your first question.'))
-          : (language === 'ru' ? 'Ответ сохранится здесь.' : 'The answer will stay here.');
+              ? (language === 'ru' ? `Осталось сегодня: ${remainingQuestions}` : trf('Remaining today: {0}', remainingQuestions))
+              : (language === 'ru' ? 'Можно задать первый вопрос.' : tr('You can ask your first question.')))
+          : (language === 'ru' ? 'Ответ сохранится здесь.' : tr('The answer will stay here.'));
 
   return (
     <article className="natal-v3-question-experience" aria-labelledby="natal-v3-question-title">
       <header className="natal-v3-page-heading natal-v3-question-heading" hidden={compact}>
-        <p>{language === 'ru' ? 'Спросить' : 'Ask'}</p>
+        <p>{language === 'ru' ? 'Спросить' : tr('Ask')}</p>
         <h1 id="natal-v3-question-title">
-          {language === 'ru' ? 'Задай любой вопрос о себе' : 'Ask anything about yourself'}
+          {language === 'ru' ? 'Задай любой вопрос о себе' : tr('Ask anything about yourself')}
         </h1>
         <span>
           {language === 'ru'
-            ? 'Напиши вопрос своими словами. Ответ будет только по твоей сохранённой карте.'
-            : 'Write the question in your own words. The answer uses only your saved birth chart.'}
+            ? 'Напиши вопрос своими словами. Ответ будет только по твоей сохранённой карте.' : tr('Write the question in your own words. The answer uses only your saved birth chart.')}
         </span>
       </header>
 
@@ -307,12 +297,11 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         <section className="natal-v3-question-paywall" aria-labelledby="natal-v3-question-paywall-title">
           <p>Premium</p>
           <h2 id="natal-v3-question-paywall-title">
-            {language === 'ru' ? 'Спрашивай о себе по своей карте' : 'Ask about yourself using your chart'}
+            {language === 'ru' ? 'Спрашивай о себе по своей карте' : tr('Ask about yourself using your chart')}
           </h2>
           <span>
             {language === 'ru'
-              ? 'Можно задавать до 5 новых вопросов в день. История ответов останется здесь.'
-              : 'You can ask up to 5 new questions a day. Your answer history stays here.'}
+              ? 'Можно задавать до 5 новых вопросов в день. История ответов останется здесь.' : tr('You can ask up to 5 new questions a day. Your answer history stays here.')}
           </span>
           <button
             id="natal-question-premium-button"
@@ -327,17 +316,17 @@ export const NatalQuestionExperience: React.FC<Props> = ({
               returnAction: 'open_natal_questions',
             })}
           >
-            {language === 'ru' ? 'Открыть вопросы' : 'Open questions'}
+            {language === 'ru' ? 'Открыть вопросы' : tr('Open questions')}
           </button>
         </section>
       ) : (
         <section className="natal-v3-question-composer" aria-labelledby="natal-v3-question-composer-title">
           <div className="natal-v3-section-heading natal-v3-question-composer-heading">
             <h2 id="natal-v3-question-composer-title">
-              {language === 'ru' ? 'Твой вопрос' : 'Your question'}
+              {language === 'ru' ? 'Твой вопрос' : tr('Your question')}
             </h2>
             {!compact ? <span id="natal-question-example" className="natal-v3-question-example">
-              {language === 'ru' ? 'Например: ' : 'For example: '}{QUESTION_EXAMPLES[language][questionExampleIndex]}
+              {language === 'ru' ? 'Например: ' : tr('For example: ')}{QUESTION_EXAMPLES[language][questionExampleIndex]}
             </span> : null}
           </div>
 
@@ -353,8 +342,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                 maxLength={300}
                 rows={compact ? 1 : 3}
                 placeholder={language === 'ru'
-                  ? 'Напиши свой вопрос…'
-                  : 'Write your question…'}
+                  ? 'Напиши свой вопрос…' : tr('Write your question…')}
                 disabled={inputDisabled}
                 aria-describedby={`${compact ? '' : 'natal-question-example '}natal-v3-question-status natal-v3-question-warning`}
               />
@@ -365,7 +353,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
               />
               <button
                 type="submit"
-                aria-label={language === 'ru' ? 'Отправить вопрос' : 'Send question'}
+                aria-label={language === 'ru' ? 'Отправить вопрос' : tr('Send question')}
                 disabled={inputDisabled
                   || !questionText.trim()
                   || Boolean(unansweredQuestionText && !canRetryUnanswered)}
@@ -379,8 +367,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
             </div>
             <p id="natal-v3-question-warning" className="natal-v3-question-warning">
               {language === 'ru'
-                ? 'Не указывай документы, контакты, пароли, платёжные или медицинские данные.'
-                : 'Do not include documents, contact details, passwords, payment, or medical data.'}
+                ? 'Не указывай документы, контакты, пароли, платёжные или медицинские данные.' : tr('Do not include documents, contact details, passwords, payment, or medical data.')}
             </p>
             {error && snapshot ? <p className="natal-v3-question-error" role="alert">{error}</p> : null}
           </form>
@@ -390,18 +377,18 @@ export const NatalQuestionExperience: React.FC<Props> = ({
       <section data-telemetry-private hidden={compact && !loading && !error && !pairs.length} className="natal-v3-question-history" aria-labelledby="natal-v3-question-history-title">
         <div className="natal-v3-section-heading">
           <h2 id="natal-v3-question-history-title">
-            {language === 'ru' ? 'Твои вопросы и ответы' : 'Your questions and answers'}
+            {language === 'ru' ? 'Твои вопросы и ответы' : tr('Your questions and answers')}
           </h2>
         </div>
         {loading && !snapshot ? (
           <p className="natal-v3-question-state" role="status">
-            {language === 'ru' ? 'Загружаем прошлые ответы…' : 'Loading previous answers…'}
+            {language === 'ru' ? 'Загружаем прошлые ответы…' : tr('Loading previous answers…')}
           </p>
         ) : error && !snapshot ? (
           <div className="natal-v3-question-state" role="alert">
             <p>{error}</p>
             <button type="button" onClick={() => setRetryToken((value) => value + 1)}>
-              {language === 'ru' ? 'Попробовать ещё раз' : 'Try again'}
+              {language === 'ru' ? 'Попробовать ещё раз' : tr('Try again')}
             </button>
           </div>
         ) : pairs.length ? (
@@ -410,12 +397,12 @@ export const NatalQuestionExperience: React.FC<Props> = ({
               <li key={question.id}>
                 <article>
                   <div className="natal-v3-user-question">
-                    <p>{language === 'ru' ? 'Ты спросил' : 'You asked'}</p>
+                    <p>{language === 'ru' ? 'Ты спросил' : tr('You asked')}</p>
                     <h3>{question.text}</h3>
                   </div>
                   {answer ? (
                     <div data-telemetry-content={`Ответ на вопрос #${answer.id}`} className="natal-v3-assistant-answer">
-                      <p>{language === 'ru' ? 'Ответ по карте' : 'Answer from the chart'}</p>
+                      <p>{language === 'ru' ? 'Ответ по карте' : tr('Answer from the chart')}</p>
                       <FormattedAiText
                         text={answer.text}
                         className="natal-v3-assistant-answer-copy"
@@ -431,14 +418,13 @@ export const NatalQuestionExperience: React.FC<Props> = ({
                           evidenceIds: questionMessageEvidenceIds(answer),
                         })}
                       >
-                        {language === 'ru' ? 'На чём основано' : 'What this is based on'}
+                        {language === 'ru' ? 'На чём основано' : tr('What this is based on')}
                       </button>
                     </div>
                   ) : (
                     <p className="natal-v3-question-state">
                       {language === 'ru'
-                        ? 'Ответ не завершён. Повтори этот же вопрос выше.'
-                        : 'The answer did not finish. Retry the same question above.'}
+                        ? 'Ответ не завершён. Повтори этот же вопрос выше.' : tr('The answer did not finish. Retry the same question above.')}
                     </p>
                   )}
                 </article>
@@ -448,8 +434,7 @@ export const NatalQuestionExperience: React.FC<Props> = ({
         ) : (
           <p className="natal-v3-question-state">
             {language === 'ru'
-              ? 'Здесь появятся вопросы, которые ты уже задавал по карте.'
-              : 'Questions you have already asked about the chart will appear here.'}
+              ? 'Здесь появятся вопросы, которые ты уже задавал по карте.' : tr('Questions you have already asked about the chart will appear here.')}
           </p>
         )}
       </section>

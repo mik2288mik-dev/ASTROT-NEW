@@ -13,6 +13,7 @@ import {
 import styles from './NatalSection.module.css';
 import { PremiumHook } from '../premium/PremiumHook';
 import { SIGN_LOCATIVE_RU } from '../../lib/natalMoments';
+import { tr, trf } from '../../lib/i18n';
 
 /** Topic chips that scroll sideways; arrows at the edges show where there is more and move the row. */
 function TopicNav({ topics, label }: { topics: ReadonlyArray<{ key: string; title: string }>; label: string }) {
@@ -82,8 +83,7 @@ function natalHookTitle(chart: NatalChartDataV2): string {
 
 function errorText(language: 'ru' | 'en'): string {
   return language === 'ru'
-    ? 'Разбор не загрузился. Попробуй ещё раз.'
-    : 'The reading did not load. Try again.';
+    ? 'Разбор не загрузился. Попробуй ещё раз.' : tr('The reading did not load. Try again.');
 }
 
 export const NatalUnifiedReport: React.FC<Props> = ({
@@ -155,10 +155,9 @@ export const NatalUnifiedReport: React.FC<Props> = ({
   if (savedPerson && !isPremium) {
     return (
       <section className={styles.state}>
-        <h2>{language === 'ru' ? 'Сохранённая карта' : 'Saved chart'}</h2>
+        <h2>{language === 'ru' ? 'Сохранённая карта' : tr('Saved chart')}</h2>
         <p>{language === 'ru'
-          ? 'Разбор сохранённых карт доступен с Premium.'
-          : 'Saved-chart readings require Premium.'}</p>
+          ? 'Разбор сохранённых карт доступен с Premium.' : tr('Saved-chart readings require Premium.')}</p>
         {canPromotePremium ? (
           <button
             type="button"
@@ -169,7 +168,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
               returnView: 'chart',
             })}
           >
-            {language === 'ru' ? 'Открыть с Premium' : 'Open with Premium'}
+            {language === 'ru' ? 'Открыть с Premium' : tr('Open with Premium')}
           </button>
         ) : null}
       </section>
@@ -202,8 +201,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
                 <strong>{topic.title}</strong>
                 <small>
                   {language === 'ru'
-                    ? `Основано на ${topic.evidenceIds.length} элементах твоей карты`
-                    : `Based on ${topic.evidenceIds.length} chart factors`}
+                    ? `Основано на ${topic.evidenceIds.length} элементах твоей карты` : trf('Based on {0} chart factors', topic.evidenceIds.length)}
                 </small>
               </span>
               <span aria-hidden="true">›</span>
@@ -216,14 +214,14 @@ export const NatalUnifiedReport: React.FC<Props> = ({
 
   const reading = state.identity === identity ? state.reading : null;
   if (!reading && state.loading) {
-    return <section className={styles.state} role="status"><p>{language === 'ru' ? 'Загружаем разбор карты…' : 'Loading your reading…'}</p></section>;
+    return <section className={styles.state} role="status"><p>{language === 'ru' ? 'Загружаем разбор карты…' : tr('Loading your reading…')}</p></section>;
   }
   if (!reading) {
     return (
       <section className={styles.state} role="alert">
         <p>{state.error || errorText(language)}</p>
         <button type="button" onClick={() => setRetryToken((value) => value + 1)}>
-          {language === 'ru' ? 'Попробовать снова' : 'Try again'}
+          {language === 'ru' ? 'Попробовать снова' : tr('Try again')}
         </button>
       </section>
     );
@@ -257,7 +255,7 @@ export const NatalUnifiedReport: React.FC<Props> = ({
         </div>
       ) : (
         <div className={styles.observations}>
-          <TopicNav topics={reading.topics} label={language === 'ru' ? 'Темы' : 'Topics'} />
+          <TopicNav topics={reading.topics} label={language === 'ru' ? 'Темы' : tr('Topics')} />
           {reading.topics.map((topic) => (
             <section key={topic.key} id={`natal-topic-${topic.key}`} className={styles.unifiedTopic}>
               <h2>{topic.title}</h2>

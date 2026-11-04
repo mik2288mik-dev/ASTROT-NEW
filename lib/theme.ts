@@ -12,7 +12,7 @@ export const CTA_STYLES: readonly CtaStyle[] = ['night', 'ink', 'gold', 'light']
 export const THEME_STORAGE_KEY = 'nebo.theme';
 export const CTA_STORAGE_KEY = 'nebo.cta';
 /** Device choices that stay when the account signs out. */
-export const DEVICE_PREFERENCE_KEYS = [THEME_STORAGE_KEY, CTA_STORAGE_KEY] as const;
+export const DEVICE_PREFERENCE_KEYS = [THEME_STORAGE_KEY, CTA_STORAGE_KEY, 'nebo.lang'] as const;
 const EVENT = 'nebo-theme-change';
 const PAGE = { light: '#FFFFFF', dark: '#1C1D21' } as const;
 

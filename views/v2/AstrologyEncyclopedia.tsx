@@ -34,6 +34,7 @@ import {
   shouldShowKnowledgeContents,
 } from './encyclopediaPresentation';
 import styles from './AstrologyEncyclopedia.module.css';
+import { tr, trf } from '../../lib/i18n';
 
 export type AstrologyEncyclopediaProps = {
   profile: UserProfile;
@@ -249,7 +250,7 @@ export function AstrologyEncyclopedia({
           <button
             className={styles.inlinePreviewClose}
             type="button"
-            aria-label={ru ? 'Закрыть определение' : 'Close definition'}
+            aria-label={ru ? 'Закрыть определение' : tr('Close definition')}
             onClick={closeInlinePreview}
           >
             <X aria-hidden="true" strokeWidth={1.7} />
@@ -262,7 +263,7 @@ export function AstrologyEncyclopedia({
           type="button"
           onClick={() => openTopic(inlinePreviewTopic.id)}
         >
-          <span>{ru ? 'Открыть статью' : 'Open article'}</span>
+          <span>{ru ? 'Открыть статью' : tr('Open article')}</span>
           <ChevronRight aria-hidden="true" strokeWidth={1.6} />
         </button>
       </aside>
@@ -348,16 +349,16 @@ export function AstrologyEncyclopedia({
       ? getEncyclopediaHub(previousLocation.hubId)?.title[language]
       : previousLocation?.screen === 'category'
         ? topicGroups.find((group) => group.categoryId === previousLocation.categoryId)?.label
-        : ru ? 'Все разделы' : 'All sections';
+        : ru ? 'Все разделы' : tr('All sections');
   const headerBack = current.screen === 'catalog' ? undefined : navigateBack;
 
   if (!topics.length) {
     return (
       <div className={`fresh-page encyclopedia-editorial-page ${styles.page}`}>
-        {!embedded ? <AppTopBar title={ru ? 'Справочник' : 'Guide'} /> : null}
+        {!embedded ? <AppTopBar title={ru ? 'Справочник' : tr('Guide')} /> : null}
         <div className={`${styles.content} ${styles.empty}`}>
-          <h1>{ru ? 'Материалов пока нет' : 'No articles yet'}</h1>
-          <p>{ru ? 'Здесь появятся понятные объяснения терминов.' : 'Clear explanations will appear here.'}</p>
+          <h1>{ru ? 'Материалов пока нет' : tr('No articles yet')}</h1>
+          <p>{ru ? 'Здесь появятся понятные объяснения терминов.' : tr('Clear explanations will appear here.')}</p>
         </div>
       </div>
     );
@@ -372,7 +373,7 @@ export function AstrologyEncyclopedia({
     <div className={`fresh-page encyclopedia-editorial-page ${styles.page}${embedded ? ' !min-h-0 !pt-0 !pb-0 before:!hidden' : ''}`}>
       {!embedded ? (
         <AppTopBar
-          title={ru ? 'Справочник' : 'Guide'}
+          title={ru ? 'Справочник' : tr('Guide')}
           onBack={headerBack}
         />
       ) : null}
@@ -398,17 +399,16 @@ export function AstrologyEncyclopedia({
           <>
             <header className={styles.catalogHeader}>
               <h1 className={styles.visuallyHidden} ref={catalogHeadingRef} tabIndex={-1}>
-                {ru ? 'Справочник' : 'Guide'}
+                {ru ? 'Справочник' : tr('Guide')}
               </h1>
               <p>
                 {ru
-                  ? 'Астрология простыми словами.'
-                  : 'Astrology in plain language.'}
+                  ? 'Астрология простыми словами.' : tr('Astrology in plain language.')}
               </p>
             </header>
 
             <div className={`${styles.search}`} role="search">
-              <label htmlFor="knowledge-search">{ru ? 'Что хотите понять?' : 'What do you want to understand?'}</label>
+              <label htmlFor="knowledge-search">{ru ? 'Что хотите понять?' : tr('What do you want to understand?')}</label>
               <div className={`${styles.searchControl}`}>
                 <Search aria-hidden="true" strokeWidth={1.7} />
                 <input
@@ -418,8 +418,7 @@ export function AstrologyEncyclopedia({
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={ru
-                    ? 'Асцендент, полнолуние, дома, ретроградный Меркурий…'
-                    : 'Ascendant, full moon, houses, Mercury retrograde…'}
+                    ? 'Асцендент, полнолуние, дома, ретроградный Меркурий…' : tr('Ascendant, full moon, houses, Mercury retrograde…')}
                   autoComplete="off"
                 />
               </div>
@@ -429,10 +428,10 @@ export function AstrologyEncyclopedia({
               <section className={styles.searchResults} aria-live="polite" aria-labelledby="knowledge-search-results">
                 <div className={styles.searchResultsHeader}>
                   <h2 id="knowledge-search-results">
-                    {ru ? `Найдено: ${filteredTopics.length}` : `Found: ${filteredTopics.length}`}
+                    {ru ? `Найдено: ${filteredTopics.length}` : trf('Found: {0}', filteredTopics.length)}
                   </h2>
                   <button className={styles.clearButton} type="button" onClick={() => setQuery('')}>
-                    {ru ? 'Очистить поиск' : 'Clear search'}
+                    {ru ? 'Очистить поиск' : tr('Clear search')}
                   </button>
                 </div>
                 {filteredTopics.length ? (
@@ -453,8 +452,7 @@ export function AstrologyEncyclopedia({
                   <div className={styles.noResults}>
                     <p>
                       {ru
-                        ? `По запросу «${query.trim()}» ничего не найдено. Попробуйте более короткое слово или другое название.`
-                        : `No results for “${query.trim()}”. Try a shorter word or another name.`}
+                        ? `По запросу «${query.trim()}» ничего не найдено. Попробуйте более короткое слово или другое название.` : trf('No results for “{0}”. Try a shorter word or another name.', query.trim())}
                     </p>
                   </div>
                 )}
@@ -462,7 +460,7 @@ export function AstrologyEncyclopedia({
             ) : (
               <>
                 <section className={`${styles.popular}`} aria-labelledby="knowledge-popular-title">
-                  <h2 id="knowledge-popular-title">{ru ? 'Часто ищут' : 'Popular topics'}</h2>
+                  <h2 id="knowledge-popular-title">{ru ? 'Часто ищут' : tr('Popular topics')}</h2>
                   <ul className={styles.popularList} role="list">
                     {popularTopics.map(({ topic, label }) => (
                       <li key={topic.id}>
@@ -480,7 +478,7 @@ export function AstrologyEncyclopedia({
 
                 <section aria-labelledby="knowledge-directions-title">
                   <h2 className={styles.sectionTitle} id="knowledge-directions-title">
-                    {ru ? 'Разобраться по теме' : 'Browse by topic'}
+                    {ru ? 'Разобраться по теме' : tr('Browse by topic')}
                   </h2>
                   <ul className={`${styles.hubGrid}`} role="list">
                     {ENCYCLOPEDIA_HUBS.map((hub) => (
@@ -512,7 +510,7 @@ export function AstrologyEncyclopedia({
             </header>
             <section className={styles.hubBranches} aria-labelledby="encyclopedia-hub-branches-title">
               <h2 className={styles.hubBranchHeading} id="encyclopedia-hub-branches-title">
-                {ru ? 'Выберите подраздел' : 'Choose a section'}
+                {ru ? 'Выберите подраздел' : tr('Choose a section')}
               </h2>
               <ul className={styles.hubBranchList} role="list">
                 {activeHubGroups.map((group) => (
@@ -594,14 +592,14 @@ export function AstrologyEncyclopedia({
               {renderInlinePreview(`${activeTopic.id}-summary`)}
             </header>
 
-            <aside className={styles.shortAnswer} aria-label={ru ? 'Короткий ответ' : 'Short answer'}>
-              <strong>{ru ? 'Если совсем коротко' : 'In one sentence'}</strong>
+            <aside className={styles.shortAnswer} aria-label={ru ? 'Короткий ответ' : tr('Short answer')}>
+              <strong>{ru ? 'Если совсем коротко' : tr('In one sentence')}</strong>
               <p>{activeTopic.shortAnswer}</p>
             </aside>
 
             {showArticleContents ? (
               <nav className={styles.articleContents} aria-labelledby="knowledge-contents-title">
-                <h2 id="knowledge-contents-title">{ru ? 'В этой статье' : 'In this article'}</h2>
+                <h2 id="knowledge-contents-title">{ru ? 'В этой статье' : tr('In this article')}</h2>
                 <ol role="list">
                   {coreSections.map(({ section, index }) => {
                     const sectionId = `knowledge-section-${activeTopic.id}-${index}`;
@@ -633,7 +631,7 @@ export function AstrologyEncyclopedia({
 
             {deepSections.length ? (
               <details className={styles.deepDisclosure}>
-                <summary>{ru ? 'Разобраться глубже' : 'Go deeper'}</summary>
+                <summary>{ru ? 'Разобраться глубже' : tr('Go deeper')}</summary>
                 <div className={styles.deepSections}>
                   {deepSections.map(renderArticleSection)}
                 </div>
@@ -642,7 +640,7 @@ export function AstrologyEncyclopedia({
 
             {related.length ? (
               <section className={styles.related} aria-labelledby="encyclopedia-related-title">
-                <h2 id="encyclopedia-related-title">{ru ? 'Связанные понятия' : 'Related concepts'}</h2>
+                <h2 id="encyclopedia-related-title">{ru ? 'Связанные понятия' : tr('Related concepts')}</h2>
                 <ul className={styles.relatedList} role="list">
                   {related.map((topic) => (
                     <li key={topic.id}>
@@ -658,7 +656,7 @@ export function AstrologyEncyclopedia({
 
             {sources.length ? (
               <details className={styles.sources}>
-                <summary>{ru ? 'Источники и определения' : 'Sources and definitions'}</summary>
+                <summary>{ru ? 'Источники и определения' : tr('Sources and definitions')}</summary>
                 <ul className={styles.sourceList} role="list">
                   {sources.map((source) => (
                     <li key={source.id}>
@@ -675,17 +673,17 @@ export function AstrologyEncyclopedia({
             <footer className={styles.articleFooter}>
               <button className={styles.backButton} type="button" onClick={navigateBack}>
                 <ChevronLeft aria-hidden="true" strokeWidth={1.7} />
-                <span>{ru ? `Назад: ${previousLabel}` : `Back: ${previousLabel}`}</span>
+                <span>{ru ? `Назад: ${previousLabel}` : trf('Back: {0}', previousLabel)}</span>
               </button>
             </footer>
           </article>
         ) : (
           <div className={styles.empty}>
-            <h1>{ru ? 'Материал не найден' : 'Article not found'}</h1>
-            <p>{ru ? 'Вернитесь к разделам и выберите другой материал.' : 'Return to the sections and choose another article.'}</p>
+            <h1>{ru ? 'Материал не найден' : tr('Article not found')}</h1>
+            <p>{ru ? 'Вернитесь к разделам и выберите другой материал.' : tr('Return to the sections and choose another article.')}</p>
             <button className={styles.backButton} type="button" onClick={() => dispatch({ type: 'catalog' })}>
               <ChevronLeft aria-hidden="true" strokeWidth={1.7} />
-              <span>{ru ? 'К разделам' : 'All sections'}</span>
+              <span>{ru ? 'К разделам' : tr('All sections')}</span>
             </button>
           </div>
         )}

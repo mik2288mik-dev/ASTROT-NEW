@@ -3,6 +3,7 @@ import { Plus, UserRoundPlus } from 'lucide-react';
 import { ZodiacIcon } from '../icons/ZodiacIcon';
 import { getZodiacSign } from '../../constants';
 import { buildCompatibilityLiveSample } from '../../lib/synastry/compatibilityLiveSample';
+import { tr, trf } from '../../lib/i18n';
 
 export type PairPerson = {
   name: string;
@@ -27,7 +28,7 @@ function Avatar({ person, tone, label, onClick, ru }: { person: PairPerson; tone
           </span>
         ) : null}
       </span>
-      <span className="compat-pair-avatar-name">{person.empty ? (ru ? 'Выбрать' : 'Choose') : person.name}</span>
+      <span className="compat-pair-avatar-name">{person.empty ? (ru ? 'Выбрать' : tr('Choose')) : person.name}</span>
       <span className="compat-pair-avatar-meta">{person.sign ? getZodiacSign(ru ? 'ru' : 'en', person.sign) : person.meta}</span>
     </button>
   );
@@ -42,10 +43,10 @@ export function CompatibilityPairAvatars({ first, second, ru, onPickFirst, onPic
   onPickSecond: () => void;
 }) {
   return (
-    <div className="compat-pair-picker" aria-label={ru ? 'Люди для сравнения' : 'People to compare'}>
-      <Avatar person={first} tone="blue" ru={ru} onClick={onPickFirst} label={ru ? `Первый человек: ${first.empty ? 'не выбран' : first.name}` : `First person: ${first.empty ? 'not chosen' : first.name}`} />
+    <div className="compat-pair-picker" aria-label={ru ? 'Люди для сравнения' : tr('People to compare')}>
+      <Avatar person={first} tone="blue" ru={ru} onClick={onPickFirst} label={ru ? `Первый человек: ${first.empty ? 'не выбран' : first.name}` : trf('First person: {0}', first.empty ? 'not chosen' : first.name)} />
       <span className="compat-pair-picker-plus" aria-hidden="true"><Plus size={22} strokeWidth={2.2} /></span>
-      <Avatar person={second} tone="red" ru={ru} onClick={onPickSecond} label={ru ? `Второй человек: ${second.empty ? 'не выбран' : second.name}` : `Second person: ${second.empty ? 'not chosen' : second.name}`} />
+      <Avatar person={second} tone="red" ru={ru} onClick={onPickSecond} label={ru ? `Второй человек: ${second.empty ? 'не выбран' : second.name}` : trf('Second person: {0}', second.empty ? 'not chosen' : second.name)} />
     </div>
   );
 }
@@ -60,7 +61,7 @@ export function CompatibilitySavedPeople({ people, ru, onPick, onAddNew }: {
   onAddNew: () => void;
 }) {
   return (
-    <section className="compat-saved-people" aria-label={ru ? 'Сохранённые люди' : 'Saved people'}>
+    <section className="compat-saved-people" aria-label={ru ? 'Сохранённые люди' : tr('Saved people')}>
       <ul>
         {people.map((person) => (
           <li key={person.id}>
@@ -74,14 +75,14 @@ export function CompatibilitySavedPeople({ people, ru, onPick, onAddNew }: {
                 {initialOf(person.name)}
                 {person.sign ? <span className="compat-saved-person-sign"><ZodiacIcon sign={person.sign} size={11} strokeWidth={1.7} /></span> : null}
               </span>
-              <span className="compat-saved-person-name">{person.self ? (ru ? 'Я' : 'Me') : person.name.split(/\s+/u)[0]}</span>
+              <span className="compat-saved-person-name">{person.self ? (ru ? 'Я' : tr('Me')) : person.name.split(/\s+/u)[0]}</span>
             </button>
           </li>
         ))}
         <li>
           <button type="button" className="compat-saved-person is-new" onClick={onAddNew}>
             <span className="compat-saved-person-circle" aria-hidden="true"><Plus size={18} /></span>
-            <span className="compat-saved-person-name">{ru ? 'Новый' : 'New'}</span>
+            <span className="compat-saved-person-name">{ru ? 'Новый' : tr('New')}</span>
           </button>
         </li>
       </ul>
@@ -98,12 +99,12 @@ export function CompatibilityLiveSample({ yourSign, ru }: { yourSign: string; ru
   if (!sample) return null;
 
   return (
-    <article className="compat-live-sample" aria-label={ru ? 'Образец разбора совместимости' : 'Compatibility reading sample'}>
+    <article className="compat-live-sample" aria-label={ru ? 'Образец разбора совместимости' : tr('Compatibility reading sample')}>
       <header className="compat-live-sample-cover">
-        <span className="compat-live-sample-kicker">{ru ? 'образец · по знакам' : 'sample · by signs'}</span>
+        <span className="compat-live-sample-kicker">{ru ? 'образец · по знакам' : tr('sample · by signs')}</span>
         <strong>
           <span className="compat-live-sample-sign"><ZodiacIcon sign={sample.you} size={18} strokeWidth={1.6} /></span>
-          {ru ? `Ты (${sample.youName}) и ${sample.partnerName}` : `You (${sample.youName}) and ${sample.partnerName}`}
+          {ru ? `Ты (${sample.youName}) и ${sample.partnerName}` : trf('You ({0}) and {1}', sample.youName, sample.partnerName)}
           <span className="compat-live-sample-sign"><ZodiacIcon sign={sample.partner} size={18} strokeWidth={1.6} /></span>
         </strong>
       </header>
@@ -124,8 +125,7 @@ export function CompatibilityLiveSample({ yourSign, ru }: { yourSign: string; ru
       {sample.quote ? <blockquote className="compat-live-sample-quote">{sample.quote}</blockquote> : null}
       <p className="compat-live-sample-note">
         {ru
-          ? 'Это пример по солнечным знакам. В этом режиме разбор строится по выбранным знакам. Для сравнения двух карт выбери «По дате рождения».'
-          : 'This sample uses Sun signs. This mode compares the selected signs. To compare two charts, choose “By birth date”.'}
+          ? 'Это пример по солнечным знакам. В этом режиме разбор строится по выбранным знакам. Для сравнения двух карт выбери «По дате рождения».' : tr('This sample uses Sun signs. This mode compares the selected signs. To compare two charts, choose “By birth date”.')}
       </p>
     </article>
   );

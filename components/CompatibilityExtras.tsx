@@ -3,6 +3,7 @@ import { Check, Lock, X } from 'lucide-react';
 import type { RelationshipContext } from '../lib/synastry/relationshipContext';
 import type { PairTalkDay } from '../lib/synastry/pairTalkCalendar';
 import { gaugeArc, gaugePoint, gaugePosition } from './CompatibilityAnswers';
+import { tr, trf } from '../lib/i18n';
 
 type Topic = Exclude<RelationshipContext, 'ex'>;
 
@@ -41,12 +42,11 @@ export function CompatibilityTopicSwitch({ topics, active, onPick, language }: {
   const best = sorted[0];
   const worst = sorted[sorted.length - 1];
   const headline = best.overallScore - worst.overallScore < 4
-    ? (ru ? 'Во всех темах у вас примерно одинаково' : 'You are about the same in every area')
+    ? (ru ? 'Во всех темах у вас примерно одинаково' : tr('You are about the same in every area'))
     : ru
-      ? `Легче всего вам ${TOPIC_LABELS[best.context].where[0]}, труднее всего, ${TOPIC_LABELS[worst.context].where[0]}`
-      : `Easiest ${TOPIC_LABELS[best.context].where[1]}, hardest ${TOPIC_LABELS[worst.context].where[1]}`;
+      ? `Легче всего вам ${TOPIC_LABELS[best.context].where[0]}, труднее всего, ${TOPIC_LABELS[worst.context].where[0]}` : trf('Easiest {0}, hardest {1}', TOPIC_LABELS[best.context].where[1], TOPIC_LABELS[worst.context].where[1]);
   return (
-    <section className="compat-topics" aria-label={ru ? 'Совместимость по темам' : 'Compatibility by area'}>
+    <section className="compat-topics" aria-label={ru ? 'Совместимость по темам' : tr('Compatibility by area')}>
       <p className="compat-topics-headline">{headline}</p>
       <div className="compat-topics-row" role="group">
         {topics.map((topic) => (
@@ -77,7 +77,7 @@ export function CompatibilityTalkCalendar({ days, premium, language, onUnlock }:
 }) {
   if (!days.length) return null;
   const ru = language === 'ru';
-  const locale = ru ? 'ru-RU' : 'en-US';
+  const locale = ru ? 'ru-RU' : tr('en-US');
   const visible = premium ? days : days.slice(0, FREE_TALK_DAYS);
   const hidden = days.length - visible.length;
   const dateOf = (key: string) => new Date(`${key}T12:00:00Z`);
@@ -85,32 +85,31 @@ export function CompatibilityTalkCalendar({ days, premium, language, onUnlock }:
   const nextGood = visible.find((day) => day.tone === 'good');
   const nextHard = visible.find((day) => day.tone === 'hard');
   return (
-    <section className="compat-talk" aria-label={ru ? 'Когда лучше поговорить' : 'When to talk'}>
-      <h3>{ru ? 'Когда лучше поговорить' : 'When to talk'}</h3>
+    <section className="compat-talk" aria-label={ru ? 'Когда лучше поговорить' : tr('When to talk')}>
+      <h3>{ru ? 'Когда лучше поговорить' : tr('When to talk')}</h3>
       <p className="compat-talk-lead">
         {ru
-          ? 'Дни, когда вам проще обсуждать важное, и дни, когда лучше не выяснять отношения.'
-          : 'Days when important talks go easier, and days better left without arguments.'}
+          ? 'Дни, когда вам проще обсуждать важное, и дни, когда лучше не выяснять отношения.' : tr('Days when important talks go easier, and days better left without arguments.')}
       </p>
       <div className="compat-talk-grid">
         {visible.map((day) => (
           <div key={day.date} className={`compat-talk-day is-${day.tone}`} title={day.reason || undefined}>
             <small>{dateOf(day.date).toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' })}</small>
             <strong>{dateOf(day.date).getUTCDate()}</strong>
-            {day.tone === 'good' ? <Check size={12} strokeWidth={2.2} aria-label={ru ? 'хороший день' : 'good day'} /> : null}
-            {day.tone === 'hard' ? <X size={12} strokeWidth={2.2} aria-label={ru ? 'трудный день' : 'hard day'} /> : null}
+            {day.tone === 'good' ? <Check size={12} strokeWidth={2.2} aria-label={ru ? 'хороший день' : tr('good day')} /> : null}
+            {day.tone === 'hard' ? <X size={12} strokeWidth={2.2} aria-label={ru ? 'трудный день' : tr('hard day')} /> : null}
           </div>
         ))}
       </div>
       <ul className="compat-talk-notes">
         {nextGood ? <li><Check size={14} strokeWidth={2.2} aria-hidden="true" /><span><strong>{longDate(nextGood.date)}</strong>, {nextGood.reason}</span></li> : null}
         {nextHard ? <li><X size={14} strokeWidth={2.2} aria-hidden="true" /><span><strong>{longDate(nextHard.date)}</strong>, {nextHard.reason}</span></li> : null}
-        {!nextGood && !nextHard ? <li><span>{ru ? 'Ближайшие дни ровные: особых плюсов и минусов для разговоров нет.' : 'The coming days are even: nothing special for or against talks.'}</span></li> : null}
+        {!nextGood && !nextHard ? <li><span>{ru ? 'Ближайшие дни ровные: особых плюсов и минусов для разговоров нет.' : tr('The coming days are even: nothing special for or against talks.')}</span></li> : null}
       </ul>
       {hidden > 0 ? (
         <button type="button" className="compat-talk-more" onClick={onUnlock}>
           <Lock size={14} strokeWidth={1.8} aria-hidden="true" />
-          {ru ? `Ещё ${hidden} дней, в полном разборе` : `${hidden} more days in the full reading`}
+          {ru ? `Ещё ${hidden} дней, в полном разборе` : trf('{0} more days in the full reading', hidden)}
         </button>
       ) : null}
     </section>

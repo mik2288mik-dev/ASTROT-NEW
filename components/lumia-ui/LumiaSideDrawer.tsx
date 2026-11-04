@@ -6,6 +6,7 @@ import type { PersonalForecastPeriod } from '../../lib/personalForecastContract'
 import { getApproximateSunSignByDate } from '../../lib/zodiac-utils';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
 import { CosmicSurface } from './CosmicSurface';
+import { tr } from '../../lib/i18n';
 
 const DRAWER_TOGGLE_EVENT = 'lumia:toggle-side-drawer';
 const DRAWER_STATE_EVENT = 'lumia:side-drawer-state';
@@ -62,7 +63,7 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
 
     const displayDate = useMemo(() => {
         const supplied = todayLabel?.split('\n').map((part) => part.trim()).filter(Boolean) || [];
-        const locale = isEnglish ? 'en-GB' : 'ru-RU';
+        const locale = isEnglish ? tr('en-GB') : 'ru-RU';
         const now = new Date();
         const weekday = new Intl.DateTimeFormat(locale, {
             weekday: 'long',
@@ -184,25 +185,25 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
     const items = [
         {
             view: 'dashboard' as ViewState,
-            label: isEnglish ? 'Personal horoscope' : 'Личный гороскоп',
+            label: isEnglish ? tr('Personal horoscope') : 'Личный гороскоп',
             Icon: BookOpen,
             onClick: onOpenDiary,
         },
         {
             view: 'horoscope' as ViewState,
-            label: isEnglish ? 'Sign horoscope' : 'Гороскоп по знакам',
+            label: isEnglish ? tr('Sign horoscope') : 'Гороскоп по знакам',
             Icon: Sparkles,
             onClick: onOpenSignHoroscope,
         },
         {
             view: 'synastry' as ViewState,
-            label: isEnglish ? 'Compatibility' : 'Совместимость',
+            label: isEnglish ? tr('Compatibility') : 'Совместимость',
             Icon: HeartHandshake,
             onClick: onOpenCompatibility,
         },
         {
             view: 'chart' as ViewState,
-            label: isEnglish ? 'Natal chart' : 'Натальная карта',
+            label: isEnglish ? tr('Natal chart') : 'Натальная карта',
             Icon: Star,
             onClick: onOpenNatalChart,
         },
@@ -219,7 +220,7 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
             <button
                 type="button"
                 className="lumia-side-drawer-backdrop"
-                aria-label={isEnglish ? 'Close navigation' : 'Закрыть навигацию'}
+                aria-label={isEnglish ? tr('Close navigation') : 'Закрыть навигацию'}
                 tabIndex={effectiveOpen ? 0 : -1}
                 onClick={closeDrawer}
             />
@@ -231,14 +232,14 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                 planeClassName="lumia-side-drawer-plane"
                 role="dialog"
                 aria-modal="true"
-                aria-label={isEnglish ? 'Main navigation' : 'Основная навигация'}
+                aria-label={isEnglish ? tr('Main navigation') : 'Основная навигация'}
             >
                 <header className="lumia-side-drawer-context">
                     <strong className="lumia-side-drawer-date">{displayDate.date}</strong>
                     <span className="lumia-side-drawer-weekday">{displayDate.weekday}</span>
                     {sunSignLabel ? (
                         <span className="lumia-side-drawer-sun-sign">
-                            {isEnglish ? 'Sun' : 'Солнце'} · {sunSignLabel}
+                            {isEnglish ? tr('Sun') : 'Солнце'} · {sunSignLabel}
                         </span>
                     ) : null}
                 </header>
@@ -259,7 +260,7 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                     <div
                         className="lumia-side-drawer-periods"
                         role="group"
-                        aria-label={isEnglish ? 'Personal forecast period' : 'Период личного прогноза'}
+                        aria-label={isEnglish ? tr('Personal forecast period') : 'Период личного прогноза'}
                     >
                         {(['day', 'week', 'month'] as const).map((period) => (
                             <button
@@ -273,10 +274,10 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                                 onClick={() => runDrawerAction(() => onSelectPeriod(period))}
                             >
                                 {period === 'day'
-                                    ? (isEnglish ? 'Today' : 'Сегодня')
+                                    ? (isEnglish ? tr('Today') : 'Сегодня')
                                     : period === 'week'
-                                        ? (isEnglish ? 'Week' : 'Неделя')
-                                        : (isEnglish ? 'Month' : 'Месяц')}
+                                        ? (isEnglish ? tr('Week') : 'Неделя')
+                                        : (isEnglish ? tr('Month') : 'Месяц')}
                             </button>
                         ))}
                     </div>
@@ -301,10 +302,10 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                     onClick={() => runDrawerAction(onOpenSettings)}
                 >
                     <span className="lumia-side-drawer-profile-name">
-                        {profile?.name?.trim() || (isEnglish ? 'Profile' : 'Профиль')}
+                        {profile?.name?.trim() || (isEnglish ? tr('Profile') : 'Профиль')}
                     </span>
                     <span className="lumia-side-drawer-profile-caption">
-                        {isEnglish ? 'Settings' : 'Настройки'}
+                        {isEnglish ? tr('Settings') : 'Настройки'}
                     </span>
                 </button>
             </CosmicSurface>

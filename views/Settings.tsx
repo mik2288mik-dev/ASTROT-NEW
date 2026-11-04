@@ -56,6 +56,8 @@ import {
 import type { NativeNotificationSettings } from '../lib/nativeNotificationPolicy';
 import { DictationButton } from '../components/lumia-ui/DictationButton';
 import { appendDictatedText } from '../services/dictation';
+import { tr, trf, UI_LANGUAGES, type UiLanguage } from '../lib/i18n';
+import { useUiLanguage } from '../lib/i18n/useUiLanguage';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
 function notificationFlagsFor(frequency: NotificationFrequency) {
@@ -77,6 +79,8 @@ function localTimezone(): string {
     try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'; } catch { return 'Europe/Moscow'; }
 }
 
+const UI_LANGUAGE_NAMES: Record<UiLanguage, string> = { ru: 'Русский', en: 'English', es: 'Español' };
+
 function readableIdentityError(error: unknown, language: 'ru' | 'en'): string {
     const code = String((error as { code?: string; message?: string } | null)?.code
         || (error as { message?: string } | null)?.message
@@ -84,22 +88,18 @@ function readableIdentityError(error: unknown, language: 'ru' | 'en'): string {
     if (code.includes('AUTH_CANCELLED')) return '';
     if (code.includes('IDENTITY_ALREADY_LINKED') || code.includes('PROVIDER_ALREADY_LINKED')) {
         return language === 'en'
-            ? 'This sign-in method already belongs to another account. Choose “Restore an existing account”; two filled profiles are never merged automatically.'
-            : 'Этот способ уже привязан к другому аккаунту. Выбери «Восстановить существующий аккаунт»: два заполненных профиля автоматически не объединяются.';
+            ? tr('This sign-in method already belongs to another account. Choose “Restore an existing account”; two filled profiles are never merged automatically.') : 'Этот способ уже привязан к другому аккаунту. Выбери «Восстановить существующий аккаунт»: два заполненных профиля автоматически не объединяются.';
     }
     if (code.includes('APP_SESSION') || code.includes('ACCOUNT_BLOCKED')) {
         return language === 'en'
-            ? 'This session is no longer active. Sign in again before changing sign-in methods.'
-            : 'Эта сессия больше не активна. Войди снова перед изменением способов входа.';
+            ? tr('This session is no longer active. Sign in again before changing sign-in methods.') : 'Эта сессия больше не активна. Войди снова перед изменением способов входа.';
     }
     if (code.includes('RATE_LIMIT')) {
         return language === 'en'
-            ? 'Too many attempts. Wait a little and try again.'
-            : 'Слишком много попыток. Подожди немного и попробуй снова.';
+            ? tr('Too many attempts. Wait a little and try again.') : 'Слишком много попыток. Подожди немного и попробуй снова.';
     }
     return language === 'en'
-        ? 'The sign-in method could not be updated. Try again.'
-        : 'Не удалось обновить способ входа. Попробуй ещё раз.';
+        ? tr('The sign-in method could not be updated. Try again.') : 'Не удалось обновить способ входа. Попробуй ещё раз.';
 }
 
 const IDENTITY_LABELS: Record<LinkedIdentity['provider'], string> = {
@@ -184,13 +184,13 @@ function ctaStyleLabel(style: CtaStyle, en: boolean): string {
 function CtaStylePicker({ value, onPick, onClose, en }: { value: CtaStyle; onPick: (style: CtaStyle) => void; onClose: () => void; en: boolean }) {
     return (
         <div className="nebo-sheet-scrim" role="presentation" onClick={onClose}>
-            <div className="nebo-why" role="dialog" aria-modal="true" aria-label={en ? 'Button colour' : 'Цвет кнопок'} onClick={(event) => event.stopPropagation()}>
-                <h2>{en ? 'Button colour' : 'Цвет кнопок'}</h2>
-                <p className="nebo-numbers-pop-text">{en ? 'This is how the main buttons look across the app. You can change it any time.' : 'Так будут выглядеть главные кнопки во всём приложении. Поменять можно в любой момент.'}</p>
+            <div className="nebo-why" role="dialog" aria-modal="true" aria-label={en ? tr('Button colour') : 'Цвет кнопок'} onClick={(event) => event.stopPropagation()}>
+                <h2>{en ? tr('Button colour') : 'Цвет кнопок'}</h2>
+                <p className="nebo-numbers-pop-text">{en ? tr('This is how the main buttons look across the app. You can change it any time.') : 'Так будут выглядеть главные кнопки во всём приложении. Поменять можно в любой момент.'}</p>
                 <div className="nebo-cta-pick">
                     {CTA_CHOICES.map(([key, ru, ruSub, enLabel, enSub]) => (
                         <button key={key} type="button" aria-pressed={value === key} onClick={() => onPick(key)}>
-                            <span className="nebo-cta-pick-sample" data-cta-sample={key}>{en ? 'Continue' : 'Продолжить'}</span>
+                            <span className="nebo-cta-pick-sample" data-cta-sample={key}>{en ? tr('Continue') : 'Продолжить'}</span>
                             <span className="nebo-cta-pick-row">
                                 <span className="nebo-cta-pick-radio" aria-hidden />
                                 <span><strong>{en ? enLabel : ru}</strong><small>{en ? enSub : ruSub}</small></span>
@@ -198,7 +198,7 @@ function CtaStylePicker({ value, onPick, onClose, en }: { value: CtaStyle; onPic
                         </button>
                     ))}
                 </div>
-                <button type="button" className="nebo-period-cta" onClick={onClose}>{en ? 'Done' : 'Готово'}</button>
+                <button type="button" className="nebo-period-cta" onClick={onClose}>{en ? tr('Done') : 'Готово'}</button>
             </div>
         </div>
     );
@@ -317,6 +317,7 @@ export const Settings: React.FC<SettingsProps> = ({
     embedded = false,
     initialScreen = 'root',
 }) => {
+    const [uiLanguage, selectUiLanguage] = useUiLanguage();
 
     const [avatarOpen, setAvatarOpen] = useState(false);
     const [themePref, setThemePref] = useThemePref();
@@ -569,8 +570,7 @@ export const Settings: React.FC<SettingsProps> = ({
             }).then((result) => {
                 setEmailChallengeId(result.challengeId);
                 setIdentityNotice(profile.language === 'en'
-                    ? 'If this email can be linked, a six-digit code was sent. Existing accounts are never merged automatically.'
-                    : 'Если этот email можно привязать, шестизначный код отправлен. Существующие аккаунты автоматически не объединяются.');
+                    ? tr('If this email can be linked, a six-digit code was sent. Existing accounts are never merged automatically.') : 'Если этот email можно привязать, шестизначный код отправлен. Существующие аккаунты автоматически не объединяются.');
             });
         void action
             .catch((error) => setIdentityError(readableIdentityError(error, profile.language === 'en' ? 'en' : 'ru')))
@@ -698,9 +698,7 @@ export const Settings: React.FC<SettingsProps> = ({
         }
         setTimeout(() => { setDailyPush('idle'); setDailyPushInfo(''); }, 9000);
     };
-    const languageLabel = profile.language === 'ru'
-        ? getText(profile.language, 'settings.language_ru')
-        : getText(profile.language, 'settings.language_en');
+    const languageLabel = UI_LANGUAGE_NAMES[uiLanguage];
     const activePremium = hasActivePremium(profile, entitlementNow);
     const profileEditLimit = activePremium ? 3 : 1;
     const profileEditsLeft = Math.max(0, profileEditLimit - editsUsed);
@@ -764,13 +762,11 @@ export const Settings: React.FC<SettingsProps> = ({
         const errors: { message?: string; email?: string } = {};
         if (normalizedMessage.length < 10 || normalizedMessage.length > 4000) {
             errors.message = profile.language === 'en'
-                ? 'Write between 10 and 4,000 characters.'
-                : 'Напиши от 10 до 4000 символов.';
+                ? tr('Write between 10 and 4,000 characters.') : 'Напиши от 10 до 4000 символов.';
         }
         if (normalizedReplyEmail && !FEEDBACK_EMAIL_PATTERN.test(normalizedReplyEmail)) {
             errors.email = profile.language === 'en'
-                ? 'Enter a valid email address.'
-                : 'Укажи корректный email.';
+                ? tr('Enter a valid email address.') : 'Укажи корректный email.';
         }
         setFeedbackErrors(errors);
         setFeedbackSubmitError('');
@@ -799,15 +795,12 @@ export const Settings: React.FC<SettingsProps> = ({
             if (!response.ok || !Number.isSafeInteger(ticketId) || ticketId < 1) {
                 const responseMessage = response.status === 429
                     ? (profile.language === 'en'
-                        ? 'Too many requests. Wait a little and try again.'
-                        : 'Слишком много обращений. Подожди немного и попробуй снова.')
+                        ? tr('Too many requests. Wait a little and try again.') : 'Слишком много обращений. Подожди немного и попробуй снова.')
                     : response.status === 401 || response.status === 403
                         ? (profile.language === 'en'
-                            ? 'Sign in again, then retry.'
-                            : 'Войди в аккаунт заново и повтори отправку.')
+                            ? tr('Sign in again, then retry.') : 'Войди в аккаунт заново и повтори отправку.')
                         : (profile.language === 'en'
-                            ? 'Could not send the request. Check your connection and try again.'
-                            : 'Не удалось отправить обращение. Проверь интернет и попробуй снова.');
+                            ? tr('Could not send the request. Check your connection and try again.') : 'Не удалось отправить обращение. Проверь интернет и попробуй снова.');
                 throw new FeedbackSubmissionError(responseMessage);
             }
             setFeedbackTicketId(ticketId);
@@ -817,8 +810,7 @@ export const Settings: React.FC<SettingsProps> = ({
             setFeedbackSubmitError(error instanceof FeedbackSubmissionError
                 ? error.message
                 : (profile.language === 'en'
-                    ? 'Could not send the request. Check your connection and try again.'
-                    : 'Не удалось отправить обращение. Проверь интернет и попробуй снова.'));
+                    ? tr('Could not send the request. Check your connection and try again.') : 'Не удалось отправить обращение. Проверь интернет и попробуй снова.'));
         }
     };
 
@@ -852,16 +844,6 @@ export const Settings: React.FC<SettingsProps> = ({
         const fromTg = [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim();
         return fromTg || profile.name || '—';
     })();
-    const handleLanguageToggle = () => {
-        const newLang: Language = profile.language === 'ru' ? 'en' : 'ru';
-        const updated = { ...profile, language: newLang };
-        console.log('[Settings] Language changed to:', newLang);
-        onUpdate(updated);
-        saveProfile(updated).catch(error => {
-            console.error('[Settings] Failed to save language:', error);
-        });
-    };
-
     const handleGenderChange = async (gender: 'male' | 'female' | 'unspecified') => {
         if (savingGender || gender === (profile.gender || 'unspecified')) return;
         setSavingGender(true);
@@ -874,8 +856,7 @@ export const Settings: React.FC<SettingsProps> = ({
         } catch (error) {
             console.error('[Settings] Failed to save gender:', error);
             setGenderSaveError(profile.language === 'en'
-                ? 'Gender was not saved. Check your connection and try again.'
-                : 'Не удалось сохранить пол. Проверь соединение и попробуй ещё раз.');
+                ? tr('Gender was not saved. Check your connection and try again.') : 'Не удалось сохранить пол. Проверь соединение и попробуй ещё раз.');
         } finally {
             setSavingGender(false);
         }
@@ -885,7 +866,7 @@ export const Settings: React.FC<SettingsProps> = ({
         if (savingProfile) return;
         const normalizedName = (tempName || '').trim();
         if (!normalizedName) {
-            setProfileSaveError(profile.language === 'en' ? 'Enter a name.' : 'Укажи имя.');
+            setProfileSaveError(profile.language === 'en' ? tr('Enter a name.') : 'Укажи имя.');
             return;
         }
         const nameChanged = normalizedName !== (profile.name || '').trim();
@@ -910,8 +891,7 @@ export const Settings: React.FC<SettingsProps> = ({
         } catch (error) {
             console.error('[Settings] Failed to save profile:', error);
             setProfileSaveError(profile.language === 'en'
-                ? 'The profile was not saved. Check your connection and try again.'
-                : 'Не удалось сохранить профиль. Проверь соединение и попробуй ещё раз.');
+                ? tr('The profile was not saved. Check your connection and try again.') : 'Не удалось сохранить профиль. Проверь соединение и попробуй ещё раз.');
         } finally {
             setSavingProfile(false);
         }
@@ -923,8 +903,7 @@ export const Settings: React.FC<SettingsProps> = ({
         setDeletingAccount(true);
         void onDeleteAccount().catch(() => {
             setDeletionError(profile.language === 'en'
-                ? 'Account deletion did not complete. Your account is still active.'
-                : 'Не удалось удалить аккаунт. Он остаётся активным.');
+                ? tr('Account deletion did not complete. Your account is still active.') : 'Не удалось удалить аккаунт. Он остаётся активным.');
         }).finally(() => setDeletingAccount(false));
     };
 
@@ -933,8 +912,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
         if (hasActiveRuStoreAutoRenewal) {
             const continueDeletion = window.confirm(profile.language === 'en'
-                ? 'Auto-renewal is active in RuStore. Deleting this account will not cancel it automatically. Select OK to continue deleting, or Cancel to manage the subscription in RuStore first.'
-                : 'В RuStore включено автопродление. Удаление аккаунта не отменит его автоматически. Нажми «ОК», чтобы продолжить удаление, или «Отмена», чтобы сначала открыть управление подпиской в RuStore.');
+                ? tr('Auto-renewal is active in RuStore. Deleting this account will not cancel it automatically. Select OK to continue deleting, or Cancel to manage the subscription in RuStore first.') : 'В RuStore включено автопродление. Удаление аккаунта не отменит его автоматически. Нажми «ОК», чтобы продолжить удаление, или «Отмена», чтобы сначала открыть управление подпиской в RuStore.');
             if (!continueDeletion) {
                 void manageSubscription();
                 return;
@@ -951,8 +929,7 @@ export const Settings: React.FC<SettingsProps> = ({
         setLoggingOut(true);
         void onLogout().catch(() => {
             setLogoutError(profile.language === 'en'
-                ? 'Sign out did not complete. This account is still active on the device.'
-                : 'Не удалось выйти. Аккаунт остаётся активным на этом устройстве.');
+                ? tr('Sign out did not complete. This account is still active on the device.') : 'Не удалось выйти. Аккаунт остаётся активным на этом устройстве.');
         }).finally(() => setLoggingOut(false));
     };
 
@@ -1017,10 +994,10 @@ export const Settings: React.FC<SettingsProps> = ({
         };
 
     const genderValue = profile.gender === 'male'
-        ? (profile.language === 'en' ? 'Male' : 'Мужской')
+        ? (profile.language === 'en' ? tr('Male') : 'Мужской')
         : profile.gender === 'female'
-            ? (profile.language === 'en' ? 'Female' : 'Женский')
-            : (profile.language === 'en' ? 'Not specified' : 'Не указан');
+            ? (profile.language === 'en' ? tr('Female') : 'Женский')
+            : (profile.language === 'en' ? tr('Not specified') : 'Не указан');
 
 
     const renderSettingsContent = () => {
@@ -1032,10 +1009,10 @@ export const Settings: React.FC<SettingsProps> = ({
                             <div className="settings-detail-heading">
                                 <p className="settings-detail-kicker">
                                     {profile.isGuest
-                                        ? (profile.language === 'en' ? 'Guest account' : 'Гостевой аккаунт')
+                                        ? (profile.language === 'en' ? tr('Guest account') : 'Гостевой аккаунт')
                                         : hasLinkedTelegram
-                                            ? (profile.language === 'en' ? 'Telegram linked' : 'Telegram подключён')
-                                            : (profile.language === 'en' ? 'Account' : 'Аккаунт')}
+                                            ? (profile.language === 'en' ? tr('Telegram linked') : 'Telegram подключён')
+                                            : (profile.language === 'en' ? tr('Account') : 'Аккаунт')}
                                 </p>
                                 <p className="settings-detail-name">{profileDisplayName}</p>
                             </div>
@@ -1089,7 +1066,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                             onClick={() => { void handleSaveProfile(); }}
                                         >
                                             {savingProfile
-                                                ? (profile.language === 'en' ? 'Saving…' : 'Сохраняем…')
+                                                ? (profile.language === 'en' ? tr('Saving…') : 'Сохраняем…')
                                                 : getText(profile.language, 'settings.save')}
                                         </button>
                                         <button
@@ -1116,22 +1093,21 @@ export const Settings: React.FC<SettingsProps> = ({
                     <section className="settings-detail-panel" aria-label={settingsTitle.birth}>
                         <dl className="settings-readonly-list">
                             <div>
-                                <dt>{profile.language === 'en' ? 'Birth date' : 'Дата рождения'}</dt>
+                                <dt>{profile.language === 'en' ? tr('Birth date') : 'Дата рождения'}</dt>
                                 <dd>{formatSettingsBirthDate(profile.birthDate, profile.language)}</dd>
                             </div>
                             <div>
-                                <dt>{profile.language === 'en' ? 'Birth time' : 'Время рождения'}</dt>
+                                <dt>{profile.language === 'en' ? tr('Birth time') : 'Время рождения'}</dt>
                                 <dd>{profile.birthTime || '—'}</dd>
                             </div>
                             <div>
-                                <dt>{profile.language === 'en' ? 'Birth place' : 'Место рождения'}</dt>
+                                <dt>{profile.language === 'en' ? tr('Birth place') : 'Место рождения'}</dt>
                                 <dd>{profile.birthPlace || '—'}</dd>
                             </div>
                         </dl>
                         <p className="settings-helper-text settings-helper-text--spaced">
                             {profile.language === 'en'
-                                ? 'Birth details are shown as saved in your primary profile.'
-                                : 'Здесь показаны данные, сохранённые в основном профиле.'}
+                                ? tr('Birth details are shown as saved in your primary profile.') : 'Здесь показаны данные, сохранённые в основном профиле.'}
                         </p>
                     </section>
                 );
@@ -1141,8 +1117,7 @@ export const Settings: React.FC<SettingsProps> = ({
                     <section className="settings-detail-panel" aria-label={settingsTitle.gender}>
                         <p className="settings-detail-intro">
                             {profile.language === 'en'
-                                ? 'This only changes grammatical forms in generated text.'
-                                : 'Этот выбор нужен только для правильных форм слов в текстах.'}
+                                ? tr('This only changes grammatical forms in generated text.') : 'Этот выбор нужен только для правильных форм слов в текстах.'}
                         </p>
                         <div className="settings-selection-list">
                             {([
@@ -1181,8 +1156,7 @@ export const Settings: React.FC<SettingsProps> = ({
                     <section className="settings-detail-panel" aria-label={settingsTitle.notifications}>
                         {nativeNotifications ? <p className="settings-helper-text">
                             {profile.language === 'en'
-                                ? 'Morning horoscope, holidays, full moons and news. Usually one or two a day, only while NEBO is closed.'
-                                : 'Гороскоп по утрам, праздники, полнолуния и новости. Обычно одно-два в день и только пока NEBO свёрнуто.'}
+                                ? tr('Morning horoscope, holidays, full moons and news. Usually one or two a day, only while NEBO is closed.') : 'Гороскоп по утрам, праздники, полнолуния и новости. Обычно одно-два в день и только пока NEBO свёрнуто.'}
                         </p> : null}
                         <div className="settings-toggle-row">
                             <label htmlFor="settings-notifications-toggle">{profile.language === 'en' ? 'Notifications' : nativeNotifications ? 'Уведомлять по делу' : 'Уведомления'}</label>
@@ -1202,8 +1176,8 @@ export const Settings: React.FC<SettingsProps> = ({
                         {notificationError ? <p className="settings-helper-text" role="alert">{notificationError}</p> : null}
                         {nativeNotifications && notificationPermission === 'denied' ? <button type="button" className="settings-selection-row"
                             onClick={() => void openNativeNotificationSettings().catch(() => setNotificationError(profile.language === 'en'
-                                ? 'Open Android settings → Apps → NEBO → Notifications.' : 'Открой настройки Android → Приложения → NEBO → Уведомления.'))}>
-                            {profile.language === 'en' ? 'Open Android settings' : 'Открыть настройки Android'}
+                                ? tr('Open Android settings → Apps → NEBO → Notifications.') : 'Открой настройки Android → Приложения → NEBO → Уведомления.'))}>
+                            {profile.language === 'en' ? tr('Open Android settings') : 'Открыть настройки Android'}
                         </button> : null}
                         {nativeNotifications && notifEnabled ? (
                             <div className="nebo-notif">
@@ -1211,16 +1185,16 @@ export const Settings: React.FC<SettingsProps> = ({
                                     <img src="/assets/brand/nebo-mark.webp" alt="" width={40} height={40} />
                                     <span>
                                         <small>NEBO <i>{nativeExtras.morningTime || '9:00'}</i></small>
-                                        <strong>{profile.language === 'en' ? 'An easy day for talking' : 'Сегодня легко договориться'}</strong>
-                                        <em>{profile.language === 'en' ? 'If you need to write someone something important, better do it before lunch.' : 'Если нужно написать кому-то важное сообщение, лучше сделай это до обеда.'}</em>
+                                        <strong>{profile.language === 'en' ? tr('An easy day for talking') : 'Сегодня легко договориться'}</strong>
+                                        <em>{profile.language === 'en' ? tr('If you need to write someone something important, better do it before lunch.') : 'Если нужно написать кому-то важное сообщение, лучше сделай это до обеда.'}</em>
                                     </span>
                                 </div>
-                                <p className="settings-helper-text">{profile.language === 'en' ? 'This is how the morning notification looks' : 'Так выглядит утреннее уведомление'}</p>
+                                <p className="settings-helper-text">{profile.language === 'en' ? tr('This is how the morning notification looks') : 'Так выглядит утреннее уведомление'}</p>
                                 <div className="nebo-notif-list">
                                     {([
-                                        ['daily', profile.language === 'en' ? 'Name of the day in the morning' : 'Утром название дня', profile.language === 'en' ? 'a short line and what it means for you' : 'короткая фраза и что это значит для тебя', notificationMode === 'daily'],
-                                        ['special', profile.language === 'en' ? 'Special days' : 'Особые дни', profile.language === 'en' ? 'retrograde planets, full moon, birthdays' : 'ретроградные планеты, полнолуние, твой день рождения', nativeExtras.special],
-                                        ['answers', profile.language === 'en' ? 'Answers' : 'Ответы на вопросы', profile.language === 'en' ? 'when a reading is ready' : 'когда ответ по карте готов', nativeExtras.answers],
+                                        ['daily', profile.language === 'en' ? tr('Name of the day in the morning') : 'Утром название дня', profile.language === 'en' ? tr('a short line and what it means for you') : 'короткая фраза и что это значит для тебя', notificationMode === 'daily'],
+                                        ['special', profile.language === 'en' ? tr('Special days') : 'Особые дни', profile.language === 'en' ? tr('retrograde planets, full moon, birthdays') : 'ретроградные планеты, полнолуние, твой день рождения', nativeExtras.special],
+                                        ['answers', profile.language === 'en' ? tr('Answers') : 'Ответы на вопросы', profile.language === 'en' ? tr('when a reading is ready') : 'когда ответ по карте готов', nativeExtras.answers],
                                     ] as const).map(([id, label, hint, on]) => (
                                         <div key={id} className="nebo-notif-row">
                                             <span><strong>{label}</strong><small>{hint}</small></span>
@@ -1240,7 +1214,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                 </div>
                                 {notificationMode === 'daily' ? (
                                     <>
-                                        <h2 className="nebo-notif-head">{profile.language === 'en' ? 'Morning notification time' : 'Время утреннего уведомления'}</h2>
+                                        <h2 className="nebo-notif-head">{profile.language === 'en' ? tr('Morning notification time') : 'Время утреннего уведомления'}</h2>
                                         <div className="nebo-notif-times" role="radiogroup">
                                             {['06:30', '07:00', '08:00', '09:00'].map((time) => (
                                                 <button
@@ -1260,12 +1234,12 @@ export const Settings: React.FC<SettingsProps> = ({
                                 ) : null}
                                 <div className="nebo-notif-list">
                                     <div className="nebo-notif-row">
-                                        <span><strong>{profile.language === 'en' ? 'Quiet hours' : 'Тихие часы'}</strong><small>{profile.language === 'en' ? `from ${quietStart} to ${quietEnd}, no disturbing` : `с ${quietStart} до ${quietEnd} не беспокоим`}</small></span>
+                                        <span><strong>{profile.language === 'en' ? tr('Quiet hours') : 'Тихие часы'}</strong><small>{profile.language === 'en' ? trf('from {0} to {1}, no disturbing', quietStart, quietEnd) : `с ${quietStart} до ${quietEnd} не беспокоим`}</small></span>
                                         <button
                                             type="button"
                                             role="switch"
                                             aria-checked={nativeExtras.quietEnabled}
-                                            aria-label={profile.language === 'en' ? 'Quiet hours' : 'Тихие часы'}
+                                            aria-label={profile.language === 'en' ? tr('Quiet hours') : 'Тихие часы'}
                                             className={'settings-switch' + (nativeExtras.quietEnabled ? ' settings-switch--on' : '')}
                                             disabled={notificationBusy}
                                             onClick={() => void saveNativeNotif({ quietEnabled: !nativeExtras.quietEnabled })}
@@ -1275,16 +1249,15 @@ export const Settings: React.FC<SettingsProps> = ({
                                     </div>
                                 </div>
                                 <p className="settings-helper-text">{profile.language === 'en'
-                                    ? 'No more than two notifications a day. On special days, like a full moon or your birthday, a third may come.'
-                                    : 'Не больше двух уведомлений в день. В особые дни, например в полнолуние или в твой день рождения, может прийти третье.'}</p>
+                                    ? tr('No more than two notifications a day. On special days, like a full moon or your birthday, a third may come.') : 'Не больше двух уведомлений в день. В особые дни, например в полнолуние или в твой день рождения, может прийти третье.'}</p>
                             </div>
                         ) : null}
                         {notifEnabled && (!nativeNotifications || nativeExtras.quietEnabled) ? (
                             <div className="settings-detail-section settings-detail-section--separated">
-                                <h2>{profile.language === 'en' ? 'Quiet hours' : 'Тихие часы'}</h2>
+                                <h2>{profile.language === 'en' ? tr('Quiet hours') : 'Тихие часы'}</h2>
                                 <div className="settings-time-grid">
-                                    <label htmlFor="settings-quiet-start">{profile.language === 'en' ? 'From' : 'С'}</label>
-                                    <label htmlFor="settings-quiet-end">{profile.language === 'en' ? 'Until' : 'До'}</label>
+                                    <label htmlFor="settings-quiet-start">{profile.language === 'en' ? tr('From') : 'С'}</label>
+                                    <label htmlFor="settings-quiet-end">{profile.language === 'en' ? tr('Until') : 'До'}</label>
                                     <input
                                         id="settings-quiet-start"
                                         name="quietStart"
@@ -1306,10 +1279,9 @@ export const Settings: React.FC<SettingsProps> = ({
                                 </div>
                                 <p className="settings-helper-text">
                                     {nativeNotifications && quietStart === quietEnd
-                                        ? profile.language === 'en' ? 'Matching times mean a full day of quiet.' : 'Одинаковое время, тишина на весь день.'
+                                        ? profile.language === 'en' ? tr('Matching times mean a full day of quiet.') : 'Одинаковое время, тишина на весь день.'
                                         : profile.language === 'en'
-                                        ? 'We do not send notifications during this interval.'
-                                        : 'В этот промежуток уведомления не приходят.'}
+                                        ? tr('We do not send notifications during this interval.') : 'В этот промежуток уведомления не приходят.'}
                                 </p>
                             </div>
                         ) : null}
@@ -1321,19 +1293,18 @@ export const Settings: React.FC<SettingsProps> = ({
                     <section className="settings-detail-panel" aria-label={settingsTitle.language}>
                         <div className="settings-selection-list">
                             {([
-                                ['ru', 'Русский'],
-                                ['en', 'English'],
+                                ['ru', UI_LANGUAGE_NAMES.ru],
+                                ['en', UI_LANGUAGE_NAMES.en],
+                                ['es', UI_LANGUAGE_NAMES.es],
                             ] as const).map(([value, label]) => {
-                                const selected = profile.language === value;
+                                const selected = uiLanguage === value;
                                 return (
                                     <button
                                         key={value}
                                         type="button"
                                         className="settings-selection-row"
                                         aria-pressed={selected}
-                                        onClick={() => {
-                                            if (!selected) handleLanguageToggle();
-                                        }}
+                                        onClick={() => selectUiLanguage(value)}
                                     >
                                         <span>{label}</span>
                                         {selected ? <Check aria-hidden size={16} strokeWidth={2} /> : null}
@@ -1355,19 +1326,16 @@ export const Settings: React.FC<SettingsProps> = ({
                         {recoveryIdentityRequired ? (
                             <p className="settings-recovery-notice" role="status">
                                 {profile.language === 'en'
-                                    ? 'Link VK ID, Yandex or email to restore Premium on another device. Your selected subscription is saved.'
-                                    : 'Привяжи VK ID, Яндекс или email, чтобы Premium можно было восстановить на другом устройстве. Выбранный тариф сохранён.'}
+                                    ? tr('Link VK ID, Yandex or email to restore Premium on another device. Your selected subscription is saved.') : 'Привяжи VK ID, Яндекс или email, чтобы Premium можно было восстановить на другом устройстве. Выбранный тариф сохранён.'}
                             </p>
                         ) : null}
                         <p className="settings-detail-intro">
                             {profile.language === 'en'
-                                ? 'Every linked method opens this same account with its chart, history, settings and Premium.'
-                                : 'Каждый способ входа открывает этот же аккаунт с картой, историей, настройками и Premium.'}
+                                ? tr('Every linked method opens this same account with its chart, history, settings and Premium.') : 'Каждый способ входа открывает этот же аккаунт с картой, историей, настройками и Premium.'}
                         </p>
                         <p className="settings-helper-text">
                             {profile.language === 'en'
-                                ? 'Two existing profiles are never merged automatically.'
-                                : 'Два существующих профиля автоматически не объединяются.'}
+                                ? tr('Two existing profiles are never merged automatically.') : 'Два существующих профиля автоматически не объединяются.'}
                         </p>
                         <button
                             type="button"
@@ -1375,31 +1343,30 @@ export const Settings: React.FC<SettingsProps> = ({
                             onClick={() => setAuthPurpose((value) => value === 'link' ? 'login' : 'link')}
                         >
                             {authPurpose === 'link'
-                                ? (profile.language === 'en' ? 'Sign in to another account' : 'Войти в другой аккаунт')
-                                : (profile.language === 'en' ? 'Link a method to this account' : 'Привязать способ к этому аккаунту')}
+                                ? (profile.language === 'en' ? tr('Sign in to another account') : 'Войти в другой аккаунт')
+                                : (profile.language === 'en' ? tr('Link a method to this account') : 'Привязать способ к этому аккаунту')}
                         </button>
                         {authPurpose === 'login' ? (
                             <p className="settings-helper-text">
                                 {profile.language === 'en'
-                                    ? 'Signing in switches to the existing account; current data is not merged into it.'
-                                    : 'Вход переключит приложение на существующий аккаунт. Данные текущего профиля в него не переносятся.'}
+                                    ? tr('Signing in switches to the existing account; current data is not merged into it.') : 'Вход переключит приложение на существующий аккаунт. Данные текущего профиля в него не переносятся.'}
                             </p>
                         ) : null}
                         {identities.length ? (
-                            <div className="settings-identity-list" aria-label={profile.language === 'en' ? 'Linked methods' : 'Подключённые способы'}>
+                            <div className="settings-identity-list" aria-label={profile.language === 'en' ? tr('Linked methods') : 'Подключённые способы'}>
                                 {identities.filter(identity => identity.provider !== 'google').map((identity) => (
                                     <div className="settings-identity-row" key={identity.provider}>
                                         <span>{IDENTITY_LABELS[identity.provider]}</span>
-                                        <span>{identity.provider === 'email' && identity.email ? identity.email : (profile.language === 'en' ? 'Linked' : 'Подключён')}</span>
+                                        <span>{identity.provider === 'email' && identity.email ? identity.email : (profile.language === 'en' ? tr('Linked') : 'Подключён')}</span>
                                     </div>
                                 ))}
                             </div>
                         ) : null}
                         {identityLoadFailed || authCapabilitiesLoadFailed ? (
                             <div className="settings-inline-error">
-                                <p>{profile.language === 'en' ? 'Could not load sign-in methods.' : 'Не удалось загрузить способы входа.'}</p>
+                                <p>{profile.language === 'en' ? tr('Could not load sign-in methods.') : 'Не удалось загрузить способы входа.'}</p>
                                 <button type="button" onClick={() => setIdentityReload((value) => value + 1)}>
-                                    {profile.language === 'en' ? 'Retry' : 'Повторить'}
+                                    {profile.language === 'en' ? tr('Retry') : 'Повторить'}
                                 </button>
                             </div>
                         ) : null}
@@ -1425,7 +1392,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                         disabled={identityBusy}
                                         onClick={() => linkOAuth(provider)}
                                     >
-                                        {provider === 'vk' ? 'VK ID' : provider === 'yandex' ? 'Яндекс ID' : 'Google'}
+                                        {provider === 'vk' ? 'VK ID' : provider === 'yandex' ? 'Яндекс ID' : tr('Google')}
                                     </button>
                                 ))}
                         </div>
@@ -1441,8 +1408,8 @@ export const Settings: React.FC<SettingsProps> = ({
                                     autoComplete="email"
                                     value={emailValue}
                                     onChange={(event) => setEmailValue(event.target.value)}
-                                    placeholder={profile.language === 'en' ? 'Email' : 'Email для входа'}
-                                    aria-label={profile.language === 'en' ? 'Email' : 'Email для входа'}
+                                    placeholder={profile.language === 'en' ? tr('Email') : 'Email для входа'}
+                                    aria-label={profile.language === 'en' ? tr('Email') : 'Email для входа'}
                                 />
                                 {!emailChallengeId ? (
                                     <div className="settings-password-field">
@@ -1454,15 +1421,15 @@ export const Settings: React.FC<SettingsProps> = ({
                                             value={emailPassword}
                                             onChange={(event) => setEmailPassword(event.target.value)}
                                             placeholder={authPurpose === 'login'
-                                                ? (profile.language === 'en' ? 'Password' : 'Пароль')
-                                                : (profile.language === 'en' ? 'At least 8 characters' : 'Не менее 8 символов')}
-                                            aria-label={profile.language === 'en' ? 'Password' : 'Пароль'}
+                                                ? (profile.language === 'en' ? tr('Password') : 'Пароль')
+                                                : (profile.language === 'en' ? tr('At least 8 characters') : 'Не менее 8 символов')}
+                                            aria-label={profile.language === 'en' ? tr('Password') : 'Пароль'}
                                         />
                                         <button
                                             type="button"
                                             aria-label={emailPasswordVisible
-                                                ? (profile.language === 'en' ? 'Hide password' : 'Скрыть пароль')
-                                                : (profile.language === 'en' ? 'Show password' : 'Показать пароль')}
+                                                ? (profile.language === 'en' ? tr('Hide password') : 'Скрыть пароль')
+                                                : (profile.language === 'en' ? tr('Show password') : 'Показать пароль')}
                                             aria-pressed={emailPasswordVisible}
                                             disabled={identityBusy}
                                             onClick={() => setEmailPasswordVisible((visible) => !visible)}
@@ -1480,14 +1447,14 @@ export const Settings: React.FC<SettingsProps> = ({
                                             autoComplete="new-password"
                                             value={emailPasswordConfirmation}
                                             onChange={(event) => setEmailPasswordConfirmation(event.target.value)}
-                                            placeholder={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
-                                            aria-label={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
+                                            placeholder={profile.language === 'en' ? tr('Repeat password') : 'Повторите пароль'}
+                                            aria-label={profile.language === 'en' ? tr('Repeat password') : 'Повторите пароль'}
                                         />
                                         <button
                                             type="button"
                                             aria-label={emailPasswordConfirmationVisible
-                                                ? (profile.language === 'en' ? 'Hide repeated password' : 'Скрыть повтор пароля')
-                                                : (profile.language === 'en' ? 'Show repeated password' : 'Показать повтор пароля')}
+                                                ? (profile.language === 'en' ? tr('Hide repeated password') : 'Скрыть повтор пароля')
+                                                : (profile.language === 'en' ? tr('Show repeated password') : 'Показать повтор пароля')}
                                             aria-pressed={emailPasswordConfirmationVisible}
                                             disabled={identityBusy}
                                             onClick={() => setEmailPasswordConfirmationVisible((visible) => !visible)}
@@ -1505,11 +1472,11 @@ export const Settings: React.FC<SettingsProps> = ({
                                             autoComplete="one-time-code"
                                             value={emailCode}
                                             onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                                            placeholder={profile.language === 'en' ? '6-digit code' : 'Код из письма'}
-                                            aria-label={profile.language === 'en' ? '6-digit code' : 'Код из письма'}
+                                            placeholder={profile.language === 'en' ? tr('6-digit code') : 'Код из письма'}
+                                            aria-label={profile.language === 'en' ? tr('6-digit code') : 'Код из письма'}
                                         />
                                         <button type="button" className="fresh-btn-ghost" disabled={identityBusy || emailCode.length !== 6} onClick={confirmEmailCode}>
-                                            {profile.language === 'en' ? 'Confirm' : 'Подтвердить'}
+                                            {profile.language === 'en' ? tr('Confirm') : 'Подтвердить'}
                                         </button>
                                     </div>
                                 ) : (
@@ -1520,13 +1487,13 @@ export const Settings: React.FC<SettingsProps> = ({
                                         onClick={requestEmailCode}
                                     >
                                         {authPurpose === 'login'
-                                            ? (profile.language === 'en' ? 'Sign in' : 'Войти')
-                                            : (profile.language === 'en' ? 'Send code' : 'Отправить код')}
+                                            ? (profile.language === 'en' ? tr('Sign in') : 'Войти')
+                                            : (profile.language === 'en' ? tr('Send code') : 'Отправить код')}
                                     </button>
                                 )}
                                 {emailChallengeId ? (
                                     <button type="button" className="settings-text-action" disabled={identityBusy} onClick={requestEmailCode}>
-                                        {profile.language === 'en' ? 'Send a new code' : 'Отправить новый код'}
+                                        {profile.language === 'en' ? tr('Send a new code') : 'Отправить новый код'}
                                     </button>
                                 ) : null}
                             </div>
@@ -1544,7 +1511,7 @@ export const Settings: React.FC<SettingsProps> = ({
                         <div className="nebo-purchases-actions">
                             {subscriptionPresentation.shouldPromote && canPromotePremium ? (
                                 <button type="button" className="nebo-period-cta" onClick={() => onRequestPremium?.()}>
-                                    {profile.language === 'ru' ? 'Оформить Plus' : 'Get Plus'}
+                                    {profile.language === 'ru' ? 'Оформить Plus' : tr('Get Plus')}
                                 </button>
                             ) : null}
                             {rustorePurchaseControlsAvailable ? (
@@ -1556,8 +1523,8 @@ export const Settings: React.FC<SettingsProps> = ({
                                     onClick={restorePurchase}
                                 >
                                     {restoreState === 'running'
-                                        ? (profile.language === 'ru' ? 'Проверяем…' : 'Checking…')
-                                        : (profile.language === 'ru' ? 'Восстановить покупки' : 'Restore purchases')}
+                                        ? (profile.language === 'ru' ? 'Проверяем…' : tr('Checking…'))
+                                        : (profile.language === 'ru' ? 'Восстановить покупки' : tr('Restore purchases'))}
                                 </button>
                             ) : null}
                             {rustorePurchaseControlsAvailable
@@ -1571,35 +1538,33 @@ export const Settings: React.FC<SettingsProps> = ({
                                     aria-busy={managingSubscription}
                                 >
                                     {managingSubscription
-                                        ? (profile.language === 'ru' ? 'Открываем RuStore…' : 'Opening RuStore…')
-                                        : (profile.language === 'ru' ? 'Управлять подпиской в RuStore' : 'Manage subscription in RuStore')}
+                                        ? (profile.language === 'ru' ? 'Открываем RuStore…' : tr('Opening RuStore…'))
+                                        : (profile.language === 'ru' ? 'Управлять подпиской в RuStore' : tr('Manage subscription in RuStore'))}
                                 </button>
                             ) : null}
                         </div>
                         {rustorePurchaseControlsAvailable ? (
-                            <p className="nebo-purchases-foot">{profile.language === 'ru' ? 'Чеки RuStore присылает на почту твоего аккаунта RuStore.' : 'RuStore sends receipts to the email of your RuStore account.'}</p>
+                            <p className="nebo-purchases-foot">{profile.language === 'ru' ? 'Чеки RuStore присылает на почту твоего аккаунта RuStore.' : tr('RuStore sends receipts to the email of your RuStore account.')}</p>
                         ) : null}
                         {rustorePurchaseControlsAvailable && restoreState === 'success' ? (
                             <p role="status" className="settings-helper-text">
-                                {profile.language === 'ru' ? 'Покупки проверены сервером.' : 'Purchases were checked by the server.'}
+                                {profile.language === 'ru' ? 'Покупки проверены сервером.' : tr('Purchases were checked by the server.')}
                             </p>
                         ) : rustorePurchaseControlsAvailable && restoreState === 'pending' ? (
                             <p role="status" className="settings-helper-text">
                                 {profile.language === 'ru'
-                                    ? 'RuStore ещё подтверждает покупку. Подожди немного и проверь снова, повторно покупать не нужно.'
-                                    : 'RuStore is still confirming the purchase. Wait a moment and check again, do not buy it again.'}
+                                    ? 'RuStore ещё подтверждает покупку. Подожди немного и проверь снова, повторно покупать не нужно.' : tr('RuStore is still confirming the purchase. Wait a moment and check again, do not buy it again.')}
                             </p>
                         ) : rustorePurchaseControlsAvailable && restoreState === 'error' ? (
                             <p role="alert" className="settings-error-text">
                                 {paymentFailureCopy(restoreFailureReason, profile.language)
-                                    || (profile.language === 'ru' ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.')}
+                                    || (profile.language === 'ru' ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : tr('Could not restore the purchase. Check RuStore and your connection.'))}
                             </p>
                         ) : null}
                         {manageSubscriptionError ? (
                             <p role="alert" className="settings-error-text">
                                 {profile.language === 'ru'
-                                    ? 'Не удалось открыть управление подпиской. Открой раздел подписок в RuStore.'
-                                    : 'Could not open subscription management. Open Subscriptions in RuStore.'}
+                                    ? 'Не удалось открыть управление подпиской. Открой раздел подписок в RuStore.' : tr('Could not open subscription management. Open Subscriptions in RuStore.')}
                             </p>
                         ) : null}
                     </section>
@@ -1612,7 +1577,7 @@ export const Settings: React.FC<SettingsProps> = ({
                             <div className="nebo-support">
                                 <div className="nebo-support-head">
                                     <img src="/assets/nebo-icons/help.svg" alt="" width={64} height={64} />
-                                    <span><strong>{profile.language === 'en' ? 'Common questions' : 'Частые вопросы'}</strong><small>{profile.language === 'en' ? 'If the answer is not here, write to us' : 'Если ответа нет, напиши нам'}</small></span>
+                                    <span><strong>{profile.language === 'en' ? tr('Common questions') : 'Частые вопросы'}</strong><small>{profile.language === 'en' ? tr('If the answer is not here, write to us') : 'Если ответа нет, напиши нам'}</small></span>
                                 </div>
                                 <div className="nebo-support-faq">
                                     {SUPPORT_FAQ.map(([qRu, aRu, qEn, aEn], index) => (
@@ -1623,29 +1588,28 @@ export const Settings: React.FC<SettingsProps> = ({
                                     ))}
                                 </div>
                                 <button type="button" className="nebo-period-cta" onClick={() => setSupportFormOpen(true)}>
-                                    {profile.language === 'en' ? 'Write to support' : 'Написать в поддержку'}
+                                    {profile.language === 'en' ? tr('Write to support') : 'Написать в поддержку'}
                                 </button>
-                                <p className="nebo-support-note">{profile.language === 'en' ? 'Describe what happened and attach a screenshot if you can.' : 'Опиши, что случилось. Если можешь, приложи скриншот.'}</p>
+                                <p className="nebo-support-note">{profile.language === 'en' ? tr('Describe what happened and attach a screenshot if you can.') : 'Опиши, что случилось. Если можешь, приложи скриншот.'}</p>
                             </div>
                         ) : feedbackStatus === 'success' && feedbackTicketId ? (
                             <div className="settings-feedback-success">
                                 <div role="status" aria-live="polite">
-                                    <p>{profile.language === 'en' ? `Request #${feedbackTicketId}` : `Обращение №${feedbackTicketId}`}</p>
-                                    <h2>{profile.language === 'en' ? 'Request saved' : 'Обращение сохранено'}</h2>
+                                    <p>{profile.language === 'en' ? trf('Request #{0}', feedbackTicketId) : `Обращение №${feedbackTicketId}`}</p>
+                                    <h2>{profile.language === 'en' ? tr('Request saved') : 'Обращение сохранено'}</h2>
                                     <span>
                                         {profile.language === 'en'
-                                            ? 'We will reply by email if you provided one.'
-                                            : 'Если указан email, ответ придёт туда.'}
+                                            ? tr('We will reply by email if you provided one.') : 'Если указан email, ответ придёт туда.'}
                                     </span>
                                 </div>
                                 <button type="button" className="fresh-btn-primary" onClick={startNewFeedback}>
-                                    {profile.language === 'en' ? 'New request' : 'Новое обращение'}
+                                    {profile.language === 'en' ? tr('New request') : 'Новое обращение'}
                                 </button>
                             </div>
                         ) : (
                             <form className="settings-feedback-form" noValidate onSubmit={submitFeedback}>
                                 <fieldset className="settings-feedback-categories">
-                                    <legend>{profile.language === 'en' ? 'Topic' : 'Тема'}</legend>
+                                    <legend>{profile.language === 'en' ? tr('Topic') : 'Тема'}</legend>
                                     <div>
                                         {FEEDBACK_CATEGORIES.map((category) => (
                                             <label
@@ -1669,7 +1633,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
                                 <div className="settings-form-field">
                                     <label htmlFor="settings-feedback-message">
-                                        {profile.language === 'en' ? 'Message' : 'Сообщение'}
+                                        {profile.language === 'en' ? tr('Message') : 'Сообщение'}
                                     </label>
                                     <textarea
                                         ref={feedbackMessageRef}
@@ -1684,8 +1648,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                         aria-invalid={!!feedbackErrors.message}
                                         aria-describedby={`settings-feedback-message-hint${feedbackErrors.message ? ' settings-feedback-message-error' : ''}`}
                                         placeholder={profile.language === 'en'
-                                            ? 'Tell us what happened or what could be improved'
-                                            : 'Расскажи, что случилось или что можно улучшить'}
+                                            ? tr('Tell us what happened or what could be improved') : 'Расскажи, что случилось или что можно улучшить'}
                                         onChange={(event) => {
                                             setFeedbackMessage(event.target.value);
                                             if (feedbackErrors.message) setFeedbackErrors((current) => ({ ...current, message: undefined }));
@@ -1699,7 +1662,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                             className="settings-feedback-dictation"
                                             onText={(text) => setFeedbackMessage((current) => appendDictatedText(current, text, 4000))}
                                         />
-                                        <span>{profile.language === 'en' ? 'At least 10 characters' : 'Минимум 10 символов'}</span>
+                                        <span>{profile.language === 'en' ? tr('At least 10 characters') : 'Минимум 10 символов'}</span>
                                         <span>{feedbackMessage.length}/4000</span>
                                     </div>
                                     {feedbackErrors.message ? (
@@ -1711,7 +1674,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
                                 <div className="settings-form-field">
                                     <label htmlFor="settings-feedback-email">
-                                        {profile.language === 'en' ? 'Email for a reply (optional)' : 'Email для ответа (необязательно)'}
+                                        {profile.language === 'en' ? tr('Email for a reply (optional)') : 'Email для ответа (необязательно)'}
                                     </label>
                                     <input
                                         ref={feedbackEmailRef}
@@ -1742,8 +1705,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
                                 <p className="settings-feedback-warning">
                                     {profile.language === 'en'
-                                        ? 'The NEBO team will receive this message. Do not include passwords, codes, payment details, birth data or health information.'
-                                        : 'Сообщение получит команда NEBO. Не указывай пароли, коды, платёжные данные, данные рождения или сведения о здоровье.'}
+                                        ? tr('The NEBO team will receive this message. Do not include passwords, codes, payment details, birth data or health information.') : 'Сообщение получит команда NEBO. Не указывай пароли, коды, платёжные данные, данные рождения или сведения о здоровье.'}
                                 </p>
 
                                 <button
@@ -1753,8 +1715,8 @@ export const Settings: React.FC<SettingsProps> = ({
                                     aria-busy={feedbackStatus === 'submitting'}
                                 >
                                     {feedbackStatus === 'submitting'
-                                        ? (profile.language === 'en' ? 'Sending…' : 'Отправляем…')
-                                        : (profile.language === 'en' ? 'Send' : 'Отправить')}
+                                        ? (profile.language === 'en' ? tr('Sending…') : 'Отправляем…')
+                                        : (profile.language === 'en' ? tr('Send') : 'Отправить')}
                                 </button>
                                 <div className="settings-feedback-result" aria-live="polite">
                                     {feedbackSubmitError ? <p className="settings-error-text" role="alert">{feedbackSubmitError}</p> : null}
@@ -1770,19 +1732,19 @@ export const Settings: React.FC<SettingsProps> = ({
                         <div className="settings-list">
                             <a className="settings-list-row" href={releaseConfig.privacyUrl} target="_blank" rel="noreferrer">
                                 <span className="settings-list-row-main">
-                                    <span className="settings-list-row-label">{profile.language === 'en' ? 'Privacy Policy' : 'Политика конфиденциальности'}</span>
+                                    <span className="settings-list-row-label">{profile.language === 'en' ? tr('Privacy Policy') : 'Политика конфиденциальности'}</span>
                                 </span>
                                 <span className="settings-list-row-end"><ChevronRight aria-hidden size={16} strokeWidth={1.8} /></span>
                             </a>
                             <a className="settings-list-row" href={releaseConfig.termsUrl} target="_blank" rel="noreferrer">
                                 <span className="settings-list-row-main">
-                                    <span className="settings-list-row-label">{profile.language === 'en' ? 'User Agreement' : 'Пользовательское соглашение'}</span>
+                                    <span className="settings-list-row-label">{profile.language === 'en' ? tr('User Agreement') : 'Пользовательское соглашение'}</span>
                                 </span>
                                 <span className="settings-list-row-end"><ChevronRight aria-hidden size={16} strokeWidth={1.8} /></span>
                             </a>
                             <a className="settings-list-row" href={releaseConfig.consentUrl} target="_blank" rel="noreferrer">
                                 <span className="settings-list-row-main">
-                                    <span className="settings-list-row-label">{profile.language === 'en' ? 'Personal data consent' : 'Согласие на обработку данных'}</span>
+                                    <span className="settings-list-row-label">{profile.language === 'en' ? tr('Personal data consent') : 'Согласие на обработку данных'}</span>
                                 </span>
                                 <span className="settings-list-row-end"><ChevronRight aria-hidden size={16} strokeWidth={1.8} /></span>
                             </a>
@@ -1796,39 +1758,37 @@ export const Settings: React.FC<SettingsProps> = ({
                         <div className="settings-account-actions">
                             <button type="button" disabled={loggingOut || deletingAccount} onClick={handleLogout}>
                                 {loggingOut
-                                    ? (profile.language === 'en' ? 'Signing out…' : 'Выходим…')
-                                    : (profile.language === 'en' ? 'Sign out' : 'Выйти')}
+                                    ? (profile.language === 'en' ? tr('Signing out…') : 'Выходим…')
+                                    : (profile.language === 'en' ? tr('Sign out') : 'Выйти')}
                             </button>
                             <button type="button" className="settings-danger-action" disabled={loggingOut || deletingAccount} onClick={handleDeleteAccount}>
                                 {deletingAccount
-                                    ? (profile.language === 'en' ? 'Deleting…' : 'Удаляем…')
-                                    : (profile.language === 'en' ? 'Delete account' : 'Удалить аккаунт')}
+                                    ? (profile.language === 'en' ? tr('Deleting…') : 'Удаляем…')
+                                    : (profile.language === 'en' ? tr('Delete account') : 'Удалить аккаунт')}
                             </button>
                         </div>
                         <p className="settings-helper-text settings-helper-text--spaced">
                             {profile.language === 'en'
-                                ? 'Deleting an account permanently removes its related data. Active RuStore auto-renewal must be managed separately.'
-                                : 'Удаление аккаунта навсегда удаляет связанные с ним данные. Активным автопродлением RuStore нужно управлять отдельно.'}
+                                ? tr('Deleting an account permanently removes its related data. Active RuStore auto-renewal must be managed separately.') : 'Удаление аккаунта навсегда удаляет связанные с ним данные. Активным автопродлением RuStore нужно управлять отдельно.'}
                         </p>
                         {logoutError ? <p role="alert" className="settings-error-text">{logoutError}</p> : null}
                         {deletionError ? <p role="alert" className="settings-error-text">{deletionError}</p> : null}
                         {deleteDialogOpen ? (
                             <div className="nebo-sheet-scrim" role="presentation" onClick={() => setDeleteDialogOpen(false)}>
-                                <div className="nebo-soft-pop nebo-delete-pop" role="alertdialog" aria-modal="true" aria-label={profile.language === 'en' ? 'Delete the account forever?' : 'Удалить аккаунт навсегда?'} onClick={(event) => event.stopPropagation()}>
-                                    <button type="button" className="nebo-day-pop-close" onClick={() => setDeleteDialogOpen(false)} aria-label={profile.language === 'en' ? 'Close' : 'Закрыть'}><X size={18} aria-hidden /></button>
+                                <div className="nebo-soft-pop nebo-delete-pop" role="alertdialog" aria-modal="true" aria-label={profile.language === 'en' ? tr('Delete the account forever?') : 'Удалить аккаунт навсегда?'} onClick={(event) => event.stopPropagation()}>
+                                    <button type="button" className="nebo-day-pop-close" onClick={() => setDeleteDialogOpen(false)} aria-label={profile.language === 'en' ? tr('Close') : 'Закрыть'}><X size={18} aria-hidden /></button>
                                     <img src="/assets/nebo-icons/trash.svg" alt="" width={80} height={80} />
-                                    <h2>{profile.language === 'en' ? 'Delete the account forever?' : 'Удалить аккаунт навсегда?'}</h2>
+                                    <h2>{profile.language === 'en' ? tr('Delete the account forever?') : 'Удалить аккаунт навсегда?'}</h2>
                                     <p>{profile.language === 'en'
-                                        ? 'We will delete your chart, questions, purchases and saved people. Cancel the subscription in RuStore separately, or it will keep renewing.'
-                                        : 'Удалим карту, вопросы, покупки и близких. Подписку отмени в RuStore отдельно, иначе она продолжит списываться.'}</p>
+                                        ? tr('We will delete your chart, questions, purchases and saved people. Cancel the subscription in RuStore separately, or it will keep renewing.') : 'Удалим карту, вопросы, покупки и близких. Подписку отмени в RuStore отдельно, иначе она продолжит списываться.'}</p>
                                     <label className="nebo-delete-ack">
                                         <input type="checkbox" checked={deleteAck} onChange={(event) => setDeleteAck(event.target.checked)} />
-                                        <span>{profile.language === 'en' ? 'I understand the data cannot be restored' : 'Понимаю, что вернуть данные будет нельзя'}</span>
+                                        <span>{profile.language === 'en' ? tr('I understand the data cannot be restored') : 'Понимаю, что вернуть данные будет нельзя'}</span>
                                     </label>
                                     <button type="button" className="nebo-delete-confirm" disabled={!deleteAck || deletingAccount} onClick={() => { setDeleteDialogOpen(false); deleteAccount(); }}>
-                                        {profile.language === 'en' ? 'Delete account' : 'Удалить аккаунт'}
+                                        {profile.language === 'en' ? tr('Delete account') : 'Удалить аккаунт'}
                                     </button>
-                                    <button type="button" className="nebo-inbox-close" onClick={() => setDeleteDialogOpen(false)}>{profile.language === 'en' ? 'Cancel' : 'Отмена'}</button>
+                                    <button type="button" className="nebo-inbox-close" onClick={() => setDeleteDialogOpen(false)}>{profile.language === 'en' ? tr('Cancel') : 'Отмена'}</button>
                                 </div>
                             </div>
                         ) : null}
@@ -1849,27 +1809,27 @@ export const Settings: React.FC<SettingsProps> = ({
                         ) : null}
                         <div className="settings-developer-actions">
                             <button type="button" onClick={sendSelfTest} disabled={selfTest === 'sending'}>
-                                <span>{profile.language === 'en' ? 'Send a test notification' : 'Прислать тест-уведомление'}</span>
+                                <span>{profile.language === 'en' ? tr('Send a test notification') : 'Прислать тест-уведомление'}</span>
                                 <small>
                                     {selfTest === 'sending'
-                                        ? (profile.language === 'en' ? 'Sending…' : 'Отправляю…')
+                                        ? (profile.language === 'en' ? tr('Sending…') : 'Отправляю…')
                                         : selfTest === 'ok'
-                                            ? (profile.language === 'en' ? 'Sent' : 'Отправлено')
+                                            ? (profile.language === 'en' ? tr('Sent') : 'Отправлено')
                                             : selfTest === 'err'
-                                                ? (selfTestInfo || (profile.language === 'en' ? 'Failed' : 'Не вышло'))
-                                                : (profile.language === 'en' ? 'Telegram end-to-end check' : 'Проверка доставки в Telegram')}
+                                                ? (selfTestInfo || (profile.language === 'en' ? tr('Failed') : 'Не вышло'))
+                                                : (profile.language === 'en' ? tr('Telegram end-to-end check') : 'Проверка доставки в Telegram')}
                                 </small>
                             </button>
                             <button type="button" onClick={sendDailyPush} disabled={dailyPush === 'sending'}>
-                                <span>{profile.language === 'en' ? 'Send my daily push now' : 'Прислать дневной пуш сейчас'}</span>
+                                <span>{profile.language === 'en' ? tr('Send my daily push now') : 'Прислать дневной пуш сейчас'}</span>
                                 <small>
                                     {dailyPush === 'sending'
-                                        ? (profile.language === 'en' ? 'Sending…' : 'Отправляю…')
+                                        ? (profile.language === 'en' ? tr('Sending…') : 'Отправляю…')
                                         : dailyPush === 'ok'
-                                            ? (dailyPushInfo || (profile.language === 'en' ? 'Sent' : 'Отправлено'))
+                                            ? (dailyPushInfo || (profile.language === 'en' ? tr('Sent') : 'Отправлено'))
                                             : dailyPush === 'err'
-                                                ? (dailyPushInfo || (profile.language === 'en' ? 'Failed' : 'Не вышло'))
-                                                : (profile.language === 'en' ? 'Admin-only delivery check' : 'Проверка доставки для администратора')}
+                                                ? (dailyPushInfo || (profile.language === 'en' ? tr('Failed') : 'Не вышло'))
+                                                : (profile.language === 'en' ? tr('Admin-only delivery check') : 'Проверка доставки для администратора')}
                                 </small>
                             </button>
                         </div>
@@ -1881,15 +1841,15 @@ export const Settings: React.FC<SettingsProps> = ({
                 const en = profile.language === 'en';
                 const icon = (name: string) => <img src={`/assets/nebo-icons/${name}.svg`} alt="" width={34} height={34} />;
                 const plusUntil = activePremium && profile.premiumUntil ? new Date(profile.premiumUntil) : null;
-                const plusUntilLabel = plusUntil && !Number.isNaN(plusUntil.getTime()) ? plusUntil.toLocaleDateString(en ? 'en-GB' : 'ru-RU', { day: 'numeric', month: 'long' }) : '';
-                const planBadge = profile.isGuest ? (en ? 'Guest · not signed in' : 'Гость · без входа') : activePremium ? (plusUntilLabel ? (en ? `Plus until ${plusUntilLabel}` : `Plus до ${plusUntilLabel}`) : 'Plus') : 'Free';
+                const plusUntilLabel = plusUntil && !Number.isNaN(plusUntil.getTime()) ? plusUntil.toLocaleDateString(en ? tr('en-GB') : 'ru-RU', { day: 'numeric', month: 'long' }) : '';
+                const planBadge = profile.isGuest ? (en ? tr('Guest · not signed in') : 'Гость · без входа') : activePremium ? (plusUntilLabel ? (en ? trf('Plus until {0}', plusUntilLabel) : `Plus до ${plusUntilLabel}`) : 'Plus') : 'Free';
                 return (
                     <div className="settings-root">
                         <div className="nebo-profile-head">
-                            <button type="button" className="nebo-profile-avatar-button" onClick={() => setAvatarOpen(true)} aria-label={en ? 'Change avatar' : 'Сменить аватарку'}>
+                            <button type="button" className="nebo-profile-avatar-button" onClick={() => setAvatarOpen(true)} aria-label={en ? tr('Change avatar') : 'Сменить аватарку'}>
                                 <AvatarCircle userId={profile.id || ''} name={profileDisplayName || ''} className="nebo-profile-avatar" />
                             </button>
-                            <strong>{profile.isGuest ? (en ? 'Guest' : 'Гость') : profileDisplayName}</strong>
+                            <strong>{profile.isGuest ? (en ? tr('Guest') : 'Гость') : profileDisplayName}</strong>
                             <span className={activePremium ? 'nebo-profile-plan is-plus' : profile.isGuest ? 'nebo-profile-plan is-guest' : 'nebo-profile-plan'}>{planBadge}</span>
                         </div>
                         {ctaPickOpen ? <CtaStylePicker value={ctaStyle} onPick={setCtaStyle} onClose={() => setCtaPickOpen(false)} en={en} /> : null}
@@ -1905,60 +1865,60 @@ export const Settings: React.FC<SettingsProps> = ({
 
                         {profile.isGuest ? (
                             <section className="nebo-profile-signin">
-                                <strong>{en ? 'Sign in so nothing gets lost' : 'Войди, чтобы ничего не потерять'}</strong>
-                                <p>{en ? 'Your chart and settings live only on this phone for now.' : 'Сейчас карта и настройки хранятся только на этом телефоне.'}</p>
+                                <strong>{en ? tr('Sign in so nothing gets lost') : 'Войди, чтобы ничего не потерять'}</strong>
+                                <p>{en ? tr('Your chart and settings live only on this phone for now.') : 'Сейчас карта и настройки хранятся только на этом телефоне.'}</p>
                                 <div className="nebo-profile-signin-buttons">
-                                    <button type="button" className="is-yandex" onClick={() => openSettingsScreen('auth')}><span aria-hidden>Я</span>{en ? 'Yandex' : 'Яндекс'}</button>
+                                    <button type="button" className="is-yandex" onClick={() => openSettingsScreen('auth')}><span aria-hidden>Я</span>{en ? tr('Yandex') : 'Яндекс'}</button>
                                     <button type="button" className="is-vk" onClick={() => openSettingsScreen('auth')}>VK ID</button>
-                                    <button type="button" className="is-mail" onClick={() => openSettingsScreen('auth')}>{en ? 'Email' : 'Почта'}</button>
+                                    <button type="button" className="is-mail" onClick={() => openSettingsScreen('auth')}>{en ? tr('Email') : 'Почта'}</button>
                                 </div>
                             </section>
                         ) : null}
 
                         <section className="settings-group" aria-labelledby="settings-premium-heading">
-                            <h2 id="settings-premium-heading">{en ? 'Subscription and purchases' : 'Подписка и покупки'}</h2>
+                            <h2 id="settings-premium-heading">{en ? tr('Subscription and purchases') : 'Подписка и покупки'}</h2>
                             <div className="settings-list">
                                 <SettingsRow
                                     icon={icon('plus')}
-                                    label={activePremium ? 'NEBO Plus' : (en ? 'Get Plus' : 'Оформить Plus')}
-                                    value={activePremium ? (en ? 'active' : 'активна') : (en ? 'from 399 ₽' : 'от 399 ₽')}
+                                    label={activePremium ? 'NEBO Plus' : (en ? tr('Get Plus') : 'Оформить Plus')}
+                                    value={activePremium ? (en ? tr('active') : 'активна') : (en ? tr('from 399 ₽') : 'от 399 ₽')}
                                     target="subscription"
                                     onClick={() => (activePremium || !onRequestPremium ? openSettingsScreen('subscription') : onRequestPremium())}
                                 />
                                 {onRequestPremium ? (
-                                    <SettingsRow icon={icon('gift')} label={en ? 'Store and gifts' : 'Магазин и подарки'} onClick={() => onRequestPremium()} />
+                                    <SettingsRow icon={icon('gift')} label={en ? tr('Store and gifts') : 'Магазин и подарки'} onClick={() => onRequestPremium()} />
                                 ) : null}
-                                <SettingsRow icon={icon('bag')} label={en ? 'Purchases' : 'Покупки'} onClick={() => openSettingsScreen('subscription')} />
+                                <SettingsRow icon={icon('bag')} label={en ? tr('Purchases') : 'Покупки'} onClick={() => openSettingsScreen('subscription')} />
                                 {onRequestPremium ? (
-                                    <SettingsRow icon={icon('star')} label={en ? 'Enter a code' : 'Ввести код'} value={en ? 'gift or promo code' : 'подарок или промокод'} onClick={() => onRequestPremium()} />
+                                    <SettingsRow icon={icon('star')} label={en ? tr('Enter a code') : 'Ввести код'} value={en ? tr('gift or promo code') : 'подарок или промокод'} onClick={() => onRequestPremium()} />
                                 ) : null}
                             </div>
                         </section>
 
                         <section className="settings-group" aria-labelledby="settings-look-heading">
-                            <h2 id="settings-look-heading">{en ? 'Appearance' : 'Внешний вид'}</h2>
+                            <h2 id="settings-look-heading">{en ? tr('Appearance') : 'Внешний вид'}</h2>
                             <div className="settings-list">
                                 <div className="settings-list-row settings-theme-row">
                                     <span className="settings-list-row-main">
                                         <span className="settings-list-row-icon" aria-hidden>{icon('theme')}</span>
-                                        <span className="settings-list-row-label">{en ? 'Theme' : 'Тема'}</span>
+                                        <span className="settings-list-row-label">{en ? tr('Theme') : 'Тема'}</span>
                                     </span>
-                                    <span className="nebo-theme-seg" role="radiogroup" aria-label={en ? 'Theme' : 'Тема'}>
-                                        {([['light', en ? 'Light' : 'Светлая'], ['dark', en ? 'Dark' : 'Тёмная'], ['system', en ? 'Auto' : 'Авто']] as const).map(([key, label]) => (
+                                    <span className="nebo-theme-seg" role="radiogroup" aria-label={en ? tr('Theme') : 'Тема'}>
+                                        {([['light', en ? tr('Light') : 'Светлая'], ['dark', en ? tr('Dark') : 'Тёмная'], ['system', en ? tr('Auto') : 'Авто']] as const).map(([key, label]) => (
                                             <button key={key} type="button" role="radio" aria-checked={themePref === key} className={themePref === key ? 'is-on' : ''} onClick={() => setThemePref(key)}>{label}</button>
                                         ))}
                                     </span>
                                 </div>
-                                <SettingsRow icon={icon('roller')} label={en ? 'Buttons' : 'Кнопки'} value={ctaStyleLabel(ctaStyle, en)} onClick={() => setCtaPickOpen(true)} />
-                                <SettingsRow icon={icon('person')} label={en ? 'Avatar' : 'Аватарка'} value={avatar.kind === 'photo' ? (en ? 'own photo' : 'своё фото') : avatar.kind === 'set' ? (avatar.set === 'cats' ? (en ? 'cat' : 'котик') : (en ? 'animal' : 'зверёк')) : (en ? 'letter' : 'буква')} onClick={() => setAvatarOpen(true)} />
+                                <SettingsRow icon={icon('roller')} label={en ? tr('Buttons') : 'Кнопки'} value={ctaStyleLabel(ctaStyle, en)} onClick={() => setCtaPickOpen(true)} />
+                                <SettingsRow icon={icon('person')} label={en ? tr('Avatar') : 'Аватарка'} value={avatar.kind === 'photo' ? (en ? tr('own photo') : 'своё фото') : avatar.kind === 'set' ? (avatar.set === 'cats' ? (en ? tr('cat') : 'котик') : (en ? tr('animal') : 'зверёк')) : (en ? tr('letter') : 'буква')} onClick={() => setAvatarOpen(true)} />
                                 <div className="settings-list-row settings-theme-row" data-settings-target="language">
                                     <span className="settings-list-row-main">
                                         <span className="settings-list-row-icon" aria-hidden>{icon('globe')}</span>
-                                        <span className="settings-list-row-label">{en ? 'Language' : 'Язык'}</span>
+                                        <span className="settings-list-row-label">{en ? tr('Language') : 'Язык'}</span>
                                     </span>
-                                    <span className="nebo-theme-seg" role="radiogroup" aria-label={en ? 'Language' : 'Язык'}>
-                                        {(['ru', 'en'] as const).map((value) => (
-                                            <button key={value} type="button" role="radio" aria-checked={profile.language === value} className={profile.language === value ? 'is-on' : ''} onClick={() => { if (profile.language !== value) handleLanguageToggle(); }}>{value.toUpperCase()}</button>
+                                    <span className="nebo-theme-seg" role="radiogroup" aria-label={en ? tr('Language') : 'Язык'}>
+                                        {UI_LANGUAGES.map((value) => (
+                                            <button key={value} type="button" role="radio" aria-label={UI_LANGUAGE_NAMES[value]} aria-checked={uiLanguage === value} className={uiLanguage === value ? 'is-on' : ''} onClick={() => selectUiLanguage(value)}>{value.toUpperCase()}</button>
                                         ))}
                                     </span>
                                 </div>
@@ -1966,35 +1926,35 @@ export const Settings: React.FC<SettingsProps> = ({
                         </section>
 
                         <section className="settings-group" aria-labelledby="settings-data-heading">
-                            <h2 id="settings-data-heading">{en ? 'My data' : 'Мои данные'}</h2>
+                            <h2 id="settings-data-heading">{en ? tr('My data') : 'Мои данные'}</h2>
                             <div className="settings-list">
                                 <SettingsRow
                                     icon={icon('bell')}
-                                    label={en ? 'Notifications' : 'Уведомления'}
-                                    value={notifEnabled ? (nativeExtras.morningTime || (en ? 'On' : 'Включены')) : (en ? 'Off' : 'Выключены')}
+                                    label={en ? tr('Notifications') : 'Уведомления'}
+                                    value={notifEnabled ? (nativeExtras.morningTime || (en ? tr('On') : 'Включены')) : (en ? tr('Off') : 'Выключены')}
                                     target="notifications"
                                     onClick={() => openSettingsScreen('notifications')}
                                 />
                                 <SettingsRow
                                     icon={icon('shield')}
-                                    label={en ? 'Date, time, city' : 'Дата, время, город'}
+                                    label={en ? tr('Date, time, city') : 'Дата, время, город'}
                                     value={formatSettingsBirthDate(profile.birthDate, profile.language)}
                                     target="birth"
                                     onClick={() => openSettingsScreen('birth')}
                                 />
-                                <SettingsRow icon={icon('person')} label={en ? 'Gender' : 'Пол'} value={genderValue} target="gender" onClick={() => openSettingsScreen('gender')} />
-                                {onOpenCharts ? <SettingsRow icon={icon('star')} label={en ? 'My charts' : 'Мои карты'} onClick={onOpenCharts} /> : null}
-                                {onOpenFriends ? <SettingsRow icon={icon('person')} label={en ? 'My people' : 'Мои люди'} value={en ? 'friends and chat' : 'друзья и переписка'} onClick={onOpenFriends} /> : null}
+                                <SettingsRow icon={icon('person')} label={en ? tr('Gender') : 'Пол'} value={genderValue} target="gender" onClick={() => openSettingsScreen('gender')} />
+                                {onOpenCharts ? <SettingsRow icon={icon('star')} label={en ? tr('My charts') : 'Мои карты'} onClick={onOpenCharts} /> : null}
+                                {onOpenFriends ? <SettingsRow icon={icon('person')} label={en ? tr('My people') : 'Мои люди'} value={en ? tr('friends and chat') : 'друзья и переписка'} onClick={onOpenFriends} /> : null}
                                 {!profile.isGuest ? (
                                     <SettingsRow
                                         icon={icon('envelope')}
-                                        label={en ? 'Sign-in methods' : 'Способы входа'}
-                                        value={identityLoadFailed ? (en ? 'Unavailable' : 'Не загружены') : identityCountLabel(identities.length, profile.language)}
+                                        label={en ? tr('Sign-in methods') : 'Способы входа'}
+                                        value={identityLoadFailed ? (en ? tr('Unavailable') : 'Не загружены') : identityCountLabel(identities.length, profile.language)}
                                         target="auth"
                                         onClick={() => openSettingsScreen('auth')}
                                     />
                                 ) : null}
-                                <SettingsRow icon={icon('person')} label={en ? 'Name' : 'Имя'} value={profileDisplayName} target="profile" onClick={() => openSettingsScreen('profile')} />
+                                <SettingsRow icon={icon('person')} label={en ? tr('Name') : 'Имя'} value={profileDisplayName} target="profile" onClick={() => openSettingsScreen('profile')} />
                             </div>
                         </section>
 
@@ -2003,16 +1963,16 @@ export const Settings: React.FC<SettingsProps> = ({
                             <div className="settings-list">
                                 <SettingsRow
                                     icon={icon('star')}
-                                    label={en ? 'Rate the app' : 'Оценить приложение'}
+                                    label={en ? tr('Rate the app') : 'Оценить приложение'}
                                     onClick={() => { window.open('https://www.rustore.ru/catalog/app/ru.tvoygoroskop.app', '_blank', 'noopener'); }}
                                 />
-                                <SettingsRow icon={icon('help')} label={en ? 'Support and questions' : 'Поддержка и вопросы'} target="feedback" onClick={() => openSettingsScreen('feedback')} />
-                                <SettingsRow icon={icon('shield')} label={en ? 'Legal information' : 'Правовая информация'} target="legal" onClick={() => openSettingsScreen('legal')} />
+                                <SettingsRow icon={icon('help')} label={en ? tr('Support and questions') : 'Поддержка и вопросы'} target="feedback" onClick={() => openSettingsScreen('feedback')} />
+                                <SettingsRow icon={icon('shield')} label={en ? tr('Legal information') : 'Правовая информация'} target="legal" onClick={() => openSettingsScreen('legal')} />
                                 {profile.isAdmin ? (
-                                    <SettingsRow icon={icon('roller')} label={en ? 'For developers' : 'Для разработчика'} target="developer" onClick={() => openSettingsScreen('developer')} />
+                                    <SettingsRow icon={icon('roller')} label={en ? tr('For developers') : 'Для разработчика'} target="developer" onClick={() => openSettingsScreen('developer')} />
                                 ) : null}
-                                {!profile.isGuest ? <SettingsRow icon={icon('door')} label={en ? 'Sign out' : 'Выйти'} danger onClick={handleLogout} /> : null}
-                                <SettingsRow icon={icon('trash')} label={en ? 'Delete account' : 'Удалить аккаунт'} target="account" danger onClick={() => { openSettingsScreen('account'); handleDeleteAccount(); }} />
+                                {!profile.isGuest ? <SettingsRow icon={icon('door')} label={en ? tr('Sign out') : 'Выйти'} danger onClick={handleLogout} /> : null}
+                                <SettingsRow icon={icon('trash')} label={en ? tr('Delete account') : 'Удалить аккаунт'} target="account" danger onClick={() => { openSettingsScreen('account'); handleDeleteAccount(); }} />
                             </div>
                         </section>
                     </div>
@@ -2044,7 +2004,7 @@ export const Settings: React.FC<SettingsProps> = ({
                         <button
                             type="button"
                             className="settings-embedded-back"
-                            aria-label={profile.language === 'en' ? 'Back to settings' : 'Назад к настройкам'}
+                            aria-label={profile.language === 'en' ? tr('Back to settings') : 'Назад к настройкам'}
                             disabled={settingsDetailBusy}
                             onClick={returnToSettingsRoot}
                         >

@@ -10,6 +10,7 @@ import { formatPassportBirthLine, getZodiacCardBackground } from '../../lib/zodi
 import { captureAppHomeLayout } from '../../lib/appDebug';
 import { getHomeCopy, type HomeLanguage } from '../Dashboard/lumiaHomeContent';
 import { useCollapsibleHeaderProgress } from './useCollapsibleHeaderProgress';
+import { tr } from '../../lib/i18n';
 
 type UnifiedCollapsibleTopClusterProps = {
   profile: UserProfile;
@@ -71,10 +72,10 @@ export function UnifiedCollapsibleTopCluster({
   const compactRowY = useTransform(rawProgress, [0, 1], [-5, 0]);
   const compactRowScale = useTransform(visualProgress, [0, 0.72, 1], [0.82, 0.94, 1]);
 
-  const displayName = profile.name?.trim() || (language === 'en' ? 'You' : 'Ты');
+  const displayName = profile.name?.trim() || (language === 'en' ? tr('You') : 'Ты');
   const initial = displayName.slice(0, 1).toUpperCase();
   const sunSign = resolveSunSign(profile, chartData);
-  const signLabel = sunSign ? getZodiacSign(profile.language, sunSign) : (language === 'ru' ? 'Знак не указан' : 'Sign missing');
+  const signLabel = sunSign ? getZodiacSign(profile.language, sunSign) : (language === 'ru' ? 'Знак не указан' : tr('Sign missing'));
   const birthLine = formatPassportBirthLine(profile, language);
   const passportBackground = getZodiacCardBackground(
     sunSign,

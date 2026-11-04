@@ -10,6 +10,7 @@ import { WishesSheet, type WishItem, type WishRecord } from './WishesSheet';
 import { MonthReviewSheet, type MonthReviewRecord } from './MonthReviewSheet';
 import { findSelfTest } from '../../lib/selfTests/engine';
 import { isMoodWeekFinished, type MoodWeek } from '../../lib/moodWeek';
+import { tr } from '../../lib/i18n';
 
 export const FOR_YOU_IMAGES: Record<ForYouRuleId, string> = {
   premium_ending: '/assets/for-you/premium.webp',
@@ -188,7 +189,7 @@ export function ForYouBlock({
 
   return (
     <section data-telemetry-content="Для тебя" className="for-you" aria-labelledby="for-you-title">
-      {offers.length || extra ? <h2 id="for-you-title" className="for-you-title">{ru ? 'Для тебя' : 'For you'}</h2> : null}
+      {offers.length || extra ? <h2 id="for-you-title" className="for-you-title">{ru ? 'Для тебя' : tr('For you')}</h2> : null}
       <div className="for-you-list">
         {offers.map((offer) => (
           <article data-telemetry-content={`Для тебя · ${offer.id}`} key={offer.occurrence} className={`for-you-card is-${offer.id}`}>
@@ -202,7 +203,7 @@ export function ForYouBlock({
                   <ChevronRight size={16} aria-hidden="true" />
                 </button>
                 <button type="button" className="for-you-card-hide" onClick={() => hide(offer)}>
-                  {ru ? 'Скрыть' : 'Hide'}
+                  {ru ? 'Скрыть' : tr('Hide')}
                 </button>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { CosmicSheet } from './lumia-ui/CosmicSheet';
+import { tr } from '../lib/i18n';
 
 interface PremiumPreviewProps {
   language: 'ru' | 'en';
@@ -76,7 +77,7 @@ export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ language, onClos
           onClick={onPurchase}
           className="premium-preview-cosmic-cta"
         >
-          {language === 'ru' ? 'Выбрать подписку' : 'Choose a subscription'}
+          {language === 'ru' ? 'Выбрать подписку' : tr('Choose a subscription')}
         </button>
       )}
     >

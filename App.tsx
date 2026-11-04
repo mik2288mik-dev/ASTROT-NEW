@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -157,6 +157,8 @@ import {
     getPaywallFocusableElements,
     trapPaywallTabKey,
 } from './lib/paywallDialogFocus';
+import { adoptAccountLanguage, initUiLanguage, tr, trf } from './lib/i18n';
+import { useUiLanguage } from './lib/i18n/useUiLanguage';
 const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
     ssr: false,
 });
@@ -380,10 +382,18 @@ function millisecondsUntilNextForecastDay(now: Date, timezone: string): number {
     return Math.max(250, (upper - start) + 50);
 }
 
+initUiLanguage();
+
 const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGate> }> = ({ androidUpdate }) => {
     useCardShadows();
     useDisableAppZoom();
-    const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [accountProfile, setProfile] = useState<UserProfile | null>(null);
+    // Interface language is a device setting. Screens pick Russian or not through profile.language; Spanish is handled inside tr().
+    const [uiLanguage] = useUiLanguage();
+    const profile = useMemo<UserProfile | null>(() => (accountProfile
+        ? { ...accountProfile, language: uiLanguage === 'ru' ? 'ru' : 'en' }
+        : null), [accountProfile, uiLanguage]);
+    useEffect(() => { adoptAccountLanguage(accountProfile?.language); }, [accountProfile?.language]);
     const [nativeActive, setNativeActive] = useState(true);
     const [nativeTapVersion, setNativeTapVersion] = useState(0);
     const [nativeReadyDay, setNativeReadyDay] = useState<{ accountId: string; periodKey: string } | null>(null);
@@ -1315,8 +1325,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             notifyNativeResultReady(String(canonicalFullProfile.id), 'natal', primaryKey, true);
             setLoadingMessage(
                 canonicalFullProfile.language === 'en'
-                    ? 'Preparing your horoscope'
-                    : 'Готовим твой гороскоп',
+                    ? tr('Preparing your horoscope') : 'Готовим твой гороскоп',
             );
             setLoadingProgress(82);
             void getPrimaryChartId(String(canonicalFullProfile.id))
@@ -2005,8 +2014,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
             setDashboardPeriod('day');
             setView('dashboard');
             setCheckoutNotice(profile.language === 'en'
-                ? 'Your personal Today comes first. Read the open part, then Premium options will appear.'
-                : 'Сначала, твой личный Today. Прочитай открытую часть, и затем появятся возможности Premium.');
+                ? tr('Your personal Today comes first. Read the open part, then Premium options will appear.') : 'Сначала, твой личный Today. Прочитай открытую часть, и затем появятся возможности Premium.');
             return;
         }
         // A controlled Week/Month request can leave Today mounted behind the
@@ -3028,7 +3036,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
                 ) : view === 'charts' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <AppTopBar
-                            title={profile.language === 'en' ? 'My charts' : 'Мои карты'}
+                            title={profile.language === 'en' ? tr('My charts') : 'Мои карты'}
                             onBack={() => { void handleBack(); }}
                         />
                         {renderMyCharts('charts')}

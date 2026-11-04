@@ -71,6 +71,7 @@ import {
   CompatibilitySavedPeople,
   type PairPerson,
 } from '../../components/compatibility/CompatibilityPairPicker';
+import { tr, trf } from '../../lib/i18n';
 
 type CompatibilityPersonSource = 'birth' | 'saved' | 'sign';
 
@@ -222,17 +223,17 @@ function GenderToggle({ value, onChange, ru, compact = false, labelledBy }: { va
     <div
       className={`compat-choice-tabs compat-gender${compact ? ' is-compact' : ''}`}
       role="group"
-      aria-label={labelledBy ? undefined : (ru ? 'Пол' : 'Gender')}
+      aria-label={labelledBy ? undefined : (ru ? 'Пол' : tr('Gender'))}
       aria-labelledby={labelledBy}
     >
       <button type="button" className={`compat-choice-tab compat-gender-btn ${value === 'male' ? 'is-on is-active' : ''}`} aria-pressed={value === 'male'} onClick={() => { lumiaSelectionHaptic(); onChange('male'); }}>
-        {compact ? (ru ? 'М' : 'M') : (ru ? 'Мужчина' : 'Male')}
+        {compact ? (ru ? 'М' : tr('M')) : (ru ? 'Мужчина' : tr('Male'))}
       </button>
       <button type="button" className={`compat-choice-tab compat-gender-btn ${value === 'female' ? 'is-on is-active' : ''}`} aria-pressed={value === 'female'} onClick={() => { lumiaSelectionHaptic(); onChange('female'); }}>
-        {compact ? (ru ? 'Ж' : 'F') : (ru ? 'Женщина' : 'Female')}
+        {compact ? (ru ? 'Ж' : tr('F')) : (ru ? 'Женщина' : tr('Female'))}
       </button>
       <button type="button" className={`compat-choice-tab compat-gender-btn ${value === 'unspecified' ? 'is-on is-active' : ''}`} aria-pressed={value === 'unspecified'} onClick={() => onChange('unspecified')}>
-        {ru ? 'Не указан' : 'Not set'}
+        {ru ? 'Не указан' : tr('Not set')}
       </button>
     </div>
   );
@@ -250,18 +251,18 @@ function PersonSourcePicker({
   const options: Array<{ value: CompatibilityPersonSource; label: string; description: string }> = [
     {
       value: 'saved',
-      label: ru ? 'Сохранённые' : 'Saved charts',
-      description: ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart',
+      label: ru ? 'Сохранённые' : tr('Saved charts'),
+      description: ru ? 'Выбрать сохранённую карту' : tr('Choose a saved chart'),
     },
     {
       value: 'birth',
-      label: ru ? 'Новый человек' : 'New person',
-      description: ru ? 'Ввести данные нового человека' : 'Add a new person’s birth details',
+      label: ru ? 'Новый человек' : tr('New person'),
+      description: ru ? 'Ввести данные нового человека' : tr('Add a new person’s birth details'),
     },
   ];
 
   return (
-    <div className="compat-person-source" role="group" aria-label={ru ? 'Способ сравнения' : 'Comparison method'}>
+    <div className="compat-person-source" role="group" aria-label={ru ? 'Способ сравнения' : tr('Comparison method')}>
       {options.map((option) => {
         const active = option.value === value;
         return (
@@ -318,30 +319,30 @@ function PersonBirthFields({
   const genderLabelId = `${prefix}-gender-label`;
   const timePrecisionLabelId = `${prefix}-time-precision-label`;
   const timePrecisionOptions: readonly { value: BirthTimeQuality; label: string }[] = [
-    { value: 'exact', label: ru ? 'Знаю' : 'Exact' },
-    { value: 'approximate', label: ru ? 'Примерно' : 'Approximate' },
-    { value: 'unknown', label: ru ? 'Не знаю' : 'Unknown' },
+    { value: 'exact', label: ru ? 'Знаю' : tr('Exact') },
+    { value: 'approximate', label: ru ? 'Примерно' : tr('Approximate') },
+    { value: 'unknown', label: ru ? 'Не знаю' : tr('Unknown') },
   ];
   return (
     <div className="compat-air-fields">
       <label className="compat-air-field compat-air-field--name" htmlFor={`${prefix}-name`}>
-        <span className="compat-air-label">{ru ? 'Имя' : 'Name'}</span>
+        <span className="compat-air-label">{ru ? 'Имя' : tr('Name')}</span>
         <span className="compat-air-control">
           <UserRound aria-hidden="true" size={20} strokeWidth={1.8} />
-          <input name={`${prefix}-name`} id={`${prefix}-name`} className="compat-air-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Имя человека' : 'Person name'} autoComplete="name" />
+          <input name={`${prefix}-name`} id={`${prefix}-name`} className="compat-air-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Имя человека' : tr('Person name')} autoComplete="name" />
         </span>
       </label>
 
       <div className="compat-air-birth-row">
         <label className="compat-air-field" htmlFor={`${prefix}-date`}>
-          <span className="compat-air-label">{ru ? 'Дата рождения' : 'Birth date'}</span>
+          <span className="compat-air-label">{ru ? 'Дата рождения' : tr('Birth date')}</span>
           <span className="compat-air-control">
             <CalendarDays aria-hidden="true" size={20} strokeWidth={1.8} />
             <input name={`${prefix}-date`} id={`${prefix}-date`} className="compat-air-input" type="date" value={date} onChange={(event) => onDateChange(event.target.value)} />
           </span>
         </label>
         <label className="compat-air-field" htmlFor={`${prefix}-time`}>
-          <span className="compat-air-label">{ru ? 'Время рождения' : 'Birth time'}</span>
+          <span className="compat-air-label">{ru ? 'Время рождения' : tr('Birth time')}</span>
           <span className="compat-air-control">
             <Clock3 aria-hidden="true" size={20} strokeWidth={1.8} />
             <input
@@ -362,7 +363,7 @@ function PersonBirthFields({
 
       <div className="compat-time-precision-row">
         <span id={timePrecisionLabelId} className="compat-air-label">
-          {ru ? 'Точность времени' : 'Time accuracy'}
+          {ru ? 'Точность времени' : tr('Time accuracy')}
         </span>
         <div className="compat-time-precision-options" role="radiogroup" aria-labelledby={timePrecisionLabelId}>
           {timePrecisionOptions.map((option) => {
@@ -388,16 +389,16 @@ function PersonBirthFields({
       </div>
 
       <label className="compat-air-field compat-air-field--place" htmlFor={`${prefix}-place`}>
-        <span className="compat-air-label">{ru ? 'Место рождения' : 'Birth place'}</span>
+        <span className="compat-air-label">{ru ? 'Место рождения' : tr('Birth place')}</span>
         <span className="compat-air-control">
           <MapPin aria-hidden="true" size={20} strokeWidth={1.8} />
-          <input name={`${prefix}-place`} id={`${prefix}-place`} className="compat-air-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Город, страна' : 'City, country'} autoComplete="address-level2" />
+          <input name={`${prefix}-place`} id={`${prefix}-place`} className="compat-air-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Город, страна' : tr('City, country')} autoComplete="address-level2" />
         </span>
       </label>
 
       <div className="compat-air-person-footer">
         <div className="compat-air-gender-field">
-          <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
+          <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : tr('Gender')}</span>
           <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
         </div>
       </div>
@@ -425,7 +426,7 @@ function PersonSavedFields({
   return (
     <div className="compat-saved-fields">
       <span id={`${prefix}-saved-label`} className="compat-air-label compat-saved-label">
-        {ru ? 'Выбери карту' : 'Choose a chart'}
+        {ru ? 'Выбери карту' : tr('Choose a chart')}
       </span>
       {charts.length ? (
         <div className="compat-saved-chart-list" role="list" aria-labelledby={`${prefix}-saved-label`}>
@@ -450,16 +451,16 @@ function PersonSavedFields({
                   <strong>{chart.name}</strong>
                   {meta ? <small>{meta}</small> : null}
                 </span>
-                {chart.subject_type === 'self' ? <em>{ru ? 'моя карта' : 'my chart'}</em> : null}
-                {active ? <span className="compat-saved-chart-state">{ru ? 'Выбрана' : 'Selected'}</span> : null}
+                {chart.subject_type === 'self' ? <em>{ru ? 'моя карта' : tr('my chart')}</em> : null}
+                {active ? <span className="compat-saved-chart-state">{ru ? 'Выбрана' : tr('Selected')}</span> : null}
               </button>
             );
           })}
         </div>
-      ) : <p className="compat-saved-empty">{ru ? 'Сохранённых карт пока нет.' : 'No saved charts yet.'}</p>}
+      ) : <p className="compat-saved-empty">{ru ? 'Сохранённых карт пока нет.' : tr('No saved charts yet.')}</p>}
       {onOpenCharts ? (
         <button type="button" className="compat-saved-manage" onClick={onOpenCharts}>
-          {ru ? 'Открыть мои карты' : 'Open my charts'}
+          {ru ? 'Открыть мои карты' : tr('Open my charts')}
         </button>
       ) : null}
     </div>
@@ -488,7 +489,7 @@ function PersonSignFields({
   return (
     <div className="compat-sign-fields">
       <label className="compat-air-field" htmlFor={`${prefix}-sign`}>
-        <span className="compat-air-label">{ru ? 'Знак зодиака' : 'Zodiac sign'}</span>
+        <span className="compat-air-label">{ru ? 'Знак зодиака' : tr('Zodiac sign')}</span>
         <span className="compat-sign-select-wrap">
           <ZodiacSymbol sign={sign} size={28} />
           <select name={`${prefix}-sign`} id={`${prefix}-sign`} className="compat-air-input compat-air-select" value={sign} onChange={(event) => onSignChange(event.target.value)}>
@@ -497,7 +498,7 @@ function PersonSignFields({
         </span>
       </label>
       <div className="compat-air-gender-field">
-        <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
+        <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : tr('Gender')}</span>
         <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
       </div>
     </div>
@@ -505,7 +506,7 @@ function PersonSignFields({
 }
 
 function genderWord(g: CompatGender, ru: boolean): string {
-  if (g === 'unspecified') return ru ? 'Пол не указан' : 'Gender not set';
+  if (g === 'unspecified') return ru ? 'Пол не указан' : tr('Gender not set');
   return ru ? (g === 'male' ? 'Мужчина' : 'Женщина') : (g === 'male' ? 'Male' : 'Female');
 }
 
@@ -551,9 +552,9 @@ function CompatibilitySignPickerSheet({
     <CosmicSheet
       open={open}
       onClose={onClose}
-      closeLabel={lang === 'ru' ? 'Закрыть' : 'Close'}
+      closeLabel={lang === 'ru' ? 'Закрыть' : tr('Close')}
       title={label}
-      subtitle={lang === 'ru' ? 'Выбери знак зодиака.' : 'Choose a zodiac sign.'}
+      subtitle={lang === 'ru' ? 'Выбери знак зодиака.' : tr('Choose a zodiac sign.')}
       className="compat-sign-sheet"
       contentClassName="compat-sign-sheet-content"
     >
@@ -606,11 +607,11 @@ function RelationshipContextPicker({
     <div className={`compat-context-picker ${compact ? 'is-compact' : ''}`}>
       {!compact ? (
         <div className="compat-context-heading">
-          <span>{ru ? 'Какие у вас отношения?' : 'What is the relationship?'}</span>
-          <small>{ru ? 'Разбор будет говорить именно об этом' : 'The reading will stay in this context'}</small>
+          <span>{ru ? 'Какие у вас отношения?' : tr('What is the relationship?')}</span>
+          <small>{ru ? 'Разбор будет говорить именно об этом' : tr('The reading will stay in this context')}</small>
         </div>
       ) : null}
-      <div className={tiles ? 'compat-context-tiles' : 'compat-choice-tabs compat-context-options'} role="radiogroup" aria-label={ru ? 'Тип отношений' : 'Relationship type'}>
+      <div className={tiles ? 'compat-context-tiles' : 'compat-choice-tabs compat-context-options'} role="radiogroup" aria-label={ru ? 'Тип отношений' : tr('Relationship type')}>
         {options.map((option) => {
           const active = option.value === focus;
           const Icon = COMPATIBILITY_FOCUS_ICONS[option.value];
@@ -679,30 +680,29 @@ function CompatibilityResultPreviewSheet({
     <CosmicSheet
       open={open}
       onClose={onClose}
-      closeLabel={ru ? 'Закрыть' : 'Close'}
-      title={ru ? 'Посмотри, как это выглядит' : 'See how it looks'}
+      closeLabel={ru ? 'Закрыть' : tr('Close')}
+      title={ru ? 'Посмотри, как это выглядит' : tr('See how it looks')}
       subtitle={mode === 'sign'
-        ? ru ? 'Настоящий кусочек разбора, по твоему знаку.' : 'A real piece of the reading, for your sign.'
-        : ru ? 'Пример разбора по двум натальным картам.' : 'A sample reading based on two natal charts.'}
+        ? ru ? 'Настоящий кусочек разбора, по твоему знаку.' : tr('A real piece of the reading, for your sign.')
+        : ru ? 'Пример разбора по двум натальным картам.' : tr('A sample reading based on two natal charts.')}
       className="compat-preview-sheet"
       contentClassName="compat-preview-sheet-content"
       footer={(
         <button type="button" className="fresh-btn-primary compat-live-sample-cta" onClick={onClose}>
-          {ru ? 'Хочу такой про нас' : 'I want one about us'}
+          {ru ? 'Хочу такой про нас' : tr('I want one about us')}
         </button>
       )}
     >
       {mode === 'sign' ? <CompatibilityLiveSample yourSign={yourSign} ru={ru} /> : (
-        <article className="compat-chart-sample" aria-label={ru ? 'Образец разбора по двум картам' : 'Sample reading based on two charts'}>
+        <article className="compat-chart-sample" aria-label={ru ? 'Образец разбора по двум картам' : tr('Sample reading based on two charts')}>
           <header className="compat-live-sample-cover">
-            <span className="compat-live-sample-kicker">{ru ? 'образец · по двум картам' : 'sample · by two charts'}</span>
-            <strong>{chartSample.names.subject} {ru ? 'и' : 'and'} {chartSample.names.partner}</strong>
+            <span className="compat-live-sample-kicker">{ru ? 'образец · по двум картам' : tr('sample · by two charts')}</span>
+            <strong>{chartSample.names.subject} {ru ? 'и' : tr('and')} {chartSample.names.partner}</strong>
           </header>
           <CompatibilityGauge score={chartSample.overallScore} questions={[]} language={ru ? 'ru' : 'en'} />
           <CompatibilityAnswers rows={chartSample.questions} language={ru ? 'ru' : 'en'} />
           <p className="compat-live-sample-note">{ru
-            ? 'Это часть разбора вымышленной пары. Ответы рассчитаны по двум картам. Ваш результат будет основан на данных рождения обоих.'
-            : 'This is part of a reading for a fictitious pair, calculated from two charts. Your result will use both people’s birth details.'}</p>
+            ? 'Это часть разбора вымышленной пары. Ответы рассчитаны по двум картам. Ваш результат будет основан на данных рождения обоих.' : tr('This is part of a reading for a fictitious pair, calculated from two charts. Your result will use both people’s birth details.')}</p>
         </article>
       )}
     </CosmicSheet>
@@ -960,7 +960,7 @@ export function UnionRoom(props: UnionRoomProps) {
   // Two people of the same gender are compared as friends and colleagues, without love.
   const sameGenderPair = leftGender !== 'unspecified' && leftGender === rightGender;
   const score: CompatResult | null = selected ? getCompatScore(leftSun, theirSun, lang, sameGenderPair) : null;
-  const theirName = selected ? (selected.kind === 'sign' ? getZodiacSign(lang, theirSun) : (selected.name || (ru ? 'Человек' : 'Person'))) : '';
+  const theirName = selected ? (selected.kind === 'sign' ? getZodiacSign(lang, theirSun) : (selected.name || (ru ? 'Человек' : tr('Person')))) : '';
 
   useEffect(() => {
     if (screen !== 'result' || !selected) return;
@@ -1087,8 +1087,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const deleteAllHistory = () => {
     const confirmed = window.confirm(
       ru
-        ? 'Удалить всю историю сравнений? Вернуть её не получится.'
-        : 'Delete all comparison history? This cannot be undone.',
+        ? 'Удалить всю историю сравнений? Вернуть её не получится.' : tr('Delete all comparison history? This cannot be undone.'),
     );
     if (!confirmed) return;
     lumiaSelectionHaptic();
@@ -1099,10 +1098,10 @@ export function UnionRoom(props: UnionRoomProps) {
     if (!selected) return;
     const first = selected.kind === 'sign'
       ? getZodiacSign(lang, leftSun)
-      : (selected.subjectName || profile.name || (ru ? 'Первая карта' : 'First chart'));
+      : (selected.subjectName || profile.name || (ru ? 'Первая карта' : tr('First chart')));
     const second = selected.kind === 'sign'
       ? getZodiacSign(lang, theirSun)
-      : (selected.name || (ru ? 'Вторая карта' : 'Second chart'));
+      : (selected.name || (ru ? 'Вторая карта' : tr('Second chart')));
     const personScore = deep?.overallScore ?? answersPreview?.overallScore;
     const personQuestions = (deep?.questions?.length ? deep.questions : answersPreview?.questions) || [];
     const strongestQuestion = [...personQuestions].filter((item) => item.score != null && item.short).sort((a, b) => b.score! - a.score!)[0];
@@ -1118,8 +1117,7 @@ Check our compatibility from your side in NEBO.`
         : ''
       : score
         ? ru
-          ? `Совместимость ${first} + ${second}: ${score.overall}/100, ${score.verdict}. Сильнее всего, ${DIMENSION_LABELS[score.strongest][lang]}.\n\nСравни свою пару в NEBO.`
-          : `Compatibility ${first} + ${second}: ${score.overall}/100, ${score.verdict}. Strongest, ${DIMENSION_LABELS[score.strongest][lang]}.\n\nCompare your pair in NEBO.`
+          ? `Совместимость ${first} + ${second}: ${score.overall}/100, ${score.verdict}. Сильнее всего, ${DIMENSION_LABELS[score.strongest][lang]}.\n\nСравни свою пару в NEBO.` : trf('Compatibility {0} + {1}: {2}/100, {3}. Strongest, {4}.\n\nCompare your pair in NEBO.', first, second, score.overall, score.verdict, DIMENSION_LABELS[score.strongest][lang])
         : '';
     if (!text) return;
     shareToTelegram(text);
@@ -1127,19 +1125,19 @@ Check our compatibility from your side in NEBO.`
 
   const submitAdd = () => {
     if (subjectSource === 'birth' && !sDate) {
-      setError(ru ? 'Укажи дату рождения первого человека или выбери сохранённую карту.' : 'Add the first person\'s birth date or choose a saved chart.');
+      setError(ru ? 'Укажи дату рождения первого человека или выбери сохранённую карту.' : tr('Add the first person\'s birth date or choose a saved chart.'));
       return;
     }
     if (partnerSource === 'birth' && !fDate) {
-      setError(ru ? 'Укажи дату рождения второго человека или выбери сохранённую карту.' : 'Add the second person\'s birth date or choose a saved chart.');
+      setError(ru ? 'Укажи дату рождения второго человека или выбери сохранённую карту.' : tr('Add the second person\'s birth date or choose a saved chart.'));
       return;
     }
     if (subjectSource === 'birth' && sTimePrecision !== 'unknown' && !sTime) {
-      setError(ru ? 'Укажи время рождения первого человека или выбери «Не знаю».' : 'Add the first person\'s birth time or choose “Unknown”.');
+      setError(ru ? 'Укажи время рождения первого человека или выбери «Не знаю».' : tr('Add the first person\'s birth time or choose “Unknown”.'));
       return;
     }
     if (partnerSource === 'birth' && fTimePrecision !== 'unknown' && !fTime) {
-      setError(ru ? 'Укажи время рождения второго человека или выбери «Не знаю».' : 'Add the second person\'s birth time or choose “Unknown”.');
+      setError(ru ? 'Укажи время рождения второго человека или выбери «Не знаю».' : tr('Add the second person\'s birth time or choose “Unknown”.'));
       return;
     }
     if (subjectResolvedSource === 'sign' && partnerResolvedSource === 'sign') {
@@ -1158,35 +1156,35 @@ Check our compatibility from your side in NEBO.`
       return;
     }
     if (subjectSource === 'birth' && sTimePrecision !== 'unknown' && !sTime) {
-      setError(ru ? 'Укажи время рождения первого человека или выбери «Не знаю».' : 'Add the first person\'s birth time or choose “Unknown”.');
+      setError(ru ? 'Укажи время рождения первого человека или выбери «Не знаю».' : tr('Add the first person\'s birth time or choose “Unknown”.'));
       return;
     }
     if (partnerSource === 'birth' && fTimePrecision !== 'unknown' && !fTime) {
-      setError(ru ? 'Укажи время рождения второго человека или выбери «Не знаю».' : 'Add the second person\'s birth time or choose “Unknown”.');
+      setError(ru ? 'Укажи время рождения второго человека или выбери «Не знаю».' : tr('Add the second person\'s birth time or choose “Unknown”.'));
       return;
     }
     if (subjectResolvedSource === 'sign' || partnerResolvedSource === 'sign') {
-      setError(ru ? 'Выбери две карты или два знака.' : 'Choose two charts or two zodiac signs.');
+      setError(ru ? 'Выбери две карты или два знака.' : tr('Choose two charts or two zodiac signs.'));
       return;
     }
     if (subjectResolvedSource === 'birth' && !sPlace.trim()) {
-      setError(ru ? 'Укажи место рождения первого человека.' : 'Add the first person\'s birth place.');
+      setError(ru ? 'Укажи место рождения первого человека.' : tr('Add the first person\'s birth place.'));
       return;
     }
     if (partnerResolvedSource === 'birth' && !fPlace.trim()) {
-      setError(ru ? 'Укажи место рождения второго человека.' : 'Add the second person\'s birth place.');
+      setError(ru ? 'Укажи место рождения второго человека.' : tr('Add the second person\'s birth place.'));
       return;
     }
     if (subjectResolvedSource === 'saved' && !firstChart) {
-      setError(ru ? 'Выбери сохранённую карту первого человека.' : 'Choose a saved chart for the first person.');
+      setError(ru ? 'Выбери сохранённую карту первого человека.' : tr('Choose a saved chart for the first person.'));
       return;
     }
     if (partnerResolvedSource === 'saved' && !secondChart) {
-      setError(ru ? 'Выбери сохранённую карту второго человека.' : 'Choose a saved chart for the second person.');
+      setError(ru ? 'Выбери сохранённую карту второго человека.' : tr('Choose a saved chart for the second person.'));
       return;
     }
     if (subjectResolvedSource === 'saved' && partnerResolvedSource === 'saved' && firstChartId != null && secondChartId === firstChartId) {
-      setError(ru ? 'Для сравнения нужны две разные карты.' : 'Choose two different charts.');
+      setError(ru ? 'Для сравнения нужны две разные карты.' : tr('Choose two different charts.'));
       return;
     }
 
@@ -1194,7 +1192,7 @@ Check our compatibility from your side in NEBO.`
       ? firstChart?.name || ''
       : subjectSource === 'sign'
         ? getZodiacSign(lang, youSign)
-        : sName.trim() || (ru ? 'Первый человек' : 'First person');
+        : sName.trim() || (ru ? 'Первый человек' : tr('First person'));
     const subjectDate = subjectResolvedSource === 'saved' ? firstChart?.birth_date || '' : subjectResolvedSource === 'birth' ? sDate : '';
     const subjectTime = subjectResolvedSource === 'saved'
       ? firstChart?.birth_time || undefined
@@ -1215,7 +1213,7 @@ Check our compatibility from your side in NEBO.`
       ? secondChart?.name || ''
       : partnerSource === 'sign'
         ? getZodiacSign(lang, pickSign)
-        : fName.trim() || (ru ? 'Второй человек' : 'Second person');
+        : fName.trim() || (ru ? 'Второй человек' : tr('Second person'));
     const partnerDate = partnerResolvedSource === 'saved' ? secondChart?.birth_date || '' : partnerResolvedSource === 'birth' ? fDate : '';
     const partnerTime = partnerResolvedSource === 'saved'
       ? secondChart?.birth_time || undefined
@@ -1338,7 +1336,7 @@ Check our compatibility from your side in NEBO.`
       }
     } catch (e: any) {
       if (autoDeepKeyRef.current === requestKey) {
-        setError(e?.message || (ru ? 'Не удалось собрать полный разбор.' : 'Could not build the full reading.'));
+        setError(e?.message || (ru ? 'Не удалось собрать полный разбор.' : tr('Could not build the full reading.')));
       }
     } finally {
       if (autoDeepKeyRef.current === requestKey) setDeepLoading(false);
@@ -1397,15 +1395,15 @@ Check our compatibility from your side in NEBO.`
         persistCalculatedHistory(selected, result.overallScore);
       })
       .catch((e: any) => {
-        if (alive && !premium) setError(e?.message || (ru ? 'Не удалось посчитать совместимость.' : 'Could not calculate compatibility.'));
+        if (alive && !premium) setError(e?.message || (ru ? 'Не удалось посчитать совместимость.' : tr('Could not calculate compatibility.')));
       })
       .finally(() => { if (alive) setAnswersPreviewLoading(false); });
     return () => { alive = false; };
   }, [screen, selected, peopleLoaded, premium, ru]);
 
   const compatibilityTabs = useMemo(() => [
-    { id: 'birth' as const, label: ru ? 'По дате рождения' : 'By birth date' },
-    { id: 'sign' as const, label: ru ? 'По знаку' : 'By sign' },
+    { id: 'birth' as const, label: ru ? 'По дате рождения' : tr('By birth date') },
+    { id: 'sign' as const, label: ru ? 'По знаку' : tr('By sign') },
   ], [ru]);
   const activeCompatibilityTab: CompatibilityTab = screen === 'result'
     ? selected?.kind === 'sign' ? 'sign' : 'birth'
@@ -1438,20 +1436,20 @@ Check our compatibility from your side in NEBO.`
   const compatibilityHeader = (withBack = false) => (
     <>
       <AppTopBar
-        title={ru ? 'Совместимость' : 'Compatibility'}
+        title={ru ? 'Совместимость' : tr('Compatibility')}
         onBack={withBack ? backToEntry : undefined}
         main={!withBack}
       />
       {withBack ? null : (
         <div className="nebo-page-title">
-          <h1>{ru ? 'Совместимость' : 'Compatibility'}</h1>
-          <p>{ru ? 'Любые два человека' : 'Any two people'}</p>
+          <h1>{ru ? 'Совместимость' : tr('Compatibility')}</h1>
+          <p>{ru ? 'Любые два человека' : tr('Any two people')}</p>
         </div>
       )}
       {/* Canvas: the date / sign switch belongs to the entry screen, not to a result. */}
       {withBack ? null : (
         <EditorialTabs
-          label={ru ? 'Режим совместимости' : 'Compatibility mode'}
+          label={ru ? 'Режим совместимости' : tr('Compatibility mode')}
           tabs={compatibilityTabs}
           activeTab={activeCompatibilityTab}
           onTabChange={selectCompatibilityTab}
@@ -1540,13 +1538,13 @@ Check our compatibility from your side in NEBO.`
     const chart = isSubject ? firstChart : secondChart;
     if (source === 'saved') {
       return chart
-        ? { name: chart.subject_type === 'self' ? (profile.name?.trim().split(/\s+/)[0] || (ru ? 'Я' : 'Me')) : chart.name, sign: chartSunSign(chart), meta: '', empty: false }
+        ? { name: chart.subject_type === 'self' ? (profile.name?.trim().split(/\s+/)[0] || (ru ? 'Я' : tr('Me'))) : chart.name, sign: chartSunSign(chart), meta: '', empty: false }
         : { name: '', sign: null, meta: '', empty: true };
     }
     const name = isSubject ? sName : fName;
     const date = isSubject ? sDate : fDate;
     return name || date
-      ? { name: name || (ru ? 'Без имени' : 'No name'), sign: sunSignFromDate(date), meta: date ? formatDisplayDate(date, lang) : '', empty: false }
+      ? { name: name || (ru ? 'Без имени' : tr('No name')), sign: sunSignFromDate(date), meta: date ? formatDisplayDate(date, lang) : '', empty: false }
       : { name: '', sign: null, meta: '', empty: true };
   };
 
@@ -1582,7 +1580,7 @@ Check our compatibility from your side in NEBO.`
                 onPickFirst={() => { lumiaSelectionHaptic(); setPersonSheet('subject'); }}
                 onPickSecond={() => { lumiaSelectionHaptic(); setPersonSheet('partner'); }}
               />
-              <p className="nebo-compat-note">{ru ? 'Можно сравнить любых двоих: себя, друзей, пару, коллег. Добавлять их к себе не нужно.' : 'Compare any two people: yourself, friends, a partner, colleagues. You do not need to add them to your account.'}</p>
+              <p className="nebo-compat-note">{ru ? 'Можно сравнить любых двоих: себя, друзей, пару, коллег. Добавлять их к себе не нужно.' : tr('Compare any two people: yourself, friends, a partner, colleagues. You do not need to add them to your account.')}</p>
               {availableCharts.length ? (
                 <CompatibilitySavedPeople
                   ru={ru}
@@ -1614,11 +1612,11 @@ Check our compatibility from your side in NEBO.`
                 />
               ) : null}
 
-              <section className="compat-entry-context compat-entry-context--date" aria-label={ru ? 'Кто вы друг другу' : 'Relationship type'}>
-                <span className="compat-date-section-label">{ru ? 'Кто вы друг другу' : 'Who are you to each other'}</span>
+              <section className="compat-entry-context compat-entry-context--date" aria-label={ru ? 'Кто вы друг другу' : tr('Relationship type')}>
+                <span className="compat-date-section-label">{ru ? 'Кто вы друг другу' : tr('Who are you to each other')}</span>
                 <button type="button" className="nebo-compat-relation" aria-expanded={relationOpen} onClick={() => setRelationOpen((open) => !open)}>
                   <span><strong>{relationTitle(relationshipFocus, ru)}</strong><small>{relationHint(relationshipFocus, ru)}</small></span>
-                  <em>{relationOpen ? (ru ? 'Готово' : 'Done') : (ru ? 'Сменить' : 'Change')}</em>
+                  <em>{relationOpen ? (ru ? 'Готово' : tr('Done')) : (ru ? 'Сменить' : tr('Change'))}</em>
                 </button>
                 {relationOpen ? <RelationshipContextPicker
                   focus={relationshipFocus}
@@ -1634,11 +1632,11 @@ Check our compatibility from your side in NEBO.`
                 /> : null}
               </section>
               {recentPairs.length ? (
-                <section className="compat-pairs" aria-label={ru ? 'Мои пары' : 'My pairs'}>
-                  <h3>{ru ? 'Мои пары' : 'My pairs'}</h3>
+                <section className="compat-pairs" aria-label={ru ? 'Мои пары' : tr('My pairs')}>
+                  <h3>{ru ? 'Мои пары' : tr('My pairs')}</h3>
                   {recentPairs.map((entry) => {
-                    const first = entry.subjectName || profile.name || (ru ? 'Я' : 'Me');
-                    const second = entry.name || (ru ? 'Второй человек' : 'Second person');
+                    const first = entry.subjectName || profile.name || (ru ? 'Я' : tr('Me'));
+                    const second = entry.name || (ru ? 'Второй человек' : tr('Second person'));
                     return (
                       <button key={entry.id} type="button" className="compat-pair-row" onClick={() => openFromHistory(entry)}>
                         <span className="compat-pair-avatars" aria-hidden="true">
@@ -1646,7 +1644,7 @@ Check our compatibility from your side in NEBO.`
                           <span>{second.trim().charAt(0).toUpperCase()}</span>
                         </span>
                         <span className="compat-pair-copy">
-                          <strong>{first} {ru ? 'и' : 'and'} {second}</strong>
+                          <strong>{first} {ru ? 'и' : tr('and')} {second}</strong>
                           <small>{getRelationshipContextLabel(normalizeRelationshipContext(entry.relationshipContext), lang)} · {gaugeHeadline(entry.overall, ru).toLowerCase()}</small>
                         </span>
                         <ChevronRightIcon size={17} aria-hidden="true" />
@@ -1657,7 +1655,7 @@ Check our compatibility from your side in NEBO.`
               ) : null}
               {props.onOpenFriends ? (
                 <button type="button" className="nebo-row-link nebo-friends-link" onClick={props.onOpenFriends}>
-                  <span>{ru ? 'Мои люди: друзья и переписка' : 'My people: friends and chat'}</span>
+                  <span>{ru ? 'Мои люди: друзья и переписка' : tr('My people: friends and chat')}</span>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
                 </button>
               ) : null}
@@ -1667,45 +1665,44 @@ Check our compatibility from your side in NEBO.`
                   <span className="compat-entry-disclosure-icon" aria-hidden="true">
                     <Info size={14} strokeWidth={1.8} />
                   </span>
-                  <strong>{ru ? 'Что покажет сравнение' : 'What the comparison will show'}</strong>
+                  <strong>{ru ? 'Что покажет сравнение' : tr('What the comparison will show')}</strong>
                   <ChevronDown aria-hidden="true" size={14} strokeWidth={1.8} />
                 </summary>
                 <div className="compat-entry-disclosure-body">
                   <p className="compat-entry-disclosure-lead">
                     {ru
-                      ? 'Сравнение покажет, что вас сближает, в чём вы различаетесь и как вам легче понять друг друга.'
-                      : 'This is not a verdict on whether you belong together. It shows how your connection works and what deserves attention.'}
+                      ? 'Сравнение покажет, что вас сближает, в чём вы различаетесь и как вам легче понять друг друга.' : tr('This is not a verdict on whether you belong together. It shows how your connection works and what deserves attention.')}
                   </p>
                   <div className="compat-entry-disclosure-points">
                     <div className="compat-entry-disclosure-point">
                       <span aria-hidden="true" />
                       <p>
-                        <strong>{ru ? 'Что вас сближает' : 'What brings you closer'}</strong>
-                        <small>{ru ? 'Где вам легко понимать и поддерживать друг друга.' : 'Where understanding and supporting each other feels natural.'}</small>
+                        <strong>{ru ? 'Что вас сближает' : tr('What brings you closer')}</strong>
+                        <small>{ru ? 'Где вам легко понимать и поддерживать друг друга.' : tr('Where understanding and supporting each other feels natural.')}</small>
                       </p>
                     </div>
                     <div className="compat-entry-disclosure-point">
                       <span aria-hidden="true" />
                       <p>
-                        <strong>{ru ? 'В чём вы различаетесь' : 'Where you may differ'}</strong>
-                        <small>{ru ? 'Какие привычки и взгляды могут стать причиной споров.' : 'Which differences are more likely to create tension or misunderstanding.'}</small>
+                        <strong>{ru ? 'В чём вы различаетесь' : tr('Where you may differ')}</strong>
+                        <small>{ru ? 'Какие привычки и взгляды могут стать причиной споров.' : tr('Which differences are more likely to create tension or misunderstanding.')}</small>
                       </p>
                     </div>
                     <div className="compat-entry-disclosure-point">
                       <span aria-hidden="true" />
                       <p>
-                        <strong>{ru ? 'Как лучше договориться' : 'How to understand each other'}</strong>
-                        <small>{ru ? 'Что поможет слышать друг друга и не повторять один и тот же спор.' : 'What helps you hear each other and avoid repeating the same argument.'}</small>
+                        <strong>{ru ? 'Как лучше договориться' : tr('How to understand each other')}</strong>
+                        <small>{ru ? 'Что поможет слышать друг друга и не повторять один и тот же спор.' : tr('What helps you hear each other and avoid repeating the same argument.')}</small>
                       </p>
                     </div>
                   </div>
                   <p className="compat-entry-disclosure-note">
-                    {ru ? 'Выбери тип отношений, чтобы разбор учитывал, кто вы друг другу.' : 'The selected area sets the context for the reading.'}
+                    {ru ? 'Выбери тип отношений, чтобы разбор учитывал, кто вы друг другу.' : tr('The selected area sets the context for the reading.')}
                   </p>
                 </div>
               </details>
 
-              <section className="compat-entry-context" aria-label={ru ? 'Тип отношений' : 'Relationship type'}>
+              <section className="compat-entry-context" aria-label={ru ? 'Тип отношений' : tr('Relationship type')}>
                 <RelationshipContextPicker
                   focus={relationshipFocus}
                   onChange={(focus, context) => {
@@ -1721,7 +1718,7 @@ Check our compatibility from your side in NEBO.`
               <section className="compat-air-person compat-air-person--first" aria-labelledby="compat-first-person-title">
                 <header className="compat-air-person-heading">
                   <div className="compat-air-person-title">
-                    <h3 id="compat-first-person-title">{ru ? 'Первый человек' : 'First person'}</h3>
+                    <h3 id="compat-first-person-title">{ru ? 'Первый человек' : tr('First person')}</h3>
                   </div>
                   <PersonSourcePicker
                     value={subjectSource}
@@ -1740,7 +1737,7 @@ Check our compatibility from your side in NEBO.`
                       setYouGender(initialYouGender);
                     }}
                   >
-                    <span>{ru ? 'Использовать мою карту' : 'Use my chart'}</span>
+                    <span>{ru ? 'Использовать мою карту' : tr('Use my chart')}</span>
                     <small>{ownSavedChart.name}</small>
                   </button>
                 ) : null}
@@ -1793,7 +1790,7 @@ Check our compatibility from your side in NEBO.`
               <section className="compat-air-person compat-air-person--second" aria-labelledby="compat-second-person-title">
                 <header className="compat-air-person-heading">
                   <div className="compat-air-person-title">
-                    <h3 id="compat-second-person-title">{ru ? 'Второй человек' : 'Second person'}</h3>
+                    <h3 id="compat-second-person-title">{ru ? 'Второй человек' : tr('Second person')}</h3>
                   </div>
                   <PersonSourcePicker
                     value={partnerSource}
@@ -1847,13 +1844,13 @@ Check our compatibility from your side in NEBO.`
               </div>
 
               {subjectSource === 'birth' || partnerSource === 'birth' ? (
-                <p className="compat-new-chart-note">{ru ? 'Данные нового человека используются только для этого сравнения.' : 'A new person’s details are used only for this comparison.'}</p>
+                <p className="compat-new-chart-note">{ru ? 'Данные нового человека используются только для этого сравнения.' : tr('A new person’s details are used only for this comparison.')}</p>
               ) : null}
               {error ? <p className="compat-entry-error" role="alert">{error}</p> : null}
 
               <div className="compat-entry-submit-bar">
                 <button type="submit" className="fresh-btn-primary compat-entry-submit">
-                  {ru ? 'Сравнить нас' : 'Compare us'}
+                  {ru ? 'Сравнить нас' : tr('Compare us')}
                 </button>
               </div>
             </form>
@@ -1862,12 +1859,12 @@ Check our compatibility from your side in NEBO.`
               <CosmicSheet
                 open
                 onClose={() => setPersonSheet(null)}
-                closeLabel={ru ? 'Закрыть' : 'Close'}
-                closeButtonText={ru ? 'Выбрать' : 'Choose'}
-                title={personSheet === 'subject' ? (ru ? 'Выбери первого человека' : 'Choose the first person') : (ru ? 'Выбери второго человека' : 'Choose the second person')}
+                closeLabel={ru ? 'Закрыть' : tr('Close')}
+                closeButtonText={ru ? 'Выбрать' : tr('Choose')}
+                title={personSheet === 'subject' ? (ru ? 'Выбери первого человека' : tr('Choose the first person')) : (ru ? 'Выбери второго человека' : tr('Choose the second person'))}
                 subtitle={personSheet === 'subject'
-                  ? (ru ? 'Эта карта будет первой в сравнении.' : 'This card will be first in the comparison.')
-                  : (ru ? 'Эта карта будет второй в сравнении.' : 'This card will be second in the comparison.')}
+                  ? (ru ? 'Эта карта будет первой в сравнении.' : tr('This card will be first in the comparison.'))
+                  : (ru ? 'Эта карта будет второй в сравнении.' : tr('This card will be second in the comparison.'))}
                 className="compat-person-sheet"
                 contentClassName="compat-person-sheet-content"
               >
@@ -1877,9 +1874,9 @@ Check our compatibility from your side in NEBO.`
 
             {history.length ? (
               <details className="compat-history-panel">
-                <summary>{ru ? 'История сравнений' : 'Comparison history'}</summary>
+                <summary>{ru ? 'История сравнений' : tr('Comparison history')}</summary>
                 <div className="compat-history-toolbar">
-                  <button type="button" onClick={deleteAllHistory}>{ru ? 'Очистить историю' : 'Clear history'}</button>
+                  <button type="button" onClick={deleteAllHistory}>{ru ? 'Очистить историю' : tr('Clear history')}</button>
                 </div>
                 <div className="compat-hist">
                   {history.map((entry) => (
@@ -1887,14 +1884,14 @@ Check our compatibility from your side in NEBO.`
                       <span className="compat-hist-ico"><ZodiacIcon sign={entry.theirSun} size={20} strokeWidth={1.5} /></span>
                       <span className="compat-hist-main">
                         <span className="compat-hist-name">
-                          {entry.subjectName || profile.name || (ru ? 'Первая карта' : 'First chart')}
+                          {entry.subjectName || profile.name || (ru ? 'Первая карта' : tr('First chart'))}
                           {' + '}
-                          {entry.name || (ru ? 'Вторая карта' : 'Second chart')}
+                          {entry.name || (ru ? 'Вторая карта' : tr('Second chart'))}
                         </span>
                         <span className="compat-hist-sub">{getZodiacSign(lang, entry.theirSun)} · {getRelationshipContextLabel(normalizeRelationshipContext(entry.relationshipContext), lang)}</span>
                       </span>
                       <span className="compat-hist-open" aria-hidden="true"><ChevronRightIcon size={17} /></span>
-                      <button type="button" className="compat-hist-del" aria-label={ru ? 'Удалить' : 'Delete'} onClick={(event) => deleteHistory(entry.id, event)}>
+                      <button type="button" className="compat-hist-del" aria-label={ru ? 'Удалить' : tr('Delete')} onClick={(event) => deleteHistory(entry.id, event)}>
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
                       </button>
                     </div>
@@ -1924,21 +1921,21 @@ Check our compatibility from your side in NEBO.`
             }}
           >
             <header className="compat-sign-hero">
-              <h2>{ru ? 'Сравнить два знака' : 'Compare two signs'}</h2>
-              <p>{ru ? 'Быстрый вариант без даты, времени и места рождения.' : 'A quick option without birth date, time or place.'}</p>
+              <h2>{ru ? 'Сравнить два знака' : tr('Compare two signs')}</h2>
+              <p>{ru ? 'Быстрый вариант без даты, времени и места рождения.' : tr('A quick option without birth date, time or place.')}</p>
             </header>
 
-            <div className="compat-sign-pair" aria-label={ru ? 'Знаки для сравнения' : 'Signs to compare'}>
+            <div className="compat-sign-pair" aria-label={ru ? 'Знаки для сравнения' : tr('Signs to compare')}>
               <CompatibilitySignCard
                 sign={youSign}
-                label={ru ? 'первый знак' : 'first sign'}
+                label={ru ? 'первый знак' : tr('first sign')}
                 language={profile.language}
                 onClick={() => { lumiaSelectionHaptic(); setSignSheet('subject'); }}
               />
               <span className="compat-sign-pair-plus" aria-hidden="true">+</span>
               <CompatibilitySignCard
                 sign={pickSign}
-                label={ru ? 'второй знак' : 'second sign'}
+                label={ru ? 'второй знак' : tr('second sign')}
                 language={profile.language}
                 onClick={() => { lumiaSelectionHaptic(); setSignSheet('partner'); }}
               />
@@ -1950,12 +1947,11 @@ Check our compatibility from your side in NEBO.`
             </div>
 
             <button type="submit" className="fresh-btn-primary compat-entry-submit">
-              {ru ? 'Сравнить знаки' : 'Compare signs'}
+              {ru ? 'Сравнить знаки' : tr('Compare signs')}
             </button>
             <p className="compat-entry-note compat-entry-note--centered">
               {ru
-                ? 'Для подробного разбора нужны данные рождения двух людей.'
-                : 'A detailed reading needs both people’s birth details.'}
+                ? 'Для подробного разбора нужны данные рождения двух людей.' : tr('A detailed reading needs both people’s birth details.')}
             </p>
           </form>
 
@@ -1963,7 +1959,7 @@ Check our compatibility from your side in NEBO.`
             <CompatibilitySignPickerSheet
               open
               onClose={() => setSignSheet(null)}
-              label={signSheet === 'subject' ? (ru ? 'Первый знак' : 'First sign') : (ru ? 'Второй знак' : 'Second sign')}
+              label={signSheet === 'subject' ? (ru ? 'Первый знак' : tr('First sign')) : (ru ? 'Второй знак' : tr('Second sign'))}
               active={signSheet === 'subject' ? youSign : pickSign}
               language={profile.language}
               onPick={signSheet === 'subject' ? setYouSign : setPickSign}
@@ -1981,7 +1977,7 @@ Check our compatibility from your side in NEBO.`
   const strongestLabel = score ? DIMENSION_LABELS[score.strongest][lang] : '';
   const dimsOrder: CompatDimension[] = score?.areas ?? ['love', 'relationship', 'friendship', 'work'];
   const areasText = dimsOrder.map((key) => DIMENSION_LABELS[key][lang].toLowerCase());
-  const areasList = areasText.length > 1 ? `${areasText.slice(0, -1).join(', ')} ${ru ? 'и' : 'and'} ${areasText[areasText.length - 1]}` : areasText.join('');
+  const areasList = areasText.length > 1 ? `${areasText.slice(0, -1).join(', ')} ${ru ? 'и' : tr('and')} ${areasText[areasText.length - 1]}` : areasText.join('');
   const isPerson = selected?.kind === 'person';
   const resultContext = selected?.relationshipContext || relationshipContext;
   const resultContextLabel = getRelationshipContextLabel(resultContext, lang);
@@ -1989,7 +1985,7 @@ Check our compatibility from your side in NEBO.`
 
   const leftName = selected?.kind === 'sign'
     ? getZodiacSign(lang, leftSun)
-    : (selected?.subjectName || profile.name || (ru ? 'Первая карта' : 'First chart'));
+    : (selected?.subjectName || profile.name || (ru ? 'Первая карта' : tr('First chart')));
   const rightName = selected?.kind === 'sign'
     ? getZodiacSign(lang, theirSun)
     : theirName;
@@ -2029,9 +2025,9 @@ Check our compatibility from your side in NEBO.`
     ? { '--compat-ring-offset': `${ringGeometry.centerOffset}px` } as React.CSSProperties
     : undefined;
   const readingIntroTitle = deep?.calculationLevel === 'full'
-    ? (ru ? 'Подробный разбор по двум натальным картам' : 'Detailed reading from two natal charts')
+    ? (ru ? 'Подробный разбор по двум натальным картам' : tr('Detailed reading from two natal charts'))
     : deep
-      ? (ru ? 'Разбор без полного времени рождения' : 'Reading without complete birth times')
+      ? (ru ? 'Разбор без полного времени рождения' : tr('Reading without complete birth times'))
       : '';
   const gaugeQuestions = (premium && deep?.questions?.length ? deep.questions : answersPreview?.questions) || [];
   const gaugeScore = premium && deep && typeof deep.overallScore === 'number'
@@ -2048,7 +2044,7 @@ Check our compatibility from your side in NEBO.`
       {!isPerson ? (
         <header className="compat-result-heading">
           <span className="compat-result-brand-caption">
-            {ru ? 'Сравниваем совместимость двух человек' : 'Comparing two people’s compatibility'}
+            {ru ? 'Сравниваем совместимость двух человек' : tr('Comparing two people’s compatibility')}
           </span>
         </header>
       ) : null}
@@ -2058,7 +2054,7 @@ Check our compatibility from your side in NEBO.`
           key={`${resultContext}:${resultPercent}`}
           className="compat-result-score"
         >
-          <div className="compat-result-ring-people" aria-label={ru ? 'Участники сравнения' : 'Compared people'}>
+          <div className="compat-result-ring-people" aria-label={ru ? 'Участники сравнения' : tr('Compared people')}>
             <span className="is-left">
               <i aria-hidden="true" />
               <strong>{leftName}</strong>
@@ -2076,7 +2072,7 @@ Check our compatibility from your side in NEBO.`
             className="compat-result-orbit"
             style={ringStyle}
             role="img"
-            aria-label={ru ? `${leftName} и ${rightName}: индекс совместимости ${resultPercent} из 100` : `${leftName} and ${rightName}: compatibility index ${resultPercent} out of 100`}
+            aria-label={ru ? `${leftName} и ${rightName}: индекс совместимости ${resultPercent} из 100` : trf('{0} and {1}: compatibility index {2} out of 100', leftName, rightName, resultPercent)}
           >
             <span className="compat-result-orbit-circle is-left" aria-hidden="true">
               <i className="compat-orbit-glyph"><ZodiacSymbol sign={leftSun} size={36} /></i>
@@ -2101,15 +2097,14 @@ Check our compatibility from your side in NEBO.`
         <details className="compat-technical-data compat-technical-data--near-score" open>
           <summary>
             <span className="compat-calculation-heading">
-              <strong>{ru ? 'Почему так?' : 'Why this result?'}</strong>
+              <strong>{ru ? 'Почему так?' : tr('Why this result?')}</strong>
               <small>
                 {ru
-                  ? `Оценка складывается из сфер: ${areasList}.`
-                  : `The score combines these areas: ${areasList}.`}
+                  ? `Оценка складывается из сфер: ${areasList}.` : trf('The score combines these areas: {0}.', areasList)}
               </small>
             </span>
           </summary>
-          <div className="compat-score-list" aria-label={ru ? 'Оценки по сферам' : 'Scores by area'}>
+          <div className="compat-score-list" aria-label={ru ? 'Оценки по сферам' : tr('Scores by area')}>
             {dimsOrder.map((key) => (
               <div key={key} className={key === score.strongest ? 'is-strongest' : ''}>
                 <span>{DIMENSION_LABELS[key][lang]}</span>
@@ -2124,17 +2119,17 @@ Check our compatibility from your side in NEBO.`
         <header className="compat-story-cover">
           <p>
             {resultContextLabel} · {premium && deep
-              ? (ru ? 'полный разбор' : 'full reading')
-              : (ru ? 'основные ответы' : 'main answers')}
+              ? (ru ? 'полный разбор' : tr('full reading'))
+              : (ru ? 'основные ответы' : tr('main answers'))}
           </p>
           <span className="nebo-pair-avatars" aria-hidden="true">
             <i>{leftName.trim().charAt(0).toUpperCase()}</i>
             <b>&</b>
             <i>{rightName.trim().charAt(0).toUpperCase()}</i>
           </span>
-          <h1><span>{leftName}</span> {ru ? 'и' : 'and'} <span>{rightName}</span></h1>
+          <h1><span>{leftName}</span> {ru ? 'и' : tr('and')} <span>{rightName}</span></h1>
           <div><span>{getZodiacSign(lang, leftSun)}</span><span aria-hidden="true">·</span><span>{getZodiacSign(lang, theirSun)}</span></div>
-          <button type="button" className="compat-result-change" onClick={() => { setError(null); setEntryMode('birth'); setScreen('add'); scrollCompatibilityToTop(); }}>{ru ? 'Изменить людей или тип отношений' : 'Change people or relationship type'}</button>
+          <button type="button" className="compat-result-change" onClick={() => { setError(null); setEntryMode('birth'); setScreen('add'); scrollCompatibilityToTop(); }}>{ru ? 'Изменить людей или тип отношений' : tr('Change people or relationship type')}</button>
         </header>
       ) : null}
 
@@ -2154,17 +2149,17 @@ Check our compatibility from your side in NEBO.`
               text: question.explanation,
               locked: !premium && question.locked,
             }))}
-            unknownHint={ru ? 'Чтобы ответить, нужно точное время рождения обоих.' : 'Both exact birth times are needed to answer this.'}
+            unknownHint={ru ? 'Чтобы ответить, нужно точное время рождения обоих.' : tr('Both exact birth times are needed to answer this.')}
           />
           {!premium ? (
             <>
-              <section className="compat-answers-extras" aria-label={ru ? 'Что ещё есть в полном разборе' : 'What else is in the full reading'}>
-                <h3>{ru ? 'В полном разборе' : 'In the full reading'}</h3>
+              <section className="compat-answers-extras" aria-label={ru ? 'Что ещё есть в полном разборе' : tr('What else is in the full reading')}>
+                <h3>{ru ? 'В полном разборе' : tr('In the full reading')}</h3>
                 <ul>{answersPreview.lockedExtras.map((item) => <li key={item}><Lock size={14} strokeWidth={1.8} aria-hidden="true" />{item}</li>)}</ul>
               </section>
               {canPromotePremium ? (
                 <button type="button" className="fresh-btn-primary compat-answers-cta" onClick={() => void runDeep()}>
-                  {ru ? 'Открыть все ответы про вас двоих' : 'Open all answers about you two'}
+                  {ru ? 'Открыть все ответы про вас двоих' : tr('Open all answers about you two')}
                 </button>
               ) : null}
             </>
@@ -2172,8 +2167,7 @@ Check our compatibility from your side in NEBO.`
           {answersPreview.calculationLevel === 'date_only' ? (
             <p className="compat-answers-note">
               {ru
-                ? 'Посчитано по датам рождения. Если добавить точное время рождения обоих, ответы станут точнее.'
-                : 'Calculated from birth dates. Adding both exact birth times makes the answers more precise.'}
+                ? 'Посчитано по датам рождения. Если добавить точное время рождения обоих, ответы станут точнее.' : tr('Calculated from birth dates. Adding both exact birth times makes the answers more precise.')}
             </p>
           ) : null}
         </>
@@ -2186,7 +2180,7 @@ Check our compatibility from your side in NEBO.`
         </>
       ) : !isPerson && score ? (
         <section className="compat-result-summary compat-result-summary--sign">
-          <p><strong>{ru ? 'Сильнее всего:' : 'Strongest:'}</strong> {strongestLabel}</p>
+          <p><strong>{ru ? 'Сильнее всего:' : tr('Strongest:')}</strong> {strongestLabel}</p>
           <p className="compat-result-reason">{strongestAreaReason(leftSun, theirSun, leftName, rightName, lang, sameGenderPair)}</p>
         </section>
       ) : null}
@@ -2208,8 +2202,8 @@ Check our compatibility from your side in NEBO.`
           }}
         >
           {selected?.kind === 'sign'
-            ? (ru ? 'Изменить знаки' : 'Change signs')
-            : (ru ? 'Изменить людей' : 'Change people')}
+            ? (ru ? 'Изменить знаки' : tr('Change signs'))
+            : (ru ? 'Изменить людей' : tr('Change people'))}
         </button>
       </div> : null}
 
@@ -2224,8 +2218,8 @@ Check our compatibility from your side in NEBO.`
         <section className="compat-result-status" role="status" aria-live="polite">
           <span className="compat-result-status-mark" aria-hidden="true" />
           <div>
-            <strong>{isPerson ? (ru ? 'Сверяем данные двух людей' : 'Comparing two people\'s details') : (ru ? 'Сравниваем знаки' : 'Comparing signs')}</strong>
-            <p>{isPerson ? (ru ? 'Готовим подробный разбор…' : 'Preparing the detailed reading…') : (ru ? 'Готовим результат…' : 'Preparing the result…')}</p>
+            <strong>{isPerson ? (ru ? 'Сверяем данные двух людей' : tr('Comparing two people\'s details')) : (ru ? 'Сравниваем знаки' : tr('Comparing signs'))}</strong>
+            <p>{isPerson ? (ru ? 'Готовим подробный разбор…' : tr('Preparing the detailed reading…')) : (ru ? 'Готовим результат…' : tr('Preparing the result…'))}</p>
           </div>
         </section>
       ) : null}
@@ -2235,7 +2229,7 @@ Check our compatibility from your side in NEBO.`
           <p>{error}</p>
           {isPerson && premium ? (
             <button type="button" onClick={() => void runDeep()}>
-              {ru ? 'Попробовать снова' : 'Try again'}
+              {ru ? 'Попробовать снова' : tr('Try again')}
             </button>
           ) : null}
         </section>
@@ -2251,8 +2245,8 @@ Check our compatibility from your side in NEBO.`
 
       {premium && deep && !deep.storyParagraphs?.length ? (
         <details className="compat-technical-data compat-technical-data--deep">
-          <summary>{ru ? 'Почему так?' : 'Why?'}</summary>
-          <p>{ru ? 'Данные двух сохранённых карт, на которых основан рассказ.' : 'The saved chart data behind this reading.'}</p>
+          <summary>{ru ? 'Почему так?' : tr('Why?')}</summary>
+          <p>{ru ? 'Данные двух сохранённых карт, на которых основан рассказ.' : tr('The saved chart data behind this reading.')}</p>
           <ul className="compat-evidence-list">
             {(deep.evidence || []).filter((item) => deep.narrativeEvidenceIds?.includes(item.id)).map((item) => <li key={item.id}>{item.label}</li>)}
           </ul>
@@ -2260,12 +2254,12 @@ Check our compatibility from your side in NEBO.`
       ) : isPerson && premium && !deep && !deepLoading && !error ? (
         <button type="button" className="horo-premium" style={{ marginTop: 16 }} disabled={deepLoading} onClick={() => void runDeep()}>
           <div className="horo-premium-text">
-            <div className="horo-premium-kicker">{ru ? 'Подробная совместимость' : 'Detailed compatibility'}</div>
+            <div className="horo-premium-kicker">{ru ? 'Подробная совместимость' : tr('Detailed compatibility')}</div>
             <div className="horo-premium-title">
-              {deepLoading ? (ru ? 'Сопоставляю данные…' : 'Comparing the data…') : !premium ? (ru ? 'Глубокий разбор, в Premium' : 'Deep reading, Premium') : (ru ? 'Открыть подробный разбор' : 'Open detailed reading')}
+              {deepLoading ? (ru ? 'Сопоставляю данные…' : tr('Comparing the data…')) : !premium ? (ru ? 'Глубокий разбор, в Premium' : tr('Deep reading, Premium')) : (ru ? 'Открыть подробный разбор' : tr('Open detailed reading'))}
             </div>
           </div>
-          <span className="horo-premium-cta">{!premium ? 'Premium' : (ru ? 'Открыть' : 'Open')}<ChevronRightIcon size={15} /></span>
+          <span className="horo-premium-cta">{!premium ? 'Premium' : (ru ? 'Открыть' : tr('Open'))}<ChevronRightIcon size={15} /></span>
         </button>
       ) : !isPerson && (premium || canPromotePremium) ? (
         <button type="button" className="horo-premium" style={{ marginTop: 16 }} onClick={() => {
@@ -2285,9 +2279,9 @@ Check our compatibility from your side in NEBO.`
         }}>
           <div className="horo-premium-text">
             <div className="horo-premium-kicker">Premium</div>
-            <div className="horo-premium-title">{ru ? 'Подробное сравнение по двум натальным картам' : 'Detailed comparison from two natal charts'}</div>
+            <div className="horo-premium-title">{ru ? 'Подробное сравнение по двум натальным картам' : tr('Detailed comparison from two natal charts')}</div>
           </div>
-          <span className="horo-premium-cta">{premium ? (ru ? 'Открыть' : 'Open') : 'Premium'}<ChevronRightIcon size={15} /></span>
+          <span className="horo-premium-cta">{premium ? (ru ? 'Открыть' : tr('Open')) : 'Premium'}<ChevronRightIcon size={15} /></span>
         </button>
       ) : null}
 
@@ -2303,7 +2297,7 @@ Check our compatibility from your side in NEBO.`
       {isPerson && gaugeScore != null && !(premium && deep) ? (
         <button type="button" className="compat-share" onClick={() => { lumiaSelectionHaptic(); shareCompat(); }}>
           <Send size={16} strokeWidth={1.8} aria-hidden="true" />
-          {ru ? 'Отправить результат' : 'Send the result'}
+          {ru ? 'Отправить результат' : tr('Send the result')}
         </button>
       ) : null}
 

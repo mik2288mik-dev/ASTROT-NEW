@@ -5,6 +5,7 @@ import { trapPaywallTabKey } from '../../lib/paywallDialogFocus';
 import { findAmbientTrack, SOUND_GROUP_LABELS, SOUND_VIDEOS, tracksOfGroup, type SoundGroup } from '../../lib/soundscapes/library';
 import { pauseAmbient, playSoundscape, resumeAmbient, stopAmbient, useAmbientState } from '../../services/ambientPlayer';
 import { VideoBackground } from '../lumia-ui/VideoBackground';
+import { tr } from '../../lib/i18n';
 
 /** Closing the scene only dismisses the video; the same background sound keeps playing. */
 export function SoundScene({ group, language, onClose }: { group: SoundGroup; language: 'ru' | 'en'; onClose: () => void }) {
@@ -41,18 +42,18 @@ export function SoundScene({ group, language, onClose }: { group: SoundGroup; la
       <div className="sound-scene-content">
         <div className="sound-scene-video">
           <VideoBackground id={SOUND_VIDEOS[group]} still={ambient.paused || videoPaused} />
-          <button type="button" className="sound-scene-close" onClick={onClose} aria-label={ru ? 'Свернуть видео' : 'Close video'}><X size={22} aria-hidden="true" /></button>
+          <button type="button" className="sound-scene-close" onClick={onClose} aria-label={ru ? 'Свернуть видео' : tr('Close video')}><X size={22} aria-hidden="true" /></button>
           <div className="sound-scene-caption"><h2 id="sound-scene-title">{SOUND_GROUP_LABELS[group][language]}</h2><p>{track?.group === group ? track.title[language] : ''}</p></div>
         </div>
         <div className="sound-scene-controls">
-          <button type="button" onClick={ambient.paused ? resumeAmbient : pauseAmbient}><span aria-hidden="true">{ambient.paused ? <Play size={18} /> : <Pause size={18} />}</span>{ambient.paused ? (ru ? 'Продолжить' : 'Resume') : (ru ? 'Пауза' : 'Pause')}</button>
-          <button type="button" onClick={() => { stopAmbient(); onClose(); }}><Square size={16} aria-hidden="true" />{ru ? 'Выключить' : 'Stop'}</button>
-          <button type="button" aria-pressed={!videoPaused} onClick={() => setVideoPaused((paused) => !paused)}>{videoPaused ? (ru ? 'Включить видео' : 'Play video') : (ru ? 'Пауза видео' : 'Pause video')}</button>
+          <button type="button" onClick={ambient.paused ? resumeAmbient : pauseAmbient}><span aria-hidden="true">{ambient.paused ? <Play size={18} /> : <Pause size={18} />}</span>{ambient.paused ? (ru ? 'Продолжить' : tr('Resume')) : (ru ? 'Пауза' : tr('Pause'))}</button>
+          <button type="button" onClick={() => { stopAmbient(); onClose(); }}><Square size={16} aria-hidden="true" />{ru ? 'Выключить' : tr('Stop')}</button>
+          <button type="button" aria-pressed={!videoPaused} onClick={() => setVideoPaused((paused) => !paused)}>{videoPaused ? (ru ? 'Включить видео' : tr('Play video')) : (ru ? 'Пауза видео' : tr('Pause video'))}</button>
         </div>
-        <div className="sound-scene-variants" role="group" aria-label={ru ? 'Вариант звука' : 'Sound variant'}>
+        <div className="sound-scene-variants" role="group" aria-label={ru ? 'Вариант звука' : tr('Sound variant')}>
           {tracksOfGroup(group).map((variant) => <button key={variant.id} type="button" aria-pressed={ambient.soundscape === variant.id} onClick={() => playSoundscape(variant.id)}>{variant.title[language]}</button>)}
         </div>
-        {ambient.error ? <p className="sound-scene-error" role="alert">{ru ? 'Запись не загрузилась. Проверь интернет или выбери вариант без интернета.' : 'The recording did not load. Check the connection or choose an offline variant.'}</p> : null}
+        {ambient.error ? <p className="sound-scene-error" role="alert">{ru ? 'Запись не загрузилась. Проверь интернет или выбери вариант без интернета.' : tr('The recording did not load. Check the connection or choose an offline variant.')}</p> : null}
       </div>
     </dialog>
   );

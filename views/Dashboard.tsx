@@ -173,6 +173,7 @@ import {
 } from '../components/nebo/TodayCanvasBlocks';
 
 import { DatesView, MonthView, WeekView } from '../components/nebo/PeriodViews';
+import { tr, trf } from '../lib/i18n';
 
 export const Dashboard = memo<DashboardProps>(({
   profile,
@@ -239,10 +240,10 @@ export const Dashboard = memo<DashboardProps>(({
     [activePeriod, periodKeys, timezone],
   );
   const periodLabels: Record<PersonalForecastPeriod, string> = {
-    day: language === 'ru' ? 'Сегодня' : 'Today',
-    week: language === 'ru' ? 'Неделя' : 'Week',
+    day: language === 'ru' ? 'Сегодня' : tr('Today'),
+    week: language === 'ru' ? 'Неделя' : tr('Week'),
     // The month tab is «Будущее»: week and month readings, then the calendar.
-    month: language === 'ru' ? 'Будущее' : 'Future',
+    month: language === 'ru' ? 'Будущее' : tr('Future'),
   };
   const weekWindow = useMemo(
     () => resolvePersonalForecastWindow('week', periodKeys.week, timezone),
@@ -253,11 +254,11 @@ export const Dashboard = memo<DashboardProps>(({
     [periodKeys.month, timezone],
   );
   const weekLabel = useMemo(() => {
-    const fmt = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+    const fmt = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : tr('en-US'), { day: 'numeric', month: 'long', timeZone: 'UTC' });
     return `${fmt.format(new Date(`${weekWindow.periodStart}T12:00:00Z`))} - ${fmt.format(new Date(`${weekWindow.periodEnd}T12:00:00Z`))}`;
   }, [language, weekWindow]);
   const monthName = useMemo(() => {
-    const name = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', timeZone: 'UTC' })
+    const name = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : tr('en-US'), { month: 'long', timeZone: 'UTC' })
       .format(new Date(`${monthWindow.periodStart}T12:00:00Z`));
     return language === 'ru' ? name.toLowerCase() : `${name[0].toUpperCase()}${name.slice(1)}`;
   }, [language, monthWindow]);
@@ -722,15 +723,15 @@ export const Dashboard = memo<DashboardProps>(({
       <section className="future-reader" aria-labelledby="future-reader-title">
         <button type="button" className="future-reader-back" onClick={closeFutureReader}>
           <ChevronLeft size={18} aria-hidden="true" />
-          {language === 'ru' ? 'Будущее' : 'Future'}
+          {language === 'ru' ? 'Будущее' : tr('Future')}
         </button>
         <p className="future-reader-kicker">
           {period === 'week' ? weekLabel : `${monthName} ${monthWindow.periodStart.slice(0, 4)}`}
         </p>
         <h1 id="future-reader-title" className="future-reader-title">
           {period === 'week'
-            ? (language === 'ru' ? 'Твоя неделя' : 'Your week')
-            : (language === 'ru' ? `Твой ${monthName}` : `Your ${monthName}`)}
+            ? (language === 'ru' ? 'Твоя неделя' : tr('Your week'))
+            : (language === 'ru' ? `Твой ${monthName}` : trf('Your {0}', monthName))}
         </h1>
         {!premium && !(period === 'week' && weekGifted) ? (
           <PersonalForecastPremiumGate
@@ -765,10 +766,10 @@ export const Dashboard = memo<DashboardProps>(({
           </>
         ) : periodState.phase === 'error' ? (
           <section className="forecast-feed-status" aria-live="polite">
-            <h2>{language === 'ru' ? 'Готовим твой прогноз' : 'Preparing your forecast'}</h2>
+            <h2>{language === 'ru' ? 'Готовим твой прогноз' : tr('Preparing your forecast')}</h2>
             <button type="button" onClick={() => loadPeriod(period, { retry: true, cacheOnly: true })}>
               <RefreshCw size={17} aria-hidden />
-              {language === 'ru' ? 'Проверить' : 'Check again'}
+              {language === 'ru' ? 'Проверить' : tr('Check again')}
             </button>
           </section>
         ) : (
@@ -809,7 +810,7 @@ export const Dashboard = memo<DashboardProps>(({
   const periodSwitch = (
     <nav
       className="nebo-period-switch"
-      aria-label={language === 'ru' ? 'Период личного прогноза' : 'Personal forecast period'}
+      aria-label={language === 'ru' ? 'Период личного прогноза' : tr('Personal forecast period')}
     >
       {(['day', 'week', 'month', 'dates'] as const).map((segment) => (
         <button
@@ -831,7 +832,7 @@ export const Dashboard = memo<DashboardProps>(({
       title="NEBO"
       leftAction={(
         <EditorialChartsButton
-          label={language === 'ru' ? 'Открыть мои карты' : 'Open my charts'}
+          label={language === 'ru' ? 'Открыть мои карты' : tr('Open my charts')}
           onClick={onOpenCharts}
         />
       )}
@@ -891,7 +892,7 @@ export const Dashboard = memo<DashboardProps>(({
     >
       <section
         className="home-top"
-        aria-label={language === 'ru' ? 'Личный гороскоп' : 'Personal horoscope'}
+        aria-label={language === 'ru' ? 'Личный гороскоп' : tr('Personal horoscope')}
       >
         {/* On the sky cover the sky runs under the glass bar; elsewhere the bar reserves its space. */}
         {topBar(!skyCover)}
@@ -907,14 +908,13 @@ export const Dashboard = memo<DashboardProps>(({
       >
       {!profile.name.trim() || !profile.birthDate.trim() ? (
         <section className="forecast-feed-status">
-          <h1>{language === 'ru' ? 'Добавь данные рождения' : 'Add your birth details'}</h1>
+          <h1>{language === 'ru' ? 'Добавь данные рождения' : tr('Add your birth details')}</h1>
           <p>
             {language === 'ru'
-              ? 'Нужны имя и дата рождения. Главный экран останется доступен.'
-              : 'A name and birth date are required for a personal forecast. The home screen stays available.'}
+              ? 'Нужны имя и дата рождения. Главный экран останется доступен.' : tr('A name and birth date are required for a personal forecast. The home screen stays available.')}
           </p>
           <button type="button" onClick={onCreateNatalChart}>
-            {language === 'ru' ? 'Создать карту' : 'Create a chart'}
+            {language === 'ru' ? 'Создать карту' : tr('Create a chart')}
           </button>
         </section>
       ) : activePeriod === 'month' && futureReader ? (
@@ -1017,11 +1017,11 @@ export const Dashboard = memo<DashboardProps>(({
           >
             {hasForecastLoadError ? (
               <>
-                <h1>{language === 'ru' ? 'Не получилось загрузить день' : 'Could not load your day'}</h1>
-                <p>{language === 'ru' ? 'Сервер не ответил, мы уже разбираемся. Нажми «Повторить» через минуту.' : 'The server did not answer, we are on it. Tap «Try again» in a minute.'}</p>
+                <h1>{language === 'ru' ? 'Не получилось загрузить день' : tr('Could not load your day')}</h1>
+                <p>{language === 'ru' ? 'Сервер не ответил, мы уже разбираемся. Нажми «Повторить» через минуту.' : tr('The server did not answer, we are on it. Tap «Try again» in a minute.')}</p>
                 <button type="button" onClick={() => loadPeriod(activePeriod, { retry: true })}>
                   <RefreshCw size={17} aria-hidden />
-                  {language === 'ru' ? 'Повторить' : 'Try again'}
+                  {language === 'ru' ? 'Повторить' : tr('Try again')}
                 </button>
               </>
             ) : (
@@ -1030,7 +1030,7 @@ export const Dashboard = memo<DashboardProps>(({
                   <LoaderCircle className="forecast-feed-loading-spinner" size={28} strokeWidth={2} />
                 </div>
                 <p className="forecast-feed-loading-label">
-                  {language === 'ru' ? 'Загрузка прогноза…' : 'Loading your forecast…'}
+                  {language === 'ru' ? 'Загрузка прогноза…' : tr('Loading your forecast…')}
                 </p>
               </>
             )}
@@ -1040,10 +1040,10 @@ export const Dashboard = memo<DashboardProps>(({
         </>
       ) : state.phase === 'error' ? (
         <section className="forecast-feed-status" aria-live="polite">
-          <h1>{language === 'ru' ? 'Готовим твой прогноз' : 'Preparing your forecast'}</h1>
+          <h1>{language === 'ru' ? 'Готовим твой прогноз' : tr('Preparing your forecast')}</h1>
           <button type="button" onClick={() => loadPeriod(activePeriod, { retry: true, cacheOnly: true })}>
             <RefreshCw size={17} aria-hidden />
-            {language === 'ru' ? 'Проверить' : 'Check again'}
+            {language === 'ru' ? 'Проверить' : tr('Check again')}
           </button>
         </section>
       ) : (

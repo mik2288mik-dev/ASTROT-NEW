@@ -2,6 +2,7 @@ import React from 'react';
 import { ZodiacIllustration } from '../../components/icons/ZodiacArt';
 import type { KnowledgeCategoryId, KnowledgeLanguage } from '../../lib/knowledge';
 import styles from './AstrologyEncyclopedia.module.css';
+import { tr } from '../../lib/i18n';
 
 type Props = {
   topicId: string;
@@ -108,17 +109,17 @@ function SignArtwork({ visual, language }: { visual: SignVisual; language: Knowl
   return (
     <figure className={`${styles.articleVisual} ${styles[`articleVisual_${visual.tone}`]}`}>
       <div className={styles.signVisualCopy}>
-        <span>{ru ? 'ЗНАК ЗОДИАКА' : 'ZODIAC SIGN'}</span>
+        <span>{ru ? 'ЗНАК ЗОДИАКА' : tr('ZODIAC SIGN')}</span>
         <strong>{visual.element[ru ? 0 : 1]}</strong>
         <small>{visual.modality[ru ? 0 : 1]}</small>
       </div>
       <ZodiacIllustration
         sign={visual.sign}
         className={styles.signVisualImage}
-        alt={ru ? 'Образ знака зодиака' : 'Zodiac sign illustration'}
+        alt={ru ? 'Образ знака зодиака' : tr('Zodiac sign illustration')}
         priority={false}
       />
-      <figcaption>{ru ? 'Стихия показывает общую группу знака, модальность, его способ начинать, продолжать или менять действие.' : 'Element names the sign group; modality describes how it starts, sustains, or adapts action.'}</figcaption>
+      <figcaption>{ru ? 'Стихия показывает общую группу знака, модальность, его способ начинать, продолжать или менять действие.' : tr('Element names the sign group; modality describes how it starts, sustains, or adapts action.')}</figcaption>
     </figure>
   );
 }
@@ -136,11 +137,11 @@ function ObjectArtwork({ visual, language }: { visual: ObjectVisual; language: K
         decoding="async"
       />
       <div className={styles.objectPhotoLabel}>
-        <span>{ru ? 'ЧТО ЭТО В РЕАЛЬНОСТИ' : 'WHAT IT IS IN REALITY'}</span>
+        <span>{ru ? 'ЧТО ЭТО В РЕАЛЬНОСТИ' : tr('WHAT IT IS IN REALITY')}</span>
         <strong>{visual.type[ru ? 0 : 1]}</strong>
         <small>{visual.note[ru ? 0 : 1]}</small>
       </div>
-      <figcaption>{ru ? 'Сначала, тип реального объекта или точки. Астрологическое значение объясняется отдельно в статье.' : 'First comes the real object or point type. Its astrological interpretation is explained separately.'}</figcaption>
+      <figcaption>{ru ? 'Сначала, тип реального объекта или точки. Астрологическое значение объясняется отдельно в статье.' : tr('First comes the real object or point type. Its astrological interpretation is explained separately.')}</figcaption>
     </figure>
   );
 }
@@ -149,10 +150,10 @@ function AstrologyOverviewArtwork({ language }: { language: KnowledgeLanguage })
   const ru = language === 'ru';
   return (
     <figure className={`${styles.articleVisual} ${styles.overviewVisual}`}>
-      <img src="/encyclopedia/concepts/sky-to-chart.webp" alt={ru ? 'Небесные объекты и круг карты из двенадцати секторов' : 'Celestial objects and a twelve-sector chart'} width="640" height="640" loading="lazy" decoding="async" />
+      <img src="/encyclopedia/concepts/sky-to-chart.webp" alt={ru ? 'Небесные объекты и круг карты из двенадцати секторов' : tr('Celestial objects and a twelve-sector chart')} width="640" height="640" loading="lazy" decoding="async" />
       <div className={styles.overviewVisualLabel}>
-        <strong>{ru ? 'Наблюдаемое небо → символическая карта' : 'Observed sky → symbolic chart'}</strong>
-        <span>{ru ? 'Сначала рассчитывают положения объектов, затем астрологи их трактуют.' : 'Positions are calculated first; astrologers interpret them afterward.'}</span>
+        <strong>{ru ? 'Наблюдаемое небо → символическая карта' : tr('Observed sky → symbolic chart')}</strong>
+        <span>{ru ? 'Сначала рассчитывают положения объектов, затем астрологи их трактуют.' : tr('Positions are calculated first; astrologers interpret them afterward.')}</span>
       </div>
     </figure>
   );

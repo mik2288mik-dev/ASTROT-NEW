@@ -2,6 +2,7 @@ import React from 'react';
 import { getZodiacSign } from '../../constants';
 import type { Language } from '../../types';
 import { ZodiacIllustration } from '../icons/ZodiacArt';
+import { tr } from '../../lib/i18n';
 
 interface ZodiacSignGridProps {
   signs: readonly string[];
@@ -23,7 +24,7 @@ export const ZodiacSignGrid: React.FC<ZodiacSignGridProps> = ({
   return (
     <section
       className="zodiac-sign-picker zodiac-sign-picker--persistent"
-      aria-label={lang === 'ru' ? 'Выбор знака зодиака' : 'Choose a zodiac sign'}
+      aria-label={lang === 'ru' ? 'Выбор знака зодиака' : tr('Choose a zodiac sign')}
     >
       <div className="zodiac-sign-grid zodiac-sign-grid--compact">
         {signs.map((sign) => {
@@ -38,7 +39,7 @@ export const ZodiacSignGrid: React.FC<ZodiacSignGridProps> = ({
               data-active={isActive}
               data-own={isOwnSign}
               aria-label={isOwnSign
-                ? `${label}. ${lang === 'ru' ? 'Твой знак' : 'Your sign'}`
+                ? `${label}. ${lang === 'ru' ? 'Твой знак' : tr('Your sign')}`
                 : label}
               aria-pressed={isActive}
               onClick={() => onPick(sign)}

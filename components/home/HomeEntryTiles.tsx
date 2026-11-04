@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Wind } from 'lucide-react';
 import { AssetSlot } from '../lumia-ui/AssetSlot';
 import { MatrixRain } from './MatrixRain';
+import { tr } from '../../lib/i18n';
 
 export type HomeEntryTileId = 'future' | 'compatibility' | 'matrix' | 'antistress' | 'tests' | 'sounds' | 'stories';
 
@@ -54,7 +55,7 @@ export function HomeEntryTiles({
   const visible = tiles.filter((tile) => tile.onOpen);
   if (!visible.length) return null;
   return (
-    <nav className="home-entry-tiles" aria-label={language === 'ru' ? 'Разделы' : 'Sections'}>
+    <nav className="home-entry-tiles" aria-label={language === 'ru' ? 'Разделы' : tr('Sections')}>
       <ul className="home-entry-tiles-row">
         {visible.map((tile) => (
           <li key={tile.id}>

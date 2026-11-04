@@ -14,6 +14,7 @@ import {
 } from '../../lib/natalChartWheelModel';
 import { PlanetIcon, type PlanetKey } from '../icons/PlanetIcon';
 import { ZodiacIcon } from '../icons/ZodiacIcon';
+import { tr, trf } from '../../lib/i18n';
 
 type Language = 'ru' | 'en';
 type ChartSource = NatalChartData | NatalChartDataV2;
@@ -104,12 +105,12 @@ export function NatalChartWheel({
       ? midheaven.longitude
       : 0;
   const chartPoint = (longitude: number, radius: number) => pointOnWheel(wheelRotation - longitude, radius);
-  const title = language === 'ru' ? 'Круг натальной карты' : 'Natal chart wheel';
+  const title = language === 'ru' ? 'Круг натальной карты' : tr('Natal chart wheel');
   const caption = getWheelCaption(reliability.quality, language, omittedBodyCount);
   const precisionLabel = reliability.quality === 'unknown'
-    ? (language === 'ru' ? 'Время не указано' : 'Time not specified')
+    ? (language === 'ru' ? 'Время не указано' : tr('Time not specified'))
     : reliability.quality === 'approximate'
-      ? (language === 'ru' ? 'Время примерное' : 'Approximate time')
+      ? (language === 'ru' ? 'Время примерное' : tr('Approximate time'))
       : null;
 
   const downloadChart = async () => {
@@ -305,7 +306,7 @@ export function NatalChartWheel({
           type="button"
           className="natal-chart-download"
           onClick={() => { void downloadChart(); }}
-          aria-label={language === 'ru' ? 'Скачать натальную карту в SVG' : 'Download natal chart as SVG'}
+          aria-label={language === 'ru' ? 'Скачать натальную карту в SVG' : tr('Download natal chart as SVG')}
         >
           <Download aria-hidden="true" strokeWidth={1.45} />
         </button>
@@ -322,14 +323,14 @@ export function NatalChartWheel({
           const sign = SIGNS[Math.floor(house.longitude / 30) % SIGNS.length];
           return (
             <li key={`house-${house.house}`}>
-              {language === 'ru' ? `Дом ${house.house}` : `House ${house.house}`}: {' '}
+              {language === 'ru' ? `Дом ${house.house}` : trf('House {0}', house.house)}: {' '}
               {getZodiacSign(language, sign)} {(house.longitude % 30).toFixed(1)}°
             </li>
           );
         })}
         {aspects.map((aspect) => (
           <li key={`aspect-${aspect.id}`}>
-            {language === 'ru' ? 'Аспект' : 'Aspect'}: {PLANET_NAMES[aspect.fromKey as keyof typeof PLANET_NAMES]?.[language] || aspect.fromKey}, {ASPECT_NAMES[aspect.type]?.[language] || aspect.type}, {PLANET_NAMES[aspect.toKey as keyof typeof PLANET_NAMES]?.[language] || aspect.toKey}
+            {language === 'ru' ? 'Аспект' : tr('Aspect')}: {PLANET_NAMES[aspect.fromKey as keyof typeof PLANET_NAMES]?.[language] || aspect.fromKey}, {ASPECT_NAMES[aspect.type]?.[language] || aspect.type}, {PLANET_NAMES[aspect.toKey as keyof typeof PLANET_NAMES]?.[language] || aspect.toKey}
           </li>
         ))}
       </ul>

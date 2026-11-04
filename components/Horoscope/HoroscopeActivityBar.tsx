@@ -18,6 +18,7 @@ import {
   removeContentReaction,
   setContentReaction,
 } from '../../services/contentReactionService';
+import { tr } from '../../lib/i18n';
 
 /**
  * Engagement bar under a sign horoscope: views · like (heart, toggle) · share.
@@ -183,7 +184,7 @@ const ActivityBar: React.FC<ActivityProps> = ({
   return (
     <div className={`horo-act${className ? ` ${className}` : ''}`}>
       {showViews && views > 0 ? (
-        <div className="horo-act-item horo-act-views" aria-label={ru ? 'Просмотры' : 'Views'}>
+        <div className="horo-act-item horo-act-views" aria-label={ru ? 'Просмотры' : tr('Views')}>
           <Eye size={18} strokeWidth={2} />
           {showCounts ? <Count value={views} /> : null}
         </div>
@@ -195,13 +196,13 @@ const ActivityBar: React.FC<ActivityProps> = ({
         data-on={liked ? 'true' : 'false'}
         onClick={onToggleLike}
         aria-pressed={liked}
-        aria-label={ru ? 'Нравится' : 'Like'}
+        aria-label={ru ? 'Нравится' : tr('Like')}
         disabled={!userId}
       >
         <motion.span whileTap={{ scale: 0.8 }} style={{ display: 'inline-flex' }}>
           <Heart size={18} strokeWidth={2} fill={liked ? 'currentColor' : 'none'} />
         </motion.span>
-        {showLabels ? <span className="horo-act-label">{ru ? 'Нравится' : 'Like'}</span> : null}
+        {showLabels ? <span className="horo-act-label">{ru ? 'Нравится' : tr('Like')}</span> : null}
         {showCounts ? <Count value={likes} /> : null}
       </button>
 
@@ -209,12 +210,12 @@ const ActivityBar: React.FC<ActivityProps> = ({
         type="button"
         className="horo-act-item horo-act-btn horo-act-share"
         onClick={() => { lumiaSelectionHaptic(); onShare(); }}
-        aria-label={ru ? 'Поделиться' : 'Share'}
+        aria-label={ru ? 'Поделиться' : tr('Share')}
       >
         <motion.span whileTap={{ scale: 0.85 }} style={{ display: 'inline-flex' }}>
           <Share2 size={18} strokeWidth={2} />
         </motion.span>
-        {showLabels ? <span className="horo-act-label">{ru ? 'Поделиться' : 'Share'}</span> : null}
+        {showLabels ? <span className="horo-act-label">{ru ? 'Поделиться' : tr('Share')}</span> : null}
       </button>
     </div>
   );

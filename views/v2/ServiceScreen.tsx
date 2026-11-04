@@ -10,6 +10,7 @@ import { AstrologyEncyclopedia } from './AstrologyEncyclopedia';
 
 import { NeboShop } from '../../components/nebo/NeboShop';
 import { RestHome } from '../../components/nebo/RestHome';
+import { tr } from '../../lib/i18n';
 
 export type ServiceTab = 'matrix' | 'antistress' | 'tests' | 'sounds' | 'stories' | 'knowledge' | 'store';
 
@@ -101,7 +102,7 @@ export function ServiceScreen({
 
   return (
     <div ref={rootRef} className={restHome ? 'fresh-page services-screen-page nebo-rest' : 'fresh-page services-screen-page'}>
-      <AppTopBar title={restHome ? (ru ? 'Отдых' : 'Unwind') : activeTab === 'store' ? (ru ? 'Магазин' : 'Store') : (ru ? 'Меню' : 'Menu')} main={restHome} />
+      <AppTopBar title={restHome ? (ru ? 'Отдых' : tr('Unwind')) : activeTab === 'store' ? (ru ? 'Магазин' : tr('Store')) : (ru ? 'Меню' : tr('Menu'))} main={restHome} />
       {restHome && ru ? (
         <RestHome
           onOpenSounds={onOpenSounds}
@@ -113,8 +114,8 @@ export function ServiceScreen({
       ) : restHome ? (
         <>
           <div className="nebo-page-title">
-            <h1>{ru ? 'Отдых' : 'Unwind'}</h1>
-            <p>{ru ? 'Звуки, рассказы, дыхание и тесты' : 'Sounds, stories, breathing and tests'}</p>
+            <h1>{ru ? 'Отдых' : tr('Unwind')}</h1>
+            <p>{ru ? 'Звуки, рассказы, дыхание и тесты' : tr('Sounds, stories, breathing and tests')}</p>
           </div>
           <div className="nebo-rest-list">
             {restRooms.map((room, index) => (
@@ -134,8 +135,8 @@ export function ServiceScreen({
             {onOpenMoon ? (
               <button type="button" className="nebo-rest-card nebo-rest-card--moon" onClick={onOpenMoon}>
                 <span className="nebo-rest-card-copy">
-                  <strong>{ru ? 'Лунные календари' : 'Moon calendars'}</strong>
-                  <span>{ru ? 'Сад, стрижка, здоровье, дела и дом по фазам Луны' : 'Garden, haircut, health, plans and home by moon phase'}</span>
+                  <strong>{ru ? 'Лунные календари' : tr('Moon calendars')}</strong>
+                  <span>{ru ? 'Сад, стрижка, здоровье, дела и дом по фазам Луны' : tr('Garden, haircut, health, plans and home by moon phase')}</span>
                 </span>
               </button>
             ) : null}
@@ -144,7 +145,7 @@ export function ServiceScreen({
       ) : activeTab === 'store' ? null : (
         <EditorialTabs
           className="services-screen-tabs"
-          label={ru ? 'Сервисные разделы' : 'Service sections'}
+          label={ru ? 'Сервисные разделы' : tr('Service sections')}
           tabs={ru ? SERVICE_TABS_RU : SERVICE_TABS_EN}
           activeTab={activeTab}
           onTabChange={selectTab}

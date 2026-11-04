@@ -25,6 +25,7 @@ import {
   MonoStaggerItem,
   MonoTag,
 } from '../components/mono-ui';
+import { tr, trf } from '../lib/i18n';
 
 interface MyChartsProps {
   profile: UserProfile;
@@ -48,7 +49,7 @@ function MyChartsInlineLoading({
   lang: UserProfile['language'];
   embedded: boolean;
 }) {
-  const label = lang === 'en' ? 'Loading charts…' : 'Загружаем карты…';
+  const label = lang === 'en' ? tr('Loading charts…') : 'Загружаем карты…';
   return (
     <div
       className={`fresh-page charts-editorial-page${embedded ? ' charts-editorial-page--embedded' : ''}`}
@@ -134,7 +135,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
       return res;
     } catch (err: any) {
       console.error('[MyCharts] Load error', err);
-      setLoadError(err?.message || (lang === 'ru' ? 'Не удалось загрузить карты.' : 'Could not load charts.'));
+      setLoadError(err?.message || (lang === 'ru' ? 'Не удалось загрузить карты.' : tr('Could not load charts.')));
       return null;
     } finally {
       setLoading(false);
@@ -207,8 +208,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
       );
       if (!requested?.chart_data || requested.access_locked) {
         setLoadError(lang === 'ru'
-          ? 'Premium открыт, но запрошенная карта пока не загрузилась. Повтори попытку.'
-          : 'Premium is active, but the requested chart has not loaded yet. Retry.');
+          ? 'Premium открыт, но запрошенная карта пока не загрузилась. Повтори попытку.' : tr('Premium is active, but the requested chart has not loaded yet. Retry.'));
         return false;
       }
       onChartSelect?.({ ...requested, access_locked: false });
@@ -286,8 +286,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     if (!profile.id || isSelfChart(chart)) return;
 
     const msg = lang === 'ru'
-      ? `Убрать «${chart.name}» из сохранённых карт?`
-      : `Remove “${chart.name}” from saved charts?`;
+      ? `Убрать «${chart.name}» из сохранённых карт?` : trf('Remove “{0}” from saved charts?', chart.name);
     if (!confirm(msg)) return;
 
     setActionLoading(`delete-${chart.id}`);
@@ -346,21 +345,20 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             <strong title={chart.name}>{chart.name}</strong>
             <small>{meta || (isPrimary ? getText(lang, 'charts.primary_role') : chart.relation_label || getText(lang, 'charts.saved_role'))}</small>
           </span>
-          {isPrimary ? <em className="nebo-charts-badge">{lang === 'ru' ? 'Моя' : 'Mine'}</em> : isLocked ? <em className="nebo-charts-badge is-plus">Plus</em> : null}
+          {isPrimary ? <em className="nebo-charts-badge">{lang === 'ru' ? 'Моя' : tr('Mine')}</em> : isLocked ? <em className="nebo-charts-badge is-plus">Plus</em> : null}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
         </button>
         {isOpen ? (
         <div className="nebo-charts-more">
         <p className="nebo-charts-details">
           {chart.relation_label && !isPrimary ? <>{chart.relation_label} · </> : null}
-          {lang === 'ru' ? 'Время рождения: ' : 'Birth time: '}{chart.birth_time || (lang === 'ru' ? 'не указано' : 'not specified')}
+          {lang === 'ru' ? 'Время рождения: ' : tr('Birth time: ')}{chart.birth_time || (lang === 'ru' ? 'не указано' : tr('not specified'))}
         </p>
 
         {isLocked ? (
           <p className="nebo-charts-locked" role="status">
             {lang === 'ru'
-              ? 'Карта сохранена. Открытие и совместимость вернутся после подключения Plus.'
-              : 'This chart is saved. Reading and compatibility return with Plus.'}
+              ? 'Карта сохранена. Открытие и совместимость вернутся после подключения Plus.' : tr('This chart is saved. Reading and compatibility return with Plus.')}
           </p>
         ) : null}
 
@@ -373,8 +371,8 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             >
               {isLocked
                 ? hasPremiumAccess
-                  ? (lang === 'ru' ? 'Обновить доступ' : 'Refresh access')
-                  : (lang === 'ru' ? 'Открыть с Plus' : 'Unlock with Plus')
+                  ? (lang === 'ru' ? 'Обновить доступ' : tr('Refresh access'))
+                  : (lang === 'ru' ? 'Открыть с Plus' : tr('Unlock with Plus'))
                 : getText(lang, 'charts.open_chart')}
             </MonoButton>
           ) : null}
@@ -404,8 +402,8 @@ export const MyCharts: React.FC<MyChartsProps> = ({
               className="min-h-[44px] rounded-mono-pill border border-red-200 px-3 py-2 text-[13px] font-semibold text-red-700 transition-opacity hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:opacity-50"
             >
               {isBusy
-                ? (lang === 'ru' ? 'Убираем…' : 'Removing…')
-                : (lang === 'ru' ? 'Убрать' : 'Remove')}
+                ? (lang === 'ru' ? 'Убираем…' : tr('Removing…'))
+                : (lang === 'ru' ? 'Убрать' : tr('Remove'))}
             </button>
           ) : null}
         </div>
@@ -426,7 +424,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           <div role="alert" className="fresh-card space-y-3 p-5">
             <p className="text-[14px] leading-relaxed text-red-700">{loadError}</p>
             <MonoButton fullWidth onClick={() => { void reloadAndResume(); }}>
-              {lang === 'ru' ? 'Повторить' : 'Try again'}
+              {lang === 'ru' ? 'Повторить' : tr('Try again')}
             </MonoButton>
           </div>
         </div>
@@ -446,8 +444,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                 </h1>
                 <p className="mt-2 text-[14px] leading-relaxed text-mono-muted">
                   {lang === 'ru'
-                    ? 'Твоя карта доступна всегда. Карты других людей сохраняются и открываются с Premium.'
-                    : 'Your chart is always available. Other people’s charts are saved and unlocked with Premium.'}
+                    ? 'Твоя карта доступна всегда. Карты других людей сохраняются и открываются с Premium.' : tr('Your chart is always available. Other people’s charts are saved and unlocked with Premium.')}
                 </p>
               </header>
             </MonoStaggerItem>
@@ -458,7 +455,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           <div role="alert" className="rounded-mono-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             <p>{loadError}</p>
             <button type="button" className="mt-2 min-h-[44px] font-semibold underline underline-offset-4" onClick={() => { void reloadAndResume(); }}>
-              {lang === 'ru' ? 'Повторить' : 'Try again'}
+              {lang === 'ru' ? 'Повторить' : tr('Try again')}
             </button>
           </div>
         ) : null}
@@ -474,7 +471,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             <MonoInput id="chart-birth-date" label={getText(lang, 'charts.field_birth_date')} type="date" value={addDate} onChange={(e) => { setAddDate(e.target.value); setAddInvalidFields((fields) => fields.filter((field) => field !== 'date')); }} aria-invalid={addInvalidFields.includes('date') || undefined} aria-describedby={addInvalidFields.includes('date') ? 'charts-add-error' : undefined} />
             <div className="space-y-2">
               <span id="chart-birth-time-mode-label" className="block text-[13px] font-semibold text-mono-ink">
-                {lang === 'ru' ? 'Точность времени рождения' : 'Birth time accuracy'}
+                {lang === 'ru' ? 'Точность времени рождения' : tr('Birth time accuracy')}
               </span>
               <div
                 className="grid grid-cols-3 overflow-hidden rounded-[8px] border border-black/15"
@@ -521,17 +518,17 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             />
             <p className="-mt-2 text-[12px] leading-relaxed text-mono-muted">
               {addTimeMode === 'approximate'
-                ? (lang === 'ru' ? 'Учтём погрешность ±30 минут.' : 'We will use a ±30 minute uncertainty.')
+                ? (lang === 'ru' ? 'Учтём погрешность ±30 минут.' : tr('We will use a ±30 minute uncertainty.'))
                 : addTimeMode === 'unknown'
-                  ? (lang === 'ru' ? 'Дома и Асцендент не будут выдаваться за точные.' : 'Houses and Ascendant will not be presented as exact.')
-                  : (lang === 'ru' ? 'Укажи точное время из документов или со слов близких.' : 'Enter the exact time from records or family.')}
+                  ? (lang === 'ru' ? 'Дома и Асцендент не будут выдаваться за точные.' : tr('Houses and Ascendant will not be presented as exact.'))
+                  : (lang === 'ru' ? 'Укажи точное время из документов или со слов близких.' : tr('Enter the exact time from records or family.'))}
             </p>
             <MonoInput id="chart-birth-place" label={getText(lang, 'charts.field_birth_place')} value={addPlace} onChange={(e) => { setAddPlace(e.target.value); setAddInvalidFields((fields) => fields.filter((field) => field !== 'place')); }} placeholder={getText(lang, 'charts.field_birth_place_placeholder')} aria-invalid={addInvalidFields.includes('place') || undefined} aria-describedby={addInvalidFields.includes('place') ? 'charts-add-error' : undefined} />
             <MonoInput
-              label={lang === 'ru' ? 'Кем этот человек тебе приходится (необязательно)' : 'Relation (optional)'}
+              label={lang === 'ru' ? 'Кем этот человек тебе приходится (необязательно)' : tr('Relation (optional)')}
               value={addRelation}
               onChange={(e) => setAddRelation(e.target.value)}
-              placeholder={lang === 'ru' ? 'Друг, сестра, коллега' : 'Friend, sister, colleague'}
+              placeholder={lang === 'ru' ? 'Друг, сестра, коллега' : tr('Friend, sister, colleague')}
             />
             <div className="flex gap-2">
               <MonoButton className="flex-1" disabled={actionLoading === 'add'} onClick={handleAddChart}>
@@ -547,22 +544,22 @@ export const MyCharts: React.FC<MyChartsProps> = ({
         <section aria-labelledby="my-chart-heading" className="space-y-3">
           <div>
             <h2 id="my-chart-heading" className="text-[18px] font-bold text-mono-ink">
-              {lang === 'ru' ? 'Моя карта' : 'My chart'}
+              {lang === 'ru' ? 'Моя карта' : tr('My chart')}
             </h2>
             <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
-              {lang === 'ru' ? 'Это основная личная карта. Её нельзя заменить картой другого человека.' : 'This is your main personal chart. A saved person cannot replace it.'}
+              {lang === 'ru' ? 'Это основная личная карта. Её нельзя заменить картой другого человека.' : tr('This is your main personal chart. A saved person cannot replace it.')}
             </p>
           </div>
           {selfChart ? <div className="nebo-charts-list">{renderChartCard(selfChart)}</div> : (
             <div className="fresh-card p-5">
               <p className="text-[15px] font-semibold text-mono-ink">
-                {lang === 'ru' ? 'Личная карта пока не загрузилась' : 'Your personal chart has not loaded yet'}
+                {lang === 'ru' ? 'Личная карта пока не загрузилась' : tr('Your personal chart has not loaded yet')}
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
-                {lang === 'ru' ? 'Обнови экран и попробуй снова.' : 'Refresh this screen and try again.'}
+                {lang === 'ru' ? 'Обнови экран и попробуй снова.' : tr('Refresh this screen and try again.')}
               </p>
               <MonoButton className="mt-4" variant="outline" onClick={() => { void reloadAndResume(); }}>
-                {lang === 'ru' ? 'Обновить' : 'Refresh'}
+                {lang === 'ru' ? 'Обновить' : tr('Refresh')}
               </MonoButton>
             </div>
           )}
@@ -572,16 +569,16 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
               <h2 id="saved-charts-heading" className="text-[18px] font-bold text-mono-ink">
-                {lang === 'ru' ? 'Сохранённые люди' : 'Saved people'}
+                {lang === 'ru' ? 'Сохранённые люди' : tr('Saved people')}
               </h2>
               <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
                 {hasPremiumAccess
-                  ? (lang === 'ru' ? `Сохранено ${savedCharts.length} из ${PREMIUM_SAVED_PERSON_LIMIT}` : `${savedCharts.length} of ${PREMIUM_SAVED_PERSON_LIMIT} saved`)
-                  : (lang === 'ru' ? `С Premium, до ${PREMIUM_SAVED_PERSON_LIMIT} дополнительных карт` : `Premium includes up to ${PREMIUM_SAVED_PERSON_LIMIT} additional charts`)}
+                  ? (lang === 'ru' ? `Сохранено ${savedCharts.length} из ${PREMIUM_SAVED_PERSON_LIMIT}` : trf('{0} of {1} saved', savedCharts.length, PREMIUM_SAVED_PERSON_LIMIT))
+                  : (lang === 'ru' ? `С Premium, до ${PREMIUM_SAVED_PERSON_LIMIT} дополнительных карт` : trf('Premium includes up to {0} additional charts', PREMIUM_SAVED_PERSON_LIMIT))}
               </p>
             </div>
             {lockedChartCount > 0 ? (
-              <MonoTag>{lang === 'ru' ? `Заблокировано: ${lockedChartCount}` : `Locked: ${lockedChartCount}`}</MonoTag>
+              <MonoTag>{lang === 'ru' ? `Заблокировано: ${lockedChartCount}` : trf('Locked: {0}', lockedChartCount)}</MonoTag>
             ) : null}
           </div>
 
@@ -592,30 +589,30 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           ) : (
             <div className="fresh-card p-5">
               <p className="text-[15px] font-semibold text-mono-ink">
-                {lang === 'ru' ? 'Сохранённых карт пока нет' : 'No saved charts yet'}
+                {lang === 'ru' ? 'Сохранённых карт пока нет' : tr('No saved charts yet')}
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
-                {lang === 'ru' ? 'Добавь карту близкого человека для чтения или совместимости.' : 'Add someone close for a reading or compatibility.'}
+                {lang === 'ru' ? 'Добавь карту близкого человека для чтения или совместимости.' : tr('Add someone close for a reading or compatibility.')}
               </p>
             </div>
           )}
 
           {canAddMore && !showAddForm ? (
             <button type="button" className="nebo-charts-add" onClick={() => { setAddError(null); setShowAddForm(true); window.scrollTo?.({ top: 0, behavior: 'smooth' }); }}>
-              <span aria-hidden>+</span> {lang === 'ru' ? 'Добавить человека' : 'Add a person'}
+              <span aria-hidden>+</span> {lang === 'ru' ? 'Добавить человека' : tr('Add a person')}
             </button>
           ) : null}
-          <p className="nebo-charts-foot">{lang === 'ru' ? 'Карты видишь только ты. Человек не узнает, что ты сохранил его карту.' : 'Only you see these charts. The person will not know you saved their chart.'}</p>
+          <p className="nebo-charts-foot">{lang === 'ru' ? 'Карты видишь только ты. Человек не узнает, что ты сохранил его карту.' : tr('Only you see these charts. The person will not know you saved their chart.')}</p>
 
           {!hasPremiumAccess ? (
-            <aside className="fresh-card fresh-card--flat space-y-3 p-4" aria-label={lang === 'ru' ? 'Доступ к сохранённым картам' : 'Saved charts access'}>
+            <aside className="fresh-card fresh-card--flat space-y-3 p-4" aria-label={lang === 'ru' ? 'Доступ к сохранённым картам' : tr('Saved charts access')}>
               <p className="text-[14px] font-semibold text-mono-ink">
-                {lang === 'ru' ? 'Одна дополнительная карта доступна бесплатно' : 'One additional chart is included for free'}
+                {lang === 'ru' ? 'Одна дополнительная карта доступна бесплатно' : tr('One additional chart is included for free')}
               </p>
               <p className="text-[13px] leading-relaxed text-mono-muted">
                 {lockedChartCount > 0
-                  ? (lang === 'ru' ? 'Эти карты не удалены: они снова откроются после подключения Premium.' : 'These charts are not deleted: they unlock again with Premium.')
-                  : (lang === 'ru' ? `Можно сохранить до ${PREMIUM_SAVED_PERSON_LIMIT} дополнительных карт.` : `You can save up to ${PREMIUM_SAVED_PERSON_LIMIT} additional charts.`)}
+                  ? (lang === 'ru' ? 'Эти карты не удалены: они снова откроются после подключения Premium.' : tr('These charts are not deleted: they unlock again with Premium.'))
+                  : (lang === 'ru' ? `Можно сохранить до ${PREMIUM_SAVED_PERSON_LIMIT} дополнительных карт.` : trf('You can save up to {0} additional charts.', PREMIUM_SAVED_PERSON_LIMIT))}
               </p>
               {showPremiumSlotsCta ? (
                 <MonoButton fullWidth onClick={() => onRequestPremium?.('charts', {
@@ -630,10 +627,10 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           ) : !canAddMore ? (
             <aside className="fresh-card fresh-card--flat p-4">
               <p className="text-[14px] font-semibold text-mono-ink">
-                {lang === 'ru' ? 'Лимит сохранённых карт достигнут' : 'Saved chart limit reached'}
+                {lang === 'ru' ? 'Лимит сохранённых карт достигнут' : tr('Saved chart limit reached')}
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
-                {lang === 'ru' ? `В текущем доступе можно хранить до ${chartSlots - 1} дополнительных карт.` : `Your current access allows up to ${chartSlots - 1} additional charts.`}
+                {lang === 'ru' ? `В текущем доступе можно хранить до ${chartSlots - 1} дополнительных карт.` : trf('Your current access allows up to {0} additional charts.', chartSlots - 1)}
               </p>
             </aside>
           ) : null}

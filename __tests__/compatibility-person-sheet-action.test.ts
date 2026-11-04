@@ -11,8 +11,8 @@ describe('compatibility saved-chart selection sheet', () => {
     const styles = read('styles/compatibilityEditorial.css');
 
     expect(room).toContain("onClose={() => setPersonSheet(null)}");
-    expect(room).toContain("closeLabel={ru ? 'Закрыть' : 'Close'}");
-    expect(room).toContain("closeButtonText={ru ? 'Выбрать' : 'Choose'}");
+    expect(room).toContain("closeLabel={ru ? 'Закрыть' : tr('Close')}");
+    expect(room).toContain("closeButtonText={ru ? 'Выбрать' : tr('Choose')}");
     expect(sheet).toContain('closeButtonText?: string;');
     expect(sheet).toContain("closeButtonText && 'cosmic-sheet-close--text'");
     expect(sheet).toContain('aria-label={closeButtonText || closeLabel}');

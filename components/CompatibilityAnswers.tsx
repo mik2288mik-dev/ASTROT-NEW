@@ -1,5 +1,6 @@
 import React from 'react';
 import { Lock } from 'lucide-react';
+import { tr, trf } from '../lib/i18n';
 
 export type CompatibilityAnswerRow = {
   id: string;
@@ -22,7 +23,7 @@ type Props = {
 export function CompatibilityAnswers({ rows, language, unknownHint }: Props) {
   const ru = language === 'ru';
   return (
-    <div className="compat-answers" aria-label={ru ? 'Ответы на вопросы' : 'Answers'}>
+    <div className="compat-answers" aria-label={ru ? 'Ответы на вопросы' : tr('Answers')}>
       {rows.map((row) => (
         <section key={row.id} className={`compat-answer compat-answer--${row.answer}`} aria-labelledby={`compat-answer-${row.id}`}>
           <header className="compat-answer-head">
@@ -33,7 +34,7 @@ export function CompatibilityAnswers({ rows, language, unknownHint }: Props) {
             <span
               className="compat-answer-bar"
               role="img"
-              aria-label={ru ? `${row.score} из 100` : `${row.score} out of 100`}
+              aria-label={ru ? `${row.score} из 100` : trf('{0} out of 100', row.score)}
               style={{ '--compat-answer-score': `${row.score}%` } as React.CSSProperties}
             />
           ) : null}
@@ -41,7 +42,7 @@ export function CompatibilityAnswers({ rows, language, unknownHint }: Props) {
           {!row.text && row.locked ? (
             <p className="compat-answer-locked">
               <Lock size={14} strokeWidth={1.8} aria-hidden="true" />
-              {ru ? 'Почему так и что делать, в полном разборе' : 'Why, and what to do, in the full reading'}
+              {ru ? 'Почему так и что делать, в полном разборе' : tr('Why, and what to do, in the full reading')}
             </p>
           ) : null}
           {row.answer === 'unknown' && unknownHint ? <p className="compat-answer-hint">{unknownHint}</p> : null}
@@ -65,11 +66,11 @@ export function gaugePosition(score: number): number {
 }
 
 export function gaugeHeadline(score: number, ru: boolean): string {
-  if (score >= 62) return ru ? 'Вам легко друг с другом' : 'You find it easy together';
-  if (score >= 55) return ru ? 'Чаще легко, чем трудно' : 'More often easy than hard';
-  if (score >= 48) return ru ? 'Поровну лёгкого и трудного' : 'Equal parts easy and hard';
-  if (score >= 35) return ru ? 'Чаще трудно, чем легко' : 'More often hard than easy';
-  return ru ? 'Вместе будет непросто' : 'It will not be easy together';
+  if (score >= 62) return ru ? 'Вам легко друг с другом' : tr('You find it easy together');
+  if (score >= 55) return ru ? 'Чаще легко, чем трудно' : tr('More often easy than hard');
+  if (score >= 48) return ru ? 'Поровну лёгкого и трудного' : tr('Equal parts easy and hard');
+  if (score >= 35) return ru ? 'Чаще трудно, чем легко' : tr('More often hard than easy');
+  return ru ? 'Вместе будет непросто' : tr('It will not be easy together');
 }
 
 export const gaugePoint = (fraction: number, radius: number, cx = 100, cy = 100) => {
@@ -94,23 +95,22 @@ export function CompatibilityGauge({ score, questions, language }: { score: numb
   const capital = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
   const headline = gaugeHeadline(score, ru);
   return (
-    <section className="compat-gauge" aria-label={ru ? `Общий результат: ${headline}` : `Overall result: ${headline}`}>
+    <section className="compat-gauge" aria-label={ru ? `Общий результат: ${headline}` : trf('Overall result: {0}', headline)}>
       <svg viewBox="0 0 200 122" className="compat-gauge-dial" aria-hidden="true">
         <path d={gaugeArc(0, 0.325)} className="compat-gauge-zone is-hard" />
         <path d={gaugeArc(0.342, 0.658)} className="compat-gauge-zone is-mixed" />
         <path d={gaugeArc(0.675, 1)} className="compat-gauge-zone is-easy" />
         <line x1="100" y1="100" x2={needleX.toFixed(2)} y2={needleY.toFixed(2)} className="compat-gauge-needle" />
         <circle cx="100" cy="100" r="6" className="compat-gauge-hub" />
-        <text x="20" y="119" textAnchor="middle">{ru ? 'трудно' : 'hard'}</text>
-        <text x="100" y="119" textAnchor="middle">{ru ? 'по-разному' : 'it varies'}</text>
-        <text x="180" y="119" textAnchor="middle">{ru ? 'легко' : 'easy'}</text>
+        <text x="20" y="119" textAnchor="middle">{ru ? 'трудно' : tr('hard')}</text>
+        <text x="100" y="119" textAnchor="middle">{ru ? 'по-разному' : tr('it varies')}</text>
+        <text x="180" y="119" textAnchor="middle">{ru ? 'легко' : tr('easy')}</text>
       </svg>
       <h2>{headline}</h2>
       {strongest && hardest && strongest !== hardest ? (
         <p>
           {ru
-            ? `Сильнее всего, ${strongest.short}. Труднее всего, ${hardest.short}.`
-            : `${capital(strongest.short!)} is your strongest side, ${hardest.short} the hardest.`}
+            ? `Сильнее всего, ${strongest.short}. Труднее всего, ${hardest.short}.` : trf('{0} is your strongest side, {1} the hardest.', capital(strongest.short!), hardest.short)}
         </p>
       ) : null}
     </section>
@@ -127,18 +127,17 @@ export function CompatibilityCalculation({ score, questions, limitations, langua
   const ru = language === 'ru';
   return (
     <details className="compat-calculation">
-      <summary>{ru ? 'Как мы считали' : 'How we calculated'}</summary>
+      <summary>{ru ? 'Как мы считали' : tr('How we calculated')}</summary>
       <p>
         {ru
-          ? 'Сравнили положения планет в двух картах и посчитали, сколько связей между ними помогают, а сколько мешают. Общий индекс:'
-          : 'We compared planet positions in the two charts and counted how many links between them help and how many get in the way. Overall index:'}
-        {' '}<strong>{score} {ru ? 'из 100' : 'out of 100'}</strong>
+          ? 'Сравнили положения планет в двух картах и посчитали, сколько связей между ними помогают, а сколько мешают. Общий индекс:' : tr('We compared planet positions in the two charts and counted how many links between them help and how many get in the way. Overall index:')}
+        {' '}<strong>{score} {ru ? 'из 100' : tr('out of 100')}</strong>
       </p>
       <ul>
         {questions.map((item) => (
           <li key={item.question}>
             <span>{item.question}</span>
-            <strong>{item.score != null ? item.score : (ru ? 'мало данных' : 'not enough data')}</strong>
+            <strong>{item.score != null ? item.score : (ru ? 'мало данных' : tr('not enough data'))}</strong>
           </li>
         ))}
       </ul>

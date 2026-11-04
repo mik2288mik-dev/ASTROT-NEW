@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { tr } from '../lib/i18n';
 
 const STORAGE_KEY = 'tvoi-goroskop:show-astrology-details';
 const CHANGE_EVENT = 'tvoi-goroskop:astrology-details-change';
@@ -49,7 +50,7 @@ export const AstrologyDetailsToggle: React.FC<AstrologyDetailsToggleProps> = ({
   language = 'ru',
   className = '',
 }) => {
-  const label = language === 'ru' ? 'Астрологические пояснения' : 'Astrology details';
+  const label = language === 'ru' ? 'Астрологические пояснения' : tr('Astrology details');
 
   return (
     <button

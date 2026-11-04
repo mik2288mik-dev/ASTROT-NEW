@@ -34,6 +34,7 @@ import { canAccessFeature } from '../../lib/accessMatrix';
 import { LzSignPickerSheet } from '../../components/lumia-ui/v2/LzSignPickerSheet';
 import { reportClientError } from '../../services/clientErrorReport';
 import { PersonalForecastPremiumGate } from '../../components/PersonalForecastFeed/PersonalForecastPremiumGate';
+import { tr, trf } from '../../lib/i18n';
 
 type Period = 'today' | 'week' | 'month';
 
@@ -49,7 +50,7 @@ function formatHoroscopePeriodDate(
 
 function formatZodiacDateRange(sign: ZodiacKey, language: 'ru' | 'en'): string {
   const range = APPROXIMATE_SUN_SIGN_DATES[sign];
-  const formatter = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+  const formatter = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : tr('en-US'), {
     day: 'numeric',
     month: 'long',
     timeZone: 'UTC',
@@ -59,7 +60,7 @@ function formatZodiacDateRange(sign: ZodiacKey, language: 'ru' | 'en'): string {
   );
   const start = formatBoundary(range.startMonth, range.startDay);
   const end = formatBoundary(range.endMonth, range.endDay);
-  return language === 'ru' ? `с ${start} по ${end}` : `${start} to ${end}`;
+  return language === 'ru' ? `с ${start} по ${end}` : trf('{0} to {1}', start, end);
 }
 
 type ReadyReadingSnapshot = {
@@ -159,9 +160,9 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   }, []);
 
   const periodTabs = useMemo(() => ([
-    { id: 'today', label: language === 'ru' ? 'Сегодня' : 'Today' },
-    { id: 'week', label: language === 'ru' ? 'Неделя' : 'Week' },
-    { id: 'month', label: language === 'ru' ? 'Месяц' : 'Month' },
+    { id: 'today', label: language === 'ru' ? 'Сегодня' : tr('Today') },
+    { id: 'week', label: language === 'ru' ? 'Неделя' : tr('Week') },
+    { id: 'month', label: language === 'ru' ? 'Месяц' : tr('Month') },
   ]), [language]);
 
   const weekKey = useMemo(() => getMoscowIsoWeekKey(), [today]);
@@ -294,18 +295,18 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   return (
     <div className="fresh-page horo-reader-page nebo-horo">
       {/* A main tab: the brand bar with the account chip, as on the canvas. */}
-      <AppTopBar title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'} main />
+      <AppTopBar title={language === 'ru' ? 'Гороскоп по знакам' : tr('Sign horoscope')} main />
 
       <div className="nebo-page-title">
-        <h1>{language === 'ru' ? 'Знаки зодиака' : 'Zodiac signs'}</h1>
-        <p>{language === 'ru' ? 'Гороскоп на сегодня' : 'Horoscope for today'}</p>
+        <h1>{language === 'ru' ? 'Знаки зодиака' : tr('Zodiac signs')}</h1>
+        <p>{language === 'ru' ? 'Гороскоп на сегодня' : tr('Horoscope for today')}</p>
       </div>
 
       {preparationNotice}
 
       {!onboarding ? (
-        <div className="nebo-cn-modes" role="tablist" aria-label={language === 'ru' ? 'Вид гороскопа' : 'Horoscope kind'}>
-          {([['zodiac', language === 'ru' ? 'Зодиак' : 'Zodiac'], ['chinese', language === 'ru' ? 'Китайский' : 'Chinese']] as const).map(([key, label]) => (
+        <div className="nebo-cn-modes" role="tablist" aria-label={language === 'ru' ? 'Вид гороскопа' : tr('Horoscope kind')}>
+          {([['zodiac', language === 'ru' ? 'Зодиак' : tr('Zodiac')], ['chinese', language === 'ru' ? 'Китайский' : tr('Chinese')]] as const).map(([key, label]) => (
             <button key={key} type="button" role="tab" aria-selected={horoMode === key} className={horoMode === key ? 'is-active' : ''} onClick={() => setHoroMode(key)}>{label}</button>
           ))}
         </div>
@@ -351,7 +352,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
         >
           <span>{selectedSignLabel}</span>
         </button>
-        <p className="horo-reader-sign-range">{selectedSignDateRange}{ownSign === sign.toLowerCase() ? (language === 'ru' ? ' · твой' : ' · yours') : ''}</p>
+        <p className="horo-reader-sign-range">{selectedSignDateRange}{ownSign === sign.toLowerCase() ? (language === 'ru' ? ' · твой' : tr(' · yours')) : ''}</p>
         {!onboarding ? (
           <span className="nebo-sign-dots" aria-hidden="true">
             {ZODIAC_KEYS.map((key, index) => <i key={key} className={index === signIndex ? 'is-on' : ''} />)}
@@ -394,10 +395,10 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
             ) : hasReadingFailure ? (
               <div className="horo-lock" role="alert">
                 <div className="horo-lock-title">
-                  {language === 'ru' ? 'Разбор пока недоступен' : 'The reading is unavailable'}
+                  {language === 'ru' ? 'Разбор пока недоступен' : tr('The reading is unavailable')}
                 </div>
                 <button type="button" className="fresh-btn-primary" onClick={retryCurrent}>
-                  {language === 'ru' ? 'Повторить' : 'Try again'}
+                  {language === 'ru' ? 'Повторить' : tr('Try again')}
                 </button>
               </div>
             ) : displayedReading ? (
@@ -413,18 +414,17 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
                   period={displayedPeriod}
                   language={language}
                   onShare={() => shareToTelegram(language === 'ru'
-                    ? `Гороскоп для знака ${displayedSignLabel} в NEBO`
-                    : `${displayedSignLabel} horoscope in NEBO`)}
+                    ? `Гороскоп для знака ${displayedSignLabel} в NEBO` : trf('{0} horoscope in NEBO', displayedSignLabel))}
                 />
               </>
-            ) : onboarding ? <p role="status">{language === 'ru' ? 'Загружаем гороскоп…' : 'Loading your horoscope…'}</p> : null}
+            ) : onboarding ? <p role="status">{language === 'ru' ? 'Загружаем гороскоп…' : tr('Loading your horoscope…')}</p> : null}
           </div>
         </article>
       </div>
 
       {!onboarding ? (
         <section className="nebo-horo-all" aria-labelledby="nebo-horo-all-title">
-          <h2 id="nebo-horo-all-title">{language === 'ru' ? 'Все знаки' : 'All signs'}</h2>
+          <h2 id="nebo-horo-all-title">{language === 'ru' ? 'Все знаки' : tr('All signs')}</h2>
           <div className="nebo-horo-grid">
             {ZODIAC_KEYS.map((key) => (
               <button
@@ -447,8 +447,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
         open={signPickerOpen}
         language={profile.language}
         current={sign}
-        title={language === 'ru' ? 'Выбери знак' : 'Choose a sign'}
-        subtitle={language === 'ru' ? 'Прогноз откроется в том же периоде' : 'The same period will stay selected'}
+        title={language === 'ru' ? 'Выбери знак' : tr('Choose a sign')}
+        subtitle={language === 'ru' ? 'Прогноз откроется в том же периоде' : tr('The same period will stay selected')}
         variant="editorial"
         onPick={chooseSign}
         onClose={() => setSignPickerOpen(false)}
