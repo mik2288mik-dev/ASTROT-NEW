@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { readPurchasesSnapshot } from '../../../../lib/oneTimePurchases';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { ensureValidContext } from '../../../../lib/natalReading/apiHelper';
 import { hasFailedNatalReadingPreparation } from '../../../../lib/natalReading/preparation';
@@ -31,7 +32,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { userId, ctx } = ready;
   if (tier === 'premium') {
     const entitlement = await getPremiumEntitlementState(userId);
-    if (!entitlement.isPremium) {
+    const ownsFullChart = !entitlement.isPremium && ctx.chartSubjectType === 'self' && Boolean((await readPurchasesSnapshot(userId)).natalFull);
+    if (!entitlement.isPremium && !ownsFullChart) {
       return res.status(403).json({
         error: 'Premium required',
         code: 'PREMIUM_REQUIRED',

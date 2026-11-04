@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createHash } from 'crypto';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { consumeQuestionCredit, readPurchasesSnapshot } from '../../../../lib/oneTimePurchases';
 import { getPersonalForecastPeriodKey, normalizeForecastTimezone } from '../../../../lib/personalForecastContract';
 import {
   ensureValidContext,
@@ -79,7 +80,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const language = ctx.profile.language === 'en' ? 'en' : 'ru';
   diagnostic.log('context', 'ok', { source: 'owned_selected_chart' });
   const entitlement = await getPremiumEntitlementState(userId);
-  if (!entitlement.isPremium) {
+  // Bought question packs work without Plus; each answer spends one.
+  const usesQuestionCredit = !entitlement.isPremium && Number((await readPurchasesSnapshot(userId)).questionCredits || 0) > 0;
+  if (!entitlement.isPremium && !usesQuestionCredit) {
     diagnostic.log('access', 'error', { httpStatus: 403, errorCode: 'PREMIUM_REQUIRED' });
     return res.status(403).json({
       error: 'Premium required',
@@ -192,7 +195,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           question,
           questionMessageId: reserved.message.id,
         });
-        return appendNatalQuestionMessage({
+        const savedAnswer = await appendNatalQuestionMessage({
           userId,
           chartId,
           threadId,
@@ -209,6 +212,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             generationAttempts: answer.generationAttempts || 1,
           },
         });
+        if (usesQuestionCredit) await consumeQuestionCredit(userId);
+        return savedAnswer;
       },
       onLockAcquired: () => diagnostic.log('generation_lock', 'ok'),
       onLockBusy: () => diagnostic.log('generation_lock', 'in_progress'),

@@ -138,16 +138,21 @@ async function shareText(text: string): Promise<void> {
 /** Screens that still hold examples: for a real account they open the working old screens. */
 const HANDOFF_SCREENS: Record<string, string> = {
   person: 'synastry',
-  year: 'services', player: 'sounds',
+  player: 'sounds',
 };
 const HANDOFF_SEGMENTS: Record<string, string> = {};
-const HANDOFF_POPUPS: Record<string, string> = { natalData: 'settings', addChart: 'charts', packs: 'pay', askMore: 'pay' };
+const HANDOFF_POPUPS: Record<string, string> = { natalData: 'settings', addChart: 'charts' };
 
 export class DCLogic<P = Record<string, unknown>, S = Record<string, unknown>> extends React.Component<P, S> {
   setState(patch: never, callback?: () => void): void {
     const handoff = (this.props as { handoff?: (flow: string) => void }).handoff;
     const next = patch as Record<string, unknown> | null;
     if (handoff && next && typeof next === 'object') {
+      // Sold only as part of Plus.
+      if (next.popup === 'buyMatrix' || next.popup === 'buyOther') {
+        super.setState({ popup: null, screen: 'plus' } as never, callback);
+        return;
+      }
       const flow = HANDOFF_SCREENS[String(next.screen)] ?? HANDOFF_SEGMENTS[String(next.seg)]
         ?? (next.fScr === 'add' ? 'friends' : undefined)
         ?? HANDOFF_POPUPS[String(next.popup)];

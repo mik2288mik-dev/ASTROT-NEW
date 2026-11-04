@@ -56,6 +56,9 @@ import {
   getOpenAIResponsesClient,
 } from '../../../../lib/openaiResponses';
 
+import { createHash } from 'crypto';
+import { unlockPersonReading } from '../../../../lib/oneTimePurchases';
+
 const SCOPE = 'synastry-extended';
 
 type SynastryChartData = NatalChartData | NatalChartDataV2;
@@ -298,7 +301,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const rel = String(relationshipType || 'романтика').trim();
   const relationshipContext = resolveRelationshipContext(requestedRelationshipContext, rel);
   const entitlementState = await getPremiumEntitlementState(userId);
-  const isPremium = entitlementState.isPremium;
+  // A bought pair reading opens this pair for good; only its first opening spends a credit.
+  const pairUnlockKey = createHash('sha256').update(JSON.stringify([
+    normalizedSubjectSource, requestedSubjectChartId, String(subjectDate || ''), normalizedPartnerSource, requestedPartnerChartId, String(partnerDate || ''), relationshipContext,
+  ])).digest('hex').slice(0, 40);
+  const isPremium = entitlementState.isPremium || await unlockPersonReading(userId, pairUnlockKey);
 
   logContentApi(
     { scope: SCOPE, userId, chartId: null, surface: 'synastry', variant: 'full' },
