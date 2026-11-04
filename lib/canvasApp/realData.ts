@@ -1,4 +1,11 @@
 import type { ChartListItem } from '../../services/storageService';
+import { dayEase, dayFace } from '../../components/nebo/PeriodViews';
+import { buildFutureMonth, natalPointsFromChart, type CalendarDay } from '../futureCalendar';
+import { buildWeekTeaser } from '../futurePeriodTeaser';
+import { buildLunarDays } from '../lunarCalendar';
+import { sunSignFromDate } from '../synastry/compatScore';
+import type { NativeNotificationSettings } from '../nativeNotificationPolicy';
+import type { PurchasesSnapshot } from '../oneTimeProducts';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
 import { formatDisplayDate } from '../date-utils';
@@ -6,7 +13,8 @@ import { isCanonicalNatalChart } from '../natalCalculationProof';
 import { getArcana } from '../matrixArcana';
 import { computeMatrix, reduceToArcana } from '../matrixOfDestiny';
 import { buildNatalInterpretation } from '../natalInterpretation';
-import { runeOfTheDay } from '../runes';
+import { drawRunes, runeOfTheDay } from '../runes';
+import { cardImage, cardOfTheDay, drawSpread, weekKeyOf } from '../tarot';
 import { LIFE_PATH, lifePathNumber, parseBirthDate, PERSONAL_YEAR, personalDayNumber, personalYearNumber, pythagorasSquare, SQUARE_CELLS, squareSummary } from '../numerology';
 import { buildBigThree, buildChartMoments, SIGN_NOMINATIVE_RU } from '../natalMoments';
 import type { NatalUnifiedReading } from '../natalReading/unifiedReading';
@@ -19,12 +27,19 @@ export type CanvasRealData = {
   today?: Record<string, unknown>;
   signIdx: number;
   personalDay?: number;
+  birthParts?: [number, number, number];
   runeSlug?: string;
+  dayCard?: { name: string; meaning: string; img: string | null };
   dayShort?: string;
   retro?: { active: boolean; from?: string; to?: string };
+  moonDays?: unknown[][];
+  period?: CanvasPeriod;
+  notif?: NativeNotificationSettings | null;
+  purchases?: string[][];
+  friends?: Array<{ id: string; name: string; sign: string; last: string; match: string; unread: number }>;
   plusUntil?: string;
   birthShort?: string;
-  people?: Array<{ key: string; signIdx: number; who: Record<string, unknown> }>;
+  people?: Array<{ key: string; signIdx: number; birth?: [number, number, number]; who: Record<string, unknown> }>;
 };
 
 const BODIES: ReadonlyArray<[string, string]> = [
@@ -87,9 +102,14 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
       const now = new Date();
       return parts ? personalDayNumber(parts, now.getFullYear(), now.getMonth() + 1, now.getDate()) : undefined;
     })(),
+    dayCard: (() => {
+      const card = cardOfTheDay(String(profile.id ?? ''), new Date().toISOString().slice(0, 10));
+      return { name: `${card.roman} · ${card.name}`, meaning: card.day, img: cardImage(card) };
+    })(),
     runeSlug: runeOfTheDay(String(profile.id ?? ''), new Date().toISOString().slice(0, 10)).slug,
     dayShort: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }),
     plusUntil: profile.premiumUntil ? new Date(profile.premiumUntil).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : undefined,
+    birthParts: (() => { const parts = parseBirthDate(profile.birthDate); return parts ? [parts.day, parts.month, parts.year] as [number, number, number] : undefined; })(),
     birthShort: profile.birthDate ? profile.birthDate.split('-').reverse().join('.') : undefined,
     me: {
       name,
@@ -231,6 +251,7 @@ export function buildCanvasPeople(charts: readonly ChartListItem[]): NonNullable
       const birth = [chart.birth_date ? formatDisplayDate(chart.birth_date, 'ru').replace(/(\d{4}) г\./, '$1') : '', chart.birth_time, chart.birth_place].filter(Boolean).join(' · ');
       return {
         key: `chart${chart.id}`,
+        birth: (() => { const parts = parseBirthDate(chart.birth_date); return parts ? [parts.day, parts.month, parts.year] as [number, number, number] : undefined; })(),
         signIdx: sunSign ? signIndexOf(sunSign) : -1,
         who: {
           other: true, name, gen: name, acc: name, about: `про: ${name}`, sub: birth,
@@ -239,7 +260,144 @@ export function buildCanvasPeople(charts: readonly ChartListItem[]): NonNullable
           chReal: { story: [{ title: 'Весь рассказ', sub: '', locked: true, paras: [] }], topics: [] },
           ...(canonical ? chartFields(canonical) : { nat: [], big3: [['', ''], ['', ''], ['', '']], highlights: [] }),
           ...(chart.birth_date ? dateFields(chart.birth_date) : {}),
+          // The highlights speak to «ты»: they belong to the person's own chart.
+          highlights: [],
         },
       };
     });
+}
+
+const WEEK_KEYS = { tarot: 'nebo.tarot.week.v1', runes: 'nebo.runes.week.v1' } as const;
+
+function weekUse(kind: keyof typeof WEEK_KEYS): number {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(WEEK_KEYS[kind]) || 'null') as { week?: string; used?: number } | null;
+    return stored?.week === weekKeyOf(new Date()) && Number.isFinite(stored?.used) ? Number(stored?.used) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function markWeekUse(kind: keyof typeof WEEK_KEYS): void {
+  try { window.localStorage.setItem(WEEK_KEYS[kind], JSON.stringify({ week: weekKeyOf(new Date()), used: weekUse(kind) + 1 })); } catch { /* counted until the app closes */ }
+}
+
+/** Tarot and runes: the same decks, texts and weekly free spread as the old screens. */
+export function buildCanvasOracle(openAccess: () => boolean) {
+  return {
+    needsPayment: (kind: keyof typeof WEEK_KEYS): boolean => !openAccess() && weekUse(kind) >= 1,
+    tarot: () => {
+      markWeekUse('tarot');
+      const [past, now, next] = drawSpread();
+      return {
+        reading: [['Прошлое', `${past.roman} · ${past.name}`, past.past], ['Сейчас', `${now.roman} · ${now.name}`, now.now], ['Дальше', `${next.roman} · ${next.name}`, next.next]],
+        meaning: now.day,
+        advice: next.advice,
+        cards: [past, now, next].map((card) => ({ name: card.name, img: cardImage(card) })),
+      };
+    },
+    runes: () => {
+      markWeekUse('runes');
+      const [past, now, next] = drawRunes();
+      return {
+        cast: [['Что было', past.slug, past.past], ['Что сейчас', now.slug, now.now], ['Что дальше', next.slug, next.next]],
+        meaning: now.day,
+        advice: next.advice,
+      };
+    },
+  };
+}
+
+/** «Покупки»: what this person really owns. */
+export function buildCanvasPurchases(profile: UserProfile, snapshot: PurchasesSnapshot): string[][] {
+  const dayText = (value: string) => new Date(value).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  const rows: string[][] = [];
+  if (profile.isPremium) rows.push(['plus', 'NEBO Plus', 'подписка', profile.premiumUntil ? `до ${dayText(profile.premiumUntil)}` : '']);
+  if (snapshot.esoUntil && Date.parse(snapshot.esoUntil) > Date.now()) rows.push(['tarot', 'Таро, руны и числа на год', 'эзотерика', `до ${dayText(snapshot.esoUntil)}`]);
+  if (snapshot.spreadCredits > 0) rows.push(['tarot', 'Расклады таро и рун', 'не сгорают', `осталось: ${snapshot.spreadCredits}`]);
+  snapshot.giftCodes.forEach((gift) => rows.push(['gift', `Подарок Plus · ${gift.months} мес.`, gift.code, gift.redeemed ? 'использован' : 'не использован']));
+  return rows;
+}
+
+export type CanvasPeriod = {
+  todayIndex: number;
+  mood: number[];
+  ticks: Array<[number, string]>;
+  week: Array<{ dow: string; num: number; icon: string; text: string; state: 'past' | 'today' | 'future' }>;
+  cells: Array<{ key: string; d: number; good: boolean; rx: boolean; quarter: string | null; today: boolean }>;
+  events: string[][];
+  days: Record<string, { date: string; title: string; text: string }>;
+  text: Record<string, string>;
+};
+
+const WEEK_DOWS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+const MONTH_SHORT = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const MONTH_NOM = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const dayKeyLocal = (date: Date): string => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const longDate = (key: string): string => new Date(`${key}T12:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+
+/** Week and month from the same calendar as the old screens: transits to this person's chart and the real sky. */
+export function buildCanvasPeriod(engine: typeof import('astronomy-engine'), profile: UserProfile, chart: NatalChartData | null): CanvasPeriod | null {
+  const now = new Date();
+  const todayKey = dayKeyLocal(now);
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+  const startKey = dayKeyLocal(monday);
+  const end = new Date(monday.getTime() + 34 * 86400000);
+  const natal = natalPointsFromChart(chart);
+  const all: CalendarDay[] = [];
+  for (let y = monday.getFullYear(), m = monday.getMonth() + 1, guard = 0; guard < 3; guard += 1) {
+    all.push(...buildFutureMonth(engine, y, m, natal, profile.birthTimezone || 'Europe/Moscow').days);
+    m += 1;
+    if (m > 12) { m = 1; y += 1; }
+  }
+  const days = all.filter((day) => day.dayKey >= startKey && day.dayKey <= dayKeyLocal(end));
+  if (days.length < 35) return null;
+  const lunar = buildLunarDays(engine, new Date(`${startKey}T12:00:00Z`), 35);
+  const sun = sunSignFromDate(profile.birthDate);
+  const sunIndex = sun ? SIGN_KEYS.findIndex((key) => key.toLowerCase() === sun.toLowerCase()) : -1;
+  const todayIndex = days.findIndex((day) => day.dayKey === todayKey);
+  const eased = days.map((day, index) => Math.round(((dayEase(day, lunar[index], sunIndex >= 0 ? sunIndex : null) + 1.5) / 3) * 100));
+  const weekDays = days.slice(0, 7);
+  const teaser = buildWeekTeaser({ days: weekDays, fromKey: todayKey, toKey: weekDays[6].dayKey, hasNatal: Boolean(natal), language: 'ru' });
+  const monthOf = (key: string) => Number(key.slice(5, 7)) - 1;
+  const firstMonth = monthOf(days[0].dayKey);
+  const lastMonth = monthOf(days[34].dayKey);
+  const shortLabel = (key: string, withMonth: boolean) => `${Number(key.slice(8, 10))}${withMonth ? ` ${MONTH_SHORT[monthOf(key)]}` : ''}`;
+  const dayMap: CanvasPeriod['days'] = {};
+  days.forEach((day, index) => {
+    const face = dayFace(day, lunar[index]);
+    const details = [...day.sky, ...day.personal].map((event) => event.body).filter(Boolean);
+    dayMap[day.dayKey] = {
+      date: longDate(day.dayKey),
+      title: face.title,
+      text: details.join(' ') || `Луна ${day.moonSignIn ? `в ${day.moonSignIn}` : ''}. Особых событий на этот день нет.`,
+    };
+  });
+  const events: string[][] = [];
+  for (const day of days) {
+    if (day.dayKey < todayKey) continue;
+    for (const event of [...day.sky, ...day.personal]) events.push([String(Number(day.dayKey.slice(8, 10))), MONTH_SHORT[monthOf(day.dayKey)], event.headline, event.body]);
+  }
+  return {
+    todayIndex,
+    mood: eased,
+    ticks: [0, 7, 14, 21, 28].map((index) => [index, shortLabel(days[index].dayKey, index === 0 || monthOf(days[index].dayKey) !== monthOf(days[index - 7].dayKey))]),
+    week: weekDays.map((day, index) => {
+      const face = dayFace(day, lunar[index]);
+      return { dow: WEEK_DOWS[index], num: Number(day.dayKey.slice(8, 10)), icon: face.icon, text: face.title, state: day.dayKey < todayKey ? 'past' : day.dayKey === todayKey ? 'today' : 'future' };
+    }),
+    cells: days.map((day) => ({ key: day.dayKey, d: Number(day.dayKey.slice(8, 10)), good: day.tone === 'good', rx: day.mercuryRetrograde, quarter: day.moonQuarter ?? null, today: day.dayKey === todayKey })),
+    events: events.slice(0, 12),
+    days: dayMap,
+    text: {
+      weekRange: `${longDate(weekDays[0].dayKey).split(' ')[0]} - ${longDate(weekDays[6].dayKey)}`,
+      weekTitle: teaser[0] ?? 'Твоя неделя',
+      weekText: teaser.slice(1).join(' '),
+      monthTitle: firstMonth === lastMonth ? MONTH_NOM[firstMonth] : `${MONTH_NOM[firstMonth]} - ${MONTH_NOM[lastMonth].toLowerCase()}`,
+      weekLock: 'дальше в Plus',
+      remind: `Напомнить ${longDate(todayKey)}`,
+      weekMood: 'Настроение посчитано по транзитам к твоей карте и Луне.',
+      monthMood: 'Видно, какие дни легче, а какие труднее.',
+    },
+  };
 }

@@ -82,3 +82,8 @@ export function noteForecastSeenForReview(now = new Date()): void {
       .catch(() => undefined);
   }, ASK_DELAY_MS);
 }
+
+/** The person chose to rate the app: show the store's own form right away. */
+export function requestStoreReviewNow(): void {
+  void RuStoreReview.requestReview().catch(() => undefined);
+}

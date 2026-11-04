@@ -4,18 +4,31 @@ import React, { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import Component from '../../lib/canvasApp/canvasLogic';
 import { CANVAS_CSS, CANVAS_FONTS } from '../../lib/canvasApp/canvasStyles';
-import { buildCanvasChapters, buildCanvasPeople, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
-import { getCachedDailySignHoroscope, getCachedWeeklySignHoroscope } from '../../services/astrologyService';
+import { buildCanvasChapters, buildCanvasOracle, buildCanvasPeriod, buildCanvasPeople, buildCanvasPurchases, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
+import { getCachedDailySignHoroscope, getCachedWeeklySignHoroscope, getCompatibilityPreview, type CompatibilityPreviewPerson } from '../../services/astrologyService';
+import type { CompatibilityPreview } from '../../lib/synastry/compatibilityPreview';
+import type { RelationshipContext } from '../../lib/synastry/relationshipContext';
 import { loadPersonalForecast } from '../../services/personalForecastService';
 import type { NatalUnifiedReading } from '../../lib/natalReading/unifiedReading';
 import { ensureNatalUnifiedReading } from '../../services/natalUnifiedReadingService';
 import type { NatalChartData, UserProfile } from '../../types';
 import { readLocalNatalChartCache } from '../../lib/localNatalChartCache';
 import { getChartData, getCharts, getProfile } from '../../services/storageService';
-import { buyOneTimeProduct, canBuyOneTimeProducts } from '../../services/oneTimePurchaseService';
+import { friendErrorText, loadFriends, loadMessages, postMessage, type FriendMessage } from '../../services/friendsService';
+import { getCompatScore, sunSignFromDate } from '../../lib/synastry/compatScore';
+import { buyOneTimeProduct, canBuyOneTimeProducts, redeemPlusCode, refreshPurchases, resumePendingPurchases, spendSpreadCredit } from '../../services/oneTimePurchaseService';
+import { openRuStoreSubscriptionManagement, restoreRuStorePurchases } from '../../services/rustorePayService';
+import { requestStoreReviewNow } from '../../services/rustoreReview';
+import { reportClientError } from '../../services/clientErrorReport';
+import { buildCalculationProof } from '../../lib/natalCalculationProof';
+import { hasEsoAccess } from '../../lib/oneTimeProducts';
+import { askNatalQuestion, loadNatalQuestionSnapshot } from '../../services/natalQuestionService';
+import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
 import { requestRuStorePayment } from '../../services/rustorePayService';
 import {
   answerNativeNotificationsOffer,
+  getNativeNotificationSettings,
+  saveNativeNotificationSettings,
   clearNativeNotifications,
   consumeNativeNotificationTap,
   listenNativeNotificationTap,
@@ -26,6 +39,7 @@ import {
   shouldOfferNativeNotifications,
 } from '../../services/nativeNotifications';
 import { explainMapSelection } from '../NatalReading/mapExplanation';
+import { SIGN_NOMINATIVE_RU } from '../../lib/natalMoments';
 import { setUiLanguage } from '../../lib/i18n';
 import { buildLunarDays, phaseName, SIGNS_IN } from '../../lib/lunarCalendar';
 import type { OneTimeProductId } from '../../lib/oneTimeProducts';
@@ -143,6 +157,10 @@ export default function CanvasApp() {
       }
       const result = await buyOneTimeProduct(String(profile.id), product as OneTimeProductId);
       if (result.status === 'completed') {
+        if (product === 'spread_one') {
+          const opened = await spendSpreadCredit(String(profile.id)).catch(() => false);
+          if (!opened) { app.toast('Не получилось открыть купленный расклад. Проверь интернет.'); return; }
+        }
         if (result.giftCode) app.toast(`Код подарка: ${result.giftCode}`);
         else app.paid();
       } else if (result.status === 'pending') app.toast('Оплата проверяется. Покупка появится, как только RuStore её подтвердит.');
@@ -219,6 +237,7 @@ export default function CanvasApp() {
       // A point of the chart explained from this person's own chart.
       const pointKeys: Record<string, string> = { asc: 'ascendant', dsc: 'descendant', node: 'northNode', snode: 'southNode' };
       const chartsByKey = new Map<string, NatalChartData>();
+      let primaryChartId: number | null = null;
       const explainPoint = (whoKey: string, point: string): string | null => {
         const chart = whoKey === 'me' ? loaded?.chart : chartsByKey.get(whoKey);
         if (!chart) return null;
@@ -234,6 +253,149 @@ export default function CanvasApp() {
         if (prefs.theme) writePref('theme', prefs.theme);
         if (prefs.lang) { writePref('lang', prefs.lang); setUiLanguage(prefs.lang as Parameters<typeof setUiLanguage>[0]); }
       };
+      // Compatibility of two real charts: calculated on the server, no AI.
+      const pairResults = new Map<string, { status: 'loading' | 'ready' | 'error'; preview?: CompatibilityPreview }>();
+      const contextOf: Record<string, RelationshipContext> = { general: 'relationship', romance: 'romance', relationship: 'relationship', ex: 'ex', friendship: 'friendship', family: 'family', work: 'work', boss: 'work', business: 'work' };
+      const personOf = (key: string): CompatibilityPreviewPerson | null => {
+        if (key === 'me') return primaryChartId != null ? { source: 'saved', chartId: primaryChartId } : { source: 'birth', name: loaded?.profile.name, date: loaded?.profile.birthDate, place: loaded?.profile.birthPlace };
+        const id = Number(key.replace('chart', ''));
+        return Number.isFinite(id) ? { source: 'saved', chartId: id } : null;
+      };
+      const pairPreview = (a: string, b: string, context: string) => {
+        const key = `${a}|${b}|${context}`;
+        const known = pairResults.get(key);
+        if (known) return known;
+        const first = personOf(a);
+        const second = b ? personOf(b) : null;
+        if (!first || !second || !loaded) return { status: 'error' as const };
+        const entry = { status: 'loading' as const };
+        pairResults.set(key, entry);
+        void getCompatibilityPreview(loaded.profile, first, second, contextOf[context] ?? 'relationship')
+          .then((preview) => { pairResults.set(key, { status: 'ready', preview }); })
+          .catch(() => { pairResults.set(key, { status: 'error' }); })
+          .finally(() => { if (!cancelled) renderNow(); });
+        return entry;
+      };
+      // Friends and messages: the same service as the old screen.
+      let friends: NonNullable<CanvasRealData['friends']> = [];
+      const chats = new Map<string, FriendMessage[]>();
+      let activeChat = '';
+      const refreshChat = (id: string) => {
+        void loadMessages(id).then(({ messages }) => { chats.set(id, messages); if (!cancelled) renderNow(); }).catch(() => undefined);
+      };
+      const chatPoll = window.setInterval(() => { if (activeChat && document.visibilityState !== 'hidden') refreshChat(activeChat); }, 6000);
+      notifyCleanup.push(() => window.clearInterval(chatPoll));
+      const clock = (at: string) => new Date(at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      const friendMessages = (id: string, open: boolean) => {
+        const nextActive = open ? id : '';
+        if (nextActive && nextActive !== activeChat) refreshChat(nextActive);
+        activeChat = nextActive;
+        return (chats.get(id) ?? []).map((message) => [message.mine ? 'out' : 'in', message.kind === 'card' ? '' : message.body, clock(message.at), message.kind === 'card' ? [message.payload?.kicker ?? '', message.payload?.title ?? message.body] : undefined]);
+      };
+      const friendSend = (id: string, body: string) => {
+        void postMessage(id, body)
+          .then(({ message }) => { chats.set(id, [...(chats.get(id) ?? []), message]); if (!cancelled) renderNow(); })
+          .catch((error: Error) => instance.current?.toast(friendErrorText(error.message)));
+      };
+      let notif: CanvasRealData['notif'] = null;
+      let purchases: string[][] = [];
+      const reloadPurchases = async () => {
+        if (!loaded?.profile.id) return;
+        const snapshot = await refreshPurchases(String(loaded.profile.id));
+        esoAccess = hasEsoAccess(snapshot);
+        purchases = buildCanvasPurchases(loaded.profile, snapshot);
+        if (!cancelled) renderNow();
+      };
+      const redeem = async (code: string, app: CanvasInstance) => {
+        const result = await redeemPlusCode(code);
+        if (result.ok) {
+          app.setState({ popup: null, account: 'plus' });
+          app.toast(result.days ? `Готово: NEBO Plus включён на ${result.days} дн.` : 'Готово: код применён');
+          void reloadPurchases();
+        } else app.toast(result.reason === 'NETWORK' ? 'Проверь интернет и попробуй ещё раз.' : 'Такой код не подошёл. Проверь буквы и цифры.');
+      };
+      const restorePurchases = async (app: CanvasInstance) => {
+        try {
+          if (loaded?.profile.id && canBuyOneTimeProducts()) {
+            await restoreRuStorePurchases(String(loaded.profile.id));
+            await resumePendingPurchases(String(loaded.profile.id));
+          }
+          await reloadPurchases();
+          app.toast('Покупки проверены');
+        } catch {
+          app.toast('Не получилось проверить покупки. Попробуй позже.');
+        }
+        app.setState({ restoring: false });
+      };
+      const saveNotif = async (key: string, value: boolean | string, app: CanvasInstance) => {
+        if (!loaded?.profile.id || !nativeNotificationsAvailable()) { app.toast('Уведомления настраиваются в приложении на телефоне.'); return; }
+        const patch: Record<string, unknown> = key === 'all' ? { enabled: value }
+          : key === 'morning' ? { mode: value ? 'daily' : 'important' }
+            : key === 'quiet' ? { quietEnabled: value }
+              : key === 'time' ? { morningTime: String(value).padStart(5, '0') }
+                : { [key]: value };
+        try {
+          await saveNativeNotificationSettings(String(loaded.profile.id), patch, true);
+          notif = await getNativeNotificationSettings(String(loaded.profile.id));
+          if (!cancelled) renderNow();
+        } catch (error) {
+          app.toast((error as Error).message === 'permission_required' ? 'Разреши уведомления для NEBO в настройках телефона.' : 'Не получилось сохранить. Попробуй ещё раз.');
+        }
+      };
+      // Questions about the chart: the same service and limits as the old screen.
+      const ask: { question: string; answer: string; error: string; sending: boolean; remaining: number | null } = { question: '', answer: '', error: '', sending: false, remaining: null };
+      const askState = () => ask;
+      const applySnapshot = (snapshot: NatalQuestionSnapshot) => {
+        const lastQuestion = snapshot.messages.filter((message) => message.role === 'user').at(-1);
+        const lastAnswer = snapshot.messages.filter((message) => message.role === 'assistant').at(-1);
+        ask.question = lastQuestion?.text ?? '';
+        ask.answer = lastAnswer?.text ?? '';
+        ask.remaining = snapshot.usage.remaining;
+      };
+      const askQuestion = (question: string) => {
+        if (!loaded?.profile.id) return;
+        if (!loaded.profile.isPremium) { handoff('pay'); return; }
+        if (ask.sending) return;
+        Object.assign(ask, { question, answer: '', error: '', sending: true });
+        renderNow();
+        void askNatalQuestion(String(loaded.profile.id), question)
+          .then(applySnapshot)
+          .catch(() => { ask.error = 'Сейчас не получилось ответить. Попробуй ещё раз чуть позже.'; })
+          .finally(() => { ask.sending = false; if (!cancelled) renderNow(); });
+      };
+      if (loaded?.profile.id && loaded.profile.isPremium) void loadNatalQuestionSnapshot(String(loaded.profile.id)).then((snapshot) => { applySnapshot(snapshot); if (!cancelled) renderNow(); }).catch(() => undefined);
+      // Canvas messages that stand for a real action.
+      const toastAction = (text: string, app: CanvasInstance): boolean => {
+        if (text === 'Откроем подписки в RuStore') { void openRuStoreSubscriptionManagement().catch(() => app.toast('Подписками можно управлять в приложении RuStore.')); return true; }
+        if (text === 'Откроем чат поддержки' || text === 'Спасибо, прочитаем') { handoff('settings'); return true; }
+        if (text.startsWith('Напомним')) return true;
+        if (text === 'Спасибо! Отчёт ушёл разработчикам') reportClientError('canvas_error_screen', new Error('reported by user'));
+        return false;
+      };
+      // «Как посчитана карта» for the chart that is open.
+      const proofFor = (whoKey: string) => {
+        const chart = whoKey === 'me' ? loaded?.chart : chartsByKey.get(whoKey);
+        if (!chart) return null;
+        try {
+          const proof = buildCalculationProof(chart as never, whoKey === 'me' ? (loaded?.profile.name ?? '') : '', 'ru');
+          const rows = [
+            ['Дата', proof.localDate], ['Время', [proof.localTime ?? 'без времени', proof.utcOffsetText ? `(${proof.utcOffsetText})` : ''].filter(Boolean).join(' ')],
+            ['Место', proof.place], ['Координаты', `${proof.latitude.toFixed(2)}°, ${proof.longitude.toFixed(2)}°`],
+            ['Зодиак и дома', [proof.zodiac, proof.houseSystem].filter(Boolean).join(', ')],
+          ];
+          return { rows, text: rows.map(([label, value]) => `${label}: ${value}`).join('\n') };
+        } catch {
+          return null;
+        }
+      };
+      const proofCopy = (text: string, app: CanvasInstance) => {
+        void navigator.clipboard?.writeText(text).then(() => app.toast('Данные скопированы')).catch(() => undefined);
+      };
+      const proofOpen = () => { window.open('https://www.astro.com/horoscope', '_blank', 'noopener'); };
+      let esoAccess = false;
+      const oracle = buildCanvasOracle(() => Boolean(loaded?.profile.isPremium) || esoAccess);
+      void reloadPurchases().catch(() => undefined);
+      if (loaded?.profile.id && nativeNotificationsAvailable()) void getNativeNotificationSettings(String(loaded.profile.id)).then((value) => { notif = value; if (!cancelled) renderNow(); }).catch(() => undefined);
       const render = (real: CanvasRealData | null) => root?.render(
         <CanvasRoot
           key="app"
@@ -245,6 +407,20 @@ export default function CanvasApp() {
           account={params.get('account') ?? real?.account}
           real={real}
           signText={signText}
+          toastAction={real ? toastAction : undefined}
+          requestReview={real ? requestStoreReviewNow : undefined}
+          proofFor={real ? proofFor : undefined}
+          proofCopy={real ? proofCopy : undefined}
+          proofOpen={real ? proofOpen : undefined}
+          askQuestion={real ? askQuestion : undefined}
+          askState={real ? askState : undefined}
+          redeem={real ? redeem : undefined}
+          restorePurchases={real ? restorePurchases : undefined}
+          saveNotif={real ? saveNotif : undefined}
+          oracle={real ? oracle : undefined}
+          friendMessages={real ? friendMessages : undefined}
+          friendSend={real ? friendSend : undefined}
+          pairPreview={real ? pairPreview : undefined}
           theme={readPref('theme') ?? (loaded?.profile.theme === 'dark' ? 'dark' : undefined)}
           lang={readPref('lang') ?? (loaded?.profile.language === 'en' ? 'en' : undefined)}
           onPrefs={onPrefs}
@@ -258,14 +434,26 @@ export default function CanvasApp() {
       let today: Record<string, unknown> = { dateLine: canvasDateLine() };
       let moon: Record<string, string> | undefined;
       let retro: CanvasRealData['retro'];
+      let moonDays: unknown[][] | undefined;
+      let period: CanvasRealData['period'];
       const compose = (): CanvasRealData | null => (loaded
-        ? { ...loaded.real, retro, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
+        ? { ...loaded.real, retro, period, moonDays, friends, notif, purchases, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
         : null);
       renderNow = () => render(compose());
       render(compose());
       if (loaded) {
         void import('astronomy-engine').then((engine) => {
           const dayMs = 86400000;
+          // The calendar from the 1st of this month to the end of the next one.
+          const nowDate = new Date();
+          const firstOfMonth = new Date(Date.UTC(nowDate.getFullYear(), nowDate.getMonth(), 1));
+          const span = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate() + new Date(nowDate.getFullYear(), nowDate.getMonth() + 2, 0).getDate() + new Date(nowDate.getFullYear(), nowDate.getMonth() + 3, 0).getDate();
+          period = buildCanvasPeriod(engine, loaded.profile, loaded.chart) ?? undefined;
+          moonDays = buildLunarDays(engine, firstOfMonth, span).map((item) => [
+            item.day, item.month, item.sign, item.phase, Math.round(((1 - Math.cos((item.phase * Math.PI) / 180)) / 2) * 100),
+            item.exact ? (item.exact.q === 0 ? 1 : 2) : 0, item.eclipse ? 1 : 0, 0, item.mercuryRetrograde ? 1 : 0, '', -1, item.sign,
+            Math.floor((item.phase / 360) * 29.53) + 1, -1, '', '', item.weekday,
+          ]);
           const days = buildLunarDays(engine, new Date(Date.now() - 40 * dayMs), 90);
           const todayIndex = 40;
           const day = days[todayIndex];
@@ -285,8 +473,20 @@ export default function CanvasApp() {
           };
           render(compose());
         }).catch(() => undefined);
+        void loadFriends().then((state) => {
+          if (cancelled) return;
+          const mySign = sunSignFromDate(loaded.profile.birthDate);
+          friends = state.friends.map((friend) => {
+            const sign = friend.birthDate ? sunSignFromDate(friend.birthDate) : null;
+            return {
+              id: friend.id, name: friend.name, sign: sign ? (SIGN_NOMINATIVE_RU[sign] ?? '') : '', last: friend.lastMessage?.body ?? '',
+              match: mySign && sign ? `${getCompatScore(mySign, sign).overall}%` : '', unread: friend.unread,
+            };
+          });
+          render(compose());
+        }).catch(() => undefined);
         void getCharts(String(loaded.profile.id), { repairPrimary: false })
-          .then((response) => { if (!cancelled) { people = buildCanvasPeople(response.charts ?? []); (response.charts ?? []).forEach((chart) => chartsByKey.set(`chart${chart.id}`, chart.chart_data)); render(compose()); } })
+          .then((response) => { if (!cancelled) { primaryChartId = (response.charts ?? []).find((chart) => chart.is_primary)?.id ?? null; people = buildCanvasPeople(response.charts ?? []); (response.charts ?? []).forEach((chart) => chartsByKey.set(`chart${chart.id}`, chart.chart_data)); render(compose()); } })
           .catch(() => undefined);
         void loadReading(loaded).then((value) => { if (!cancelled && value) { reading = value; render(compose()); } });
         if (loaded.profile.isSetup) {
