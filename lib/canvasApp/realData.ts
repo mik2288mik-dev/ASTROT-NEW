@@ -44,9 +44,12 @@ export type CanvasRealData = {
   posterPreview?: string;
   notif?: NativeNotificationSettings | null;
   purchases?: string[][];
+  friendCode?: string;
+  friendLink?: string;
   friends?: Array<{ id: string; name: string; sign: string; last: string; match: string; unread: number }>;
   plusUntil?: string;
   birthShort?: string;
+  birthFull?: string;
   people?: Array<{ key: string; signIdx: number; birth?: [number, number, number]; who: Record<string, unknown> }>;
 };
 
@@ -119,6 +122,7 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
     plusUntil: profile.premiumUntil ? new Date(profile.premiumUntil).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : undefined,
     birthParts: (() => { const parts = parseBirthDate(profile.birthDate); return parts ? [parts.day, parts.month, parts.year] as [number, number, number] : undefined; })(),
     birthShort: profile.birthDate ? profile.birthDate.split('-').reverse().join('.') : undefined,
+    birthFull: [profile.birthDate ? profile.birthDate.split('-').reverse().join('.') : '', profile.birthTime, profile.birthPlace].filter(Boolean).join(', '),
     me: {
       name,
       sex: profile.gender === 'female' ? 'f' : 'm',

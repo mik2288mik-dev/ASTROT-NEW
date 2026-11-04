@@ -18,8 +18,10 @@ import type { NatalUnifiedReading } from '../../lib/natalReading/unifiedReading'
 import { ensureNatalUnifiedReading } from '../../services/natalUnifiedReadingService';
 import type { NatalChartData, UserProfile } from '../../types';
 import { readLocalNatalChartCache } from '../../lib/localNatalChartCache';
-import { getChartData, getCharts, getProfile } from '../../services/storageService';
-import { friendErrorText, loadFriends, loadMessages, postMessage, type FriendMessage } from '../../services/friendsService';
+import { getChartData, createChart, deleteChart, getCharts, getProfile } from '../../services/storageService';
+import { addFriend, friendErrorText, inviteLink, loadFriends, loadMessages, postMessage, type FriendMessage, type FriendsState } from '../../services/friendsService';
+import { getAmbientState, pauseAmbient, playSoundscape, resumeAmbient, setAmbientTimer, stopAmbient, subscribeAmbient } from '../../services/ambientPlayer';
+import { tracksOfGroup, type SoundGroup } from '../../lib/soundscapes/library';
 import { getCompatScore, sunSignFromDate } from '../../lib/synastry/compatScore';
 import { buyOneTimeProduct, canBuyOneTimeProducts, redeemPlusCode, refreshPurchases, resumePendingPurchases, spendSpreadCredit } from '../../services/oneTimePurchaseService';
 import { openRuStoreSubscriptionManagement, restoreRuStorePurchases } from '../../services/rustorePayService';
@@ -315,6 +317,89 @@ export default function CanvasApp() {
       };
       // Friends and messages: the same service as the old screen.
       let friends: NonNullable<CanvasRealData['friends']> = [];
+      let friendCode = '';
+      let soundFailed = false;
+      notifyCleanup.push(subscribeAmbient(() => {
+        const failed = getAmbientState().error;
+        if (failed && !soundFailed) instance.current?.toast('Не получилось включить звук. Проверь интернет и попробуй ещё раз.');
+        soundFailed = failed;
+      }));
+      notifyCleanup.push(stopAmbient);
+      const ambient = {
+        play: (sound: string) => {
+          const groups: Record<string, SoundGroup> = { sea: 'sea', rain: 'rain', forest: 'forest', stream: 'stream' };
+          const track = tracksOfGroup(groups[sound] ?? 'sea')[0];
+          if (track) playSoundscape(track.id);
+        },
+        pause: pauseAmbient,
+        resume: resumeAmbient,
+        stop: stopAmbient,
+        timer: (minutes: number | null) => setAmbientTimer(minutes),
+      };
+      const copyText = (text: string, app: CanvasInstance) => {
+        void navigator.clipboard?.writeText(text).then(() => app.toast('Скопировано')).catch(() => app.toast(text));
+      };
+      const applyFriends = (state: FriendsState) => {
+        friendCode = state.code;
+        const mySign = sunSignFromDate(loaded?.profile.birthDate);
+        friends = state.friends.map((friend) => {
+          const sign = friend.birthDate ? sunSignFromDate(friend.birthDate) : null;
+          return {
+            id: friend.id, name: friend.name, sign: sign ? (SIGN_NOMINATIVE_RU[sign] ?? '') : '', last: friend.lastMessage?.body ?? '',
+            match: mySign && sign ? `${getCompatScore(mySign, sign).overall}%` : '', unread: friend.unread,
+          };
+        });
+      };
+      const reloadPeople = async () => {
+        if (!loaded) return;
+        const response = await getCharts(String(loaded.profile.id), { repairPrimary: false });
+        if (cancelled) return;
+        primaryChartId = (response.charts ?? []).find((chart) => chart.is_primary)?.id ?? null;
+        people = buildCanvasPeople(response.charts ?? []);
+        (response.charts ?? []).forEach((chart) => chartsByKey.set(`chart${chart.id}`, chart.chart_data));
+        renderNow();
+      };
+      const chartAdd = (draft: { name?: string; date?: string; time?: string; place?: string }, app: CanvasInstance) => {
+        const name = (draft.name ?? '').trim();
+        const match = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(draft.date ?? '');
+        const birth = match ? new Date(Date.UTC(+match[3], +match[2] - 1, +match[1])) : null;
+        const validDate = !!match && !!birth && birth.getUTCDate() === +match[1] && birth.getUTCMonth() === +match[2] - 1 && birth.getTime() <= Date.now();
+        const time = (draft.time ?? '').trim();
+        const place = (draft.place ?? '').trim();
+        if (!name) { app.toast('Напиши имя человека'); return; }
+        if (!validDate) { app.toast('Проверь дату: день, месяц и год'); return; }
+        if (time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) { app.toast('Проверь время: часы и минуты, например 14:30'); return; }
+        if (!place) { app.toast('Напиши город рождения'); return; }
+        if (!loaded) return;
+        app.setState({ addBusy: true });
+        void createChart(String(loaded.profile.id), {
+          name, birthDate: `${match![3]}-${match![2]}-${match![1]}`, birthTime: time, birthTimeMode: time ? 'exact' : 'unknown',
+          birthTimeUncertaintyMinutes: null, birthPlace: place, language: 'ru', relationLabel: null,
+        }).then(async (chart) => {
+          await reloadPeople();
+          (app as unknown as { addDraft?: unknown }).addDraft = {};
+          app.setState({ addBusy: false, popup: null, screen: 'mine', seg: 'natal', chartOf: `chart${chart.id}` });
+          app.toast('Карта добавлена');
+        }).catch((error: Error) => {
+          app.setState({ addBusy: false });
+          app.toast(/[а-яё]/i.test(error.message) ? error.message : 'Не получилось посчитать карту. Проверь город и попробуй ещё раз.');
+        });
+      };
+      const chartDelete = (key: string, app: CanvasInstance) => {
+        const id = Number(String(key).replace('chart', ''));
+        if (!loaded || !Number.isSafeInteger(id) || id <= 0) return;
+        void deleteChart(id, String(loaded.profile.id)).then(async () => {
+          await reloadPeople();
+          app.setState({ popup: null, chartOf: 'me' });
+          app.toast('Карта удалена');
+        }).catch(() => { app.setState({ popup: null }); app.toast('Не получилось удалить карту. Попробуй ещё раз.'); });
+      };
+      const friendAdd = (code: string, app: CanvasInstance) => {
+        if (!code.trim()) { app.toast('Введи код друга'); return; }
+        void addFriend(code.trim())
+          .then((state) => { applyFriends(state); app.setState({ fScr: 'list' }); app.toast('Друг добавлен'); if (!cancelled) renderNow(); })
+          .catch((error: Error) => app.toast(friendErrorText(error.message)));
+      };
       const chats = new Map<string, FriendMessage[]>();
       let activeChat = '';
       const refreshChat = (id: string) => {
@@ -490,6 +575,11 @@ export default function CanvasApp() {
           account={params.get('account') ?? real?.account}
           real={real}
           signText={signText}
+          ambient={real ? ambient : undefined}
+          friendAdd={real ? friendAdd : undefined}
+          chartAdd={real ? chartAdd : undefined}
+          chartDelete={real ? chartDelete : undefined}
+          copyText={real ? copyText : undefined}
           pairFull={real ? pairFull : undefined}
           toastAction={real ? toastAction : undefined}
           requestReview={real ? requestStoreReviewNow : undefined}
@@ -522,7 +612,7 @@ export default function CanvasApp() {
       let moonDays: unknown[][] | undefined;
       let period: CanvasRealData['period'];
       const compose = (): CanvasRealData | null => (loaded
-        ? { ...loaded.real, ...productState, year, mood, retro, period, moonDays, friends, notif, purchases, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium || natalOwned) ?? undefined } }
+        ? { ...loaded.real, ...productState, friendCode, friendLink: friendCode ? inviteLink(friendCode) : '', year, mood, retro, period, moonDays, friends, notif, purchases, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium || natalOwned) ?? undefined } }
         : null);
       renderNow = () => render(compose());
       render(compose());
@@ -562,14 +652,7 @@ export default function CanvasApp() {
         }).catch(() => undefined);
         void loadFriends().then((state) => {
           if (cancelled) return;
-          const mySign = sunSignFromDate(loaded.profile.birthDate);
-          friends = state.friends.map((friend) => {
-            const sign = friend.birthDate ? sunSignFromDate(friend.birthDate) : null;
-            return {
-              id: friend.id, name: friend.name, sign: sign ? (SIGN_NOMINATIVE_RU[sign] ?? '') : '', last: friend.lastMessage?.body ?? '',
-              match: mySign && sign ? `${getCompatScore(mySign, sign).overall}%` : '', unread: friend.unread,
-            };
-          });
+          applyFriends(state);
           render(compose());
         }).catch(() => undefined);
         void getCharts(String(loaded.profile.id), { repairPrimary: false })
