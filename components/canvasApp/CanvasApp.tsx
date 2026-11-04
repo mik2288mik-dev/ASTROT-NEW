@@ -1,3 +1,5 @@
+import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import React, { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import Component from '../../lib/canvasApp/canvasLogic';
@@ -11,7 +13,12 @@ import type { NatalChartData, UserProfile } from '../../types';
 import { readLocalNatalChartCache } from '../../lib/localNatalChartCache';
 import { getChartData, getProfile } from '../../services/storageService';
 
-const CanvasRoot = Component as unknown as React.ComponentType<Record<string, unknown>>;
+type CanvasInstance = {
+  state: { popup?: unknown; screen?: string };
+  setState: (patch: Record<string, unknown>) => void;
+  lastVals?: { bar?: { back?: boolean }; back?: () => void };
+};
+const CanvasRoot = Component as unknown as React.ComponentType<Record<string, unknown> & { ref?: React.Ref<CanvasInstance> }>;
 
 const DESIGN_WIDTH = 390;
 const MAX_SCALE = 1.3;
@@ -51,7 +58,7 @@ async function loadReading({ profile, chart }: LoadedAccount): Promise<NatalUnif
 /**
  * The canvas as the app. It lives in a shadow root, so the old global CSS of the app
  * cannot touch it and it renders exactly as on the canvas.
- * Until every screen is wired to real data it opens for admins only.
+ * Sign-in, payment, logout and account deletion are handed to the old screens.
  */
 export default function CanvasApp() {
   const host = useRef<HTMLDivElement | null>(null);
@@ -79,14 +86,30 @@ export default function CanvasApp() {
     window.addEventListener('resize', onResize);
 
     const params = new URLSearchParams(window.location.search);
+    // The canvas splash holds the screen while the account loads.
+    root = createRoot(mount);
+    root.render(<CanvasRoot key="loading" start="splash" hold />);
+    const instance = React.createRef<CanvasInstance>();
+    const handoff = (flow: string) => window.location.assign(`/?classic=${flow}`);
+    const backListener = Capacitor.isNativePlatform()
+      ? CapacitorApp.addListener('backButton', () => {
+        const app = instance.current;
+        if (!app) return;
+        if (app.state.popup) app.setState({ popup: null });
+        else if (app.lastVals?.bar?.back) app.lastVals.back?.();
+        else if (app.state.screen !== 'today') app.setState({ screen: 'today' });
+        else void CapacitorApp.exitApp();
+      })
+      : null;
     void loadAccount().then((loaded) => {
       if (cancelled) return;
       const isDev = process.env.NODE_ENV !== 'production';
-      if (!isDev && !loaded?.profile.isAdmin) {
-        window.location.replace('/');
+      // Sign-in and the first form stay on the working old screens until they are wired.
+      const demo = isDev && window.location.pathname === '/canvas';
+      if (!demo && !loaded?.profile.isSetup) {
+        window.location.replace('/?classic=auth');
         return;
       }
-      root = createRoot(mount);
       // Saved sign horoscopes only: reading them never starts a generation.
       const signTexts = new Map<string, string | null>();
       let renderNow: () => void = () => undefined;
@@ -104,7 +127,10 @@ export default function CanvasApp() {
       };
       const render = (real: CanvasRealData | null) => root?.render(
         <CanvasRoot
-          start={params.get('start') ?? (real ? 'today' : undefined)}
+          key="app"
+          ref={instance}
+          handoff={real ? handoff : undefined}
+          start={params.get('start') ?? (real?.me.chartMissing ? 'error' : real ? 'today' : undefined)}
           account={params.get('account') ?? real?.account}
           real={real}
           signText={signText}
@@ -128,6 +154,7 @@ export default function CanvasApp() {
     });
     return () => {
       cancelled = true;
+      void backListener?.then((listener) => listener.remove());
       window.removeEventListener('resize', onResize);
       window.setTimeout(() => root?.unmount(), 0);
       links.forEach((link) => link.remove());
