@@ -2,7 +2,9 @@ import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
 import { formatDisplayDate } from '../date-utils';
 import { isCanonicalNatalChart } from '../natalCalculationProof';
+import { buildNatalInterpretation } from '../natalInterpretation';
 import { buildBigThree, buildChartMoments, SIGN_NOMINATIVE_RU } from '../natalMoments';
+import type { NatalUnifiedReading } from '../natalReading/unifiedReading';
 
 /** The account's own data in the shape the canvas keeps for «me». */
 export type CanvasRealData = {
@@ -72,4 +74,22 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
       ...(canonical ? chartFields(canonical) : {}),
     },
   };
+}
+
+type CanvasChapter = { title: string; sub: string; locked: boolean; paras: string[] };
+
+const partsLabel = (count: number): string => `${count} ${count === 1 ? 'часть' : count < 5 ? 'части' : 'частей'}`;
+
+/** The story list of the natal screen from the saved reading; closed topics stay visible with a lock. */
+export function buildCanvasChapters(chart: NatalChartData | null, reading: NatalUnifiedReading | null, isPremium: boolean): { story: CanvasChapter[]; topics: CanvasChapter[] } | null {
+  const canonical = chart && isCanonicalNatalChart(chart) ? (chart as unknown as NatalChartDataV2) : null;
+  if (!canonical) return null;
+  const locked: CanvasChapter[] = buildNatalInterpretation(canonical, 'ru')?.topics.map((topic) => ({ title: topic.title, sub: '', locked: true, paras: [] })) ?? [];
+  const story: CanvasChapter = reading?.story.length
+    ? { title: 'Какой ты на самом деле', sub: partsLabel(reading.story.length), locked: false, paras: reading.story.map((block) => block.text) }
+    : { title: 'Рассказ о тебе', sub: 'Скоро будет готов', locked: false, paras: ['Рассказ ещё пишется. Загляни сюда чуть позже.'] };
+  const topics: CanvasChapter[] = isPremium && reading?.topics.length
+    ? reading.topics.map((topic) => ({ title: topic.title, sub: partsLabel(topic.blocks.length), locked: false, paras: topic.blocks.map((block) => block.text) }))
+    : locked;
+  return { story: isPremium ? [story] : [story, ...locked], topics };
 }
