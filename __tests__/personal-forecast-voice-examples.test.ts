@@ -3,14 +3,13 @@ import { getPersonalForecastSystemPrompt } from '../lib/voice/contracts/personal
 describe('personal day forecast voice', () => {
   const prompt = getPersonalForecastSystemPrompt('ru', 'today');
   it('asks for plain spoken Russian instead of hedged paper language', () => {
-    expect(prompt).toContain('обычным разговорным языком');
-    expect(prompt).toContain('без негатива, мистики, поучений и воды');
-    expect(prompt).toContain('не используй слово «сегодня»');
+    expect(prompt).toContain('Цепочки из «возможно», «может быть», «вероятно»');
+    expect(prompt).toContain('Мистику, судьбу, космос, поучения');
+    expect(prompt).toContain('Воду, под которую подходит любой день и любой человек');
   });
 
-  it('does not teach the model generic situations or force a joke', () => {
+  it('does not teach the model generic situations', () => {
     expect(prompt).not.toContain('Примеры ниже');
     expect(prompt).not.toMatch(/перестановк|переписк/iu);
-    expect(prompt).toContain('Шутка уместна только тогда');
   });
 });

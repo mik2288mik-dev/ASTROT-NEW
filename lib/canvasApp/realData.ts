@@ -44,9 +44,12 @@ export type CanvasRealData = {
   posterPreview?: string;
   notif?: NativeNotificationSettings | null;
   purchases?: string[][];
+  friendCode?: string;
+  friendLink?: string;
   friends?: Array<{ id: string; name: string; sign: string; last: string; match: string; unread: number }>;
   plusUntil?: string;
   birthShort?: string;
+  birthFull?: string;
   people?: Array<{ key: string; signIdx: number; birth?: [number, number, number]; who: Record<string, unknown> }>;
 };
 
@@ -119,6 +122,7 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
     plusUntil: profile.premiumUntil ? new Date(profile.premiumUntil).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : undefined,
     birthParts: (() => { const parts = parseBirthDate(profile.birthDate); return parts ? [parts.day, parts.month, parts.year] as [number, number, number] : undefined; })(),
     birthShort: profile.birthDate ? profile.birthDate.split('-').reverse().join('.') : undefined,
+    birthFull: [profile.birthDate ? profile.birthDate.split('-').reverse().join('.') : '', profile.birthTime, profile.birthPlace].filter(Boolean).join(', '),
     me: {
       name,
       sex: profile.gender === 'female' ? 'f' : 'm',
@@ -163,14 +167,19 @@ export function buildCanvasToday(forecast: PersonalForecastPackage): Record<stri
   const blocks = [forecast.overview, ...forecast.sections].filter((section) => section.status === 'ready').flatMap((section) => section.contentBlocks ?? []);
   const pick = (role: string) => [...new Set(blocks.filter((block) => block.role === role).map((block) => firstSentence(block.text)))].filter((text) => text.length > 0 && text.length <= 90).slice(0, 4);
   const actions = [forecast.overview, ...forecast.sections].filter((section) => section.status === 'ready' && section.actionText);
+  const notes = forecast.overview.dayNotes;
+  const paragraphs = forecast.overview.text.split(/\n\s*\n/u).map((part) => part.trim()).filter(Boolean);
+  const noted = (list: string[] | undefined, other: string[]) => (list?.length ? list : other);
   return {
     dateLine: canvasDateLine(),
     dayTitle: forecast.overview.title || firstSentence(forecast.overview.text),
     condition: '',
-    horoText: forecast.overview.text,
-    why: (forecast.overview.explanationAnchors ?? []).slice(0, 3).map((anchor) => [anchor.conclusion, anchor.explanation]),
-    yes: [...new Set([...actions.filter((section) => section.actionType !== 'stop').map((section) => firstSentence(String(section.actionText))), ...pick('action')])].slice(0, 4),
-    no: [...new Set([...actions.filter((section) => section.actionType === 'stop').map((section) => firstSentence(String(section.actionText))), ...pick('risk')])].slice(0, 4),
+    horoText: paragraphs.length > 1 ? paragraphs.slice(0, -1).join('\n\n') : forecast.overview.text,
+    closing: paragraphs.length > 1 ? paragraphs[paragraphs.length - 1] : '',
+    theme: notes?.theme ?? null,
+    why: notes?.why.length ? notes.why.map((item) => [item.fact, item.meaning]) : (forecast.overview.explanationAnchors ?? []).slice(0, 3).map((anchor) => [anchor.conclusion, anchor.explanation]),
+    yes: noted(notes?.do, [...new Set([...actions.filter((section) => section.actionType !== 'stop').map((section) => firstSentence(String(section.actionText))), ...pick('action')])].slice(0, 4)),
+    no: noted(notes?.dont, [...new Set([...actions.filter((section) => section.actionType === 'stop').map((section) => firstSentence(String(section.actionText))), ...pick('risk')])].slice(0, 4)),
   };
 }
 

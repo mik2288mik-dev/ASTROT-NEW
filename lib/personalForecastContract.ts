@@ -126,6 +126,17 @@ export type ForecastContentBlock = {
   explanationAnchorId?: string | null;
 };
 
+export const FORECAST_DAY_THEMES = ['love', 'money', 'work', 'talk', 'home', 'friends', 'rest', 'travel', 'self', 'study'] as const;
+export type ForecastDayTheme = (typeof FORECAST_DAY_THEMES)[number];
+
+/** The day forecast's short lists: what to do, what to avoid and why. Clients without this field ignore it. */
+export type ForecastDayNotes = {
+  theme: ForecastDayTheme | null;
+  do: string[];
+  dont: string[];
+  why: Array<{ fact: string; meaning: string }>;
+};
+
 export type ForecastSection = {
   id: string;
   kind: ForecastSectionKind;
@@ -148,6 +159,7 @@ export type ForecastSection = {
   premiumTeaser: string;
   lockedPreview: ForecastLockedPreview;
   explanationAnchors: ExplanationAnchor[];
+  dayNotes?: ForecastDayNotes;
 };
 
 export type CrossPeriodLink = {
@@ -247,7 +259,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v60-conversational-today+week-month',
+  'personal-forecast-feed.v61-day-brief+week-month',
 );
 export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v32-grounded-today';
 /** Input/cache identity, not an astrological calculation version. */
@@ -1405,6 +1417,7 @@ function stripLockedSection(
     contentBlocks: [],
     semanticFactIds: [],
     semanticFingerprint: '',
+    dayNotes: undefined,
     premiumTeaser: preserveTodayPreview ? section.premiumTeaser : '',
     lockedPreview: preserveTodayPreview
       ? section.lockedPreview

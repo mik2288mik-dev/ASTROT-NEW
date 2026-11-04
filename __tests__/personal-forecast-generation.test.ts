@@ -1,4 +1,5 @@
 jest.mock('../lib/openaiResponses', () => ({ createLunaStructuredResponse: jest.fn() }));
+jest.mock('../lib/personalDayBrief', () => ({ buildPersonalDayBrief: jest.fn(() => ({ moon: {}, main_events: [] })) }));
 jest.mock('../lib/personalForecastDateContext', () => ({ buildPersonalForecastDateContext: jest.fn(() => ({ source: 'Swiss Ephemeris', timezone: 'Europe/Moscow', samples: [{ date: '2026-07-26', positions: {}, aspectsToSavedChart: [{ transitPlanet: 'venus', natalPlanet: 'sun', type: 'trine', orb: 1, tone: 'support' }, { transitPlanet: 'mars', natalPlanet: 'sun', type: 'square', orb: 2, tone: 'pressure' }] }] })) }));
 import { createLunaStructuredResponse } from '../lib/openaiResponses';
 import { generatePersonalForecastPackage } from '../lib/personalForecastGeneration';
@@ -9,17 +10,22 @@ const writer = createLunaStructuredResponse as jest.Mock;
 const natal = samples.people[0].chart as unknown as NatalChartDataV2;
 const input = { profile: { isSetup:true, isPremium:true, theme:'light' as const, name:'Test', birthDate:'1990-03-14', birthTime:'09:41', birthPlace:'Moscow', language:'ru' as const }, natal, period:'day' as const, model:'gpt-5.6-luna', window:resolvePersonalForecastWindow('day','2026-07-26','Europe/Moscow') };
 beforeEach(()=>writer.mockReset());
+it('keeps the do, avoid and why lists of the day forecast', async()=>{
+  writer.mockResolvedValue({content:JSON.stringify({title:'Покупки до вечера',body:'Луна идёт через твою зону денег.',closing:'Реши до вечера.',do:['Сравнить цены перед покупкой.'],dont:['Покупать на эмоциях'],why:[{fact:'Луна в зоне денег',meaning:'Легче считать траты.'}],theme:'money'})});
+  const result=await generatePersonalForecastPackage(input);
+  expect(result.overview.dayNotes).toEqual({theme:'money',do:['Сравнить цены перед покупкой'],dont:['Покупать на эмоциях'],why:[{fact:'Луна в зоне денег',meaning:'Легче считать траты.'}]});
+  expect(getPersonalForecastPackageValidationError(result)).toBeNull();
+});
 it('uses the NEBO Today voice, saved chart, date calculation and complete reading', async()=>{
   writer.mockResolvedValue({content:JSON.stringify({title:'A new offer',body:'An unexpected offer may arrive. Its details may change after a conversation.',closing:'Good luck'})});
   const result=await generatePersonalForecastPackage(input);
   expect(writer).toHaveBeenCalledTimes(1);
   expect(writer.mock.calls[0][0].instructions).toContain('ЕДИНЫЙ ГОЛОС NEBO');
-  expect(writer.mock.calls[0][0].instructions).toContain('title, body и closing');
+  expect(writer.mock.calls[0][0].instructions).toContain('title, body, closing, do, dont, why и theme');
   const data=JSON.parse(writer.mock.calls[0][0].input);
-  expect(data.birth.name).toBe('Test');
+  expect(data.day_brief.main_events).toEqual([]);
+  expect(data.saved_natal_calculation).toBeUndefined();
   expect(data.selected_date.start).toBe('2026-07-26');
-  expect(data.saved_natal_calculation.positions).toEqual(natal.positions);
-  expect(data.selected_date_calculation.samples[0].date).toBe('2026-07-26');
   expect(data.recent_history).toEqual([]);
   expect(result.sections).toEqual([]);
   expect(result.overview.text).toBe('An unexpected offer may arrive. Its details may change after a conversation.\n\nGood luck');
