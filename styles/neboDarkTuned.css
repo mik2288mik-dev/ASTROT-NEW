@@ -87,3 +87,6 @@ html[data-theme='dark'] .nebo-tabbar-drop-glass { box-shadow: inset 0 0.5px 0.5p
 html[data-nav-ink='light'] .nebo-tabbar { --nebo-tab-fg-on: #ffffff; }
 html[data-theme='dark'] .fresh-page .nebo-page-title h1 { color: #f4f5f8; }
 html[data-theme='dark'] .fresh-page .nebo-page-title p { color: rgba(235, 235, 245, 0.5); }
+html[data-theme='dark'] .fresh-page .nebo-page-title h1 { --nebo-title-ink: #f4f5f8; --nebo-title-s1: #ffffff; --nebo-title-s2: #c9ceda; --nebo-title-s3: #ffffff; color: transparent !important; }
+html[data-theme='dark'] .fresh-page .nebo-page-title h1::before, html[data-theme='dark'] .fresh-page .nebo-page-title h1::after { background: rgba(235, 235, 245, 0.38); }
+html[data-theme='dark'] .fresh-page .nebo-page-title p { color: rgba(235, 235, 245, 0.38); }

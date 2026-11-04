@@ -34,7 +34,7 @@ export function ChartWhoseButton({ label, onChoose }: { label: string; onChoose:
 export function MyChartHeader({ title, subtitle, active, onOpen }: MyChartHeaderProps) {
   return (
     <div className="nebo-mychart-header">
-      <div className="nebo-page-title">
+      <div className="nebo-page-title" data-glyph={active}>
         <h1>{title}</h1>
         <p>{subtitle || '\u00a0'}</p>
       </div>

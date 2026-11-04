@@ -23,7 +23,7 @@
   --app-top-bar-device-safe-top: max(
     env(safe-area-inset-top, 0px),
     var(--tg-safe-area-inset-top, 0px),
-    18px
+    6px
   );
   /* Telegram's content inset is measured from its safe area, so the two add up. */
   --app-top-bar-content-safe-top: max(

@@ -3979,6 +3979,9 @@ html[data-theme='dark'] .nebo-account-chip-badge.is-plus {
 html[data-theme='dark'] .home-logo-bar.app-top-bar {
   background: linear-gradient(180deg, rgba(39, 40, 46, 0.94) 0%, rgba(39, 40, 46, 0.86) 65%, rgba(255, 255, 255, 0.06) 100%) !important;
 }
+html[data-theme='dark'][data-nav-ink='light'] .nebo-tabbar-glass {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.034), inset 1px 1px 2px rgba(255, 255, 255, 0.012), inset 0 0 0 0.5px rgba(255, 255, 255, 0.016);
+}
 
 /* ── neboToday.css ── */
 html[data-theme='dark'] .home-screen.forecast-feed-page {
@@ -5305,19 +5308,28 @@ html[data-theme='dark'] .compat-story-cover .compat-result-change {
   color: #C4BAEE !important;
 }
 html[data-theme='dark'] .fresh-page .nebo-page-title h1 {
-  color: #F4F5F8;
+  --nebo-title-ink: #F4F5F8;
+  --nebo-title-s1: rgba(235, 235, 245, 0.42);
+  --nebo-title-s3: rgba(235, 235, 245, 0.42);
 }
 html[data-theme='dark'] .fresh-page .nebo-page-title h1::before, html[data-theme='dark'] .fresh-page .nebo-page-title h1::after {
-  background: linear-gradient(90deg, transparent, #3A3C44);
-}
-html[data-theme='dark'] .fresh-page .nebo-page-title h1::after {
-  background: linear-gradient(90deg, #3A3C44, transparent);
+  background: #3A3C44;
 }
 html[data-theme='dark'] .fresh-page .nebo-page-title p {
   color: rgba(235, 235, 245, 0.42);
 }
 html[data-theme='dark'] .compat-editorial-page .compat-editorial-tabs .editorial-tab.is-active {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.228), 0 4px 10px rgba(0, 0, 0, 0.196) !important;
+}
+html[data-theme='dark'] .compat-entry-form--date .compat-pair-picker-plus {
+  background: #1C1D21;
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .compat-entry-form--date .nebo-compat-note {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .compat-entry-form--date .compat-date-section-label {
+  color: rgba(235, 235, 245, 0.42);
 }
 
 /* ── neboAuth.css ── */

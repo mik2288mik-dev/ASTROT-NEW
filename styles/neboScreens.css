@@ -158,9 +158,9 @@
 .nebo-mychart-whose {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  max-width: 132px;
-  height: 32px;
+  gap: 6px;
+  max-width: 150px;
+  height: 40px;
   padding: 0 10px 0 14px;
   pointer-events: auto;
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -1823,53 +1823,90 @@ html[data-theme='dark'] .compat-story-cover > p, html[data-theme='dark'] .compat
 
 .nebo-mychart-whose span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* One title block on every screen, the same size in the same place: only the words change.
-   Height is fixed, and the small line keeps its room even when a screen has nothing to say there. */
+/* One title block on every screen, as on the canvas: 64px tall under the 58px bar, so only the words change. */
 .fresh-page:not(.home-screen) > .app-top-bar-spacer:has(+ .nebo-mychart-header),
 .fresh-page:not(.home-screen) > .app-top-bar-spacer:has(+ .nebo-page-title),
-.fresh-page:not(.home-screen) > .app-top-bar-spacer:has(+ .nebo-rest-home) { margin-bottom: 4px !important; }
+.fresh-page:not(.home-screen) > .app-top-bar-spacer:has(+ .nebo-rest-home) { margin-bottom: 0 !important; }
 
 .fresh-page .nebo-page-title {
   display: block !important;
   box-sizing: border-box;
-  height: 40px;
+  height: 64px;
   margin: 0 !important;
-  padding: 0 16px !important;
+  padding: 6px 20px 0 !important;
   overflow: hidden;
   text-align: center;
 }
 .fresh-page .nebo-page-title h1 {
+  --nebo-title-ink: #0b0d12;
+  --nebo-title-s1: #b9bec9;
+  --nebo-title-s2: #f4f5f8;
+  --nebo-title-s3: #9aa0ae;
   display: flex !important;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  height: 24px;
+  height: 30px;
   margin: 0 !important;
   padding: 0 !important;
-  color: #0b0d12;
   font-family: 'Cormorant Garamond', Georgia, serif !important;
-  font-size: 20px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.14em !important;
-  line-height: 24px !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  line-height: 30px !important;
   text-transform: uppercase;
   white-space: nowrap;
+  color: transparent !important;
+  background: linear-gradient(90deg, var(--nebo-title-ink) 0%, var(--nebo-title-ink) 38%, var(--nebo-title-s1) 46%, var(--nebo-title-s2) 50%, var(--nebo-title-s3) 54%, var(--nebo-title-ink) 62%, var(--nebo-title-ink) 100%);
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: neboTitleSheen 2.6s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both;
 }
+@keyframes neboTitleSheen { from { background-position: 100% 0; } to { background-position: 0% 0; } }
 .fresh-page .nebo-page-title h1::before,
-.fresh-page .nebo-page-title h1::after { content: ""; flex: none; width: 30px; height: 1px; background: linear-gradient(90deg, transparent, #8a8f9c); }
-.fresh-page .nebo-page-title h1::after { background: linear-gradient(90deg, #8a8f9c, transparent); }
-.fresh-page .nebo-page-title p {
+.fresh-page .nebo-page-title h1::after {
+  content: "";
+  flex: 0 1 44px;
+  min-width: 0;
   height: 14px;
-  margin: 2px 0 0 !important;
+  background: #9aa0ae;
+  -webkit-mask: var(--nebo-title-orn) center / contain no-repeat;
+  mask: var(--nebo-title-orn) center / contain no-repeat;
+}
+.fresh-page .nebo-page-title h1::after { transform: scaleX(-1); }
+.fresh-page .nebo-page-title p {
+  height: 16px;
+  margin: 6px 0 0 !important;
   overflow: hidden;
-  color: #8a8f9c;
-  font-size: 10.5px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.08em !important;
-  line-height: 14px !important;
+  color: #9aa0ae;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+  line-height: 16px !important;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
+}
+.fresh-page .nebo-page-title { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill-rule=%22evenodd%22 d=%22M46 1.8C46.4 5 48 6.6 51.2 7 48 7.4 46.4 9 46 12.2 45.6 9 44 7.4 40.8 7 44 6.6 45.6 5 46 1.8z%22/%3E%3C/svg%3E"); }
+.fresh-page .nebo-page-title[data-glyph='natal'] { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill-rule=%22evenodd%22 d=%22M46 2.6a4.4 4.4 0 1 1 0 8.8a4.4 4.4 0 1 1 0-8.8zM46 4.6a2.4 2.4 0 1 0 0 4.8a2.4 2.4 0 1 0 0-4.8zM46 6.1a.9.9 0 1 1 0 1.8a.9.9 0 1 1 0-1.8z%22/%3E%3C/svg%3E"); }
+.fresh-page .nebo-page-title[data-glyph='matrix'] { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill-rule=%22evenodd%22 d=%22M42.4 3.4h7.2v7.2h-7.2zM46 1.9l5.1 5.1-5.1 5.1-5.1-5.1z%22/%3E%3C/svg%3E"); }
+.fresh-page .nebo-page-title[data-glyph='numbers'] { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill-rule=%22evenodd%22 d=%22M42.6 2.5h2.2v2.2h-2.2zM46 2.5h2.2v2.2h-2.2zM49.4 2.5h2.2v2.2h-2.2zM42.6 5.9h2.2v2.2h-2.2zM46 5.9h2.2v2.2h-2.2zM49.4 5.9h2.2v2.2h-2.2zM42.6 9.3h2.2v2.2h-2.2zM46 9.3h2.2v2.2h-2.2zM49.4 9.3h2.2v2.2h-2.2z%22/%3E%3C/svg%3E"); }
+.fresh-page .nebo-page-title[data-glyph='tarot'] { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill-rule=%22evenodd%22 d=%22M42.6 1.6h6.8a1 1 0 0 1 1 1v8.8a1 1 0 0 1-1 1h-6.8a1 1 0 0 1-1-1V2.6a1 1 0 0 1 1-1zM46 4.6l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z%22/%3E%3C/svg%3E"); }
+.fresh-page .nebo-page-title[data-glyph='runes'] { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.2%22 stroke-linecap=%22round%22 d=%22M46 12V2M46 7L42.6 3.2M46 7l3.4-3.8%22/%3E%3C/svg%3E"); }
+
+/* The switch under the title (canvas: 38px pill, 16px gutters) */
+.nebo-mychart-header { gap: 0; }
+.nebo-mychart-switch { box-sizing: border-box; height: 38px; margin: 0 16px; padding: 3px; }
+.nebo-mychart-switch button { height: 32px; font-size: 13.5px; }
+
+/* Screens open with a short slide, as on the canvas. The bar and the title stay where they are. */
+@keyframes neboPageIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+.fresh-page > :not(.app-top-bar):not(.app-top-bar-spacer):not(.nebo-page-title):not(.nebo-mychart-header):not(.nebo-tabbar-shell) { animation: neboPageIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .fresh-page > * { animation: none !important; }
+  .fresh-page .nebo-page-title h1 { animation: none; background-position: 0% 0; }
 }
 
 /* Compatibility entry: the same switch as «Моя карта», and every block on the one page gutter */
@@ -1881,3 +1918,35 @@ html[data-theme='dark'] .compat-story-cover > p, html[data-theme='dark'] .compat
 .compat-entry-form--date .nebo-compat-note { width: 100%; margin-right: 0 !important; margin-left: 0 !important; }
 .compat-editorial-page .compat-editorial-tabs { width: 100% !important; max-width: none !important; }
 .compat-entry-form--date .compat-pair-picker { margin-right: 0 !important; margin-left: 0 !important; }
+.compat-editorial-page .compat-editorial-tabs { box-sizing: border-box; height: 38px; }
+.compat-editorial-page .compat-editorial-tabs .editorial-tab { height: 32px !important; min-height: 32px !important; font-size: 13.5px !important; font-weight: 600 !important; }
+
+/* Compatibility entry, values from the canvas pair screen */
+.compat-entry-form--date { display: flex; flex-direction: column; }
+.compat-entry-form--date > * { order: 6; }
+.compat-entry-form--date > .compat-pair-picker, .compat-entry-form--date > .nebo-compat-note { order: 1; }
+.compat-entry-form--date > .compat-saved-people { order: 2; }
+.compat-entry-form--date > .compat-entry-context--date { order: 3; }
+.compat-entry-form--date > .compat-entry-submit-bar { order: 4; }
+.compat-entry-form--date > .nebo-friends-link { order: 5; }
+.compat-entry-form--date .compat-pair-picker { grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr); gap: 0; margin-top: 14px !important; padding: 22px 10px 0 !important; border-radius: 28px 28px 0 0 !important; }
+.compat-entry-form--date .compat-pair-avatar { gap: 6px; padding: 0; }
+.compat-entry-form--date .compat-pair-avatar-circle { width: 78px; height: 78px; }
+.compat-entry-form--date .compat-pair-avatar-name { font-size: 16px; font-weight: 600; line-height: 1.25; }
+.compat-entry-form--date .compat-pair-avatar-meta { font-size: 13px; }
+.compat-entry-form--date .compat-pair-picker-plus { width: 36px; height: 36px; margin-top: 21px; background: #ffffff; box-shadow: none; color: #9aa0ae; }
+.compat-entry-form--date .compat-pair-picker-plus svg { width: 18px; height: 18px; }
+.compat-entry-form--date .nebo-compat-note { padding: 16px 18px 18px; border-radius: 0 0 28px 28px; font-size: 13px; line-height: 1.45; color: #5c6170; }
+.compat-entry-form--date .compat-date-section-label { margin: 22px 4px 0 !important; font-size: 13px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #9aa0ae; }
+.compat-entry-form--date .nebo-compat-relation { margin-top: 10px; padding: 12px 14px 12px 16px; border-radius: 20px; background: rgba(118, 118, 128, 0.12); }
+.compat-entry-form--date .nebo-compat-relation small { font-size: 13px; }
+.compat-entry-form--date .nebo-compat-relation em { display: inline-flex; align-items: center; gap: 4px; flex: none; color: #1f6bff; font-size: 13px; font-style: normal; font-weight: 600; }
+.compat-entry-form--date .nebo-compat-relation em svg { transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+.compat-entry-form--date .nebo-compat-relation[aria-expanded='true'] em svg { transform: rotate(180deg); }
+.compat-entry-form--date .compat-entry-submit-bar { margin-top: 18px; }
+.compat-editorial-page--add .compat-entry-form--date .compat-entry-submit-bar .compat-entry-submit { height: 52px; min-height: 52px; border-radius: 26px; font-size: 16px; font-weight: 600; }
+html[data-theme='dark'] .compat-entry-form--date .compat-pair-picker-plus { background: #1c1d21; color: rgba(235, 235, 245, 0.38); }
+html[data-theme='dark'] .compat-entry-form--date .nebo-compat-relation { background: rgba(118, 118, 128, 0.24); }
+html[data-theme='dark'] .compat-entry-form--date .nebo-compat-relation em { color: #5b95ff; }
+
+.natal-empty-content .fresh-btn-primary { box-sizing: border-box; width: 100%; margin-right: 0; margin-left: 0; }
