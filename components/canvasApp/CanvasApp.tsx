@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import Component from '../../lib/canvasApp/canvasLogic';
 import { CANVAS_CSS, CANVAS_FONTS } from '../../lib/canvasApp/canvasStyles';
-import { buildCanvasChapters, buildCanvasRealData, type CanvasRealData } from '../../lib/canvasApp/realData';
+import { buildCanvasChapters, buildCanvasRealData, buildCanvasToday, canvasDateLine, type CanvasRealData } from '../../lib/canvasApp/realData';
+import { loadPersonalForecast } from '../../services/personalForecastService';
 import type { NatalUnifiedReading } from '../../lib/natalReading/unifiedReading';
 import { ensureNatalUnifiedReading } from '../../services/natalUnifiedReadingService';
 import type { NatalChartData, UserProfile } from '../../types';
@@ -92,11 +93,20 @@ export default function CanvasApp() {
           real={real}
         />,
       );
-      const withChapters = (reading: NatalUnifiedReading | null): CanvasRealData | null => (loaded
-        ? { ...loaded.real, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
+      let reading: NatalUnifiedReading | null = null;
+      let today: Record<string, unknown> = { dateLine: canvasDateLine() };
+      const compose = (): CanvasRealData | null => (loaded
+        ? { ...loaded.real, today, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
         : null);
-      render(withChapters(null));
-      if (loaded) void loadReading(loaded).then((reading) => { if (!cancelled && reading) render(withChapters(reading)); });
+      render(compose());
+      if (loaded) {
+        void loadReading(loaded).then((value) => { if (!cancelled && value) { reading = value; render(compose()); } });
+        if (loaded.profile.isSetup) {
+          void loadPersonalForecast({ profile: loaded.profile, period: 'day' })
+            .then((result) => { if (!cancelled) { today = buildCanvasToday(result.forecast); render(compose()); } })
+            .catch(() => undefined);
+        }
+      }
     });
     return () => {
       cancelled = true;
