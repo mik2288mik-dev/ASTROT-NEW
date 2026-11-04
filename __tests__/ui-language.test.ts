@@ -18,7 +18,7 @@ describe('generation stays in Russian whatever the interface language is', () =>
 describe('translation of on-screen text', () => {
   const translate = buildTranslate({
     'Настройки': 'Settings',
-    'Твоё небо\nна каждый день': 'Your sky\nfor every day',
+    'Все звезды\nтвои!': 'All the stars\nare yours!',
     'Осталось {0} из {1}': '{0} of {1} left',
     '{0} из {1}': '{0} of {1}',
     '{0} и {1}': '{0} and {1}',
@@ -26,7 +26,7 @@ describe('translation of on-screen text', () => {
 
   test('finds exact phrases whatever the spacing', () => {
     expect(translate('  Настройки ')).toBe('Settings');
-    expect(translate('Твоё небо на каждый день')).toBe('Your sky\nfor every day');
+    expect(translate('Все звезды твои!')).toBe('All the stars\nare yours!');
   });
 
   test('moves values into a phrase', () => {

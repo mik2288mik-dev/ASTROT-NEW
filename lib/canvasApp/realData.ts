@@ -1,3 +1,4 @@
+import type { ChartListItem } from '../../services/storageService';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
 import { formatDisplayDate } from '../date-utils';
@@ -5,7 +6,7 @@ import { isCanonicalNatalChart } from '../natalCalculationProof';
 import { getArcana } from '../matrixArcana';
 import { computeMatrix, reduceToArcana } from '../matrixOfDestiny';
 import { buildNatalInterpretation } from '../natalInterpretation';
-import { LIFE_PATH, lifePathNumber, parseBirthDate, PERSONAL_YEAR, personalYearNumber, pythagorasSquare, SQUARE_CELLS, squareSummary } from '../numerology';
+import { LIFE_PATH, lifePathNumber, parseBirthDate, PERSONAL_YEAR, personalDayNumber, personalYearNumber, pythagorasSquare, SQUARE_CELLS, squareSummary } from '../numerology';
 import { buildBigThree, buildChartMoments, SIGN_NOMINATIVE_RU } from '../natalMoments';
 import type { NatalUnifiedReading } from '../natalReading/unifiedReading';
 import type { PersonalForecastPackage } from '../personalForecastContract';
@@ -15,6 +16,11 @@ export type CanvasRealData = {
   account: 'free' | 'plus';
   me: Record<string, unknown>;
   today?: Record<string, unknown>;
+  signIdx: number;
+  personalDay?: number;
+  plusUntil?: string;
+  birthShort?: string;
+  people?: Array<{ key: string; signIdx: number; who: Record<string, unknown> }>;
 };
 
 const BODIES: ReadonlyArray<[string, string]> = [
@@ -71,6 +77,14 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
   const sunSign = canonical?.positions.sun ? signRu(canonical.positions.sun.sign) : '';
   return {
     account: profile.isPremium ? 'plus' : 'free',
+    signIdx: canonical?.positions.sun ? signIndexOf(canonical.positions.sun.sign) : -1,
+    personalDay: (() => {
+      const parts = parseBirthDate(profile.birthDate);
+      const now = new Date();
+      return parts ? personalDayNumber(parts, now.getFullYear(), now.getMonth() + 1, now.getDate()) : undefined;
+    })(),
+    plusUntil: profile.premiumUntil ? new Date(profile.premiumUntil).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : undefined,
+    birthShort: profile.birthDate ? profile.birthDate.split('-').reverse().join('.') : undefined,
     me: {
       name,
       sex: profile.gender === 'female' ? 'f' : 'm',
@@ -192,3 +206,31 @@ function dateFields(birthDate: string, now = new Date()): Record<string, unknown
 
 const SIGN_KEYS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 export const canvasSignKey = (index: number): string => SIGN_KEYS[index] ?? 'Aries';
+
+function signIndexOf(sign: string): number {
+  return SIGN_KEYS.findIndex((key) => key.toLowerCase() === sign.toLowerCase());
+}
+
+/** People from «Мои карты», in the shape the canvas keeps for a chart. */
+export function buildCanvasPeople(charts: readonly ChartListItem[]): NonNullable<CanvasRealData['people']> {
+  return charts
+    .filter((chart) => (chart.subject_type === 'saved_person' || !chart.is_primary) && !chart.archived_at)
+    .map((chart) => {
+      const canonical = isCanonicalNatalChart(chart.chart_data) ? (chart.chart_data as unknown as NatalChartDataV2) : null;
+      const sunSign = canonical?.positions.sun?.sign ?? '';
+      const name = chart.name?.trim() || 'Человек';
+      const birth = [chart.birth_date ? formatDisplayDate(chart.birth_date, 'ru').replace(/(\d{4}) г\./, '$1') : '', chart.birth_time, chart.birth_place].filter(Boolean).join(' · ');
+      return {
+        key: `chart${chart.id}`,
+        signIdx: sunSign ? signIndexOf(sunSign) : -1,
+        who: {
+          other: true, name, gen: name, acc: name, about: `про: ${name}`, sub: birth,
+          over: [name, sunSign ? signRu(sunSign) : ''].filter(Boolean).join(' · '),
+          title: `Карта: ${name}`, storyTitle: `Рассказ: ${name}`, buyLabel: 'Открыть с NEBO Plus', price: '', note: '',
+          chReal: { story: [{ title: 'Весь рассказ', sub: '', locked: true, paras: [] }], topics: [] },
+          ...(canonical ? chartFields(canonical) : { nat: [], big3: [['', ''], ['', ''], ['', '']], highlights: [] }),
+          ...(chart.birth_date ? dateFields(chart.birth_date) : {}),
+        },
+      };
+    });
+}

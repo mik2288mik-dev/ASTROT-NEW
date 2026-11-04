@@ -796,6 +796,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
 
     // The canvas interface hands these flows to the working old screens: /?classic=auth|pay|logout|delete
     const classicHandoffDone = useRef(false);
+    const classicReturnArmed = useRef(false);
     useEffect(() => {
         const flow = new URLSearchParams(window.location.search).get('classic');
         if (!flow) return;
@@ -806,11 +807,23 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         if (!profile || classicHandoffDone.current) return;
         classicHandoffDone.current = true;
         if (flow === 'pay') void requestPremium('canvas');
+        if (flow === 'synastry') openSynastryFromHome();
+        if (flow === 'ask') openBottomNatal();
+        if (['friends', 'moon', 'tarot', 'runes', 'services', 'settings', 'charts'].includes(flow)) navigateTo(flow as ViewState);
+        if (flow === 'week' || flow === 'month') setDashboardPeriod(flow);
+        window.setTimeout(() => { classicReturnArmed.current = true; }, 1500);
         if (flow === 'logout' || flow === 'delete') {
             void (flow === 'logout' ? handleLogout() : handleDeleteAccount()).finally(() => window.location.replace('/?classic=auth'));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [profile?.id, profile?.isSetup]);
+
+    // Coming back to «Сегодня» from a handed-off screen returns to the new interface.
+    useEffect(() => {
+        const flow = new URLSearchParams(window.location.search).get('classic');
+        if (!flow || flow === 'auth' || !classicReturnArmed.current) return;
+        if (view === 'dashboard' && !paywallContext) window.location.replace('/');
+    }, [view, paywallContext]);
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;

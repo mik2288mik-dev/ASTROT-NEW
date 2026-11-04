@@ -127,7 +127,25 @@ function renderNode(node: TreeNode, scope: Scope, key: number): React.ReactNode 
 }
 
 /** The base class the canvas logic extends: a React class whose view is the template. */
+/** Screens that still hold examples: for a real account they open the working old screens. */
+const HANDOFF_SCREENS: Record<string, string> = {
+  friends: 'friends', pairResult: 'synastry', person: 'synastry', moon: 'moon', gardenBook: 'moon', tarot: 'tarot', tarotDeck: 'tarot', tarotRead: 'tarot',
+  runeRead: 'runes', askAnswer: 'ask', year: 'services', notifSettings: 'settings', notifPlan: 'settings', purchases: 'settings', shop: 'services', gift: 'services',
+};
+const HANDOFF_SEGMENTS: Record<string, string> = { tarot: 'tarot', runes: 'runes' };
+const HANDOFF_PERIODS: Record<string, string> = { week: 'week', month: 'month', dates: 'month' };
+
 export class DCLogic<P = Record<string, unknown>, S = Record<string, unknown>> extends React.Component<P, S> {
+  setState(patch: never, callback?: () => void): void {
+    const handoff = (this.props as { handoff?: (flow: string) => void }).handoff;
+    const next = patch as Record<string, unknown> | null;
+    if (handoff && next && typeof next === 'object') {
+      const flow = HANDOFF_SCREENS[String(next.screen)] ?? HANDOFF_SEGMENTS[String(next.seg)] ?? HANDOFF_PERIODS[String(next.period)];
+      if (flow) { handoff(flow); return; }
+    }
+    super.setState(patch, callback);
+  }
+
   renderVals(): Scope {
     return {};
   }
