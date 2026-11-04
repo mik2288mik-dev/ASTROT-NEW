@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import Component from '../../lib/canvasApp/canvasLogic';
 import { CANVAS_CSS, CANVAS_FONTS } from '../../lib/canvasApp/canvasStyles';
-import { buildCanvasChapters, buildCanvasOracle, buildCanvasPeriod, buildCanvasPeople, buildCanvasYear, buildCanvasPurchases, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
+import { buildCanvasChapters, buildCanvasMood, buildCanvasOracle, buildCanvasPeriod, buildCanvasPeople, buildCanvasYear, buildCanvasPurchases, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
 import { calculateExtendedSynastry, getCachedDailySignHoroscope, getCachedWeeklySignHoroscope, getCompatibilityPreview, type CompatibilityPreviewPerson } from '../../services/astrologyService';
 import { apiFetch } from '../../services/apiClient';
 import { drawPoster, savePoster } from '../../lib/canvasApp/poster';
@@ -59,6 +59,22 @@ type CanvasInstance = {
 };
 const CanvasRoot = Component as unknown as React.ComponentType<Record<string, unknown> & { ref?: React.Ref<CanvasInstance> }>;
 
+/** App-wide touches: no tap flash, no text selection, moving stars on the night buttons, calm painting while scrolling. */
+const APP_CSS = `
+.nbs{overflow-x:hidden!important;overscroll-behavior-x:none;touch-action:pan-y;-webkit-overflow-scrolling:touch;}
+*{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+input,textarea{-webkit-user-select:text;user-select:text;}
+img,video{-webkit-user-drag:none;pointer-events:none;}
+button{touch-action:manipulation;outline:none;}
+.nbCta{animation:none!important;position:relative;overflow:hidden;isolation:isolate;}
+.nbCta::before{content:'';position:absolute;z-index:-1;left:0;top:0;width:200%;height:100%;pointer-events:none;background-image:radial-gradient(1.4px 1.4px at 8% 30%,rgba(255,255,255,.95),transparent),radial-gradient(1px 1px at 19% 72%,rgba(255,255,255,.7),transparent),radial-gradient(1.7px 1.7px at 33% 24%,rgba(255,231,170,.95),transparent),radial-gradient(1px 1px at 41% 60%,rgba(255,255,255,.7),transparent),radial-gradient(1.4px 1.4px at 58% 30%,rgba(255,255,255,.95),transparent),radial-gradient(1px 1px at 69% 72%,rgba(255,255,255,.7),transparent),radial-gradient(1.7px 1.7px at 83% 24%,rgba(255,231,170,.95),transparent),radial-gradient(1px 1px at 91% 60%,rgba(255,255,255,.7),transparent);animation:nbStars 16s linear infinite;will-change:transform;}
+@keyframes nbStars{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+@keyframes nbRise{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,-780px,0)}}
+@keyframes nbSway{from{transform:translate3d(-9px,0,0) scale(1,.97)}to{transform:translate3d(9px,0,0) scale(.97,1)}}
+@keyframes nbDrop0{from{transform:translateY(0) scale(1);opacity:1}to{transform:translateY(-34px) scale(.3);opacity:0}}
+.nb-scrolling *{animation-play-state:paused!important;}
+`;
+
 const DESIGN_WIDTH = 390;
 const MAX_SCALE = 1.3;
 
@@ -66,7 +82,7 @@ const MAX_SCALE = 1.3;
 function fitToScreen(mount: HTMLElement): void {
   const scale = Math.min(window.innerWidth / DESIGN_WIDTH, MAX_SCALE);
   mount.style.setProperty('zoom', String(scale));
-  mount.style.setProperty('--nb-h', `${window.innerHeight / scale}px`);
+  mount.style.setProperty('--nb-h', `calc(${window.innerHeight / scale}px - env(safe-area-inset-top))`);
 }
 
 const PLAN_BY_LABEL: ReadonlyArray<[RegExp, PremiumPlanId]> = [[/месяц/, 'premium_month'], [/3 месяца/, 'premium_quarter'], [/год/, 'premium_year']];
@@ -132,11 +148,20 @@ export default function CanvasApp() {
     const shadow = element.shadowRoot ?? element.attachShadow({ mode: 'open' });
     shadow.innerHTML = '';
     const style = document.createElement('style');
-    style.textContent = `:host{all:initial;display:flex;justify-content:center;position:fixed;inset:0;overflow:hidden;overscroll-behavior:none;background:#fff;font-family:Onest,'Segoe UI',sans-serif;}\n${CANVAS_CSS}\n.nbs{overflow-x:hidden!important;overscroll-behavior-x:none;touch-action:pan-y;}`;
+    style.textContent = `:host{all:initial;display:flex;justify-content:center;position:fixed;inset:0;overflow:hidden;overscroll-behavior:none;background:#fff;font-family:Onest,'Segoe UI',sans-serif;}\n${CANVAS_CSS}\n${APP_CSS}`;
     shadow.appendChild(style);
     const mount = document.createElement('div');
     shadow.appendChild(mount);
     mount.style.overflow = 'clip';
+    mount.style.boxSizing = 'border-box';
+    mount.style.paddingTop = 'env(safe-area-inset-top)';
+    let scrollIdle = 0;
+    const onScroll = () => {
+      mount.classList.add('nb-scrolling');
+      window.clearTimeout(scrollIdle);
+      scrollIdle = window.setTimeout(() => mount.classList.remove('nb-scrolling'), 140);
+    };
+    shadow.addEventListener('scroll', onScroll, { capture: true, passive: true });
     fitToScreen(mount);
     const onResize = () => fitToScreen(mount);
     window.addEventListener('resize', onResize);
@@ -492,11 +517,12 @@ export default function CanvasApp() {
       let reading: NatalUnifiedReading | null = null;
       let today: Record<string, unknown> = { dateLine: canvasDateLine() };
       let moon: Record<string, string> | undefined;
+      let mood: CanvasRealData['mood'];
       let retro: CanvasRealData['retro'];
       let moonDays: unknown[][] | undefined;
       let period: CanvasRealData['period'];
       const compose = (): CanvasRealData | null => (loaded
-        ? { ...loaded.real, ...productState, year, retro, period, moonDays, friends, notif, purchases, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium || natalOwned) ?? undefined } }
+        ? { ...loaded.real, ...productState, year, mood, retro, period, moonDays, friends, notif, purchases, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium || natalOwned) ?? undefined } }
         : null);
       renderNow = () => render(compose());
       render(compose());
@@ -508,6 +534,7 @@ export default function CanvasApp() {
           const firstOfMonth = new Date(Date.UTC(nowDate.getFullYear(), nowDate.getMonth(), 1));
           const span = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate() + new Date(nowDate.getFullYear(), nowDate.getMonth() + 2, 0).getDate() + new Date(nowDate.getFullYear(), nowDate.getMonth() + 3, 0).getDate();
           period = buildCanvasPeriod(engine, loaded.profile, loaded.chart) ?? undefined;
+          mood = buildCanvasMood(engine, loaded.chart) ?? undefined;
           window.setTimeout(() => { if (!cancelled) { try { year = buildCanvasYear(engine, loaded.profile, loaded.chart); renderNow(); } catch { /* the year screen stays on its loading text */ } } }, 300);
           moonDays = buildLunarDays(engine, firstOfMonth, span).map((item) => [
             item.day, item.month, item.sign, item.phase, Math.round(((1 - Math.cos((item.phase * Math.PI) / 180)) / 2) * 100),

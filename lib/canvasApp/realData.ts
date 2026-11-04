@@ -29,7 +29,8 @@ export type CanvasRealData = {
   personalDay?: number;
   birthParts?: [number, number, number];
   runeSlug?: string;
-  dayCard?: { name: string; meaning: string; img: string | null };
+  dayCard?: { name: string; short: string; keyword: string; meaning: string; img: string | null };
+  mood?: { hours: number[]; faces: Array<[string, string, string]>; nowFace: number; text: string };
   dayShort?: string;
   retro?: { active: boolean; from?: string; to?: string };
   moonDays?: unknown[][];
@@ -111,7 +112,7 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
     })(),
     dayCard: (() => {
       const card = cardOfTheDay(String(profile.id ?? ''), new Date().toISOString().slice(0, 10));
-      return { name: `${card.roman} · ${card.name}`, meaning: card.day, img: cardImage(card) };
+      return { name: `${card.roman} · ${card.name}`, short: card.name, keyword: card.keyword, meaning: card.day, img: cardImage(card) };
     })(),
     runeSlug: runeOfTheDay(String(profile.id ?? ''), new Date().toISOString().slice(0, 10)).slug,
     dayShort: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }),
@@ -160,15 +161,16 @@ export function canvasDateLine(now = new Date()): string {
 
 export function buildCanvasToday(forecast: PersonalForecastPackage): Record<string, unknown> {
   const blocks = [forecast.overview, ...forecast.sections].filter((section) => section.status === 'ready').flatMap((section) => section.contentBlocks ?? []);
-  const pick = (role: string) => blocks.filter((block) => block.role === role).map((block) => firstSentence(block.text)).filter((text) => text.length > 0 && text.length <= 70).slice(0, 4);
+  const pick = (role: string) => [...new Set(blocks.filter((block) => block.role === role).map((block) => firstSentence(block.text)))].filter((text) => text.length > 0 && text.length <= 90).slice(0, 4);
+  const actions = [forecast.overview, ...forecast.sections].filter((section) => section.status === 'ready' && section.actionText);
   return {
     dateLine: canvasDateLine(),
     dayTitle: forecast.overview.title || firstSentence(forecast.overview.text),
     condition: '',
     horoText: forecast.overview.text,
     why: (forecast.overview.explanationAnchors ?? []).slice(0, 3).map((anchor) => [anchor.conclusion, anchor.explanation]),
-    yes: pick('action'),
-    no: pick('risk'),
+    yes: [...new Set([...actions.filter((section) => section.actionType !== 'stop').map((section) => firstSentence(String(section.actionText))), ...pick('action')])].slice(0, 4),
+    no: [...new Set([...actions.filter((section) => section.actionType === 'stop').map((section) => firstSentence(String(section.actionText))), ...pick('risk')])].slice(0, 4),
   };
 }
 
@@ -446,4 +448,43 @@ export function buildCanvasYear(engine: typeof import('astronomy-engine'), profi
     return top.join(', ') || 'нет ярких месяцев';
   };
   return { rows, best: [['Любовь', best(score.love)], ['Дела', best(score.work)], ['Деньги', best(score.money)], ['Осторожно', best(score.hard)]] };
+}
+
+const MOOD_ASPECTS: ReadonlyArray<[number, number]> = [[0, 0.6], [60, 0.8], [90, -1], [120, 1], [180, -0.8]];
+const MOOD_WEIGHTS: Record<string, number> = { sun: 1, moon: 1.3, mercury: 0.6, venus: 0.9, mars: 1.1, jupiter: 0.7, saturn: 1 };
+
+/** The mood of the day: the Moon hour by hour against this person's own planets. */
+export function buildCanvasMood(engine: typeof import('astronomy-engine'), chart: NatalChartData | null): NonNullable<CanvasRealData['mood']> | null {
+  if (!chart || !isCanonicalNatalChart(chart)) return null;
+  const canonical = chart as unknown as NatalChartDataV2;
+  const now = new Date();
+  const hours = Array.from({ length: 18 }, (_, index) => {
+    const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7 + index);
+    const moon = engine.EclipticGeoMoon(at).lon;
+    let score = 0;
+    for (const [key, weight] of Object.entries(MOOD_WEIGHTS)) {
+      const position = canonical.positions[key as keyof typeof canonical.positions];
+      if (!position) continue;
+      let gap = Math.abs(moon - position.longitude) % 360;
+      if (gap > 180) gap = 360 - gap;
+      for (const [angle, tone] of MOOD_ASPECTS) {
+        const distance = Math.abs(gap - angle);
+        if (distance < 8) score += ((key === 'mars' || key === 'saturn') && angle === 0 ? -0.8 : tone) * weight * (1 - distance / 8);
+      }
+    }
+    return Math.max(8, Math.min(92, Math.round(55 + score * 22)));
+  });
+  const mean = (from: number, to: number) => hours.slice(from, to).reduce((sum, value) => sum + value, 0) / (to - from);
+  const level = (value: number) => (value >= 62 ? 'hi' : value >= 44 ? 'mid' : 'low');
+  const word = (value: number) => (value >= 62 ? 'легко' : value >= 44 ? 'ровно' : 'напряжённее');
+  const parts: Array<[string, number]> = [['Утро', mean(0, 5)], ['День', mean(5, 11)], ['Вечер', mean(11, 15)], ['Ночь', mean(15, 18)]];
+  const hour = now.getHours();
+  return {
+    hours,
+    faces: parts.map(([label, value]) => [label, word(value), level(value)]),
+    nowFace: hour < 12 ? 0 : hour < 18 ? 1 : hour < 22 ? 2 : 3,
+    text: word(parts[0][1]) === word(parts[1][1]) && word(parts[1][1]) === word(parts[2][1])
+      ? `Весь день ${word(parts[0][1])}, без резких перепадов`
+      : `Утром ${word(parts[0][1])}, днём ${word(parts[1][1])}, вечером ${word(parts[2][1])}`,
+  };
 }

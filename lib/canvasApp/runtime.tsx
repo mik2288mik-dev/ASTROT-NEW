@@ -30,6 +30,7 @@ function interpolate(text: string, scope: Scope): string {
 }
 
 const styleCache = new Map<string, React.CSSProperties>();
+const LIGHT_GLASS = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
 function parseStyle(css: string): React.CSSProperties {
   const cached = styleCache.get(css);
@@ -45,7 +46,8 @@ function parseStyle(css: string): React.CSSProperties {
     const value = chunk.slice(colon + 1).trim();
     if (!name || !value) return;
     const key = name.startsWith('--') ? name : name.replace(/^-(webkit|moz|ms)-/, (_, vendor: string) => `${vendor[0].toUpperCase()}${vendor.slice(1)}-`).replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
-    style[key] = value;
+    // SVG refraction inside backdrop-filter costs a repaint per frame on Android phones.
+    style[key] = key === 'backdropFilter' && LIGHT_GLASS ? value.replace(/url\([^)]*\)\s*/g, '').replace(/blur\(\d+(\.\d+)?px\)/, 'blur(10px)') || 'blur(10px)' : value;
   };
   for (let i = 0; i < css.length; i += 1) {
     const ch = css[i];
