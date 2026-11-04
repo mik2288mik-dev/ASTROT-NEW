@@ -129,7 +129,7 @@ function renderNode(node: TreeNode, scope: Scope, key: number): React.ReactNode 
 /** The base class the canvas logic extends: a React class whose view is the template. */
 /** Screens that still hold examples: for a real account they open the working old screens. */
 const HANDOFF_SCREENS: Record<string, string> = {
-  friends: 'friends', pairResult: 'synastry', person: 'synastry', moon: 'moon', gardenBook: 'moon', tarot: 'tarot', tarotDeck: 'tarot', tarotRead: 'tarot',
+  friends: 'friends', person: 'synastry', moon: 'moon', gardenBook: 'moon', tarot: 'tarot', tarotDeck: 'tarot', tarotRead: 'tarot',
   runeRead: 'runes', askAnswer: 'ask', year: 'services', notifSettings: 'settings', notifPlan: 'settings', purchases: 'settings', shop: 'services', gift: 'services',
 };
 const HANDOFF_SEGMENTS: Record<string, string> = { tarot: 'tarot', runes: 'runes' };

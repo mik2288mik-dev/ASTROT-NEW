@@ -5,7 +5,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import Component from '../../lib/canvasApp/canvasLogic';
 import { CANVAS_CSS, CANVAS_FONTS } from '../../lib/canvasApp/canvasStyles';
 import { buildCanvasChapters, buildCanvasPeople, buildCanvasRealData, buildCanvasToday, canvasDateLine, canvasSignKey, type CanvasRealData } from '../../lib/canvasApp/realData';
-import { getCachedDailySignHoroscope, getCachedWeeklySignHoroscope } from '../../services/astrologyService';
+import { getCachedDailySignHoroscope, getCachedWeeklySignHoroscope, getCompatibilityPreview, type CompatibilityPreviewPerson } from '../../services/astrologyService';
+import type { CompatibilityPreview } from '../../lib/synastry/compatibilityPreview';
+import type { RelationshipContext } from '../../lib/synastry/relationshipContext';
 import { loadPersonalForecast } from '../../services/personalForecastService';
 import type { NatalUnifiedReading } from '../../lib/natalReading/unifiedReading';
 import { ensureNatalUnifiedReading } from '../../services/natalUnifiedReadingService';
@@ -219,6 +221,7 @@ export default function CanvasApp() {
       // A point of the chart explained from this person's own chart.
       const pointKeys: Record<string, string> = { asc: 'ascendant', dsc: 'descendant', node: 'northNode', snode: 'southNode' };
       const chartsByKey = new Map<string, NatalChartData>();
+      let primaryChartId: number | null = null;
       const explainPoint = (whoKey: string, point: string): string | null => {
         const chart = whoKey === 'me' ? loaded?.chart : chartsByKey.get(whoKey);
         if (!chart) return null;
@@ -234,6 +237,29 @@ export default function CanvasApp() {
         if (prefs.theme) writePref('theme', prefs.theme);
         if (prefs.lang) { writePref('lang', prefs.lang); setUiLanguage(prefs.lang as Parameters<typeof setUiLanguage>[0]); }
       };
+      // Compatibility of two real charts: calculated on the server, no AI.
+      const pairResults = new Map<string, { status: 'loading' | 'ready' | 'error'; preview?: CompatibilityPreview }>();
+      const contextOf: Record<string, RelationshipContext> = { general: 'relationship', romance: 'romance', relationship: 'relationship', ex: 'ex', friendship: 'friendship', family: 'family', work: 'work', boss: 'work', business: 'work' };
+      const personOf = (key: string): CompatibilityPreviewPerson | null => {
+        if (key === 'me') return primaryChartId != null ? { source: 'saved', chartId: primaryChartId } : { source: 'birth', name: loaded?.profile.name, date: loaded?.profile.birthDate, place: loaded?.profile.birthPlace };
+        const id = Number(key.replace('chart', ''));
+        return Number.isFinite(id) ? { source: 'saved', chartId: id } : null;
+      };
+      const pairPreview = (a: string, b: string, context: string) => {
+        const key = `${a}|${b}|${context}`;
+        const known = pairResults.get(key);
+        if (known) return known;
+        const first = personOf(a);
+        const second = b ? personOf(b) : null;
+        if (!first || !second || !loaded) return { status: 'error' as const };
+        const entry = { status: 'loading' as const };
+        pairResults.set(key, entry);
+        void getCompatibilityPreview(loaded.profile, first, second, contextOf[context] ?? 'relationship')
+          .then((preview) => { pairResults.set(key, { status: 'ready', preview }); })
+          .catch(() => { pairResults.set(key, { status: 'error' }); })
+          .finally(() => { if (!cancelled) renderNow(); });
+        return entry;
+      };
       const render = (real: CanvasRealData | null) => root?.render(
         <CanvasRoot
           key="app"
@@ -245,6 +271,7 @@ export default function CanvasApp() {
           account={params.get('account') ?? real?.account}
           real={real}
           signText={signText}
+          pairPreview={real ? pairPreview : undefined}
           theme={readPref('theme') ?? (loaded?.profile.theme === 'dark' ? 'dark' : undefined)}
           lang={readPref('lang') ?? (loaded?.profile.language === 'en' ? 'en' : undefined)}
           onPrefs={onPrefs}
@@ -286,7 +313,7 @@ export default function CanvasApp() {
           render(compose());
         }).catch(() => undefined);
         void getCharts(String(loaded.profile.id), { repairPrimary: false })
-          .then((response) => { if (!cancelled) { people = buildCanvasPeople(response.charts ?? []); (response.charts ?? []).forEach((chart) => chartsByKey.set(`chart${chart.id}`, chart.chart_data)); render(compose()); } })
+          .then((response) => { if (!cancelled) { primaryChartId = (response.charts ?? []).find((chart) => chart.is_primary)?.id ?? null; people = buildCanvasPeople(response.charts ?? []); (response.charts ?? []).forEach((chart) => chartsByKey.set(`chart${chart.id}`, chart.chart_data)); render(compose()); } })
           .catch(() => undefined);
         void loadReading(loaded).then((value) => { if (!cancelled && value) { reading = value; render(compose()); } });
         if (loaded.profile.isSetup) {
