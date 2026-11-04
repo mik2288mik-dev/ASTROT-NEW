@@ -22,6 +22,8 @@ export type CanvasRealData = {
   runeSlug?: string;
   dayShort?: string;
   retro?: { active: boolean; from?: string; to?: string };
+  moonDays?: unknown[][];
+  friends?: Array<{ id: string; name: string; sign: string; last: string; match: string; unread: number }>;
   plusUntil?: string;
   birthShort?: string;
   people?: Array<{ key: string; signIdx: number; who: Record<string, unknown> }>;

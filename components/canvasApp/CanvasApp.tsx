@@ -14,6 +14,8 @@ import { ensureNatalUnifiedReading } from '../../services/natalUnifiedReadingSer
 import type { NatalChartData, UserProfile } from '../../types';
 import { readLocalNatalChartCache } from '../../lib/localNatalChartCache';
 import { getChartData, getCharts, getProfile } from '../../services/storageService';
+import { friendErrorText, loadFriends, loadMessages, postMessage, type FriendMessage } from '../../services/friendsService';
+import { getCompatScore, sunSignFromDate } from '../../lib/synastry/compatScore';
 import { buyOneTimeProduct, canBuyOneTimeProducts } from '../../services/oneTimePurchaseService';
 import { requestRuStorePayment } from '../../services/rustorePayService';
 import {
@@ -28,6 +30,7 @@ import {
   shouldOfferNativeNotifications,
 } from '../../services/nativeNotifications';
 import { explainMapSelection } from '../NatalReading/mapExplanation';
+import { SIGN_NOMINATIVE_RU } from '../../lib/natalMoments';
 import { setUiLanguage } from '../../lib/i18n';
 import { buildLunarDays, phaseName, SIGNS_IN } from '../../lib/lunarCalendar';
 import type { OneTimeProductId } from '../../lib/oneTimeProducts';
@@ -260,6 +263,27 @@ export default function CanvasApp() {
           .finally(() => { if (!cancelled) renderNow(); });
         return entry;
       };
+      // Friends and messages: the same service as the old screen.
+      let friends: NonNullable<CanvasRealData['friends']> = [];
+      const chats = new Map<string, FriendMessage[]>();
+      let activeChat = '';
+      const refreshChat = (id: string) => {
+        void loadMessages(id).then(({ messages }) => { chats.set(id, messages); if (!cancelled) renderNow(); }).catch(() => undefined);
+      };
+      const chatPoll = window.setInterval(() => { if (activeChat && document.visibilityState !== 'hidden') refreshChat(activeChat); }, 6000);
+      notifyCleanup.push(() => window.clearInterval(chatPoll));
+      const clock = (at: string) => new Date(at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      const friendMessages = (id: string, open: boolean) => {
+        const nextActive = open ? id : '';
+        if (nextActive && nextActive !== activeChat) refreshChat(nextActive);
+        activeChat = nextActive;
+        return (chats.get(id) ?? []).map((message) => [message.mine ? 'out' : 'in', message.kind === 'card' ? '' : message.body, clock(message.at), message.kind === 'card' ? [message.payload?.kicker ?? '', message.payload?.title ?? message.body] : undefined]);
+      };
+      const friendSend = (id: string, body: string) => {
+        void postMessage(id, body)
+          .then(({ message }) => { chats.set(id, [...(chats.get(id) ?? []), message]); if (!cancelled) renderNow(); })
+          .catch((error: Error) => instance.current?.toast(friendErrorText(error.message)));
+      };
       const render = (real: CanvasRealData | null) => root?.render(
         <CanvasRoot
           key="app"
@@ -271,6 +295,8 @@ export default function CanvasApp() {
           account={params.get('account') ?? real?.account}
           real={real}
           signText={signText}
+          friendMessages={real ? friendMessages : undefined}
+          friendSend={real ? friendSend : undefined}
           pairPreview={real ? pairPreview : undefined}
           theme={readPref('theme') ?? (loaded?.profile.theme === 'dark' ? 'dark' : undefined)}
           lang={readPref('lang') ?? (loaded?.profile.language === 'en' ? 'en' : undefined)}
@@ -285,14 +311,24 @@ export default function CanvasApp() {
       let today: Record<string, unknown> = { dateLine: canvasDateLine() };
       let moon: Record<string, string> | undefined;
       let retro: CanvasRealData['retro'];
+      let moonDays: unknown[][] | undefined;
       const compose = (): CanvasRealData | null => (loaded
-        ? { ...loaded.real, retro, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
+        ? { ...loaded.real, retro, moonDays, friends, today: { ...today, moon }, people, me: { ...loaded.real.me, chReal: buildCanvasChapters(loaded.chart, reading, loaded.profile.isPremium) ?? undefined } }
         : null);
       renderNow = () => render(compose());
       render(compose());
       if (loaded) {
         void import('astronomy-engine').then((engine) => {
           const dayMs = 86400000;
+          // The calendar from the 1st of this month to the end of the next one.
+          const nowDate = new Date();
+          const firstOfMonth = new Date(Date.UTC(nowDate.getFullYear(), nowDate.getMonth(), 1));
+          const span = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate() + new Date(nowDate.getFullYear(), nowDate.getMonth() + 2, 0).getDate();
+          moonDays = buildLunarDays(engine, firstOfMonth, span).map((item) => [
+            item.day, item.month, item.sign, item.phase, Math.round(((1 - Math.cos((item.phase * Math.PI) / 180)) / 2) * 100),
+            item.exact ? (item.exact.q === 0 ? 1 : 2) : 0, item.eclipse ? 1 : 0, 0, item.mercuryRetrograde ? 1 : 0, '', -1, item.sign,
+            Math.floor((item.phase / 360) * 29.53) + 1, -1, '', '', item.weekday,
+          ]);
           const days = buildLunarDays(engine, new Date(Date.now() - 40 * dayMs), 90);
           const todayIndex = 40;
           const day = days[todayIndex];
@@ -310,6 +346,18 @@ export default function CanvasApp() {
             moonIllum: `Освещена на ${Math.round(((1 - Math.cos((day.phase * Math.PI) / 180)) / 2) * 100)}%`,
             condition: signLine,
           };
+          render(compose());
+        }).catch(() => undefined);
+        void loadFriends().then((state) => {
+          if (cancelled) return;
+          const mySign = sunSignFromDate(loaded.profile.birthDate);
+          friends = state.friends.map((friend) => {
+            const sign = friend.birthDate ? sunSignFromDate(friend.birthDate) : null;
+            return {
+              id: friend.id, name: friend.name, sign: sign ? (SIGN_NOMINATIVE_RU[sign] ?? '') : '', last: friend.lastMessage?.body ?? '',
+              match: mySign && sign ? `${getCompatScore(mySign, sign).overall}%` : '', unread: friend.unread,
+            };
+          });
           render(compose());
         }).catch(() => undefined);
         void getCharts(String(loaded.profile.id), { repairPrimary: false })

@@ -129,11 +129,11 @@ function renderNode(node: TreeNode, scope: Scope, key: number): React.ReactNode 
 /** The base class the canvas logic extends: a React class whose view is the template. */
 /** Screens that still hold examples: for a real account they open the working old screens. */
 const HANDOFF_SCREENS: Record<string, string> = {
-  friends: 'friends', person: 'synastry', moon: 'moon', gardenBook: 'moon', tarot: 'tarot', tarotDeck: 'tarot', tarotRead: 'tarot',
+  person: 'synastry', tarot: 'tarot', tarotDeck: 'tarot', tarotRead: 'tarot',
   runeRead: 'runes', askAnswer: 'ask', year: 'services', notifSettings: 'settings', notifPlan: 'settings', purchases: 'settings', shop: 'services', gift: 'services',
 };
 const HANDOFF_SEGMENTS: Record<string, string> = { tarot: 'tarot', runes: 'runes' };
-const HANDOFF_POPUPS: Record<string, string> = { natalData: 'settings', redeem: 'services', addChart: 'charts', voc: 'moon', packs: 'pay', askMore: 'pay' };
+const HANDOFF_POPUPS: Record<string, string> = { natalData: 'settings', redeem: 'services', addChart: 'charts', packs: 'pay', askMore: 'pay' };
 const HANDOFF_PERIODS: Record<string, string> = { week: 'week', month: 'month', dates: 'month' };
 
 export class DCLogic<P = Record<string, unknown>, S = Record<string, unknown>> extends React.Component<P, S> {
@@ -142,6 +142,7 @@ export class DCLogic<P = Record<string, unknown>, S = Record<string, unknown>> e
     const next = patch as Record<string, unknown> | null;
     if (handoff && next && typeof next === 'object') {
       const flow = HANDOFF_SCREENS[String(next.screen)] ?? HANDOFF_SEGMENTS[String(next.seg)] ?? HANDOFF_PERIODS[String(next.period)]
+        ?? (next.fScr === 'add' ? 'friends' : next.fScr === 'gift' ? 'services' : undefined)
         ?? HANDOFF_POPUPS[String(next.popup)] ?? (typeof next.card === 'number' && next.card >= 0 ? 'tarot' : undefined);
       if (flow) { handoff(flow); return; }
     }
