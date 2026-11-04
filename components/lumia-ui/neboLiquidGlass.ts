@@ -18,6 +18,6 @@ export function liquidGlassMap({ w, h, r, e }: LiquidGlassSize): string {
 
 /** Channel-split displacement scales: red, green and blue bend a little differently, like real glass. */
 export const LIQUID_GLASS_SCALES = {
-  bar: [-70, -64, -59],
-  drop: [-90, -83, -76],
+  bar: [-34, -33, -32],
+  drop: [-46, -45, -44],
 } as const;

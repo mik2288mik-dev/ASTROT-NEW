@@ -4,8 +4,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px 20px 4px;
+  gap: 2px;
+  padding: 0 20px 2px;
   text-align: center;
 }
 
@@ -13,9 +13,9 @@
   margin: 0;
   color: #0b0d12;
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -23,7 +23,7 @@
 .nebo-page-title p {
   margin: 0;
   color: #9aa0ae;
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -151,17 +151,18 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 4px;
+  gap: 6px;
 }
 
+/* The choice of chart lives in the top bar, in place of the NEBO brand. */
 .nebo-mychart-whose {
   display: inline-flex;
-  align-self: center;
   align-items: center;
   gap: 4px;
+  max-width: 132px;
   height: 32px;
-  padding: 0 12px 0 14px;
+  padding: 0 10px 0 14px;
+  pointer-events: auto;
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 999px;
   background: rgba(118, 118, 128, 0.1);
@@ -1291,12 +1292,12 @@
 .nebo-shop-bigcode { padding: 18px; border-radius: 18px; background: #f4f5f8; color: #0b0d12; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 26px; font-weight: 700; letter-spacing: 0.08em; text-align: center; }
 
 /* «Отдых» home (canvas Rest) */
-.nebo-rest-home { display: flex; flex-direction: column; padding: 4px 0 28px; color: #0b0d12; }
+.nebo-rest-home { display: flex; flex-direction: column; padding: 0 0 28px; color: #0b0d12; }
 .nebo-rest-head { text-align: center; }
-.nebo-rest-head h1 { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 28px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
-.nebo-rest-head h1 span { width: 44px; height: 1px; background: linear-gradient(90deg, transparent, #8a8f9c); }
+.nebo-rest-head h1 { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.nebo-rest-head h1 span { width: 30px; height: 1px; background: linear-gradient(90deg, transparent, #8a8f9c); }
 .nebo-rest-head h1 span:last-child { background: linear-gradient(90deg, #8a8f9c, transparent); }
-.nebo-rest-head p { margin: 4px 0 0; color: #8a8f9c; font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.nebo-rest-head p { margin: 1px 0 0; color: #8a8f9c; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .nebo-rest-hero { position: relative; display: flex; align-items: flex-end; min-height: 232px; margin: 16px 16px 0; padding: 18px; overflow: hidden; border: 0; border-radius: 30px; background: #9ccbe0 center / cover no-repeat; color: #ffffff; font: inherit; text-align: left; cursor: pointer; }
 .nebo-rest-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(10, 30, 60, 0.55) 100%); }
 .nebo-rest-hero-copy { position: relative; display: flex; flex-direction: column; gap: 4px; padding-right: 60px; }
@@ -1332,10 +1333,10 @@
 /* «Моя карта» header, canvas look: warm glow on top, serif caps title between ornaments, grey caps subtitle */
 .nebo-mychart-header::before { content: ""; position: absolute; left: -16px; right: -16px; top: -90px; height: 360px; z-index: -1; background: radial-gradient(120% 80% at 50% 0%, rgba(255, 214, 170, 0.55), rgba(255, 255, 255, 0) 70%); pointer-events: none; }
 .nebo-mychart-header .nebo-page-title { text-align: center; }
-.nebo-mychart-header .nebo-page-title h1 { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 26px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
-.nebo-mychart-header .nebo-page-title h1::before, .nebo-mychart-header .nebo-page-title h1::after { content: ""; width: 40px; height: 1px; flex: none; background: linear-gradient(90deg, transparent, #8a8f9c); }
+.nebo-mychart-header .nebo-page-title h1 { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.nebo-mychart-header .nebo-page-title h1::before, .nebo-mychart-header .nebo-page-title h1::after { content: ""; width: 30px; height: 1px; flex: none; background: linear-gradient(90deg, transparent, #8a8f9c); }
 .nebo-mychart-header .nebo-page-title h1::after { background: linear-gradient(90deg, #8a8f9c, transparent); }
-.nebo-mychart-header .nebo-page-title p { margin: 4px 0 0; color: #8a8f9c; font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.nebo-mychart-header .nebo-page-title p { margin: 1px 0 0; color: #8a8f9c; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* Picking cards or runes (canvas TarotPick): a night screen with the deck and three places */
 .nebo-oracle-night { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; overflow-y: auto; background: radial-gradient(90% 60% at 50% 45%, #4a3a8f 0%, #261a6b 45%, #120c3d 100%); color: #ffffff; }
@@ -1819,3 +1820,64 @@ html[data-theme='dark'] .compat-gauge .compat-gauge-hub { fill: #f4f5f8 !importa
 html[data-theme='dark'] .compat-story-cover h1 { color: #f4f5f8; }
 html[data-theme='dark'] .compat-story-cover > p, html[data-theme='dark'] .compat-story-cover .compat-result-change { color: #c7c9ff !important; }
 .nebo-legal-mark { display: block; width: 56px !important; height: 56px !important; max-width: none !important; object-fit: cover; margin: 6px auto 0; border-radius: 16px; box-shadow: 0 10px 22px -12px rgba(31, 60, 200, 0.55); }
+
+.nebo-mychart-whose span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* One title block on every screen, the same size in the same place: only the words change.
+   Height is fixed, and the small line keeps its room even when a screen has nothing to say there. */
+.fresh-page:not(.home-screen) > .app-top-bar-spacer:has(+ .nebo-mychart-header),
+.fresh-page:not(.home-screen) > .app-top-bar-spacer:has(+ .nebo-page-title),
+.fresh-page:not(.home-screen) > .app-top-bar-spacer:has(+ .nebo-rest-home) { margin-bottom: 4px !important; }
+
+.fresh-page .nebo-page-title {
+  display: block !important;
+  box-sizing: border-box;
+  height: 40px;
+  margin: 0 !important;
+  padding: 0 16px !important;
+  overflow: hidden;
+  text-align: center;
+}
+.fresh-page .nebo-page-title h1 {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 24px;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #0b0d12;
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.14em !important;
+  line-height: 24px !important;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fresh-page .nebo-page-title h1::before,
+.fresh-page .nebo-page-title h1::after { content: ""; flex: none; width: 30px; height: 1px; background: linear-gradient(90deg, transparent, #8a8f9c); }
+.fresh-page .nebo-page-title h1::after { background: linear-gradient(90deg, #8a8f9c, transparent); }
+.fresh-page .nebo-page-title p {
+  height: 14px;
+  margin: 2px 0 0 !important;
+  overflow: hidden;
+  color: #8a8f9c;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  line-height: 14px !important;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Compatibility entry: the same switch as «Моя карта», and every block on the one page gutter */
+.compat-editorial-page .compat-editorial-tabs { gap: 2px; margin: 8px 0 0 !important; padding: 3px !important; border-radius: 999px !important; }
+.compat-editorial-page .compat-editorial-tabs .editorial-tab { height: 34px; min-height: 34px; padding: 0 8px !important; border-radius: 999px !important; font-size: 14px !important; line-height: 1; white-space: nowrap; }
+.compat-editorial-page .compat-editorial-tabs .editorial-tab.is-active { box-shadow: 0 1px 2px rgba(11, 13, 18, 0.08), 0 4px 10px rgba(11, 13, 18, 0.06) !important; }
+.compat-entry-form--date .compat-entry-context--date { margin-right: 0 !important; margin-left: 0 !important; }
+.compat-entry-form--date .nebo-friends-link,
+.compat-entry-form--date .nebo-compat-note { width: 100%; margin-right: 0 !important; margin-left: 0 !important; }
+.compat-editorial-page .compat-editorial-tabs { width: 100% !important; max-width: none !important; }
+.compat-entry-form--date .compat-pair-picker { margin-right: 0 !important; margin-left: 0 !important; }

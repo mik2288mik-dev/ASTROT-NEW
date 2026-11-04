@@ -10,9 +10,6 @@ type MyChartHeaderProps = {
   subtitle?: string;
   active: MyChartSegment;
   onOpen: (segment: MyChartSegment) => void;
-  /** «Чья карта»: the saved chart that is open now. */
-  whoseLabel?: string;
-  onChooseWhose?: () => void;
 };
 
 const SEGMENTS: ReadonlyArray<{ id: MyChartSegment; label: string }> = [
@@ -23,19 +20,23 @@ const SEGMENTS: ReadonlyArray<{ id: MyChartSegment; label: string }> = [
   { id: 'runes', label: 'Руны' },
 ];
 
-/** «Моя карта» as on the canvas: whose chart, the serif title and the switch between its parts. */
-export function MyChartHeader({ title, subtitle, active, onOpen, whoseLabel, onChooseWhose }: MyChartHeaderProps) {
+/** «Чья карта»: the saved chart that is open now. Sits in the top bar in place of the NEBO brand. */
+export function ChartWhoseButton({ label, onChoose }: { label: string; onChoose: () => void }) {
+  return (
+    <button type="button" className="nebo-mychart-whose" onClick={onChoose}>
+      <span>{label}</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+    </button>
+  );
+}
+
+/** «Моя карта» as on the canvas: the serif title and the switch between its parts. */
+export function MyChartHeader({ title, subtitle, active, onOpen }: MyChartHeaderProps) {
   return (
     <div className="nebo-mychart-header">
-      {onChooseWhose ? (
-        <button type="button" className="nebo-mychart-whose" onClick={onChooseWhose}>
-          <span>{whoseLabel || 'Моя'}</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
-        </button>
-      ) : null}
       <div className="nebo-page-title">
         <h1>{title}</h1>
-        {subtitle ? <p>{subtitle}</p> : null}
+        <p>{subtitle || '\u00a0'}</p>
       </div>
       <nav className="nebo-mychart-switch" aria-label="Разделы моей карты">
         {SEGMENTS.map((segment) => (
