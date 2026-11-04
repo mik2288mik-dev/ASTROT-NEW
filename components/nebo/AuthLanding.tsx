@@ -119,7 +119,7 @@ export function AuthLanding({ providers, telegramReady, emailVisible, busy, mess
         </span>
       </header>
       <section className="nebo-auth-panel">
-        <h1>{'Твоё небо\nна каждый день'}</h1>
+        <h1>{'Все звезды\nтвои!'}</h1>
         <p className="nebo-auth-sub">Личный день по дате рождения, натальная карта, совместимость и лунные календари.</p>
         {message ? <p className="nebo-auth-message" role="alert">{message}</p> : null}
         {yandex ? (
