@@ -1616,7 +1616,7 @@ Check our compatibility from your side in NEBO.`
                 <span className="compat-date-section-label">{ru ? 'Кто вы друг другу' : tr('Who are you to each other')}</span>
                 <button type="button" className="nebo-compat-relation" aria-expanded={relationOpen} onClick={() => setRelationOpen((open) => !open)}>
                   <span><strong>{relationTitle(relationshipFocus, ru)}</strong><small>{relationHint(relationshipFocus, ru)}</small></span>
-                  <em>{relationOpen ? (ru ? 'Готово' : tr('Done')) : (ru ? 'Сменить' : tr('Change'))}</em>
+                  <em>{relationOpen ? (ru ? 'Готово' : tr('Done')) : (ru ? 'Сменить' : tr('Change'))}<ChevronDown aria-hidden="true" size={18} strokeWidth={2.2} /></em>
                 </button>
                 {relationOpen ? <RelationshipContextPicker
                   focus={relationshipFocus}

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTelemetrySection } from '../../services/useAppTelemetry';
-import { MyChartHeader, type MyChartSegment } from '../../components/nebo/MyChartHeader';
+import { ChartWhoseButton, MyChartHeader, type MyChartSegment } from '../../components/nebo/MyChartHeader';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
 import { getZodiacSign } from '../../constants';
 import styles from '../../components/NatalReading/NatalSection.module.css';
@@ -159,14 +159,18 @@ export function NatalMagazine({
   const sunSign = sunSignFromDate(subjectBirthDate);
   const header = (
     <>
-      <AppTopBar title={language === 'ru' ? 'Натальная карта' : tr('Natal chart')} main />
+      <AppTopBar
+        title={language === 'ru' ? 'Натальная карта' : tr('Natal chart')}
+        main
+        startSlot={onOpenCharts ? (
+          <ChartWhoseButton label={isSavedPerson ? subjectName : (language === 'ru' ? 'Моя' : tr('Mine'))} onChoose={onOpenCharts} />
+        ) : undefined}
+      />
       <MyChartHeader
         title={language === 'ru' ? 'Натальная карта' : tr('Natal chart')}
         subtitle={[subjectName, sunSign ? getZodiacSign(language, sunSign) : ''].filter(Boolean).join(' · ')}
         active="natal"
         onOpen={(segment) => onOpenSegment?.(segment)}
-        whoseLabel={isSavedPerson ? subjectName : (language === 'ru' ? 'Моя' : tr('Mine'))}
-        onChooseWhose={onOpenCharts}
       />
     </>
   );

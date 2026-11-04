@@ -4,8 +4,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px 20px 4px;
+  gap: 2px;
+  padding: 0 20px 2px;
   text-align: center;
 }
 
@@ -13,9 +13,9 @@
   margin: 0;
   color: #0b0d12;
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -23,7 +23,7 @@
 .nebo-page-title p {
   margin: 0;
   color: #9aa0ae;
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -151,17 +151,18 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 4px;
+  gap: 6px;
 }
 
+/* The choice of chart lives in the top bar, in place of the NEBO brand. */
 .nebo-mychart-whose {
   display: inline-flex;
-  align-self: center;
   align-items: center;
-  gap: 4px;
-  height: 32px;
-  padding: 0 12px 0 14px;
+  gap: 6px;
+  max-width: 150px;
+  height: 40px;
+  padding: 0 10px 0 14px;
+  pointer-events: auto;
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 999px;
   background: rgba(118, 118, 128, 0.1);
@@ -1291,12 +1292,12 @@
 .nebo-shop-bigcode { padding: 18px; border-radius: 18px; background: #f4f5f8; color: #0b0d12; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 26px; font-weight: 700; letter-spacing: 0.08em; text-align: center; }
 
 /* «Отдых» home (canvas Rest) */
-.nebo-rest-home { display: flex; flex-direction: column; padding: 4px 0 28px; color: #0b0d12; }
+.nebo-rest-home { display: flex; flex-direction: column; padding: 0 0 28px; color: #0b0d12; }
 .nebo-rest-head { text-align: center; }
-.nebo-rest-head h1 { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 28px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
-.nebo-rest-head h1 span { width: 44px; height: 1px; background: linear-gradient(90deg, transparent, #8a8f9c); }
+.nebo-rest-head h1 { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.nebo-rest-head h1 span { width: 30px; height: 1px; background: linear-gradient(90deg, transparent, #8a8f9c); }
 .nebo-rest-head h1 span:last-child { background: linear-gradient(90deg, #8a8f9c, transparent); }
-.nebo-rest-head p { margin: 4px 0 0; color: #8a8f9c; font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.nebo-rest-head p { margin: 1px 0 0; color: #8a8f9c; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .nebo-rest-hero { position: relative; display: flex; align-items: flex-end; min-height: 232px; margin: 16px 16px 0; padding: 18px; overflow: hidden; border: 0; border-radius: 30px; background: #9ccbe0 center / cover no-repeat; color: #ffffff; font: inherit; text-align: left; cursor: pointer; }
 .nebo-rest-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(10, 30, 60, 0.55) 100%); }
 .nebo-rest-hero-copy { position: relative; display: flex; flex-direction: column; gap: 4px; padding-right: 60px; }
@@ -1332,10 +1333,10 @@
 /* «Моя карта» header, canvas look: warm glow on top, serif caps title between ornaments, grey caps subtitle */
 .nebo-mychart-header::before { content: ""; position: absolute; left: -16px; right: -16px; top: -90px; height: 360px; z-index: -1; background: radial-gradient(120% 80% at 50% 0%, rgba(255, 214, 170, 0.55), rgba(255, 255, 255, 0) 70%); pointer-events: none; }
 .nebo-mychart-header .nebo-page-title { text-align: center; }
-.nebo-mychart-header .nebo-page-title h1 { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 26px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
-.nebo-mychart-header .nebo-page-title h1::before, .nebo-mychart-header .nebo-page-title h1::after { content: ""; width: 40px; height: 1px; flex: none; background: linear-gradient(90deg, transparent, #8a8f9c); }
+.nebo-mychart-header .nebo-page-title h1 { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.nebo-mychart-header .nebo-page-title h1::before, .nebo-mychart-header .nebo-page-title h1::after { content: ""; width: 30px; height: 1px; flex: none; background: linear-gradient(90deg, transparent, #8a8f9c); }
 .nebo-mychart-header .nebo-page-title h1::after { background: linear-gradient(90deg, #8a8f9c, transparent); }
-.nebo-mychart-header .nebo-page-title p { margin: 4px 0 0; color: #8a8f9c; font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.nebo-mychart-header .nebo-page-title p { margin: 1px 0 0; color: #8a8f9c; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* Picking cards or runes (canvas TarotPick): a night screen with the deck and three places */
 .nebo-oracle-night { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; overflow-y: auto; background: radial-gradient(90% 60% at 50% 45%, #4a3a8f 0%, #261a6b 45%, #120c3d 100%); color: #ffffff; }
@@ -1819,3 +1820,219 @@ html[data-theme='dark'] .compat-gauge .compat-gauge-hub { fill: #f4f5f8 !importa
 html[data-theme='dark'] .compat-story-cover h1 { color: #f4f5f8; }
 html[data-theme='dark'] .compat-story-cover > p, html[data-theme='dark'] .compat-story-cover .compat-result-change { color: #c7c9ff !important; }
 .nebo-legal-mark { display: block; width: 56px !important; height: 56px !important; max-width: none !important; object-fit: cover; margin: 6px auto 0; border-radius: 16px; box-shadow: 0 10px 22px -12px rgba(31, 60, 200, 0.55); }
+
+.nebo-mychart-whose span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* One title block on every screen, as on the canvas: 64px tall under the 58px bar, so only the words change. */
+.fresh-page:not(.home-screen) > .app-top-bar-spacer:has(+ .nebo-mychart-header),
+.fresh-page:not(.home-screen) > .app-top-bar-spacer:has(+ .nebo-page-title),
+.fresh-page:not(.home-screen) > .app-top-bar-spacer:has(+ .nebo-rest-home) { margin-bottom: 0 !important; }
+
+.fresh-page .nebo-page-title {
+  display: block !important;
+  box-sizing: border-box;
+  height: 64px;
+  margin: 0 !important;
+  padding: 6px 20px 0 !important;
+  overflow: hidden;
+  text-align: center;
+}
+.fresh-page .nebo-page-title h1 {
+  --nebo-title-ink: #0b0d12;
+  --nebo-title-s1: #b9bec9;
+  --nebo-title-s2: #f4f5f8;
+  --nebo-title-s3: #9aa0ae;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 30px;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  line-height: 30px !important;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: transparent !important;
+  background: linear-gradient(90deg, var(--nebo-title-ink) 0%, var(--nebo-title-ink) 38%, var(--nebo-title-s1) 46%, var(--nebo-title-s2) 50%, var(--nebo-title-s3) 54%, var(--nebo-title-ink) 62%, var(--nebo-title-ink) 100%);
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: neboTitleSheen 2.6s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both;
+}
+@keyframes neboTitleSheen { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+.fresh-page .nebo-page-title h1::before,
+.fresh-page .nebo-page-title h1::after {
+  content: "";
+  flex: 0 1 44px;
+  min-width: 0;
+  height: 14px;
+  background: #9aa0ae;
+  -webkit-mask: var(--nebo-title-orn) center / contain no-repeat;
+  mask: var(--nebo-title-orn) center / contain no-repeat;
+}
+.fresh-page .nebo-page-title h1::after { transform: scaleX(-1); }
+.fresh-page .nebo-page-title p {
+  height: 16px;
+  margin: 6px 0 0 !important;
+  overflow: hidden;
+  color: #9aa0ae;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+  line-height: 16px !important;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fresh-page .nebo-page-title { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill-rule=%22evenodd%22 d=%22M46 1.8C46.4 5 48 6.6 51.2 7 48 7.4 46.4 9 46 12.2 45.6 9 44 7.4 40.8 7 44 6.6 45.6 5 46 1.8z%22/%3E%3C/svg%3E"); }
+.fresh-page .nebo-page-title[data-glyph='natal'] { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill-rule=%22evenodd%22 d=%22M46 2.6a4.4 4.4 0 1 1 0 8.8a4.4 4.4 0 1 1 0-8.8zM46 4.6a2.4 2.4 0 1 0 0 4.8a2.4 2.4 0 1 0 0-4.8zM46 6.1a.9.9 0 1 1 0 1.8a.9.9 0 1 1 0-1.8z%22/%3E%3C/svg%3E"); }
+.fresh-page .nebo-page-title[data-glyph='matrix'] { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill-rule=%22evenodd%22 d=%22M42.4 3.4h7.2v7.2h-7.2zM46 1.9l5.1 5.1-5.1 5.1-5.1-5.1z%22/%3E%3C/svg%3E"); }
+.fresh-page .nebo-page-title[data-glyph='numbers'] { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill-rule=%22evenodd%22 d=%22M42.6 2.5h2.2v2.2h-2.2zM46 2.5h2.2v2.2h-2.2zM49.4 2.5h2.2v2.2h-2.2zM42.6 5.9h2.2v2.2h-2.2zM46 5.9h2.2v2.2h-2.2zM49.4 5.9h2.2v2.2h-2.2zM42.6 9.3h2.2v2.2h-2.2zM46 9.3h2.2v2.2h-2.2zM49.4 9.3h2.2v2.2h-2.2z%22/%3E%3C/svg%3E"); }
+.fresh-page .nebo-page-title[data-glyph='tarot'] { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill-rule=%22evenodd%22 d=%22M42.6 1.6h6.8a1 1 0 0 1 1 1v8.8a1 1 0 0 1-1 1h-6.8a1 1 0 0 1-1-1V2.6a1 1 0 0 1 1-1zM46 4.6l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z%22/%3E%3C/svg%3E"); }
+.fresh-page .nebo-page-title[data-glyph='runes'] { --nebo-title-orn: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2214%22 viewBox=%220 0 54 14%22%3E%3Cpath d=%22M2 7h30%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Cpath fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.2%22 stroke-linecap=%22round%22 d=%22M46 12V2M46 7L42.6 3.2M46 7l3.4-3.8%22/%3E%3C/svg%3E"); }
+
+/* The switch under the title (canvas: 38px pill, 16px gutters) */
+.nebo-mychart-header { gap: 0; }
+.nebo-mychart-switch { box-sizing: border-box; height: 38px; margin: 0 16px; padding: 3px; }
+.nebo-mychart-switch button { height: 32px; font-size: 13.5px; }
+
+/* Screens open with a short slide, as on the canvas. The bar and the title stay where they are. */
+@keyframes neboPageIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+.fresh-page > :not(.app-top-bar):not(.app-top-bar-spacer):not(.nebo-page-title):not(.nebo-mychart-header):not(.nebo-tabbar-shell) { animation: neboPageIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .fresh-page > * { animation: none !important; }
+  .fresh-page .nebo-page-title h1 { animation: none; background-position: 0% 0; }
+}
+
+/* Compatibility entry: the same switch as «Моя карта», and every block on the one page gutter */
+.compat-editorial-page .compat-editorial-tabs { gap: 2px; margin: 8px 0 0 !important; padding: 3px !important; border-radius: 999px !important; }
+.compat-editorial-page .compat-editorial-tabs .editorial-tab { height: 34px; min-height: 34px; padding: 0 8px !important; border-radius: 999px !important; font-size: 14px !important; line-height: 1; white-space: nowrap; }
+.compat-editorial-page .compat-editorial-tabs .editorial-tab.is-active { box-shadow: 0 1px 2px rgba(11, 13, 18, 0.08), 0 4px 10px rgba(11, 13, 18, 0.06) !important; }
+.compat-entry-form--date .compat-entry-context--date { margin-right: 0 !important; margin-left: 0 !important; }
+.compat-entry-form--date .nebo-friends-link,
+.compat-entry-form--date .nebo-compat-note { width: 100%; margin-right: 0 !important; margin-left: 0 !important; }
+.compat-editorial-page .compat-editorial-tabs { width: 100% !important; max-width: none !important; }
+.compat-entry-form--date .compat-pair-picker { margin-right: 0 !important; margin-left: 0 !important; }
+.compat-editorial-page .compat-editorial-tabs { box-sizing: border-box; height: 38px; }
+.compat-editorial-page .compat-editorial-tabs .editorial-tab { height: 32px !important; min-height: 32px !important; font-size: 13.5px !important; font-weight: 600 !important; }
+
+/* Compatibility entry, values from the canvas pair screen */
+.compat-entry-form--date { display: flex; flex-direction: column; }
+.compat-entry-form--date > * { order: 6; }
+.compat-entry-form--date > .compat-pair-picker, .compat-entry-form--date > .nebo-compat-note { order: 1; }
+.compat-entry-form--date > .compat-saved-people { order: 2; }
+.compat-entry-form--date > .compat-entry-context--date { order: 3; }
+.compat-entry-form--date > .compat-entry-submit-bar { order: 4; }
+.compat-entry-form--date > .nebo-friends-link { order: 5; }
+.compat-entry-form--date .compat-pair-picker { grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr); gap: 0; margin-top: 14px !important; padding: 22px 10px 0 !important; border-radius: 28px 28px 0 0 !important; }
+.compat-entry-form--date .compat-pair-avatar { gap: 6px; padding: 0; }
+.compat-entry-form--date .compat-pair-avatar-circle { width: 78px; height: 78px; }
+.compat-entry-form--date .compat-pair-avatar-name { font-size: 16px; font-weight: 600; line-height: 1.25; }
+.compat-entry-form--date .compat-pair-avatar-meta { font-size: 13px; }
+.compat-entry-form--date .compat-pair-picker-plus { width: 36px; height: 36px; margin-top: 21px; background: #ffffff; box-shadow: none; color: #9aa0ae; }
+.compat-entry-form--date .compat-pair-picker-plus svg { width: 18px; height: 18px; }
+.compat-entry-form--date .nebo-compat-note { padding: 16px 18px 18px; border-radius: 0 0 28px 28px; font-size: 13px; line-height: 1.45; color: #5c6170; }
+.compat-entry-form--date .compat-date-section-label { margin: 22px 4px 0 !important; font-size: 13px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #9aa0ae; }
+.compat-entry-form--date .nebo-compat-relation { margin-top: 10px; padding: 12px 14px 12px 16px; border-radius: 20px; background: rgba(118, 118, 128, 0.12); }
+.compat-entry-form--date .nebo-compat-relation small { font-size: 13px; }
+.compat-entry-form--date .nebo-compat-relation em { display: inline-flex; align-items: center; gap: 4px; flex: none; color: #1f6bff; font-size: 13px; font-style: normal; font-weight: 600; }
+.compat-entry-form--date .nebo-compat-relation em svg { transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+.compat-entry-form--date .nebo-compat-relation[aria-expanded='true'] em svg { transform: rotate(180deg); }
+.compat-entry-form--date .compat-entry-submit-bar { margin-top: 18px; }
+.compat-editorial-page--add .compat-entry-form--date .compat-entry-submit-bar .compat-entry-submit { height: 52px; min-height: 52px; border-radius: 26px; font-size: 16px; font-weight: 600; }
+html[data-theme='dark'] .compat-entry-form--date .compat-pair-picker-plus { background: #1c1d21; color: rgba(235, 235, 245, 0.38); }
+html[data-theme='dark'] .compat-entry-form--date .nebo-compat-relation { background: rgba(118, 118, 128, 0.24); }
+html[data-theme='dark'] .compat-entry-form--date .nebo-compat-relation em { color: #5b95ff; }
+
+.natal-empty-content .fresh-btn-primary { box-sizing: border-box; width: 100%; margin-right: 0; margin-left: 0; }
+
+/* Signs, values from the canvas: the same 38px pill switches, silver signs in the grid */
+.nebo-cn-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; box-sizing: border-box; height: 38px; margin: 0 16px 6px; padding: 3px; border-radius: 999px; }
+.nebo-cn-modes button { min-height: 0; height: 32px; border-radius: 999px; transition: background 0.3s ease; }
+.nebo-cn-modes button.is-active { box-shadow: 0 1px 2px rgba(11, 13, 18, 0.08), 0 4px 10px rgba(11, 13, 18, 0.06); }
+.nebo-horo .horo-reader-controls { box-sizing: border-box; width: auto !important; margin: 18px 20px 0 !important; padding: 0 !important; }
+.nebo-horo .horo-period-tabs { box-sizing: border-box; width: 100% !important; height: 38px; margin: 0 !important; }
+.nebo-horo .horo-period-tabs button { height: 32px; transition: background 0.3s ease; }
+.nebo-horo-all { padding: 26px 20px 0; }
+.nebo-horo-all h2 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #9aa0ae; }
+.nebo-horo-grid { gap: 6px 4px; margin-top: 12px; }
+.nebo-horo-grid-item { gap: 4px; padding: 8px 2px; font-size: 12px; }
+.nebo-horo-grid-art { width: 44px; height: 44px; object-fit: contain; }
+.nebo-horo-grid-item[aria-pressed='true'] { background: rgba(31, 107, 255, 0.1); color: #0b0d12; }
+html[data-theme='dark'] .nebo-horo-grid-item[aria-pressed='true'] { background: rgba(91, 149, 255, 0.16); color: #f4f5f8; }
+
+/* Living details on Today, as on the canvas */
+@keyframes neboFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.nebo-tile-stone { animation: neboFloat 7s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .nebo-tile-stone { animation: none; } }
+
+/* Tarot and runes home, values from the canvas */
+.nebo-oracle .nebo-oracle-hero { position: relative; display: block; height: 196px; min-height: 0; margin: 0; padding: 0 !important; overflow: hidden; border-radius: 0; }
+.nebo-oracle .nebo-oracle-word { position: absolute; left: 30px; top: 34px; display: flex; flex-direction: column; align-items: center; gap: 5px; color: #3b2a8a; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 27px; line-height: 1; font-weight: 700; letter-spacing: 0.12em; padding-left: 0.12em; text-transform: uppercase; }
+.nebo-oracle.is-runes .nebo-oracle-word { color: #1c3348; }
+.nebo-oracle .nebo-oracle-hero-copy { position: absolute; left: 20px; bottom: 20px; display: flex; max-width: 200px; flex-direction: column; gap: 4px; padding: 0; }
+.nebo-oracle .nebo-oracle-hero-copy .nebo-kicker { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.nebo-oracle .nebo-oracle-hero-copy h2 { margin: 0; font-size: 24px; line-height: 1.12; font-weight: 700; letter-spacing: -0.02em; }
+.nebo-oracle .nebo-oracle-hero-art { position: absolute; inset: 0; width: auto; height: auto; }
+.nebo-oracle.is-tarot .nebo-oracle-hero-art > * { position: absolute; border: 1.5px solid rgba(255, 255, 255, 0.85); border-radius: 12px; box-shadow: 0 14px 24px -12px rgba(0, 0, 30, 0.8); object-fit: cover; }
+.nebo-oracle.is-tarot .nebo-oracle-hero-art > :nth-child(1) { right: 92px; top: 22px; width: 84px; height: 132px; transform: rotate(-12deg); }
+.nebo-oracle.is-tarot .nebo-oracle-hero-art > :nth-child(2) { right: 26px; top: 14px; width: 92px; height: 144px; animation: neboOracleFloat 7s ease-in-out infinite; }
+@keyframes neboOracleFloat { 0%, 100% { transform: translateY(0) rotate(8deg); } 50% { transform: translateY(-10px) rotate(8deg); } }
+.nebo-oracle.is-runes .nebo-oracle-hero-art > * { position: absolute; animation: neboFloat 7s ease-in-out infinite; }
+.nebo-oracle.is-runes .nebo-oracle-hero-art > :nth-child(1) { right: 34px; top: 22px; }
+.nebo-oracle.is-runes .nebo-oracle-hero-art > :nth-child(2) { right: 98px; top: 46px; animation-delay: -2.3s; }
+.nebo-oracle.is-runes .nebo-oracle-hero-art > :nth-child(3) { right: 40px; top: 104px; animation-delay: -4.6s; }
+.nebo-oracle .nebo-oracle-day-row { width: calc(100% - 32px); margin: 12px 16px 0; padding: 12px 14px; border-radius: 22px; }
+.nebo-oracle .nebo-oracle-ask { margin: 12px 16px 0; padding: 14px 16px; }
+.nebo-oracle .nebo-oracle-ask h2 { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9aa0ae; }
+.nebo-oracle .nebo-oracle-ask textarea { margin-top: 6px; font-weight: 500; line-height: 1.4; }
+.nebo-oracle .nebo-oracle-chips { margin: 12px -16px 0; padding: 0 16px; }
+.nebo-oracle .nebo-oracle-chips button { flex: none; height: 32px; padding: 0 12px; border-radius: 999px; background: #ffffff; font-size: 13px; }
+.nebo-oracle-spread { padding: 20px 16px 0; }
+.nebo-oracle-spread h2 { margin: 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.015em; }
+.nebo-oracle-spread-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 10px 14px; border-radius: 20px; background: #f4f4f6; box-shadow: inset 0 0 0 2px #1f6bff; }
+.nebo-oracle-spread-n { display: inline-flex; width: 38px; height: 52px; flex: none; align-items: center; justify-content: center; border-radius: 8px; background: linear-gradient(160deg, #1e1458, #5134c8); border: 1.5px solid rgba(255, 255, 255, 0.85); box-shadow: 0 8px 14px -8px rgba(20, 40, 120, 0.6); color: #ffe29a; font-size: 16px; font-weight: 700; }
+.nebo-oracle.is-runes .nebo-oracle-spread-n { border: 0; border-radius: 12px; background: linear-gradient(160deg, #1c3348, #2d5068); box-shadow: none; color: #f2cf7a; }
+.nebo-oracle-spread-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 1px; }
+.nebo-oracle-spread-copy strong { font-size: 15.5px; font-weight: 600; }
+.nebo-oracle-spread-copy small { color: #5c6170; font-size: 12.5px; }
+.nebo-oracle-spread-row em { color: #1f6bff; font-size: 13.5px; font-style: normal; font-weight: 600; }
+.nebo-oracle-spread-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 4px 0; }
+.nebo-oracle-spread-foot span { color: #5c6170; font-size: 13.5px; line-height: 1.35; }
+.nebo-oracle-spread-foot button { flex: none; padding: 8px 14px; border: 0; border-radius: 999px; background: rgba(31, 107, 255, 0.1); color: #1f6bff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.nebo-oracle > .nebo-oracle-primary { width: calc(100% - 32px); height: 54px; margin: 18px 16px 0; border-radius: 27px; font-size: 17px; font-weight: 600; }
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-word { color: #d8cfff; }
+html[data-theme='dark'] .nebo-oracle.is-runes .nebo-oracle-word { color: #cfe3ea; }
+html[data-theme='dark'] .nebo-oracle-spread-row { background: #27282e; box-shadow: inset 0 0 0 2px #5b95ff; }
+html[data-theme='dark'] .nebo-oracle-spread-copy small, html[data-theme='dark'] .nebo-oracle-spread-foot span { color: rgba(235, 235, 245, 0.64); }
+html[data-theme='dark'] .nebo-oracle-spread-row em, html[data-theme='dark'] .nebo-oracle-spread-foot button { color: #5b95ff; }
+html[data-theme='dark'] .nebo-oracle-spread-foot button { background: rgba(91, 149, 255, 0.16); }
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-chips button { background: #1c1d21; }
+
+/* Numbers, values from the canvas: order, the big gradient number */
+.fresh-page.nebo-numbers { display: flex; flex-direction: column; }
+.nebo-numbers > .nebo-numbers-life { order: 1; }
+.nebo-numbers > .nebo-numbers-square { order: 2; }
+.nebo-numbers > .nebo-numbers-names { order: 3; }
+.nebo-numbers > .nebo-numbers-now { order: 4; }
+.nebo-numbers > * { order: 5; }
+.nebo-numbers > .app-top-bar, .nebo-numbers > .app-top-bar-spacer, .nebo-numbers > .nebo-mychart-header { order: 0; }
+.nebo-numbers-life { display: grid; grid-template-columns: 150px minmax(0, 1fr); align-items: center; gap: 8px; padding: 6px 20px 0; }
+.nebo-numbers-bignum { position: static !important; font-size: 170px !important; line-height: 0.9 !important; font-weight: 300 !important; letter-spacing: -0.06em !important; background: linear-gradient(160deg, #2c5bea, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent !important; opacity: 1 !important; animation: neboDrop 0.7s ease both; }
+@keyframes neboDrop { 0% { opacity: 0; transform: translateY(-24px); } 70% { opacity: 1; transform: translateY(3px); } 100% { opacity: 1; transform: none; } }
+.nebo-numbers-life-copy { position: static !important; display: flex; min-width: 0; flex-direction: column; gap: 6px; padding: 0 !important; }
+.nebo-numbers-life-copy h2 { margin: 0; font-size: 21px !important; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; }
+.nebo-numbers-formula { margin: 0; font-size: 12.5px !important; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.nebo-numbers-life-text { grid-column: 1 / -1; margin: 6px 0 0 !important; padding: 0 !important; color: #5c6170; font-size: 16px !important; line-height: 1.6 !important; }
+html[data-theme='dark'] .nebo-numbers-life-text { color: rgba(235, 235, 245, 0.64); }
+.nebo-oracle.is-runes .nebo-oracle-hero-art > * { width: 50px; height: 60px; font-size: 22px; }
+.nebo-oracle .nebo-oracle-day-row > :first-child { width: 36px !important; height: 44px !important; min-width: 0; flex: none; object-fit: cover; }
+.nebo-oracle.is-tarot .nebo-oracle-day-row > :first-child { width: 34px !important; height: 48px !important; border-radius: 6px; }
+.nebo-oracle .nebo-oracle-day-row > span strong { font-size: 16px; font-weight: 600; }
+.nebo-oracle .nebo-oracle-day-row > span small { font-size: 13px; }
+.fresh-page.nebo-numbers .nebo-numbers-bignum { background-image: linear-gradient(160deg, #2c5bea, #8b5cf6) !important; background-color: transparent !important; -webkit-text-fill-color: transparent; }

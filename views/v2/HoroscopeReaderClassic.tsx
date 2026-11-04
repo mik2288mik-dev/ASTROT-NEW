@@ -434,7 +434,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
                 aria-pressed={key === sign}
                 onClick={() => chooseSign(key)}
               >
-                <ZodiacIcon sign={key} size={30} strokeWidth={1.3} />
+                <ZodiacIllustration sign={key} className="nebo-horo-grid-art" />
                 <span>{getZodiacSign(language, key)}</span>
               </button>
             ))}

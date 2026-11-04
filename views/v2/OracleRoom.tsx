@@ -362,15 +362,18 @@ export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: O
       {header}
 
       <section className="nebo-oracle-hero">
-        <div className="nebo-oracle-hero-copy">
-          <p className="nebo-kicker">{copy.spreadName}</p>
-          <h2>{copy.heroTitle}</h2>
-          <p>{copy.heroText}</p>
-        </div>
         <div className="nebo-oracle-hero-art" aria-hidden="true">
           {kind === 'tarot'
             ? (<><img src={TAROT_BACK} alt="" /><img src={TAROT_BACK} alt="" /></>)
-            : (<><span className="nebo-oracle-stone is-m"><b>ᚨ</b></span><span className="nebo-oracle-stone is-m"><b>ᚱ</b></span></>)}
+            : (<><span className="nebo-oracle-stone is-m"><b>ᚨ</b></span><span className="nebo-oracle-stone is-m"><b>ᚱ</b></span><span className="nebo-oracle-stone is-m"><b>ᛟ</b></span></>)}
+        </div>
+        <span className="nebo-oracle-word" aria-hidden="true">
+          {kind === 'tarot' ? 'Таро' : 'Руны'}
+          <svg width="66" height="11" viewBox="0 0 58 10"><path d="M3 5h18M37 5h18" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity=".7" /><path d="M29 .8l1.3 2.9 2.9 1.3-2.9 1.3L29 9.2l-1.3-2.9L24.8 5l2.9-1.3z" fill="currentColor" /><circle cx="22.6" cy="5" r=".9" fill="currentColor" /><circle cx="35.4" cy="5" r=".9" fill="currentColor" /></svg>
+        </span>
+        <div className="nebo-oracle-hero-copy">
+          <p className="nebo-kicker">{kind === 'tarot' ? '22 старших аркана' : '24 руны старшего футарка'}</p>
+          <h2>{kind === 'tarot' ? 'Спроси о том, что важно' : 'Ответ в трёх знаках'}</h2>
         </div>
       </section>
 
@@ -388,7 +391,7 @@ export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: O
         <textarea
           value={question}
           onChange={(event) => setQuestion(event.target.value.slice(0, 200))}
-          rows={3}
+          rows={2}
           placeholder="Напиши, что тебя волнует, или выбери готовый вопрос"
         />
         <div className="nebo-oracle-chips">
@@ -414,11 +417,22 @@ export function OracleRoom({ kind, profile, onOpenSegment, onRequestPremium }: O
         </div>
       ) : null}
 
+      <section className="nebo-oracle-spread">
+        <h2>Расклад</h2>
+        <div className="nebo-oracle-spread-row">
+          <span className="nebo-oracle-spread-n" aria-hidden="true">3</span>
+          <span className="nebo-oracle-spread-copy"><strong>{copy.spreadName}</strong><small>{kind === 'tarot' ? 'Три карты на любой вопрос' : 'Что было, что есть, к чему идёт'}</small></span>
+          <em>{plus ? 'в Plus' : '99 ₽'}</em>
+        </div>
+        <div className="nebo-oracle-spread-foot">
+          <span>{plus ? 'У тебя расклады без ограничений.' : 'Один расклад в неделю бесплатно. В Plus расклады без ограничений.'}</span>
+          <button type="button" onClick={() => { lumiaSelectionHaptic(); setStage('example'); }}>Посмотреть пример</button>
+        </div>
+      </section>
+
       <button type="button" className="nebo-oracle-primary" onClick={startPick}>
-        Расклад «{copy.spreadName}»
+        {kind === 'tarot' ? 'Разложить карты' : 'Бросить руны'}
       </button>
-      <p className="nebo-oracle-note">{plus ? 'У тебя расклады без ограничений.' : 'Один расклад в неделю бесплатно. В Plus расклады без ограничений.'}</p>
-      <button type="button" className="nebo-oracle-example-link" onClick={() => { lumiaSelectionHaptic(); setStage('example'); }}>Посмотреть пример</button>
       {kind === 'runes' ? <RuneList /> : null}
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, LockKeyhole, X, House, Triangle, Circle, BookOpen, Hand } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronRight, LockKeyhole, X, House, Triangle, Circle, Hand } from 'lucide-react';
 import type { NatalChartWheelSource } from '../../lib/natalChartWheelModel';
 import { natalChartWheelHouseLabelLongitude } from '../../lib/natalChartWheelModel';
 import { buildMapData, explainMapSelection, MAP_HOUSES, MAP_SIGNS, MAP_SIGN_NAMES, mapObject, MAP_ASPECTS, type MapSelection } from './mapExplanation';
@@ -364,19 +364,6 @@ export function InteractiveNatalMap({ chart, name, birthLine, view = 'map', isPr
       </>
     ) : <p className={styles.tapHint}><Hand size={15} aria-hidden="true"/>Нажми на планету, дом или знак</p>}
     {quality !== 'exact' ? <p className={styles.precision}>{quality === 'unknown' ? 'Время рождения не указано.' : 'Время рождения указано примерно.'} Показаны только надёжные положения. Меняющиеся точки и дома не используются в объяснениях.</p> : null}
-    <details className={styles.help}><summary><BookOpen size={20} aria-hidden="true"/>Как читать карту<ChevronDown size={18} aria-hidden="true"/></summary><div className={styles.helpGrid}>{HELP.map(({Icon,title,text}) => <div key={title} className={styles.helpItem}><Icon aria-hidden="true"/><div><h3>{title}</h3><p>{text}</p></div></div>)}</div><p className={styles.hint}>Нажми на планету, номер дома или линию внутри круга, чтобы узнать больше.</p></details>
-    {/* The full list stays one tap away, so the canvas blocks under the wheel come first. */}
-    <details className={styles.help}>
-      <summary><House size={20} aria-hidden="true"/>Все планеты, дома и связи<ChevronDown size={18} aria-hidden="true"/></summary>
-      <div className={sectionStyles.embeddedDetails}>
-        <NatalDetails
-          key={name + birthLine}
-          chart={chart}
-          isPremium={isPremium}
-          onSelect={(item, target) => choose(item.kind, item.id, target)}
-        />
-      </div>
-    </details>
     </>}
     <dialog ref={dialog} className={styles.sheet} data-entered={entered} data-closing={closing} data-dragging={dragOffset !== null && !closing} style={{transform: dragOffset !== null && !closing ? `translateY(${dragOffset}px)` : undefined}} aria-labelledby="map-explanation-title" onCancel={e => { e.preventDefault(); close(); }} onClick={e => {
       if (e.target !== e.currentTarget) return;

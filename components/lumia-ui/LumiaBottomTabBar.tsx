@@ -131,20 +131,67 @@ type NeboTab = {
   id: 'today' | 'zodiac' | 'natal' | 'compatibility' | 'rest';
   label: string;
   labelEn: string;
-  icon: string;
   /** Relative width, as in the canvas: long labels get a wider cell. */
   fr: number;
   views: readonly ViewState[];
 };
 
-// Icon paths and cell widths come straight from the NEBO canvas tab bar.
+// Cell widths come from the NEBO canvas tab bar.
 const NEBO_TABS: readonly NeboTab[] = [
-  { id: 'today', label: 'Сегодня', labelEn: 'Today', fr: 1, views: ['dashboard'], icon: 'M12 8.2a3.8 3.8 0 1 1 0 7.6a3.8 3.8 0 1 1 0-7.6zM12 2.8v2M12 19.2v2M2.8 12h2M19.2 12h2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M5.5 18.5l1.4-1.4M17.1 6.9l1.4-1.4' },
-  { id: 'zodiac', label: 'Гороскоп', labelEn: 'Signs', fr: 0.84, views: ['horoscope'], icon: 'M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.5l-5.1 2.7 1-5.7-4.1-4 5.7-.8z' },
-  { id: 'natal', label: 'Моя карта', labelEn: 'My chart', fr: 1.08, views: ['chart', 'matrix', 'numbers', 'tarot', 'runes', 'personality', 'encyclopedia'], icon: 'M12 3.5a8.5 8.5 0 1 1 0 17a8.5 8.5 0 1 1 0-17zM12 7.8a4.2 4.2 0 1 1 0 8.4a4.2 4.2 0 1 1 0-8.4zM12 3.5v4.3M12 16.2v4.3M3.5 12h4.3M16.2 12h4.3' },
-  { id: 'compatibility', label: 'Совместимость', labelEn: 'Compatibility', fr: 1.42, views: ['synastry', 'friends'], icon: 'M9 6.5a5.5 5.5 0 1 1 0 11a5.5 5.5 0 1 1 0-11zM15 6.5a5.5 5.5 0 1 1 0 11a5.5 5.5 0 1 1 0-11z' },
-  { id: 'rest', label: 'Отдых', labelEn: 'Unwind', fr: 0.86, views: ['services', 'moon', 'tests', 'mood', 'sounds', 'antistress', 'stories'], icon: 'M4 14.5v-2.5a8 8 0 0 1 16 0v2.5M3.5 14.5h4v5.5h-4zM16.5 14.5h4v5.5h-4z' },
+  { id: 'today', label: 'Сегодня', labelEn: 'Today', fr: 1, views: ['dashboard'] },
+  { id: 'zodiac', label: 'Гороскоп', labelEn: 'Signs', fr: 0.84, views: ['horoscope'] },
+  { id: 'natal', label: 'Моя карта', labelEn: 'My chart', fr: 1.08, views: ['chart', 'matrix', 'numbers', 'tarot', 'runes', 'personality', 'encyclopedia'] },
+  { id: 'compatibility', label: 'Совместимость', labelEn: 'Compatibility', fr: 1.42, views: ['synastry', 'friends'] },
+  { id: 'rest', label: 'Отдых', labelEn: 'Unwind', fr: 0.86, views: ['services', 'moon', 'tests', 'mood', 'sounds', 'antistress', 'stories'] },
 ];
+/** Solid symbols, as in Apple's own tab bars. All share one 24px grid and the same visual weight. */
+function NeboTabIcon({ id }: { id: NeboTab['id'] }) {
+  const common = { width: 26, height: 26, viewBox: '0 0 24 24', fill: 'currentColor', 'aria-hidden': true } as const;
+  if (id === 'today') {
+    return (
+      <svg {...common} stroke="currentColor" strokeLinecap="round">
+        <circle cx="12" cy="12" r="4.7" stroke="none" />
+        <path fill="none" strokeWidth="2.1" d="M12 2.6v2.1M12 19.3v2.1M2.6 12h2.1M19.3 12h2.1M5.35 5.35l1.5 1.5M17.15 17.15l1.5 1.5M5.35 18.65l1.5-1.5M17.15 6.85l1.5-1.5" />
+      </svg>
+    );
+  }
+  if (id === 'zodiac') {
+    return (
+      <svg {...common} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+        <path d="M12 3.9l2.45 5.05 5.55.78-4.03 3.88.97 5.5L12 16.5l-4.94 2.61.97-5.5L4 9.73l5.55-.78z" />
+      </svg>
+    );
+  }
+  if (id === 'natal') {
+    return (
+      <svg {...common} stroke="currentColor" strokeLinecap="round">
+        <circle cx="12" cy="12" r="9" fill="none" strokeWidth="2.1" />
+        <circle cx="12" cy="12" r="3.5" stroke="none" />
+        <path fill="none" strokeWidth="1.8" d="M12 3.4v3.4M12 17.2v3.4M3.4 12h3.4M17.2 12h3.4M5.9 5.9l2.4 2.4M15.7 15.7l2.4 2.4M5.9 18.1l2.4-2.4M15.7 8.3l2.4-2.4" />
+      </svg>
+    );
+  }
+  if (id === 'compatibility') {
+    return (
+      <svg {...common}>
+        <g fillOpacity="0.55">
+          <circle cx="17" cy="8.6" r="3" />
+          <path d="M17.2 13.1c2.8 0 4.9 1.9 4.9 4.7 0 .7-.5 1.2-1.2 1.2h-3.5c0-2.3-.9-4.3-2.6-5.6.7-.2 1.5-.3 2.4-.3z" />
+        </g>
+        <circle cx="9.3" cy="7.9" r="3.8" />
+        <path d="M2.4 19.3c0-3.8 3.1-6.3 6.9-6.3s6.9 2.5 6.9 6.3c0 .8-.5 1.3-1.3 1.3H3.7c-.8 0-1.3-.5-1.3-1.3z" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common} stroke="currentColor" strokeLinecap="round">
+      <path fill="none" strokeWidth="2.1" d="M4.4 15v-3.2a7.6 7.6 0 0 1 15.2 0V15" />
+      <rect x="2.9" y="13.1" width="4.9" height="7.6" rx="2.2" stroke="none" />
+      <rect x="16.2" y="13.1" width="4.9" height="7.6" rx="2.2" stroke="none" />
+    </svg>
+  );
+}
+
 const NEBO_TAB_FR_SUM = NEBO_TABS.reduce((sum, tab) => sum + tab.fr, 0);
 const BAR_HEIGHT = 64;
 const DROP_SIZE = { w: 76, h: 56, r: 28, e: 12 };
@@ -287,9 +334,7 @@ export function LumiaBottomTabBar({
                 aria-current={current ? 'page' : undefined}
                 onClick={() => runNavigationAction(actions[tab.id])}
               >
-                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d={tab.icon} />
-                </svg>
+                <NeboTabIcon id={tab.id} />
                 <span>{isEnglish ? tab.labelEn : tab.label}</span>
               </button>
             );

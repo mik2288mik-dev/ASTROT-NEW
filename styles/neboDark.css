@@ -3940,22 +3940,19 @@ html[data-theme='dark'] .for-you-feature.is-matrix .for-you-feature-haze {
 
 /* ── neboTabBar.css ── */
 html[data-theme='dark'] .nebo-tabbar {
-  --nebo-tab-fg: rgba(235, 235, 245, 0.5);
-  --nebo-tab-fg-on: #F4F5F8;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.324), 0 1px 3px rgba(0, 0, 0, 0.196);
+  --nebo-tab-fg: rgba(235, 235, 245, 0.72);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.356), 0 2px 6px rgba(0, 0, 0, 0.196), 0 0 0 0.5px rgba(0, 0, 0, 0.196);
 }
 html[data-theme='dark'] .nebo-tabbar-glass {
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.06),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.05),
-    inset 1px 0 1px rgba(255, 255, 255, 0.035),
-    inset -1px 0 1px rgba(255, 255, 255, 0.035),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.055),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.045),
+    inset 0 -6px 12px rgba(255, 255, 255, 0.022),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
 }
 html[data-theme='dark'] .nebo-tabbar-drop-glass {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.06),
-    inset 0 -1px 2px rgba(255, 255, 255, 0.035),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.055),
-    0 4px 14px rgba(0, 0, 0, 0.26);
+  box-shadow: inset 0 0.5px 0.5px rgba(255, 255, 255, 0.06),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.025);
 }
 html[data-theme='dark'] .nebo-tabbar-drop-glass.is-dragging {
   background: rgba(255, 255, 255, 0.14);
@@ -3981,6 +3978,9 @@ html[data-theme='dark'] .nebo-account-chip-badge.is-plus {
 }
 html[data-theme='dark'] .home-logo-bar.app-top-bar {
   background: linear-gradient(180deg, rgba(39, 40, 46, 0.94) 0%, rgba(39, 40, 46, 0.86) 65%, rgba(255, 255, 255, 0.06) 100%) !important;
+}
+html[data-theme='dark'][data-nav-ink='light'] .nebo-tabbar-glass {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.034), inset 1px 1px 2px rgba(255, 255, 255, 0.012), inset 0 0 0 0.5px rgba(255, 255, 255, 0.016);
 }
 
 /* ── neboToday.css ── */
@@ -4760,15 +4760,6 @@ html[data-theme='dark'] .nebo-shop-bigcode {
 html[data-theme='dark'] .nebo-rest-home {
   color: #F4F5F8;
 }
-html[data-theme='dark'] .nebo-rest-head h1 span {
-  background: linear-gradient(90deg, transparent, #3A3C44);
-}
-html[data-theme='dark'] .nebo-rest-head h1 span:last-child {
-  background: linear-gradient(90deg, #3A3C44, transparent);
-}
-html[data-theme='dark'] .nebo-rest-head p {
-  color: rgba(235, 235, 245, 0.42);
-}
 html[data-theme='dark'] .nebo-rest-hero::before {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0) 35%, rgba(10, 30, 60, 0.55) 100%);
 }
@@ -5316,10 +5307,74 @@ html[data-theme='dark'] .compat-story-cover > div {
 html[data-theme='dark'] .compat-story-cover .compat-result-change {
   color: #C4BAEE !important;
 }
+html[data-theme='dark'] .fresh-page .nebo-page-title h1 {
+  --nebo-title-ink: #F4F5F8;
+  --nebo-title-s1: rgba(235, 235, 245, 0.42);
+  --nebo-title-s3: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .fresh-page .nebo-page-title h1::before, html[data-theme='dark'] .fresh-page .nebo-page-title h1::after {
+  background: #3A3C44;
+}
+html[data-theme='dark'] .fresh-page .nebo-page-title p {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .compat-editorial-page .compat-editorial-tabs .editorial-tab.is-active {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.228), 0 4px 10px rgba(0, 0, 0, 0.196) !important;
+}
+html[data-theme='dark'] .compat-entry-form--date .compat-pair-picker-plus {
+  background: #1C1D21;
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .compat-entry-form--date .nebo-compat-note {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .compat-entry-form--date .compat-date-section-label {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-cn-modes button.is-active {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.228), 0 4px 10px rgba(0, 0, 0, 0.196);
+}
+html[data-theme='dark'] .nebo-horo-all h2 {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-horo-grid-item[aria-pressed='true'] {
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-word {
+  color: #9182D9;
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-ask h2 {
+  color: rgba(235, 235, 245, 0.42);
+}
+html[data-theme='dark'] .nebo-oracle .nebo-oracle-chips button {
+  background: #1C1D21;
+}
+html[data-theme='dark'] .nebo-oracle-spread-row {
+  background: #27282E;
+}
+html[data-theme='dark'] .nebo-oracle-spread-n {
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+}
+html[data-theme='dark'] .nebo-oracle-spread-copy small {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-oracle-spread-foot span {
+  color: rgba(235, 235, 245, 0.5);
+}
+html[data-theme='dark'] .nebo-numbers-life-text {
+  color: rgba(235, 235, 245, 0.5);
+}
 
 /* ── neboAuth.css ── */
 html[data-theme='dark'] .nebo-auth {
   background: #1C1D21;
+  color: #F4F5F8;
+}
+html[data-theme='dark'] .nebo-auth-lang {
+  background: rgba(255, 255, 255, 0.11);
+}
+html[data-theme='dark'] .nebo-auth-lang button.is-on {
+  background: rgba(255, 255, 255, 0.18);
   color: #F4F5F8;
 }
 html[data-theme='dark'] .nebo-auth-sub {

@@ -27,8 +27,8 @@ type RestHomeProps = {
 export function RestHome({ onOpenSounds, onOpenStories, onOpenTests, onOpenAntistress, onOpenMoon }: RestHomeProps) {
   return (
     <div className="nebo-rest-home">
-      <div className="nebo-rest-head">
-        <h1><span aria-hidden="true" />Отдых<span aria-hidden="true" /></h1>
+      <div className="nebo-page-title">
+        <h1>Отдых</h1>
         <p>Звуки, рассказы, тесты</p>
       </div>
 

@@ -1244,22 +1244,22 @@
    safe area, so the content starts higher; the bottom bar loses its empty upper cap. ── */
 .app-top-bar,
 .app-top-bar.home-logo-bar {
-  height: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
-  min-height: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
+  height: calc(var(--app-top-bar-content-safe-top) + 52px) !important;
+  min-height: calc(var(--app-top-bar-content-safe-top) + 52px) !important;
   padding-top: var(--app-top-bar-content-safe-top) !important;
   padding-bottom: 0 !important;
 }
 
 .app-top-bar-spacer {
-  height: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
-  flex-basis: calc(var(--app-top-bar-content-safe-top) + 48px) !important;
+  height: calc(var(--app-top-bar-content-safe-top) + 52px) !important;
+  flex-basis: calc(var(--app-top-bar-content-safe-top) + 52px) !important;
 }
 
 /* The bar is one 48px row under the status bar (the same as the «Вкусно и точка» header), content centred. */
 .app-top-bar-side {
   top: var(--app-top-bar-content-safe-top) !important;
   width: 40px;
-  height: 48px !important;
+  height: 52px !important;
 }
 
 .app-top-bar-side--end.has-actions {

@@ -17,6 +17,8 @@ type AppTopBarProps = {
   className?: string;
   /** One of the five bottom-tab screens: the canvas brand bar with the account chip, never «Back». */
   main?: boolean;
+  /** Takes the place of the NEBO brand on a main screen, e.g. the choice of chart on the natal chart. */
+  startSlot?: React.ReactNode;
 };
 
 /** Who is signed in, for the account chip on the right of the bar (as on the canvas). */
@@ -60,6 +62,7 @@ export function AppTopBar({
   reserveSpace = true,
   className,
   main = false,
+  startSlot,
 }: AppTopBarProps) {
   const isPersonalForecastHeader = title === 'NEBO';
   const isSignHoroscopeHeader = title === 'Гороскоп по знакам' || title === 'Гороскоп по знакам зодиака';
@@ -76,7 +79,7 @@ export function AppTopBar({
       <strong>NEBO</strong>
     </span>
   );
-  const startAction = onBack ? null : brand;
+  const startAction = onBack ? null : startSlot ?? brand;
   const endAction = onBack || leftAction ? rightAction : null;
   const showChip = mainScreen && Boolean(account) && showSettings;
   const chip = account ? (
