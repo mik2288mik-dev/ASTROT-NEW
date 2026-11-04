@@ -260,6 +260,8 @@ export function buildCanvasPeople(charts: readonly ChartListItem[]): NonNullable
           chReal: { story: [{ title: 'Весь рассказ', sub: '', locked: true, paras: [] }], topics: [] },
           ...(canonical ? chartFields(canonical) : { nat: [], big3: [['', ''], ['', ''], ['', '']], highlights: [] }),
           ...(chart.birth_date ? dateFields(chart.birth_date) : {}),
+          // The highlights speak to «ты»: they belong to the person's own chart.
+          highlights: [],
         },
       };
     });
