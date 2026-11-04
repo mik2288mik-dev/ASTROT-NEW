@@ -19,6 +19,7 @@ import {
   type AccountAuthCapabilities,
 } from '../services/accountAuthService';
 import { hasTelegramMiniAppContext } from '../services/authSessionIntent';
+import { tr } from '../lib/i18n';
 
 type AuthGateProps = {
   deleted?: boolean;
@@ -217,7 +218,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
     if (busy) return;
     if (authPreview) {
       setError('');
-      setNotice(`В Android-приложении откроется вход через ${provider === 'yandex' ? 'Яндекс' : 'VK ID'}.`);
+      setNotice(`В Android-приложении откроется вход через ${provider === 'yandex' ? 'Яндекс' : tr('VK ID')}.`);
       return;
     }
     setError('');
@@ -524,7 +525,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                     onClick={() => { void runTelegram(); }}
                   >
                     <span className="auth-provider-mark auth-provider-mark--telegram" aria-hidden="true">T</span>
-                    <span>{busy === 'telegram' ? 'Открываем…' : 'Telegram'}</span>
+                    <span>{busy === 'telegram' ? 'Открываем…' : tr('Telegram')}</span>
                   </button>
                 ) : null}
                 {emailLoginVisible ? (

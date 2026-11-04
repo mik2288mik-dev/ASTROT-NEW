@@ -25,6 +25,7 @@ import { pausePlayback, playTrack, setSleepTimer, togglePlayback, unlockPlayback
 import { requestListen } from '../../services/listenService';
 import { loadWeeklySleepStories } from '../../services/sleepStoriesService';
 import { estimateSpeechSeconds } from '../../lib/tts/openaiSpeech';
+import { tr, trf } from '../../lib/i18n';
 
 export const SOUND_IMAGES: Record<SoundGroup, string> = {
   rain: videoBackgroundPoster('sounds-rain'),
@@ -118,8 +119,8 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
   if (!ambient.supported) {
     return (
       <div className="fresh-page sounds-room">
-        <AppTopBar title={ru ? 'Звуки' : 'Sounds'} onBack={onBack} />
-        <p className="sounds-note">{ru ? 'Это устройство не умеет воспроизводить звуки в приложении.' : 'This device cannot play sounds in the app.'}</p>
+        <AppTopBar title={ru ? 'Звуки' : tr('Sounds')} onBack={onBack} />
+        <p className="sounds-note">{ru ? 'Это устройство не умеет воспроизводить звуки в приложении.' : tr('This device cannot play sounds in the app.')}</p>
       </div>
     );
   }
@@ -128,9 +129,9 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
 
   return (
     <div className="fresh-page sounds-room">
-      <AppTopBar title={ru ? 'Звуки' : 'Sounds'} onBack={onBack} />
+      <AppTopBar title={ru ? 'Звуки' : tr('Sounds')} onBack={onBack} />
       <section className="sounds-section" aria-labelledby="sounds-scapes-title">
-        <h2 id="sounds-scapes-title">{ru ? 'Спокойные звуки' : 'Calm sounds'}</h2>
+        <h2 id="sounds-scapes-title">{ru ? 'Спокойные звуки' : tr('Calm sounds')}</h2>
         <div className="sounds-grid">
           {SOUND_GROUPS.map((group) => {
             const active = activeGroup === group;
@@ -158,7 +159,7 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
           })}
         </div>
         {activeGroup ? (
-          <div className="sounds-variants" role="radiogroup" aria-label={ru ? 'Вариант звука' : 'Sound variant'}>
+          <div className="sounds-variants" role="radiogroup" aria-label={ru ? 'Вариант звука' : tr('Sound variant')}>
             {tracksOfGroup(activeGroup).map((track) => (
               <button
                 key={track.id}
@@ -175,15 +176,15 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
         ) : null}
         {ambient.error ? (
           <p className="listen-forecast-error" role="alert">
-            {ru ? 'Запись не загрузилась. Проверь интернет или выбери вариант «без интернета».' : 'The recording did not load. Check the connection or pick an offline variant.'}
+            {ru ? 'Запись не загрузилась. Проверь интернет или выбери вариант «без интернета».' : tr('The recording did not load. Check the connection or pick an offline variant.')}
           </p>
         ) : null}
-        <p className="sounds-note">{ru ? 'Недавно прослушанные записи сохраняются и доступны без интернета.' : 'Recently played recordings are saved for offline listening.'}</p>
+        <p className="sounds-note">{ru ? 'Недавно прослушанные записи сохраняются и доступны без интернета.' : tr('Recently played recordings are saved for offline listening.')}</p>
       </section>
 
       <section className="sounds-section" aria-labelledby="sounds-music-title">
-        <h2 id="sounds-music-title">{ru ? 'Спокойная музыка' : 'Calm music'}</h2>
-        <p className="sounds-note">{ru ? 'Фортепианная классика идёт подряд, как плейлист. Можно включить вместе со звуком.' : 'Piano classics play one after another. You can mix them with a sound.'}</p>
+        <h2 id="sounds-music-title">{ru ? 'Спокойная музыка' : tr('Calm music')}</h2>
+        <p className="sounds-note">{ru ? 'Фортепианная классика идёт подряд, как плейлист. Можно включить вместе со звуком.' : tr('Piano classics play one after another. You can mix them with a sound.')}</p>
         <ul className="sounds-list">
           {MUSIC_TRACKS.map((track) => {
             const active = ambient.music === track.id;
@@ -200,8 +201,8 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
       </section>
 
       {ambient.soundscape || ambient.music ? (
-        <section className="sounds-timer" aria-label={ru ? 'Таймер' : 'Timer'}>
-          <span>{ambient.endsAt ? (ru ? `Выключится в ${new Date(ambient.endsAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : `Stops at ${new Date(ambient.endsAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`) : (ru ? 'Таймер' : 'Timer')}</span>
+        <section className="sounds-timer" aria-label={ru ? 'Таймер' : tr('Timer')}>
+          <span>{ambient.endsAt ? (ru ? `Выключится в ${new Date(ambient.endsAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : trf('Stops at {0}', new Date(ambient.endsAt).toLocaleTimeString(tr('en-US'), { hour: '2-digit', minute: '2-digit' }))) : (ru ? 'Таймер' : tr('Timer'))}</span>
           <div className="sounds-chips">
             {timerOptions.map((minutes) => (
               <button
@@ -211,20 +212,20 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
                 aria-pressed={ambient.timerMinutes === minutes}
                 onClick={() => setAmbientTimer(minutes)}
               >
-                {minutes ? (ru ? `${minutes} мин` : `${minutes} min`) : (ru ? 'Без таймера' : 'No timer')}
+                {minutes ? (ru ? `${minutes} мин` : trf('{0} min', minutes)) : (ru ? 'Без таймера' : tr('No timer'))}
               </button>
             ))}
           </div>
           <div className="sounds-chips">
-            <button type="button" className="sounds-stop" onClick={ambient.paused ? resumeAmbient : pauseAmbient}>{ambient.paused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}{ambient.paused ? (ru ? 'Продолжить' : 'Resume') : (ru ? 'Пауза' : 'Pause')}</button>
-            <button type="button" className="sounds-stop" onClick={stopAmbient}><Square size={14} aria-hidden="true" />{ru ? 'Выключить' : 'Stop'}</button>
+            <button type="button" className="sounds-stop" onClick={ambient.paused ? resumeAmbient : pauseAmbient}>{ambient.paused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}{ambient.paused ? (ru ? 'Продолжить' : tr('Resume')) : (ru ? 'Пауза' : tr('Pause'))}</button>
+            <button type="button" className="sounds-stop" onClick={stopAmbient}><Square size={14} aria-hidden="true" />{ru ? 'Выключить' : tr('Stop')}</button>
           </div>
         </section>
       ) : null}
 
       <section className="sounds-section" aria-labelledby="sounds-stories-title">
-        <h2 id="sounds-stories-title">{ru ? 'Истории для сна и для успокоения' : 'Stories for sleep and calm'}</h2>
-        <p className="sounds-stories-lead">{ru ? 'Каждую неделю выходит новая история. Свежие сверху.' : 'A new story comes out every week, the newest on top.'}</p>
+        <h2 id="sounds-stories-title">{ru ? 'Истории для сна и для успокоения' : tr('Stories for sleep and calm')}</h2>
+        <p className="sounds-stories-lead">{ru ? 'Каждую неделю выходит новая история. Свежие сверху.' : tr('A new story comes out every week, the newest on top.')}</p>
         <ul className="sounds-stories">
           {shownStories.map((story) => {
             const locked = !story.free && !premium;
@@ -234,7 +235,7 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
             const video = 'video' in story ? story.video : storyVideo(story.id);
             const duration = 'durationSec' in story
               ? recordedStoryDuration(story.durationSec)
-              : `${story.minutes ?? Math.round(estimateSpeechSeconds(story.text[language], 'sleep') / 60)} ${ru ? 'мин' : 'min'}`;
+              : `${story.minutes ?? Math.round(estimateSpeechSeconds(story.text[language], 'sleep') / 60)} ${ru ? 'мин' : tr('min')}`;
             return (
               <li key={story.id} className={`sounds-story${playing ? ' is-active' : ''}`}>
                 <button type="button" className={`sounds-story-main${playing ? ' video-hero' : ''}`} onClick={() => { void playStory(story); }} disabled={phase === 'preparing'}>
@@ -246,14 +247,14 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
                   <span className="sounds-row-copy">
                     <strong>{story.title[language]}</strong>
                     <small>{story.teaser[language]}</small>
-                    <em>{`${duration} · ${story.voiceLabel[language]}${'kind' in story && story.kind === 'calm' ? (ru ? ' · днём' : ' · daytime') : ''}${locked ? ' · NEBO Plus' : ''}`}</em>
+                    <em>{`${duration} · ${story.voiceLabel[language]}${'kind' in story && story.kind === 'calm' ? (ru ? ' · днём' : tr(' · daytime')) : ''}${locked ? ' · NEBO Plus' : ''}`}</em>
                   </span>
                 </button>
-                {phase === 'error' ? <p className="listen-forecast-error" role="alert">{ru ? 'Голос пока не готов. Попробуй ещё раз через минуту.' : 'The voice is not ready yet. Try again in a minute.'}</p> : null}
+                {phase === 'error' ? <p className="listen-forecast-error" role="alert">{ru ? 'Голос пока не готов. Попробуй ещё раз через минуту.' : tr('The voice is not ready yet. Try again in a minute.')}</p> : null}
                 {playing ? (
                   <>
                     <AudioMiniPlayer trackKey={trackKey} language={language} />
-                    <div className="sounds-chips sounds-sleep-timer" aria-label={ru ? 'Таймер сна' : 'Sleep timer'}>
+                    <div className="sounds-chips sounds-sleep-timer" aria-label={ru ? 'Таймер сна' : tr('Sleep timer')}>
                       {[15, 30, null].map((minutes) => (
                         <button
                           key={String(minutes)}
@@ -262,7 +263,7 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
                           aria-pressed={minutes === null ? playback.sleepAt === null : playback.sleepAt !== null && sleepMinutes === minutes}
                           onClick={() => { setSleepMinutes(minutes); setSleepTimer(minutes); }}
                         >
-                          {minutes ? (ru ? `Уснуть через ${minutes} мин` : `Sleep in ${minutes} min`) : (ru ? 'До конца истории' : 'Till the end')}
+                          {minutes ? (ru ? `Уснуть через ${minutes} мин` : trf('Sleep in {0} min', minutes)) : (ru ? 'До конца истории' : tr('Till the end'))}
                         </button>
                       ))}
                     </div>
@@ -274,11 +275,11 @@ export function SoundsRoom({ profile, onBack, onRequestPremium }: SoundsRoomProp
         </ul>
         {allStories.length > storiesShown ? (
           <button type="button" className="sounds-more" onClick={() => { lumiaSelectionHaptic(); setStoriesShown((count) => count + STORIES_PAGE); }}>
-            {ru ? `Показать ещё ${Math.min(STORIES_PAGE, allStories.length - storiesShown)}` : `Show ${Math.min(STORIES_PAGE, allStories.length - storiesShown)} more`}
+            {ru ? `Показать ещё ${Math.min(STORIES_PAGE, allStories.length - storiesShown)}` : trf('Show {0} more', Math.min(STORIES_PAGE, allStories.length - storiesShown))}
           </button>
         ) : null}
       </section>
-      <p className="sounds-note sounds-note--bottom">{ru ? 'Для прослушивания рассказов нужен интернет. Звуки и музыка с пометкой «без интернета» доступны офлайн.' : 'Stories need an internet connection. Sounds and music marked “offline” are available without it.'}</p>
+      <p className="sounds-note sounds-note--bottom">{ru ? 'Для прослушивания рассказов нужен интернет. Звуки и музыка с пометкой «без интернета» доступны офлайн.' : tr('Stories need an internet connection. Sounds and music marked “offline” are available without it.')}</p>
       {sceneGroup ? <SoundScene group={sceneGroup} language={language} onClose={() => setSceneGroup(null)} /> : null}
     </div>
   );

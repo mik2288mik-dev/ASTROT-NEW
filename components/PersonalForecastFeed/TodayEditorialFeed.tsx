@@ -3,6 +3,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
 import { isRenderableTodaySection } from './editorialLayout';
+import { tr } from '../../lib/i18n';
 
 type TodayEditorialFeedProps = {
   sections: readonly ForecastSection[];
@@ -127,9 +128,9 @@ export function TodayEditorialFeed({
     >
       <section className="nebo-today-hero" data-telemetry-content="Личный прогноз" aria-labelledby="today-reading-title">
         <p className="nebo-today-date">{dateLine(periodKey, language)}</p>
-        <p className="nebo-today-kicker">{ru ? 'Для тебя сегодня' : 'For you today'}</p>
+        <p className="nebo-today-kicker">{ru ? 'Для тебя сегодня' : tr('For you today')}</p>
         <h1 id="today-reading-title" className="nebo-today-title">
-          {title || (ru ? 'Личный прогноз на сегодня' : 'Your personal forecast for today')}
+          {title || (ru ? 'Личный прогноз на сегодня' : tr('Your personal forecast for today'))}
         </h1>
       </section>
       <div className="nebo-today-cta-row">
@@ -141,8 +142,8 @@ export function TodayEditorialFeed({
           onClick={() => setReadingOpen((open) => !open)}
         >
           <span>{readingOpen
-            ? (ru ? 'Свернуть прогноз' : 'Hide the forecast')
-            : (ru ? 'Прочитай свой личный прогноз тут' : 'Read your personal forecast')}</span>
+            ? (ru ? 'Свернуть прогноз' : tr('Hide the forecast'))
+            : (ru ? 'Прочитай свой личный прогноз тут' : tr('Read your personal forecast'))}</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={readingOpen ? 'is-open' : undefined}>
             <path d="M6 9l6 6 6-6" />
           </svg>

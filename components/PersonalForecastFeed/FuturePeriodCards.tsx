@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight, LoaderCircle, LockKeyhole, RefreshCw } from 'lucide-react';
 import { AssetSlot } from '../lumia-ui/AssetSlot';
+import { tr, trf } from '../../lib/i18n';
 
 export type FuturePeriodCardData = {
   /** Readable state of the NEBO Plus reading; free cards are always `locked`. */
@@ -75,18 +76,18 @@ function PeriodCard({
       {data.phase === 'loading' ? (
         <p className="future-period-card-status" role="status">
           <LoaderCircle className="forecast-feed-loading-spinner" size={16} strokeWidth={1.8} aria-hidden="true" />
-          {ru ? 'Готовим разбор, обычно до минуты' : 'Preparing the reading, usually under a minute'}
+          {ru ? 'Готовим разбор, обычно до минуты' : tr('Preparing the reading, usually under a minute')}
         </p>
       ) : null}
       {data.phase === 'error' ? (
         <button type="button" className="future-period-card-retry" onClick={onRetry}>
           <RefreshCw size={15} aria-hidden="true" />
-          {ru ? 'Не загрузилось. Попробовать ещё раз' : 'Did not load. Try again'}
+          {ru ? 'Не загрузилось. Попробовать ещё раз' : tr('Did not load. Try again')}
         </button>
       ) : null}
       {canRead ? (
         <button type="button" className="future-period-card-read" onClick={onRead}>
-          {ru ? 'Читать' : 'Read'}
+          {ru ? 'Читать' : tr('Read')}
           <ChevronRight size={17} aria-hidden="true" />
         </button>
       ) : null}
@@ -112,11 +113,11 @@ export function FuturePeriodCards({
 }: FuturePeriodCardsProps) {
   const ru = language === 'ru';
   return (
-    <section className="future-period-cards" aria-label={ru ? 'Разборы недели и месяца' : 'Week and month readings'}>
+    <section className="future-period-cards" aria-label={ru ? 'Разборы недели и месяца' : tr('Week and month readings')}>
       <PeriodCard
         period="week"
         kicker={weekLabel}
-        title={ru ? 'Твоя неделя' : 'Your week'}
+        title={ru ? 'Твоя неделя' : tr('Your week')}
         data={week}
         language={language}
         canPromotePremium={canPromotePremium}
@@ -126,7 +127,7 @@ export function FuturePeriodCards({
       <PeriodCard
         period="month"
         kicker={`${monthName} ${year}`}
-        title={ru ? `Твой ${monthName}` : `Your ${monthName}`}
+        title={ru ? `Твой ${monthName}` : trf('Your {0}', monthName)}
         data={month}
         language={language}
         canPromotePremium={canPromotePremium}

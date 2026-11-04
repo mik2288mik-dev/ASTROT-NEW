@@ -9,6 +9,7 @@ import {
   type NatalInterpretationEvidence,
 } from '../../lib/natalInterpretation';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
+import { tr } from '../../lib/i18n';
 
 export type NatalExplanationMode = 'meaning' | 'why' | 'accuracy';
 
@@ -149,9 +150,9 @@ export function formatNatalEvidenceLabel(
       const degree = degreeLabel(data.degree);
       const house = positiveInteger(data.house);
       return [
-        `${object}${sign ? ` ${language === 'ru' ? 'в' : 'in'} ${sign}` : ''}${degree ? `, ${degree}` : ''}`,
-        house != null ? `${house} ${language === 'ru' ? 'дом' : 'house'}` : '',
-        data.retrograde === true ? (language === 'ru' ? 'ретроградный' : 'retrograde') : '',
+        `${object}${sign ? ` ${language === 'ru' ? 'в' : tr('in')} ${sign}` : ''}${degree ? `, ${degree}` : ''}`,
+        house != null ? `${house} ${language === 'ru' ? 'дом' : tr('house')}` : '',
+        data.retrograde === true ? (language === 'ru' ? 'ретроградный' : tr('retrograde')) : '',
       ].filter(Boolean).join(' · ');
     }
     if (fact.kind === 'aspect') {
@@ -162,14 +163,14 @@ export function formatNatalEvidenceLabel(
       const orb = degreeLabel(data.orb);
       return [
         [from, aspect, to].filter(Boolean).join(' '),
-        orb ? `${language === 'ru' ? 'орб' : 'orb'} ${orb}` : '',
+        orb ? `${language === 'ru' ? 'орб' : tr('orb')} ${orb}` : '',
       ].filter(Boolean).join(' · ');
     }
     if (fact.kind === 'house') {
       const house = positiveInteger(data.house);
       const degree = degreeLabel(data.degree);
       return [
-        house != null ? `${house} ${language === 'ru' ? 'дом' : 'house'}` : '',
+        house != null ? `${house} ${language === 'ru' ? 'дом' : tr('house')}` : '',
         signLabel(data.sign, language),
         degree,
       ].filter(Boolean).join(' · ');
@@ -184,15 +185,15 @@ export function formatNatalEvidenceLabel(
     );
     const sign = language === 'ru' && signKey ? SIGN_IN_RU[signKey] : signLabel(fact.sign, language);
     const degree = degreeLabel(fact.degree);
-    return `${object} ${language === 'ru' ? 'в' : 'in'} ${sign}${degree ? `, ${degree}` : ''}`;
+    return `${object} ${language === 'ru' ? 'в' : tr('in')} ${sign}${degree ? `, ${degree}` : ''}`;
   }
   if (fact.kind === 'body_house' && fact.bodyKey && fact.house) {
-    return `${objectLabel(fact.bodyKey, language)} · ${fact.house} ${language === 'ru' ? 'дом' : 'house'}`;
+    return `${objectLabel(fact.bodyKey, language)} · ${fact.house} ${language === 'ru' ? 'дом' : tr('house')}`;
   }
   if (fact.kind === 'body_retrograde' && fact.bodyKey && typeof fact.retrograde === 'boolean') {
     const motion = fact.retrograde
-      ? (language === 'ru' ? 'ретроградное движение' : 'retrograde')
-      : (language === 'ru' ? 'директное движение' : 'direct');
+      ? (language === 'ru' ? 'ретроградное движение' : tr('retrograde'))
+      : (language === 'ru' ? 'директное движение' : tr('direct'));
     return `${objectLabel(fact.bodyKey, language)} · ${motion}`;
   }
   if (fact.kind === 'angle_sign' && fact.angleKey && fact.sign) {
@@ -201,7 +202,7 @@ export function formatNatalEvidenceLabel(
     );
     const sign = language === 'ru' && signKey ? SIGN_IN_RU[signKey] : signLabel(fact.sign, language);
     const degree = degreeLabel(fact.degree);
-    return `${objectLabel(fact.angleKey, language)} ${language === 'ru' ? 'в' : 'in'} ${sign}${degree ? `, ${degree}` : ''}`;
+    return `${objectLabel(fact.angleKey, language)} ${language === 'ru' ? 'в' : tr('in')} ${sign}${degree ? `, ${degree}` : ''}`;
   }
   if (fact.kind === 'aspect' && fact.fromKey && fact.toKey && fact.aspectType) {
     const from = objectLabel(fact.fromKey, language);
@@ -210,13 +211,13 @@ export function formatNatalEvidenceLabel(
     const orb = degreeLabel(fact.orb);
     return [
       [from, aspect, to].filter(Boolean).join(' '),
-      orb ? `${language === 'ru' ? 'орб' : 'orb'} ${orb}` : '',
+      orb ? `${language === 'ru' ? 'орб' : tr('orb')} ${orb}` : '',
     ].filter(Boolean).join(' · ');
   }
   if (fact.kind === 'house_cusp' && fact.house && fact.sign) {
     const degree = degreeLabel(fact.degree);
     return [
-      `${fact.house} ${language === 'ru' ? 'дом' : 'house'}`,
+      `${fact.house} ${language === 'ru' ? 'дом' : tr('house')}`,
       signLabel(fact.sign, language),
       degree,
     ].filter(Boolean).join(' · ');
@@ -546,7 +547,7 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
         <button
           type="button"
           className="natal-v3-sheet-close"
-          aria-label={language === 'ru' ? 'Закрыть' : 'Close'}
+          aria-label={language === 'ru' ? 'Закрыть' : tr('Close')}
           onClick={onClose}
         >
           <X aria-hidden="true" />
@@ -555,10 +556,10 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
         <header className="natal-v3-sheet-heading">
           <p>
             {target.mode === 'meaning'
-              ? (language === 'ru' ? 'Как это выглядит в жизни' : 'How this looks in life')
+              ? (language === 'ru' ? 'Как это выглядит в жизни' : tr('How this looks in life'))
               : target.mode === 'accuracy'
-                ? (language === 'ru' ? 'Точность карты' : 'Chart accuracy')
-                : (language === 'ru' ? 'Почему так?' : 'Why this conclusion?')}
+                ? (language === 'ru' ? 'Точность карты' : tr('Chart accuracy'))
+                : (language === 'ru' ? 'Почему так?' : tr('Why this conclusion?'))}
           </p>
           <h2 id="natal-v3-evidence-title" ref={headingRef} tabIndex={-1}>
             {target.title}
@@ -570,8 +571,7 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
           <div className="natal-v3-explanation-body">
             <p className="natal-v3-explanation-lead">
               {target.text || (language === 'ru'
-                ? 'Этот вывод описывает обычный способ действовать, а не одно обязательное событие.'
-                : 'This conclusion describes a usual way of acting, not one guaranteed event.')}
+                ? 'Этот вывод описывает обычный способ действовать, а не одно обязательное событие.' : tr('This conclusion describes a usual way of acting, not one guaranteed event.'))}
             </p>
             {onShowWhy && (target.evidenceIds?.length || 0) > 0 ? (
               <button
@@ -579,7 +579,7 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
                 className="natal-v3-text-action"
                 onClick={() => onShowWhy(whyTarget)}
               >
-                {language === 'ru' ? 'Почему получился такой вывод' : 'Why this conclusion was made'}
+                {language === 'ru' ? 'Почему получился такой вывод' : tr('Why this conclusion was made')}
               </button>
             ) : null}
           </div>
@@ -591,14 +591,13 @@ export const NatalEvidenceSheet: React.FC<Props> = ({
           <div className="natal-v3-explanation-body">
             {labels.length > 0 ? (
               <div className="natal-v3-explanation-section">
-                <h3>{language === 'ru' ? 'Данные твоей карты' : 'Your chart data'}</h3>
+                <h3>{language === 'ru' ? 'Данные твоей карты' : tr('Your chart data')}</h3>
                 <ul className="natal-v3-evidence-summary-list">
                   {labels.map((label) => <li key={label}>{label}</li>)}
                 </ul>
               </div>
             ) : <p className="natal-v3-explanation-lead">{language === 'ru'
-              ? 'Для этого наблюдения не сохранилась ссылка на данные карты.'
-              : 'The chart references for this observation are unavailable.'}</p>}
+              ? 'Для этого наблюдения не сохранилась ссылка на данные карты.' : tr('The chart references for this observation are unavailable.')}</p>}
 
             <p className="natal-v3-accuracy-note">{reliabilityCopy(quality, timeDependent, language)}</p>
 

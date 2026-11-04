@@ -10,6 +10,7 @@ import { getMoscowTodayKey } from '../../lib/date-utils';
 import { getZodiacSign } from '../../constants';
 import { ZodiacIcon } from '../icons/ZodiacIcon';
 import { StoriesViewer, buildReadingSlides, type StorySlide } from './StoriesViewer';
+import { tr } from '../../lib/i18n';
 
 const SIGN_KEYS = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
@@ -30,10 +31,10 @@ function SignPicker({
   return (
     <div className="pointer-events-auto">
       <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-mono-muted">
-        {language === 'ru' ? 'Гороскоп' : 'Horoscope'}
+        {language === 'ru' ? 'Гороскоп' : tr('Horoscope')}
       </p>
       <h2 className="mt-2 font-lumiaHome text-[26px] font-bold leading-tight text-mono-ink">
-        {language === 'ru' ? 'Чей гороскоп смотрим?' : 'Whose horoscope?'}
+        {language === 'ru' ? 'Чей гороскоп смотрим?' : tr('Whose horoscope?')}
       </h2>
       <div className="mt-5 grid grid-cols-3 gap-2.5">
         {SIGN_KEYS.map((sign) => {
@@ -113,7 +114,7 @@ export function HoroscopeStories({
   const slides: StorySlide[] = useMemo(() => {
     const picker: StorySlide = { id: 'pick', content: <SignPicker language={language} current={sign} onPick={choose} /> };
     if (!sign) return [picker];
-    const eyebrow = `${getZodiacSign(language, sign)} · ${language === 'ru' ? 'сегодня' : 'today'}`;
+    const eyebrow = `${getZodiacSign(language, sign)} · ${language === 'ru' ? 'сегодня' : tr('today')}`;
     const readingSlides = reading ? buildReadingSlides(reading, eyebrow, language) : [];
     return [picker, ...readingSlides];
   }, [sign, reading, language]);

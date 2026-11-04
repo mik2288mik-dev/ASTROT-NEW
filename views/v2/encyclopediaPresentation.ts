@@ -4,6 +4,7 @@ import type {
   KnowledgeLanguage,
   KnowledgeTopic,
 } from '../../lib/knowledge';
+import { tr } from '../../lib/i18n';
 
 type LocalizedText = Readonly<Record<KnowledgeLanguage, string>>;
 
@@ -331,7 +332,7 @@ export function getEncyclopediaCategoryGroups(
   return ungroupedTopics.length
     ? [...groups, {
       id: 'other',
-      title: language === 'ru' ? 'Другие материалы' : 'Other articles',
+      title: language === 'ru' ? 'Другие материалы' : tr('Other articles'),
       topics: ungroupedTopics,
     }]
     : groups;

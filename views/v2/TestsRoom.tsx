@@ -19,6 +19,7 @@ import {
 } from '../../lib/selfTests/engine';
 import { loadFeatureState, peekFeatureState, saveFeatureState } from '../../services/featureStateService';
 import { loadExploreCharts, peekExploreCharts } from '../../components/PersonalForecastFeed/exploreCharts';
+import { tr, trf } from '../../lib/i18n';
 
 export const TEST_IMAGES: Record<string, string> = {
   temperament: '/assets/tests/temperament.webp',
@@ -137,7 +138,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
     setScreen({ kind: 'result', testId: test.id, score, finishedAt });
   };
 
-  const dateLabel = (iso: string) => new Intl.DateTimeFormat(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long' }).format(new Date(iso));
+  const dateLabel = (iso: string) => new Intl.DateTimeFormat(ru ? 'ru-RU' : tr('en-US'), { day: 'numeric', month: 'long' }).format(new Date(iso));
 
   if (screen.kind === 'run') {
     const test = findSelfTest(screen.testId)!;
@@ -151,7 +152,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
             <span style={{ width: `${((screen.index + 1) / test.questions.length) * 100}%` }} />
           </div>
           <p className="tests-run-count">
-            {ru ? `Вопрос ${screen.index + 1} из ${test.questions.length}` : `Question ${screen.index + 1} of ${test.questions.length}`}
+            {ru ? `Вопрос ${screen.index + 1} из ${test.questions.length}` : trf('Question {0} of {1}', screen.index + 1, test.questions.length)}
           </p>
           <h1 className="tests-run-question">{question.text[language]}</h1>
           <div className="tests-run-options" role="radiogroup" aria-label={question.text[language]}>
@@ -172,10 +173,10 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
           {screen.index > 0 ? (
             <button type="button" className="tests-run-back" onClick={() => setScreen({ ...screen, index: screen.index - 1 })}>
               <ArrowLeft size={16} aria-hidden="true" />
-              {ru ? 'Предыдущий вопрос' : 'Previous question'}
+              {ru ? 'Предыдущий вопрос' : tr('Previous question')}
             </button>
           ) : null}
-          <p className="tests-run-note">{ru ? 'Отвечай первое, что приходит в голову. Ответ сохраняется, можно закрыть и продолжить позже.' : 'Answer with your first thought. Answers are saved, you can close and continue later.'}</p>
+          <p className="tests-run-note">{ru ? 'Отвечай первое, что приходит в голову. Ответ сохраняется, можно закрыть и продолжить позже.' : tr('Answer with your first thought. Answers are saved, you can close and continue later.')}</p>
         </section>
       </div>
     );
@@ -190,15 +191,15 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
       <div className="fresh-page tests-room tests-room--result">
         <AppTopBar title={test.title[language]} onBack={back} />
         <article className="tests-result">
-          <p className="tests-result-kicker">{ru ? `Твой результат · ${dateLabel(screen.finishedAt)}` : `Your result · ${dateLabel(screen.finishedAt)}`}</p>
+          <p className="tests-result-kicker">{ru ? `Твой результат · ${dateLabel(screen.finishedAt)}` : trf('Your result · {0}', dateLabel(screen.finishedAt))}</p>
           <h1 className="tests-result-title">{result.title[language]}</h1>
           <p className="tests-result-lead">{result.lead[language]}</p>
           {second ? (
             <p className="tests-result-second">
-              {ru ? `А ещё в тебе много от результата «${second.title.ru}», они почти поровну.` : `There is also a lot of «${second.title.en}» in you, almost equal.`}
+              {ru ? `А ещё в тебе много от результата «${second.title.ru}», они почти поровну.` : trf('There is also a lot of «{0}» in you, almost equal.', second.title.en)}
             </p>
           ) : null}
-          <div className="tests-result-bars" aria-label={ru ? 'Как распределились ответы' : 'How your answers split'}>
+          <div className="tests-result-bars" aria-label={ru ? 'Как распределились ответы' : tr('How your answers split')}>
             {screen.score.ranking.map((item) => (
               <div key={item.key} className="tests-result-bar">
                 <span>{resultOf(test, item.key).title[language]}</span>
@@ -208,34 +209,34 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
             ))}
           </div>
           <section className="tests-result-block">
-            <h2>{ru ? 'Твои сильные стороны' : 'Your strengths'}</h2>
+            <h2>{ru ? 'Твои сильные стороны' : tr('Your strengths')}</h2>
             <ul>{result.strengths.map((item) => <li key={item.ru}>{item[language]}</li>)}</ul>
           </section>
           <section className="tests-result-block">
-            <h2>{ru ? 'На что обратить внимание' : 'What to watch'}</h2>
+            <h2>{ru ? 'На что обратить внимание' : tr('What to watch')}</h2>
             <ul>{result.watch.map((item) => <li key={item.ru}>{item[language]}</li>)}</ul>
           </section>
           <section className="tests-result-tip">
-            <h2>{ru ? 'Попробуй' : 'Try this'}</h2>
+            <h2>{ru ? 'Попробуй' : tr('Try this')}</h2>
             <p>{result.tip[language]}</p>
           </section>
           <section className="tests-result-chart" aria-labelledby="tests-result-chart-title">
-            <h2 id="tests-result-chart-title">{ru ? 'А что говорит твоя карта' : 'What your chart says'}</h2>
+            <h2 id="tests-result-chart-title">{ru ? 'А что говорит твоя карта' : tr('What your chart says')}</h2>
             {insight ? (
               <p>{insight.text}</p>
             ) : (
               <>
-                <p>{ru ? 'Сохрани свою натальную карту, и мы сравним результат теста с ней.' : 'Save your natal chart and we will compare the result with it.'}</p>
-                {onOpenNatal ? <button type="button" className="tests-secondary" onClick={onOpenNatal}>{ru ? 'Открыть карту' : 'Open the chart'}</button> : null}
+                <p>{ru ? 'Сохрани свою натальную карту, и мы сравним результат теста с ней.' : tr('Save your natal chart and we will compare the result with it.')}</p>
+                {onOpenNatal ? <button type="button" className="tests-secondary" onClick={onOpenNatal}>{ru ? 'Открыть карту' : tr('Open the chart')}</button> : null}
               </>
             )}
           </section>
-          <p className="tests-result-private"><Lock size={14} aria-hidden="true" />{ru ? 'Результат видишь только ты. Он сохранён в твоём профиле.' : 'Only you can see this result. It is saved in your profile.'}</p>
+          <p className="tests-result-private"><Lock size={14} aria-hidden="true" />{ru ? 'Результат видишь только ты. Он сохранён в твоём профиле.' : tr('Only you can see this result. It is saved in your profile.')}</p>
           <div className="tests-result-actions">
-            <button type="button" className="tests-primary" onClick={() => setScreen({ kind: 'list' })}>{ru ? 'Ко всем тестам' : 'All tests'}</button>
+            <button type="button" className="tests-primary" onClick={() => setScreen({ kind: 'list' })}>{ru ? 'Ко всем тестам' : tr('All tests')}</button>
             <button type="button" className="tests-secondary" onClick={() => start(test, true)}>
               <RotateCcw size={16} aria-hidden="true" />
-              {ru ? 'Пройти ещё раз' : 'Take it again'}
+              {ru ? 'Пройти ещё раз' : tr('Take it again')}
             </button>
           </div>
         </article>
@@ -245,11 +246,11 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
 
   return (
     <div className="fresh-page tests-room">
-      <AppTopBar title={ru ? 'Тесты о себе' : 'Tests about you'} onBack={onBack} />
+      <AppTopBar title={ru ? 'Тесты о себе' : tr('Tests about you')} onBack={onBack} />
       <section className="tests-intro video-hero">
         <VideoBackground id="tests" />
-        <h1>{ru ? 'Узнай себя чуть лучше' : 'Get to know yourself a bit better'}</h1>
-        <p>{ru ? 'Короткие тесты на пару минут. Без правильных ответов и без оценок, а в конце сравним с твоей картой.' : 'Short tests, a couple of minutes each. No right answers, no grades, and at the end we compare with your chart.'}</p>
+        <h1>{ru ? 'Узнай себя чуть лучше' : tr('Get to know yourself a bit better')}</h1>
+        <p>{ru ? 'Короткие тесты на пару минут. Без правильных ответов и без оценок, а в конце сравним с твоей картой.' : tr('Short tests, a couple of minutes each. No right answers, no grades, and at the end we compare with your chart.')}</p>
       </section>
       <div className="tests-list">
         {SELF_TESTS.map((test) => {
@@ -263,12 +264,12 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
                 <small>{test.subtitle[language]}</small>
                 <span className="tests-card-meta">
                   {isLocked(test)
-                    ? (ru ? 'С NEBO Plus · все тесты и разбор' : 'With NEBO Plus · every test')
+                    ? (ru ? 'С NEBO Plus · все тесты и разбор' : tr('With NEBO Plus · every test'))
                     : progress
-                    ? (ru ? `Продолжить · вопрос ${progress.answers.length + 1} из ${test.questions.length}` : `Continue · question ${progress.answers.length + 1} of ${test.questions.length}`)
+                    ? (ru ? `Продолжить · вопрос ${progress.answers.length + 1} из ${test.questions.length}` : trf('Continue · question {0} of {1}', progress.answers.length + 1, test.questions.length))
                     : last
-                      ? (ru ? `Твой результат: ${resultOf(test, last.top).title.ru}` : `Your result: ${resultOf(test, last.top).title.en}`)
-                      : (ru ? `${test.minutes} мин · ${test.questions.length} вопросов` : `${test.minutes} min · ${test.questions.length} questions`)}
+                      ? (ru ? `Твой результат: ${resultOf(test, last.top).title.ru}` : trf('Your result: {0}', resultOf(test, last.top).title.en))
+                      : (ru ? `${test.minutes} мин · ${test.questions.length} вопросов` : trf('{0} min · {1} questions', test.minutes, test.questions.length))}
                 </span>
               </span>
               {isLocked(test) ? <Lock size={17} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
@@ -281,9 +282,9 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
           <button type="button" className="tests-card" onClick={onOpenMood}>
             <AssetSlot src="/assets/tests/mood-week.webp" className="tests-card-art" />
             <span className="tests-card-copy">
-              <strong>{ru ? 'Неделя настроения' : 'Mood week'}</strong>
-              <small>{ru ? '7 дней по четыре отметки, и отчёт, когда тебе лучше и труднее' : '7 days, four check-ins a day, and a report on your ups and downs'}</small>
-              <span className="tests-card-meta">{ru ? '5 секунд в день, четыре раза' : '5 seconds, four times a day'}</span>
+              <strong>{ru ? 'Неделя настроения' : tr('Mood week')}</strong>
+              <small>{ru ? '7 дней по четыре отметки, и отчёт, когда тебе лучше и труднее' : tr('7 days, four check-ins a day, and a report on your ups and downs')}</small>
+              <span className="tests-card-meta">{ru ? '5 секунд в день, четыре раза' : tr('5 seconds, four times a day')}</span>
             </span>
             <ChevronRight size={18} aria-hidden="true" />
           </button>
@@ -291,7 +292,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
       ) : null}
       {history.length ? (
         <section className="tests-history" aria-labelledby="tests-history-title">
-          <h2 id="tests-history-title">{ru ? 'Мои результаты' : 'My results'}</h2>
+          <h2 id="tests-history-title">{ru ? 'Мои результаты' : tr('My results')}</h2>
           <ul>
             {history.slice(0, 20).map((item) => {
               const test = findSelfTest(item.testId)!;
@@ -313,7 +314,7 @@ export function TestsRoom({ profile, onBack, initialTestId, onOpenNatal, onOpenM
           </ul>
         </section>
       ) : null}
-      <p className="tests-result-private"><Lock size={14} aria-hidden="true" />{ru ? 'Результаты личные: никто, кроме тебя, их не видит.' : 'Results are private: nobody but you sees them.'}</p>
+      <p className="tests-result-private"><Lock size={14} aria-hidden="true" />{ru ? 'Результаты личные: никто, кроме тебя, их не видит.' : tr('Results are private: nobody but you sees them.')}</p>
     </div>
   );
 }

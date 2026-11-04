@@ -24,7 +24,7 @@ describe('Telegram Stars paywall reachability', () => {
 
     expect(paywall).toContain("purchaseState === 'pending' && !telegramPaymentsEnabled");
     expect(paywall).toContain('disabled={purchaseActionLocked || catalogLoading || !selectedPlan}');
-    expect(paywall).toContain("? (ru ? 'Проверить оплату' : 'Check payment')");
+    expect(paywall).toContain("? (ru ? 'Проверить оплату' : tr('Check payment'))");
     expect(telegram).toContain("if (storedState) return Promise.resolve(storedState.status === 'paid' ? 'paid' : 'pending')");
     expect(app).toContain('pollForPaymentEntitlement({');
     expect(app).toContain('const validatedPatch = await paymentPatchFromServer(paymentUserId);');

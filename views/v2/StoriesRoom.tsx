@@ -14,6 +14,7 @@ import { VideoBackground } from '../../components/lumia-ui/VideoBackground';
 import type { VideoBackgroundId } from '../../lib/videoBackgrounds';
 import { StoryInlineScene } from '../../components/lumia-ui/StoryInlineScene';
 import { storyParagraphs } from '../../lib/stories/scenes';
+import { tr, trf } from '../../lib/i18n';
 
 export const STORY_COVERS: Record<string, string> = {
   'quiet-lane': '/assets/stories/quiet-lane.webp',
@@ -98,42 +99,42 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
     const series = seriesOf(screen.seriesId);
     return (
       <div className="fresh-page stories-room stories-room--read">
-        <AppTopBar title={series?.title ?? (ru ? 'Рассказы' : 'Stories')} onBack={back} />
-        {episodeState === 'loading' ? <p className="stories-status" role="status"><LoaderCircle className="audio-mini-player-spinner" size={18} aria-hidden="true" />{ru ? 'Открываем серию…' : 'Opening the episode…'}</p> : null}
+        <AppTopBar title={series?.title ?? (ru ? 'Рассказы' : tr('Stories'))} onBack={back} />
+        {episodeState === 'loading' ? <p className="stories-status" role="status"><LoaderCircle className="audio-mini-player-spinner" size={18} aria-hidden="true" />{ru ? 'Открываем серию…' : tr('Opening the episode…')}</p> : null}
         {episodeState === 'error' ? (
           <div className="stories-status">
-            <p>{ru ? 'Серия не загрузилась. Проверь соединение.' : 'The episode did not load. Check the connection.'}</p>
-            <button type="button" className="stories-primary" onClick={() => { void open(screen.seriesId, screen.number); }}>{ru ? 'Повторить' : 'Retry'}</button>
+            <p>{ru ? 'Серия не загрузилась. Проверь соединение.' : tr('The episode did not load. Check the connection.')}</p>
+            <button type="button" className="stories-primary" onClick={() => { void open(screen.seriesId, screen.number); }}>{ru ? 'Повторить' : tr('Retry')}</button>
           </div>
         ) : null}
         {episodeState === 'unlock' ? (
           <div className="stories-gate">
             <Gift size={22} aria-hidden="true" />
-            <h2>{ru ? 'Серия дня, бесплатно' : 'Today’s free episode'}</h2>
-            <p>{ru ? 'Одну серию этого сериала в день можно открыть бесплатно. С NEBO Plus, все серии сразу.' : 'One episode of this series a day opens for free. With NEBO Plus, every episode at once.'}</p>
-            <button type="button" className="stories-primary" onClick={() => { void open(screen.seriesId, screen.number, true); }}>{ru ? 'Открыть бесплатно' : 'Open for free'}</button>
-            {onRequestPremium ? <button type="button" className="stories-secondary" onClick={onRequestPremium}>{ru ? 'Все серии в NEBO Plus' : 'All episodes in NEBO Plus'}</button> : null}
+            <h2>{ru ? 'Серия дня, бесплатно' : tr('Today’s free episode')}</h2>
+            <p>{ru ? 'Одну серию этого сериала в день можно открыть бесплатно. С NEBO Plus, все серии сразу.' : tr('One episode of this series a day opens for free. With NEBO Plus, every episode at once.')}</p>
+            <button type="button" className="stories-primary" onClick={() => { void open(screen.seriesId, screen.number, true); }}>{ru ? 'Открыть бесплатно' : tr('Open for free')}</button>
+            {onRequestPremium ? <button type="button" className="stories-secondary" onClick={onRequestPremium}>{ru ? 'Все серии в NEBO Plus' : tr('All episodes in NEBO Plus')}</button> : null}
           </div>
         ) : null}
         {episodeState === 'locked' ? (
           <div className="stories-gate">
             <Lock size={22} aria-hidden="true" />
             <h2>{!isFreeStorySeries(screen.seriesId)
-              ? (ru ? 'Этот сериал в NEBO Plus' : 'This series is in NEBO Plus')
-              : (ru ? 'Сегодняшняя бесплатная серия уже открыта' : 'Today’s free episode is already open')}</h2>
+              ? (ru ? 'Этот сериал в NEBO Plus' : tr('This series is in NEBO Plus'))
+              : (ru ? 'Сегодняшняя бесплатная серия уже открыта' : tr('Today’s free episode is already open'))}</h2>
             <p>{!isFreeStorySeries(screen.seriesId)
-              ? (ru ? 'Бесплатно открыт «Тихий переулок». С NEBO Plus все сериалы, все серии сразу, новый рассказ каждый месяц.' : 'The Quiet Lane is free. With NEBO Plus: every series, every episode at once, a new story each month.')
-              : (ru ? 'Завтра откроется следующая. Или читай все серии сразу с NEBO Plus.' : 'The next one opens tomorrow. Or read them all with NEBO Plus.')}</p>
-            {onRequestPremium ? <button type="button" className="stories-primary" onClick={onRequestPremium}>{ru ? 'Открыть все в NEBO Plus' : 'Open all in NEBO Plus'}</button> : null}
+              ? (ru ? 'Бесплатно открыт «Тихий переулок». С NEBO Plus все сериалы, все серии сразу, новый рассказ каждый месяц.' : tr('The Quiet Lane is free. With NEBO Plus: every series, every episode at once, a new story each month.'))
+              : (ru ? 'Завтра откроется следующая. Или читай все серии сразу с NEBO Plus.' : tr('The next one opens tomorrow. Or read them all with NEBO Plus.'))}</p>
+            {onRequestPremium ? <button type="button" className="stories-primary" onClick={onRequestPremium}>{ru ? 'Открыть все в NEBO Plus' : tr('Open all in NEBO Plus')}</button> : null}
           </div>
         ) : null}
         {episode ? (
           <article className={`stories-reader is-${series?.genre ?? 'detective'}`} lang={ru ? 'ru' : 'en'}>
-            <p className="stories-kicker">{ru ? `Серия ${episode.number}` : `Episode ${episode.number}`} · {readingMinutes(episode.text)} {ru ? 'мин чтения' : 'min read'}</p>
+            <p className="stories-kicker">{ru ? `Серия ${episode.number}` : trf('Episode {0}', episode.number)} · {readingMinutes(episode.text)} {ru ? 'мин чтения' : tr('min read')}</p>
             <h1 className="stories-title">{episode.title}</h1>
             {episode.scenes?.length ? <button type="button" className="stories-motion-button"
               aria-pressed={scenesPaused} onClick={() => setScenesPaused((value) => !value)}>
-              {scenesPaused ? (ru ? 'Оживить сцены' : 'Play scenes') : (ru ? 'Остановить сцены' : 'Pause scenes')}
+              {scenesPaused ? (ru ? 'Оживить сцены' : tr('Play scenes')) : (ru ? 'Остановить сцены' : tr('Pause scenes'))}
             </button> : null}
             <div className="stories-body">
               {storyParagraphs(episode.text).map((paragraph, index, all) => {
@@ -146,10 +147,10 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
             <footer className="stories-next">
               {episode.next ? (
                 <button type="button" className="stories-primary" onClick={() => { void open(episode.seriesId, episode.next!); }}>
-                  {ru ? `Читать серию ${episode.next}` : `Read episode ${episode.next}`}
+                  {ru ? `Читать серию ${episode.next}` : trf('Read episode {0}', episode.next)}
                 </button>
               ) : (
-                <p>{episode.nextReleaseTomorrow ? (ru ? 'Следующая серия выйдет завтра.' : 'The next episode comes out tomorrow.') : (ru ? 'Новая серия выходит каждый день.' : 'A new episode comes out every day.')}</p>
+                <p>{episode.nextReleaseTomorrow ? (ru ? 'Следующая серия выйдет завтра.' : tr('The next episode comes out tomorrow.')) : (ru ? 'Новая серия выходит каждый день.' : tr('A new episode comes out every day.'))}</p>
               )}
             </footer>
           </article>
@@ -174,7 +175,7 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
           <p className="stories-tagline">{series.tagline}</p>
           {continueNumber ? (
             <button type="button" className="stories-primary" onClick={() => { void open(series.id, continueNumber); }}>
-              {read ? (ru ? `Продолжить с серии ${continueNumber}` : `Continue with episode ${continueNumber}`) : (ru ? 'Начать с первой серии' : 'Start from episode 1')}
+              {read ? (ru ? `Продолжить с серии ${continueNumber}` : trf('Continue with episode {0}', continueNumber)) : (ru ? 'Начать с первой серии' : tr('Start from episode 1'))}
             </button>
           ) : null}
         </section>
@@ -187,9 +188,9 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
                   <span className="stories-episode-copy">
                     <strong>{item.title}</strong>
                     <small>
-                      {item.releaseDate === overview?.today ? (ru ? 'вышла сегодня' : 'out today') : new Date(`${item.releaseDate}T12:00:00Z`).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', timeZone: 'UTC' })}
-                      {item.number <= read ? (ru ? ' · прочитано' : ' · read') : ''}
-                      {item.number <= FREE_STORY_EPISODES && !overview?.premium ? (ru ? ' · бесплатно' : ' · free') : ''}
+                      {item.releaseDate === overview?.today ? (ru ? 'вышла сегодня' : tr('out today')) : new Date(`${item.releaseDate}T12:00:00Z`).toLocaleDateString(ru ? 'ru-RU' : tr('en-US'), { day: 'numeric', month: 'long', timeZone: 'UTC' })}
+                      {item.number <= read ? (ru ? ' · прочитано' : tr(' · read')) : ''}
+                      {item.number <= FREE_STORY_EPISODES && !overview?.premium ? (ru ? ' · бесплатно' : tr(' · free')) : ''}
                     </small>
                   </span>
                   {item.access === 'open' ? <BookOpen size={17} aria-hidden="true" /> : item.access === 'free_unlock_available' ? <Gift size={17} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}
@@ -197,28 +198,27 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
               </li>
             ))}
           </ol>
-        ) : <p className="stories-status">{ru ? 'Первая серия уже готовится, загляни чуть позже.' : 'The first episode is being prepared, come back a bit later.'}</p>}
+        ) : <p className="stories-status">{ru ? 'Первая серия уже готовится, загляни чуть позже.' : tr('The first episode is being prepared, come back a bit later.')}</p>}
       </div>
     );
   }
 
   return (
     <div className="fresh-page stories-room">
-      <AppTopBar title={ru ? 'Рассказы' : 'Stories'} onBack={onBack} />
+      <AppTopBar title={ru ? 'Рассказы' : tr('Stories')} onBack={onBack} />
       <section className="stories-intro video-hero">
         <VideoBackground id="stories-catalog" />
-        <h1>{ru ? 'Сериалы на каждый день' : 'A series for every day'}</h1>
+        <h1>{ru ? 'Сериалы на каждый день' : tr('A series for every day')}</h1>
         <p>{ru
-          ? `Тихий переулок открыт всем: ${FREE_STORY_EPISODES} серии сразу, дальше по серии в день. Остальные сериалы и все серии сразу с NEBO Plus. Каждый месяц добавляем новый рассказ.`
-          : `The Quiet Lane is free for everyone: ${FREE_STORY_EPISODES} episodes at once, then one a day. The other series, every episode at once come with NEBO Plus. A new story is added every month.`}</p>
+          ? `Тихий переулок открыт всем: ${FREE_STORY_EPISODES} серии сразу, дальше по серии в день. Остальные сериалы и все серии сразу с NEBO Plus. Каждый месяц добавляем новый рассказ.` : trf('The Quiet Lane is free for everyone: {0} episodes at once, then one a day. The other series, every episode at once come with NEBO Plus. A new story is added every month.', FREE_STORY_EPISODES)}</p>
       </section>
       {error ? (
         <div className="stories-status">
-          <p>{ru ? 'Не получилось загрузить сериалы.' : 'Could not load the series.'}</p>
-          <button type="button" className="stories-primary" onClick={refresh}>{ru ? 'Повторить' : 'Retry'}</button>
+          <p>{ru ? 'Не получилось загрузить сериалы.' : tr('Could not load the series.')}</p>
+          <button type="button" className="stories-primary" onClick={refresh}>{ru ? 'Повторить' : tr('Retry')}</button>
         </div>
       ) : !overview ? (
-        <p className="stories-status" role="status"><LoaderCircle className="audio-mini-player-spinner" size={18} aria-hidden="true" />{ru ? 'Загружаем…' : 'Loading…'}</p>
+        <p className="stories-status" role="status"><LoaderCircle className="audio-mini-player-spinner" size={18} aria-hidden="true" />{ru ? 'Загружаем…' : tr('Loading…')}</p>
       ) : (
         <div className="stories-list">
           {overview.series.map((series) => {
@@ -234,11 +234,11 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
                   <span>{series.tagline}</span>
                   <em>
                     {!overview.premium && !isFreeStorySeries(series.id)
-                      ? (ru ? 'Сериал в NEBO Plus' : 'A NEBO Plus series')
+                      ? (ru ? 'Сериал в NEBO Plus' : tr('A NEBO Plus series'))
                       : latest
-                      ? (latest.releaseDate === overview.today ? (ru ? `Новая серия ${latest.number} вышла сегодня` : `New episode ${latest.number} today`) : (ru ? `${series.episodes.length} серий` : `${series.episodes.length} episodes`))
-                      : (ru ? 'Скоро первая серия' : 'First episode soon')}
-                    {read && unread ? (ru ? ` · непрочитано: ${unread}` : ` · unread: ${unread}`) : ''}
+                      ? (latest.releaseDate === overview.today ? (ru ? `Новая серия ${latest.number} вышла сегодня` : trf('New episode {0} today', latest.number)) : (ru ? `${series.episodes.length} серий` : trf('{0} episodes', series.episodes.length)))
+                      : (ru ? 'Скоро первая серия' : tr('First episode soon'))}
+                    {read && unread ? (ru ? ` · непрочитано: ${unread}` : trf(' · unread: {0}', unread)) : ''}
                   </em>
                 </span>
                 <ChevronRight size={18} aria-hidden="true" />
@@ -246,8 +246,8 @@ export function StoriesRoom({ profile, onBack, onRequestPremium }: StoriesRoomPr
             );
           })}
           <div className="stories-soon">
-            <strong>{ru ? 'Скоро новый рассказ' : 'A new story is coming'}</strong>
-            <span>{ru ? 'Каждый месяц в NEBO появляется новая история. Следующая уже в работе.' : 'A new story arrives in NEBO every month. The next one is on its way.'}</span>
+            <strong>{ru ? 'Скоро новый рассказ' : tr('A new story is coming')}</strong>
+            <span>{ru ? 'Каждый месяц в NEBO появляется новая история. Следующая уже в работе.' : tr('A new story arrives in NEBO every month. The next one is on its way.')}</span>
           </div>
         </div>
       )}

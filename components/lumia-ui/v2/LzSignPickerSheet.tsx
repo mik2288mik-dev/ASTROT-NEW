@@ -4,6 +4,7 @@ import type { Language } from '../../../types';
 import { ZodiacIcon } from '../../icons/ZodiacIcon';
 import { ZODIAC_KEYS } from '../../../lib/zodiacKeys';
 import { CosmicSheet } from '../CosmicSheet';
+import { tr } from '../../../lib/i18n';
 
 type LzSignPickerSheetProps = {
   open: boolean;
@@ -31,9 +32,9 @@ export function LzSignPickerSheet({
   return (
     <CosmicSheet
       open={open}
-      title={title || (lang === 'ru' ? 'Выбери знак' : 'Pick a sign')}
+      title={title || (lang === 'ru' ? 'Выбери знак' : tr('Pick a sign'))}
       subtitle={subtitle}
-      closeLabel={lang === 'ru' ? 'Закрыть' : 'Close'}
+      closeLabel={lang === 'ru' ? 'Закрыть' : tr('Close')}
       className={`lz-sheet-panel${variant === 'editorial' ? ' lz-sheet-panel--editorial' : ''}`}
       contentClassName={`lz-sheet-scroll${variant === 'editorial' ? ' lz-sheet-scroll--editorial' : ''}`}
       onClose={onClose}

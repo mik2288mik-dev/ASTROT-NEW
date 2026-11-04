@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { tr } from '../../lib/i18n';
 
 /**
  * FAQ на самом низу главной — отвечает на «наболевшие» вопросы:
@@ -62,12 +63,11 @@ export const HomeFaq: React.FC<{ language: 'ru' | 'en' }> = ({ language }) => {
   return (
     <section style={{ padding: '8px 16px 28px' }}>
       <div className="fresh-section-row">
-        <div className="fresh-section-title">{language === 'ru' ? 'Вопросы и ответы' : 'FAQ'}</div>
+        <div className="fresh-section-title">{language === 'ru' ? 'Вопросы и ответы' : tr('FAQ')}</div>
       </div>
       <p style={{ margin: '0 0 12px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
         {language === 'ru'
-          ? 'Коротко о том, как это работает и на чём всё основано.'
-          : 'A short take on how it works and what it is based on.'}
+          ? 'Коротко о том, как это работает и на чём всё основано.' : tr('A short take on how it works and what it is based on.')}
       </p>
 
       <div
@@ -140,8 +140,7 @@ export const HomeFaq: React.FC<{ language: 'ru' | 'en' }> = ({ language }) => {
 
       <p style={{ margin: '12px 4px 0', fontSize: 11.5, lineHeight: 1.55, color: 'var(--fresh-muted)' }}>
         {language === 'ru'
-          ? 'NEBO создано для самопонимания и интереса к себе, это не медицинские, юридические или финансовые рекомендации.'
-          : 'NEBO is made for self-reflection and curiosity, not medical, legal or financial advice.'}
+          ? 'NEBO создано для самопонимания и интереса к себе, это не медицинские, юридические или финансовые рекомендации.' : tr('NEBO is made for self-reflection and curiosity, not medical, legal or financial advice.')}
       </p>
     </section>
   );

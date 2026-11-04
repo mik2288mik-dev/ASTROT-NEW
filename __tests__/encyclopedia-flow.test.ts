@@ -181,7 +181,7 @@ describe('knowledge encyclopedia flow', () => {
     expect(app).toContain('<AstrologyEncyclopedia');
     expect(services).toContain('<AstrologyEncyclopedia');
     expect(services).toContain('embedded');
-    expect(encyclopedia).toContain("title={ru ? 'Справочник' : 'Guide'}");
+    expect(encyclopedia).toContain("title={ru ? 'Справочник' : tr('Guide')}");
     expect(encyclopedia).toContain('AstrologyEncyclopedia.module.css');
     expect(encyclopedia).not.toContain('EditorialChartsButton');
     [

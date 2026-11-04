@@ -9,6 +9,8 @@ import {
   type TodayClockLayout,
   type TodayClockPreset,
 } from '../../lib/todayVisualPresets';
+import { trf } from '../../lib/i18n';
+import { tr } from '../../lib/i18n';
 
 type TodayCalendarClockProps = {
   userId: string;
@@ -63,7 +65,7 @@ function buildClockParts(
   timezone: string,
   language: 'ru' | 'en',
 ): ClockParts {
-  const locale = language === 'ru' ? 'ru-RU' : 'en-GB';
+  const locale = language === 'ru' ? 'ru-RU' : tr('en-GB');
   const displayDate = dateFromPeriodKey(periodKey);
   const day = new Intl.DateTimeFormat(locale, {
     day: '2-digit',
@@ -296,12 +298,10 @@ export function TodayCalendarClock({
   const broadcastInteracted = broadcastStateIsCurrent && broadcastState.interacted;
   const activeBroadcast = todayBroadcasts[broadcastIndex] ?? todayBroadcasts[0];
   const broadcastActionLabel = language === 'ru'
-    ? `Сменить картинку на телевизоре. ${broadcastIndex + 1} из ${todayBroadcasts.length}. Дата и время: ${parts.semanticLabel}.`
-    : `Change the TV picture. ${broadcastIndex + 1} of ${todayBroadcasts.length}. Date and time: ${parts.semanticLabel}.`;
+    ? `Сменить картинку на телевизоре. ${broadcastIndex + 1} из ${todayBroadcasts.length}. Дата и время: ${parts.semanticLabel}.` : trf('Change the TV picture. {0} of {1}. Date and time: {2}.', broadcastIndex + 1, todayBroadcasts.length, parts.semanticLabel);
   const broadcastStatus = broadcastInteracted
     ? (language === 'ru'
-        ? `Картинка ${broadcastIndex + 1} из ${todayBroadcasts.length}.`
-        : `Picture ${broadcastIndex + 1} of ${todayBroadcasts.length}.`)
+        ? `Картинка ${broadcastIndex + 1} из ${todayBroadcasts.length}.` : trf('Picture {0} of {1}.', broadcastIndex + 1, todayBroadcasts.length))
     : '';
 
   const advanceBroadcast = () => {

@@ -4,6 +4,7 @@ import type { NatalChartData } from '../../types';
 import type { NatalChartDataV2 } from '../../lib/natalChartV2Types';
 import { getPermanentNatalReliability } from '../../lib/natalReading/permanentReport';
 import { PlanetIcon, type PlanetKey } from '../icons/PlanetIcon';
+import { tr } from '../../lib/i18n';
 
 type Language = 'ru' | 'en';
 type ChartSource = NatalChartData | NatalChartDataV2;
@@ -199,10 +200,9 @@ export function NatalChartPortrait({ chart, language }: { chart: ChartSource; la
     bodies.find((point) => point.key === 'moon'),
     angles.find((point) => point.key === 'ascendant'),
   ].filter((point): point is PortraitPoint => !!point);
-  const title = language === 'ru' ? 'Ключевой портрет' : 'Key portrait';
+  const title = language === 'ru' ? 'Ключевой портрет' : tr('Key portrait');
   const description = language === 'ru'
-    ? 'Уникальная композиция построена из рассчитанных положений и надёжных аспектов этой карты.'
-    : 'This unique composition is built from the calculated placements and reliable aspects in this chart.';
+    ? 'Уникальная композиция построена из рассчитанных положений и надёжных аспектов этой карты.' : tr('This unique composition is built from the calculated placements and reliable aspects in this chart.');
 
   return (
     <figure className="natal-chart-portrait" aria-labelledby="natal-chart-portrait-caption">
@@ -282,7 +282,7 @@ export function NatalChartPortrait({ chart, language }: { chart: ChartSource; la
           <li key={point.key}>
             {PLANET_NAMES[point.key]?.[language] || point.name}: {' '}
             {getZodiacSign(language, point.sign)} {point.degree.toFixed(1)}°
-            {point.retrograde ? `, ${language === 'ru' ? 'ретроградный' : 'retrograde'}` : ''}
+            {point.retrograde ? `, ${language === 'ru' ? 'ретроградный' : tr('retrograde')}` : ''}
           </li>
         ))}
       </ul>

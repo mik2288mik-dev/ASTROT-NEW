@@ -11,6 +11,7 @@ import { formatDisplayDate } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { CosmicSheet } from './CosmicSheet';
 import { LIQUID_GLASS_SCALES, liquidGlassMap } from './neboLiquidGlass';
+import { tr } from '../../lib/i18n';
 
 export type LumiaNavigationSheetId = 'profile';
 
@@ -264,7 +265,7 @@ export function LumiaBottomTabBar({
       <nav
         ref={navRef}
         className="nebo-tabbar pointer-events-auto"
-        aria-label={isEnglish ? 'Primary navigation' : 'Основная навигация'}
+        aria-label={isEnglish ? tr('Primary navigation') : 'Основная навигация'}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -343,15 +344,15 @@ export function LumiaNavigationSheet({
   onOpenCharts,
 }: LumiaNavigationSheetProps) {
   const isEnglish = profile.language === 'en';
-  const sheetTitle = isEnglish ? 'Profile' : 'Профиль';
-  const sheetSubtitle = profile.name?.trim() || (isEnglish ? 'Your details and charts' : 'Твои данные и карты');
+  const sheetTitle = isEnglish ? tr('Profile') : 'Профиль';
+  const sheetSubtitle = profile.name?.trim() || (isEnglish ? tr('Your details and charts') : 'Твои данные и карты');
 
   return (
     <CosmicSheet
       open={activeSheet === 'profile'}
       title={sheetTitle}
       subtitle={sheetSubtitle}
-      closeLabel={isEnglish ? 'Close menu' : 'Закрыть меню'}
+      closeLabel={isEnglish ? tr('Close menu') : 'Закрыть меню'}
       className="today-navigation-sheet"
       contentClassName="today-navigation-sheet-content"
       onClose={onClose}
@@ -364,29 +365,29 @@ export function LumiaNavigationSheet({
             </div>
             <dl className="today-navigation-profile-data">
               <div>
-                <dt>{isEnglish ? 'Birth date' : 'Дата рождения'}</dt>
+                <dt>{isEnglish ? tr('Birth date') : 'Дата рождения'}</dt>
                 <dd>{profile.birthDate
                   ? formatDisplayDate(profile.birthDate, isEnglish ? 'en' : 'ru')
-                  : (isEnglish ? 'Not specified' : 'Не указана')}</dd>
+                  : (isEnglish ? tr('Not specified') : 'Не указана')}</dd>
               </div>
               <div>
-                <dt>{isEnglish ? 'Birth time' : 'Время рождения'}</dt>
-                <dd>{profile.birthTime?.trim() || (isEnglish ? 'Not specified' : 'Не указано')}</dd>
+                <dt>{isEnglish ? tr('Birth time') : 'Время рождения'}</dt>
+                <dd>{profile.birthTime?.trim() || (isEnglish ? tr('Not specified') : 'Не указано')}</dd>
               </div>
               <div>
-                <dt>{isEnglish ? 'Birth place' : 'Место рождения'}</dt>
-                <dd>{profile.birthPlace?.trim() || (isEnglish ? 'Not specified' : 'Не указано')}</dd>
+                <dt>{isEnglish ? tr('Birth place') : 'Место рождения'}</dt>
+                <dd>{profile.birthPlace?.trim() || (isEnglish ? tr('Not specified') : 'Не указано')}</dd>
               </div>
             </dl>
             <div className="today-navigation-sheet-list is-profile">
               <NavigationItem
-                label={isEnglish ? 'Saved charts' : 'Сохранённые карты'}
-                description={isEnglish ? 'Open and manage charts' : 'Открыть и управлять картами'}
+                label={isEnglish ? tr('Saved charts') : 'Сохранённые карты'}
+                description={isEnglish ? tr('Open and manage charts') : 'Открыть и управлять картами'}
                 Icon={Star}
                 onClick={onOpenCharts}
               />
               <NavigationItem
-                label={isEnglish ? 'My natal chart' : 'Моя натальная карта'}
+                label={isEnglish ? tr('My natal chart') : 'Моя натальная карта'}
                 Icon={Orbit}
                 onClick={onOpenNatal}
               />

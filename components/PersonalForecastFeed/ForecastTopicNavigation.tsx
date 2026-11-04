@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { tr } from '../../lib/i18n';
 
 export type ForecastTopicNavigationSection = {
   id: string;
@@ -74,7 +75,7 @@ export function ForecastTopicNavigation({
     <>
       <nav
         className="forecast-topic-navigation"
-        aria-label={language === 'ru' ? 'Темы прогноза' : 'Forecast topics'}
+        aria-label={language === 'ru' ? 'Темы прогноза' : tr('Forecast topics')}
       >
         <div ref={rowRef} className="forecast-topic-navigation-row">
           {sections.map((section) => (
@@ -104,7 +105,7 @@ export function ForecastTopicNavigation({
           tabIndex={compactVisible ? undefined : -1}
           onClick={() => setMenuOpen((current) => !current)}
         >
-          <span>{language === 'ru' ? 'Сейчас:' : 'Now:'}</span>
+          <span>{language === 'ru' ? 'Сейчас:' : tr('Now:')}</span>
           <strong>{active?.title}</strong>
           <span aria-hidden>·</span>
         </button>
@@ -112,7 +113,7 @@ export function ForecastTopicNavigation({
           <div
             className="forecast-topic-compact-menu"
             role="menu"
-            aria-label={language === 'ru' ? 'Быстрый переход' : 'Quick navigation'}
+            aria-label={language === 'ru' ? 'Быстрый переход' : tr('Quick navigation')}
           >
             {sections.map((section) => (
               <button

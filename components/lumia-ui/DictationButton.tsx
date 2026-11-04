@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { isDictationAvailable, startDictation, type DictationSession } from '../../services/dictation';
+import { tr } from '../../lib/i18n';
 
 type DictationButtonProps = {
   language: 'ru' | 'en';
@@ -46,13 +47,13 @@ export function DictationButton({ language, onText, disabled, className }: Dicta
     setListening(true);
     session.current = startDictation({
       language,
-      prompt: ru ? 'Говори, NEBO запишет' : 'Speak, NEBO will type it',
+      prompt: ru ? 'Говори, NEBO запишет' : tr('Speak, NEBO will type it'),
       onText: (text) => onTextRef.current(text),
       onEnd: (outcome) => {
         setListening(false);
         session.current = null;
-        if (outcome === 'denied') setNotice(ru ? 'Разреши доступ к микрофону в настройках браузера.' : 'Allow microphone access in the browser settings.');
-        else if (outcome === 'error') setNotice(ru ? 'Не расслышали. Попробуй ещё раз.' : 'Did not catch that. Try again.');
+        if (outcome === 'denied') setNotice(ru ? 'Разреши доступ к микрофону в настройках браузера.' : tr('Allow microphone access in the browser settings.'));
+        else if (outcome === 'error') setNotice(ru ? 'Не расслышали. Попробуй ещё раз.' : tr('Did not catch that. Try again.'));
       },
     });
   };
@@ -65,7 +66,7 @@ export function DictationButton({ language, onText, disabled, className }: Dicta
         onClick={toggle}
         disabled={disabled}
         aria-pressed={listening}
-        aria-label={listening ? (ru ? 'Остановить диктовку' : 'Stop dictation') : (ru ? 'Надиктовать голосом' : 'Dictate')}
+        aria-label={listening ? (ru ? 'Остановить диктовку' : tr('Stop dictation')) : (ru ? 'Надиктовать голосом' : tr('Dictate'))}
       >
         {listening ? <MicOff size={18} aria-hidden="true" /> : <Mic size={18} aria-hidden="true" />}
       </button>

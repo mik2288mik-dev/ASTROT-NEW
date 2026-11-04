@@ -1,5 +1,6 @@
 import { Language } from './types';
 import { PREMIUM_WEEK_STARS } from './lib/premiumPricing';
+import { tr } from './lib/i18n';
 
 export const APP_NAME = 'NEBO';
 
@@ -810,7 +811,7 @@ export const getText = (lang: Language, key: string) => {
     if (current[k] === undefined) return key;
     current = current[k];
   }
-  return current;
+  return typeof current === 'string' && lang === 'en' ? tr(current) : current;
 };
 
 export const getZodiacSign = (lang: Language, sign: string): string => {

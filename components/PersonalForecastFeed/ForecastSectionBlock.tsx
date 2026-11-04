@@ -4,6 +4,7 @@ import type {
   PersonalForecastPeriod,
 } from '../../lib/personalForecastContract';
 import { resolveVisibleForecastTitle } from './editorialLayout';
+import { tr, trf } from '../../lib/i18n';
 
 type ForecastSectionBlockProps = {
   section: ForecastSection;
@@ -113,8 +114,7 @@ export function ForecastSectionBlock({
               type="button"
               className="forecast-feed-locked-blur"
               aria-label={language === 'ru'
-                ? 'Открыть полный текст в Premium'
-                : 'Unlock the full text with Premium'}
+                ? 'Открыть полный текст в Premium' : tr('Unlock the full text with Premium')}
               onClick={onRequestPremium}
             >
               <span>{preview.blurred}</span>
@@ -123,8 +123,7 @@ export function ForecastSectionBlock({
               type="button"
               className="forecast-feed-locked-teaser"
               aria-label={language === 'ru'
-                ? `Открыть в Premium: ${preview.teaser}`
-                : `Unlock with Premium: ${preview.teaser}`}
+                ? `Открыть в Premium: ${preview.teaser}` : trf('Unlock with Premium: {0}', preview.teaser)}
               onClick={onRequestPremium}
             >
               {preview.teaser}
@@ -134,7 +133,7 @@ export function ForecastSectionBlock({
               className="forecast-feed-premium-cta"
               onClick={onRequestPremium}
             >
-              {language === 'ru' ? 'Показать продолжение' : 'Show the rest'}
+              {language === 'ru' ? 'Показать продолжение' : tr('Show the rest')}
             </button>
           </div>
         ) : renderContentBlocks(section, period)}

@@ -14,6 +14,7 @@ import { MonoIllustCouple } from '../../mono-ui/MonoIllustrations';
 import { MonoTag } from '../../mono-ui/MonoTag';
 import { LzArtPlate } from './LzArtPlate';
 import { LzSignPickerSheet } from './LzSignPickerSheet';
+import { tr } from '../../../lib/i18n';
 
 type LzUnionCompactProps = {
   language: Language;
@@ -62,15 +63,15 @@ export function LzUnionCompact({
 
         <div className="relative bg-mono-black px-5 pb-5 pt-4 text-white">
           <MonoTag dark className="w-fit bg-white/10 text-white/90">
-            {ru ? 'союз' : 'union'}
+            {ru ? 'союз' : tr('union')}
           </MonoTag>
           <h3 className="mt-3 font-lumiaHome text-[24px] font-bold leading-tight tracking-[-0.02em]">
-            {ru ? 'Два знака, одна история' : 'Two signs, one story'}
+            {ru ? 'Два знака, одна история' : tr('Two signs, one story')}
           </h3>
 
           <div className="mt-4 grid grid-cols-2 gap-2.5">
             <SignField
-              label={ru ? 'Ты' : 'You'}
+              label={ru ? 'Ты' : tr('You')}
               value={getZodiacSign(language, signA)}
               onClick={() => {
                 lumiaSelectionHaptic();
@@ -78,7 +79,7 @@ export function LzUnionCompact({
               }}
             />
             <SignField
-              label={ru ? 'Партнёр' : 'Partner'}
+              label={ru ? 'Партнёр' : tr('Partner')}
               value={getZodiacSign(language, signB)}
               onClick={() => {
                 lumiaSelectionHaptic();
@@ -90,10 +91,10 @@ export function LzUnionCompact({
           {scores ? (
             <div className="mt-5 space-y-2 rounded-[16px] bg-white/[0.06] px-4 py-3">
               <p className="text-[15px] font-semibold">{pairLabel} · {scores.overall}%</p>
-              <ScoreRow label={ru ? 'Дружба' : 'Friendship'} value={scores.friendship} />
-              <ScoreRow label={ru ? 'Разговор' : 'Talk'} value={scores.talk} />
-              <ScoreRow label={ru ? 'Искра' : 'Spark'} value={scores.spark} />
-              <ScoreRow label={ru ? 'Трение' : 'Friction'} value={scores.friction} />
+              <ScoreRow label={ru ? 'Дружба' : tr('Friendship')} value={scores.friendship} />
+              <ScoreRow label={ru ? 'Разговор' : tr('Talk')} value={scores.talk} />
+              <ScoreRow label={ru ? 'Искра' : tr('Spark')} value={scores.spark} />
+              <ScoreRow label={ru ? 'Трение' : tr('Friction')} value={scores.friction} />
             </div>
           ) : null}
 
@@ -106,7 +107,7 @@ export function LzUnionCompact({
               }}
               className="mt-4 w-full rounded-full border border-white/18 py-2.5 text-[13px] font-semibold text-white/82"
             >
-              {ru ? 'Полная история пары, Premium' : 'Full pair story, Premium'}
+              {ru ? 'Полная история пары, Premium' : tr('Full pair story, Premium')}
             </button>
           ) : null}
 
@@ -119,7 +120,7 @@ export function LzUnionCompact({
             }}
             className="lz-union-cta mt-3 inline-flex h-12 w-full items-center justify-center rounded-full text-[14px] font-bold text-white"
           >
-            {ru ? 'Узнать больше' : 'Learn more'}
+            {ru ? 'Узнать больше' : tr('Learn more')}
           </motion.button>
         </div>
       </section>
@@ -128,7 +129,7 @@ export function LzUnionCompact({
         open={picker === 'a'}
         language={language}
         current={signA}
-        title={ru ? 'Твой знак' : 'Your sign'}
+        title={ru ? 'Твой знак' : tr('Your sign')}
         onPick={onChangeSignA}
         onClose={() => setPicker(null)}
       />
@@ -136,7 +137,7 @@ export function LzUnionCompact({
         open={picker === 'b'}
         language={language}
         current={signB}
-        title={ru ? 'Знак партнёра' : 'Partner sign'}
+        title={ru ? 'Знак партнёра' : tr('Partner sign')}
         onPick={onChangeSignB}
         onClose={() => setPicker(null)}
       />

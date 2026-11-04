@@ -25,6 +25,7 @@ import { localDayKey } from '../../lib/upcomingSky';
 import { loadFeatureState, peekFeatureState, saveFeatureState } from '../../services/featureStateService';
 import { nativeNotificationsAvailable, setNativeMoodWeek } from '../../services/nativeNotifications';
 import { loadExploreCharts, peekExploreCharts } from '../../components/PersonalForecastFeed/exploreCharts';
+import { tr, trf } from '../../lib/i18n';
 
 const REMINDER_OPTIONS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
 
@@ -137,23 +138,23 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
     saveWeek({ ...week, checkins: { ...week.checkins, [dayKey]: { ...week.checkins[dayKey], [slot]: entry } } });
   };
 
-  const dateLabel = (dayKey: string) => new Intl.DateTimeFormat(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', timeZone: 'UTC' })
+  const dateLabel = (dayKey: string) => new Intl.DateTimeFormat(ru ? 'ru-RU' : tr('en-US'), { day: 'numeric', month: 'long', timeZone: 'UTC' })
     .format(new Date(`${dayKey}T12:00:00Z`));
-  const weekdayShort = (dayKey: string) => new Intl.DateTimeFormat(ru ? 'ru-RU' : 'en-US', { weekday: 'short', timeZone: 'UTC' })
+  const weekdayShort = (dayKey: string) => new Intl.DateTimeFormat(ru ? 'ru-RU' : tr('en-US'), { weekday: 'short', timeZone: 'UTC' })
     .format(new Date(`${dayKey}T12:00:00Z`));
 
   if (reportWeek && report) {
     return (
       <div className="fresh-page mood-room">
-        <AppTopBar title={ru ? 'Отчёт недели' : 'Week report'} onBack={() => setOpenReport(null)} />
+        <AppTopBar title={ru ? 'Отчёт недели' : tr('Week report')} onBack={() => setOpenReport(null)} />
         <article className="mood-report">
           <p className="mood-kicker">{`${dateLabel(reportWeek.startDayKey)} - ${dateLabel(weekDayKeys(reportWeek)[MOOD_WEEK_DAYS - 1])}`}</p>
-          <h1 className="mood-title">{ru ? 'Твоя неделя настроения' : 'Your mood week'}</h1>
+          <h1 className="mood-title">{ru ? 'Твоя неделя настроения' : tr('Your mood week')}</h1>
           <p className="mood-summary">{report.summary}</p>
           {report.average ? (
             <>
-              <section className="mood-chart" aria-label={ru ? 'Настроение по дням' : 'Mood by day'}>
-                <h2>{ru ? 'По дням' : 'By day'}</h2>
+              <section className="mood-chart" aria-label={ru ? 'Настроение по дням' : tr('Mood by day')}>
+                <h2>{ru ? 'По дням' : tr('By day')}</h2>
                 <div className="mood-bars">
                   {report.days.map((day) => (
                     <div key={day.dayKey} className={`mood-bar${day.dayKey === report.bestDay ? ' is-best' : ''}${day.dayKey === report.worstDay ? ' is-worst' : ''}`}>
@@ -165,10 +166,10 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
                     </div>
                   ))}
                 </div>
-                <p className="mood-legend"><i className="is-mood" />{ru ? 'настроение' : 'mood'}<i className="is-power" />{ru ? 'силы' : 'strength'}</p>
+                <p className="mood-legend"><i className="is-mood" />{ru ? 'настроение' : tr('mood')}<i className="is-power" />{ru ? 'силы' : tr('strength')}</p>
               </section>
-              <section className="mood-chart" aria-label={ru ? 'По времени суток' : 'By time of day'}>
-                <h2>{ru ? 'По времени суток' : 'By time of day'}</h2>
+              <section className="mood-chart" aria-label={ru ? 'По времени суток' : tr('By time of day')}>
+                <h2>{ru ? 'По времени суток' : tr('By time of day')}</h2>
                 <ul className="mood-slots-report">
                   {report.slots.map((slot) => (
                     <li key={slot.slot}>
@@ -180,19 +181,19 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
                 </ul>
               </section>
               <section className="mood-insight">
-                <h2>{ru ? 'И прогноз' : 'And the forecast'}</h2>
+                <h2>{ru ? 'И прогноз' : tr('And the forecast')}</h2>
                 <p>{report.forecastLine}</p>
                 {report.moonLine ? (
                   <>
-                    <h2>{ru ? 'И Луна' : 'And the Moon'}</h2>
+                    <h2>{ru ? 'И Луна' : tr('And the Moon')}</h2>
                     <p>{report.moonLine}</p>
                   </>
                 ) : null}
               </section>
             </>
           ) : null}
-          <p className="mood-private"><Lock size={14} aria-hidden="true" />{ru ? 'Отчёт видишь только ты. Он сохранён в профиле.' : 'Only you can see this report. It is saved in your profile.'}</p>
-          <button type="button" className="mood-primary" onClick={() => setOpenReport(null)}>{ru ? 'Готово' : 'Done'}</button>
+          <p className="mood-private"><Lock size={14} aria-hidden="true" />{ru ? 'Отчёт видишь только ты. Он сохранён в профиле.' : tr('Only you can see this report. It is saved in your profile.')}</p>
+          <button type="button" className="mood-primary" onClick={() => setOpenReport(null)}>{ru ? 'Готово' : tr('Done')}</button>
         </article>
       </div>
     );
@@ -203,11 +204,11 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
     const today = activeWeek.checkins[todayKey] ?? {};
     return (
       <div className="fresh-page mood-room">
-        <AppTopBar title={ru ? 'Неделя настроения' : 'Mood week'} onBack={onBack} />
+        <AppTopBar title={ru ? 'Неделя настроения' : tr('Mood week')} onBack={onBack} />
         <section className="mood-active">
-          <p className="mood-kicker">{ru ? `День ${dayNumber} из ${MOOD_WEEK_DAYS}` : `Day ${dayNumber} of ${MOOD_WEEK_DAYS}`}</p>
-          <h1 className="mood-title">{ru ? 'Как ты сейчас?' : 'How are you now?'}</h1>
-          <div className="mood-days" aria-label={ru ? 'Дни недели' : 'Days of the week'}>
+          <p className="mood-kicker">{ru ? `День ${dayNumber} из ${MOOD_WEEK_DAYS}` : trf('Day {0} of {1}', dayNumber, MOOD_WEEK_DAYS)}</p>
+          <h1 className="mood-title">{ru ? 'Как ты сейчас?' : tr('How are you now?')}</h1>
+          <div className="mood-days" aria-label={ru ? 'Дни недели' : tr('Days of the week')}>
             {weekDayKeys(activeWeek).map((dayKey) => {
               const count = Object.values(activeWeek.checkins[dayKey] ?? {}).filter((entry) => entry && entry.mood && entry.power).length;
               return (
@@ -227,14 +228,14 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
                 <section key={slot} className={`mood-slot${slot === currentSlot ? ' is-current' : ''}${done ? ' is-done' : ''}`} aria-label={MOOD_SLOT_LABELS[slot][language]}>
                   <header>
                     <strong>{MOOD_SLOT_LABELS[slot][language]}</strong>
-                    <small>{done ? <><Check size={14} aria-hidden="true" />{ru ? 'отмечено' : 'done'}</> : MOOD_SLOT_LABELS[slot].hint[language]}</small>
+                    <small>{done ? <><Check size={14} aria-hidden="true" />{ru ? 'отмечено' : tr('done')}</> : MOOD_SLOT_LABELS[slot].hint[language]}</small>
                   </header>
                   {ahead && !done ? (
-                    <p className="mood-slot-later">{ru ? 'Отметка откроется позже' : 'Opens later'}</p>
+                    <p className="mood-slot-later">{ru ? 'Отметка откроется позже' : tr('Opens later')}</p>
                   ) : (
                     (['mood', 'power'] as const).map((scale) => (
-                      <div key={scale} className="mood-scale" role="radiogroup" aria-label={scale === 'mood' ? (ru ? 'Настроение' : 'Mood') : (ru ? 'Силы' : 'Strength')}>
-                        <span className="mood-scale-label">{scale === 'mood' ? (ru ? 'Настроение' : 'Mood') : (ru ? 'Силы' : 'Strength')}</span>
+                      <div key={scale} className="mood-scale" role="radiogroup" aria-label={scale === 'mood' ? (ru ? 'Настроение' : tr('Mood')) : (ru ? 'Силы' : tr('Strength'))}>
+                        <span className="mood-scale-label">{scale === 'mood' ? (ru ? 'Настроение' : tr('Mood')) : (ru ? 'Силы' : tr('Strength'))}</span>
                         <div className="mood-scale-options">
                           {MOOD_LEVELS[scale][language].map((label, index) => (
                             <button
@@ -260,11 +261,11 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
           <p className="mood-note">
             <BellRing size={14} aria-hidden="true" />
             {nativeNotificationsAvailable()
-              ? (ru ? `Напомним в ${activeWeek.reminderTimes[0]} и ${activeWeek.reminderTimes[1]}. В эти дни они заменяют обычные уведомления.` : `Reminders at ${activeWeek.reminderTimes[0]} and ${activeWeek.reminderTimes[1]}. They replace the usual notifications these days.`)
-              : (ru ? 'Напоминания приходят в Android-приложении. Здесь, просто заглядывай пару раз в день.' : 'Reminders come in the Android app. Here, just drop by a couple of times a day.')}
+              ? (ru ? `Напомним в ${activeWeek.reminderTimes[0]} и ${activeWeek.reminderTimes[1]}. В эти дни они заменяют обычные уведомления.` : trf('Reminders at {0} and {1}. They replace the usual notifications these days.', activeWeek.reminderTimes[0], activeWeek.reminderTimes[1]))
+              : (ru ? 'Напоминания приходят в Android-приложении. Здесь, просто заглядывай пару раз в день.' : tr('Reminders come in the Android app. Here, just drop by a couple of times a day.'))}
           </p>
-          {reminderState === 'off' ? <p className="mood-note">{ru ? 'Уведомления выключены, включи их в настройках, чтобы получать напоминания.' : 'Notifications are off, turn them on in settings to get reminders.'}</p> : null}
-          <button type="button" className="mood-link" onClick={() => { void stopWeek(); }}>{ru ? 'Прервать неделю' : 'Stop the week'}</button>
+          {reminderState === 'off' ? <p className="mood-note">{ru ? 'Уведомления выключены, включи их в настройках, чтобы получать напоминания.' : tr('Notifications are off, turn them on in settings to get reminders.')}</p> : null}
+          <button type="button" className="mood-link" onClick={() => { void stopWeek(); }}>{ru ? 'Прервать неделю' : tr('Stop the week')}</button>
         </section>
       </div>
     );
@@ -272,26 +273,25 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
 
   return (
     <div className="fresh-page mood-room">
-      <AppTopBar title={ru ? 'Неделя настроения' : 'Mood week'} onBack={onBack} />
+      <AppTopBar title={ru ? 'Неделя настроения' : tr('Mood week')} onBack={onBack} />
       {finishedWeeks[0] && !finishedWeeks[0].reportSeenAt ? (
         <button type="button" className="mood-ready" onClick={() => setOpenReport(finishedWeeks[0].startDayKey)}>
-          <strong>{ru ? 'Твой отчёт готов' : 'Your report is ready'}</strong>
-          <span>{ru ? 'Пики и спады недели, время суток, прогноз и Луна' : 'Peaks and dips, time of day, the forecast and the Moon'}</span>
+          <strong>{ru ? 'Твой отчёт готов' : tr('Your report is ready')}</strong>
+          <span>{ru ? 'Пики и спады недели, время суток, прогноз и Луна' : tr('Peaks and dips, time of day, the forecast and the Moon')}</span>
         </button>
       ) : null}
       <section className="mood-intro">
         <div className="mood-hero video-hero">
           <VideoBackground id="mood-week" />
-          <h1 className="mood-title">{ru ? 'Неделя, чтобы понять себя' : 'A week to understand yourself'}</h1>
+          <h1 className="mood-title">{ru ? 'Неделя, чтобы понять себя' : tr('A week to understand yourself')}</h1>
           <p>{ru
-            ? 'Семь дней по четыре отметки: утром, днём, вечером и перед сном. Настроение и силы, две кнопки, пять секунд. Через неделю покажем, когда тебе лучше и труднее, и честно сравним с прогнозом и Луной.'
-            : 'Seven days, four check-ins: morning, day, evening and before bed. Mood and strength, two taps, five seconds. After a week we show when you feel better or worse and compare honestly with the forecast and the Moon.'}</p>
+            ? 'Семь дней по четыре отметки: утром, днём, вечером и перед сном. Настроение и силы, две кнопки, пять секунд. Через неделю покажем, когда тебе лучше и труднее, и честно сравним с прогнозом и Луной.' : tr('Seven days, four check-ins: morning, day, evening and before bed. Mood and strength, two taps, five seconds. After a week we show when you feel better or worse and compare honestly with the forecast and the Moon.')}</p>
         </div>
         <fieldset className="mood-times">
-          <legend>{ru ? 'Когда напоминать' : 'When to remind'}</legend>
+          <legend>{ru ? 'Когда напоминать' : tr('When to remind')}</legend>
           {[0, 1].map((index) => (
             <label key={index}>
-              <span>{index === 0 ? (ru ? 'Первое' : 'First') : (ru ? 'Второе' : 'Second')}</span>
+              <span>{index === 0 ? (ru ? 'Первое' : tr('First')) : (ru ? 'Второе' : tr('Second'))}</span>
               <select
                 value={times[index]}
                 onChange={(event) => setTimes((current) => (index === 0 ? [event.target.value, current[1]] : [current[0], event.target.value]))}
@@ -301,30 +301,30 @@ export function MoodWeekRoom({ profile, onBack }: MoodWeekRoomProps) {
             </label>
           ))}
           {!validReminderTimes(times) ? (
-            <p className="mood-error" role="alert">{ru ? 'Между напоминаниями нужно хотя бы три часа, с 9:00 до 21:00.' : 'Reminders need at least three hours between them, 9:00–21:00.'}</p>
+            <p className="mood-error" role="alert">{ru ? 'Между напоминаниями нужно хотя бы три часа, с 9:00 до 21:00.' : tr('Reminders need at least three hours between them, 9:00–21:00.')}</p>
           ) : null}
-          <p className="mood-note">{ru ? 'Два напоминания в день, и только в эти семь дней, вместо обычных уведомлений.' : 'Two reminders a day, only for these seven days, instead of the usual notifications.'}</p>
+          <p className="mood-note">{ru ? 'Два напоминания в день, и только в эти семь дней, вместо обычных уведомлений.' : tr('Two reminders a day, only for these seven days, instead of the usual notifications.')}</p>
         </fieldset>
         <button type="button" className="mood-primary" disabled={!validReminderTimes(times)} onClick={() => { void startWeek(); }}>
-          {ru ? 'Начать неделю' : 'Start the week'}
+          {ru ? 'Начать неделю' : tr('Start the week')}
         </button>
       </section>
       {finishedWeeks.length ? (
         <section className="mood-history" aria-labelledby="mood-history-title">
-          <h2 id="mood-history-title">{ru ? 'Мои отчёты' : 'My reports'}</h2>
+          <h2 id="mood-history-title">{ru ? 'Мои отчёты' : tr('My reports')}</h2>
           <ul>
             {finishedWeeks.map((week) => (
               <li key={week.startDayKey}>
                 <button type="button" onClick={() => setOpenReport(week.startDayKey)}>
                   <span>{`${dateLabel(week.startDayKey)} - ${dateLabel(weekDayKeys(week)[MOOD_WEEK_DAYS - 1])}`}</span>
-                  {!week.reportSeenAt ? <b>{ru ? 'новый' : 'new'}</b> : null}
+                  {!week.reportSeenAt ? <b>{ru ? 'новый' : tr('new')}</b> : null}
                 </button>
               </li>
             ))}
           </ul>
         </section>
       ) : null}
-      <p className="mood-private"><Lock size={14} aria-hidden="true" />{ru ? 'Отметки видишь только ты.' : 'Only you can see your check-ins.'}</p>
+      <p className="mood-private"><Lock size={14} aria-hidden="true" />{ru ? 'Отметки видишь только ты.' : tr('Only you can see your check-ins.')}</p>
     </div>
   );
 }

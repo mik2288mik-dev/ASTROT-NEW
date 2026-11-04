@@ -4,6 +4,7 @@ import { SOUND_GROUP_LABELS, SOUND_GROUPS } from '../../lib/soundscapes/library'
 import { SLEEP_STORIES } from '../../lib/sleepStories';
 import { SELF_TESTS } from '../../lib/selfTests/engine';
 import { videoBackgroundPoster, type VideoBackgroundId } from '../../lib/videoBackgrounds';
+import { tr } from '../../lib/i18n';
 
 const STORY_POSTERS: VideoBackgroundId[] = ['sleep-sea-house', 'sleep-night-train', 'sleep-garden-rain'];
 const TEST_IMAGES: Record<string, string> = {
@@ -59,7 +60,7 @@ export function RestHome({ onOpenSounds, onOpenStories, onOpenTests, onOpenAntis
             <button key={story.id} type="button" className="nebo-shelf-card is-tall" onClick={onOpenStories}>
               <span className="nebo-shelf-art" style={{ backgroundImage: `url(${videoBackgroundPoster(STORY_POSTERS[index % STORY_POSTERS.length])})` }} />
               <strong>{story.title.ru}</strong>
-              <small>{story.free ? 'Сказка на ночь' : 'Plus'}</small>
+              <small>{story.free ? 'Сказка на ночь' : tr('Plus')}</small>
             </button>
           ))}
         </div>

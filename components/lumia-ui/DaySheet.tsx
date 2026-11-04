@@ -8,6 +8,7 @@ import {
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
 import { CosmicSheet } from './CosmicSheet';
+import { tr } from '../../lib/i18n';
 
 type DaySheetProps = {
   /** ISO key of the open day, or null when the sheet is closed. */
@@ -60,17 +61,17 @@ export function DaySheet({
     : null;
 
   const heading = locked
-    ? (language === 'ru' ? 'День под замком' : 'Locked day')
+    ? (language === 'ru' ? 'День под замком' : tr('Locked day'))
     : isFuture
-    ? (language === 'ru' ? 'День впереди' : 'Day ahead')
-    : (language === 'ru' ? 'Гороскоп на день' : 'Daily horoscope');
+    ? (language === 'ru' ? 'День впереди' : tr('Day ahead'))
+    : (language === 'ru' ? 'Гороскоп на день' : tr('Daily horoscope'));
 
   return (
     <CosmicSheet
       open={open}
       title={heading}
       subtitle={dateKey ? formatDisplayDate(dateKey, language) : undefined}
-      closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
+      closeLabel={language === 'ru' ? 'Закрыть' : tr('Close')}
       appearance="cosmic"
       className="day-sheet-cosmic"
       contentClassName="day-sheet-cosmic-content"
@@ -80,8 +81,7 @@ export function DaySheet({
               <div className="day-sheet-state">
                 <p>
                   {language === 'ru'
-                    ? 'Гороскоп на любой день, в Premium. Сегодняшний всегда открыт.'
-                    : 'Any-day horoscope is in Premium. Today is always free.'}
+                    ? 'Гороскоп на любой день, в Premium. Сегодняшний всегда открыт.' : tr('Any-day horoscope is in Premium. Today is always free.')}
                 </p>
                 <button
                   type="button"
@@ -89,14 +89,13 @@ export function DaySheet({
                   className="day-sheet-primary-action"
                 >
                   <Sparkles size={16} />
-                  {language === 'ru' ? 'Открыть Premium' : 'Unlock Premium'}
+                  {language === 'ru' ? 'Открыть Premium' : tr('Unlock Premium')}
                 </button>
               </div>
             ) : isFuture ? (
               <p className="day-sheet-state">
                 {language === 'ru'
-                  ? 'Прогноз на этот день появится, когда он наступит.'
-                  : 'The forecast appears once the day arrives.'}
+                  ? 'Прогноз на этот день появится, когда он наступит.' : tr('The forecast appears once the day arrives.')}
               </p>
             ) : activeReading ? (
               <div className="day-sheet-reading">

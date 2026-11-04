@@ -5,6 +5,7 @@ import { ChevronRightIcon } from '../icons/UiIcons';
 import { getZodiacSign } from '../../constants';
 import { APPROXIMATE_SUN_SIGN_DATES } from '../../lib/zodiac-utils';
 import type { Language } from '../../types';
+import { tr } from '../../lib/i18n';
 
 /**
  * Крупная карусель выбора знака для Совместимости: активный знак показан большим
@@ -82,7 +83,7 @@ export const FreshSignWheel: React.FC<Props> = ({ signs, active, language, onPic
   return (
     <div className="signwheel">
       <div className="signwheel-stage">
-        <button type="button" className="signwheel-nav" onClick={() => step(-1)} aria-label={ru ? 'Предыдущий знак' : 'Previous sign'}>
+        <button type="button" className="signwheel-nav" onClick={() => step(-1)} aria-label={ru ? 'Предыдущий знак' : tr('Previous sign')}>
           <span style={{ transform: 'rotate(180deg)', display: 'inline-flex' }}><ChevronRightIcon size={18} /></span>
         </button>
 
@@ -112,7 +113,7 @@ export const FreshSignWheel: React.FC<Props> = ({ signs, active, language, onPic
           </AnimatePresence>
         </div>
 
-        <button type="button" className="signwheel-nav" onClick={() => step(1)} aria-label={ru ? 'Следующий знак' : 'Next sign'}>
+        <button type="button" className="signwheel-nav" onClick={() => step(1)} aria-label={ru ? 'Следующий знак' : tr('Next sign')}>
           <ChevronRightIcon size={18} />
         </button>
       </div>

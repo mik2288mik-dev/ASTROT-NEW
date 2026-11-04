@@ -830,7 +830,20 @@ async function traceApiRequest(path: string, init: RequestInit, execute: () => P
   }
 }
 
-export async function apiFetch(path: string, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Response> {
+// The interface language is a device setting. Until the Google Play launch everything the server generates is in Russian,
+// so whatever a screen asks for, the request goes out in Russian. This is the one place that decides it.
+const LANGUAGE_QUERY = /([?&](?:language|lang|locale)=)(?:en|es)(?=&|#|$)/g;
+const LANGUAGE_FIELD = /"(language|lang|locale)":"(?:en|es)"/g;
+
+export function russianOnlyRequest(path: string, init: RequestInit): { path: string; init: RequestInit } {
+  return {
+    path: path.replace(LANGUAGE_QUERY, '$1ru'),
+    init: typeof init.body === 'string' ? { ...init, body: init.body.replace(LANGUAGE_FIELD, '"$1":"ru"') } : init,
+  };
+}
+
+export async function apiFetch(rawPath: string, rawInit: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Response> {
+  const { path, init } = russianOnlyRequest(rawPath, rawInit);
   return traceApiRequest(path, init, () => apiFetchCore(path, init, timeoutMs));
 }
 

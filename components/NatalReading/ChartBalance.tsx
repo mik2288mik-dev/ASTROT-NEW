@@ -9,6 +9,7 @@ import {
   ELEMENT_LABEL_EN,
   type ElementKey,
 } from '../../lib/natal/chartBalance';
+import { tr } from '../../lib/i18n';
 
 const ELEMENT_TONE: Record<ElementKey, string> = {
   fire: '#1478FF',
@@ -32,11 +33,10 @@ export function ChartBalance({ chart, language }: { chart: NatalChartData; langu
 
   return (
     <section className="cib">
-      <div className="cib-head">{ru ? 'Баланс стихий' : 'Element balance'}</div>
+      <div className="cib-head">{ru ? 'Баланс стихий' : tr('Element balance')}</div>
       <p className="cib-summary">
         {ru
-          ? 'Показывает, какие способы реагировать в карте выражены заметнее. Это не оценка характера и не список недостатков.'
-          : 'Shows which response styles are more visible in the chart. It is not a character score or a list of flaws.'}
+          ? 'Показывает, какие способы реагировать в карте выражены заметнее. Это не оценка характера и не список недостатков.' : tr('Shows which response styles are more visible in the chart. It is not a character score or a list of flaws.')}
       </p>
 
       <motion.div

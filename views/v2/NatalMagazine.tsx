@@ -20,6 +20,7 @@ import { isCanonicalNatalChart } from '../../lib/natalCalculationProof';
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
 import type { ChartListItem } from '../../services/storageService';
 import type { PaywallContext } from '../../lib/paywallContext';
+import { tr } from '../../lib/i18n';
 
 type NatalMagazineProps = {
   data: NatalChartData | null;
@@ -158,13 +159,13 @@ export function NatalMagazine({
   const sunSign = sunSignFromDate(subjectBirthDate);
   const header = (
     <>
-      <AppTopBar title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} main />
+      <AppTopBar title={language === 'ru' ? 'Натальная карта' : tr('Natal chart')} main />
       <MyChartHeader
-        title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
+        title={language === 'ru' ? 'Натальная карта' : tr('Natal chart')}
         subtitle={[subjectName, sunSign ? getZodiacSign(language, sunSign) : ''].filter(Boolean).join(' · ')}
         active="natal"
         onOpen={(segment) => onOpenSegment?.(segment)}
-        whoseLabel={isSavedPerson ? subjectName : (language === 'ru' ? 'Моя' : 'Mine')}
+        whoseLabel={isSavedPerson ? subjectName : (language === 'ru' ? 'Моя' : tr('Mine'))}
         onChooseWhose={onOpenCharts}
       />
     </>
@@ -184,32 +185,31 @@ export function NatalMagazine({
           aria-busy={isLoadingChart || undefined}
           role={isChartError ? 'alert' : undefined}
         >
-          <p className="natal-empty-kicker">{language === 'ru' ? 'Твоя карта рождения' : 'Your birth chart'}</p>
+          <p className="natal-empty-kicker">{language === 'ru' ? 'Твоя карта рождения' : tr('Your birth chart')}</p>
           {isLoadingChart ? (
             <>
-              <h1>{language === 'ru' ? 'Загружаем натальную карту' : 'Loading your natal chart'}</h1>
-              <p>{language === 'ru' ? 'Сохранённые данные уже найдены.' : 'Your saved birth data is already available.'}</p>
+              <h1>{language === 'ru' ? 'Загружаем натальную карту' : tr('Loading your natal chart')}</h1>
+              <p>{language === 'ru' ? 'Сохранённые данные уже найдены.' : tr('Your saved birth data is already available.')}</p>
             </>
           ) : isChartError ? (
             <>
-              <h1>{language === 'ru' ? 'Карта пока не загрузилась' : 'Your chart has not loaded yet'}</h1>
-              <p>{language === 'ru' ? 'Проверь соединение и попробуй ещё раз.' : 'Check your connection and try again.'}</p>
+              <h1>{language === 'ru' ? 'Карта пока не загрузилась' : tr('Your chart has not loaded yet')}</h1>
+              <p>{language === 'ru' ? 'Проверь соединение и попробуй ещё раз.' : tr('Check your connection and try again.')}</p>
               {onRetryChart ? (
                 <button type="button" className="fresh-btn-primary" onClick={onRetryChart}>
-                  {language === 'ru' ? 'Повторить' : 'Retry'}
+                  {language === 'ru' ? 'Повторить' : tr('Retry')}
                 </button>
               ) : null}
             </>
           ) : (
             <>
-              <h1>{language === 'ru' ? 'Соберём твою натальную карту' : 'Create your birth chart'}</h1>
+              <h1>{language === 'ru' ? 'Соберём твою натальную карту' : tr('Create your birth chart')}</h1>
               <p>
                 {language === 'ru'
-                  ? 'Для расчёта нужны дата, время и место рождения.'
-                  : 'The calculation needs your birth date, time, and place.'}
+                  ? 'Для расчёта нужны дата, время и место рождения.' : tr('The calculation needs your birth date, time, and place.')}
               </p>
               <button type="button" className="fresh-btn-primary" onClick={onCreateChart}>
-                {language === 'ru' ? 'Ввести данные' : 'Enter birth details'}
+                {language === 'ru' ? 'Ввести данные' : tr('Enter birth details')}
               </button>
             </>
           )}

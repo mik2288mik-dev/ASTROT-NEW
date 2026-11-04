@@ -30,7 +30,7 @@ describe('settings mobile information architecture', () => {
     expect(settings).not.toContain('settings-editorial-premium');
     expect(settings).not.toContain('EditorialProfileButton');
     // Canvas profile: «Мои карты» is a row in «Мои данные», not a button in the bar.
-    expect(settings).toContain("label={en ? 'My charts' : 'Мои карты'}");
+    expect(settings).toContain("label={en ? tr('My charts') : 'Мои карты'}");
     expect(settings).toContain('settings-editorial-page--embedded');
     expect(settings).toContain('settings-embedded-detail-header');
     expect(settings).not.toContain('font-serif');

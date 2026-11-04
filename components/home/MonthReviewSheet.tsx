@@ -4,6 +4,7 @@ import { CosmicSheet } from '../lumia-ui/CosmicSheet';
 import type { WishItem } from './WishesSheet';
 import { DictationButton } from '../lumia-ui/DictationButton';
 import { appendDictatedText } from '../../services/dictation';
+import { tr, trf } from '../../lib/i18n';
 
 export type MonthReviewRecord = { note: string; came: number; planned: number; savedAt: string };
 
@@ -43,10 +44,10 @@ export function MonthReviewSheet({ open, language, monthLabel, wishGroups, onSav
   return (
     <CosmicSheet
       open={open}
-      title={ru ? `Итоги: ${monthLabel}` : `${monthLabel} in review`}
-      subtitle={ru ? 'Без оценок, просто посмотреть, что получилось.' : 'No grades, just a look at what worked out.'}
+      title={ru ? `Итоги: ${monthLabel}` : trf('{0} in review', monthLabel)}
+      subtitle={ru ? 'Без оценок, просто посмотреть, что получилось.' : tr('No grades, just a look at what worked out.')}
       onClose={onClose}
-      closeLabel={ru ? 'Закрыть' : 'Close'}
+      closeLabel={ru ? 'Закрыть' : tr('Close')}
       footer={(
         <button
           type="button"
@@ -54,13 +55,13 @@ export function MonthReviewSheet({ open, language, monthLabel, wishGroups, onSav
           disabled={!hasWishes && !note.trim()}
           onClick={() => { onSave(groups, note.trim()); onClose(); }}
         >
-          {ru ? 'Сохранить итоги' : 'Save the review'}
+          {ru ? 'Сохранить итоги' : tr('Save the review')}
         </button>
       )}
     >
       {hasWishes ? (
         <>
-          <h3 className="home-sheet-heading">{ru ? 'Что сбылось' : 'What came true'}</h3>
+          <h3 className="home-sheet-heading">{ru ? 'Что сбылось' : tr('What came true')}</h3>
           <ul className="review-list">
             {groups.flatMap((group) => group.items.map((item) => (
               <li key={`${group.key}:${item.id}`}>
@@ -80,20 +81,19 @@ export function MonthReviewSheet({ open, language, monthLabel, wishGroups, onSav
       ) : (
         <p className="home-sheet-note">
           {ru
-            ? 'В этом месяце планов не было. В следующее новолуние предложим записать три-пять пунктов.'
-            : 'There were no plans this month. At the next new moon we will offer to write three to five points.'}
+            ? 'В этом месяце планов не было. В следующее новолуние предложим записать три-пять пунктов.' : tr('There were no plans this month. At the next new moon we will offer to write three to five points.')}
         </p>
       )}
       <label className="review-note">
         <span className="review-note-label">
-          {ru ? 'Одна хорошая вещь за месяц' : 'One good thing this month'}
+          {ru ? 'Одна хорошая вещь за месяц' : tr('One good thing this month')}
           <DictationButton language={language} onText={(text) => setNote((current) => appendDictatedText(current, text, 280))} />
         </span>
         <textarea
           value={note}
           maxLength={280}
           rows={3}
-          placeholder={ru ? 'Например: наконец-то выбрались на море. Или: по утрам стало спокойнее.' : 'E.g. finally got to the sea. Or: mornings got calmer.'}
+          placeholder={ru ? 'Например: наконец-то выбрались на море. Или: по утрам стало спокойнее.' : tr('E.g. finally got to the sea. Or: mornings got calmer.')}
           onChange={(event) => setNote(event.target.value)}
         />
       </label>

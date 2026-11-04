@@ -1,5 +1,7 @@
 import React from 'react';
 import { AUTH_SKY_BACK, AUTH_SKY_FRONT } from './authSkyMarkup';
+import { UI_LANGUAGES } from '../../lib/i18n';
+import { useUiLanguage } from '../../lib/i18n/useUiLanguage';
 
 /** Planets that wander over the sky: [image, size px, round crop ratio (0 = no crop), path, seconds, delay]. */
 const SKY_BODIES: ReadonlyArray<[number, number, number, number, number]> = [
@@ -104,11 +106,17 @@ export function AuthLanding({ providers, telegramReady, emailVisible, busy, mess
   const yandex = providers.find((provider) => provider.id === 'yandex');
   const vk = providers.find((provider) => provider.id === 'vk');
   const others = providers.filter((provider) => provider.id !== 'yandex' && provider.id !== 'vk');
+  const [uiLanguage, selectUiLanguage] = useUiLanguage();
   return (
     <main className="nebo-auth" data-auth-layout="landing">
       <AuthSky />
       <header className="nebo-auth-bar">
         <span className="nebo-auth-brand"><img src="/assets/auth/logo.webp" alt="" width={30} height={30} /><strong>NEBO</strong></span>
+        <span className="nebo-auth-lang" role="radiogroup" aria-label="Язык">
+          {UI_LANGUAGES.map((value) => (
+            <button key={value} type="button" role="radio" aria-checked={uiLanguage === value} className={uiLanguage === value ? 'is-on' : ''} onClick={() => selectUiLanguage(value)}>{value.toUpperCase()}</button>
+          ))}
+        </span>
       </header>
       <section className="nebo-auth-panel">
         <h1>{'Твоё небо\nна каждый день'}</h1>
