@@ -5,7 +5,8 @@ describe('personal day forecast voice', () => {
   it('asks for plain spoken Russian instead of hedged paper language', () => {
     expect(prompt).toContain('Цепочки из «возможно», «может быть», «вероятно»');
     expect(prompt).toContain('Мистику, судьбу, космос, поучения');
-    expect(prompt).toContain('Воду, под которую подходит любой день и любой человек');
+    expect(prompt).toContain('Воду, которая подходит любому дню');
+    expect(prompt).toContain('В тексте нет астрологии');
   });
 
   it('does not teach the model generic situations', () => {

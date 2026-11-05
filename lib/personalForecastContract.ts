@@ -259,7 +259,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v61-day-brief+week-month',
+  'personal-forecast-feed.v62-friend-talk+week-month',
 );
 export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v32-grounded-today';
 /** Input/cache identity, not an astrological calculation version. */
@@ -374,14 +374,9 @@ function datePartsInTimezone(date: Date, timezone: string) {
   return { year: read('year'), month: read('month'), day: read('day') };
 }
 
-export function normalizeForecastTimezone(value?: string | null): string {
-  const candidate = String(value || '').trim() || 'Europe/Moscow';
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: candidate }).format(new Date());
-    return candidate;
-  } catch {
-    return 'Europe/Moscow';
-  }
+/** Every forecast opens at 00:00 Moscow time for everyone, wherever the person was born. */
+export function normalizeForecastTimezone(_value?: string | null): string {
+  return 'Europe/Moscow';
 }
 
 function isoWeekFromDate(year: number, month: number, day: number) {
@@ -399,8 +394,7 @@ export function getPersonalForecastPeriodKey(
   date = new Date(),
   timezone = 'Europe/Moscow',
 ): string {
-  const safeTimezone = normalizeForecastTimezone(timezone);
-  const { year, month, day } = datePartsInTimezone(date, safeTimezone);
+  const { year, month, day } = datePartsInTimezone(date, normalizeForecastTimezone(timezone));
   if (period === 'day') return isoDate(year, month, day);
   if (period === 'month') return `${year}-${pad2(month)}`;
   const iso = isoWeekFromDate(year, month, day);

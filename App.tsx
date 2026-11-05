@@ -813,7 +813,7 @@ const AppContent: React.FC<{ androidUpdate: ReturnType<typeof useAndroidUpdateGa
         if (flow === 'week' || flow === 'month') setDashboardPeriod(flow);
         window.setTimeout(() => { classicReturnArmed.current = true; }, 1500);
         if (flow === 'logout' || flow === 'delete') {
-            void (flow === 'logout' ? handleLogout() : handleDeleteAccount()).finally(() => window.location.replace('/?classic=auth'));
+            void (flow === 'logout' ? handleLogout() : handleDeleteAccount()).finally(() => window.location.replace('/'));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [profile?.id, profile?.isSetup]);

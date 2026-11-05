@@ -47,7 +47,18 @@ import {
 } from '../../services/nativeNotifications';
 import { explainMapSelection } from '../NatalReading/mapExplanation';
 import { SIGN_NOMINATIVE_RU } from '../../lib/natalMoments';
-import { setUiLanguage } from '../../lib/i18n';
+import { attachTranslatorRoot, initUiLanguage, setUiLanguage } from '../../lib/i18n';
+import { getAuthSessionMode, hasTelegramMiniAppContext, requiresExplicitAuthentication, resetAuthSessionMode, setAuthSessionMode } from '../../services/authSessionIntent';
+import { authenticateWithProvider, completePasswordReset, loginWithEmailPassword, registerEmailPassword, requestPasswordReset, verifyEmailPasswordRegistration } from '../../services/accountAuthService';
+import { completeEntry, readableEntryError, searchBirthCities, type BirthCity } from '../../services/canvasAccess';
+import { meetsMinimumPasswordLength } from '../../lib/auth/passwordPolicy';
+import { STORE_RELEASE_CONFIG } from '../../lib/storeReleaseConfig';
+import { readableAuthError } from '../../views/AuthGate';
+import { startGuestAccount } from '../../services/storageService';
+import { parseBirthDate } from '../../lib/numerology';
+import { getMoscowIsoWeekKey, getMoscowTodayKey } from '../../lib/date-utils';
+import { loadZodiacFuture } from '../../services/zodiacFutureService';
+import type { SignFutureSelection } from '../../lib/horoscope/signFutureContract';
 import { buildLunarDays, phaseName, SIGNS_IN } from '../../lib/lunarCalendar';
 import type { OneTimeProductId } from '../../lib/oneTimeProducts';
 import type { PremiumPlanId } from '../../lib/premiumPricing';
@@ -84,7 +95,7 @@ const MAX_SCALE = 1.3;
 function fitToScreen(mount: HTMLElement): void {
   const scale = Math.min(window.innerWidth / DESIGN_WIDTH, MAX_SCALE);
   mount.style.setProperty('zoom', String(scale));
-  mount.style.setProperty('--nb-h', `calc(${window.innerHeight / scale}px - env(safe-area-inset-top))`);
+  mount.style.setProperty('--nb-h', `${window.innerHeight / scale}px`);
 }
 
 const PLAN_BY_LABEL: ReadonlyArray<[RegExp, PremiumPlanId]> = [[/месяц/, 'premium_month'], [/3 месяца/, 'premium_quarter'], [/год/, 'premium_year']];
@@ -105,7 +116,11 @@ const BACKEND_CONTEXT = Object.fromEntries(RELATIONSHIP_CONTEXT_OPTIONS.map((opt
 
 type LoadedAccount = { profile: UserProfile; chart: NatalChartData | null; real: CanvasRealData };
 
+/** Set when the server or the network failed, so the person sees a retry instead of the sign-in screen. */
+let accountLoadBroken = false;
+
 async function loadAccount(): Promise<LoadedAccount | null> {
+  if (requiresExplicitAuthentication()) return null;
   try {
     const profile = await getProfile({ maxAttempts: 2 });
     if (!profile) return null;
@@ -113,7 +128,9 @@ async function loadAccount(): Promise<LoadedAccount | null> {
       ? readLocalNatalChartCache(profile)?.chartData ?? await getChartData().catch(() => null)
       : null;
     return { profile, chart, real: buildCanvasRealData(profile, chart) };
-  } catch {
+  } catch (error) {
+    const status = (error as { status?: number }).status;
+    accountLoadBroken = !(typeof status === 'number' && status >= 400 && status < 500);
     return null;
   }
 }
@@ -152,11 +169,12 @@ export default function CanvasApp() {
     const style = document.createElement('style');
     style.textContent = `:host{all:initial;display:flex;justify-content:center;position:fixed;inset:0;overflow:hidden;overscroll-behavior:none;background:#fff;font-family:Onest,'Segoe UI',sans-serif;}\n${CANVAS_CSS}\n${APP_CSS}`;
     shadow.appendChild(style);
+    initUiLanguage();
+    attachTranslatorRoot(shadow);
     const mount = document.createElement('div');
     shadow.appendChild(mount);
     mount.style.overflow = 'clip';
     mount.style.boxSizing = 'border-box';
-    mount.style.paddingTop = 'env(safe-area-inset-top)';
     let scrollIdle = 0;
     const onScroll = () => {
       mount.classList.add('nb-scrolling');
@@ -249,28 +267,146 @@ export default function CanvasApp() {
         else void CapacitorApp.exitApp();
       })
       : null;
+    const renderAccess = (profile: UserProfile | null) => {
+      const cameIn = () => { try { window.localStorage.setItem('nebo.canvas.tour', '1'); } catch { /* the hints are optional */ } window.location.replace('/'); };
+      let challengeId = '';
+      let cityTimer = 0;
+      const fail = (app: CanvasInstance, error: unknown) => {
+        app.setState({ authBusy: false });
+        const text = readableAuthError(error);
+        if (text) app.toast(text);
+      };
+      const access = {
+        provider: (provider: 'yandex' | 'vk', app: CanvasInstance) => {
+          void authenticateWithProvider(provider, 'login').then((result) => { if (result) cameIn(); }).catch((error) => fail(app, error));
+        },
+        guest: (app: CanvasInstance) => {
+          setAuthSessionMode('guest');
+          void startGuestAccount().then(cameIn).catch((error: unknown) => { resetAuthSessionMode(); fail(app, error); });
+        },
+        submit: (mode: string, draft: { email?: string; password?: string; confirm?: string; code?: string }, app: CanvasInstance) => {
+          const email = (draft.email ?? '').trim();
+          const password = draft.password ?? '';
+          const confirm = draft.confirm ?? '';
+          if (mode !== 'reset' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email)) { app.toast('Проверь почту: похоже, в ней ошибка'); return; }
+          if (mode !== 'forgot' && !password) { app.toast('Напиши пароль'); return; }
+          if ((mode === 'register' || mode === 'reset') && !meetsMinimumPasswordLength(password)) { app.toast('Пароль должен быть не короче 8 символов'); return; }
+          if ((mode === 'register' || mode === 'reset') && password !== confirm) { app.toast('Пароли не совпадают'); return; }
+          if (mode === 'reset' && !/^\d{6}$/u.test((draft.code ?? '').trim())) { app.toast('В коде из письма шесть цифр'); return; }
+          app.setState({ authBusy: true });
+          const done = (patch: Record<string, unknown>) => app.setState({ authBusy: false, ...patch });
+          if (mode === 'login') { void loginWithEmailPassword(email, password).then(cameIn).catch((error) => fail(app, error)); return; }
+          if (mode === 'register') {
+            void registerEmailPassword({ email, password, passwordConfirmation: confirm })
+              .then((result) => { challengeId = result.challengeId; done({ screen: 'code', codeTyped: '', codeState: 'idle' }); app.toast('Код отправили на почту'); })
+              .catch((error) => fail(app, error));
+            return;
+          }
+          if (mode === 'forgot') {
+            void requestPasswordReset(email)
+              .then((result) => { challengeId = result.challengeId; done({ authMode: 'reset' }); })
+              .catch((error) => fail(app, error));
+            return;
+          }
+          void completePasswordReset({ challengeId, code: (draft.code ?? '').trim(), password, passwordConfirmation: confirm }).then(cameIn).catch((error) => fail(app, error));
+        },
+        verify: (code: string, app: CanvasInstance) => {
+          void verifyEmailPasswordRegistration(challengeId, code).then(cameIn).catch(() => app.setState({ codeState: 'error' }));
+        },
+        cities: (text: string, app: CanvasInstance) => {
+          window.clearTimeout(cityTimer);
+          cityTimer = window.setTimeout(() => {
+            void searchBirthCities(text).then((cities) => app.setState({ entCities: cities })).catch(() => undefined);
+          }, 300);
+        },
+        open: (document: 'terms' | 'consent') => {
+          window.open(document === 'terms' ? STORE_RELEASE_CONFIG.termsUrl : STORE_RELEASE_CONFIG.consentUrl, '_blank');
+        },
+        enter: (form: { d: number; m: number; y: number; noTime: boolean; time: string; city: string; pick: BirthCity | null; consent: boolean; name: string; gender: 'male' | 'female' | null }, app: CanvasInstance) => {
+          const date = new Date(Date.UTC(form.y, form.m - 1, form.d));
+          if (date.getUTCDate() !== form.d || date.getTime() > Date.now()) { app.toast('Проверь дату рождения'); return; }
+          if (!form.noTime && !/^([01]\d|2[0-3]):[0-5]\d$/u.test(form.time)) { app.toast('Напиши время рождения или отметь, что не знаешь его'); return; }
+          if (!form.city.trim()) { app.toast('Напиши город рождения'); return; }
+          if (!form.name.trim()) { app.toast('Напиши, как тебя зовут'); return; }
+          if (!form.consent) { app.toast('Отметь согласие, без него мы не можем посчитать карту'); return; }
+          const account = profile;
+          if (!account) return;
+          app.setState({ screen: 'calc', calcStep: 0 });
+          const steps = window.setInterval(() => app.setState({ calcStep: Math.min(4, Number((app.state as { calcStep?: number }).calcStep ?? 0) + 1) }), 900);
+          void completeEntry(account, {
+            name: form.name.trim(), gender: form.gender,
+            birthDate: `${form.y}-${String(form.m).padStart(2, '0')}-${String(form.d).padStart(2, '0')}`,
+            birthTime: form.noTime ? '' : form.time, birthPlace: form.city.trim(), city: form.pick,
+          }).then(cameIn).catch((error) => {
+            window.clearInterval(steps);
+            app.setState({ screen: 'entry' });
+            app.toast(readableEntryError(error));
+          });
+        },
+      };
+      const parts = profile ? parseBirthDate(profile.birthDate) : null;
+      const firstName = profile && !profile.isGuest ? (profile.name ?? '').trim().split(/\s+/u)[0] : '';
+      root?.render(
+        <CanvasRoot
+          key="access"
+          ref={(app: CanvasInstance | null) => {
+            if (app && !(app as unknown as { accessReady?: boolean }).accessReady) {
+              (app as unknown as { accessReady?: boolean }).accessReady = true;
+              app.setState({ uname: firstName, ...(parts ? { d: parts.day, m: parts.month, y: parts.year, prefill: 'ya' } : {}) });
+            }
+          }}
+          access={access}
+          start={profile ? 'entry' : 'auth'}
+          account="guest"
+          theme={readPref('theme') ?? undefined}
+          lang={readPref('lang') ?? undefined}
+          onPrefs={(prefs: { theme?: string; lang?: string }) => {
+            if (prefs.theme) writePref('theme', prefs.theme);
+            if (prefs.lang) { writePref('lang', prefs.lang); setUiLanguage(prefs.lang as Parameters<typeof setUiLanguage>[0]); }
+          }}
+        />,
+      );
+    };
     void loadAccount().then((loaded) => {
       if (cancelled) return;
       const isDev = process.env.NODE_ENV !== 'production';
-      // Sign-in and the first form stay on the working old screens until they are wired.
       const demo = isDev && window.location.pathname === '/canvas';
       if (!demo && !loaded?.profile.isSetup) {
-        window.location.replace('/?classic=auth');
+        if (hasTelegramMiniAppContext() || accountLoadBroken) {
+          window.location.replace('/?classic=auth');
+          return;
+        }
+        // A silent guest made by the first launch still gets to choose how to come in.
+        const chooseFirst = !loaded || (loaded.profile.isGuest && getAuthSessionMode() !== 'guest');
+        renderAccess(chooseFirst ? null : loaded.profile);
         return;
       }
       // Saved sign horoscopes only: reading them never starts a generation.
       const signTexts = new Map<string, string | null>();
       let renderNow: () => void = () => undefined;
-      const isoDay = (offset: number) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
       const signText = (index: number, period: string): string | null => {
         const key = `${index}:${period}`;
         if (signTexts.has(key)) return signTexts.get(key) ?? null;
         signTexts.set(key, null);
         const sign = canvasSignKey(index);
-        const request = period === 'week'
-          ? getCachedWeeklySignHoroscope(sign, isoDay(0), 'ru')
-          : getCachedDailySignHoroscope(sign, isoDay(period === 'tomorrow' ? 1 : 0), 'ru');
-        void request.then((reading) => { if (!cancelled && reading?.text) { signTexts.set(key, reading.text); renderNow(); } }).catch(() => undefined);
+        const today = getMoscowTodayKey();
+        if (period === 'tomorrow' && !loaded?.profile.isPremium) {
+          signTexts.set(key, 'Гороскоп на завтра открывается в NEBO Plus.');
+          return signTexts.get(key) ?? null;
+        }
+        const tomorrow = new Date(Date.parse(`${today}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
+        const request: Promise<{ text?: string } | null> = period === 'week'
+          ? getCachedWeeklySignHoroscope(sign, getMoscowIsoWeekKey(), 'ru', true)
+          : period === 'tomorrow'
+            ? loadZodiacFuture({ sign: sign as SignFutureSelection['sign'], date: tomorrow, period: 'day', topic: 'general', language: 'ru' })
+            : getCachedDailySignHoroscope(sign, today, 'ru', true);
+        void request
+          .then((reading) => {
+            if (cancelled) return;
+            if (reading?.text) { signTexts.set(key, reading.text); renderNow(); return; }
+            window.setTimeout(() => signTexts.delete(key), 60000);
+          })
+          .catch(() => { window.setTimeout(() => signTexts.delete(key), 60000); });
         return null;
       };
       // A point of the chart explained from this person's own chart.
@@ -349,6 +485,28 @@ export default function CanvasApp() {
             match: mySign && sign ? `${getCompatScore(mySign, sign).overall}%` : '', unread: friend.unread,
           };
         });
+      };
+      // The week and month forecasts are written only when someone opens that tab.
+      const periodTexts = new Map<string, { title: string; text: string; lock?: boolean } | null>();
+      const periodText = (period: string) => {
+        if (period !== 'week' && period !== 'month') return null;
+        if (periodTexts.has(period)) return periodTexts.get(period) ?? null;
+        periodTexts.set(period, null);
+        if (!loaded) return null;
+        if (!loaded.profile.isPremium) {
+          const free = { title: period === 'week' ? 'Прогноз на эту неделю' : 'Прогноз на этот месяц', text: 'Личный текст о том, что ждёт тебя дальше, открывается в NEBO Plus.', lock: true };
+          periodTexts.set(period, free);
+          return free;
+        }
+        void loadPersonalForecast({ profile: loaded.profile, period })
+          .then((result) => {
+            const overview = result.forecast?.overview;
+            if (cancelled || !overview?.text) { periodTexts.delete(period); return; }
+            periodTexts.set(period, { title: overview.title || '', text: overview.text });
+            renderNow();
+          })
+          .catch(() => { window.setTimeout(() => periodTexts.delete(period), 60000); });
+        return null;
       };
       const reloadPeople = async () => {
         if (!loaded) return;
@@ -575,6 +733,7 @@ export default function CanvasApp() {
           account={params.get('account') ?? real?.account}
           real={real}
           signText={signText}
+          periodText={real ? periodText : undefined}
           ambient={real ? ambient : undefined}
           friendAdd={real ? friendAdd : undefined}
           chartAdd={real ? chartAdd : undefined}
@@ -658,6 +817,12 @@ export default function CanvasApp() {
         void getCharts(String(loaded.profile.id), { repairPrimary: false })
           .then((response) => { if (!cancelled) { primaryChartId = (response.charts ?? []).find((chart) => chart.is_primary)?.id ?? null; people = buildCanvasPeople(response.charts ?? []); (response.charts ?? []).forEach((chart) => chartsByKey.set(`chart${chart.id}`, chart.chart_data)); render(compose()); } })
           .catch(() => undefined);
+        try {
+          if (window.localStorage.getItem('nebo.canvas.tour') === '1') {
+            window.localStorage.removeItem('nebo.canvas.tour');
+            window.setTimeout(() => instance.current?.setState({ tour: true, coach: 0, coachSet: 'today', coachRect: null }), 1200);
+          }
+        } catch { /* the hints are optional */ }
         void loadReading(loaded).then((value) => { if (!cancelled && value) { reading = value; render(compose()); } });
         if (loaded.profile.isSetup) {
           void loadPersonalForecast({ profile: loaded.profile, period: 'day' })

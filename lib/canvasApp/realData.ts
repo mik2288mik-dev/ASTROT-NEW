@@ -1,5 +1,6 @@
 import type { ChartListItem } from '../../services/storageService';
 import { dayEase, dayFace } from '../../components/nebo/PeriodViews';
+import { getMoscowTodayKey } from '../date-utils';
 import { buildFutureMonth, natalPointsFromChart, type CalendarDay } from '../futureCalendar';
 import { buildWeekTeaser } from '../futurePeriodTeaser';
 import { buildLunarDays } from '../lunarCalendar';
@@ -114,11 +115,11 @@ export function buildCanvasRealData(profile: UserProfile, chart: NatalChartData 
       return parts ? personalDayNumber(parts, now.getFullYear(), now.getMonth() + 1, now.getDate()) : undefined;
     })(),
     dayCard: (() => {
-      const card = cardOfTheDay(String(profile.id ?? ''), new Date().toISOString().slice(0, 10));
+      const card = cardOfTheDay(String(profile.id ?? ''), getMoscowTodayKey());
       return { name: `${card.roman} · ${card.name}`, short: card.name, keyword: card.keyword, meaning: card.day, img: cardImage(card) };
     })(),
-    runeSlug: runeOfTheDay(String(profile.id ?? ''), new Date().toISOString().slice(0, 10)).slug,
-    dayShort: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }),
+    runeSlug: runeOfTheDay(String(profile.id ?? ''), getMoscowTodayKey()).slug,
+    dayShort: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' }),
     plusUntil: profile.premiumUntil ? new Date(profile.premiumUntil).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : undefined,
     birthParts: (() => { const parts = parseBirthDate(profile.birthDate); return parts ? [parts.day, parts.month, parts.year] as [number, number, number] : undefined; })(),
     birthShort: profile.birthDate ? profile.birthDate.split('-').reverse().join('.') : undefined,
@@ -159,7 +160,7 @@ const firstSentence = (text: string): string => text.split(/(?<=[.!?])\s/)[0]?.r
 
 /** «Сегодня» from the day's personal forecast: its title, text, what to do and what to avoid. */
 export function canvasDateLine(now = new Date()): string {
-  const date = now.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+  const date = now.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' });
   return date.charAt(0).toUpperCase() + date.slice(1);
 }
 
@@ -202,6 +203,7 @@ function dateFields(birthDate: string, now = new Date()): Record<string, unknown
   const purpose = reduceToArcana(habit + reduceToArcana(year + center));
   const money = area('money'); const love = area('love');
   const arcana = getArcana(center);
+  const arcanaText = (...values: number[]) => [...new Set(values)].map((value) => { const item = getArcana(value); return `${value}, ${item.name}. ${cap(item.essence)}`; }).join('\n\n');
   const dateText = formatDisplayDate(birthDate, 'ru').replace(/\s*\d{4}.*$/, '');
   const age = now.getFullYear() - birth.year - (now.getMonth() + 1 < birth.month || (now.getMonth() + 1 === birth.month && now.getDate() < birth.day) ? 1 : 0);
 
@@ -224,14 +226,14 @@ function dateFields(birthDate: string, now = new Date()): Record<string, unknown
       ['Готово · классическая методика', 'Нажми на любой раздел, чтобы прочитать'],
     ],
     mxs: [
-      [String(center), 'Характер', 'Кто ты, когда никто не смотрит', false],
-      [`${personal}·${social}·${purpose}`, 'Предназначение', 'Цели: для себя, для людей и общая', false],
-      [`${month}·${talents}`, 'Таланты', 'Что даётся легче, чем другим', true],
-      [String(money), 'Деньги', 'Через что приходят и что мешает', true],
-      [String(love), 'Любовь', 'Каким должен быть твой человек', true],
-      [`${past}·${habit}`, 'Что тянется из прошлого', 'Привычки, которые повторяются', true],
-      [`${year}·${base}`, 'Род', 'Что передалось по роду', true],
-      ['0-80', 'Годы жизни', `Что для тебя главное сейчас, в ${age} лет`, true],
+      [String(center), 'Характер', 'Кто ты, когда никто не смотрит', false, arcanaText(center)],
+      [`${personal}·${social}·${purpose}`, 'Предназначение', 'Цели: для себя, для людей и общая', false, arcanaText(personal, social, purpose)],
+      [`${month}·${talents}`, 'Таланты', 'Что даётся легче, чем другим', true, arcanaText(month, talents)],
+      [String(money), 'Деньги', 'Через что приходят и что мешает', true, arcanaText(money)],
+      [String(love), 'Любовь', 'Каким должен быть твой человек', true, arcanaText(love)],
+      [`${past}·${habit}`, 'Что тянется из прошлого', 'Привычки, которые повторяются', true, arcanaText(past, habit)],
+      [`${year}·${base}`, 'Род', 'Что передалось по роду', true, arcanaText(year, base)],
+      ['0-80', 'Годы жизни', `Что для тебя главное сейчас, в ${age} лет`, true, arcanaText(reduceToArcana(age))],
     ],
     mxCenter: { over: `Центр · ${center} · аркан ${arcana.name}`, title: cap(arcana.keyword), text: cap(arcana.essence) },
     num: {

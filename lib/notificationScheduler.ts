@@ -162,7 +162,7 @@ function plannerTick() {
   const { hour, minute, dateKey } = mskNow();
   const due = (h: number, m: number) => hour > h || (hour === h && minute >= m);
   // «Карта дня» — контент на день, генерим раз в сутки утром по Москве (для пуша есть фолбэк).
-  if (due(6, 30)) void runOnce('daily-card-generator', dateKey, () => generateDailyCards(new Date(), { limit: 250 }));
+  if (due(0, 5)) void runOnce('daily-card-generator', dateKey, () => generateDailyCards(new Date(), { limit: 250 }));
   // Сериалы: держим запас серий на 10 дней вперёд. Только основной сервер (не relay OpenAI).
   if (due(3, 20) && storyGenerationEnabled()) void runOnce('story-episodes', dateKey, () => ensureAllStoryBuffers());
 

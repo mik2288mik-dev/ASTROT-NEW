@@ -105,9 +105,10 @@ export function startDomTranslator(root: HTMLElement, translate: Translate): { r
       translateText(node as Text);
       return;
     }
-    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    // The new interface lives in a shadow root, which is a fragment and not an element.
+    if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) return;
     const element = node as Element;
-    translateAttributes(element);
+    if (node.nodeType === Node.ELEMENT_NODE) translateAttributes(element);
     element.querySelectorAll('[placeholder],[aria-label],[title],[alt]').forEach(translateAttributes);
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     let current = walker.nextNode();

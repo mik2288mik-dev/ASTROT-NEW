@@ -34,8 +34,12 @@ function readStored(): UiLanguage | null {
 /** Russian users do not download the translations: they load only when another language is on. */
 async function ensureDictionaries() {
   if (dictionaries) return;
-  const module = await import('./strings');
-  dictionaries = { esFromEn: module.ES_FROM_EN, enFromRu: module.EN_FROM_RU, esFromRu: module.ES_FROM_RU };
+  const [module, canvas] = await Promise.all([import('./strings'), import('./canvasStrings')]);
+  dictionaries = {
+    esFromEn: module.ES_FROM_EN,
+    enFromRu: { ...module.EN_FROM_RU, ...canvas.CANVAS_EN_FROM_RU },
+    esFromRu: { ...module.ES_FROM_RU, ...canvas.CANVAS_ES_FROM_RU },
+  };
 }
 
 function notify() {
@@ -44,6 +48,22 @@ function notify() {
 }
 
 let translator: ReturnType<typeof startDomTranslator> | null = null;
+/** Parts of the page the translator cannot see from the body, such as a shadow root. */
+const extraRoots = new Map<ParentNode, ReturnType<typeof startDomTranslator> | null>();
+
+function syncExtraRoots(translate: Translate | null) {
+  extraRoots.forEach((running, root) => {
+    if (!translate) { running?.stop(); extraRoots.set(root, null); return; }
+    if (running) running.retranslate(translate);
+    else extraRoots.set(root, startDomTranslator(root as unknown as HTMLElement, translate));
+  });
+}
+
+export function attachTranslatorRoot(root: ParentNode) {
+  if (extraRoots.has(root)) return;
+  extraRoots.set(root, null);
+  if (current !== 'ru' && dictionaries) syncExtraRoots(translatorFor(current));
+}
 
 function translatorFor(language: UiLanguage): Translate {
   if (!dictionaries) return () => null;
@@ -58,12 +78,14 @@ function syncTranslator() {
   if (current === 'ru') {
     translator?.stop();
     translator = null;
+    syncExtraRoots(null);
     return;
   }
   if (!dictionaries) return;
   const translate = translatorFor(current);
   if (translator) translator.retranslate(translate);
   else translator = startDomTranslator(document.body, translate);
+  syncExtraRoots(translate);
 }
 
 /** Call once on the client, before the first screen. */
