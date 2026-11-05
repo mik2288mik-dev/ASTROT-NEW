@@ -242,9 +242,9 @@ describe('personal forecast rolling prewarm', () => {
       .toEqual(['2026-08']);
   });
 
-  it('uses profile-local dates across midnight, year rollover and daylight saving', () => {
+  it('opens every day at midnight Moscow time, wherever the person was born', () => {
     expect(getPersonalForecastDayHorizon('Pacific/Kiritimati', new Date('2026-12-31T12:00:00Z')))
-      .toEqual(['2027-01-01', '2027-01-02', '2027-01-03', '2027-01-04', '2027-01-05']);
+      .toEqual(['2026-12-31', '2027-01-01', '2027-01-02', '2027-01-03', '2027-01-04']);
     expect(getPersonalForecastDayHorizon('America/New_York', new Date('2026-11-01T04:30:00Z')))
       .toEqual(['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05']);
   });

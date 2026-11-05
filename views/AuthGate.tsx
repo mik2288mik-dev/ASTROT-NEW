@@ -41,7 +41,7 @@ function authErrorCode(error: unknown): string {
   return String(value?.code || value?.message || value?.name || '').trim();
 }
 
-function readableAuthError(error: unknown): string {
+export function readableAuthError(error: unknown): string {
   const code = authErrorCode(error);
   if (code.includes('AUTH_CANCELLED')) return '';
   if (code.includes('AUTH_TIMEOUT')) {

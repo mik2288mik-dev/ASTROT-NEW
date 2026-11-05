@@ -30,6 +30,7 @@ const config: CapacitorConfig = {
     },
     SystemBars: {
       insetsHandling: 'css',
+      hidden: true,
     },
   },
 };

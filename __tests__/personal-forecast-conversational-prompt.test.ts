@@ -5,10 +5,11 @@ it('asks for a personal reading without priming it with conversations', () => {
   expect(prompt).not.toMatch(/переписк|Разговор пойдёт сам/iu);
   expect(prompt).not.toContain('Каждый астрологический факт объясняй тремя слоями');
   expect(prompt).not.toContain('Астрологические термины (трин');
-  expect(prompt).toContain('Пиши только из него и ничего не добавляй от себя');
+  expect(prompt).toContain('Смысл бери только оттуда и ничего не добавляй от себя');
   expect(prompt).toContain('Тему бери только из day_brief');
-  expect(prompt).toContain('Слова аспект, транзит, орб, градус');
-  expect(prompt).toContain('closing: одно короткое предложение');
+  expect(prompt).toContain('В тексте нет астрологии');
+  expect(prompt).not.toMatch(/начальнику|прибавку\./u);
+  expect(prompt).toContain('closing: одна короткая тёплая фраза');
 });
 
 it.each(['week', 'month'] as const)('keeps %s positive without obligatory advice or saccharine copy', (period) => {
