@@ -1,15 +1,15 @@
 import { getPersonalForecastSystemPrompt, getPersonalPeriodForecastSystemPrompt } from '../lib/voice/contracts/personalForecast';
 
-it('asks for a personal reading without priming it with conversations', () => {
+it('asks for a kind personal forecast without priming it with negative situations', () => {
   const prompt = getPersonalForecastSystemPrompt('ru', 'today');
-  expect(prompt).not.toMatch(/переписк|Разговор пойдёт сам/iu);
-  expect(prompt).not.toContain('Каждый астрологический факт объясняй тремя слоями');
-  expect(prompt).not.toContain('Астрологические термины (трин');
-  expect(prompt).toContain('Смысл бери только оттуда и ничего не добавляй от себя');
-  expect(prompt).toContain('Тему бери только из day_brief');
-  expect(prompt).toContain('В тексте нет астрологии');
-  expect(prompt).not.toMatch(/начальнику|прибавку\./u);
-  expect(prompt).toContain('closing: одна короткая тёплая фраза');
+  expect(prompt).toContain('добрый астролог NEBO');
+  expect(prompt).toContain('по расчёту day_brief');
+  expect(prompt).toContain('не выдумывая удачу или события');
+  expect(prompt).toContain('Не показывай астрологические термины');
+  expect(prompt).toContain('Не своди прогнозы к разговорам');
+  expect(prompt).not.toMatch(/что может раздражать|как это обойти|суматошным|нервный день/iu);
+  expect(prompt).toContain('без списка дел и обязательных советов');
+  expect(prompt).toContain('closing: короткая заключительная фраза');
 });
 
 it.each(['week', 'month'] as const)('keeps %s positive without obligatory advice or saccharine copy', (period) => {
