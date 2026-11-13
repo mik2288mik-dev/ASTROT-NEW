@@ -20,7 +20,7 @@ it('uses the NEBO Today voice, saved chart, date calculation and complete readin
   writer.mockResolvedValue({content:JSON.stringify({title:'A new offer',body:'An unexpected offer may arrive. Its details may change after a conversation.',closing:'Good luck'})});
   const result=await generatePersonalForecastPackage(input);
   expect(writer).toHaveBeenCalledTimes(1);
-  expect(writer.mock.calls[0][0].instructions).toContain('ЕДИНЫЙ ГОЛОС NEBO');
+  expect(writer.mock.calls[0][0].instructions).toContain('добрый астролог NEBO');
   expect(writer.mock.calls[0][0].instructions).toContain('title, body, closing, do, dont, why и theme');
   const data=JSON.parse(writer.mock.calls[0][0].input);
   expect(data.day_brief.main_events).toEqual([]);

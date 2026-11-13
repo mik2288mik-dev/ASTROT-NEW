@@ -1,6 +1,7 @@
 import type { UserProfile } from '../types';
 import { createLunaStructuredResponse } from './openaiResponses';
 import { getPersonalForecastVoiceViolationCodes } from './appVoice';
+import { getPersonalForecastToneViolationCodes } from './personalForecastTone';
 import type { NatalChartDataV2 } from './natalChartV2Types';
 import { buildPersonalForecastDateContext } from './personalForecastDateContext';
 import { buildPersonalDayBrief } from './personalDayBrief';
@@ -45,6 +46,7 @@ export interface PersonalForecastGenerationInput {
   window: PersonalForecastWindow;
   history?: PersonalForecastRecentReading[];
   retryReason?: string;
+  toneRewriteAttempted?: boolean;
 }
 
 function recentPeriodReadings(input: PersonalForecastGenerationInput) {
@@ -191,6 +193,14 @@ function dayRetryFeedback(reason: string | undefined, language: 'ru' | 'en'): st
   return language === 'ru'
     ? 'Предыдущий текст не прошёл проверку. Напиши новый цельный прогноз и короткий финал по переданному расчёту.'
     : 'The previous draft failed validation. Write a new coherent reading and short closing grounded in the calculation.';
+}
+
+function dayVisibleToneCodes(forecast: PersonalForecastPackage): string[] {
+  const notes = forecast.overview.dayNotes;
+  const visible = [forecast.overview.title, forecast.overview.text,
+    ...(notes?.do || []), ...(notes?.dont || []),
+    ...(notes?.why || []).flatMap(({ fact, meaning }) => [fact, meaning])];
+  return getPersonalForecastToneViolationCodes(visible.join('\n'));
 }
 
 /** One provider request using the saved chart and the selected date calculation. */
@@ -342,6 +352,29 @@ export async function generatePersonalForecastPackage(
       title, forecast: text, closing: closingText } };
   const error = getPersonalForecastPackageValidationError(result);
   if (error) throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:${error}`);
+  // Improve an explicitly problem-led day once, without losing a readable forecast.
+  if (input.period === 'day' && !input.toneRewriteAttempted && dayVisibleToneCodes(result).length) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const rewritten = await Promise.race([
+        generatePersonalForecastPackage({
+          ...input,
+          retryReason: 'PERSONAL_FORECAST_GENERATION_INVALID:TONE:NEGATIVE',
+          toneRewriteAttempted: true,
+        }),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('PERSONAL_FORECAST_TONE_REWRITE_TIMEOUT')), 6_000);
+        }),
+      ]);
+      if (!dayVisibleToneCodes(rewritten).length) {
+        return rewritten;
+      }
+    } catch {
+      // Keep the usable original if the improvement request fails.
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
   return result;
 }
 

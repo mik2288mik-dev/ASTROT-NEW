@@ -3,6 +3,7 @@ jest.mock('../lib/natalChartV2Repository',()=>({natalChartV2Repository:{getPrima
 jest.mock('../lib/db',()=>({db:{content_interpretations:{getByUser,upsertByUser}},getPool:()=>({query})}));
 jest.mock('../lib/openaiResponses',()=>({createLunaStructuredResponse:(...args:unknown[])=>request(...args)}));
 jest.mock('../lib/personalForecastDateContext',()=>({buildPersonalForecastDateContext:()=>({source:'Swiss Ephemeris',samples:[]})}));
+jest.mock('../lib/personalDayBrief',()=>({buildPersonalDayBrief:()=>({moon:{},main_events:[]})}));
 jest.mock('../lib/appSettings',()=>({getUnifiedContentModel:async()=> 'gpt-5.6-luna'}));
 jest.mock('../lib/forecastDeliveryMetrics',()=>({logForecastDeliveryMetric:jest.fn()}));
 jest.mock('../lib/contentGenerationLock',()=>({buildContentGenerationLockKey:()=> 'test',withContentGenerationLock:async({readCached,generate}:any)=>{const cached=await readCached();return {status:'ready',value:cached?cached.value:await generate(),fromCache:!!cached};}}));
@@ -24,7 +25,7 @@ it.each([
  ['negative', 'Сегодня напряжённый день, и всё идёт медленнее. Постарайся выбрать удобный темп.'],
  ['astrology terms', 'Меркурий и Солнце в твоей карте дают ясность и интерес к новым идеям.'],
  ['repeated', 'Сегодня тебе будет легче понять важную деталь и выбрать подходящий вариант.'],
-])('saves and reuses the original %s day reading without another writer request',async(label,body)=>{
+])('saves and reuses a readable %s day reading',async(label,body)=>{
  if(label==='repeated') query.mockResolvedValue({rows:[{user_id:profile.id,content:{
    period:'day',periodKey:'2026-09-07',overview:{title:'Ясный день',text:body},sections:[],
    meta:{contractVersion:PERSONAL_FORECAST_CONTRACT_VERSION},
@@ -34,11 +35,12 @@ it.each([
  expect(first.status).toBe('ready');if(first.status!=='ready')throw Error('Not ready');
  expect(isPersonalForecastPackage(first.value)).toBe(true);
  expect(first.value.overview.text).toBe(`${body}\n\nПусть день пройдёт хорошо.`);
- expect(request).toHaveBeenCalledTimes(1);expect(upsertByUser).toHaveBeenCalledTimes(1);
+ const expectedRequests=label==='negative'||label==='astrology terms'?2:1;
+ expect(request).toHaveBeenCalledTimes(expectedRequests);expect(upsertByUser).toHaveBeenCalledTimes(1);
  const again=await ensurePersonalForecast(context);
  expect(again.status).toBe('ready');if(again.status!=='ready')throw Error('Not ready');
  expect(again.value.overview.text).toBe(first.value.overview.text);
- expect(request).toHaveBeenCalledTimes(1);expect(upsertByUser).toHaveBeenCalledTimes(1);
+ expect(request).toHaveBeenCalledTimes(expectedRequests);expect(upsertByUser).toHaveBeenCalledTimes(1);
 });
 it('saves and reuses a month reading even when it contains a negative phrase',async()=>{
  const body='Этот месяц будет непростым. Наступит время разобрать важные вопросы в своём темпе.';

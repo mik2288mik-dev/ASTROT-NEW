@@ -19,6 +19,80 @@ beforeEach(() => {
   writer.mockReset();
 });
 
+const dailyInput = { ...base, period: 'day' as const, window: resolvePersonalForecastWindow('day', '2026-07-26', 'Europe/Moscow') };
+const negativeDay = { title: 'Тяжёлые разговоры', body: 'Разговоры сегодня пойдут тяжело. Люди могут раздражать, легко поссориться.', closing: 'Постарайся избежать споров.' };
+const pleasantDay = { title: 'Новые идеи', body: 'Появится желание заняться тем, что давно интересно. Ты легко найдёшь новые идеи.', closing: 'Любопытство приведёт к интересной находке.' };
+const writerResponse = (reading: object) => ({ content: JSON.stringify(reading) });
+
+it('tries once to improve an explicitly negative day and returns the improved text', async () => {
+  writer.mockResolvedValueOnce(writerResponse(negativeDay)).mockResolvedValueOnce(writerResponse(pleasantDay));
+
+  const result = await generatePersonalForecastPackage(dailyInput);
+
+  expect(writer).toHaveBeenCalledTimes(2);
+  expect(result.overview.title).toBe(pleasantDay.title);
+  expect(result.overview.text).toContain(pleasantDay.body);
+});
+
+it('keeps the first readable day if the improvement request fails', async () => {
+  writer.mockResolvedValueOnce(writerResponse(negativeDay)).mockRejectedValueOnce(new Error('provider unavailable'));
+
+  const result = await generatePersonalForecastPackage(dailyInput);
+
+  expect(writer).toHaveBeenCalledTimes(2);
+  expect(result.overview.title).toBe(negativeDay.title);
+  expect(result.overview.text).toContain(negativeDay.body);
+});
+
+it('does not wait indefinitely for an improvement request', async () => {
+  jest.useFakeTimers();
+  try {
+    writer.mockResolvedValueOnce(writerResponse(negativeDay)).mockImplementationOnce(() => new Promise(() => {}));
+    const pending = generatePersonalForecastPackage(dailyInput);
+    await jest.advanceTimersByTimeAsync(6_000);
+    const result = await pending;
+    expect(result.overview.text).toContain(negativeDay.body);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+it('keeps the first readable day when the improved draft is also negative', async () => {
+  const anotherNegativeDay = { title: 'Непростой день', body: 'Разговоры пойдут тяжело, а споры могут испортить настроение.', closing: 'Лучше избегать разговоров.' };
+  writer.mockResolvedValueOnce(writerResponse(negativeDay)).mockResolvedValueOnce(writerResponse(anotherNegativeDay));
+
+  const result = await generatePersonalForecastPackage(dailyInput);
+
+  expect(writer).toHaveBeenCalledTimes(2);
+  expect(result.overview.title).toBe(negativeDay.title);
+  expect(result.overview.text).toContain(negativeDay.body);
+});
+
+it('does not request an improvement for an ordinary pleasant day', async () => {
+  writer.mockResolvedValue(writerResponse(pleasantDay));
+
+  const result = await generatePersonalForecastPackage(dailyInput);
+
+  expect(writer).toHaveBeenCalledTimes(1);
+  expect(result.overview.text).toContain(pleasantDay.body);
+});
+
+it('also improves negative or astrological wording in visible day notes', async () => {
+  const withNegativeNotes = { ...pleasantDay, do: [], dont: ['Не обещай лишнего'], why: [] };
+  writer.mockResolvedValueOnce(writerResponse(withNegativeNotes)).mockResolvedValueOnce(writerResponse(pleasantDay));
+  const result = await generatePersonalForecastPackage(dailyInput);
+  expect(writer).toHaveBeenCalledTimes(2);
+  expect(result.overview.dayNotes?.dont).toEqual([]);
+});
+
+it('tries to remove visible planetary language from the personal forecast', async () => {
+  const astro = { title: 'День удовольствий', body: 'Луна в Тельце, а Венера дарит хороший вкус.', closing: 'Время для приятного.' };
+  writer.mockResolvedValueOnce(writerResponse(astro)).mockResolvedValueOnce(writerResponse(pleasantDay));
+  const result = await generatePersonalForecastPackage(dailyInput);
+  expect(writer).toHaveBeenCalledTimes(2);
+  expect(result.overview.text).toContain(pleasantDay.body);
+});
+
 it('returns a problem-led result rather than hiding the only reading', async () => {
   writer.mockResolvedValue({ content: JSON.stringify({ title: 'Терпение на нуле', body: 'Сегодня всё раздражает.', closing: 'К вечеру станет спокойнее.' }) });
   const result = await generatePersonalForecastPackage({ ...base, period: 'day', window: resolvePersonalForecastWindow('day', '2026-07-26', 'Europe/Moscow') });
